@@ -21,6 +21,7 @@ import { CurrencyProvider } from "../../$slug.domains/_components/currency-conte
 import type { DomainSearchResult } from "@/hooks/use-domain-search";
 import { useDomainPricing } from "@/hooks/use-domain-pricing";
 import { getPopularTlds } from "@/utils";
+import { captureEvent } from "@/lib/posthog";
 
 // Popular TLDs for brand protection - using popular TLDs from utils
 const BRAND_PROTECTION_TLDS = getPopularTlds().map(ext => `.${ext}`);
@@ -152,6 +153,31 @@ function ProtectBrandTabContent({ domainNameWithoutTld, isActive = true }: Prote
       status: result.status,
       price: result.price,
       addedInCurrency: currencyContext.selectedCurrency,
+    });
+    const parts = result.domain.toLowerCase().split(".");
+    const tld = parts.length >= 2 ? `.${parts.slice(1).join(".")}` : undefined;
+    const calculated = result.price?.calculated;
+    const price =
+      calculated?.convertedPrice ??
+      calculated?.finalPrice ??
+      result.price?.reseller?.price ??
+      result.price?.product?.price;
+    const currency =
+      calculated?.displayCurrency ??
+      calculated?.currency ??
+      result.price?.reseller?.currency ??
+      result.price?.product?.currency ??
+      currencyContext.selectedCurrency;
+    captureEvent("domain_added_to_cart", {
+      ...(tld ? { tld } : {}),
+      ...(price != null && Number.isFinite(price) ? { price } : {}),
+      ...(currency ? { currency } : {}),
+    });
+    captureEvent("storefront_cart_item_added", {
+      item_type: "domain",
+      ...(tld ? { tld } : {}),
+      ...(price != null && Number.isFinite(price) ? { price } : {}),
+      ...(currency ? { currency } : {}),
     });
   }, [addDomain, currencyContext.selectedCurrency]);
 

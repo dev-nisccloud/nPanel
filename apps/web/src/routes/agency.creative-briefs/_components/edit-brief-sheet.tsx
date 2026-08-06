@@ -15,6 +15,7 @@ import {
 	uploadErrorMessage,
 } from "@/lib/app-file-upload";
 import { STORAGE_PREFIXES } from "@/lib/storage-prefixes";
+import { captureEvent } from "@/lib/posthog";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -150,7 +151,16 @@ export function EditBriefSheet({ open, onOpenChange, brief, onEditBrief }: EditB
 
   // Update brief mutation
   const updateBriefMutation = trpc.creativeBriefs.update.useMutation({
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      const fieldsChanged = Object.keys(variables).filter((k) => k !== "id");
+      captureEvent("creative_brief_edited", {
+        fields_changed: fieldsChanged,
+      });
+      if ("teamId" in variables && variables.teamId !== undefined) {
+        captureEvent("creative_brief_assigned", {
+          team_id: variables.teamId || "unassigned",
+        });
+      }
       toast.success("Creative brief updated successfully!");
       form.reset();
       // Clean up preview URLs

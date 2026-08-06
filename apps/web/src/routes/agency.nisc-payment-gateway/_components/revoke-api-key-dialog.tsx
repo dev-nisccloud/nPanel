@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
@@ -36,6 +38,7 @@ export function RevokeApiKeyDialog({
   const revokeMutation = trpc.niscPaymentGateway.apiKeys.revoke.useMutation({
     onSuccess: () => {
       toast.success("API key revoked successfully");
+      captureEvent("payment_gateway_api_key_revoked");
       onSuccess?.();
       onOpenChange(false);
     },

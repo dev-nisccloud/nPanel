@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import { Plus, RefreshCw, Search, Globe, Grid3X3, List, EllipsisVertical, FilePlus2, Link2 } from "lucide-react";
 import { useNavigate } from "react-router";
@@ -40,6 +42,10 @@ type DomainPortfolioWithSource = DomainPortfolio & {
 };
 
 export default function DomainsPortfolioPage() {
+  React.useEffect(() => {
+    captureEvent("domain_portfolio_viewed", { user_type: "agency" });
+  }, []);
+
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = React.useState("");
   const [limit] = React.useState(100);

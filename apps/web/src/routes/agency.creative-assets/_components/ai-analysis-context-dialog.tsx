@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { captureEvent } from "@/lib/posthog";
 
 const MAX_ANALYSIS_CONTEXT = 4000;
 
@@ -39,6 +40,10 @@ export function AiAnalysisContextDialog({
 
   const handleSkip = () => {
     if (isLoading) return;
+    captureEvent("creative_asset_ai_analyzed", {
+      analysis_type: "skip_context",
+      has_context: false,
+    });
     onRun(undefined);
     onOpenChange(false);
   };
@@ -47,6 +52,10 @@ export function AiAnalysisContextDialog({
     if (isLoading) return;
     const trimmed = draft.trim();
     if (!trimmed) return;
+    captureEvent("creative_asset_ai_analyzed", {
+      analysis_type: "with_context",
+      has_context: true,
+    });
     onRun(trimmed);
     onOpenChange(false);
   };

@@ -6,6 +6,7 @@ import { Loader, TriangleAlert } from "lucide-react";
  
 import { useGetProject } from "./_agency.gen-ai/image-gen-studio/_api/use-get-project";
 import { Button } from "@/components/ui/button";
+import { captureEvent } from "@/lib/posthog";
  
 const Editor = React.lazy(async () => {
   const mod = await import("./_agency.gen-ai/image-gen-studio/_components/editor");
@@ -21,6 +22,11 @@ const editorFallback = (
 const EditorProjectIdPage = () => {
   const { projectId } = useParams();
   const { data, isLoading, isError } = useGetProject(projectId as string);
+
+  React.useEffect(() => {
+    if (!projectId || !data?.data) return;
+    captureEvent("image_gen_project_opened", { project_id: projectId });
+  }, [projectId, data?.data?.id]);
 
   if (isLoading || !data) {
     return (

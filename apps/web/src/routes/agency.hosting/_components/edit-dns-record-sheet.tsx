@@ -24,6 +24,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
+import { captureEvent } from "@/lib/posthog";
 
 const FormSchema = z.object({
     host: z.string().min(1, { message: "Host is required." }),
@@ -56,7 +57,8 @@ export function EditDnsRecordSheet({ open, onOpenChange, siteId, domainName, rec
     const [selectedRecordType, setSelectedRecordType] = React.useState<string>("");
 
     const updateDnsRecord = trpc.plesk.dnsUpdate.update.useMutation({
-        onSuccess: () => {
+        onSuccess: (_data, variables) => {
+            captureEvent("dns_record_updated", { record_type: variables.type });
             toast.success("DNS record updated successfully!");
             onOpenChange(false);
             onSuccess?.();

@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDataTableInstance } from "@/hooks/use-data-table-instance";
 import { trpc } from "@/utils/trpc";
+import { captureEvent } from "@/lib/posthog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -160,6 +161,11 @@ export function DnsTable({ siteId, domainName }: DnsTableProps) {
   // tRPC mutation for deleting DNS record
   const deleteDnsRecord = trpc.plesk.dnsDelete.delete.useMutation({
     onSuccess: () => {
+      if (recordToDelete?.type) {
+        captureEvent("dns_record_deleted", { record_type: recordToDelete.type });
+      } else {
+        captureEvent("dns_record_deleted");
+      }
       toast.success("DNS record deleted successfully!");
       setDeleteDialogOpen(false);
       setRecordToDelete(null);

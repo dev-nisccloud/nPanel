@@ -1,6 +1,7 @@
 "use client";
 
 import { trpc } from "@/utils/trpc";
+import { captureEvent } from "@/lib/posthog";
 
 /**
  * Hook for auto-saving NISC email HTML with immediate persistence and optimistic updates.
@@ -55,6 +56,7 @@ export function useSaveNebHtmlContent() {
 		},
 
 		onSuccess: (data, variables) => {
+			captureEvent("email_design_saved", { save_type: "auto" });
 			// Update with successful save state
 			utils.niscEmailBuilder.design.get.setData({ designId: variables.designId }, (old) => {
 				if (!old || !data.data) return old;

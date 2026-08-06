@@ -24,6 +24,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
+import { captureEvent } from "@/lib/posthog";
 
 import { dnsRecordSchema } from "./dns-schema";
 
@@ -53,7 +54,8 @@ export function AddDnsRecordSheet({ open, onOpenChange, siteId, domainName, onSu
 
   // tRPC mutation for creating DNS record
   const createDnsRecord = trpc.plesk.dnsCreate.create.useMutation({
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      captureEvent("dns_record_created", { record_type: variables.type });
       toast.success("DNS record added successfully!");
       form.reset();
       setSelectedRecordType("");

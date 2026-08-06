@@ -26,6 +26,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import { creativeAssetSchema } from "./schema";
+import { captureEvent } from "@/lib/posthog";
 
 const FormSchema = z.object({
   name: z.string().min(1, { message: "Asset name is required." }),
@@ -80,6 +81,18 @@ export function EditAssetSheet({ open, onOpenChange, asset, onEditAsset }: EditA
   // Update asset mutation - TODO: Create this mutation in the API
   const updateAssetMutation = trpc.creativeAssets.update.useMutation({
     onSuccess: () => {
+      const values = form.getValues();
+      const fieldsChanged: string[] = [];
+      if (asset) {
+        if (values.name !== asset.name) fieldsChanged.push("name");
+        if ((values.description || "") !== (asset.description || "")) fieldsChanged.push("description");
+        if ((values.category || "") !== (asset.category || "")) fieldsChanged.push("category");
+        if (values.status !== asset.status) fieldsChanged.push("status");
+        if (values.teamId !== asset.teamId) fieldsChanged.push("teamId");
+      }
+      captureEvent("creative_asset_edited", {
+        fields_changed: fieldsChanged,
+      });
       toast.success("Creative asset updated successfully!");
       form.reset();
       onOpenChange(false);

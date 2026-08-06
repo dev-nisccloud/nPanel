@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -131,6 +133,7 @@ export function SaveETimsCustomerSheet({
                 return;
             }
             toast.success(isEdit ? "Customer updated on branch" : "Customer registered on branch");
+            if (!isEdit) captureEvent("etims_customer_registered");
             onOpenChange(false);
             onSuccess?.();
         },

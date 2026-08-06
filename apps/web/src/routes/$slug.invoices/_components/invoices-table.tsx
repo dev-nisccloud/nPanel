@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/tooltip";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 import { registerFonts } from "./invoices-list";
 import type { InvoiceSummary } from "@/routes/agency.invoices/create/api/schemas";
 
@@ -76,6 +77,7 @@ function InvoiceRowActions({ invoice, onRefetch }: InvoiceRowActionsProps) {
 			a.click();
 			document.body.removeChild(a);
 			URL.revokeObjectURL(url);
+			captureEvent("invoice_downloaded_pdf");
 			toast.success("Invoice downloaded successfully", { description: `Invoice ${invoice.invoiceNumber} has been downloaded.` });
 		} catch (e) {
 			toast.error("Failed to download invoice", { description: e instanceof Error ? e.message : "An error occurred" });

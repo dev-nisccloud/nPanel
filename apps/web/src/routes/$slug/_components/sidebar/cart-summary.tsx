@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useCartStore } from "@/stores/cart-store";
 import { useGlobalBuyNowStore } from "@/stores/global-buy-now-store";
+import { captureEvent } from "@/lib/posthog";
 
 export function CartSummary() {
   const {
@@ -28,6 +29,10 @@ export function CartSummary() {
   };
 
   const handleCheckout = () => {
+    captureEvent("storefront_checkout_started", {
+      items_count: totalItems,
+      currency: currenciesInCart[0] ?? "KES",
+    });
     openForCart();
   };
 

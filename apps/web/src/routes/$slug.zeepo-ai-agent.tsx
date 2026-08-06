@@ -9,10 +9,15 @@ import {
 	type ZeepoAgentRouteConfig,
 } from "@/components/zeepo/zeepo-agent-route-context";
 import { ZeepoTokenBillingProvider } from "@/components/zeepo/zeepo-token-billing-provider";
+import { captureEvent } from "@/lib/posthog";
 
 export default function CustomerZeepoAiAgentLayout() {
 	const params = useParams();
 	const teamSlug = typeof params?.slug === "string" ? params.slug : "";
+
+	React.useEffect(() => {
+		captureEvent("zeepo_agent_chat_started");
+	}, []);
 
 	const { data: teamData, isLoading } = trpc.teams.getTeamIdBySlug.useQuery(
 		{ slug: teamSlug },

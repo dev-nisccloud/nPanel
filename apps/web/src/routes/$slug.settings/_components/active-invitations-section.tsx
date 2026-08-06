@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 import { trpc } from "@/utils/trpc";
 import { useUsersLookup } from "@/hooks/use-user-lookup";
 import { InviteMemberDialog } from "./invite-member-dialog";
@@ -104,6 +105,7 @@ export function ActiveInvitationsSection({ teamId }: ActiveInvitationsSectionPro
   const utils = trpc.useUtils();
   const deleteInviteMutation = trpc.teams.deleteInvite.useMutation({
     onSuccess: () => {
+      captureEvent("team_member_invitation_cancelled");
       toast.success("Invite deleted");
       utils.teams.getInvitesAsMember.invalidate({ teamId });
       setDeleteInviteDialog({ open: false, inviteId: null, inviteEmail: "" });

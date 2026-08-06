@@ -7,20 +7,41 @@ import { Button } from "@/components/ui/button";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { captureEvent } from "@/lib/posthog";
 
 export default function InstagramCallbackPage() {
 	const [status, setStatus] = React.useState<"loading" | "success" | "error">("loading");
 	const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 	const [hasProcessed, setHasProcessed] = React.useState(false);
+	const connectionSourceRef = React.useRef<"instagram" | "instagram_ads">("instagram");
 
 	const generateTokenMutation = trpc.socialMediaMarketing.instagram.auth.generateToken.useMutation({
-		onSuccess: () => {
+		onSuccess: (data) => {
 			setStatus("success");
 			setHasProcessed(true);
-			toast.success("Instagram account connected successfully!");
+			const accountId =
+				(data as { data?: { accountId?: string } })?.data?.accountId ??
+				(data as { accountId?: string })?.accountId;
+			const pageId =
+				(data as { data?: { pageId?: string } })?.data?.pageId ??
+				(data as { pageId?: string })?.pageId;
+			if (connectionSourceRef.current === "instagram_ads") {
+				captureEvent("instagram_ads_connected", { account_id: accountId });
+			} else {
+				captureEvent("instagram_account_connected", { page_id: pageId });
+			}
+			toast.success(
+				connectionSourceRef.current === "instagram_ads"
+					? "Instagram Ads account connected successfully!"
+					: "Instagram account connected successfully!",
+			);
 			// Hard redirect so refreshing the callback does not re-run the exchange.
 			setTimeout(() => {
-				window.location.replace("/agency/social-media-marketing/instagram");
+				window.location.replace(
+					connectionSourceRef.current === "instagram_ads"
+						? "/agency/ad-campaigns/instagram-ads"
+						: "/agency/social-media-marketing/instagram",
+				);
 			}, 2000);
 		},
 		onError: (error) => {
@@ -62,8 +83,16 @@ export default function InstagramCallbackPage() {
 
 		const state = searchParams.get("state");
 
+		const instagramAdsState = sessionStorage.getItem("instagram_ads_oauth_state");
+		const instagramState = sessionStorage.getItem("instagram_oauth_state");
+		if (instagramAdsState && (!instagramState || state === instagramAdsState)) {
+			connectionSourceRef.current = "instagram_ads";
+		} else {
+			connectionSourceRef.current = "instagram";
+		}
+
 		// Validate state to prevent CSRF
-		const storedState = sessionStorage.getItem("instagram_oauth_state");
+		const storedState = instagramAdsState || instagramState;
 		if (state && storedState && state !== storedState) {
 			setStatus("error");
 			setHasProcessed(true);
@@ -71,6 +100,7 @@ export default function InstagramCallbackPage() {
 			return;
 		}
 		sessionStorage.removeItem("instagram_oauth_state");
+		sessionStorage.removeItem("instagram_ads_oauth_state");
 
 		// Guard against re-processing the same code (e.g. page refresh)
 		const lastProcessedCode = sessionStorage.getItem("instagram_oauth_last_code");
@@ -78,7 +108,11 @@ export default function InstagramCallbackPage() {
 			setStatus("success");
 			setHasProcessed(true);
 			setTimeout(() => {
-				window.location.replace("/agency/social-media-marketing/instagram");
+				window.location.replace(
+					connectionSourceRef.current === "instagram_ads"
+						? "/agency/ad-campaigns/instagram-ads"
+						: "/agency/social-media-marketing/instagram",
+				);
 			}, 1000);
 			return;
 		}

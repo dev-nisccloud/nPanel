@@ -41,6 +41,7 @@ import { ChangeDatabasePermissionsSheet } from "./change-database-permissions-sh
 import { DatabaseConnectionInfoDialog } from "./database-connection-info-dialog";
 import { CreateDatabaseSheet } from "./create-database-sheet";
 import { AssignDatabaseSheet } from "./assign-database-sheet";
+import { captureEvent } from "@/lib/posthog";
 
 interface DatabasesTableProps {
   siteId: number;
@@ -130,6 +131,8 @@ export function DatabasesTable({ siteId, domainName }: DatabasesTableProps) {
   // Delete database mutation
   const deleteDatabase = trpc.plesk.databasesDelete.delete.useMutation({
     onSuccess: () => {
+      captureEvent("database_deleted");
+
       toast.success("Database deleted successfully!");
       setDeleteDialogOpen(false);
       setDatabaseToDelete(null);

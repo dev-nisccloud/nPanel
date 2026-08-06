@@ -76,6 +76,7 @@ import {
   needsCheckoutTeamBillingStep,
 } from "@/lib/team-billing-completion";
 import { getCustomerTeamSlugFromPathname } from "@/lib/customer-team-slug";
+import { captureEvent } from "@/lib/posthog";
 
 const CHECKOUT_TEAM_BILLING_FORM_ID = "checkout-team-billing-form";
 
@@ -647,6 +648,7 @@ export function GlobalBuyNowDialog() {
       startPolling(checkoutId);
     },
     onError: (error) => {
+      captureEvent("mpesa_payment_failed");
       const msg = error.message || "Failed to initiate payment.";
       terminalStateDetectedRef.current = true;
       immediateStepRef.current = "error";
@@ -669,6 +671,68 @@ export function GlobalBuyNowDialog() {
 
   const createOrderFromPayment = trpc.niscServiceOrders.createFromPayment.useMutation({
     onSuccess: () => {
+      const extractTld = (domain?: string) => {
+        if (!domain?.includes(".")) return undefined;
+        return `.${domain.split(".").slice(1).join(".")}`;
+      };
+
+      if (isTransferMode && transferContext) {
+        const tld = extractTld(transferContext.domain);
+        captureEvent("domain_transfer_completed", {
+          ...(tld ? { tld } : {}),
+          price: transferContext.price,
+          currency: transferContext.currency,
+        });
+      } else if (isCartMode) {
+        captureEvent("storefront_checkout_completed", {
+          currency: primaryCurrency,
+          items_count: items.length,
+          price: effectiveCartSubtotal || cartSubtotal,
+        });
+        for (const item of items) {
+          if (item.type === "domain") {
+            const tld = extractTld(item.domain);
+            captureEvent("domain_purchased", {
+              ...(tld ? { tld } : {}),
+              price: getDomainCartLineBasePrice(item),
+              currency: primaryCurrency,
+              duration_years: 1,
+            });
+          } else if (item.type === "domain_bundle") {
+            const bundle = item as DomainBundleCartItem;
+            for (const d of bundle.domains) {
+              const tld = extractTld(d.domain);
+              captureEvent("domain_purchased", {
+                ...(tld ? { tld } : {}),
+                price: getDomainBundleCartLinePrice(bundle),
+                currency: getDomainBundleCartLineCurrency(bundle) || primaryCurrency,
+                duration_years: 1,
+                is_bundle: true,
+              });
+            }
+          }
+        }
+      } else if (ctx?.domain?.domain) {
+        const tld = extractTld(ctx.domain.domain);
+        captureEvent("domain_purchased", {
+          ...(tld ? { tld } : {}),
+          price: domainTotal || domainDisplayPrice,
+          currency: displayCurrency,
+          duration_years: duration,
+        });
+      } else if (isDomainBundle && bundleCtx) {
+        for (const d of bundleCtx.domains) {
+          const tld = extractTld(d.domain);
+          captureEvent("domain_purchased", {
+            ...(tld ? { tld } : {}),
+            price: bundleCtx.bundlePrice,
+            currency: bundleCtx.bundleCurrency,
+            duration_years: duration,
+            is_bundle: true,
+          });
+        }
+      }
+
       if (isCartMode) clearCart();
       setCheckoutRequestId(null);
       orderCreatedForCheckoutRef.current = null;
@@ -1012,6 +1076,7 @@ export function GlobalBuyNowDialog() {
             immediateStepRef.current = "success";
             immediatePaymentErrorRef.current = null;
             setPaymentError(null);
+            captureEvent("mpesa_payment_completed");
             setCurrentStep("success");
             onPaymentSuccessRef.current?.(cid);
             toast.success("Payment completed successfully!");
@@ -1151,6 +1216,7 @@ export function GlobalBuyNowDialog() {
       ? (transferContext.domain.replace(/\./g, "").slice(0, 9).toUpperCase() || "TRF") + timestamp
       : (ctx?.domain?.domain?.replace(/\./g, "").slice(0, 9).toUpperCase() ?? "ORD") + timestamp;
     try {
+      captureEvent("mpesa_payment_initiated", { amount: amount, phone_length: mpesaPhoneNumber.replace(/\D/g, "").length });
       await initiateMpesaPayment.mutateAsync({
         phoneNumber: mpesaPhoneNumber.trim(),
         amount,

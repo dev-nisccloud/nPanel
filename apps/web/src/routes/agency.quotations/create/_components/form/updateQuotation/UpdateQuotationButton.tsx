@@ -9,6 +9,7 @@ import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { useData } from "@/routes/agency.quotations/create/hooks/useData";
 import type { Item } from "@/routes/agency.quotations/create/types";
+import { captureEvent } from "@/lib/posthog";
 
 function roundTotalIfExceeds(amount: number): number {
 	const decimalPlaces = (amount.toString().split(".")[1] ?? "").length;
@@ -30,6 +31,7 @@ export function UpdateQuotationButton({ quotationId }: UpdateQuotationButtonProp
 	const updateMutation = trpc.quotations.update.useMutation({
 		onSuccess: () => {
 			setStatus("saved");
+			captureEvent("quotation_edited");
 			toast.success("Quotation updated successfully");
 			utils.quotations.list.invalidate();
 			utils.quotations.getById.invalidate({ id: quotationId });

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { captureEvent } from "@/lib/posthog";
 
 interface BackgroundRemoverResultsProps {
   originalImage: File;
@@ -25,9 +26,13 @@ export function BackgroundRemoverResults({
   const handleDownload = React.useCallback(() => {
     if (!processedImage) return;
 
+    const format = processedImage.mimeType.split("/")[1];
+    captureEvent("background_removed_image_downloaded", {
+      file_format: format || "unknown",
+    });
+
     const link = document.createElement("a");
     link.href = processedImage.dataUrl;
-    const format = processedImage.mimeType.split("/")[1];
     const timestamp = Date.now();
     link.download = `background-removed-${timestamp}.${format}`;
     document.body.appendChild(link);

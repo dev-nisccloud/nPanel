@@ -1,8 +1,14 @@
 "use client";
 
+import { useEffect } from "react";
 import { BackgroundRemoverInterface } from "./_agency.gen-ai/background-remover/_components/background-remover-interface";
+import { captureEvent } from "@/lib/posthog";
 
 export default function BackgroundRemoverPage() {
+  useEffect(() => {
+    captureEvent("background_remover_opened", { user_type: "agency" });
+  }, []);
+
   return (
     <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6 flex-1 min-h-0">
       <div className="w-full max-w-7xl mx-auto flex flex-col flex-1 min-h-0">

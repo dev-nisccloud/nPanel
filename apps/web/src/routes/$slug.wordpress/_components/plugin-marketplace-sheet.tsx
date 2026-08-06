@@ -35,6 +35,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 
 interface PluginMarketplaceSheetProps {
   open: boolean;
@@ -107,7 +108,12 @@ export function PluginMarketplaceSheet({
 
   // Install plugin mutation
   const installPlugin = trpc.plesk.wpPluginsInstall.install.useMutation({
-    onSuccess: () => {
+    onSuccess: () => {    const p = selectedPlugin;
+    captureEvent("wordpress_plugin_installed", {
+      plugin_name: p?.title || p?.name || p?.slug || "unknown",
+      plugin_slug: p?.slug || "unknown",
+    });
+
       toast.success("Plugin installed successfully!");
       onInstallSuccess?.();
       onOpenChange(false);
@@ -121,7 +127,11 @@ export function PluginMarketplaceSheet({
 
   // Activate plugin mutation
   const activatePlugin = trpc.plesk.wpPluginsStatus.setStatus.useMutation({
-    onSuccess: () => {
+    onSuccess: () => {    const p = selectedPlugin;
+    captureEvent("wordpress_plugin_activated", {
+      plugin_name: p?.title || p?.name || p?.slug || "unknown",
+    });
+
       toast.success("Plugin activated successfully!");
       onInstallSuccess?.();
     },

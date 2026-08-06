@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
+import { captureEvent } from "@/lib/posthog";
 
 const FormSchema = z.object({
   subdomainName: z.string().min(1, "Subdomain name is required"),
@@ -61,6 +62,10 @@ export function AddSubdomainSheet({ open, onOpenChange, domainName, onSuccess }:
   // tRPC mutation for creating subdomain
   const createSubdomain = trpc.plesk.subdomainsCreate.create.useMutation({
     onSuccess: () => {
+      captureEvent("subdomain_created", {
+      parent_domain: form.getValues("parentDomain") || domainName || "unknown",
+    });
+
       toast.success("Subdomain created successfully!");
       form.reset();
       onOpenChange(false);

@@ -12,6 +12,7 @@ import { Globe } from "lucide-react";
 
 import { APP_CONFIG } from "@/config/app-config";
 import { authClient } from "@/lib/auth-client";
+import { captureEvent } from "@/lib/posthog";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -47,6 +48,7 @@ export default function ForgotPasswordPage() {
         return;
       }
 
+      captureEvent("password_reset_requested");
       setIsEmailSent(true);
       toast.success("Password reset email sent!");
     } catch {

@@ -38,6 +38,7 @@ import { ComboboxDropdown, type ComboboxItem } from "@npanel/ui/components/combo
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 import { useUsersLookup } from "@/hooks/use-user-lookup";
 
 const ZEEPO_TOKEN_OVERRIDE_KEY = "zeepoTokenGrantOverride";
@@ -720,6 +721,7 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 			});
 
 			toast.success("Subscription created and provisioned for the customer.");
+			captureEvent("subscription_created");
 			onOpenChange(false);
 			void utils.clientSubscriptions.listForAgency.invalidate();
 			void utils.niscServiceOrders.getAll.invalidate();

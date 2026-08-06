@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import { Plus, RefreshCw, Search, Globe, Grid3X3, List } from "lucide-react";
 import { useNavigate, useLocation } from "react-router";
@@ -48,6 +50,10 @@ function toDisplayItem(
 }
 
 export default function DomainsPortfolioPage() {
+  React.useEffect(() => {
+    captureEvent("domain_portfolio_viewed", { user_type: "customer" });
+  }, []);
+
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const teamSlug = pathname.split("/")[1] ?? "";

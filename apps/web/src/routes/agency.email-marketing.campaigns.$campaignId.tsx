@@ -4,6 +4,7 @@ import * as React from "react";
 import { useParams, useNavigate } from "react-router";
 import { Link } from "react-router";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 import {
 	ArrowLeft,
 	Mail,
@@ -216,6 +217,7 @@ export default function CampaignDetailPage() {
 
 	const deleteMutation = trpc.emailMarketing.campaigns.delete.useMutation({
 		onSuccess: () => {
+			captureEvent("email_campaign_deleted");
 			toast.success("Campaign deleted successfully", {
 				description: campaign ? `Campaign ${campaign.name} has been deleted.` : undefined,
 			});

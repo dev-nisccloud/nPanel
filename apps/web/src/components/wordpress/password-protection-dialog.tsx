@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useConfirm } from "@/hooks/use-confirm";
 import { trpc } from "@/utils/trpc";
+import { captureEvent } from "@/lib/posthog";
 
 const passwordProtectionSchema = z.object({
   username: z.string().min(1, "Username is required").max(20, "Username must be 20 characters or less"),
@@ -69,7 +70,8 @@ export function PasswordProtectionDialog({
   }, [protection, form]);
 
   const updateMutation = trpc.plesk.wpFeatures.updatePasswordProtection.useMutation({
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      captureEvent(variables.status ? "wordpress_password_protection_enabled" : "wordpress_password_protection_disabled");
       toast.success("Password protection updated");
       onOpenChange(false);
       utils.plesk.wpFeatures.getPasswordProtection.invalidate({ installationId });

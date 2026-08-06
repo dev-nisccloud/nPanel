@@ -1,4 +1,5 @@
 import { Suspense, useEffect } from "react";
+import { captureEvent } from "@/lib/posthog";
 import { NuqsAdapter } from "nuqs/adapters/react-router/v7";
 import * as Sentry from "@sentry/react-router";
 import posthog from "posthog-js";
@@ -11,6 +12,7 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useLocation,
 } from "react-router";
 
 import type { Route } from "./+types/root";
@@ -69,6 +71,20 @@ function PostHogIdentitySync() {
   return null;
 }
 
+
+function PostHogPageViews() {
+  const location = useLocation();
+  useEffect(() => {
+    const path = location.pathname;
+    const userType = path.startsWith("/agency") ? "agency" : path.match(/^\/[^/]+\//) ? "customer" : "unknown";
+    captureEvent("page_viewed", {
+      page_path: path,
+      page_title: typeof document !== "undefined" ? document.title : "",
+      user_type: userType,
+    });
+  }, [location.pathname, location.search]);
+  return null;
+}
 export const meta: Route.MetaFunction = () => [
   { title: APP_CONFIG.meta.title },
   { name: "description", content: APP_CONFIG.meta.description },
@@ -130,6 +146,7 @@ export default function App() {
     <NuqsAdapter>
       <QueryProvider>
         <PostHogIdentitySync />
+        <PostHogPageViews />
         <SessionLifetimeGuard />
         <ThemeProvider
           attribute="class"

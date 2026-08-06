@@ -11,6 +11,7 @@ import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { captureEvent } from "@/lib/posthog";
 
 type OutputFormat = "webp" | "jpeg" | "png";
 
@@ -35,6 +36,11 @@ export function BackgroundRemoverUpload({
   const utils = trpc.useUtils();
   const removeBackgroundMutation = trpc.stabilityAi.removeBackground.useMutation({
     onSuccess: (data) => {
+      captureEvent("background_removed", {
+        file_size_mb: selectedFile
+          ? Math.round((selectedFile.size / (1024 * 1024)) * 100) / 100
+          : 0,
+      });
       const imageData = {
         dataUrl: `data:${data.mimeType};base64,${data.image}`,
         mimeType: data.mimeType,

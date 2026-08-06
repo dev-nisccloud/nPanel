@@ -1,5 +1,6 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
 import { toast } from "@/components/ui/sonner";
 import { trpc } from "@/utils/trpc";
 
@@ -15,7 +16,12 @@ export const useCreateUpload = () => {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mutation = trpc.imageGenStudio.uploads.create.useMutation({
-    onSuccess: () => {
+    onSuccess: (_data: unknown, variables: { fileSize?: number }) => {
+      captureEvent("image_gen_upload_added", {
+        file_size_mb: variables.fileSize
+          ? Math.round((variables.fileSize / (1024 * 1024)) * 100) / 100
+          : 0,
+      });
       void utils.imageGenStudio.uploads.list.invalidate();
       toast.success("Image uploaded successfully");
     },

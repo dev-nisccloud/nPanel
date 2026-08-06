@@ -28,6 +28,7 @@ import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { PreviewDetails } from "@/routes/agency.invoices/create/_components/form/previewDetails";
 import { transformInvoiceToPreviewData } from "@/lib/transform-invoice-preview-data";
+import { captureEvent } from "@/lib/posthog";
 import { UpdatePaymentDialog } from "./agency.invoices/$id/_components/update-payment-dialog";
 import {
 	InvoiceKraStatusPanel,
@@ -321,6 +322,7 @@ export default function InvoiceViewPage() {
 
 	const updateInvoiceMutation = trpc.invoicing.update.useMutation({
 		onSuccess: () => {
+			captureEvent("invoice_edited");
 			toast.success("Invoice updated", { description: "Your changes have been saved." });
 			utils.invoicing.getById.invalidate({ id: invoiceId });
 			utils.invoicing.list.invalidate();
@@ -333,6 +335,7 @@ export default function InvoiceViewPage() {
 
 	const resendEmailMutation = trpc.invoicing.resendEmailReminder.useMutation({
 		onSuccess: () => {
+			captureEvent("invoice_sent");
 			toast.success("Email reminder sent successfully!", {
 				description: `Reminder for invoice ${invoice?.invoiceNumber} has been sent to ${sendToEmail || invoice?.customerEmail}`,
 			});
@@ -389,6 +392,7 @@ export default function InvoiceViewPage() {
 			document.body.removeChild(link);
 			URL.revokeObjectURL(url);
 
+			captureEvent("invoice_downloaded_pdf");
 			toast.success("Invoice downloaded successfully", {
 				description: `Invoice ${invoice.invoiceNumber} has been downloaded.`,
 			});

@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 import { trpc } from "@/utils/trpc";
 
 interface MembersSectionProps {
@@ -50,7 +51,8 @@ export function MembersSection({ teamId }: MembersSectionProps) {
     open: boolean;
     memberId: string | null;
     memberName: string;
-  }>({ open: false, memberId: null, memberName: "" });
+    memberRole: string | null;
+  }>({ open: false, memberId: null, memberName: "", memberRole: null });
 
   const { data: members, isLoading } = trpc.teams.getMembersAsMember.useQuery(
     { teamId },
@@ -59,10 +61,14 @@ export function MembersSection({ teamId }: MembersSectionProps) {
 
   const utils = trpc.useUtils();
   const removeMemberMutation = trpc.teams.removeMember.useMutation({
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      const removed = members?.find((m) => m.id === variables.memberId);
+      captureEvent("team_member_removed", {
+        role: removed?.role ?? removeMemberDialog.memberRole,
+      });
       toast.success("Member removed");
       utils.teams.getMembersAsMember.invalidate({ teamId });
-      setRemoveMemberDialog({ open: false, memberId: null, memberName: "" });
+      setRemoveMemberDialog({ open: false, memberId: null, memberName: "", memberRole: null });
     },
     onError: (error: { message?: string }) => {
       toast.error(error.message ?? "Failed to remove member");
@@ -129,6 +135,7 @@ export function MembersSection({ teamId }: MembersSectionProps) {
                             open: true,
                             memberId: member.id,
                             memberName,
+                            memberRole: member.role,
                           });
                         }}
                         className="text-destructive focus:text-destructive"
@@ -153,7 +160,9 @@ export function MembersSection({ teamId }: MembersSectionProps) {
         open={removeMemberDialog.open}
         onOpenChange={(open) =>
           setRemoveMemberDialog((prev) =>
-            open ? { ...prev, open: true } : { open: false, memberId: null, memberName: "" }
+            open
+              ? { ...prev, open: true }
+              : { open: false, memberId: null, memberName: "", memberRole: null }
           )
         }
       >

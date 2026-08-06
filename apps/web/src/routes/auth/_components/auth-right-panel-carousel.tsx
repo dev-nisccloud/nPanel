@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { APP_CONFIG } from "@/config/app-config";
 
 type CarouselSlide = {
   title: string;
   subheading: string;
   description: string;
   imageSrc: string;
+  /** When true, show the image alone with no logo, gradient, or copy overlay. */
+  imageOnly?: boolean;
 };
 
 const slides: CarouselSlide[] = [
@@ -15,7 +18,8 @@ const slides: CarouselSlide[] = [
     subheading: "CREATE",
     description:
       "A brand people remember, trust, and choose built in days, not months. Logo, website, copy, and identity, all done for you.",
-    imageSrc: "/auth/design.png",
+    imageSrc: "/auth/design%201.png",
+    imageOnly: true,
   },
   {
     title: "Launch Online",
@@ -36,6 +40,8 @@ const slides: CarouselSlide[] = [
 export function AuthRightPanelCarousel() {
   const [activeIndex, setActiveIndex] = useState(0);
   const slideCount = slides.length;
+  const activeSlide = slides[activeIndex];
+  const isImageOnly = Boolean(activeSlide?.imageOnly);
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -48,23 +54,39 @@ export function AuthRightPanelCarousel() {
   return (
     <section className="absolute inset-0 overflow-hidden rounded-3xl" aria-label="Nisc Cloud onboarding highlights">
       {/* Background carousel */}
-      <div className="absolute inset-0">
+      <div className={["absolute inset-0", isImageOnly ? "bg-[#27BAF0]" : ""].join(" ")}>
         {slides.map((slide, idx) => (
           <div
             key={`${slide.title}-bg`}
             aria-hidden={idx !== activeIndex}
             className={[
-              "absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-700 ease-out",
+              "absolute inset-0 bg-center bg-no-repeat transition-opacity duration-700 ease-out",
+              slide.imageOnly ? "" : "bg-cover",
               idx === activeIndex ? "opacity-100" : "opacity-0",
             ].join(" ")}
-            style={{ backgroundImage: `url('${slide.imageSrc}')` }}
+            style={{
+              backgroundImage: `url('${slide.imageSrc}')`,
+              ...(slide.imageOnly ? { backgroundSize: "100% auto" } : null),
+            }}
           />
         ))}
-        <div className="absolute inset-0 bg-gradient-to-t from-white/80 via-white/20 to-transparent" />
+        {!isImageOnly && <div className="absolute inset-0 bg-gradient-to-t from-white/80 via-white/20 to-transparent" />}
       </div>
 
+      {!isImageOnly && (
+        <div className="absolute top-10 z-20 space-y-1 px-10 text-black">
+          <img
+            src="/nisclogooriginal.png"
+            alt={`${APP_CONFIG.name} Logo`}
+            width={180}
+            height={60}
+            className="h-15 w-auto max-w-full"
+          />
+        </div>
+      )}
+
       {/* Bottom content + controls */}
-      <div className="absolute inset-x-0 bottom-16 px-10">
+      <div className="absolute inset-x-0 bottom-16 z-20 px-10">
         <div className="w-full">
           <div className="mb-4 flex items-center justify-center">
             <div className="flex items-center gap-2">
@@ -92,28 +114,30 @@ export function AuthRightPanelCarousel() {
             </div>
           </div>
 
-          <div className="relative min-h-[96px]">
-            {slides.map((slide, idx) => {
-              const isActive = idx === activeIndex;
+          {!isImageOnly && (
+            <div className="relative min-h-[96px]">
+              {slides.map((slide, idx) => {
+                const isActive = idx === activeIndex;
 
-              return (
-                <div
-                  key={slide.title}
-                  className={[
-                    "absolute inset-0 transition-all duration-500 ease-out",
-                    isActive ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-2 opacity-0",
-                  ].join(" ")}
-                  aria-hidden={!isActive}
-                >
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">{slide.subheading}</p>
-                    <h2 className="text-2xl font-bold leading-tight text-black">{slide.title}</h2>
-                    <p className="max-w-3xl text-sm leading-relaxed text-slate-700">{slide.description}</p>
+                return (
+                  <div
+                    key={slide.title}
+                    className={[
+                      "absolute inset-0 transition-all duration-500 ease-out",
+                      isActive ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-2 opacity-0",
+                    ].join(" ")}
+                    aria-hidden={!isActive}
+                  >
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">{slide.subheading}</p>
+                      <h2 className="text-2xl font-bold leading-tight text-black">{slide.title}</h2>
+                      <p className="max-w-3xl text-sm leading-relaxed text-slate-700">{slide.description}</p>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </section>

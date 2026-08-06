@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 import { SendQuotationDialog } from "./SendQuotationDialog";
 
 /** Quotation list row (dates may be Date server-side or string after tRPC serialization). */
@@ -88,6 +89,11 @@ function QuotationRowActions({ quotation, onRefetch }: QuotationRowActionsProps)
 	const utils = trpc.useUtils();
 	const updateStatusMutation = trpc.quotations.updateStatus.useMutation({
 		onSuccess: (_, variables) => {
+			if (variables.status === "ACCEPTED") {
+				captureEvent("quotation_accepted");
+			} else if (variables.status === "DECLINED") {
+				captureEvent("quotation_declined");
+			}
 			toast.success("Status updated", {
 				description: `Quotation set to ${QUOTATION_STATUSES.find((s) => s.value === variables.status)?.label ?? variables.status}.`,
 			});

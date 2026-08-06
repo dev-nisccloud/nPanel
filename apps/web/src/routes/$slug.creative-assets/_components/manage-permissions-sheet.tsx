@@ -21,6 +21,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { captureEvent } from "@/lib/posthog";
 
 const FormSchema = z.object({
   userId: z.string().min(1, { message: "User is required." }),
@@ -70,6 +71,10 @@ export function ManagePermissionsSheet({
       if (onManagePermissions) {
         onManagePermissions(data);
       }
+
+      captureEvent("creative_asset_permissions_changed", {
+        users_count: 1,
+      });
 
       toast.success("Permissions updated successfully!");
       form.reset();

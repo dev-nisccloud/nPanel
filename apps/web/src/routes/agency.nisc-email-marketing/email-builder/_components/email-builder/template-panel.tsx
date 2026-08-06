@@ -29,6 +29,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { captureEvent } from "@/lib/posthog";
 import {
     Tooltip,
     TooltipContent,
@@ -269,6 +270,7 @@ export function TemplatePanel({ initialData }: TemplatePanelProps) {
         window.document.body.appendChild(downloadAnchorNode);
         downloadAnchorNode.click();
         downloadAnchorNode.remove();
+        captureEvent("email_design_exported", { export_format: "html" });
     };
 
     const renderContent = () => {

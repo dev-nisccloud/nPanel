@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import { KeyRound, Plus, RefreshCw, Trash2, Ban } from "lucide-react";
 import { format } from "date-fns";
@@ -82,6 +84,7 @@ export default function ApiKeysPage() {
 	const deleteMutation = trpc.apiKeys.delete.useMutation({
 		onSuccess: () => {
 			toast.success("API Key deleted successfully");
+			captureEvent("api_key_deleted");
 			utils.apiKeys.list.invalidate();
 			setPendingDeleteId(null);
 		},

@@ -22,6 +22,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 import { trpc } from "@/utils/trpc";
 
 interface EditTeamDialogProps {
@@ -77,7 +78,11 @@ export function EditTeamDialog({
   }, [open]);
 
   const updateTeamMutation = trpc.teams.update.useMutation({
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      const fieldsChanged = (
+        Object.keys(variables) as Array<keyof typeof variables>
+      ).filter((key) => key !== "teamId" && variables[key] !== undefined) as string[];
+      captureEvent("organization_updated", { fields_changed: fieldsChanged });
       toast.success("Team updated successfully");
       utils.teams.getAll.invalidate();
       utils.teams.getById.invalidate({ teamId });

@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 
 interface SendRenewalEmailDialogProps {
 	subscriptionId: string;
@@ -55,6 +56,7 @@ export function SendRenewalEmailDialog({
 
 	const sendMutation = trpc.clientSubscriptions.sendRenewalEmail.useMutation({
 		onSuccess: () => {
+			captureEvent("subscription_renewal_email_sent");
 			toast.success("Renewal email sent");
 			onOpenChange(false);
 			setTo("");

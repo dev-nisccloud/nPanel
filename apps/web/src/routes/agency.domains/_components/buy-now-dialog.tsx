@@ -37,6 +37,7 @@ import { trpc } from "@/utils/trpc";
 import { computeCeilVatTotals, paymentTotalString } from "@npanel/api/lib/convert-price";
 import { toast } from "@/components/ui/sonner";
 import type { DomainSearchResult } from "@/hooks/use-domain-search";
+import { captureEvent } from "@/lib/posthog";
 
 interface BuyNowDialogProps {
   open: boolean;
@@ -368,6 +369,7 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
       startPaymentStatusPolling(checkoutId);
     },
     onError: (error) => {
+      captureEvent("mpesa_payment_failed");
       const errorMessage = error.message || "Failed to initiate payment. Please try again.";
       
       // Immediate UI update via refs (synchronous)
@@ -491,7 +493,19 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
               setPaymentError(null);
               pollingStartTimeRef.current = null;
               pollingAttemptsRef.current = 0;
-              setCurrentStep("success");
+              captureEvent("mpesa_payment_completed");
+            setCurrentStep("success");
+              if (domain?.domain) {
+                const tld = domain.domain.includes(".")
+                  ? `.${domain.domain.split(".").slice(1).join(".")}`
+                  : undefined;
+                captureEvent("domain_purchased", {
+                  ...(tld ? { tld } : {}),
+                  price: total,
+                  currency: displayCurrency,
+                  duration_years: duration,
+                });
+              }
               toast.success("Payment completed successfully!");
             } else {
               // Handle error cases (all other terminal codes)
@@ -630,6 +644,7 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
     const transactionDesc = `DOM${domainShort}`.substring(0, 13);
 
     try {
+      captureEvent("mpesa_payment_initiated", { amount: amount, phone_length: mpesaPhoneNumber.replace(/\D/g, "").length });
       await initiateMpesaPayment.mutateAsync({
         phoneNumber: mpesaPhoneNumber.trim(),
         amount: amount,

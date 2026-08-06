@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -174,6 +176,7 @@ export function EditUserDialog({
           userId,
           roleId: selectedAgencyRoleId ?? null,
         });
+        captureEvent("agency_role_assigned", { role_name: selectedAgencyRoleId || "none" });
       }
 
       toast.success("User updated successfully");

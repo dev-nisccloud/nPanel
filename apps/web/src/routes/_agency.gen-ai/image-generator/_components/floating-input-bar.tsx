@@ -26,6 +26,7 @@ import {
 import { uploadFiles } from "@/hooks/use-uploadthing";
 import { UPLOAD_ENDPOINTS } from "@/lib/uploadthing";
 import { RefineOptions } from "./refine-options";
+import { captureEvent } from "@/lib/posthog";
 import {
   DEFAULT_REFINE_VALUES,
   REFINE_OPTION_NONE,
@@ -113,7 +114,12 @@ export function FloatingInputBar() {
 
   const utils = trpc.useUtils();
   const startMutation = trpc.imageGenerator.startGeneration.useMutation({
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      captureEvent("simple_image_generated", {
+        prompt_length: variables.prompt.length,
+        format: variables.outputFormat,
+        style: variables.aspectRatio,
+      });
       utils.imageGenerator.getGenerations.invalidate();
       setPrompt("");
       setSelectedImages([]);

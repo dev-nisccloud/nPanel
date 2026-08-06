@@ -32,6 +32,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { trpc } from "@/utils/trpc";
+import { captureEvent } from "@/lib/posthog";
 import { CountrySelect } from "@/components/account-settings/country-select";
 import { SettingsSection } from "@/components/account-settings/settings-section";
 
@@ -115,6 +116,7 @@ export function BillingSettingsSection({ teamId }: BillingSettingsSectionProps) 
 
   const upsertMutation = trpc.teamBilling.upsert.useMutation({
     onSuccess: () => {
+      captureEvent("organization_billing_updated");
       toast.success(
         billingSettings
           ? "Billing settings updated successfully"

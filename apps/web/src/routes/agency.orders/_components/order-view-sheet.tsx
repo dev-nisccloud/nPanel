@@ -29,6 +29,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { trpc } from "@/utils/trpc";
+import { captureEvent } from "@/lib/posthog";
 
 const ORDER_TYPE_NAMES: Record<string, string> = {
     DOMAIN_REGISTRATION: "Domain Registration",
@@ -54,6 +55,12 @@ export function OrderViewSheet({ open, onOpenChange, orderId }: OrderViewSheetPr
         { id: orderId! },
         { enabled: open && !!orderId }
     );
+
+    React.useEffect(() => {
+        if (open && orderId) {
+            captureEvent("order_viewed", { order_id: orderId });
+        }
+    }, [open, orderId]);
 
     const getStatusBadge = (status: string) => {
         const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {

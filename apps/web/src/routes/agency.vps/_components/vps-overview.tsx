@@ -48,6 +48,7 @@ import {
   extractHivelocityProductMonthlyUsd,
 } from "@/lib/build-hivelocity-vps-upgrade-plan";
 import { copyTextToClipboard } from "@/lib/copy-to-clipboard";
+import { captureEvent } from "@/lib/posthog";
 
 interface VpsOverviewProps {
   deviceData: any;
@@ -132,6 +133,10 @@ export function VpsOverview({
 
   const powerMutation = trpc.hivelocity.devicePowerAction.useMutation({
     onSuccess: (_, variables) => {
+      const action = variables.action;
+      if (action === "reboot") captureEvent("server_restarted", { server_type: "vps" });
+      else if (action === "off") captureEvent("server_powered_off", { server_type: "vps" });
+      else if (action === "on") captureEvent("server_powered_on", { server_type: "vps" });
       toast.success(`Power action '${variables.action}' triggered successfully`);
       utils.hivelocity.getDeviceDetails.invalidate({ deviceId: deviceData.deviceId, ...teamTrpc });
       utils.hivelocity.getDevicePowerStatus.invalidate({ deviceId: deviceData.deviceId, ...teamTrpc });

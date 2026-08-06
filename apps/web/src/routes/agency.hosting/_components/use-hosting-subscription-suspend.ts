@@ -1,6 +1,7 @@
 import * as React from "react";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 
 export type HostingSuspendDialogAction = "suspend" | "unsuspend";
 
@@ -32,6 +33,8 @@ export function useHostingSubscriptionSuspend(options?: {
 
   const suspendMutation = trpc.plesk.subscriptionsSuspend.suspend.useMutation({
     onSuccess: (_data, variables) => {
+      captureEvent("hosting_subscription_suspended");
+
       toast.success("Hosting subscription suspended");
       setDialog(closedDialog);
       invalidateSubscriptions();
@@ -50,6 +53,8 @@ export function useHostingSubscriptionSuspend(options?: {
 
   const unsuspendMutation = trpc.plesk.subscriptionsSuspend.unsuspend.useMutation({
     onSuccess: (_data, variables) => {
+      captureEvent("hosting_subscription_resumed");
+
       toast.success("Hosting subscription reactivated");
       setDialog(closedDialog);
       invalidateSubscriptions();

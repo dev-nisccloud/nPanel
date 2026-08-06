@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
+import { captureEvent } from "@/lib/posthog";
 
 const FormSchema = z.object({
   name: z.string().min(1, { message: "Asset name is required." }),
@@ -78,6 +79,10 @@ export function AddAssetSheet({ open, onOpenChange, onAddAsset }: AddAssetSheetP
   // Create asset mutation
   const createAssetMutation = trpc.creativeAssets.create.useMutation({
     onSuccess: () => {
+      captureEvent("creative_asset_created", {
+        category: form.getValues("category") || "uncategorized",
+        status: form.getValues("status"),
+      });
       toast.success("Creative asset created successfully!");
       form.reset();
       onOpenChange(false);

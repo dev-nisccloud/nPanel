@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import { useNavigate, useParams } from "react-router";
 import {
@@ -623,6 +625,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
           priority: "NORMAL",
           source: "CHAT",
         });
+        captureEvent("support_ticket_created", { category: "GENERAL", priority: "NORMAL" });
         ticketId = newTicket.id;
         setSelectedChatId(ticketId);
         setIsNewTicket(false);

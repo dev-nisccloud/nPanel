@@ -20,6 +20,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { captureEvent } from "@/lib/posthog";
 
 const ApprovalFormSchema = z.object({
   action: z.enum(["approve", "reject"]),
@@ -67,9 +68,13 @@ export function ApprovalDialog({
 
       if (action === "approve" && onApprove) {
         onApprove(versionId);
+        captureEvent("creative_asset_approved", { approver_role: type });
         toast.success(`${type === "internal" ? "Internal" : "Public"} approval successful!`);
       } else if (action === "reject" && onReject) {
         onReject(versionId, data.reason);
+        captureEvent("creative_asset_rejected", {
+          rejection_reason_provided: Boolean(data.reason?.trim()),
+        });
         toast.success(`${type === "internal" ? "Internal" : "Public"} rejection recorded`);
       }
 

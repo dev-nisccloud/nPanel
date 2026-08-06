@@ -56,6 +56,7 @@ import {
 
 import { useWordPressThemes, type WordPressTheme } from "./use-wordpress-themes";
 import { ThemeMarketplaceSheet } from "./theme-marketplace-sheet";
+import { captureEvent } from "@/lib/posthog";
 
 interface ThemesTableProps {
   installationId: string;
@@ -344,7 +345,10 @@ export function ThemesTable({ installationId }: ThemesTableProps) {
 
   // tRPC mutation for updating theme status
   const updateThemeStatus = trpc.plesk.wpThemesStatus.setStatus.useMutation({
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {    if (variables.status) {
+      captureEvent("wordpress_theme_activated", { theme_name: variables.slug || "unknown" });
+    }
+
       toast.success("Theme status updated successfully!");
       refetch();
     },
@@ -355,7 +359,12 @@ export function ThemesTable({ installationId }: ThemesTableProps) {
 
   // tRPC mutation for deleting themes
   const deleteThemes = trpc.plesk.wpThemesDelete.delete.useMutation({
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {    const slugs = (variables as { themes?: Array<string | { slug?: string }>; slugs?: string[] })?.themes
+      || (variables as { slugs?: string[] })?.slugs
+      || [];
+    const names = Array.isArray(slugs) ? slugs.map((s) => (typeof s === "string" ? s : s?.slug)).filter(Boolean) : [];
+    captureEvent("wordpress_theme_deleted", { theme_name: names.join(",") || "unknown" });
+
       toast.success("Theme deleted successfully!");
       refetch();
     },

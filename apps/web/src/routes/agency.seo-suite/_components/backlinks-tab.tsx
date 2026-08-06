@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 import { trpc } from "@/utils/trpc";
 import { useCredentialsConfigured } from "./credentials-banner";
 import {
@@ -57,6 +58,7 @@ export function BacklinksTab({ projectId, project }: BacklinksTabProps) {
     onSuccess: (data) => {
       setSummaryLive(data);
       utils.seoSuite.latestBacklinkSnapshot.invalidate({ projectId });
+      captureEvent("seo_backlinks_analyzed", { domain: project.primaryDomain });
       toast.success("Backlink summary updated");
     },
     onError: (e) => toast.error(e.message || "Failed to refresh backlinks"),

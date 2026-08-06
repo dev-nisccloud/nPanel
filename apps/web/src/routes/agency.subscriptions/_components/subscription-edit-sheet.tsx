@@ -40,6 +40,7 @@ import { DatePicker } from "@/components/npanel-ui/date-picker";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 
 function addBillingPeriod(
 	date: Date,
@@ -174,7 +175,11 @@ export function SubscriptionEditSheet({
 	}, [sub, open, form]);
 
 	const updateSubscription = trpc.clientSubscriptions.update.useMutation({
-		onSuccess: () => {
+		onSuccess: (_data, variables) => {
+			captureEvent("subscription_edited");
+			if (variables.status) {
+				captureEvent("subscription_status_changed", { status: variables.status });
+			}
 			utils.clientSubscriptions.getById.invalidate({ id: subscriptionId! });
 			utils.clientSubscriptions.listForAgency.invalidate();
 			toast.success("Subscription updated");

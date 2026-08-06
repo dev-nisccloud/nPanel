@@ -1,8 +1,14 @@
 import { Banner } from "./_agency.gen-ai/image-gen-studio/_dashboard/banner";
 import { ProjectsSection } from "./_agency.gen-ai/image-gen-studio/_dashboard/projects-section";
 import { TemplatesSection } from "./_agency.gen-ai/image-gen-studio/_dashboard/templates-section";
+import { captureEvent } from "@/lib/posthog";
+import { useEffect } from "react";
 
 export default function ImageGenStudioPage() {
+  useEffect(() => {
+    captureEvent("image_gen_studio_opened");
+  }, []);
+
   return (
     <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
       <div className="w-full max-w-7xl mx-auto">

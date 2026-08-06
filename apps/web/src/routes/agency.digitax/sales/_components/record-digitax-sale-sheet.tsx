@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray } from "react-hook-form";
@@ -81,6 +83,7 @@ export function RecordDigitaxSaleSheet({
 
   const recordSale = trpc.digitax.sales.add.useMutation({
     onSuccess: () => {
+      captureEvent("digitax_sale_recorded");
       toast.success("Sale transaction transmitted successfully");
       form.reset();
       onOpenChange(false);

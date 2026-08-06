@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 import { useWordPressThemes, type WordPressTheme } from "./use-wordpress-themes";
+import { captureEvent } from "@/lib/posthog";
 
 interface WordPressThemesProps {
   installationId: string;
@@ -154,7 +155,10 @@ function ThemeCard({
 
   // tRPC mutation for updating theme status
   const updateThemeStatus = trpc.plesk.wpThemesStatus.setStatus.useMutation({
-    onSuccess: () => {
+    onSuccess: () => {    if (!theme.status) {
+      captureEvent("wordpress_theme_activated", { theme_name: theme.title || theme.slug || "unknown" });
+    }
+
       toast.success(`Theme ${theme.status ? 'deactivated' : 'activated'} successfully!`);
       // Refetch data to update the UI
       onRefetch?.();
@@ -187,6 +191,8 @@ function ThemeCard({
   // tRPC mutation for deleting themes
   const deleteThemes = trpc.plesk.wpThemesDelete.delete.useMutation({
     onSuccess: () => {
+      captureEvent("wordpress_theme_deleted", { theme_name: theme.title || theme.slug || "unknown" });
+
       toast.success("Theme deleted successfully!");
       setDeleteDialogOpen(false);
       // Refetch data to update the UI

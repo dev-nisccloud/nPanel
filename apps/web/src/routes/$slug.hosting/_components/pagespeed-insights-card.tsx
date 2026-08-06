@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { trpc } from "@/utils/trpc";
+import { captureEvent } from "@/lib/posthog";
 
 interface PageSpeedInsightsCardProps {
   domainName: string;
@@ -154,6 +155,10 @@ export function PageSpeedInsightsCard({ domainName }: PageSpeedInsightsCardProps
   }, [mobileQuery.error, desktopQuery.error]);
 
   const handleRefresh = React.useCallback(() => {
+    captureEvent("pagespeed_test_run", {
+      url: domainUrl || "",
+      device: strategy,
+    });
     if (strategy === 'mobile') {
       setForceRefreshMobile(true);
       mobileQuery.refetch().finally(() => {

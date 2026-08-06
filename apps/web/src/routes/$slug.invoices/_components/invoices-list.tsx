@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 import type { InvoiceSummary } from "@/routes/agency.invoicing/api/schemas";
 import type { InvoiceDetail } from "@/routes/agency.invoices/create/api/schemas";
 import { buildInvoicePdfDetails } from "@npanel/api/agency-invoice-pdf/build-invoice-pdf-details";
@@ -212,6 +213,7 @@ function InvoiceCard({ invoice, onRefetch }: InvoiceCardProps) {
 			document.body.removeChild(link);
 			URL.revokeObjectURL(url);
 
+			captureEvent("invoice_downloaded_pdf");
 			toast.success("Invoice downloaded successfully", {
 				description: `Invoice ${invoice.invoiceNumber} has been downloaded.`,
 			});

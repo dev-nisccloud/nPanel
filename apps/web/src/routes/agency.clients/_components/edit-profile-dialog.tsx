@@ -31,6 +31,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import { CountrySelect } from "@/components/account-settings/country-select";
+import { captureEvent } from "@/lib/posthog";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -287,6 +288,7 @@ export function EditProfileDialog({
     ]);
 
     toast.success("Profile updated successfully");
+    captureEvent("client_profile_updated");
     await Promise.all([
       utils.clients.getProfile.invalidate({ userId }),
       utils.clients.getAll.invalidate(),

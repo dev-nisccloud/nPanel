@@ -20,6 +20,7 @@ import { getPleskPreviewData, getOpenProviderPreviewData, type PleskPreviewData,
 import { AlertCircle, CheckCircle2, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { captureEvent } from "@/lib/posthog";
 
 interface AddIntegrationDialogProps {
   open: boolean;
@@ -59,7 +60,10 @@ export function AddIntegrationDialog({
   const utils = trpc.useUtils();
 
   const createIntegrationMutation = trpc.clients.createIntegration.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (_data, variables) => {
+      captureEvent("client_integration_added", {
+        integration_type: variables.platform,
+      });
       toast.success("Integration created successfully");
       // Invalidate only the necessary queries
       await Promise.all([

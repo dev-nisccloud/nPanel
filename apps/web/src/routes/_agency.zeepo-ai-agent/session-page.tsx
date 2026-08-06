@@ -144,6 +144,7 @@ import {
   zeepoAgentSessionsInput,
 } from "@/components/zeepo/zeepo-agent-route-context";
 import { useZeepoTokenBilling } from "@/components/zeepo/zeepo-token-billing-provider";
+import { captureEvent } from "@/lib/posthog";
 
 function extractOutputPreview(outputs: unknown): string | null {
   if (outputs == null) return null;
@@ -1272,6 +1273,7 @@ export default function ZeepoAiAgentSessionPage() {
   const handleNewChat = async () => {
     try {
       const res = await createSession.mutateAsync(zeepoAgentCreateSessionInput(routeConfig));
+      captureEvent("zeepo_agent_session_created");
       void utils.zeepoAgent.sessions.list.invalidate();
       const id = res.data?.id;
       if (id) navigate(zeepoAgentSessionPath(basePath, id));
@@ -1390,6 +1392,10 @@ export default function ZeepoAiAgentSessionPage() {
 
   const send = trpc.zeepoAgent.chat.sendMessage.useMutation({
     onMutate: async (variables) => {
+      captureEvent("zeepo_agent_message_sent", {
+        message_length: variables.content.length,
+        has_attachments: Boolean(variables.attachments?.length),
+      });
       const { sessionId: sid, content, skillId } = variables;
       await utils.zeepoAgent.sessions.get.cancel({ id: sid });
       const previous = utils.zeepoAgent.sessions.get.getData({ id: sid });

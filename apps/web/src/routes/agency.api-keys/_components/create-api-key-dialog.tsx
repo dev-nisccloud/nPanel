@@ -1,4 +1,5 @@
 import React from "react";
+import { captureEvent } from "@/lib/posthog";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -61,6 +62,7 @@ export function CreateApiKeyDialog({ open, onOpenChange, onSuccess }: CreateApiK
 
 	const createMutation = trpc.apiKeys.create.useMutation({
 		onSuccess: (data) => {
+      captureEvent("api_key_created");
 			setGeneratedKey(data.key);
 			setStep(2);
 			if (onSuccess) onSuccess();
