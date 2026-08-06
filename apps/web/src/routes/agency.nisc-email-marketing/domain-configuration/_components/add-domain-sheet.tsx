@@ -25,6 +25,7 @@ import { useNiscEmailMarketingRoute } from "@/components/nisc-email-marketing/ni
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { captureEvent } from "@/lib/posthog";
 
 const STEPS = [
 	{ title: "Domain", description: "Domain name for your sending identity." },
@@ -74,6 +75,9 @@ export function AddDomainSheet({ open, onOpenChange, onSuccess }: AddDomainSheet
 
 	const createMutation = trpc.niscEmailMarketing.domains.create.useMutation({
 		onSuccess: (data) => {
+			captureEvent("nisc_email_domain_configured", {
+				domain: data.domainName,
+			});
 			toast.success("Domain added successfully", {
 				description: `Domain ${data.domainName} has been added. Please configure DNS records.`,
 			});

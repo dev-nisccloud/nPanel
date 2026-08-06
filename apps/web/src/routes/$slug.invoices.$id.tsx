@@ -7,6 +7,7 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 import { PreviewDetails } from "@/routes/agency.invoices/create/_components/form/previewDetails";
 import { transformInvoiceToPreviewData } from "@/lib/transform-invoice-preview-data";
 import { buildInvoicePdfDetails } from "@npanel/api/agency-invoice-pdf/build-invoice-pdf-details";
@@ -124,6 +125,7 @@ export default function InvoiceViewPage() {
 			link.click();
 			document.body.removeChild(link);
 			URL.revokeObjectURL(url);
+			captureEvent("invoice_downloaded_pdf");
 			toast.success("Invoice downloaded successfully", {
 				description: `Invoice ${invoice.invoiceNumber} has been downloaded.`,
 			});

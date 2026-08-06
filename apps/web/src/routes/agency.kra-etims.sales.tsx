@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import {
     FileText,
@@ -278,6 +280,7 @@ export default function ETimsSalesPage() {
                 toast.error(body?.resultMsg ?? "Failed to send sale");
                 return;
             }
+            captureEvent("etims_sale_recorded", { has_vat: true });
             toast.success("Sale sent to KRA eTIMS");
             setIsSendOpen(false);
             refetch();

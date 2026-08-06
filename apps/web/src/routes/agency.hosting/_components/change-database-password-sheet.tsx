@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import { databaseSchema } from "./databases-schema";
+import { captureEvent } from "@/lib/posthog";
 
 const FormSchema = z.object({
   password: z.string()
@@ -63,6 +64,8 @@ export function ChangeDatabasePasswordSheet({
 
   const changePassword = trpc.plesk.databasesSetUser.update.useMutation({
     onSuccess: () => {
+      captureEvent("database_password_changed");
+
       toast.success("Database password changed successfully!");
       form.reset();
       onOpenChange(false);

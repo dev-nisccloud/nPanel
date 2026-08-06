@@ -13,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Package, Building2, User } from "lucide-react";
 import { trpc } from "@/utils/trpc";
+import { captureEvent } from "@/lib/posthog";
 
 function getBillingCycleDisplayName(cycle: string | null): string {
 	if (!cycle) return "- ";
@@ -73,6 +74,12 @@ export function CustomerSubscriptionViewSheet({
 		{ id: subscriptionId!, teamSlug: teamSlug ?? undefined },
 		{ enabled: open && !!subscriptionId && !!teamSlug }
 	);
+
+	React.useEffect(() => {
+		if (open && subscriptionId) {
+			captureEvent("subscription_viewed", { subscription_id: subscriptionId });
+		}
+	}, [open, subscriptionId]);
 
 	const productName = sub?.product?.name ?? "";
 	const productPlanName = sub?.productPlan?.name ?? null;

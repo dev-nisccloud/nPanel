@@ -27,6 +27,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
+import { captureEvent } from "@/lib/posthog";
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -61,7 +62,10 @@ export function CreateClientSheet({
   });
 
   const createClientMutation = trpc.clients.create.useMutation({
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      captureEvent("client_created", {
+        client_type: variables.role ?? "CUSTOMER",
+      });
       toast.success("Client created successfully");
       form.reset({
         name: "",

@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "@/components/ui/sonner";
 import { trpc, type RouterOutputs } from "@/utils/trpc";
 import { authClient } from "@/lib/auth-client";
+import { captureEvent } from "@/lib/posthog";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
 export default function AcceptInvitePage() {
@@ -29,6 +30,7 @@ export default function AcceptInvitePage() {
   const acceptInviteMutation = trpc.teams.acceptInvite.useMutation({
     onSuccess: (data: RouterOutputs["teams"]["acceptInvite"]) => {
       if (data.success && data.teamSlug) {
+        captureEvent("team_member_invitation_accepted");
         toast.success("You've successfully joined the team!");
         navigate(`/${data.teamSlug}/dashboard`);
       } else {
@@ -309,7 +311,10 @@ export default function AcceptInvitePage() {
           {/* Decline Option */}
           <Button
             variant="outline"
-            onClick={() => navigate("/create-team")}
+            onClick={() => {
+              captureEvent("team_member_invitation_declined");
+              navigate("/create-team");
+            }}
             className="w-full"
             disabled={isAccepting || acceptInviteMutation.isPending}
           >

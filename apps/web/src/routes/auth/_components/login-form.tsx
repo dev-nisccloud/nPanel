@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
 import { fetchRedirectTarget, goToRedirectTarget, getRequestedRedirectFromSearch, isMfaRedirectTarget, persistPendingAuthRedirect } from "@/lib/auth-redirect";
 import type { MfaIntent } from "@/lib/mfa-auth";
+import { captureEvent } from "@/lib/posthog";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { MfaVerifyStep } from "@/routes/auth/_components/mfa-verify-step";
 
@@ -147,6 +148,7 @@ export function LoginForm({ onChromeVisibilityChange }: LoginFormProps) {
       }
 
       if (result?.data) {
+        captureEvent("user_logged_in", { method: "email" });
         await resolvePostCredentials();
         return;
       }

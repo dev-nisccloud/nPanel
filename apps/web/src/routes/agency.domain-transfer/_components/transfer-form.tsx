@@ -20,6 +20,7 @@ import { toast } from "@/components/ui/sonner";
 import { SheetClose } from "@/components/npanel-ui/sheet";
 import { trpc } from "@/utils/trpc";
 import { useGlobalBuyNowStore } from "@/stores/global-buy-now-store";
+import { captureEvent } from "@/lib/posthog";
 import type { TransferProvider } from "./transfer-ready-card";
 
 const transferFormSchema = z.object({
@@ -137,6 +138,13 @@ export function TransferForm({
         teamId: teamId ?? undefined,
       });
       await utils.domainTransfer.listTransferRequests.invalidate();
+      const tld = fullDomain.includes(".")
+        ? `.${fullDomain.split(".").slice(1).join(".")}`
+        : undefined;
+      captureEvent("domain_transfer_initiated", {
+        ...(tld ? { tld } : {}),
+        provider,
+      });
       openForTransfer({
         domain: fullDomain,
         authCode,

@@ -5,6 +5,7 @@ import { trpc } from "@/utils/trpc";
 import { getTldExtensionsByCategory } from "@/utils";
 import { categoryNameToSectionId } from "./domain-section-titles";
 import { isKenicTld } from "./kenic-card-schema";
+import { captureEvent } from "@/lib/posthog";
 import type { DomainSearchResult } from "@/hooks/use-domain-search";
 import type { DomainPricingHook } from "@/hooks/use-domain-search";
 
@@ -137,6 +138,14 @@ export function useSectionDomainCheck(
 			.join("|");
 		if (lastProcessedRef.current === dataKey) return;
 		lastProcessedRef.current = dataKey;
+		if (sectionId === "popular" && searchQuery.trim()) {
+			const queryLength = searchQuery.trim().length;
+			captureEvent("domain_search_performed", {
+				query_length: queryLength,
+				...(queryLength <= 32 ? { query: searchQuery.trim() } : {}),
+				results_count: rawResults.length,
+			});
+		}
 		setIsProcessing(true);
 		const batch = calculatePricesBatchRef.current;
 		if (!batch) {

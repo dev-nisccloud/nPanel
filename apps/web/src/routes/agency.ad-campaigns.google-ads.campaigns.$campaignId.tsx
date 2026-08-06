@@ -36,6 +36,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { toast } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
+import { captureEvent } from "@/lib/posthog";
 import { DownloadGoogleAdsReportButton } from "./agency.ad-campaigns/google-ads/_components/report/download-button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -193,6 +194,12 @@ export default function GoogleAdsCampaignPage() {
     const navigate = useNavigate();
     const campaignId = (params.campaignId as string) || "";
     const customerId = searchParams.get("customerId") || "";
+
+    React.useEffect(() => {
+        if (campaignId) {
+            captureEvent("google_ads_campaign_viewed", { campaign_id: campaignId });
+        }
+    }, [campaignId]);
 
     // Date range (Matches global state pattern)
     const [timeRange] = React.useState({

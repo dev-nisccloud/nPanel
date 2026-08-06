@@ -55,3 +55,5 @@ temp
 /logic_inspo
 Get-AWSSESCampaignData.ps1
 
+/POSTHOG_*.md
+

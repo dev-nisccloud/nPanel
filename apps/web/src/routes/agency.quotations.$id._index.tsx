@@ -25,6 +25,7 @@ import { QUOTATION_STATUSES } from "./agency.quotations/_components/quotations-t
 import { quotationCustomerGroupPath } from "./agency.quotations/_components/quotation-customer-group";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 import { QuotationPreviewDetails } from "@/routes/agency.quotations/create/_components/form/previewDetails";
 import { transformQuotationToPreviewData } from "./agency.quotations/$id/_utils/transformQuotationData";
 import { SendQuotationDialog } from "./agency.quotations/_components/SendQuotationDialog";
@@ -109,6 +110,11 @@ export default function QuotationViewPage() {
 	const utils = trpc.useUtils();
 	const updateStatusMutation = trpc.quotations.updateStatus.useMutation({
 		onSuccess: (_, variables) => {
+			if (variables.status === "ACCEPTED") {
+				captureEvent("quotation_accepted");
+			} else if (variables.status === "DECLINED") {
+				captureEvent("quotation_declined");
+			}
 			toast.success("Status updated", {
 				description: `Quotation set to ${QUOTATION_STATUSES.find((s) => s.value === variables.status)?.label ?? variables.status}.`,
 			});
@@ -169,6 +175,7 @@ export default function QuotationViewPage() {
 			a.click();
 			document.body.removeChild(a);
 			URL.revokeObjectURL(url);
+			captureEvent("quotation_downloaded_pdf");
 			toast.success("Quotation downloaded");
 		} catch (err) {
 			toast.error("Failed to download", {

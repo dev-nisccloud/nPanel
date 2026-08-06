@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router";
 import confetti from "canvas-confetti";
+import { captureEvent } from "@/lib/posthog";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -433,7 +434,11 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 	const [createdCampaignId, setCreatedCampaignId] = React.useState<string | null>(null);
 
 	const createMutation = trpc.emailMarketing.campaigns.create.useMutation({
-		onSuccess: () => {
+		onSuccess: (_data, variables) => {
+			captureEvent("email_campaign_created", {
+				audience_size: variables.recipientEmails?.length ?? 0,
+				campaign_type: variables.scheduledAt ? "scheduled" : "immediate",
+			});
 			utils.emailMarketing.campaigns.list.invalidate();
 		},
 		onError: (e) => {
@@ -796,6 +801,10 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 				{ id: campaign.id },
 				{
 					onSuccess: () => {
+						captureEvent("email_campaign_sent", {
+							recipients_count: data.recipientEmails.length,
+							send_type: "immediate",
+						});
 						utils.emailMarketing.campaigns.list.invalidate();
 					},
 					onError: (e) => {
@@ -852,6 +861,13 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 				{ id: campaign.id },
 				{
 					onSuccess: () => {
+						captureEvent("email_campaign_scheduled", {
+							scheduled_date:
+								data.scheduledAt instanceof Date
+									? data.scheduledAt.toISOString()
+									: String(data.scheduledAt ?? ""),
+							recipients_count: data.recipientEmails.length,
+						});
 						utils.emailMarketing.campaigns.list.invalidate();
 					},
 					onError: (e) => {

@@ -4,6 +4,36 @@ import * as React from "react";
 import { useCartStore } from "@/stores/cart-store";
 import { createDomainBundleCartItem } from "@npanel/cart-store";
 import { stripKenyanTldFromQuery } from "@/routes/agency.domains/_components/kenic-card-schema";
+import { captureEvent } from "@/lib/posthog";
+
+function extractTld(domain: string): string | undefined {
+  const parts = domain.toLowerCase().split(".");
+  if (parts.length < 2) return undefined;
+  return `.${parts.slice(1).join(".")}`;
+}
+
+function domainPriceProps(result: DomainSearchResult): {
+  tld?: string;
+  price?: number;
+  currency?: string;
+} {
+  const calculated = result.price?.calculated;
+  const price =
+    calculated?.convertedPrice ??
+    calculated?.finalPrice ??
+    result.price?.reseller?.price ??
+    result.price?.product?.price;
+  const currency =
+    calculated?.displayCurrency ??
+    calculated?.currency ??
+    result.price?.reseller?.currency ??
+    result.price?.product?.currency;
+  return {
+    tld: extractTld(result.domain),
+    ...(price != null && Number.isFinite(price) ? { price } : {}),
+    ...(currency ? { currency } : {}),
+  };
+}
 
 // Shared domain search result type
 export interface DomainSearchResult {
@@ -185,6 +215,12 @@ export function useDomainSearch(
         price: result.price,
         addedInCurrency: selectedCurrency,
       });
+      const props = domainPriceProps(result);
+      captureEvent("domain_added_to_cart", props);
+      captureEvent("storefront_cart_item_added", {
+        item_type: "domain",
+        ...props,
+      });
     },
     [addDomain, selectedCurrency]
   );
@@ -216,6 +252,22 @@ export function useDomainSearch(
           addedInCurrency: selectedCurrency,
         }),
       );
+      const first = params.domains[0];
+      const tld = first ? extractTld(first.domain) : undefined;
+      captureEvent("domain_added_to_cart", {
+        ...(tld ? { tld } : {}),
+        price: params.bundlePrice,
+        currency: params.bundleCurrency ?? selectedCurrency,
+        is_bundle: true,
+        domains_count: domainNames.length,
+      });
+      captureEvent("storefront_cart_item_added", {
+        item_type: "domain_bundle",
+        ...(tld ? { tld } : {}),
+        price: params.bundlePrice,
+        currency: params.bundleCurrency ?? selectedCurrency,
+        domains_count: domainNames.length,
+      });
     },
     [addDomainBundle, isDomainBundleInCart, selectedCurrency],
   );

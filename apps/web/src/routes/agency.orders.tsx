@@ -38,6 +38,7 @@ import {
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { trpc } from "@/utils/trpc";
+import { captureEvent } from "@/lib/posthog";
 import { AddOrderSheet } from "./agency.orders/_components/add-order-sheet";
 import { OrderViewSheet } from "./agency.orders/_components/order-view-sheet";
 
@@ -121,6 +122,7 @@ export default function OrdersPage() {
 
 	const deleteOrderMutation = trpc.orders.delete.useMutation({
 		onSuccess: () => {
+			captureEvent("order_cancelled");
 			toast.success("Order deleted successfully");
 			utils.orders.getAll.invalidate();
 			setDeleteDialog({

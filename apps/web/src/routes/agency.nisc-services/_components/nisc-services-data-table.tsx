@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import {
     Table,
@@ -224,6 +226,7 @@ export function NiscServicesDataTable() {
 
     const deleteProduct = trpc.products.delete.useMutation({
         onSuccess: () => {
+      captureEvent("product_deleted");
             toast.success("Product deleted");
             setDeleteDialogOpen(false);
             setProductToDelete(null);

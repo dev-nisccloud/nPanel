@@ -7,6 +7,7 @@ import { toast } from "@/components/ui/sonner";
 import { z } from "zod";
 import { Upload, X, Image, Video, File, Plus, Trash2 } from "lucide-react";
 import { format } from "date-fns";
+import { captureEvent } from "@/lib/posthog";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -123,7 +124,15 @@ export function CreateContentCalendarDialog({
 
 	const utils = trpc.useUtils();
 	const createMutation = trpc.socialMediaMarketing.linkedin.contentCalendar.create.useMutation({
-		onSuccess: () => {
+		onSuccess: (_data, variables) => {
+			const postType =
+				variables.mediaItems?.[0]?.mediaType?.toLowerCase() ||
+				(variables.message ? "text" : "unknown");
+			captureEvent("linkedin_content_calendar_created", { posts_count: 1 });
+			captureEvent("linkedin_post_scheduled", {
+				post_type: postType,
+				scheduled_date: new Date(variables.scheduledPublishTime).toISOString(),
+			});
 			toast.success("Content calendar post created successfully!");
 			form.reset();
 			setMediaItems([]);

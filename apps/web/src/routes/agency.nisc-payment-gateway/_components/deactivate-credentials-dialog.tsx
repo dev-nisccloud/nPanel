@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
@@ -36,6 +38,7 @@ export function DeactivateCredentialsDialog({
   const deactivateMutation = trpc.niscPaymentGateway.credentials.deactivate.useMutation({
     onSuccess: () => {
       toast.success("Credentials deactivated successfully");
+      captureEvent("payment_gateway_credentials_deactivated");
       onSuccess?.();
       onOpenChange(false);
     },

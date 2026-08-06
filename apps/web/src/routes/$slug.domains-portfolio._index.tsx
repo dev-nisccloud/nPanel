@@ -1,12 +1,14 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
-import { Plus, RefreshCw, Search, Globe, Grid3X3, List } from "lucide-react";
+import { Plus, RefreshCw, Search, Globe } from "lucide-react";
 import { useNavigate, useLocation } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
-import { DomainPortfolioCardsList, type DomainPortfolio } from "./$slug.domains-portfolio/_components/domain-portfolio-card";
+import { type DomainPortfolio } from "./$slug.domains-portfolio/_components/domain-portfolio-card";
 import { EmptyState } from "./$slug.domains-portfolio/_components/empty-state";
 import { trpc } from "@/utils/trpc";
 import {
@@ -48,12 +50,15 @@ function toDisplayItem(
 }
 
 export default function DomainsPortfolioPage() {
+  React.useEffect(() => {
+    captureEvent("domain_portfolio_viewed", { user_type: "customer" });
+  }, []);
+
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const teamSlug = pathname.split("/")[1] ?? "";
 
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [viewMode, setViewMode] = React.useState<"card" | "table">("table");
 
   const { data: subscriptions = [], isLoading, error, refetch } = trpc.clientSubscriptions.listForTeamDomains.useQuery(
     { teamSlug },
@@ -166,15 +171,6 @@ export default function DomainsPortfolioPage() {
     </div>
   );
 
-  const CardView = () => (
-    <DomainPortfolioCardsList
-      data={filteredDomains}
-      cols={4}
-      onView={(id) => handleNavigation(`/${teamSlug}/domains-portfolio/${id}`)}
-      hideActionMenu
-    />
-  );
-
   return (
     <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
       <div className="w-full max-w-7xl mx-auto">
@@ -198,24 +194,6 @@ export default function DomainsPortfolioPage() {
               />
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex items-center border rounded-md">
-                <Button
-                  variant={viewMode === "card" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setViewMode("card")}
-                  className="rounded-r-none"
-                >
-                  <Grid3X3 className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === "table" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setViewMode("table")}
-                  className="rounded-l-none"
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-              </div>
               <Button variant="outline" size="icon" onClick={() => refetch()} disabled={isLoading} title="Refresh">
                 <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
               </Button>
@@ -244,7 +222,7 @@ export default function DomainsPortfolioPage() {
               </Button>
             </div>
           ) : (
-            (viewMode === "card" ? <CardView /> : <TableView />)
+            <TableView />
           )}
         </div>
       </div>

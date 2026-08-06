@@ -1,5 +1,6 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
 import { toast } from "@/components/ui/sonner";
 import { trpc } from "@/utils/trpc";
 
@@ -8,6 +9,7 @@ export const useCreateProject = () => {
 
   return trpc.imageGenStudio.projects.create.useMutation({
     onSuccess: () => {
+      captureEvent("image_generation_project_created");
       utils.imageGenStudio.projects.list.invalidate();
     },
     onError: (error) => {

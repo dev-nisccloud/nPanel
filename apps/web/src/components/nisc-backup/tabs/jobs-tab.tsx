@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import { Play } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
@@ -31,6 +33,7 @@ export function NiscBackupJobsTab() {
   );
   const runJob = trpc.niscBackup.jobs.runBackupManually.useMutation({
     onSuccess: () => {
+      captureEvent("backup_job_started");
       toast.success("Backup job queued");
       utils.niscBackup.jobs.listBackup.invalidate();
       utils.niscBackup.dashboard.getDetails.invalidate();

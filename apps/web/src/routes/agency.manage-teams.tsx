@@ -34,6 +34,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { trpc } from "@/utils/trpc";
+import { captureEvent } from "@/lib/posthog";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { z } from "zod";
 import { teamSchema } from "./agency.manage-teams/_components/schema";
@@ -117,6 +118,7 @@ export default function ManageTeamsPage() {
 
   const deleteTeamMutation = trpc.teams.delete.useMutation({
     onSuccess: () => {
+      captureEvent("organization_deleted");
       toast.success("Team deleted successfully");
       utils.teams.getAll.invalidate();
       setDeleteDialog({

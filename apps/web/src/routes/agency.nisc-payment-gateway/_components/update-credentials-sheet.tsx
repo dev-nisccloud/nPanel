@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -102,6 +104,7 @@ export function UpdateCredentialsSheet({
   const updateMutation = trpc.niscPaymentGateway.credentials.update.useMutation({
     onSuccess: () => {
       toast.success("Credentials updated successfully");
+      captureEvent("payment_gateway_credentials_updated");
       setTestResult(null);
       onSuccess?.();
       onOpenChange(false);

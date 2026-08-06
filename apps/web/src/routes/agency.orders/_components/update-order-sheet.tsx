@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { DatePicker } from "@/components/npanel-ui/date-picker";
+import { captureEvent } from "@/lib/posthog";
 
 import { orderSchema } from "./schema";
 
@@ -88,6 +89,10 @@ export function UpdateOrderSheet({ open, onOpenChange, order, onUpdateOrder }: U
 
       onUpdateOrder(order.id, updatedOrder);
       
+      captureEvent("order_status_updated", { status: data.status });
+      if (data.status === "cancelled") {
+        captureEvent("order_cancelled");
+      }
       toast.success("Order updated successfully!");
       onOpenChange(false);
     } catch (error) {

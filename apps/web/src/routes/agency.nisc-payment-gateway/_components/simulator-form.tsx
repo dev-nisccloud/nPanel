@@ -1,3 +1,4 @@
+import { captureEvent } from "@/lib/posthog";
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -328,6 +329,7 @@ export function SimulatorForm({ merchantId, apiKeys }: SimulatorFormProps) {
     setIsProcessing(true);
     const testId = `test_${Date.now()}`;
     const startTime = Date.now();
+    captureEvent("payment_gateway_test_payment", { amount: parsedAmount, currency: "KES" });
 
     const newTest: PaymentTest = {
       id: testId,

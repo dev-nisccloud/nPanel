@@ -61,7 +61,6 @@ import {
   planSelectionToUpsell,
   getMinYearlyFromPlans,
   DEFAULT_HOSTING_BILLING_CYCLE,
-  DEFAULT_HOSTING_BILLING_INTERVAL,
   type HostingPlanType,
   type UpsellBrowseTarget,
   type SelectedServiceUpsell,
@@ -76,6 +75,7 @@ import {
   needsCheckoutTeamBillingStep,
 } from "@/lib/team-billing-completion";
 import { getCustomerTeamSlugFromPathname } from "@/lib/customer-team-slug";
+import { captureEvent } from "@/lib/posthog";
 
 const CHECKOUT_TEAM_BILLING_FORM_ID = "checkout-team-billing-form";
 
@@ -255,9 +255,6 @@ export function GlobalBuyNowDialog() {
   );
   const [isSelectingMainProductPlan, setIsSelectingMainProductPlan] = React.useState(false);
   const [upsellBrowseTarget, setUpsellBrowseTarget] = React.useState<UpsellBrowseTarget | null>(null);
-  const [hostingBillingInterval, setHostingBillingInterval] = React.useState<"monthly" | "yearly">(
-    DEFAULT_HOSTING_BILLING_INTERVAL,
-  );
   /** Domain checkout: registrant step finished; review before payment is allowed */
   const [registrantStepCompleted, setRegistrantStepCompleted] = React.useState(false);
   const [purchaseAsBusiness, setPurchaseAsBusiness] = React.useState(false);
@@ -647,6 +644,7 @@ export function GlobalBuyNowDialog() {
       startPolling(checkoutId);
     },
     onError: (error) => {
+      captureEvent("mpesa_payment_failed");
       const msg = error.message || "Failed to initiate payment.";
       terminalStateDetectedRef.current = true;
       immediateStepRef.current = "error";
@@ -669,6 +667,68 @@ export function GlobalBuyNowDialog() {
 
   const createOrderFromPayment = trpc.niscServiceOrders.createFromPayment.useMutation({
     onSuccess: () => {
+      const extractTld = (domain?: string) => {
+        if (!domain?.includes(".")) return undefined;
+        return `.${domain.split(".").slice(1).join(".")}`;
+      };
+
+      if (isTransferMode && transferContext) {
+        const tld = extractTld(transferContext.domain);
+        captureEvent("domain_transfer_completed", {
+          ...(tld ? { tld } : {}),
+          price: transferContext.price,
+          currency: transferContext.currency,
+        });
+      } else if (isCartMode) {
+        captureEvent("storefront_checkout_completed", {
+          currency: primaryCurrency,
+          items_count: items.length,
+          price: effectiveCartSubtotal || cartSubtotal,
+        });
+        for (const item of items) {
+          if (item.type === "domain") {
+            const tld = extractTld(item.domain);
+            captureEvent("domain_purchased", {
+              ...(tld ? { tld } : {}),
+              price: getDomainCartLineBasePrice(item),
+              currency: primaryCurrency,
+              duration_years: 1,
+            });
+          } else if (item.type === "domain_bundle") {
+            const bundle = item as DomainBundleCartItem;
+            for (const d of bundle.domains) {
+              const tld = extractTld(d.domain);
+              captureEvent("domain_purchased", {
+                ...(tld ? { tld } : {}),
+                price: getDomainBundleCartLinePrice(bundle),
+                currency: getDomainBundleCartLineCurrency(bundle) || primaryCurrency,
+                duration_years: 1,
+                is_bundle: true,
+              });
+            }
+          }
+        }
+      } else if (ctx?.domain?.domain) {
+        const tld = extractTld(ctx.domain.domain);
+        captureEvent("domain_purchased", {
+          ...(tld ? { tld } : {}),
+          price: domainTotal || domainDisplayPrice,
+          currency: displayCurrency,
+          duration_years: duration,
+        });
+      } else if (isDomainBundle && bundleCtx) {
+        for (const d of bundleCtx.domains) {
+          const tld = extractTld(d.domain);
+          captureEvent("domain_purchased", {
+            ...(tld ? { tld } : {}),
+            price: bundleCtx.bundlePrice,
+            currency: bundleCtx.bundleCurrency,
+            duration_years: duration,
+            is_bundle: true,
+          });
+        }
+      }
+
       if (isCartMode) clearCart();
       setCheckoutRequestId(null);
       orderCreatedForCheckoutRef.current = null;
@@ -1012,6 +1072,7 @@ export function GlobalBuyNowDialog() {
             immediateStepRef.current = "success";
             immediatePaymentErrorRef.current = null;
             setPaymentError(null);
+            captureEvent("mpesa_payment_completed");
             setCurrentStep("success");
             onPaymentSuccessRef.current?.(cid);
             toast.success("Payment completed successfully!");
@@ -1151,6 +1212,7 @@ export function GlobalBuyNowDialog() {
       ? (transferContext.domain.replace(/\./g, "").slice(0, 9).toUpperCase() || "TRF") + timestamp
       : (ctx?.domain?.domain?.replace(/\./g, "").slice(0, 9).toUpperCase() ?? "ORD") + timestamp;
     try {
+      captureEvent("mpesa_payment_initiated", { amount: amount, phone_length: mpesaPhoneNumber.replace(/\D/g, "").length });
       await initiateMpesaPayment.mutateAsync({
         phoneNumber: mpesaPhoneNumber.trim(),
         amount,
@@ -1413,7 +1475,6 @@ export function GlobalBuyNowDialog() {
   const openUpsellPlanSelection = (target: UpsellBrowseTarget) => {
     setUpsellBrowseTarget(target);
     setSelectedPlanId(null);
-    setHostingBillingInterval(DEFAULT_HOSTING_BILLING_INTERVAL);
     setIsSelectingMainProductPlan(false);
     setPlanSelectionProductId(null);
     setPlanSelectionProductName("");
@@ -1460,8 +1521,7 @@ export function GlobalBuyNowDialog() {
       const plans = upsellPlanSelectionContext?.plans ?? [];
       const plan = plans.find((p) => p.id === selectedPlanId);
       if (!plan) return;
-      const cycle =
-        hostingBillingInterval === "yearly" ? DEFAULT_HOSTING_BILLING_CYCLE : "MONTHLY";
+      const cycle = DEFAULT_HOSTING_BILLING_CYCLE;
       const upsell = planSelectionToUpsell(plan, upsellBrowseTarget, cycle);
       setSelectedUpsellPlans((prev) => {
         const without = prev.filter((p) => p.hostingType !== upsellBrowseTarget.hostingType);
@@ -1563,7 +1623,6 @@ export function GlobalBuyNowDialog() {
       setPlanSelectionProductId(null);
       setIsSelectingMainProductPlan(false);
       setUpsellBrowseTarget(null);
-      setHostingBillingInterval(DEFAULT_HOSTING_BILLING_INTERVAL);
       setRegistrantStepCompleted(false);
       setPurchaseAsBusiness(false);
       setSelectedPlanId(null);
@@ -1700,7 +1759,7 @@ export function GlobalBuyNowDialog() {
               selected={upsellToServiceSelected(selectedUpsellPlans)}
               webFromPrice={webFromPrice}
               emailFromPrice={emailFromPrice}
-              pricePeriodLabel="/yr"
+              pricePeriodLabel="/mo"
               isLoadingPrices={isLoadingWebHostingPricing || isLoadingEmailHostingPricing}
               onBrowseHostingPlans={handleHostingBrowsePlans}
               onChangeHostingPlan={handleHostingBrowsePlans}
@@ -1722,9 +1781,7 @@ export function GlobalBuyNowDialog() {
                 productFeatures={upsellPlanSelectionContext.productFeatures}
                 isLoading={upsellPlanSelectionContext.isLoading}
                 selectedPlanId={selectedPlanId}
-                billingInterval={hostingBillingInterval}
                 onSelectPlan={setSelectedPlanId}
-                onBillingIntervalChange={setHostingBillingInterval}
               />
               </div>
             </ScrollArea>

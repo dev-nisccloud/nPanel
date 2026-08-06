@@ -32,6 +32,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { toast } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
+import { captureEvent } from "@/lib/posthog";
 import { Separator } from "@/components/ui/separator";
 import {
     ChartContainer,
@@ -70,6 +71,12 @@ export default function GoogleAdsCampaignPage() {
     const navigate = useNavigate();
     const customerId = (params.customerId as string) || "";
     const campaignId = (params.campaignId as string) || "";
+
+    React.useEffect(() => {
+        if (campaignId) {
+            captureEvent("google_ads_campaign_viewed", { campaign_id: campaignId });
+        }
+    }, [campaignId]);
 
     // Date range (Matches global state pattern)
     const [timeRange] = React.useState({

@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
+import { captureEvent } from "@/lib/posthog";
 import { parseCommaList } from "./seo-suite-utils";
 
 const FormSchema = z.object({
@@ -47,6 +48,7 @@ export function CreateProjectSheet({ open, onOpenChange, onSuccess }: CreateProj
 
   const createProject = trpc.seoSuite.createProject.useMutation({
     onSuccess: (project) => {
+      captureEvent("seo_project_created", { domain: project.primaryDomain });
       toast.success("SEO project created");
       form.reset();
       onOpenChange(false);

@@ -21,11 +21,13 @@ import {
 } from "@/components/ui/table";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 import { trpc } from "@/utils/trpc";
 import { useCredentialsConfigured } from "./credentials-banner";
 import { KeywordOverviewSheet } from "./keyword-overview-sheet";
 import {
   asArray,
+  asRecord,
   competitionFromItem,
   cpcFromItem,
   CREDENTIALS_TOAST,
@@ -60,6 +62,12 @@ export function KeywordResearchTab({ projectId, project }: KeywordResearchTabPro
       const rows = asArray(data.items);
       setItems(rows);
       setSelected(new Set());
+      const first = asRecord(rows[0]);
+      const seedKeyword = seed.split(/[,;\n]+/).map((s) => s.trim()).filter(Boolean)[0] ?? "";
+      captureEvent("seo_keyword_researched", {
+        keyword: seedKeyword || String(keywordFromItem(first) ?? ""),
+        search_volume: Number(searchVolumeFromItem(first) ?? 0) || 0,
+      });
       toast.success(`Found ${rows.length} keywords`);
     },
     onError: (e) => toast.error(e.message || "Keyword research failed"),

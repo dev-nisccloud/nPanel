@@ -6,6 +6,7 @@ import { FileText } from "lucide-react";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { pdf, Font } from "@react-pdf/renderer";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 import { CampaignReportPDF } from "./report-pdf";
 
 // Font registration state (copied from invoices to ensure availability)
@@ -181,6 +182,9 @@ export function DownloadReportButton({
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
 
+            captureEvent("meta_ads_report_downloaded", {
+                report_type: "campaign_pdf",
+            });
             toast.success("Report downloaded successfully");
 
         } catch (error) {

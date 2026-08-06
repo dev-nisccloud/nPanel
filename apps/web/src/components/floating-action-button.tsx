@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import { X, MessageCircle, ChevronRight, RotateCw, Phone, Bot, ArrowLeft, Paperclip, Send, ChevronDown, Sparkles, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -501,6 +503,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
           source: "CHAT",
           teamId: teamData.id,
         });
+        captureEvent("support_ticket_created", { category: "GENERAL", priority: "NORMAL" });
         ticketId = newTicket.id;
         setSelectedTicketId(ticketId);
         setIsNewTicket(false); // Next render: shouldFetchMessages=true, useTicketMessages(ticketId) will fetch

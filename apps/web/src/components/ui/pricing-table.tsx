@@ -49,12 +49,9 @@ export interface PricingTableProps
   onPlanSelect?: (plan: PricingPlan & { selectedBillingCycle: "MONTHLY" | "YEARLY"; selectedPrice: number }) => void
   onPlanCardClick?: (plan: PricingPlan) => void
   defaultPlan?: PlanLevel
-  defaultInterval?: "monthly" | "yearly"
   /** Controlled selection (e.g. checkout upsell step) */
   selectedPlanLevel?: PlanLevel
   onSelectedPlanLevelChange?: (level: PlanLevel) => void
-  isYearly?: boolean
-  onIsYearlyChange?: (yearly: boolean) => void
   /** Hide Popular / Recommended badges on plan cards */
   hideBadges?: boolean
   /** Compact layout for dialogs and embedded panels */
@@ -67,7 +64,7 @@ export interface PricingTableProps
   locale?: string
   /** When set, "Contact us" (price 0) uses this tel: link instead of onPlanSelect. Defaults to company number. */
   contactTelHref?: string
-  /** Commission-based plans: show % of ad spend instead of currency. Hides monthly/yearly toggle. */
+  /** Commission-based plans: show % of ad spend instead of currency. */
   pricingMode?: "fixed" | "commission"
   commissionSuffix?: string
   actionButtonLabel?: string
@@ -169,11 +166,8 @@ export function PricingTable({
   onPlanSelect,
   onPlanCardClick,
   defaultPlan,
-  defaultInterval = "monthly",
   selectedPlanLevel: selectedPlanLevelProp,
   onSelectedPlanLevelChange,
-  isYearly: isYearlyProp,
-  onIsYearlyChange,
   hideBadges = false,
   embedded = false,
   hideActionButton = false,
@@ -190,20 +184,12 @@ export function PricingTable({
 }: PricingTableProps) {
   const isCommission = pricingMode === "commission"
   const isPlanControlled = selectedPlanLevelProp !== undefined
-  const isYearlyControlled = isYearlyProp !== undefined
 
-  const [internalIsYearly, setInternalIsYearly] = React.useState(defaultInterval === "yearly")
   const [internalSelectedPlan, setInternalSelectedPlan] = React.useState<PlanLevel>(
     defaultPlan || plans[0]?.level || ""
   )
 
-  const isYearly = isYearlyControlled ? isYearlyProp! : internalIsYearly
   const selectedPlan = isPlanControlled ? selectedPlanLevelProp! : internalSelectedPlan
-
-  const setIsYearly = (yearly: boolean) => {
-    if (!isYearlyControlled) setInternalIsYearly(yearly)
-    onIsYearlyChange?.(yearly)
-  }
 
   const setSelectedPlan = (level: PlanLevel) => {
     if (!isPlanControlled) setInternalSelectedPlan(level)
@@ -302,7 +288,7 @@ export function PricingTable({
               </span>
               <span className="text-sm text-muted-foreground">{commissionSuffix}</span>
             </>
-          ) : (isYearly ? plan.price.yearly : plan.price.monthly) === 0 ? (
+          ) : plan.price.monthly === 0 ? (
             <span className="text-2xl sm:text-3xl font-bold tracking-tight">
               Contact us
             </span>
@@ -314,11 +300,11 @@ export function PricingTable({
                   currency: currency,
                   trailingZeroDisplay: "stripIfInteger",
                 }}
-                value={isYearly ? plan.price.yearly : plan.price.monthly}
+                value={plan.price.monthly}
                 className="text-2xl sm:text-3xl font-bold tracking-tight"
               />
               <span className="text-sm text-muted-foreground">
-                /{isYearly ? "year" : "month"}
+                /month
               </span>
             </>
           )}
@@ -326,7 +312,7 @@ export function PricingTable({
         {!embedded && (
           <p className="mt-3 text-xs text-muted-foreground">
             {isSelected
-              ? (isYearly ? plan.price.yearly : plan.price.monthly) === 0
+              ? plan.price.monthly === 0
                 ? "Click Contact us above to continue"
                 : "Click Get started above to continue"
               : "Click to select this plan"}
@@ -352,46 +338,14 @@ export function PricingTable({
           containerClassName
         )}
       >
-        {/* Billing toggle + CTA */}
+        {/* CTA */}
         <div
           className={cn(
             "flex flex-col sm:flex-row items-stretch sm:items-center gap-4",
             embedded ? "mb-4" : "mb-8 sm:mb-10",
-            isCommission || !hideActionButton ? "sm:justify-between" : "sm:justify-end",
+            "sm:justify-between",
           )}
         >
-          {!isCommission && (
-          <div className="inline-flex items-center gap-1 p-1 rounded-full bg-muted/80 border border-border/80 shadow-sm">
-            <button
-              type="button"
-              onClick={() => setIsYearly(false)}
-              className={cn(
-                "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200",
-                !isYearly
-                  ? "bg-background text-foreground shadow-sm border border-border/60"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Monthly
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsYearly(true)}
-              className={cn(
-                "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center gap-1.5",
-                isYearly
-                  ? "bg-background text-foreground shadow-sm border border-border/60"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Yearly
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-primary bg-primary/10 px-1.5 py-0.5 rounded">
-                Save 20%
-              </span>
-            </button>
-          </div>
-          )}
-
           {isCommission && (
             <p className="text-sm text-muted-foreground max-w-xl">
               Commission on total ad spend, invoiced at the end of each billing cycle. Ad spend is paid directly to the platform.
@@ -400,7 +354,7 @@ export function PricingTable({
 
           {!hideActionButton && selectedPlanData && (onPlanSelect || contactTelHref) && (
             (() => {
-              const displayPrice = isYearly ? selectedPlanData.price.yearly : selectedPlanData.price.monthly;
+              const displayPrice = selectedPlanData.price.monthly;
               const isContactUs = !isCommission && displayPrice === 0;
               const ctaLabel =
                 actionButtonLabel ??
@@ -414,6 +368,7 @@ export function PricingTable({
                     "w-full sm:w-auto gap-2 rounded-xl font-semibold tracking-tight",
                     "shadow-md hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0",
                     "transition-all duration-200 border-0",
+                    !isCommission && "sm:ml-auto",
                     buttonClassName
                   )}
                   asChild
@@ -430,16 +385,15 @@ export function PricingTable({
                     "w-full sm:w-auto gap-2 rounded-xl font-semibold tracking-tight",
                     "shadow-md hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0",
                     "transition-all duration-200 border-0",
+                    !isCommission && "sm:ml-auto",
                     buttonClassName
                   )}
                   onClick={() => {
                     if (!onPlanSelect) return;
-                    const selectedBillingCycle = isCommission ? "MONTHLY" : isYearly ? "YEARLY" : "MONTHLY";
-                    const selectedPrice = displayPrice;
                     onPlanSelect({
                       ...selectedPlanData,
-                      selectedBillingCycle,
-                      selectedPrice,
+                      selectedBillingCycle: "MONTHLY",
+                      selectedPrice: displayPrice,
                     });
                   }}
                 >

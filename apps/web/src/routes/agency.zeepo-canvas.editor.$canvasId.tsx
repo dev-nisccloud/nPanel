@@ -1,7 +1,9 @@
 import { useParams, Navigate } from "react-router";
+import { useEffect } from "react";
 import { authClient } from "@/lib/auth-client";
 import { trpc } from "@/utils/trpc";
 import { Loader2 } from "lucide-react";
+import { captureEvent } from "@/lib/posthog";
 
 import { Canvas } from "./_agency.zeepo-canvas/_components/canvas";
 import { Controls } from "./_agency.zeepo-canvas/_components/controls";
@@ -20,6 +22,11 @@ export default function ZeepoCanvasEditorPage() {
     { id: canvasId! },
     { enabled: !!canvasId }
   );
+
+  useEffect(() => {
+    if (!canvasId || !projectData?.data) return;
+    captureEvent("zeepo_canvas_project_opened", { project_id: canvasId });
+  }, [canvasId, projectData?.data?.id]);
 
   if (isAuthPending || isProjectLoading) {
     return (

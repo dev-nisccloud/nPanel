@@ -1,5 +1,6 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
 import { toast } from "@/components/ui/sonner";
 import { trpc } from "@/utils/trpc";
 
@@ -8,6 +9,7 @@ export const useDeleteUpload = () => {
 
   return trpc.imageGenStudio.uploads.delete.useMutation({
     onSuccess: () => {
+      captureEvent("image_gen_upload_deleted");
       utils.imageGenStudio.uploads.list.invalidate();
       toast.success("Upload deleted");
     },

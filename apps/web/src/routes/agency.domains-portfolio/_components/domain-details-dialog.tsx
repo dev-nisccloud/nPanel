@@ -58,6 +58,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CreateSubscriptionFromDomainDialog } from "./create-subscription-from-domain-dialog";
 import { LinkKenicDomainToTeamDialog } from "./link-kenic-domain-to-team-dialog";
 import type { DomainPortfolio } from "./domain-portfolio-card";
+import { captureEvent } from "@/lib/posthog";
 
 interface DomainDetailsDialogProps {
   open: boolean;
@@ -76,6 +77,10 @@ export function DomainDetailsDialog({
   onRenew,
   onTransfer,
 }: DomainDetailsDialogProps) {
+  React.useEffect(() => {
+    if (open && domain) captureEvent("domain_details_viewed", { domain: domain.domain });
+  }, [open]);
+
   if (!domain) return null;
 
   const isExpiringSoon = () => {
@@ -197,6 +202,7 @@ function OverviewTab({ domain }: { domain: DomainPortfolio }) {
 
   const updateNameserversMutation = trpc.openProvider.domains.update.useMutation({
     onSuccess: () => {
+      captureEvent("domain_nameservers_updated", { provider: "openprovider" });
       toast.success("Nameservers updated successfully");
       setIsEditingNameservers(false);
       // Refetch domain data to get updated nameservers

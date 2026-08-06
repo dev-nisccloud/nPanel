@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 import { transformQuotationToPreviewData } from "@/routes/agency.quotations/$id/_utils/transformQuotationData";
 
 let fontsRegistered = false;
@@ -101,6 +102,7 @@ export function SendQuotationDialog({
 	const getById = trpc.quotations.getById.useQuery({ id: quotationId }, { enabled: false });
 	const sendMutation = trpc.quotations.sendQuotationEmail.useMutation({
 		onSuccess: () => {
+			captureEvent("quotation_sent");
 			toast.success("Quotation sent", { description: `Email sent to ${email}.` });
 			onOpenChange(false);
 			onSent?.();

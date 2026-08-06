@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { trpc, type RouterOutputs } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 
 type AudienceSummary = RouterOutputs["emailMarketing"]["audiences"]["list"]["audiences"][0];
 
@@ -54,6 +55,9 @@ function AudienceRowActions({ audience, onRefetch, onView }: AudienceRowActionsP
 
 	const deleteMutation = trpc.emailMarketing.audiences.delete.useMutation({
 		onSuccess: () => {
+			captureEvent("email_audience_deleted", {
+				audience_size: audience.contactsCount ?? 0,
+			});
 			toast.success("Audience deleted", {
 				description: `Audience "${audience.name}" has been deleted.`,
 			});

@@ -32,6 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { captureEvent } from "@/lib/posthog";
 import { trpc } from "@/utils/trpc";
 
 const inviteFormSchema = z.object({
@@ -64,6 +65,7 @@ export function InviteMemberDialog({
 
   const inviteMemberMutation = trpc.teams.inviteMember.useMutation({
     onSuccess: () => {
+      captureEvent("team_member_invited", { role: form.getValues("role") });
       toast.success("Invitation sent successfully");
       form.reset({
         email: "",

@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 
 interface ThemeMarketplaceSheetProps {
   open: boolean;
@@ -123,6 +124,11 @@ export function ThemeMarketplaceSheet({
   // Install theme mutation
   const installTheme = trpc.plesk.wpThemesInstall.install.useMutation({
     onSuccess: () => {
+      const t = selectedTheme || themeToInstall;
+      captureEvent("wordpress_theme_installed", {
+        theme_name: t?.title || t?.name || t?.slug || "unknown",
+      });
+
       setThemeToInstall(null);
       toast.success("Theme installed successfully!");
       onInstallSuccess?.();
@@ -139,6 +145,11 @@ export function ThemeMarketplaceSheet({
   // Activate theme mutation
   const activateTheme = trpc.plesk.wpThemesStatus.setStatus.useMutation({
     onSuccess: () => {
+      const t = selectedTheme || themeToInstall;
+      captureEvent("wordpress_theme_activated", {
+        theme_name: t?.title || t?.name || t?.slug || "unknown",
+      });
+
       toast.success("Theme activated successfully!");
       onInstallSuccess?.();
     },

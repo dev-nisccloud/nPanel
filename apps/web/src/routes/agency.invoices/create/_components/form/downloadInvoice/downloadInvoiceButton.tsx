@@ -13,6 +13,7 @@ import { trpc } from "@/utils/trpc";
 import { useFormContext } from "react-hook-form";
 import { toast } from "@/components/ui/sonner";
 import { useNavigate } from "react-router";
+import { captureEvent } from "@/lib/posthog";
 
 // Font registration state
 let fontsRegistered = false;
@@ -114,6 +115,10 @@ export const DownloadInvoiceButton = () => {
   const submitInvoiceMutation = trpc.invoicing.submitInvoice.useMutation({
     onSuccess: (data) => {
       setStatus("submitted");
+      captureEvent("invoice_created", {
+        currency: invoiceDetails.currency || paymentDetails.currency || "KES",
+        line_items_count: (invoiceDetails.items || []).length,
+      });
       
       // Invalidate the invoice number cache to ensure fresh data on next create
       // This ensures when user navigates to create a new invoice, they get the latest number

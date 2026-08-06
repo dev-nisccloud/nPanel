@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -132,6 +134,7 @@ export function AddEditPlanSheet({
 
     const createPlan = trpc.products.createPlan.useMutation({
         onSuccess: () => {
+            captureEvent("service_plan_created");
             toast.success("Plan created");
             onOpenChange(false);
             onSuccess();
@@ -141,6 +144,7 @@ export function AddEditPlanSheet({
 
     const updatePlan = trpc.products.updatePlan.useMutation({
         onSuccess: () => {
+            captureEvent("service_plan_updated");
             toast.success("Plan updated");
             onOpenChange(false);
             onSuccess();

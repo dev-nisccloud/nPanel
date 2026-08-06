@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import { Bell, Check, Mail, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -41,6 +43,10 @@ const getPriorityColor = (priority: string) => {
 export function NotificationSwitcher() {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    if (isOpen) captureEvent("notification_viewed", { notification_type: "inbox" });
+  }, [isOpen]);
   const [expandedNotifications, setExpandedNotifications] = React.useState<Set<string>>(new Set());
   const [updatingNotificationId, setUpdatingNotificationId] = React.useState<string | null>(null);
 
@@ -149,6 +155,7 @@ export function NotificationSwitcher() {
       return { previousNotifications, previousUnseenCount };
     },
     onSuccess: () => {
+      captureEvent("notification_read");
       setUpdatingNotificationId(null);
     },
     onError: (error, variables, context) => {
@@ -242,6 +249,7 @@ export function NotificationSwitcher() {
       return { previousNotifications, previousUnseenCount };
     },
     onSuccess: () => {
+      captureEvent("notification_cleared");
       setUpdatingNotificationId(null);
     },
     onError: (error, variables, context) => {
@@ -278,7 +286,9 @@ export function NotificationSwitcher() {
 
       return { previousNotifications, previousUnseenCount };
     },
-    onSuccess: () => {},
+    onSuccess: () => {
+      captureEvent("all_notifications_read", { count: notificationsRef.current.length });
+    },
     onError: (error, variables, context) => {
       if (context?.previousNotifications) {
         utils.notifications.getAll.setData({ limit: 50, offset: 0 }, context.previousNotifications);

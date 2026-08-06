@@ -20,6 +20,7 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
 import { creativeAssetVersionSchema } from "./schema";
 import { useUserNames } from "./use-user-names";
+import { captureEvent } from "@/lib/posthog";
 
 interface CommentsDialogProps {
   open: boolean;
@@ -289,7 +290,10 @@ export function CommentsDialog({
 
   // Mutations with immediate refetch
   const addCommentMutation = trpc.creativeAssets.addComment.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (_data, variables) => {
+      captureEvent("creative_asset_commented", {
+        comment_length: variables.content.length,
+      });
       setMessage("");
       // Immediately refetch comments to get fresh data
       await refetchComments();

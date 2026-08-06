@@ -43,6 +43,7 @@ import { toast } from "@/components/ui/sonner";
 import type { InvoiceSummary } from "@/routes/agency.invoicing/api/schemas";
 import type { InvoiceDetail } from "@/routes/agency.invoices/create/api/schemas";
 import { buildInvoicePdfDetails } from "@npanel/api/agency-invoice-pdf/build-invoice-pdf-details";
+import { captureEvent } from "@/lib/posthog";
 
 const statusBadgeVariant: Record<InvoiceSummary["status"], "default" | "secondary" | "destructive" | "outline"> = {
 	DRAFT: "outline",
@@ -198,6 +199,7 @@ function InvoiceCard({ invoice, onRefetch }: InvoiceCardProps) {
 
 	const deleteInvoiceMutation = trpc.invoicing.deleteInvoice.useMutation({
 		onSuccess: () => {
+			captureEvent("invoice_deleted");
 			toast.success("Invoice deleted successfully", {
 				description: `Invoice ${invoice.invoiceNumber} has been deleted.`,
 			});
@@ -215,6 +217,7 @@ function InvoiceCard({ invoice, onRefetch }: InvoiceCardProps) {
 
 	const resendEmailMutation = trpc.invoicing.resendEmailReminder.useMutation({
 		onSuccess: () => {
+			captureEvent("invoice_sent");
 			toast.success("Email reminder sent successfully!", {
 				description: `Reminder for invoice ${invoice.invoiceNumber} has been sent to ${invoice.customerEmail}`,
 			});
@@ -259,6 +262,7 @@ function InvoiceCard({ invoice, onRefetch }: InvoiceCardProps) {
 			document.body.removeChild(link);
 			URL.revokeObjectURL(url);
 
+			captureEvent("invoice_downloaded_pdf");
 			toast.success("Invoice downloaded successfully", {
 				description: `Invoice ${invoice.invoiceNumber} has been downloaded.`,
 			});

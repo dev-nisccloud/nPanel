@@ -19,27 +19,14 @@ import {
 
 // ─── Pricing math ─────────────────────────────────────────────────────────────
 
-function derivePricing(niscPrice: string | null | undefined, billingCycle: string) {
-  if (!niscPrice) return { monthly: 0, yearly: 0 };
+function deriveMonthlyPrice(niscPrice: string | null | undefined, billingCycle: string) {
+  if (!niscPrice) return 0;
   const price = parseFloat(niscPrice);
-  if (isNaN(price)) return { monthly: 0, yearly: 0 };
+  if (isNaN(price)) return 0;
 
-  if (billingCycle === "MONTHLY") {
-    return { monthly: Math.round(price), yearly: Math.round(price * 12 * 0.8) };
-  }
-  if (billingCycle === "YEARLY") {
-    return { monthly: Math.round(price / 12), yearly: Math.round(price) };
-  }
-  return { monthly: Math.round(price), yearly: Math.round(price * 12 * 0.8) };
-}
-
-function formatKes(amount: number) {
-  return new Intl.NumberFormat("en-KE", {
-    style: "currency",
-    currency: "KES",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
+  if (billingCycle === "YEARLY") return Math.round(price / 12);
+  if (billingCycle === "BIENNIALLY") return Math.round(price / 24);
+  return Math.round(price);
 }
 
 // ─── Plan card ────────────────────────────────────────────────────────────────
@@ -47,16 +34,13 @@ function formatKes(amount: number) {
 function PlanCard({
   plan,
   isSelected,
-  isYearly,
   onClick,
 }: {
   plan: SharedHostingPlan;
   isSelected: boolean;
-  isYearly: boolean;
   onClick: () => void;
 }) {
-  const price = derivePricing(plan.niscPrice, plan.billingCycle);
-  const displayPrice = isYearly ? price.yearly : price.monthly;
+  const displayPrice = deriveMonthlyPrice(plan.niscPrice, plan.billingCycle);
 
   return (
     <button
@@ -133,7 +117,7 @@ function PlanCard({
               value={displayPrice}
               className="text-2xl sm:text-3xl font-bold tracking-tight"
             />
-            <span className="text-sm text-muted-foreground">/{isYearly ? "year" : "month"}</span>
+            <span className="text-sm text-muted-foreground">/month</span>
           </>
         )}
       </div>
@@ -300,7 +284,6 @@ export function NpanelPricingSection({
   const [productFeatures, setProductFeatures] = React.useState<ProductFeatureRow[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const [isYearly, setIsYearly] = React.useState(false);
   const [checkoutLoading, setCheckoutLoading] = React.useState(false);
   const [selectedId, setSelectedId] = React.useState<string>("");
 
@@ -332,10 +315,9 @@ export function NpanelPricingSection({
   }, [fetchPlans]);
 
   const selectedPlan = plans.find((p) => p.id === selectedId);
-  const selectedPrice = selectedPlan
-    ? derivePricing(selectedPlan.niscPrice, selectedPlan.billingCycle)
-    : null;
-  const displayPrice = selectedPrice ? (isYearly ? selectedPrice.yearly : selectedPrice.monthly) : 0;
+  const displayPrice = selectedPlan
+    ? deriveMonthlyPrice(selectedPlan.niscPrice, selectedPlan.billingCycle)
+    : 0;
 
   const handleGetStarted = async () => {
     if (!selectedPlan) return;
@@ -344,14 +326,14 @@ export function NpanelPricingSection({
         serviceName,
         planName: selectedPlan.name,
         planPrice: 0,
-        planPeriod: isYearly ? "year" : "month",
+        planPeriod: "month",
       });
       return;
     }
     setCheckoutLoading(true);
     try {
       await navigateToStorefrontCart(
-        buildSharedHostingCartParams(selectedPlan, checkoutServiceType, isYearly),
+        buildSharedHostingCartParams(selectedPlan, checkoutServiceType),
       );
     } catch (err) {
       setCheckoutLoading(false);
@@ -385,40 +367,8 @@ export function NpanelPricingSection({
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Billing toggle + CTA row */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:justify-between">
-              {/* Monthly / Yearly toggle */}
-              <div className="inline-flex items-center gap-1 p-1 rounded-full bg-muted/80 border border-border/80 shadow-sm self-start">
-                <button
-                  type="button"
-                  onClick={() => setIsYearly(false)}
-                  className={[
-                    "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200",
-                    !isYearly
-                      ? "bg-background text-foreground shadow-sm border border-border/60"
-                      : "text-muted-foreground hover:text-foreground",
-                  ].join(" ")}
-                >
-                  Monthly
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsYearly(true)}
-                  className={[
-                    "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center gap-1.5",
-                    isYearly
-                      ? "bg-background text-foreground shadow-sm border border-border/60"
-                      : "text-muted-foreground hover:text-foreground",
-                  ].join(" ")}
-                >
-                  Yearly
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-primary bg-primary/10 px-1.5 py-0.5 rounded">
-                    Save 20%
-                  </span>
-                </button>
-              </div>
-
-              {/* Get Started CTA */}
+            {/* CTA row */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:justify-end">
               {selectedPlan && (
                 <Button
                   size="lg"
@@ -452,7 +402,6 @@ export function NpanelPricingSection({
                   key={plan.id}
                   plan={plan}
                   isSelected={plan.id === selectedId}
-                  isYearly={isYearly}
                   onClick={() => setSelectedId(plan.id)}
                 />
               ))}

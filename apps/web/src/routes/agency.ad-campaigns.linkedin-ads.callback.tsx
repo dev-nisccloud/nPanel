@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { captureEvent } from "@/lib/posthog";
 
 export default function LinkedInAdsCallbackPage() {
 	const [searchParams] = useSearchParams();
@@ -18,9 +19,13 @@ export default function LinkedInAdsCallbackPage() {
 	// Use LinkedIn social media marketing auth for token generation
 	// (it handles the OAuth token exchange, and we've ensured Marketing API scopes are included)
 	const generateTokenMutation = trpc.socialMediaMarketing.linkedin.auth.generateToken.useMutation({
-		onSuccess: () => {
+		onSuccess: (data) => {
 			setStatus("success");
 			setHasProcessed(true);
+			const accountId =
+				(data as { data?: { accountId?: string } })?.data?.accountId ??
+				(data as { accountId?: string })?.accountId;
+			captureEvent("linkedin_ads_connected", { account_id: accountId });
 			toast.success("LinkedIn Ads account connected successfully!");
 			// Use a hard redirect so LinkedIn Ads credentials are reloaded from server state.
 			setTimeout(() => {

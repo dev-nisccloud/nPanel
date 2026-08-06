@@ -49,7 +49,6 @@ export async function navigateToStorefrontCart(params: StorefrontCartParams) {
 export function buildSharedHostingCartParams(
   plan: SharedHostingPlan,
   serviceType: string,
-  isYearly: boolean,
 ): StorefrontCartParams {
   return {
     serviceType,
@@ -58,7 +57,7 @@ export function buildSharedHostingCartParams(
     planName: plan.name,
     productName: plan.productName,
     currency: plan.niscCurrency || "KES",
-    billingCycle: isYearly ? "YEARLY" : "MONTHLY",
+    billingCycle: "MONTHLY",
   };
 }
 

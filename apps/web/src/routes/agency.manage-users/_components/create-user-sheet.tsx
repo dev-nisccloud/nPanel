@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -98,7 +100,8 @@ export function CreateUserSheet({
         }
       }
 
-      toast.success("User created successfully");
+      toast.success("User created successfully")
+      if (form.getValues("agencyRoleId")) captureEvent("agency_role_assigned", { role_name: form.getValues("agencyRoleId") });
       form.reset({
         name: "",
         email: "",

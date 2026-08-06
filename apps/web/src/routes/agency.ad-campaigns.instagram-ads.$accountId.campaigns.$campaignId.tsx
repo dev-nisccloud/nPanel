@@ -12,6 +12,7 @@ import { trpc } from "@/utils/trpc";
 import { format, parseISO } from "date-fns";
 import { toast } from "@/components/ui/sonner";
 import { AnimatePresence, motion, useMotionValueEvent, useSpring } from "framer-motion";
+import { captureEvent } from "@/lib/posthog";
 import {
     ArrowLeft,
     Target,
@@ -1516,6 +1517,12 @@ export default function CampaignDetailsPage() {
 	const campaignId = params?.campaignId as string;
 	const isCampaignQueryEnabled = !!accountId && !!campaignId;
 	const publisherPlatform = (searchParams.get("platform") || "facebook") as any;
+
+	React.useEffect(() => {
+		if (campaignId) {
+			captureEvent("instagram_ads_campaign_viewed", { campaign_id: campaignId });
+		}
+	}, [campaignId]);
 
 
     // Fetch campaign details

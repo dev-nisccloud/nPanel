@@ -16,6 +16,7 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { ComboboxDropdown, type ComboboxItem } from "@npanel/ui/components/combobox-dropdown";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 
 interface CreateSubscriptionForHostingDialogProps {
   open: boolean;
@@ -64,6 +65,13 @@ export function CreateSubscriptionForHostingDialog({
 
   const createMutation = trpc.clientSubscriptions.create.useMutation({
     onSuccess: () => {
+      captureEvent("hosting_subscription_created", {
+      plan: selectedProductId || "unknown",
+      price: agreedPrice ? Number(agreedPrice) : 0,
+      currency: agreedCurrency,
+      hosting_type: hostingType,
+    });
+
       toast.success("Subscription created");
       onOpenChange(false);
       resetForm();

@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 import { authClient } from "@/lib/auth-client";
 import { SubscriptionDeleteDialog } from "./subscription-delete-dialog";
 
@@ -91,6 +92,7 @@ export function SubscriptionsTable({ onViewSubscription, onEditSubscription }: S
 	const utils = trpc.useUtils();
 	const deleteSubscription = trpc.clientSubscriptions.delete.useMutation({
 		onSuccess: () => {
+			captureEvent("subscription_deleted");
 			toast.success("Subscription deleted");
 			setDeleteSubscriptionId(null);
 			void utils.clientSubscriptions.listForAgency.invalidate();

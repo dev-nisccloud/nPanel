@@ -22,6 +22,7 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import { databaseSchema } from "./databases-schema";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { captureEvent } from "@/lib/posthog";
 
 const FormSchema = z.object({
   confirm: z.boolean().refine((val) => val === true, {
@@ -57,6 +58,8 @@ export function AssignDatabaseSheet({
 
   const assignDatabase = trpc.plesk.databasesAssign.assign.useMutation({
     onSuccess: () => {
+      captureEvent("database_assigned", { site_id: String(targetWebspaceId) });
+
       toast.success("Database assigned successfully!");
       form.reset();
       setConfirmed(false);

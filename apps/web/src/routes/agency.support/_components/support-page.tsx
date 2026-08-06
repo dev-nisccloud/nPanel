@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Search, RefreshCw } from "lucide-react";
@@ -241,6 +243,7 @@ export function SupportPage() {
   const openTicket = (id: string) => {
     setSelectedTicketId(id);
     setSheetOpen(true);
+    captureEvent("support_ticket_viewed", { ticket_id: id });
   };
 
   return (

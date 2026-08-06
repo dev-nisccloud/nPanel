@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import {
     ShieldCheck,
@@ -27,6 +29,7 @@ export default function ETimsSettingsPage() {
 
     const initMutation = trpc.etims.initialization.initializeDevice.useMutation({
         onSuccess: () => {
+            captureEvent("etims_connected");
             toast.success(
                 configStatus?.isInitialized
                     ? "eTIMS Re-initialized Successfully"

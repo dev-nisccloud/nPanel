@@ -37,6 +37,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { trpc } from "@/utils/trpc";
+import { captureEvent } from "@/lib/posthog";
 
 const formSchema = z.object({
   provider: z.enum(["MPESA"]),
@@ -84,6 +85,9 @@ export function AddCredentialsSheet({
 
   const addMutation = trpc.niscPaymentGateway.credentials.add.useMutation({
     onSuccess: () => {
+      captureEvent("payment_gateway_credentials_created", {
+        gateway_type: form.getValues("provider"),
+      });
       toast.success("Credentials added successfully");
       form.reset();
       setTestResult(null);

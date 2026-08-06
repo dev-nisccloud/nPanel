@@ -30,6 +30,7 @@ import { UploadVersionSheet } from "./upload-version-sheet";
 // import { ManagePermissionsSheet } from "./manage-permissions-sheet";
 import { Globe, Lock, Archive, ArchiveRestore, Check, X } from "lucide-react";
 import { useUserName } from "./use-user-names";
+import { captureEvent } from "@/lib/posthog";
 
 interface CreativeAssetsDetailPageProps {
   assetId: string;
@@ -162,9 +163,22 @@ export function CreativeAssetsDetailPage({
   // Fetch createdBy user name - cached to avoid refetching
   const { name: createdByName } = useUserName(asset?.createdBy);
 
+  React.useEffect(() => {
+    if (!asset) return;
+    captureEvent("creative_asset_viewed", {
+      asset_id: asset.id,
+      category: asset.category || "uncategorized",
+    });
+  }, [asset?.id]);
+
   // Mutations for version management
   const updateVersionStatusMutation = trpc.creativeAssets.updateVersionStatus.useMutation({
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      if (variables.status === "APPROVED") {
+        captureEvent("creative_asset_approved", { approver_role: "agency" });
+      } else if (variables.status === "REJECTED") {
+        captureEvent("creative_asset_rejected", { rejection_reason_provided: false });
+      }
       utils.creativeAssets.getById.invalidate({ id: assetId });
       toast.success("Version status updated successfully");
     },
@@ -196,6 +210,7 @@ export function CreativeAssetsDetailPage({
 
   const archiveAssetMutation = trpc.creativeAssets.archive.useMutation({
     onSuccess: () => {
+      captureEvent("creative_asset_archived");
       utils.creativeAssets.getById.invalidate({ id: assetId });
       toast.success("Asset archived successfully");
     },

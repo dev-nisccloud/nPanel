@@ -11,6 +11,7 @@ import { toast } from "@/components/ui/sonner";
 import { trpc } from "@/utils/trpc";
 import { cn } from "@/lib/utils";
 import type { DomainPortfolio } from "./domain-portfolio-card";
+import { captureEvent } from "@/lib/posthog";
 
 interface NameserversTabProps {
   domain: DomainPortfolio;
@@ -27,6 +28,7 @@ export function NameserversTab({ domain }: NameserversTabProps) {
 
   const updateNameserversMutation = trpc.openProvider.domains.update.useMutation({
     onSuccess: () => {
+      captureEvent("domain_nameservers_updated", { provider: "openprovider" });
       toast.success("Nameservers updated successfully");
       setIsEditingNameservers(false);
       window.location.reload();
@@ -38,6 +40,7 @@ export function NameserversTab({ domain }: NameserversTabProps) {
 
   const updateKenicNameserversMutation = trpc.kenic.domainList.updateNameservers.useMutation({
     onSuccess: () => {
+      captureEvent("domain_nameservers_updated", { provider: "kenic" });
       toast.success("Nameservers updated successfully");
       setIsEditingNameservers(false);
       window.location.reload();

@@ -19,6 +19,7 @@ import { CreativeBriefsListing } from "@/routes/agency.creative-briefs/_componen
 import { CreateBriefSheet } from "@/routes/agency.creative-briefs/_components/create-brief-sheet";
 import { EditBriefSheet } from "@/routes/agency.creative-briefs/_components/edit-brief-sheet";
 import { creativeBriefSchema } from "@/routes/agency.creative-briefs/_components/schema";
+import { captureEvent } from "@/lib/posthog";
 
 export function CreativeBriefsTabContent() {
   const [isCreateBriefOpen, setIsCreateBriefOpen] = React.useState(false);
@@ -41,6 +42,7 @@ export function CreativeBriefsTabContent() {
       const parsedBrief = creativeBriefSchema.parse(brief);
       setEditingBrief(parsedBrief);
       setIsEditBriefOpen(true);
+      captureEvent("creative_brief_viewed", { brief_id: id });
     }
   };
 
@@ -57,6 +59,7 @@ export function CreativeBriefsTabContent() {
       });
     },
     onSuccess: (data, variables) => {
+      captureEvent("creative_brief_deleted");
       toast.success("Brief deleted successfully", {
         id: `delete-${variables.id}`,
       });

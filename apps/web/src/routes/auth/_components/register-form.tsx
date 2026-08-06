@@ -15,6 +15,7 @@ import { TermsAcceptanceField } from "@/routes/auth/_components/terms-acceptance
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
 import { redirectToTarget } from "@/lib/auth-redirect";
+import { captureEvent } from "@/lib/posthog";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
 const FormSchema = z
@@ -125,6 +126,11 @@ export function RegisterForm({ termsAccepted, onTermsAcceptedChange }: RegisterF
       }
       
       if (result?.data) {
+        captureEvent("user_signed_up", {
+          method: "email",
+          has_referred: Boolean(inviteCode),
+        });
+        captureEvent("email_verification_sent");
         setIsEmailSent(true);
         toast.success("Please check your email to verify your account");
         // Don't reset isSubmitting on success - keep state consistent

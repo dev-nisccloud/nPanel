@@ -13,6 +13,7 @@ import { ProfileInformation } from "./profile-information";
 import { EditProfileDialog } from "./edit-profile-dialog";
 import { IntegrationsDisplay } from "./integrations-display";
 import { AddIntegrationDialog } from "./add-integration-dialog";
+import { captureEvent } from "@/lib/posthog";
 
 interface ClientViewDialogProps {
   open: boolean;
@@ -34,6 +35,12 @@ export function ClientViewDialog({
 
   // Use efficient query - get client from the list cache or fetch user info
   const utils = trpc.useUtils();
+
+  React.useEffect(() => {
+    if (open && clientId) {
+      captureEvent("client_profile_viewed", { client_id: clientId });
+    }
+  }, [open, clientId]);
 
   // Try to get client from cache first
   const clientsData = utils.clients.getAll.getData();

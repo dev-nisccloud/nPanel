@@ -1,12 +1,14 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
-import { Plus, RefreshCw, Search, Globe, Grid3X3, List, EllipsisVertical, FilePlus2, Link2 } from "lucide-react";
+import { Plus, RefreshCw, Search, Globe, EllipsisVertical, FilePlus2, Link2 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
-import { DomainPortfolioCardsList, type DomainPortfolio } from "./agency.domains-portfolio/_components/domain-portfolio-card";
+import { type DomainPortfolio } from "./agency.domains-portfolio/_components/domain-portfolio-card";
 import { CreateSubscriptionFromDomainDialog } from "./agency.domains-portfolio/_components/create-subscription-from-domain-dialog";
 import { LinkKenicDomainToTeamDialog } from "./agency.domains-portfolio/_components/link-kenic-domain-to-team-dialog";
 import { EmptyState } from "./agency.domains-portfolio/_components/empty-state";
@@ -40,11 +42,14 @@ type DomainPortfolioWithSource = DomainPortfolio & {
 };
 
 export default function DomainsPortfolioPage() {
+  React.useEffect(() => {
+    captureEvent("domain_portfolio_viewed", { user_type: "agency" });
+  }, []);
+
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = React.useState("");
   const [limit] = React.useState(100);
   const [offset, setOffset] = React.useState(0);
-  const [viewMode, setViewMode] = React.useState<"card" | "table">("table");
   const [createSubscriptionDomain, setCreateSubscriptionDomain] = React.useState<DomainPortfolio | null>(null);
   const [linkToTeamDomain, setLinkToTeamDomain] = React.useState<DomainPortfolio | null>(null);
 
@@ -332,18 +337,6 @@ export default function DomainsPortfolioPage() {
     </div>
   );
 
-  // ── Card view ───────────────────────────────────────────────────────────────
-  const CardView = () => (
-    <DomainPortfolioCardsList
-      data={filteredDomains as DomainPortfolio[]}
-      cols={4}
-      onView={(id) => handleNavigation(`/agency/domains-portfolio/${id}`)}
-      onCreateSubscription={(d) => setCreateSubscriptionDomain(d)}
-      onLinkToTeam={(d) => setLinkToTeamDomain(d)}
-      openProviderIdsWithSubscriptions={openProviderIdsWithSubscriptionsSet}
-    />
-  );
-
   // ── Error state (show partial errors inline, not a full-page block) ─────────
   const hasOpError = !!opError;
   const hasKenicError = !!kenicError;
@@ -408,25 +401,6 @@ export default function DomainsPortfolioPage() {
               />
             </div>
             <div className="flex items-center gap-2">
-              {/* View Mode Toggle */}
-              <div className="flex items-center border rounded-md">
-                <Button
-                  variant={viewMode === "card" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setViewMode("card")}
-                  className="rounded-r-none"
-                >
-                  <Grid3X3 className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === "table" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setViewMode("table")}
-                  className="rounded-l-none"
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-              </div>
               <Button
                 variant="outline"
                 size="icon"
@@ -479,7 +453,7 @@ export default function DomainsPortfolioPage() {
             </div>
           ) : (
             <>
-              {viewMode === "card" ? <CardView /> : <TableView />}
+              <TableView />
               {createSubscriptionDomain && (
                 <CreateSubscriptionFromDomainDialog
                   open={!!createSubscriptionDomain}

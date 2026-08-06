@@ -12,6 +12,7 @@ import { trpc } from "@/utils/trpc";
 import { format, parseISO } from "date-fns";
 import { toast } from "@/components/ui/sonner";
 import { AnimatePresence, motion, useMotionValueEvent, useSpring } from "framer-motion";
+import { captureEvent } from "@/lib/posthog";
 import {
     ArrowLeft,
     Target,
@@ -1517,6 +1518,12 @@ export default function CampaignDetailsPage() {
 	const accountId = params?.accountId as string;
 	const campaignId = params?.campaignId as string;
 	const isCampaignQueryEnabled = !!accountId && !!campaignId;
+
+	React.useEffect(() => {
+		if (campaignId) {
+			captureEvent("meta_ads_campaign_viewed", { campaign_id: campaignId });
+		}
+	}, [campaignId]);
 
 
 

@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 
 export type CreateSeoSubscriptionDialogProps =
 	| { scope: "SEARCH_CONSOLE"; siteUrl: string }
@@ -54,6 +55,16 @@ export function CreateSeoSubscriptionDialog(props: CreateSeoSubscriptionDialogPr
 
 	const createMutation = trpc.clientSubscriptions.createSeoSubscription.useMutation({
 		onSuccess: () => {
+			const planName =
+				seoProduct?.plans.find((p) => p.id === productPlanId)?.name || "unknown";
+			const domain =
+				props.scope === "SEARCH_CONSOLE"
+					? props.siteUrl
+					: props.propertyDisplayName || props.propertyId;
+			captureEvent("seo_report_subscription_created", {
+				domain,
+				frequency: planName,
+			});
 			toast.success("SEO subscription created successfully");
 			setOpen(false);
 			setTeamId("");

@@ -15,6 +15,7 @@ import {
   verifyMfaCode,
   type MfaIntent,
 } from "@/lib/mfa-auth";
+import { captureEvent } from "@/lib/posthog";
 
 type MfaVerifyStepProps = {
   /** When true, checks status and sends OTP on mount (standalone /auth/mfa page). */
@@ -117,6 +118,11 @@ export function MfaVerifyStep({
     try {
       setIsSubmitting(true);
       await verifyMfaCode(normalized, mfaMode);
+      if (mfaMode === "SETUP") {
+        captureEvent("mfa_enabled");
+      } else {
+        captureEvent("user_logged_in", { method: "mfa" });
+      }
       toast.success(mfaMode === "SETUP" ? "MFA setup complete" : "Verification successful");
       await onVerified();
     } catch (error: unknown) {

@@ -1,6 +1,9 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
+import { useEffect } from "react";
 import {
     Tag,
     Hash,
@@ -64,6 +67,10 @@ export function ViewETimsItemSheet({
     onEdit?: (item: EtimsItemRecord) => void;
     onDeleteRequest?: (item: EtimsItemRecord) => void;
 }) {
+    React.useEffect(() => {
+        if (open && item) captureEvent("etims_item_viewed");
+    }, [open, item?.itemCd]);
+
     if (!item) return null;
 
     const isActive = item.useYn !== "N";

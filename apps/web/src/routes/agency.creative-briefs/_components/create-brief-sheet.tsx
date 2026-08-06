@@ -44,6 +44,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
+import { captureEvent } from "@/lib/posthog";
 import { trpc } from "@/utils/trpc";
 import { cn } from "@/lib/utils";
 import { ComboboxDropdown } from "@npanel/ui/components/combobox-dropdown";
@@ -136,6 +137,11 @@ export function CreateBriefSheet({ open, onOpenChange, onCreateBrief }: CreateBr
   // Create brief mutation
   const createBriefMutation = trpc.creativeBriefs.create.useMutation({
     onSuccess: () => {
+      captureEvent("creative_brief_created", {
+        has_approver: Boolean(form.getValues("approverUserId")),
+        has_reference_images: selectedFiles.length > 0,
+        has_team: Boolean(form.getValues("teamId")),
+      });
       toast.success("Creative brief created successfully!");
       form.reset();
       // Clean up preview URLs

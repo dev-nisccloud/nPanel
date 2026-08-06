@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router";
 import confetti from "canvas-confetti";
+import { captureEvent } from "@/lib/posthog";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -447,7 +448,10 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 	const [createdCampaignId, setCreatedCampaignId] = React.useState<string | null>(null);
 
 	const createMutation = trpc.niscEmailMarketing.campaigns.create.useMutation({
-		onSuccess: () => {
+		onSuccess: (_data, variables) => {
+			captureEvent("nisc_email_campaign_created", {
+				audience_size: variables.recipientEmails?.length ?? 0,
+			});
 			utils.niscEmailMarketing.campaigns.list.invalidate();
 		},
 		onError: (e) => {
@@ -892,6 +896,9 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 				{ id: campaign.id },
 				{
 					onSuccess: () => {
+						captureEvent("nisc_email_campaign_sent", {
+							recipients_count: data.recipientEmails.length,
+						});
 						utils.niscEmailMarketing.campaigns.list.invalidate();
 					},
 					onError: (e) => {
@@ -949,6 +956,9 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 				{ id: campaign.id },
 				{
 					onSuccess: () => {
+						captureEvent("nisc_email_campaign_sent", {
+							recipients_count: data.recipientEmails.length,
+						});
 						utils.niscEmailMarketing.campaigns.list.invalidate();
 					},
 					onError: (e) => {

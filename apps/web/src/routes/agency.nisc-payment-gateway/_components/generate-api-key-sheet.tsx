@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -86,6 +88,7 @@ export function GenerateApiKeySheet({
     onSuccess: (data) => {
       setGeneratedKey(data.key);
       toast.success("API key generated successfully");
+      captureEvent("payment_gateway_api_key_generated");
     },
     onError: (error) => {
       toast.error(error.message || "Failed to generate API key");

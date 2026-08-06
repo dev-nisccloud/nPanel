@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
+import { captureEvent } from "@/lib/posthog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -253,6 +254,9 @@ export function AddOrderSheet({ open, onOpenChange, onSuccess }: AddOrderSheetPr
 	// Create order mutation
 	const createOrderMutation = trpc.orders.createServiceOrder.useMutation({
 		onSuccess: (data) => {
+			captureEvent("order_created", {
+				items_count: data.orderItemStatuses?.length ?? 0,
+			});
 			// Show toasts for each order item status
 			if (data.orderItemStatuses && data.orderItemStatuses.length > 0) {
 				data.orderItemStatuses.forEach((item) => {

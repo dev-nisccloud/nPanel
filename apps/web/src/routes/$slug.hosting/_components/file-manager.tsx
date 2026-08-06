@@ -9,8 +9,6 @@ import {
   Trash2,
   FolderPlus,
   MoreHorizontal,
-  Grid3X3,
-  List,
   Folder,
   File,
   Eye,
@@ -136,7 +134,6 @@ function FileManagerError({ error, onRetry }: { error: Error; onRetry: () => voi
 }
 
 export function FileManager({ hostingData }: FileManagerProps) {
-  const [viewMode, setViewMode] = useState<"card" | "table">("table");
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -379,112 +376,6 @@ export function FileManager({ hostingData }: FileManagerProps) {
     setDeleteDialogOpen(true);
   };
 
-  const CardView = () => (
-    <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 p-4">
-        {filteredItems.map((item) => (
-          <Card
-            key={item.id}
-            className={`cursor-pointer transition-all hover:shadow-md ${selectedItems.includes(item.id) ? "ring-2 ring-primary" : ""
-              }`}
-            onClick={() => handleItemActivate(item)}
-          >
-            <CardContent className="p-1.5">
-              {/* Header with checkbox and actions */}
-              <div
-                className="flex items-start justify-between mb-2"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Checkbox
-                  checked={selectedItems.includes(item.id)}
-                  onCheckedChange={(checked) => {
-                    handleSelectItem(item.id, !!checked);
-                  }}
-                />
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {isViewableFile(item) && (
-                      <DropdownMenuItem onClick={() => {
-                        setViewingFile(item);
-                        setFileViewerOpen(true);
-                      }}>
-                        <Eye className="mr-2 h-4 w-4" />
-                        View
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem onClick={() => handleDownloadClick(item)}>
-                      <Download className="mr-2 h-4 w-4" />
-                      Download
-                    </DropdownMenuItem>
-                    {isZipFile(item) && (
-                      <DropdownMenuItem onClick={() => handleExtractClick(item)}>
-                        <Archive className="mr-2 h-4 w-4" />
-                        Extract
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem onClick={() => handleRenameClick(item)}>
-                      <Edit className="mr-2 h-4 w-4" />
-                      Rename
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Copy className="mr-2 h-4 w-4" />
-                      Copy
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleMoveClick(item)}>
-                      <Move className="mr-2 h-4 w-4" />
-                      Move
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      className="text-destructive"
-                      onClick={() => handleDeleteClick(item)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-
-              {/* Icon - Centered and bigger */}
-              <div className="flex justify-center mb-2">
-                <FileManagerTypeIcon item={item} className="h-24 w-24" size={96} />
-              </div>
-
-              {/* File/Folder name - Left aligned */}
-              <div className="mb-2">
-                <h3 className="font-medium text-sm truncate" title={item.name}>
-                  {item.name}
-                </h3>
-
-                {/* File info - only for files */}
-                {item.type === "file" && (
-                  <div className="text-xs text-muted-foreground">
-                    {formatFileSize(item.size)}
-                  </div>
-                )}
-              </div>
-
-              {/* Date at bottom - subtle */}
-              <div className="text-xs text-muted-foreground/70">
-                {format(new Date(item.modified), "MMM dd, yyyy")}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
-
   const TableView = () => (
     <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
       <Table>
@@ -661,26 +552,6 @@ export function FileManager({ hostingData }: FileManagerProps) {
             <span className="hidden @sm/main:inline">Refresh</span>
           </Button>
 
-          {/* View Mode Toggle */}
-          <div className="flex items-center border rounded-md">
-            <Button
-              variant={viewMode === "card" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("card")}
-              className="rounded-r-none"
-            >
-              <Grid3X3 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "table" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("table")}
-              className="rounded-l-none"
-            >
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
-
           {/* Action Buttons */}
           {selectedItems.length > 0 && (
             <>
@@ -806,7 +677,7 @@ export function FileManager({ hostingData }: FileManagerProps) {
           </div>
         </div>
       ) : (
-        viewMode === "card" ? <CardView /> : <TableView />
+        <TableView />
       )}
 
       {/* Dialogs */}

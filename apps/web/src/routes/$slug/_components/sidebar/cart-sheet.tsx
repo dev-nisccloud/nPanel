@@ -18,6 +18,7 @@ import { useCartStore } from "@/stores/cart-store";
 import { CartItemCard } from "./cart-item-card";
 import { CartSummary } from "./cart-summary";
 import { EmptyCartState } from "./empty-cart-state";
+import { captureEvent } from "@/lib/posthog";
 
 interface CartSheetProps {
   open: boolean;
@@ -27,6 +28,12 @@ interface CartSheetProps {
 export function CartSheet({ open, onOpenChange }: CartSheetProps) {
   const { items, removeItem, getItemCount } = useCartStore();
   const itemCount = getItemCount();
+
+  React.useEffect(() => {
+    if (open) {
+      captureEvent("storefront_cart_viewed", { items_count: itemCount });
+    }
+  }, [open]);
 
   const handleRemoveItem = (itemId: string) => {
     removeItem(itemId);

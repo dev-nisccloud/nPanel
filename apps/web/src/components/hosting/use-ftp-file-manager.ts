@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { trpc } from "@/utils/trpc";
 
+import { captureEvent } from "@/lib/posthog";
 import {
 	fileManagerItemSchema,
 	fileManagerSchema,
@@ -197,6 +198,8 @@ export function useFtpFileManager(
 
 	const deleteFileMutation = trpc.plesk.ftp.deleteFile.useMutation({
 		onSuccess: () => {
+			captureEvent("file_deleted", { file_type: "file" });
+
 			toast.success("File deleted successfully");
 			void refetch();
 		},
@@ -209,6 +212,8 @@ export function useFtpFileManager(
 
 	const deleteDirectoryMutation = trpc.plesk.ftp.deleteDirectory.useMutation({
 		onSuccess: () => {
+			captureEvent("file_deleted", { file_type: "folder" });
+
 			toast.success("Directory deleted successfully");
 			void refetch();
 		},
@@ -221,6 +226,8 @@ export function useFtpFileManager(
 
 	const renameMutation = trpc.plesk.ftp.rename.useMutation({
 		onSuccess: () => {
+			captureEvent("file_renamed");
+
 			toast.success("Item renamed successfully");
 			void refetch();
 		},
@@ -233,6 +240,8 @@ export function useFtpFileManager(
 
 	const createDirectoryMutation = trpc.plesk.ftp.createDirectory.useMutation({
 		onSuccess: () => {
+			captureEvent("folder_created");
+
 			toast.success("Directory created successfully");
 			void refetch();
 		},
@@ -244,7 +253,10 @@ export function useFtpFileManager(
 	});
 
 	const uploadFileMutation = trpc.plesk.ftp.uploadFile.useMutation({
-		onSuccess: () => {
+		onSuccess: (_data, variables) => {		const name = (variables as { fileName?: string })?.fileName || "";
+		const ext = name.includes(".") ? name.split(".").pop()?.toLowerCase() || "unknown" : "unknown";
+		captureEvent("file_uploaded", { file_type: ext });
+
 			toast.success("File uploaded successfully");
 			void refetch();
 		},

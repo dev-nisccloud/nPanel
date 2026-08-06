@@ -20,6 +20,7 @@ import {
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { authClient } from "@/lib/auth-client";
+import { captureEvent } from "@/lib/posthog";
 
 export function NavUser() {
   const { isMobile } = useSidebar();
@@ -34,6 +35,7 @@ export function NavUser() {
     if (isLoggingOut) return;
     setIsLoggingOut(true);
     try {
+      captureEvent("user_logged_out");
       await authClient.signOut();
       if (queryClient) queryClient.clear();
       toast.success("Logged out successfully");

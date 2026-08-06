@@ -25,6 +25,7 @@ import { DatePicker } from "@/components/npanel-ui/date-picker";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { useHostingSubscriptionById } from "./use-hosting-subscription-by-id";
+import { captureEvent } from "@/lib/posthog";
 
 function addBillingPeriod(
   date: Date,
@@ -104,6 +105,13 @@ export function CreateSubscriptionForHostingDialog({
 
   const createMutation = trpc.clientSubscriptions.create.useMutation({
     onSuccess: () => {
+      captureEvent("hosting_subscription_created", {
+      plan: selectedProductId || "unknown",
+      price: agreedPrice ? Number(agreedPrice) : 0,
+      currency: agreedCurrency,
+      hosting_type: hostingType,
+    });
+
       toast.success("Subscription created");
       onOpenChange(false);
       resetForm();

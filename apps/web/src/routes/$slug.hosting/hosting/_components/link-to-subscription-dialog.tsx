@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Link2 } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -163,6 +164,7 @@ export function LinkToSubscriptionDialog({
 	// Create mutation
 	const linkToSubscriptionMutation = trpc.serviceSubscriptions.linkToSubscription.useMutation({
 		onSuccess: () => {
+			captureEvent("subscription_linked_to_domain");
 			toast.success("Subscription linked successfully");
 			form.reset();
 			onOpenChange(false);

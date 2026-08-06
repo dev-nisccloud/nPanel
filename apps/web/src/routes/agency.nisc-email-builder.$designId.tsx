@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { captureEvent } from "@/lib/posthog";
 import { trpc } from "@/utils/trpc";
 import {
 	BriefForm,
@@ -446,6 +447,7 @@ export default function NiscEmailBuilderEditorPage() {
 		a.download = `${design?.name ?? "email"}.html`;
 		a.click();
 		URL.revokeObjectURL(url);
+		captureEvent("email_design_exported", { export_format: "html" });
 	};
 
 	if (designQuery.isLoading) {

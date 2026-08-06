@@ -59,6 +59,7 @@ import {
 
 import { useWordPressPlugins, type WordPressPlugin } from "./use-wordpress-plugins";
 import { PluginMarketplaceSheet } from "./plugin-marketplace-sheet";
+import { captureEvent } from "@/lib/posthog";
 
 interface PluginsTableProps {
   installationId: string;
@@ -345,7 +346,11 @@ export function PluginsTable({ installationId }: PluginsTableProps) {
 
   // tRPC mutation for updating plugin status
   const updatePluginStatus = trpc.plesk.wpPluginsStatus.setStatus.useMutation({
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      captureEvent(variables.status ? "wordpress_plugin_activated" : "wordpress_plugin_deactivated", {
+      plugin_name: variables.slug || "unknown",
+    });
+
       toast.success("Plugin status updated successfully!");
       refetch();
     },
@@ -356,7 +361,14 @@ export function PluginsTable({ installationId }: PluginsTableProps) {
 
   // tRPC mutation for deleting plugins
   const deletePlugins = trpc.plesk.wpPluginsDelete.delete.useMutation({
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {    const slugs = (variables as { plugins?: Array<string | { slug?: string }>; slugs?: string[] })?.plugins
+      || (variables as { slugs?: string[] })?.slugs
+      || [];
+    const names = Array.isArray(slugs) ? slugs.map((s) => (typeof s === "string" ? s : s?.slug)).filter(Boolean) : [];
+    captureEvent("wordpress_plugin_deleted", {
+      plugin_name: names.join(",") || "unknown",
+    });
+
       toast.success("Plugin uninstalled successfully!");
       refetch();
     },
@@ -367,7 +379,13 @@ export function PluginsTable({ installationId }: PluginsTableProps) {
 
   // tRPC mutation for bulk auto-updating plugins
   const bulkAutoUpdatePlugins = trpc.plesk.wpPluginsAutoupdate.update.useMutation({
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {    const pluginList = (variables as { plugins?: Array<{ slug?: string; autoUpdates?: boolean }> })?.plugins || [];
+    for (const p of pluginList) {
+      if (p?.autoUpdates) {
+        captureEvent("wordpress_plugin_updated", { plugin_name: p.slug || "unknown" });
+      }
+    }
+
       toast.success("Auto-update settings updated successfully!");
       refetch();
     },

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Trash2, Search, RefreshCw, Grid3X3, List, EllipsisVertical, Mail } from "lucide-react";
+import { Plus, Trash2, Search, RefreshCw, EllipsisVertical, Mail } from "lucide-react";
 import { z } from "zod";
 import { toast } from "@/components/ui/sonner";
 
@@ -44,10 +44,10 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 // import { createMailColumns } from "./mail-columns";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MailCardsList } from "./mail-cards";
 import { emailAccountSchema } from "./emails-schema";
 import { useEmailsBySiteId } from "./use-emails-by-site-id";
 import { AddMailAddressSheet } from "./add-mail-address-sheet";
+import { captureEvent } from "@/lib/posthog";
 
 interface MailTableProps {
   siteId: number;
@@ -174,7 +174,6 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
   const { data: emailsData, isLoading, isError, error, refetch } = useEmailsBySiteId(siteId);
   const [searchTerm, setSearchTerm] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState("all");
-  const [viewMode, setViewMode] = React.useState<"card" | "table">("table");
   const [isAddMailOpen, setIsAddMailOpen] = React.useState(false);
   const [sheetInitial, setSheetInitial] = React.useState<any | null>(null);
   const [sheetMode, setSheetMode] = React.useState<'create' | 'edit'>('create');
@@ -184,6 +183,8 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
 
   const deleteEmailAccount = trpc.plesk.emailsDelete.delete.useMutation({
     onSuccess: () => {
+      captureEvent("email_address_deleted", { domain: domainName || "unknown" });
+
       toast.success("Email account deleted successfully!");
       setDeleteDialogOpen(false);
       setMailToDelete(null);
@@ -387,18 +388,6 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
     </div>
   );
 
-  const CardView = () => (
-    <div className="p-4">
-      <MailCardsList
-        data={filteredData}
-        domainName={domainName}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        cols={3}
-      />
-    </div>
-  );
-
 
   if (isLoading) {
     return <MailTableSkeleton />;
@@ -437,25 +426,6 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 @sm/main:flex-nowrap">
-          {/* View Mode Toggle */}
-          <div className="flex items-center border rounded-md">
-            <Button
-              variant={viewMode === "card" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("card")}
-              className="rounded-r-none"
-            >
-              <Grid3X3 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "table" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("table")}
-              className="rounded-l-none"
-            >
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
 
           <Button
             variant="outline"
@@ -474,7 +444,7 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
       </div>
 
       {/* Content */}
-      {viewMode === "card" ? <CardView /> : <TableView />}
+      <TableView />
 
       {/* Table implementation (commented out for performance) */}
       {/* <div className="overflow-hidden rounded-lg border">
