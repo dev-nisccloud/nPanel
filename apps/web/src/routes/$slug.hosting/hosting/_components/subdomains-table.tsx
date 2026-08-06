@@ -39,8 +39,8 @@ import { ViewSubdomainSheet } from "./view-subdomain-sheet";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
-import {
 import { captureEvent } from "@/lib/posthog";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
