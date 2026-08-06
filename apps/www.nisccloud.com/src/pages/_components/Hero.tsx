@@ -103,7 +103,7 @@ export default function Hero() {
         }}
       />
 
-      <div className="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-1 items-start gap-8 px-4 pt-16 pb-10 md:px-8 md:pt-20 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)] lg:items-center lg:gap-12 lg:pt-28 lg:pb-14">
+      <div className="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-1 items-start gap-8 px-4 pt-6 pb-10 md:px-8 md:pt-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)] lg:items-center lg:gap-12 lg:pt-10 lg:pb-14">
 
         {/* Left: text */}
         <div className="order-1 max-w-xl lg:order-1">

@@ -1,15 +1,11 @@
 "use client";
 
 import { buttonVariants } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { useMediaQuery } from "@npanel/ui/hooks/use-media-query";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { Check, Star } from "lucide-react";
 import { Link } from "react-router";
-import { useState, useRef } from "react";
-import confetti from "canvas-confetti";
 import NumberFlow from "@number-flow/react";
 
 interface PricingPlan {
@@ -37,38 +33,7 @@ export function Pricing({
   description = "Choose the plan that works for you.",
   currency = "USD",
 }: PricingProps) {
-  const [isMonthly, setIsMonthly] = useState(true);
   const isDesktop = useMediaQuery("(min-width: 768px)");
-  const switchRef = useRef<HTMLButtonElement>(null);
-
-  const handleToggle = (checked: boolean) => {
-    setIsMonthly(!checked);
-    if (checked && switchRef.current) {
-      const rect = switchRef.current.getBoundingClientRect();
-      const x = rect.left + rect.width / 2;
-      const y = rect.top + rect.height / 2;
-
-      confetti({
-        particleCount: 50,
-        spread: 60,
-        origin: {
-          x: x / window.innerWidth,
-          y: y / window.innerHeight,
-        },
-        colors: [
-          "hsl(var(--primary))",
-          "hsl(var(--accent))",
-          "hsl(var(--secondary))",
-          "hsl(var(--muted))",
-        ],
-        ticks: 200,
-        gravity: 1.2,
-        decay: 0.94,
-        startVelocity: 30,
-        shapes: ["circle"],
-      });
-    }
-  };
 
   return (
     <div className="container py-20">
@@ -79,22 +44,6 @@ export function Pricing({
         <p className="text-muted-foreground text-lg whitespace-pre-line">
           {description}
         </p>
-      </div>
-
-      <div className="flex justify-center mb-10">
-        <label className="relative inline-flex items-center cursor-pointer">
-          <Label>
-            <Switch
-              ref={switchRef as any}
-              checked={!isMonthly}
-              onCheckedChange={handleToggle}
-              className="relative"
-            />
-          </Label>
-        </label>
-        <span className="ml-2 font-semibold">
-          Annual billing <span className="text-primary">(Save 20%)</span>
-        </span>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 sm:2 gap-4">
@@ -148,9 +97,7 @@ export function Pricing({
               <div className="mt-6 flex items-center justify-center gap-x-2">
                 <span className="text-5xl font-bold tracking-tight text-foreground">
                   <NumberFlow
-                    value={
-                      isMonthly ? Number(plan.price) : Number(plan.yearlyPrice)
-                    }
+                    value={Number(plan.price)}
                     format={{
                       style: "currency",
                       currency: currency,
@@ -169,7 +116,7 @@ export function Pricing({
               </div>
 
               <p className="text-xs leading-5 text-muted-foreground">
-                {isMonthly ? "billed monthly" : "billed annually"}
+                billed monthly
               </p>
 
               <ul className="mt-5 gap-2 flex flex-col">
@@ -208,4 +155,3 @@ export function Pricing({
     </div>
   );
 }
-

@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import { ArrowRight, Clock, Search } from "lucide-react";
+import { ArrowRight, Clock, Tag, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/pages/_components/Navbar.tsx";
 import Footer from "@/pages/_components/Footer.tsx";
-import { posts } from "./posts-data.ts";
+import { posts, categoryColors } from "./posts-data.ts";
 
 const categories = [
   "All",
@@ -39,82 +39,88 @@ export default function BlogPage() {
     <div className="min-h-screen bg-background text-foreground">
       <Navbar />
 
-      <section className="pt-28 pb-16 px-4 md:px-8 max-w-6xl mx-auto">
-        {/* Compact hero */}
+      <section className="pt-20 pb-16 px-4 md:px-8 max-w-7xl mx-auto">
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45 }}
-          className="mb-8"
+          transition={{ duration: 0.5 }}
+          className="text-center mb-12"
         >
-          <h1 className="text-[36px] font-extrabold leading-[1.15] mb-3 text-balance">
-            Insights That <span className="text-primary">Move the Needle</span>
+          <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-5">
+            Insights That{" "}
+            <span className="text-primary">Move the Needle</span>
           </h1>
-          <p className="text-base text-muted-foreground max-w-2xl leading-relaxed">
-            Practical guides on branding, SEO, hosting, AI automation, and digital growth  written for Kenyan businesses.
+          <p className="text-lg text-muted-foreground max-w-xl mx-auto">
+            Practical guides on branding, SEO, hosting, AI automation, and digital growth - written for Kenyan businesses.
           </p>
         </motion.div>
 
-        {/* Toolbar: search + filters */}
-        <div className="mb-8 space-y-3">
-          <div className="relative max-w-md">
-            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search articles..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
-            />
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                className={`px-3 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer border ${
-                  activeCategory === cat
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-background text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
+        <div className="relative max-w-md mx-auto mb-10">
+          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search articles..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 rounded-2xl border border-border bg-muted/30 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+          />
         </div>
 
-        {/* Featured  editorial rows */}
+        <div className="flex flex-wrap gap-2 justify-center mb-14">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer border ${
+                activeCategory === cat
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-muted/40 text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+
         {featured.length > 0 && (
-          <div className="mb-6 space-y-3">
+          <div className="grid md:grid-cols-2 gap-6 mb-10">
             {featured.map((post, i) => (
               <motion.article
                 key={post.slug}
-                initial={{ opacity: 0, y: 12 }}
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, delay: i * 0.06 }}
+                transition={{ duration: 0.4, delay: i * 0.1 }}
                 onClick={() => navigate(`/blog/${post.slug}`)}
-                className="group cursor-pointer rounded-xl border border-border bg-background p-5 md:p-6 hover:border-primary/40 transition-colors"
+                className={`group relative rounded-3xl border border-border overflow-hidden cursor-pointer hover:border-primary/40 transition-all hover:shadow-xl bg-gradient-to-br ${post.gradient} p-8 flex flex-col justify-between min-h-[280px]`}
               >
-                <p className="text-xs font-medium text-primary mb-2">{post.category}</p>
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <h2 className="text-lg md:text-xl font-bold text-foreground leading-snug mb-2 group-hover:text-primary transition-colors">
-                      {post.title}
-                    </h2>
-                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 mb-3">
-                      {post.excerpt}
-                    </p>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Clock size={12} />
-                        {post.readTime}
-                      </span>
-                      <span>{post.date}</span>
-                    </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <span
+                      className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${
+                        categoryColors[post.category] ?? "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {post.category}
+                    </span>
+                    <span className="text-xs text-muted-foreground font-mono">FEATURED</span>
                   </div>
-                  <span className="shrink-0 inline-flex items-center gap-1 text-sm font-semibold text-primary group-hover:gap-2 transition-all self-start sm:mt-1">
-                    Read <ArrowRight size={14} />
+                  <h2 className="text-xl font-bold text-foreground leading-snug mb-3 group-hover:text-primary transition-colors">
+                    {post.title}
+                  </h2>
+                  <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
+                    {post.excerpt}
+                  </p>
+                </div>
+                <div className="flex items-center justify-between mt-6 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1">
+                      <Clock size={12} />
+                      {post.readTime}
+                    </span>
+                    <span>{post.date}</span>
+                  </div>
+                  <span className="flex items-center gap-1 text-primary font-semibold group-hover:gap-2 transition-all">
+                    Read <ArrowRight size={13} />
                   </span>
                 </div>
               </motion.article>
@@ -122,37 +128,46 @@ export default function BlogPage() {
           </div>
         )}
 
-        {/* Rest  dense 2-col grid */}
         {rest.length > 0 && (
-          <div className="grid sm:grid-cols-2 gap-3">
+          <div className="grid md:grid-cols-3 gap-5">
             {rest.map((post, i) => (
               <motion.article
                 key={post.slug}
-                initial={{ opacity: 0, y: 12 }}
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, delay: i * 0.04 }}
+                transition={{ duration: 0.4, delay: i * 0.07 }}
                 onClick={() => navigate(`/blog/${post.slug}`)}
-                className="group cursor-pointer rounded-xl border border-border bg-background p-5 hover:border-primary/40 transition-colors flex flex-col"
+                className="group rounded-2xl border border-border bg-background hover:border-primary/40 transition-all hover:shadow-lg cursor-pointer overflow-hidden flex flex-col"
               >
-                <p className="text-xs font-medium text-primary mb-1.5">{post.category}</p>
-                <h2 className="text-base font-bold text-foreground leading-snug mb-2 group-hover:text-primary transition-colors">
-                  {post.title}
-                </h2>
-                <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 mb-3 flex-1">
-                  {post.excerpt}
-                </p>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <span className="flex items-center gap-1">
-                      <Clock size={11} />
-                      {post.readTime}
+                <div className={`h-2 w-full bg-gradient-to-r ${post.gradient}`} />
+                <div className="p-6 flex flex-col flex-1">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span
+                      className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${
+                        categoryColors[post.category] ?? "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {post.category}
                     </span>
-                    <span>{post.date}</span>
                   </div>
-                  <ArrowRight
-                    size={13}
-                    className="text-primary opacity-0 group-hover:opacity-100 transition-opacity"
-                  />
+                  <h2 className="text-base font-bold text-foreground leading-snug mb-2 group-hover:text-primary transition-colors flex-1">
+                    {post.title}
+                  </h2>
+                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 mb-4">
+                    {post.excerpt}
+                  </p>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <Clock size={11} />
+                      <span>{post.readTime}</span>
+                      <Tag size={11} />
+                      <span>{post.date}</span>
+                    </div>
+                    <ArrowRight
+                      size={13}
+                      className="text-primary opacity-0 group-hover:opacity-100 transition-opacity"
+                    />
+                  </div>
                 </div>
               </motion.article>
             ))}
@@ -160,33 +175,34 @@ export default function BlogPage() {
         )}
 
         {filtered.length === 0 && (
-          <div className="text-center py-14 text-muted-foreground">
-            <p className="text-base font-semibold">No articles found.</p>
+          <div className="text-center py-20 text-muted-foreground">
+            <p className="text-lg font-semibold">No articles found.</p>
             <p className="text-sm mt-1">Try a different category or search term.</p>
           </div>
         )}
 
-        {/* Slim newsletter */}
-        <div className="mt-12 rounded-xl border border-border bg-background p-5 md:p-6">
-          <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
-            <div className="min-w-0 flex-1">
-              <h3 className="text-base font-bold mb-1">Get the best articles in your inbox</h3>
-              <p className="text-sm text-muted-foreground">
-                Weekly digital growth tips for Kenyan businesses. No spam.
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto md:min-w-[320px]">
-              <input
-                type="email"
-                placeholder="you@company.com"
-                className="flex-1 px-3.5 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
-              />
-              <button className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:opacity-90 transition cursor-pointer whitespace-nowrap">
-                Subscribe
-              </button>
-            </div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="mt-20 rounded-3xl bg-primary/5 border border-primary/20 p-10 text-center"
+        >
+          <h3 className="text-2xl font-bold mb-2">Get the Best Articles in Your Inbox</h3>
+          <p className="text-muted-foreground text-sm mb-6">
+            Join 2,000+ Kenyan entrepreneurs getting weekly digital growth tips. No spam, ever.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+            <input
+              type="email"
+              placeholder="you@company.com"
+              className="flex-1 px-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+            />
+            <button className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:opacity-90 transition cursor-pointer whitespace-nowrap">
+              Subscribe
+            </button>
           </div>
-        </div>
+        </motion.div>
       </section>
 
       <Footer />
