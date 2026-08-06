@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useLocation } from "react-router";
-import { Search, RefreshCw, Grid3X3, List } from "lucide-react";
+import { Search, RefreshCw } from "lucide-react";
 import { z } from "zod";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
@@ -132,7 +132,6 @@ export function WordPressDataTable() {
   const teamSlug = pathname.split("/")[1];
   const { data, isLoading, isError, error, refetch } = useTeamWordPressSubscriptions(teamSlug);
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [viewMode, setViewMode] = React.useState<"card" | "table">("table");
 
   // Filter data based on search query
   const filteredData = React.useMemo(() => {
@@ -253,15 +252,6 @@ export function WordPressDataTable() {
               {filteredData.length} of {data.length}
             </Badge>
           )}
-        </div>
-        <div className="flex items-center border rounded-md">
-          <Button
-            variant={viewMode === "table" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("table")}
-          >
-            <List className="h-4 w-4" />
-          </Button>
         </div>
       </div>
 

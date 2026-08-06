@@ -2,7 +2,7 @@ import { motion } from "motion/react";
 
 export default function PricingHero() {
   return (
-    <section className="relative pt-32 pb-10 overflow-hidden">
+    <section className="relative pt-20 pb-10 overflow-hidden">
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -18,18 +18,10 @@ export default function PricingHero() {
         }}
       />
       <div className="max-w-4xl mx-auto px-4 md:px-8 text-center relative">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 text-xs text-primary font-mono mb-6"
-        >
-          TRANSPARENT PRICING
-        </motion.div>
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
+          transition={{ duration: 0.6 }}
           className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4 text-balance"
         >
           Clear Plans for Hosting &amp; Marketing
@@ -37,7 +29,7 @@ export default function PricingHero() {
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
           className="text-lg text-muted-foreground max-w-2xl mx-auto mb-4"
         >
           All prices in KES. No hidden fees. Every plan includes setup help and a dedicated account contact.

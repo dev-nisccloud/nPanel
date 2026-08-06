@@ -2,8 +2,8 @@ import { motion } from "motion/react";
 
 export default function WorkHero() {
   return (
-    <section className="relative pt-28 pb-8 px-4 md:px-8 bg-background">
-      <div className="max-w-6xl mx-auto">
+    <section className="relative pt-20 pb-8 px-4 md:px-8 bg-background">
+      <div className="max-w-7xl mx-auto">
         <motion.h1
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}

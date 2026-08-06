@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Grid3X3, List, FilePlus2 } from "lucide-react";
+import { Search, FilePlus2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -35,7 +35,6 @@ import { trpc } from "@/utils/trpc";
 // import { hostingColumns } from "./columns";
 import { getStatusDisplayText, getStatusBadgeVariant } from "./hosting-utils";
 
-import { HostingCardsList } from "./hosting-cards";
 import { useHostingSubscriptions } from "./use-hosting-subscriptions";
 
 // Skeleton component for loading state
@@ -144,7 +143,6 @@ export function HostingDataTable() {
   const navigate = useNavigate();
   const { data, isLoading, isError, error, refetch } = useHostingSubscriptions();
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [viewMode, setViewMode] = React.useState<"card" | "table">("table");
   const [createSubscriptionFor, setCreateSubscriptionFor] = React.useState<
     { pleskSubscriptionId: string | number; subscriptionName: string } | null
   >(null);
@@ -279,24 +277,6 @@ export function HostingDataTable() {
     </div>
   );
 
-  const CardView = () => (
-    <div className="p-4">
-      <HostingCardsList
-        data={filteredData}
-        onViewDetails={handleViewDetails}
-        onCreateSubscription={(sub) =>
-          setCreateSubscriptionFor({
-            pleskSubscriptionId: sub.id,
-            subscriptionName: sub.subscriptionName,
-          })
-        }
-        pleskIdsWithLinkedSubscription={pleskIdsWithLinkedSet}
-        createSubscriptionTooltipLinked={CREATE_SUBSCRIPTION_TOOLTIP_LINKED}
-        cols={3}
-      />
-    </div>
-  );
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -326,28 +306,10 @@ export function HostingDataTable() {
             <FilePlus2 className="mr-2 h-4 w-4" />
             Create subscription
           </Button>
-          <div className="flex items-center border rounded-md">
-            <Button
-              variant={viewMode === "card" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("card")}
-              className="rounded-r-none"
-            >
-              <Grid3X3 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "table" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("table")}
-              className="rounded-l-none"
-            >
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
         </div>
       </div>
 
-      {viewMode === "card" ? <CardView /> : <TableView />}
+      <TableView />
 
       <CreateSubscriptionForHostingDialog
         open={createSubscriptionFor !== null}

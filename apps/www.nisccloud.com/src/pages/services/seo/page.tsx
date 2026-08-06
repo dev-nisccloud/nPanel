@@ -127,7 +127,7 @@ export default function SeoPage() {
       ]}
       ctaHeadline="Start Getting Found Where Customers Search"
       ctaSubtext="We help people find you on Google, Maps, and AI answers, with clear monthly reporting and a 30-day results promise on active work."
-      pricingNote="Monthly retainer. All prices in KES. Save 20% with annual billing. 3-month minimum for meaningful results."
+      pricingNote="Monthly retainer. All prices in KES. 3-month minimum for meaningful results."
       showcaseBlocks={showcaseBlocks}
     />
   );

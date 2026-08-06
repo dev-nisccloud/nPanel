@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import {
 	Globe,
 	HardDrive,
@@ -34,18 +33,14 @@ import type {
 	ProductFeatureRow,
 } from "./types";
 
-function derivePricing(niscPrice: string | null | undefined, billingCycle: string) {
-	if (!niscPrice) return { monthly: 0, yearly: 0 };
+function deriveMonthlyPrice(niscPrice: string | null | undefined, billingCycle: string) {
+	if (!niscPrice) return 0;
 	const price = parseFloat(niscPrice);
-	if (isNaN(price)) return { monthly: 0, yearly: 0 };
+	if (isNaN(price)) return 0;
 
-	if (billingCycle === "MONTHLY") {
-		return { monthly: Math.round(price), yearly: Math.round(price * 12 * 0.8) };
-	}
-	if (billingCycle === "YEARLY") {
-		return { monthly: Math.round(price / 12), yearly: Math.round(price) };
-	}
-	return { monthly: Math.round(price), yearly: Math.round(price * 12 * 0.8) };
+	if (billingCycle === "YEARLY") return Math.round(price / 12);
+	if (billingCycle === "BIENNIALLY") return Math.round(price / 24);
+	return Math.round(price);
 }
 
 function formatKes(amount: number) {
@@ -123,19 +118,16 @@ function FeatureRow({
 function HostingPlanCard({
 	plan,
 	productFeatures,
-	isYearly,
 	config,
 	onGetStarted,
 }: {
 	plan: HostingPlan;
 	productFeatures: ProductFeatureRow[];
-	isYearly: boolean;
 	config: CustomerHostingPlansPricingConfig;
-	onGetStarted: (plan: HostingPlan, isYearly: boolean, displayPrice: number) => void;
+	onGetStarted: (plan: HostingPlan, displayPrice: number) => void;
 }) {
 	const PlanIcon = config.planIcon;
-	const price = derivePricing(plan.niscPrice, plan.billingCycle);
-	const displayPrice = isYearly ? price.yearly : price.monthly;
+	const displayPrice = deriveMonthlyPrice(plan.niscPrice, plan.billingCycle);
 	const visibleFeatures = productFeatures
 		.map((feature, index) => ({
 			feature,
@@ -227,13 +219,8 @@ function HostingPlanCard({
 							<p className="text-xl font-bold leading-tight text-primary">
 								{formatKes(displayPrice)}
 								<span className="ml-1 align-super text-xs font-semibold text-muted-foreground">
-									/{isYearly ? "yr" : "mo"}
+									/mo
 								</span>
-							</p>
-						)}
-						{isYearly && displayPrice > 0 && (
-							<p className="text-xs text-muted-foreground">
-								{formatKes(price.monthly)} equivalent per month
 							</p>
 						)}
 					</div>
@@ -247,7 +234,7 @@ function HostingPlanCard({
 					) : (
 						<Button
 							className="w-full bg-primary text-primary-foreground"
-							onClick={() => onGetStarted(plan, isYearly, displayPrice)}
+							onClick={() => onGetStarted(plan, displayPrice)}
 						>
 							Get Started
 						</Button>
@@ -285,7 +272,7 @@ export type CustomerHostingPlansPricingSectionProps = {
 	isLoading?: boolean;
 	error?: string | null;
 	className?: string;
-	onGetStarted: (plan: HostingPlan, isYearly: boolean, displayPrice: number) => void;
+	onGetStarted: (plan: HostingPlan, displayPrice: number) => void;
 };
 
 export function CustomerHostingPlansPricingSection({
@@ -297,8 +284,6 @@ export function CustomerHostingPlansPricingSection({
 	className,
 	onGetStarted,
 }: CustomerHostingPlansPricingSectionProps) {
-	const [isYearly, setIsYearly] = React.useState(false);
-
 	return (
 		<TooltipProvider>
 			<section className={cn("bg-muted/10 py-8 md:py-10", className)}>
@@ -314,40 +299,6 @@ export function CustomerHostingPlansPricingSection({
 						<Alert variant="destructive" className="mx-auto mb-8 max-w-2xl">
 							<AlertDescription>{error}</AlertDescription>
 						</Alert>
-					)}
-
-					{!isLoading && plans.length > 0 && (
-						<div className="mb-8 flex justify-center">
-							<div className="inline-flex items-center gap-1 rounded-full border border-border/80 bg-muted/80 p-1 shadow-sm">
-								<button
-									type="button"
-									onClick={() => setIsYearly(false)}
-									className={cn(
-										"rounded-full px-4 py-2 text-sm font-medium transition-all duration-200",
-										!isYearly
-											? "border border-border/60 bg-background text-foreground shadow-sm"
-											: "text-muted-foreground hover:text-foreground",
-									)}
-								>
-									Monthly
-								</button>
-								<button
-									type="button"
-									onClick={() => setIsYearly(true)}
-									className={cn(
-										"flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200",
-										isYearly
-											? "border border-border/60 bg-background text-foreground shadow-sm"
-											: "text-muted-foreground hover:text-foreground",
-									)}
-								>
-									Yearly
-									<span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
-										Save 20%
-									</span>
-								</button>
-							</div>
-						</div>
 					)}
 
 					<div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -366,7 +317,6 @@ export function CustomerHostingPlansPricingSection({
 									key={plan.id}
 									plan={plan}
 									productFeatures={productFeatures}
-									isYearly={isYearly}
 									config={config}
 									onGetStarted={onGetStarted}
 								/>

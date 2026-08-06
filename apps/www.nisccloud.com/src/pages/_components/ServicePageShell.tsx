@@ -352,7 +352,7 @@ function ServiceHero({
   onGetStarted: () => void;
 }) {
   return (
-    <section className="relative pt-28 pb-16 px-4 overflow-hidden">
+    <section className="relative pt-20 pb-16 px-4 overflow-hidden">
       {/* Background  skipped for standalone hero images */}
       {!heroImageStandalone && (
         <div className="absolute inset-0 pointer-events-none -z-10">

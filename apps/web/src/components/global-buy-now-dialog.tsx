@@ -61,7 +61,6 @@ import {
   planSelectionToUpsell,
   getMinYearlyFromPlans,
   DEFAULT_HOSTING_BILLING_CYCLE,
-  DEFAULT_HOSTING_BILLING_INTERVAL,
   type HostingPlanType,
   type UpsellBrowseTarget,
   type SelectedServiceUpsell,
@@ -256,9 +255,6 @@ export function GlobalBuyNowDialog() {
   );
   const [isSelectingMainProductPlan, setIsSelectingMainProductPlan] = React.useState(false);
   const [upsellBrowseTarget, setUpsellBrowseTarget] = React.useState<UpsellBrowseTarget | null>(null);
-  const [hostingBillingInterval, setHostingBillingInterval] = React.useState<"monthly" | "yearly">(
-    DEFAULT_HOSTING_BILLING_INTERVAL,
-  );
   /** Domain checkout: registrant step finished; review before payment is allowed */
   const [registrantStepCompleted, setRegistrantStepCompleted] = React.useState(false);
   const [purchaseAsBusiness, setPurchaseAsBusiness] = React.useState(false);
@@ -1479,7 +1475,6 @@ export function GlobalBuyNowDialog() {
   const openUpsellPlanSelection = (target: UpsellBrowseTarget) => {
     setUpsellBrowseTarget(target);
     setSelectedPlanId(null);
-    setHostingBillingInterval(DEFAULT_HOSTING_BILLING_INTERVAL);
     setIsSelectingMainProductPlan(false);
     setPlanSelectionProductId(null);
     setPlanSelectionProductName("");
@@ -1526,8 +1521,7 @@ export function GlobalBuyNowDialog() {
       const plans = upsellPlanSelectionContext?.plans ?? [];
       const plan = plans.find((p) => p.id === selectedPlanId);
       if (!plan) return;
-      const cycle =
-        hostingBillingInterval === "yearly" ? DEFAULT_HOSTING_BILLING_CYCLE : "MONTHLY";
+      const cycle = DEFAULT_HOSTING_BILLING_CYCLE;
       const upsell = planSelectionToUpsell(plan, upsellBrowseTarget, cycle);
       setSelectedUpsellPlans((prev) => {
         const without = prev.filter((p) => p.hostingType !== upsellBrowseTarget.hostingType);
@@ -1629,7 +1623,6 @@ export function GlobalBuyNowDialog() {
       setPlanSelectionProductId(null);
       setIsSelectingMainProductPlan(false);
       setUpsellBrowseTarget(null);
-      setHostingBillingInterval(DEFAULT_HOSTING_BILLING_INTERVAL);
       setRegistrantStepCompleted(false);
       setPurchaseAsBusiness(false);
       setSelectedPlanId(null);
@@ -1766,7 +1759,7 @@ export function GlobalBuyNowDialog() {
               selected={upsellToServiceSelected(selectedUpsellPlans)}
               webFromPrice={webFromPrice}
               emailFromPrice={emailFromPrice}
-              pricePeriodLabel="/yr"
+              pricePeriodLabel="/mo"
               isLoadingPrices={isLoadingWebHostingPricing || isLoadingEmailHostingPricing}
               onBrowseHostingPlans={handleHostingBrowsePlans}
               onChangeHostingPlan={handleHostingBrowsePlans}
@@ -1788,9 +1781,7 @@ export function GlobalBuyNowDialog() {
                 productFeatures={upsellPlanSelectionContext.productFeatures}
                 isLoading={upsellPlanSelectionContext.isLoading}
                 selectedPlanId={selectedPlanId}
-                billingInterval={hostingBillingInterval}
                 onSelectPlan={setSelectedPlanId}
-                onBillingIntervalChange={setHostingBillingInterval}
               />
               </div>
             </ScrollArea>

@@ -47,7 +47,7 @@ export function CustomerHostingPricing({
 	const [selectedPlan, setSelectedPlan] = React.useState<ServicePlanDetails | null>(null);
 
 	const handleGetStarted = React.useCallback(
-		(plan: HostingPlan, isYearly: boolean, displayPrice: number) => {
+		(plan: HostingPlan, displayPrice: number) => {
 			const planDetails: ServicePlanDetails = {
 				planId: plan.id,
 				planName: plan.name,
@@ -55,7 +55,7 @@ export function CustomerHostingPricing({
 				subType,
 				price: displayPrice,
 				currency: plan.niscCurrency || "KES",
-				billingCycle: isYearly ? "YEARLY" : "MONTHLY",
+				billingCycle: "MONTHLY",
 				productId: plan.productId,
 			};
 

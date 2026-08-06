@@ -10,8 +10,8 @@ import { mapHostingPlansToPricingTable } from "@/components/pricing-table-wrappe
 
 export type HostingPlanType = "web" | "email";
 
-export const DEFAULT_HOSTING_BILLING_CYCLE = "YEARLY" as const;
-export const DEFAULT_HOSTING_BILLING_INTERVAL = "yearly" as const;
+export const DEFAULT_HOSTING_BILLING_CYCLE = "MONTHLY" as const;
+export const DEFAULT_HOSTING_BILLING_INTERVAL = "monthly" as const;
 
 export type PricingPlanRow = {
   id: string;
@@ -78,13 +78,11 @@ export function getMinMonthlyFromPlans(
   return min === Infinity ? null : Math.round(min);
 }
 
-/** Lowest yearly total (with 20% annual discount) across plans - for upsell card “from” pricing */
+/** Lowest monthly price across plans - for upsell card “from” pricing */
 export function getMinYearlyFromPlans(
   plans: Array<{ niscPrice: string | null; billingCycle: string }>,
 ): number | null {
-  const monthlyMin = getMinMonthlyFromPlans(plans);
-  if (monthlyMin == null) return null;
-  return Math.round(monthlyMin * 12 * 0.8);
+  return getMinMonthlyFromPlans(plans);
 }
 
 function monthlyFromPlanPrice(price: number, billingCycle: string) {
@@ -94,10 +92,7 @@ function monthlyFromPlanPrice(price: number, billingCycle: string) {
 }
 
 function totalForCycle(monthly: number, cycle: "MONTHLY" | "YEARLY" | "BIENNIALLY") {
-  if (cycle === "YEARLY") {
-    return Math.round(monthly * 12 * 0.8 * 100) / 100;
-  }
-  const months = cycle === "MONTHLY" ? 1 : 24;
+  const months = cycle === "MONTHLY" ? 1 : cycle === "YEARLY" ? 12 : 24;
   return Math.round(monthly * months * 100) / 100;
 }
 
@@ -292,9 +287,7 @@ type HostingPlanSelectionStepProps = {
   productFeatures: ProductFeatureRow[];
   isLoading: boolean;
   selectedPlanId: string | null;
-  billingInterval: "monthly" | "yearly";
   onSelectPlan: (planId: string) => void;
-  onBillingIntervalChange: (interval: "monthly" | "yearly") => void;
 };
 
 export function HostingPlanSelectionStep({
@@ -305,9 +298,7 @@ export function HostingPlanSelectionStep({
   productFeatures,
   isLoading,
   selectedPlanId,
-  billingInterval,
   onSelectPlan,
-  onBillingIntervalChange,
 }: HostingPlanSelectionStepProps) {
   const title =
     selectionTitle ??
@@ -363,8 +354,6 @@ export function HostingPlanSelectionStep({
         productFeatures={productFeatures.length > 0 ? productFeatures : undefined}
         selectedPlanLevel={selectedLevel}
         onSelectedPlanLevelChange={onSelectPlan}
-        isYearly={billingInterval === "yearly"}
-        onIsYearlyChange={(yearly) => onBillingIntervalChange(yearly ? "yearly" : "monthly")}
         currency={currency}
         locale="en-KE"
       />

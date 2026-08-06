@@ -2,7 +2,7 @@ import { motion } from "motion/react";
 
 export default function ServiceHero() {
   return (
-    <section className="relative pt-32 pb-20 bg-background">
+    <section className="relative pt-20 pb-20 bg-background">
       <div className="max-w-4xl mx-auto px-4 md:px-8 text-center relative">
         <motion.h1
           initial={{ opacity: 0, y: 20 }}

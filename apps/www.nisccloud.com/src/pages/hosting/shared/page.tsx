@@ -75,7 +75,7 @@ export default function SharedHostingPage() {
         { q: "What happens if I need more space?", a: "We notify you at 80% usage. Upgrade your plan from cPanel with no migration and no downtime. We never suspend without warning." },
         { q: "Do you offer a money-back guarantee?", a: "Yes. 30-day money-back guarantee on all new hosting accounts. Contact our team and we process your full refund." },
       ]}
-      pricingNote="All prices in KES. Save 20% with annual billing. Easy checkout. 30-day money-back guarantee."
+      pricingNote="All prices in KES. Easy checkout. 30-day money-back guarantee."
       ctaHeadline="Get Reliable Web Hosting From KES 350/mo"
       ctaSubtext="Join 100+ clients on fast shared hosting with free SSL, daily backups, free migration, and 24/7 support."
       showcaseBlocks={showcaseBlocks}

@@ -6,14 +6,7 @@ import type { PlanFeatureValue } from "@/components/ui/pricing-table"
 import { Skeleton } from "@/components/ui/skeleton"
 
 /**
- * Calculate yearly price from monthly price with 20% discount
- */
-function calculateYearlyPrice(monthlyPrice: number): number {
-  return Math.round(monthlyPrice * 12 * 0.8)
-}
-
-/**
- * Derive pricing from billing cycle
+ * Derive monthly price from billing cycle (no annual discount).
  */
 function derivePricing(
   niscPrice: string | null | undefined,
@@ -31,15 +24,6 @@ function derivePricing(
     return { monthlyPrice: 0, yearlyPrice: 0 }
   }
 
-  // If billing cycle is MONTHLY, use price as-is for monthly
-  if (billingCycle === "MONTHLY") {
-    return {
-      monthlyPrice: Math.round(price),
-      yearlyPrice: calculateYearlyPrice(price),
-    }
-  }
-
-  // If billing cycle is YEARLY, calculate monthly from yearly
   if (billingCycle === "YEARLY") {
     const monthly = Math.round(price / 12)
     return {
@@ -48,10 +32,18 @@ function derivePricing(
     }
   }
 
-  // For other cycles, use as monthly and calculate yearly
+  if (billingCycle === "BIENNIALLY") {
+    const monthly = Math.round(price / 24)
+    return {
+      monthlyPrice: monthly,
+      yearlyPrice: Math.round(monthly * 12),
+    }
+  }
+
+  const monthly = Math.round(price)
   return {
-    monthlyPrice: Math.round(price),
-    yearlyPrice: calculateYearlyPrice(price),
+    monthlyPrice: monthly,
+    yearlyPrice: Math.round(monthly * 12),
   }
 }
 
@@ -285,7 +277,6 @@ export function PricingTableWrapper({
       productFeatures={useProductFeatures ? productFeatures : undefined}
       onPlanSelect={onBuyNow ? handleBuyNowClick : handlePlanSelect}
       defaultPlan={defaultPlan}
-      defaultInterval="monthly"
       currency={currency}
       locale={locale}
       embedded={embedded}
