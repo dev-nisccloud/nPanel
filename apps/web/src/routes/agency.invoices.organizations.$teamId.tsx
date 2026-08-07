@@ -93,7 +93,7 @@ export default function TeamInvoicesPage() {
 	const teamMeta = teamsData?.teams.find((t) =>
 		isUnassigned ? t.teamId == null : t.teamId === teamId,
 	);
-	const teamName = teamMeta?.teamName ?? (isUnassigned ? "Unassigned" : "Team");
+	const teamName = teamMeta?.teamName ?? (isUnassigned ? "Unassigned" : "Organization");
 
 	const {
 		data,
@@ -161,12 +161,12 @@ export default function TeamInvoicesPage() {
 			<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
 				<div className="w-full max-w-7xl mx-auto">
 					<EmptyState
-						title="Team not found"
-						description="This team link is invalid."
+						title="Organization not found"
+						description="This organization link is invalid."
 						action={
 							<Button onClick={() => navigate("/agency/invoices")} variant="outline">
 								<ArrowLeft className="mr-2 h-4 w-4" />
-								Back to teams
+								Back to organizations
 							</Button>
 						}
 					/>
@@ -220,12 +220,12 @@ export default function TeamInvoicesPage() {
 						onClick={() => navigate("/agency/invoices")}
 					>
 						<ArrowLeft className="mr-2 h-4 w-4" />
-						All teams
+						All organizations
 					</Button>
 					<div className="flex flex-col gap-1">
 						<h1 className="text-base font-semibold tracking-tight">{teamName}</h1>
 						<p className="text-xs text-muted-foreground">
-							Invoices and credit notes for this team.
+							Invoices and credit notes for this organization.
 						</p>
 					</div>
 				</div>
@@ -286,8 +286,8 @@ export default function TeamInvoicesPage() {
 					<TabsContent value="invoices" className="mt-6">
 						{invoices.length === 0 ? (
 							<EmptyState
-								title="No invoices for this team"
-								description="Create an invoice billed to this team to see it here."
+								title="No invoices for this organization"
+								description="Create an invoice billed to this organization to see it here."
 								action={
 									<Button onClick={() => navigate("/agency/invoices/create")}>
 										<Plus className="mr-2 h-4 w-4" />
@@ -320,7 +320,7 @@ export default function TeamInvoicesPage() {
 							/>
 						) : creditNotes.length === 0 ? (
 							<EmptyState
-								title="No credit notes for this team"
+								title="No credit notes for this organization"
 								description="Credit notes appear here after you issue one from a KRA-synced invoice."
 							/>
 						) : filteredCreditNotes.length === 0 ? (

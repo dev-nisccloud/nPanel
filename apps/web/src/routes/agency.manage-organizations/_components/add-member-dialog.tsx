@@ -72,7 +72,7 @@ export function AddMemberDialog({
 
 	const addMemberMutation = trpc.teams.addMember.useMutation({
 		onSuccess: () => {
-			toast.success("Member added to the team");
+			toast.success("Member added to the organization");
 			setUserId("");
 			setRole("MEMBER");
 			onOpenChange(false);
@@ -99,9 +99,9 @@ export function AddMemberDialog({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
-					<DialogTitle>Add team member</DialogTitle>
+					<DialogTitle>Add organization member</DialogTitle>
 					<DialogDescription>
-						Add an existing customer account to this team immediately. No invitation email is
+						Add an existing customer account to this organization immediately. No invitation email is
 						sent. Use Invite if the person does not have an account yet.
 					</DialogDescription>
 				</DialogHeader>

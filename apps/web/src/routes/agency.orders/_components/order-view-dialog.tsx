@@ -101,7 +101,7 @@ export function OrderViewDialog({ open, onOpenChange, orderId }: OrderViewDialog
 					<div className="space-y-1">
 						<div className="flex items-center gap-2 text-muted-foreground">
 							<Building2 className="h-4 w-4" />
-							<span>Team</span>
+							<span>Organization</span>
 						</div>
 						<p className="font-medium">{order.team?.name || "N/A"}</p>
 					</div>

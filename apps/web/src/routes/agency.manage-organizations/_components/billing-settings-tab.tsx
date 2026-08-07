@@ -210,7 +210,7 @@ export function BillingSettingsTab({ teamId }: BillingSettingsTabProps) {
 					<AlertDialogHeader>
 						<AlertDialogTitle>Delete Billing Settings</AlertDialogTitle>
 						<AlertDialogDescription>
-							Are you sure you want to delete the billing settings for this team? This action cannot be undone.
+							Are you sure you want to delete the billing settings for this organization? This action cannot be undone.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>

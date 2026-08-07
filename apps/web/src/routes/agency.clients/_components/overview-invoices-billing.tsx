@@ -145,7 +145,7 @@ export function OverviewInvoicesBilling({ clientId }: { clientId: string }) {
               Invoices / Billing
             </CardTitle>
             <p className="text-xs text-muted-foreground pl-10">
-              All invoices billed to this client or their teams
+              All invoices billed to this client or their organizations
             </p>
           </div>
           <Button variant="ghost" size="sm" className="shrink-0 text-xs" asChild>
@@ -183,7 +183,7 @@ export function OverviewInvoicesBilling({ clientId }: { clientId: string }) {
             <Receipt className="mx-auto h-10 w-10 text-muted-foreground/40 mb-3" />
             <p className="text-sm font-medium">No invoices yet</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Invoices linked to this client or their teams will appear here.
+              Invoices linked to this client or their organizations will appear here.
             </p>
           </div>
         ) : (

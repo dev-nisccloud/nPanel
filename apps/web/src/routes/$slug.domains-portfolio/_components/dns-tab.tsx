@@ -11,7 +11,7 @@ import type { DomainPortfolio } from "./domain-portfolio-card";
 interface DnsTabProps {
   domain: DomainPortfolio;
   onHostingClick: (type: "web" | "email") => void;
-  /** Customer view: scopes Plesk lookup to subscriptions linked to this team (same as overview). */
+  /** Customer view: scopes Plesk lookup to subscriptions linked to this organization (same as overview). */
   isAgency?: boolean;
   teamId?: string | null;
 }

@@ -162,7 +162,7 @@ export function TeamViewDialog({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Loading Team</DialogTitle>
+            <DialogTitle>Loading Organization</DialogTitle>
           </DialogHeader>
           <div className="flex items-center justify-center py-12">
             <Spinner size={32} />
@@ -178,10 +178,10 @@ export function TeamViewDialog({
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Error</DialogTitle>
-            <DialogDescription>{teamError?.message || "Team not found"}</DialogDescription>
+            <DialogDescription>{teamError?.message || "Organization not found"}</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <p className="text-destructive mb-4">{teamError?.message || "Team not found"}</p>
+            <p className="text-destructive mb-4">{teamError?.message || "Organization not found"}</p>
             <Button onClick={() => onOpenChange(false)} variant="outline">
               Close
             </Button>
@@ -227,7 +227,7 @@ export function TeamViewDialog({
                   <Building2 className="h-5 w-5 text-muted-foreground" />
                   <DialogTitle className="text-2xl">{team.name}</DialogTitle>
                 </div>
-                <DialogDescription>Team details and management</DialogDescription>
+                <DialogDescription>Organization details and management</DialogDescription>
               </div>
             </div>
           </DialogHeader>
@@ -246,7 +246,7 @@ export function TeamViewDialog({
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Building2 className="h-4 w-4" />
-                    <span>Team Name</span>
+                    <span>Organization Name</span>
                   </div>
                   <p className="text-sm font-medium">{team.name}</p>
                 </div>
@@ -380,7 +380,7 @@ export function TeamViewDialog({
 
             <TabsContent value="invites" className="mt-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Team Invitations</h3>
+                <h3 className="text-lg font-semibold">Organization Invitations</h3>
                 <Button
                   size="sm"
                   onClick={() => setIsInviteDialogOpen(true)}
@@ -538,7 +538,7 @@ export function TeamViewDialog({
           <AlertDialogHeader>
             <AlertDialogTitle>Remove Member</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove <strong>{removeMemberDialog.memberName}</strong> from this team? This action cannot be undone.
+              Are you sure you want to remove <strong>{removeMemberDialog.memberName}</strong> from this organization? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

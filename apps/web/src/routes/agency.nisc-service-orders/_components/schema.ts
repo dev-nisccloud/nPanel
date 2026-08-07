@@ -49,7 +49,7 @@ export const createOrderFormSchema = z
 		notes: z.string().optional(),
 	})
 	.refine((data) => data.userId != null || data.teamId != null, {
-		message: "Select either a user or a team (or both)",
+		message: "Select either a user or an organization (or both)",
 		path: ["teamId"],
 	});
 

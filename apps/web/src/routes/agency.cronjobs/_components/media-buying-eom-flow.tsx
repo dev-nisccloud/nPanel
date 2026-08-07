@@ -1547,9 +1547,9 @@ export function MediaBuyingEomTotalSpendInvoicesFlow({
         data: {
           label: (
             <div className="flex flex-col gap-2">
-              <div className="text-sm font-medium">Invoice “Bill To” (Team)</div>
+              <div className="text-sm font-medium">Invoice “Bill To” (Organization)</div>
               <div className="text-[11px] text-muted-foreground max-w-[360px]">
-                Choose a team. Billing details are sourced from team billing settings.
+                Choose an organization. Billing details are sourced from organization billing settings.
               </div>
 
               <div className="flex items-center gap-2">
@@ -1565,16 +1565,16 @@ export function MediaBuyingEomTotalSpendInvoicesFlow({
                     {selectedTeam
                       ? selectedTeam.name
                       : teamsQuery.isLoading
-                        ? "Loading teams…"
-                        : "Select team"}
+                        ? "Loading organizations…"
+                        : "Select organization"}
                     <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[420px] p-0" align="start">
                   <Command>
-                    <CommandInput placeholder="Search teams..." />
+                    <CommandInput placeholder="Search organizations..." />
                     <CommandEmpty>
-                      {teamsQuery.isLoading ? "Loading…" : "No teams found."}
+                      {teamsQuery.isLoading ? "Loading…" : "No organizations found."}
                     </CommandEmpty>
                     <CommandGroup>
                       {(teams ?? []).map((t: any) => (
@@ -1611,7 +1611,7 @@ export function MediaBuyingEomTotalSpendInvoicesFlow({
                   className="nodrag h-7 w-7"
                   onClick={() => teamsQuery.refetch()}
                   disabled={teamsQuery.isFetching}
-                  title="Refresh teams"
+                  title="Refresh organizations"
                 >
                   <RefreshCw className={teamsQuery.isFetching ? "h-3.5 w-3.5 animate-spin" : "h-3.5 w-3.5"} />
                 </Button>
@@ -1619,7 +1619,7 @@ export function MediaBuyingEomTotalSpendInvoicesFlow({
 
               {selectedBillToTeamId && !billingComplete && (
                 <div className="rounded-md border border-destructive/30 bg-destructive/5 p-2 text-[11px] text-destructive">
-                  Team billing settings are incomplete. Update them to continue.
+                  Organization billing settings are incomplete. Update them to continue.
                 </div>
               )}
 
@@ -1631,16 +1631,16 @@ export function MediaBuyingEomTotalSpendInvoicesFlow({
                   <AlertDialogHeader>
                     <AlertDialogTitle>Billing details incomplete</AlertDialogTitle>
                     <AlertDialogDescription>
-                      The selected team does not have completed billing settings. Please update the billing information for this team before issuing invoices.
+                      The selected organization does not have completed billing settings. Please update the billing information for this organization before issuing invoices.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogAction
                       onClick={() => {
-                        window.open("/agency/manage-teams", "_blank", "noopener,noreferrer");
+                        window.open("/agency/manage-organizations", "_blank", "noopener,noreferrer");
                       }}
                     >
-                      Manage teams
+                      Manage organizations
                     </AlertDialogAction>
                     <AlertDialogAction
                       onClick={() => setShowBillingIncompleteDialog(false)}

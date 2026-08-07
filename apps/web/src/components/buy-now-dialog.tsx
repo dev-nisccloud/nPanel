@@ -2010,7 +2010,7 @@ export function BuyNowDialog({
               {!!(resolvedTeamSlug || teamId) && (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="domain-select">Domains owned by your team</Label>
+                    <Label htmlFor="domain-select">Domains owned by your organization</Label>
                     <Select
                       value={selectedDomainId ?? ""}
                       onValueChange={(v) => {
@@ -2019,7 +2019,7 @@ export function BuyNowDialog({
                       }}
                     >
                       <SelectTrigger id="domain-select" className="w-full">
-                        <SelectValue placeholder="Select a domain from your team" />
+                        <SelectValue placeholder="Select a domain from your organization" />
                       </SelectTrigger>
                       <SelectContent>
                         {teamDomains.map((d) => (
@@ -2334,7 +2334,7 @@ export function BuyNowDialog({
             <div className="text-center">
               <h3 className="text-lg font-semibold text-foreground">Who is this hosting for?</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                Choose whether this order is for your agency, a client team, or a specific user. This sets
+                Choose whether this order is for your agency, a client organization, or a specific user. This sets
                 how the subscription is linked after payment.
               </p>
             </div>
@@ -2385,9 +2385,9 @@ export function BuyNowDialog({
                   </div>
                   <div className="min-w-0 flex-1 space-y-3">
                     <div>
-                      <p className="font-semibold text-foreground">A client team</p>
+                      <p className="font-semibold text-foreground">A client organization</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Link this hosting to a team you manage (same as domain subscription linking).
+                        Link this hosting to an organization you manage (same as domain subscription linking).
                       </p>
                     </div>
                     {agencyLinkType === "team" ? (
@@ -2400,9 +2400,9 @@ export function BuyNowDialog({
                           items={agencyTeamItems}
                           selectedItem={selectedAgencyTeamItem}
                           onSelect={(item) => setSelectedAgencyTeamId(item.id)}
-                          placeholder="Select a team..."
-                          searchPlaceholder="Search teams..."
-                          emptyResults="No teams found"
+                          placeholder="Select an organization..."
+                          searchPlaceholder="Search organizations..."
+                          emptyResults="No organizations found"
                         />
                       )
                     ) : null}
@@ -3147,7 +3147,7 @@ export function BuyNowDialog({
                 ? "Confirm the domain this hosting purchase applies to"
                 : "Choose or enter the domain to use with this plan")}
             {currentStep === "agency_billing" &&
-              "Choose whether this order is for your agency, a client team, or a specific user"}
+              "Choose whether this order is for your agency, a client organization, or a specific user"}
             {currentStep === "hivelocity_config" && "Choose OS, hostname, and optional add-ons - scroll through all sections"}
             {currentStep === "review" &&
               (intent === "add_to_cart" ? "Review your configuration and add it to cart" : "Review your order and proceed to checkout")}

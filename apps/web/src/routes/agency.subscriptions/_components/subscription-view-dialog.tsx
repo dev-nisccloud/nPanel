@@ -105,7 +105,7 @@ export function SubscriptionViewDialog({ open, onOpenChange, subscription }: Sub
 					<div className="grid gap-2">
 						<div className="flex items-center gap-2 text-muted-foreground">
 							<Building2 className="h-4 w-4" />
-							Team
+							Organization
 						</div>
 						<p>{subscription.teamName || subscription.teamId || "- "}</p>
 					</div>

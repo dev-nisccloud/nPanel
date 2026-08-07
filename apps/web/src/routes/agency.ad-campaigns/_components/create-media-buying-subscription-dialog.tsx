@@ -86,7 +86,7 @@ export function CreateMediaBuyingSubscriptionDialog({
 
   const handleSubmit = () => {
     if (!teamId) {
-      toast.error("Please select a team");
+      toast.error("Please select an organization");
       return;
     }
     if (!productPlanId) {
@@ -117,7 +117,7 @@ export function CreateMediaBuyingSubscriptionDialog({
         disabled={isLoadingLink || isLinked || accountId.length === 0}
         onClick={() => setOpen(true)}
       >
-        {isLoadingLink ? "Checking..." : isLinked ? `Linked to ${linkedData?.teamName ?? "team"}` : "Create Subscription"}
+        {isLoadingLink ? "Checking..." : isLinked ? `Linked to ${linkedData?.teamName ?? "organization"}` : "Create Subscription"}
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -193,7 +193,7 @@ export function CreateMediaBuyingSubscriptionDialog({
             </div>
 
             <div className="space-y-2">
-              <Label>Link to Team</Label>
+              <Label>Link to Organization</Label>
               <Select
                 value={teamId}
                 onValueChange={setTeamId}
@@ -201,7 +201,7 @@ export function CreateMediaBuyingSubscriptionDialog({
               >
                 <SelectTrigger>
                   <SelectValue
-                    placeholder={isLoadingTeams ? "Loading teams..." : "Select a team"}
+                    placeholder={isLoadingTeams ? "Loading organizations..." : "Select an organization"}
                   />
                 </SelectTrigger>
                 <SelectContent>
@@ -216,7 +216,7 @@ export function CreateMediaBuyingSubscriptionDialog({
 
             {(selectedTeam || selectedPlan) && (
               <div className="rounded-md bg-muted/40 p-3 text-xs text-muted-foreground">
-                {selectedTeam ? `Team: ${selectedTeam.name}` : ""}
+                {selectedTeam ? `Organization: ${selectedTeam.name}` : ""}
                 {selectedTeam && selectedPlan ? " · " : ""}
                 {selectedPlan ? (
                   <>

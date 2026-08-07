@@ -46,7 +46,7 @@ export const CompanyDetailsForm = () => {
 
 	const teams = data?.teams ?? [];
 	const foundTeam = teams.find((team) => team.id === selectedTeamId);
-	const selectedTeam: TeamBillingSummary | undefined = foundTeam ? {
+	const selectedOrganization: TeamBillingSummary | undefined = foundTeam ? {
 		...foundTeam,
 		billingSettings: foundTeam.billingSettings ? {
 			...foundTeam.billingSettings,
@@ -146,9 +146,9 @@ export const CompanyDetailsForm = () => {
 	return (
 		<div className="pt-24 space-y-6">
 			<div>
-				<p className="text-2xl font-semibold pb-3">Team Billing (Bill To)</p>
+				<p className="text-2xl font-semibold pb-3">Organization Billing (Bill To)</p>
 				<p className="pb-4 text-xs font-medium text-neutral-500">
-					Choose the team to invoice. Billing details are sourced from the team&apos;s billing settings.
+					Choose the organization to invoice. Billing details are sourced from the organization&apos;s billing settings.
 				</p>
 				<Popover open={teamPickerOpen} onOpenChange={setTeamPickerOpen}>
 					<PopoverTrigger asChild>
@@ -158,14 +158,14 @@ export const CompanyDetailsForm = () => {
 							aria-expanded={teamPickerOpen}
 							className="w-full justify-between"
 						>
-							{selectedTeam ? selectedTeam.name : isLoading ? "Loading teams..." : "Select team"}
+							{selectedTeam ? selectedTeam.name : isLoading ? "Loading organizations..." : "Select organization"}
 							<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 						</Button>
 					</PopoverTrigger>
 					<PopoverContent className="w-full p-0" align="start">
 						<Command>
-							<CommandInput placeholder="Search teams..." />
-							<CommandEmpty>No teams found.</CommandEmpty>
+							<CommandInput placeholder="Search organizations..." />
+							<CommandEmpty>No organizations found.</CommandEmpty>
 							<CommandGroup>
 								{teams.map((team) => (
 									<CommandItem
@@ -202,7 +202,7 @@ export const CompanyDetailsForm = () => {
 				</div>
 				{!selectedTeam ? (
 					<div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-						Select a team to populate the invoice recipient.
+						Select an organization to populate the invoice recipient.
 					</div>
 				) : billingComplete && displayLines.length > 0 ? (
 					<div className="rounded-md border bg-muted/40 p-4 text-sm">
@@ -215,7 +215,7 @@ export const CompanyDetailsForm = () => {
 					</div>
 				) : (
 					<div className="rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-						This team is missing required billing details. Please update the team&apos;s billing settings to continue.
+						This organization is missing required billing details. Please update the organization&apos;s billing settings to continue.
 					</div>
 				)}
 			</div>
@@ -231,7 +231,7 @@ export const CompanyDetailsForm = () => {
 					<AlertDialogHeader>
 						<AlertDialogTitle>Billing details incomplete</AlertDialogTitle>
 						<AlertDialogDescription>
-							The selected team does not have completed billing settings. Please update the billing information for this team before issuing invoices.
+							The selected organization does not have completed billing settings. Please update the billing information for this organization before issuing invoices.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>

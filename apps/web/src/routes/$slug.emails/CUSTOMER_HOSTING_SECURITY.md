@@ -15,7 +15,7 @@ Customer hosting lives under `/{teamSlug}/hosting`. The `[slug]` layout runs **b
 | **Agency slug block** | If `slug === "agency"`, redirect to `/agency/dashboard` so customer layout never runs for agency routes. |
 | **Role check** | `requireRole(["CUSTOMER"])`   user must be authenticated and have role `CUSTOMER`. Non‑customers (e.g. agency) are redirected to the right dashboard. |
 | **Agency user redirect** | If user has role containing `"AGENCY"`, redirect to `/agency/dashboard` so agency users cannot use customer routes. |
-| **Team access** | `verifyTeamAccess(slug)` ensures the user is a **member** of the team for that slug (via `TeamMember`). If not, redirect to `/create-team`. |
+| **Team access** | `verifyTeamAccess(slug)` ensures the user is a **member** of the team for that slug (via `TeamMember`). If not, redirect to `/create-organization`. |
 | **Team active** | Only teams with `isActive: true` are considered; inactive teams get no access. |
 
 **Auth helpers (server):** `apps/npanel/src/lib/auth-server.ts`

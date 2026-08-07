@@ -44,7 +44,7 @@ export function CreateTeamDialog({ open, onOpenChange, onSuccess }: CreateTeamDi
   // tRPC mutation for creating team
   const createTeamMutation = trpc.teams.create.useMutation({
     onSuccess: () => {
-      toast.success("Team created successfully!");
+      toast.success("Organization created successfully!");
       // Reset form
       setCurrentStep(1);
       setFormData({
@@ -63,7 +63,7 @@ export function CreateTeamDialog({ open, onOpenChange, onSuccess }: CreateTeamDi
       }
     },
     onError: (error: { message?: string }) => {
-      toast.error(error.message || "Failed to create team");
+      toast.error(error.message || "Failed to create organization");
     },
   });
 
@@ -84,18 +84,18 @@ export function CreateTeamDialog({ open, onOpenChange, onSuccess }: CreateTeamDi
     if (currentStep === 1) {
       // Validate team name
       if (!formData.teamName.trim()) {
-        toast.error("Team name is required");
+        toast.error("Organization name is required");
         return;
       }
       
       // Validate team name length
       if (formData.teamName.trim().length < 2) {
-        toast.error("Team name must be at least 2 characters");
+        toast.error("Organization name must be at least 2 characters");
         return;
       }
       
       if (formData.teamName.trim().length > 100) {
-        toast.error("Team name must be less than 100 characters");
+        toast.error("Organization name must be less than 100 characters");
         return;
       }
     }
@@ -145,25 +145,25 @@ export function CreateTeamDialog({ open, onOpenChange, onSuccess }: CreateTeamDi
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create New Team</DialogTitle>
+          <DialogTitle>Create New Organization</DialogTitle>
           <DialogDescription>
-            Set up your team and invite members to get started
+            Set up your organization and invite members to get started
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Step 1: Team Details */}
+          {/* Step 1: Organization Details */}
           {currentStep === 1 && (
             <div className="space-y-6">
-              {/* Team Logo Upload */}
+              {/* Organization Logo Upload */}
               <div className="flex flex-col items-center space-y-3">
-                <Label className="text-sm font-medium">Select your team logo</Label>
+                <Label className="text-sm font-medium">Select your organization logo</Label>
                 <div className="relative">
                   <div className="w-24 h-24 rounded-full border-2 border-dashed border-muted-foreground/25 flex items-center justify-center cursor-pointer hover:border-primary/50 transition-colors group">
                     {formData.teamLogo ? (
                       <img 
                         src={URL.createObjectURL(formData.teamLogo)} 
-                        alt="Team logo" 
+                        alt="Organization logo" 
                         className="w-full h-full object-cover rounded-full"
                       />
                     ) : (
@@ -179,14 +179,14 @@ export function CreateTeamDialog({ open, onOpenChange, onSuccess }: CreateTeamDi
                 </div>
               </div>
 
-              {/* Team Name */}
+              {/* Organization Name */}
               <div className="space-y-2">
                 <Label htmlFor="teamName" className="text-sm font-medium">
-                  Team Name <span className="text-destructive">*</span>
+                  Organization Name <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="teamName"
-                  placeholder="Enter your team name"
+                  placeholder="Enter your organization name"
                   value={formData.teamName}
                   onChange={(e) => setFormData(prev => ({ ...prev, teamName: e.target.value }))}
                   className="h-11"
@@ -228,7 +228,7 @@ export function CreateTeamDialog({ open, onOpenChange, onSuccess }: CreateTeamDi
             <div className="space-y-6">
               <div className="flex items-center gap-2 mb-4">
                 <Users className="h-5 w-5 text-primary" />
-                <h2 className="text-lg font-semibold">Invite Team Members</h2>
+                <h2 className="text-lg font-semibold">Invite Organization Members</h2>
               </div>
 
               <div className="space-y-2">
@@ -262,7 +262,7 @@ export function CreateTeamDialog({ open, onOpenChange, onSuccess }: CreateTeamDi
                   className="flex-1 h-11 flex items-center gap-2"
                   disabled={createTeamMutation.isPending}
                 >
-                  {createTeamMutation.isPending ? "Creating..." : "Create Team"}
+                  {createTeamMutation.isPending ? "Creating..." : "Create Organization"}
                   {!createTeamMutation.isPending && <ArrowRight className="h-4 w-4" />}
                 </Button>
               </div>

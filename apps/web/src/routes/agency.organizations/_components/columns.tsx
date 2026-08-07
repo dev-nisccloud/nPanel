@@ -48,7 +48,7 @@ export const createTeamColumns = ({ onEditTeam, onDeleteTeam }: TeamColumnsProps
   },
   {
     accessorKey: "teamName",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Team Name" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Organization Name" />,
     cell: ({ row }) => {
       const teamName = row.getValue("teamName") as string;
       return (
@@ -121,7 +121,7 @@ export const createTeamColumns = ({ onEditTeam, onDeleteTeam }: TeamColumnsProps
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onEditTeam?.(team)}>
                 <Edit className="mr-2 h-4 w-4" />
-                Edit Team
+                Edit Organization
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -129,7 +129,7 @@ export const createTeamColumns = ({ onEditTeam, onDeleteTeam }: TeamColumnsProps
                 onClick={() => onDeleteTeam?.(team.id)}
               >
                 <Trash className="mr-2 h-4 w-4" />
-                Delete Team
+                Delete Organization
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

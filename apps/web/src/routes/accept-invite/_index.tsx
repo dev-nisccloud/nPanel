@@ -31,7 +31,7 @@ export default function AcceptInvitePage() {
     onSuccess: (data: RouterOutputs["teams"]["acceptInvite"]) => {
       if (data.success && data.teamSlug) {
         captureEvent("team_member_invitation_accepted");
-        toast.success("You've successfully joined the team!");
+        toast.success("You've successfully joined the organization!");
         navigate(`/${data.teamSlug}/dashboard`);
       } else {
         toast.error(data.error || "Failed to accept invitation");
@@ -80,7 +80,7 @@ export default function AcceptInvitePage() {
       <div className="flex min-h-dvh items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
-            {/* Team Logo */}
+            {/* Organization Logo */}
             {invite.team.logoUrl ? (
               <div className="mx-auto mb-4 h-16 w-16 overflow-hidden rounded-full">
                 <img
@@ -103,13 +103,13 @@ export default function AcceptInvitePage() {
 
           <CardContent className="space-y-4">
             <p className="text-center text-sm text-muted-foreground">
-              You do not have an account to view resources of this team. Create an account or sign in to join.
+              You do not have an account to view resources of this organization. Create an account or sign in to join.
             </p>
 
             {/* Invite Details */}
             <div className="rounded-lg bg-muted p-4 space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Team:</span>
+                <span className="text-muted-foreground">Organization:</span>
                 <span className="font-medium">{invite.team.name}</span>
               </div>
               <div className="flex justify-between text-sm">
@@ -225,7 +225,7 @@ export default function AcceptInvitePage() {
     <div className="flex min-h-dvh items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          {/* Team Logo */}
+          {/* Organization Logo */}
           {invite.team.logoUrl ? (
             <div className="mx-auto mb-4 h-16 w-16 overflow-hidden rounded-full">
               <img
@@ -244,7 +244,7 @@ export default function AcceptInvitePage() {
 
           <CardTitle className="text-center text-2xl">Join {invite.team.name}</CardTitle>
           <CardDescription className="text-center">
-            You've been invited to join this team as a {invite.role.toLowerCase()}
+            You've been invited to join this organization as a {invite.role.toLowerCase()}
           </CardDescription>
         </CardHeader>
 
@@ -252,7 +252,7 @@ export default function AcceptInvitePage() {
           {/* Invite Details */}
           <div className="rounded-lg bg-muted p-4 space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Team:</span>
+              <span className="text-muted-foreground">Organization:</span>
               <span className="font-medium">{invite.team.name}</span>
             </div>
             <div className="flex justify-between text-sm">
@@ -271,15 +271,15 @@ export default function AcceptInvitePage() {
 
           {/* Benefits */}
           <div className="space-y-2">
-            <p className="text-sm font-medium">As a team member, you will be able to:</p>
+            <p className="text-sm font-medium">As an organization member, you will be able to:</p>
             <ul className="space-y-1 text-sm text-muted-foreground">
               <li className="flex items-start">
                 <CheckCircle className="mr-2 mt-0.5 h-4 w-4 flex-shrink-0 text-green-600" />
-                <span>Collaborate with your team members</span>
+                <span>Collaborate with your organization members</span>
               </li>
               <li className="flex items-start">
                 <CheckCircle className="mr-2 mt-0.5 h-4 w-4 flex-shrink-0 text-green-600" />
-                <span>Access and manage team resources</span>
+                <span>Access and manage organization resources</span>
               </li>
               <li className="flex items-start">
                 <CheckCircle className="mr-2 mt-0.5 h-4 w-4 flex-shrink-0 text-green-600" />
@@ -301,10 +301,10 @@ export default function AcceptInvitePage() {
             {isAccepting || acceptInviteMutation.isPending ? (
               <div className="flex items-center gap-2">
                 <Spinner variant="ellipsis" className="text-primary-foreground" size="sm" />
-                <span>Joining team...</span>
+                <span>Joining organization...</span>
               </div>
             ) : (
-              "Accept Invitation & Join Team"
+              "Accept Invitation & Join Organization"
             )}
           </Button>
 
@@ -313,7 +313,7 @@ export default function AcceptInvitePage() {
             variant="outline"
             onClick={() => {
               captureEvent("team_member_invitation_declined");
-              navigate("/create-team");
+              navigate("/create-organization");
             }}
             className="w-full"
             disabled={isAccepting || acceptInviteMutation.isPending}
@@ -323,7 +323,7 @@ export default function AcceptInvitePage() {
 
           {/* Security Note */}
           <p className="text-center text-xs text-muted-foreground">
-            By accepting, you agree to collaborate with this team on npanel
+            By accepting, you agree to collaborate with this organization on npanel
           </p>
         </CardContent>
       </Card>

@@ -90,7 +90,7 @@ export function TeamCard({
                 }}
               >
                 <Edit className="mr-2 h-4 w-4" />
-                Edit Team
+                Edit Organization
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -101,7 +101,7 @@ export function TeamCard({
                 className="text-destructive focus:text-destructive"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
-                Delete Team
+                Delete Organization
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -109,10 +109,10 @@ export function TeamCard({
       </CardHeader>
 
       <CardContent className="pt-0 space-y-3">
-        {/* Team Name */}
+        {/* Organization Name */}
         <div className="space-y-1">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            Team Name
+            Organization Name
           </p>
           <div className="flex items-center gap-2">
             <Building2 className="h-4 w-4 text-muted-foreground" />

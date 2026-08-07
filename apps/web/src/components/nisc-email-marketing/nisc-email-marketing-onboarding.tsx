@@ -202,7 +202,7 @@ export function NiscEmailMarketingOnboarding() {
 							<Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
 							<AlertDescription className="text-xs text-blue-900 dark:text-blue-100">
 								{route.isCustomer
-									? "Adding domains for this team keeps your email sending organized and professional."
+									? "Adding domains for this organization keeps your email sending organized and professional."
 									: "You can view and manage all domains across your agency."}
 							</AlertDescription>
 						</Alert>

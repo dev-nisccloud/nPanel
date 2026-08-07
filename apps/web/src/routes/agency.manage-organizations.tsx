@@ -20,9 +20,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { TeamViewSheet } from "./agency.manage-teams/_components/team-view-sheet";
-import { EditTeamDialog } from "./agency.manage-teams/_components/edit-team-dialog";
-import { CreateTeamDialog } from "./agency.manage-teams/_components/create-team-dialog";
+import { TeamViewSheet } from "./agency.manage-organizations/_components/team-view-sheet";
+import { EditTeamDialog } from "./agency.manage-organizations/_components/edit-team-dialog";
+import { CreateTeamDialog } from "./agency.manage-organizations/_components/create-team-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,7 +37,7 @@ import { trpc } from "@/utils/trpc";
 import { captureEvent } from "@/lib/posthog";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { z } from "zod";
-import { teamSchema } from "./agency.manage-teams/_components/schema";
+import { teamSchema } from "./agency.manage-organizations/_components/schema";
 import { Badge } from "@/components/ui/badge";
 
 const EmptyState = ({ title, description }: { title: string; description: string }) => (
@@ -119,7 +119,7 @@ export default function ManageTeamsPage() {
   const deleteTeamMutation = trpc.teams.delete.useMutation({
     onSuccess: () => {
       captureEvent("organization_deleted");
-      toast.success("Team deleted successfully");
+      toast.success("Organization deleted successfully");
       utils.teams.getAll.invalidate();
       setDeleteDialog({
         open: false,
@@ -128,7 +128,7 @@ export default function ManageTeamsPage() {
       });
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to delete team");
+      toast.error(error.message || "Failed to delete organization");
     },
   });
 
@@ -155,7 +155,7 @@ export default function ManageTeamsPage() {
       <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
         <div className="w-full max-w-7xl mx-auto">
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <p className="text-destructive mb-4">{error.message || "Failed to load teams"}</p>
+            <p className="text-destructive mb-4">{error.message || "Failed to load organizations"}</p>
             <Button onClick={() => refetch()} variant="outline">
               Try Again
             </Button>
@@ -169,9 +169,9 @@ export default function ManageTeamsPage() {
     <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
       <div className="w-full max-w-7xl mx-auto">
         <div className="flex flex-col gap-2">
-          <h1 className="text-base font-semibold tracking-tight">Manage Teams</h1>
+          <h1 className="text-base font-semibold tracking-tight">Manage Organizations</h1>
           <p className="text-xs text-muted-foreground">
-            Manage all teams, view their members, invites, and hosting subscriptions.
+            Manage all organizations, view their members, invites, and hosting subscriptions.
           </p>
         </div>
 
@@ -181,7 +181,7 @@ export default function ManageTeamsPage() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Search teams by name, slug, or currency..."
+                placeholder="Search organizations by name, slug, or currency..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
@@ -193,7 +193,7 @@ export default function ManageTeamsPage() {
                 className="flex items-center gap-2"
               >
                 <Plus className="h-4 w-4" />
-                Create Team
+                Create Organization
               </Button>
               <Button
                 variant="outline"
@@ -211,14 +211,14 @@ export default function ManageTeamsPage() {
         <div className="mt-6">
           {!teams || teams.length === 0 ? (
             <EmptyState
-              title="No teams found"
-              description="No teams have been created yet."
+              title="No organizations found"
+              description="No organizations have been created yet."
             />
           ) : filteredTeams.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <p className="text-lg font-semibold mb-2">No teams found</p>
+              <p className="text-lg font-semibold mb-2">No organizations found</p>
               <p className="text-muted-foreground mb-4">
-                No teams match your search query "{searchQuery}".
+                No organizations match your search query "{searchQuery}".
               </p>
               <Button
                 variant="outline"
@@ -232,7 +232,7 @@ export default function ManageTeamsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="pl-6">Team Name</TableHead>
+                    <TableHead className="pl-6">Organization Name</TableHead>
                     <TableHead>Slug</TableHead>
                     <TableHead>Currency</TableHead>
                     <TableHead>Members</TableHead>
@@ -351,9 +351,9 @@ export default function ManageTeamsPage() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Team</AlertDialogTitle>
+            <AlertDialogTitle>Delete Organization</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the team "{deleteDialog.teamName}"? This action cannot be undone and will delete all associated data including members, invites, and subscriptions.
+              Are you sure you want to delete the organization "{deleteDialog.teamName}"? This action cannot be undone and will delete all associated data including members, invites, and subscriptions.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -371,7 +371,7 @@ export default function ManageTeamsPage() {
                   Deleting...
                 </>
               ) : (
-                "Delete Team"
+                "Delete Organization"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

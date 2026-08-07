@@ -26,7 +26,7 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { teamSchema } from "./schema";
 
 const FormSchema = z.object({
-  teamName: z.string().min(1, { message: "Team name is required." }),
+  teamName: z.string().min(1, { message: "Organization name is required." }),
   createdBy: z.string().min(1, { message: "Created by is required." }),
   status: z.enum(["active", "inactive", "suspended"]),
 });
@@ -35,7 +35,7 @@ interface UpdateTeamSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   team: z.infer<typeof teamSchema> | null;
-  onUpdateTeam: (teamId: number, team: Partial<z.infer<typeof teamSchema>>) => void;
+  onUpdateOrganization: (teamId: number, team: Partial<z.infer<typeof teamSchema>>) => void;
 }
 
 export function UpdateTeamSheet({ open, onOpenChange, team, onUpdateTeam }: UpdateTeamSheetProps) {
@@ -78,11 +78,11 @@ export function UpdateTeamSheet({ open, onOpenChange, team, onUpdateTeam }: Upda
 
       onUpdateTeam(team.id, updatedTeam);
       
-      toast.success("Team updated successfully!");
+      toast.success("Organization updated successfully!");
       onOpenChange(false);
     } catch (error) {
       console.error("Error updating team:", error);
-      toast.error("Failed to update team", {
+      toast.error("Failed to update organization", {
         description: "Please try again.",
       });
     } finally {
@@ -101,9 +101,9 @@ export function UpdateTeamSheet({ open, onOpenChange, team, onUpdateTeam }: Upda
               <Users className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <SheetTitle className="text-2xl font-bold">Update Team</SheetTitle>
+              <SheetTitle className="text-2xl font-bold">Update Organization</SheetTitle>
               <SheetDescription className="text-base">
-                Edit team information
+                Edit organization information
               </SheetDescription>
             </div>
           </div>
@@ -121,14 +121,14 @@ export function UpdateTeamSheet({ open, onOpenChange, team, onUpdateTeam }: Upda
         <div className="px-1 pb-1">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* Team Information */}
+              {/* Organization Information */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Users className="h-5 w-5" />
-                    Team Information
+                    Organization Information
                   </CardTitle>
-                  <CardDescription>Basic team details</CardDescription>
+                  <CardDescription>Basic organization details</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <FormField
@@ -136,9 +136,9 @@ export function UpdateTeamSheet({ open, onOpenChange, team, onUpdateTeam }: Upda
                     name="teamName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Team Name</FormLabel>
+                        <FormLabel>Organization Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="Development Team" {...field} />
+                          <Input placeholder="Development Organization" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -202,7 +202,7 @@ export function UpdateTeamSheet({ open, onOpenChange, team, onUpdateTeam }: Upda
                   ) : (
                     <div className="flex items-center gap-2">
                       <Save className="h-4 w-4" />
-                      <span>Update Team</span>
+                      <span>Update Organization</span>
                     </div>
                   )}
                 </Button>

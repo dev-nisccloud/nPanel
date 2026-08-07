@@ -31,7 +31,7 @@ export function InvoiceTeamsTable({ teams }: InvoiceTeamsTableProps) {
 			<Table>
 				<TableHeader>
 					<TableRow>
-						<TableHead className="pl-6">Team</TableHead>
+						<TableHead className="pl-6">Organization</TableHead>
 						<TableHead>Invoices</TableHead>
 						<TableHead>Unpaid</TableHead>
 						<TableHead>Last invoice</TableHead>
@@ -45,7 +45,7 @@ export function InvoiceTeamsTable({ teams }: InvoiceTeamsTableProps) {
 							<TableRow
 								key={routeId}
 								className="cursor-pointer"
-								onClick={() => navigate(`/agency/invoices/teams/${routeId}`)}
+								onClick={() => navigate(`/agency/invoices/organizations/${routeId}`)}
 							>
 								<TableCell className="pl-6 font-medium">
 									<div className="flex items-center gap-2">
@@ -53,7 +53,7 @@ export function InvoiceTeamsTable({ teams }: InvoiceTeamsTableProps) {
 										<span>{team.teamName}</span>
 										{!team.teamId ? (
 											<Badge variant="outline" className="font-normal">
-												No team
+												No organization
 											</Badge>
 										) : null}
 									</div>

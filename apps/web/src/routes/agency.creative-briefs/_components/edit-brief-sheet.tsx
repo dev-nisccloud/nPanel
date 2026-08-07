@@ -267,7 +267,7 @@ export function EditBriefSheet({ open, onOpenChange, brief, onEditBrief }: EditB
   const isSubmitting = updateBriefMutation.isPending || isUploadingImages;
 
   const teamComboboxItems: ComboboxItem[] = React.useMemo(() => {
-    const none: ComboboxItem = { id: OPTIONAL_TEAM_SENTINEL, label: "No team (optional)" };
+    const none: ComboboxItem = { id: OPTIONAL_TEAM_SENTINEL, label: "No organization (optional)" };
     if (!teams) return [none];
     return [none, ...teams.map((team) => ({ id: team.id, label: team.name }))];
   }, [teams]);
@@ -480,7 +480,7 @@ export function EditBriefSheet({ open, onOpenChange, brief, onEditBrief }: EditB
                       name="teamId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Team (Optional)</FormLabel>
+                          <FormLabel>Organization (optional)</FormLabel>
                           <FormControl>
                             {isLoadingTeams ? (
                               <div className="flex items-center justify-center h-10 border rounded-md">
@@ -488,14 +488,14 @@ export function EditBriefSheet({ open, onOpenChange, brief, onEditBrief }: EditB
                               </div>
                             ) : (
                               <ComboboxDropdown
-                                placeholder="Select a team (optional)"
-                                searchPlaceholder="Search teams..."
+                                placeholder="Select an organization (optional)"
+                                searchPlaceholder="Search organizations..."
                                 items={teamComboboxItems}
                                 selectedItem={selectedTeamCombo}
                                 onSelect={(item) => {
                                   field.onChange(item.id === OPTIONAL_TEAM_SENTINEL ? "" : item.id);
                                 }}
-                                emptyResults="No teams found"
+                                emptyResults="No organizations found"
                                 disabled={isSubmitting}
                                 className="w-full"
                               />

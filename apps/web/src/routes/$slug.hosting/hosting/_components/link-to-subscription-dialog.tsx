@@ -44,7 +44,7 @@ import { trpc } from "@/utils/trpc";
 
 const formSchema = z.object({
 	niscServicePlanId: z.string().min(1, "Service plan is required"),
-	teamId: z.string().min(1, "Team is required"),
+	teamId: z.string().min(1, "Organization is required"),
 	hostingPlanId: z.string().min(1, "Hosting plan is required"),
 	subscriptionDate: z.date().optional(),
 	billingCycle: z.enum(["YEARLY", "MONTHLY", "BIENNIALLY", "CUSTOM"]),
@@ -367,27 +367,27 @@ export function LinkToSubscriptionDialog({
 
 						<Separator />
 
-						{/* Team Selection */}
+						{/* Organization Selection */}
 						<FormField
 							control={form.control}
 							name="teamId"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Team</FormLabel>
+									<FormLabel>Organization</FormLabel>
 									<FormControl>
 										{isLoadingTeams ? (
 											<div className="flex items-center justify-center h-10 border rounded-md">
 												<Spinner size={20} />
-												<span className="ml-2 text-sm text-muted-foreground">Loading teams...</span>
+												<span className="ml-2 text-sm text-muted-foreground">Loading organizations...</span>
 											</div>
 										) : (
 											<ComboboxDropdown
 												items={teamItems}
 												selectedItem={selectedTeam}
 												onSelect={(team) => field.onChange(team.id)}
-												placeholder="Select a team..."
-												searchPlaceholder="Search teams..."
-												emptyResults="No teams found"
+												placeholder="Select an organization..."
+												searchPlaceholder="Search organizations..."
+												emptyResults="No organizations found"
 											/>
 										)}
 									</FormControl>

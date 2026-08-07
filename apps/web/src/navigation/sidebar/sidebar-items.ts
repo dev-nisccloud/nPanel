@@ -428,7 +428,7 @@ export const agencysidebarItems: NavGroup[] = [
         icon: (props: any) => React.createElement(Icons.Clients, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
           { title: "Manage Clients", url: "/agency/clients", },
-          { title: "Manage Organizations", url: "/agency/manage-teams", },
+          { title: "Manage Organizations", url: "/agency/manage-organizations", },
           // { title: "Create Client", url: "/agency/clients", },
           { title: "Manage Users", url: "/agency/manage-users", },
           // { title: "Manage Affiliates", url: "/agency/manage-affiliates", },

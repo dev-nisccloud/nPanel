@@ -279,7 +279,7 @@ export function SubscriptionViewSheet({
 										{teamName ? (
 											<div className="flex items-center gap-2 text-sm">
 												<Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
-												<span className="text-muted-foreground">Team</span>
+												<span className="text-muted-foreground">Organization</span>
 												<span className="font-medium">{teamName}</span>
 											</div>
 										) : null}

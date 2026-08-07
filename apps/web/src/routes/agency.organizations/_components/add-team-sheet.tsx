@@ -26,7 +26,7 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { teamSchema } from "./schema";
 
 const FormSchema = z.object({
-  teamName: z.string().min(1, { message: "Team name is required." }),
+  teamName: z.string().min(1, { message: "Organization name is required." }),
   createdBy: z.string().min(1, { message: "Created by is required." }),
   status: z.enum(["active", "inactive", "suspended"]),
 });
@@ -34,7 +34,7 @@ const FormSchema = z.object({
 interface AddTeamSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddTeam: (team: Omit<z.infer<typeof teamSchema>, "id" | "createdAt">) => void;
+  onAddOrganization: (team: Omit<z.infer<typeof teamSchema>, "id" | "createdAt">) => void;
 }
 
 export function AddTeamSheet({ open, onOpenChange, onAddTeam }: AddTeamSheetProps) {
@@ -64,12 +64,12 @@ export function AddTeamSheet({ open, onOpenChange, onAddTeam }: AddTeamSheetProp
 
       onAddTeam(teamData);
       
-      toast.success("Team added successfully!");
+      toast.success("Organization added successfully!");
       form.reset();
       onOpenChange(false);
     } catch (error) {
       console.error("Error adding team:", error);
-      toast.error("Failed to add team", {
+      toast.error("Failed to add organization", {
         description: "Please try again.",
       });
     } finally {
@@ -86,9 +86,9 @@ export function AddTeamSheet({ open, onOpenChange, onAddTeam }: AddTeamSheetProp
               <Users className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <SheetTitle className="text-2xl font-bold">Add Team</SheetTitle>
+              <SheetTitle className="text-2xl font-bold">Add Organization</SheetTitle>
               <SheetDescription className="text-base">
-                Create a new team
+                Create a new organization
               </SheetDescription>
             </div>
           </div>
@@ -106,14 +106,14 @@ export function AddTeamSheet({ open, onOpenChange, onAddTeam }: AddTeamSheetProp
         <div className="px-1 pb-1">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* Team Information */}
+              {/* Organization Information */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Users className="h-5 w-5" />
-                    Team Information
+                    Organization Information
                   </CardTitle>
-                  <CardDescription>Basic team details</CardDescription>
+                  <CardDescription>Basic organization details</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <FormField
@@ -121,9 +121,9 @@ export function AddTeamSheet({ open, onOpenChange, onAddTeam }: AddTeamSheetProp
                     name="teamName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Team Name</FormLabel>
+                        <FormLabel>Organization Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="Development Team" {...field} />
+                          <Input placeholder="Development Organization" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -187,7 +187,7 @@ export function AddTeamSheet({ open, onOpenChange, onAddTeam }: AddTeamSheetProp
                   ) : (
                     <div className="flex items-center gap-2">
                       <Plus className="h-4 w-4" />
-                      <span>Add Team</span>
+                      <span>Add Organization</span>
                     </div>
                   )}
                 </Button>

@@ -70,7 +70,7 @@ type LinkType = "team" | "user";
 const editFormSchema = z.object({
 	name: z.string().optional(),
 	linkType: z.enum(["team", "user"]),
-	ownerId: z.string().min(1, "Select a team or user"),
+	ownerId: z.string().min(1, "Select an organization or user"),
 	status: z.enum([
 		"ACTIVE",
 		"PENDING",
@@ -399,7 +399,7 @@ export function SubscriptionEditSheet({
 														disabled={updateSubscription.isPending}
 													>
 														<Users className="mr-2 h-4 w-4" />
-														Team
+														Organization
 													</Button>
 													<Button
 														type="button"
@@ -428,7 +428,7 @@ export function SubscriptionEditSheet({
 															) : (
 																<User className="h-4 w-4 text-muted-foreground" />
 															)}
-															{linkType === "team" ? "Team" : "User"}
+															{linkType === "team" ? "Organization" : "User"}
 														</FormLabel>
 														<FormControl>
 															{isLoadingOwnerOptions ? (
@@ -442,17 +442,17 @@ export function SubscriptionEditSheet({
 																	onSelect={(item) => field.onChange(item.id)}
 																	placeholder={
 																		linkType === "team"
-																			? "Select a team..."
+																			? "Select an organization..."
 																			: "Select a user..."
 																	}
 																	searchPlaceholder={
 																		linkType === "team"
-																			? "Search teams..."
+																			? "Search organizations..."
 																			: "Search users..."
 																	}
 																	emptyResults={
 																		linkType === "team"
-																			? "No teams found"
+																			? "No organizations found"
 																			: "No users found"
 																	}
 																	disabled={updateSubscription.isPending}

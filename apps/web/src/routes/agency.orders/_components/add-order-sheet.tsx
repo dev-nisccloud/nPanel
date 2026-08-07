@@ -65,7 +65,7 @@ const orderItemSchema = z.object({
 
 // Form Schema - supports multiple items
 const FormSchema = z.object({
-	teamId: z.string().min(1, { message: "Team is required." }),
+	teamId: z.string().min(1, { message: "Organization is required." }),
 	items: z.array(orderItemSchema).min(1, { message: "At least one order item is required." }),
 	isTaxable: z.boolean().optional().nullable(),
 	taxPercentage: z.number().min(0).max(100).optional().nullable(),
@@ -431,14 +431,14 @@ export function AddOrderSheet({ open, onOpenChange, onSuccess }: AddOrderSheetPr
 				<div className="px-1 pb-1">
 					<Form {...form}>
 						<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-							{/* Team Selection */}
+							{/* Organization Selection */}
 							<Card>
 								<CardHeader>
 									<CardTitle className="text-lg flex items-center gap-2">
 										<Building2 className="h-5 w-5" />
-										Team
+										Organization
 									</CardTitle>
-									<CardDescription>Select the team that will own this order</CardDescription>
+									<CardDescription>Select the organization that will own this order</CardDescription>
 								</CardHeader>
 								<CardContent>
 									<FormField
@@ -446,7 +446,7 @@ export function AddOrderSheet({ open, onOpenChange, onSuccess }: AddOrderSheetPr
 										name="teamId"
 										render={({ field }) => (
 											<FormItem className="flex flex-col">
-												<FormLabel>Team *</FormLabel>
+												<FormLabel>Organization *</FormLabel>
 												<Popover open={teamOpen} onOpenChange={setTeamOpen}>
 													<PopoverTrigger asChild>
 														<FormControl>
@@ -460,12 +460,12 @@ export function AddOrderSheet({ open, onOpenChange, onSuccess }: AddOrderSheetPr
 																{isLoadingTeams ? (
 																	<div className="flex items-center gap-2">
 																		<Spinner className="h-4 w-4" />
-																		<span>Loading teams...</span>
+																		<span>Loading organizations...</span>
 																	</div>
 																) : field.value ? (
-																	teamsData?.find((team) => team.id === field.value)?.name || "Select team"
+																	teamsData?.find((team) => team.id === field.value)?.name || "Select organization"
 																) : (
-																	"Select team"
+																	"Select organization"
 																)}
 																<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 															</Button>
@@ -473,9 +473,9 @@ export function AddOrderSheet({ open, onOpenChange, onSuccess }: AddOrderSheetPr
 													</PopoverTrigger>
 													<PopoverContent className="w-full p-0" style={{ pointerEvents: 'auto' }}>
 														<Command>
-															<CommandInput placeholder="Search teams..." />
+															<CommandInput placeholder="Search organizations..." />
 															<CommandList className="max-h-64 overflow-auto">
-																<CommandEmpty>No teams found.</CommandEmpty>
+																<CommandEmpty>No organizations found.</CommandEmpty>
 																<CommandGroup>
 																	{teamsData?.map((team) => (
 																		<CommandItem
@@ -796,7 +796,7 @@ export function AddOrderSheet({ open, onOpenChange, onSuccess }: AddOrderSheetPr
 																			/>
 																		</FormControl>
 																		<p className="text-xs text-muted-foreground">
-																			No domains found for this team. Type a domain name to use for provisioning.
+																			No domains found for this organization. Type a domain name to use for provisioning.
 																		</p>
 																	</>
 																)}
@@ -1075,7 +1075,7 @@ export function AddOrderSheet({ open, onOpenChange, onSuccess }: AddOrderSheetPr
 						<AlertDialogHeader>
 							<AlertDialogTitle>Billing Details Required</AlertDialogTitle>
 							<AlertDialogDescription>
-								The selected team does not have billing details configured. 
+								The selected organization does not have billing details configured. 
 								Without billing details, we cannot automatically generate and send invoices for this order.
 							</AlertDialogDescription>
 						</AlertDialogHeader>

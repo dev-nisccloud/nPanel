@@ -308,7 +308,7 @@ function OrganizationsTab({ clientId }: { clientId: string }) {
       <EmptyPanel
         icon={Building2}
         title="No organizations"
-        description="This client is not an owner or admin of any team."
+        description="This client is not an owner or admin of any organization."
       />
     );
   }

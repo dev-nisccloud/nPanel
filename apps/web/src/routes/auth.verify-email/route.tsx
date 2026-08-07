@@ -107,7 +107,7 @@ export default function VerifyEmailPage() {
           <h1 className="text-3xl font-medium">Email verified!</h1>
           <p className="text-muted-foreground text-sm">
             {searchParams.get("redirect") === "/accept-invite"
-              ? "Your email has been successfully verified. You will be redirected back to accept the team invitation."
+              ? "Your email has been successfully verified. You will be redirected back to accept the organization invitation."
               : "Your email has been successfully verified. You will be redirected shortly."}
           </p>
           <div className="pt-4">
@@ -135,7 +135,7 @@ export default function VerifyEmailPage() {
               {searchParams.get("redirect") === "/accept-invite" ||
               (typeof sessionStorage !== "undefined" &&
                 sessionStorage.getItem("pendingInviteRedirect") === "/accept-invite")
-                ? "Continue to Team Invitation"
+                ? "Continue to Organization Invitation"
                 : "Continue to Dashboard"}
             </Link>
           </div>

@@ -26,7 +26,7 @@ export default function CreateTeamLayout({ children }: Readonly<{ children: Reac
     void (async () => {
       try {
         const res = await fetch(
-          apiUrl("/api/auth/redirect-target?redirect=/create-team"),
+          apiUrl("/api/auth/redirect-target?redirect=/create-organization"),
           {
           credentials: "include",
           },
@@ -44,7 +44,7 @@ export default function CreateTeamLayout({ children }: Readonly<{ children: Reac
         const data = (await res.json()) as { redirect?: string };
         if (cancelled) return;
         const target = data.redirect ?? "/";
-        if (target !== "/create-team") {
+        if (target !== "/create-organization") {
           navigate(target, { replace: true });
           return;
         }

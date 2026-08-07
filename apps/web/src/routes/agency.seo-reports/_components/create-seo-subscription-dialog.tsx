@@ -91,7 +91,7 @@ export function CreateSeoSubscriptionDialog(props: CreateSeoSubscriptionDialogPr
 
 	const handleSubmit = () => {
 		if (!teamId) {
-			toast.error("Please select a team");
+			toast.error("Please select an organization");
 			return;
 		}
 		if (!productPlanId) {
@@ -144,7 +144,7 @@ export function CreateSeoSubscriptionDialog(props: CreateSeoSubscriptionDialogPr
 				{isLoadingLink
 					? "Checking…"
 					: isLinked
-						? `Linked (${linkedData?.teamName ?? "team"})`
+						? `Linked (${linkedData?.teamName ?? "organization"})`
 						: "Create subscription"}
 			</Button>
 
@@ -153,8 +153,8 @@ export function CreateSeoSubscriptionDialog(props: CreateSeoSubscriptionDialogPr
 					<DialogHeader>
 						<DialogTitle>Create SEO subscription - {integrationLabel}</DialogTitle>
 						<DialogDescription>
-							Link this {props.scope === "SEARCH_CONSOLE" ? "Search Console property" : "GA4 property"} to a
-							team. Search Console and GA4 are separate subscriptions.
+							Link this {props.scope === "SEARCH_CONSOLE" ? "Search Console property" : "GA4 property"} to an
+							organization. Search Console and GA4 are separate subscriptions.
 						</DialogDescription>
 					</DialogHeader>
 
@@ -211,14 +211,14 @@ export function CreateSeoSubscriptionDialog(props: CreateSeoSubscriptionDialogPr
 						</div>
 
 						<div className="space-y-2">
-							<Label>Link to team</Label>
+							<Label>Link to organization</Label>
 							<Select
 								value={teamId}
 								onValueChange={setTeamId}
 								disabled={isLoadingTeams || createMutation.isPending}
 							>
 								<SelectTrigger>
-									<SelectValue placeholder={isLoadingTeams ? "Loading teams…" : "Select a team"} />
+									<SelectValue placeholder={isLoadingTeams ? "Loading organizations…" : "Select an organization"} />
 								</SelectTrigger>
 								<SelectContent>
 									{teams.map((team) => (
@@ -232,7 +232,7 @@ export function CreateSeoSubscriptionDialog(props: CreateSeoSubscriptionDialogPr
 
 						{(selectedTeam || selectedPlan) && (
 							<div className="rounded-md bg-muted/40 p-3 text-xs text-muted-foreground">
-								{selectedTeam ? `Team: ${selectedTeam.name}` : ""}
+								{selectedTeam ? `Organization: ${selectedTeam.name}` : ""}
 								{selectedTeam && selectedPlan ? " · " : ""}
 								{selectedPlan ? `Plan: ${selectedPlan.name}` : ""}
 								{(selectedTeam || selectedPlan) && managementFee.trim().length > 0 ? " · " : ""}

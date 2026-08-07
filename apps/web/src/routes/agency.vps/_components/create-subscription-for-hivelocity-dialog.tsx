@@ -194,7 +194,7 @@ export function CreateSubscriptionForHivelocityDialog({
     }
 
     if (linkType === "team" && !selectedTeamId) {
-      toast.error("Please select a team");
+      toast.error("Please select an organization");
       return;
     }
     if (linkType === "user" && !selectedUserId) {
@@ -289,7 +289,7 @@ export function CreateSubscriptionForHivelocityDialog({
                     disabled={isSubmitting}
                   >
                     <Users className="mr-2 h-4 w-4" />
-                    Team
+                    Organization
                   </Button>
                   <Button
                     type="button"
@@ -305,7 +305,7 @@ export function CreateSubscriptionForHivelocityDialog({
               </div>
 
               <div className="space-y-2">
-                <Label>{linkType === "team" ? "Team" : "User"} *</Label>
+                <Label>{linkType === "team" ? "Organization" : "User"} *</Label>
                 {isLoadingOptions ? (
                   <div className="flex h-10 items-center justify-center rounded-md border">
                     <Spinner size={18} />
@@ -315,9 +315,9 @@ export function CreateSubscriptionForHivelocityDialog({
                     items={teamItems}
                     selectedItem={selectedTeam}
                     onSelect={(item) => setSelectedTeamId(item.id)}
-                    placeholder="Select a team..."
-                    searchPlaceholder="Search teams..."
-                    emptyResults="No teams found"
+                    placeholder="Select an organization..."
+                    searchPlaceholder="Search organizations..."
+                    emptyResults="No organizations found"
                     disabled={isSubmitting}
                   />
                 ) : (

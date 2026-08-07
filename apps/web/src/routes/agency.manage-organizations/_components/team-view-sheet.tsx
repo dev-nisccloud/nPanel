@@ -213,10 +213,10 @@ export function TeamViewSheet({
                             </div>
                             <div>
                                 <SheetTitle className="text-xl font-bold flex items-center gap-2">
-                                    {isLoadingTeam ? "Loading Team..." : team?.name || "Team Details"}
+                                    {isLoadingTeam ? "Loading Organization..." : team?.name || "Organization Details"}
                                 </SheetTitle>
                                 <SheetDescription>
-                                    {isLoadingTeam ? "Fetching team information..." : "Team details and management"}
+                                    {isLoadingTeam ? "Fetching organization information..." : "Organization details and management"}
                                 </SheetDescription>
                             </div>
                         </div>
@@ -235,7 +235,7 @@ export function TeamViewSheet({
                                 </div>
                             ) : teamError || !team ? (
                                 <div className="flex flex-col items-center justify-center py-12 text-center">
-                                    <p className="text-destructive mb-4">{teamError?.message || "Team not found"}</p>
+                                    <p className="text-destructive mb-4">{teamError?.message || "Organization not found"}</p>
                                     <Button onClick={() => onOpenChange(false)} variant="outline">
                                         Close
                                     </Button>
@@ -247,13 +247,13 @@ export function TeamViewSheet({
                                         <CardHeader>
                                             <CardTitle className="text-lg flex items-center gap-2">
                                                 <Building2 className="h-5 w-5" />
-                                                Team Overview
+                                                Organization Overview
                                             </CardTitle>
-                                            <CardDescription>Basic team identification</CardDescription>
+                                            <CardDescription>Basic organization identification</CardDescription>
                                         </CardHeader>
                                         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div className="space-y-1">
-                                                <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Team Name</span>
+                                                <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Organization Name</span>
                                                 <p className="text-sm font-medium">{team.name}</p>
                                             </div>
                                             <div className="space-y-1">
@@ -295,7 +295,7 @@ export function TeamViewSheet({
                                             <div>
                                                 <CardTitle className="text-lg flex items-center gap-2">
                                                     <Users className="h-5 w-5" />
-                                                    Team Members
+                                                    Organization Members
                                                 </CardTitle>
                                                 <CardDescription>
                                                     Add existing users directly (no email invite)
@@ -314,7 +314,7 @@ export function TeamViewSheet({
                                             ) : !members || members.length === 0 ? (
                                                 <div className="flex flex-col items-center justify-center py-6 text-center text-muted-foreground">
                                                     <Users className="h-10 w-10 mb-2 opacity-20" />
-                                                    <p>No members found in this team.</p>
+                                                    <p>No members found in this organization.</p>
                                                 </div>
                                             ) : (
                                                 <div className="grid gap-3">
@@ -491,7 +491,7 @@ export function TeamViewSheet({
                                                 <Building2 className="h-5 w-5" />
                                                 Billing Configuration
                                             </CardTitle>
-                                            <CardDescription>Team financial settings</CardDescription>
+                                            <CardDescription>Organization financial settings</CardDescription>
                                         </CardHeader>
                                         <CardContent>
                                             <BillingSettingsTab teamId={teamId} />
@@ -529,7 +529,7 @@ export function TeamViewSheet({
                     <AlertDialogHeader>
                         <AlertDialogTitle>Remove Member</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Are you sure you want to remove <strong>{removeMemberDialog.memberName}</strong> from this team? This action cannot be undone.
+                            Are you sure you want to remove <strong>{removeMemberDialog.memberName}</strong> from this organization? This action cannot be undone.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

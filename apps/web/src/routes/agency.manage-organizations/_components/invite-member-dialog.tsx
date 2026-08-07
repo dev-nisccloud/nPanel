@@ -83,7 +83,7 @@ export function InviteMemberDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Invite Team Member</DialogTitle>
+          <DialogTitle>Invite Organization Member</DialogTitle>
           <DialogDescription>
             Send an invitation to join this organization. They will receive an email with instructions.
           </DialogDescription>
@@ -92,7 +92,7 @@ export function InviteMemberDialog({
         <div className="space-y-6 py-4">
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold">Invite Team Members</h2>
+            <h2 className="text-lg font-semibold">Invite Organization Members</h2>
           </div>
 
           <div className="space-y-2">

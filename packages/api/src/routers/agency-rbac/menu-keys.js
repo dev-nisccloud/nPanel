@@ -52,7 +52,7 @@ export const agencyMenuKeys = [
     "/agency/nisc-services",
     "/agency/nisc-service-orders",
     "/agency/clients",
-    "/agency/manage-teams",
+    "/agency/manage-organizations",
     "/agency/manage-users",
     "/agency/billing",
     "/agency/transactions",
@@ -87,9 +87,10 @@ export const agencyMenuKeys = [
     "/agency/support",
 ];
 export const agencyMenuKeySchema = z.enum(agencyMenuKeys);
-/** Legacy menu paths remapped after product rename to Nisc Backup. */
+/** Legacy menu paths remapped after product renames (Nisc Backup, Team → Organization). */
 const LEGACY_MENU_KEY_REMAP = {
     "/agency/backup-restore/jetbackup5": "/agency/backup-restore/nisc-backup",
+    "/agency/manage-teams": "/agency/manage-organizations",
 };
 /** Normalize persisted role menu keys (legacy paths → current catalog keys). */
 export function remapAgencyMenuKeys(menus) {

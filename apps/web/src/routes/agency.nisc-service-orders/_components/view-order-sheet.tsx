@@ -98,7 +98,7 @@ export function ViewOrderSheet({
 							<p className="font-mono">{order.orderNumber}</p>
 						</div>
 						<div className="w-full">
-							<p className="text-sm font-medium text-muted-foreground">User / Team</p>
+							<p className="text-sm font-medium text-muted-foreground">User / Organization</p>
 							<p>{order.user?.name ?? order.team?.name ?? "- "}</p>
 						</div>
 						<div className="w-full">

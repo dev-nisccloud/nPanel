@@ -56,8 +56,8 @@ export function TeamsDataTable({ data: initialData }: TeamsDataTableProps) {
   };
 
   const columns = createTeamColumns({
-    onEditTeam: handleEditTeam,
-    onDeleteTeam: handleDeleteTeam,
+    onEditOrganization: handleEditTeam,
+    onDeleteOrganization: handleDeleteTeam,
   });
 
   const table = useDataTableInstance({ 
@@ -84,7 +84,7 @@ export function TeamsDataTable({ data: initialData }: TeamsDataTableProps) {
     setData(prev => [newTeam, ...prev]);
   };
 
-  const handleUpdateTeam = (teamId: number, updatedTeam: Partial<z.infer<typeof teamSchema>>) => {
+  const handleUpdateTeam = (teamId: number, updatedOrganization: Partial<z.infer<typeof teamSchema>>) => {
     setData(prev => prev.map(team => 
       team.id === teamId ? { ...team, ...updatedTeam } : team
     ));
@@ -114,7 +114,7 @@ export function TeamsDataTable({ data: initialData }: TeamsDataTableProps) {
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search teams..."
+              placeholder="Search organizations..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-8"
@@ -135,7 +135,7 @@ export function TeamsDataTable({ data: initialData }: TeamsDataTableProps) {
         <div className="flex items-center space-x-2">
           <Button onClick={() => setIsAddTeamOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Add Team
+            Add Organization
           </Button>
         </div>
       </div>
@@ -171,14 +171,14 @@ export function TeamsDataTable({ data: initialData }: TeamsDataTableProps) {
         </TabsContent>
       </Tabs>
 
-      {/* Add Team Sheet */}
+      {/* Add Organization Sheet */}
       <AddTeamSheet
         open={isAddTeamOpen}
         onOpenChange={setIsAddTeamOpen}
         onAddTeam={handleAddTeam}
       />
 
-      {/* Update Team Sheet */}
+      {/* Update Organization Sheet */}
       <UpdateTeamSheet
         open={isUpdateTeamOpen}
         onOpenChange={setIsUpdateTeamOpen}

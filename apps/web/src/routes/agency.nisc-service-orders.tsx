@@ -141,7 +141,7 @@ export default function NiscServiceOrdersPage() {
 					<div className="relative w-full max-w-sm">
 						<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
 						<Input
-							placeholder="Search by order number, user, team, status..."
+							placeholder="Search by order number, user, organization, status..."
 							value={searchQuery}
 							onChange={(e) => setSearchQuery(e.target.value)}
 							className="pl-9"
@@ -184,7 +184,7 @@ export default function NiscServiceOrdersPage() {
 								<TableHeader>
 									<TableRow>
 										<TableHead className="pl-6">Order #</TableHead>
-										<TableHead>User / Team</TableHead>
+										<TableHead>User / Organization</TableHead>
 										<TableHead>Products</TableHead>
 										<TableHead>Total</TableHead>
 										<TableHead>Status</TableHead>

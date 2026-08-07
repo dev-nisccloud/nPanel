@@ -83,14 +83,14 @@ export function EditTeamDialog({
         Object.keys(variables) as Array<keyof typeof variables>
       ).filter((key) => key !== "teamId" && variables[key] !== undefined) as string[];
       captureEvent("organization_updated", { fields_changed: fieldsChanged });
-      toast.success("Team updated successfully");
+      toast.success("Organization updated successfully");
       utils.teams.getAll.invalidate();
       utils.teams.getById.invalidate({ teamId });
       onOpenChange(false);
       onSuccess?.();
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to update team");
+      toast.error(error.message || "Failed to update organization");
     },
   });
 
@@ -105,17 +105,17 @@ export function EditTeamDialog({
     if (!team) return;
 
     if (!formData.teamName.trim()) {
-      toast.error("Team name is required");
+      toast.error("Organization name is required");
       return;
     }
 
     if (formData.teamName.trim().length < 2) {
-      toast.error("Team name must be at least 2 characters");
+      toast.error("Organization name must be at least 2 characters");
       return;
     }
 
     if (formData.teamName.trim().length > 100) {
-      toast.error("Team name must be less than 100 characters");
+      toast.error("Organization name must be less than 100 characters");
       return;
     }
 
@@ -159,9 +159,9 @@ export function EditTeamDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Team</DialogTitle>
+          <DialogTitle>Edit Organization</DialogTitle>
           <DialogDescription>
-            Update team details. The team slug cannot be changed after creation.
+            Update organization details. The organization slug cannot be changed after creation.
           </DialogDescription>
         </DialogHeader>
 
@@ -171,7 +171,7 @@ export function EditTeamDialog({
           </div>
         ) : !team ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <p className="text-destructive mb-4">Team not found</p>
+            <p className="text-destructive mb-4">Organization not found</p>
             <Button onClick={() => onOpenChange(false)} variant="outline">
               Close
             </Button>
@@ -179,13 +179,13 @@ export function EditTeamDialog({
         ) : (
           <div className="space-y-6 py-4">
             <div className="flex flex-col items-center space-y-3">
-              <Label className="text-sm font-medium">Team logo</Label>
+              <Label className="text-sm font-medium">Organization logo</Label>
               <div className="relative">
                 <div className="w-24 h-24 rounded-full border-2 border-dashed border-muted-foreground/25 flex items-center justify-center cursor-pointer hover:border-primary/50 transition-colors group overflow-hidden">
                   {logoPreview ? (
                     <img
                       src={logoPreview}
-                      alt="Team logo"
+                      alt="Organization logo"
                       className="w-full h-full object-cover rounded-full"
                     />
                   ) : (
@@ -203,11 +203,11 @@ export function EditTeamDialog({
 
             <div className="space-y-2">
               <Label htmlFor="editTeamName" className="text-sm font-medium">
-                Team Name <span className="text-destructive">*</span>
+                Organization Name <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="editTeamName"
-                placeholder="Enter your team name"
+                placeholder="Enter your organization name"
                 value={formData.teamName}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, teamName: e.target.value }))
@@ -220,7 +220,7 @@ export function EditTeamDialog({
               <Label className="text-sm font-medium">Slug</Label>
               <Input value={team.slug} disabled className="h-11 font-mono" />
               <p className="text-xs text-muted-foreground">
-                Team slug cannot be changed after creation
+                Organization slug cannot be changed after creation
               </p>
             </div>
 
@@ -269,7 +269,7 @@ export function EditTeamDialog({
               <div className="space-y-0.5">
                 <Label className="text-sm font-medium">Active status</Label>
                 <p className="text-xs text-muted-foreground">
-                  Inactive teams are hidden from most workflows
+                  Inactive organizations are hidden from most workflows
                 </p>
               </div>
               <Switch

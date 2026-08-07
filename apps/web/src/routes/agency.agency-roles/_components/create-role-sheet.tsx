@@ -58,7 +58,7 @@ const groupByCategory = (keys: readonly string[]) => {
 		else if (key.startsWith("/agency/creative-assets")) category = "Creatives";
 		else if (key.startsWith("/agency/gen-ai")) category = "Gen AI";
 		else if (key.startsWith("/agency/nisc-")) category = "Nisc Services";
-		else if (key.startsWith("/agency/clients") || key.startsWith("/agency/manage-")) category = "Clients & Teams";
+		else if (key.startsWith("/agency/clients") || key.startsWith("/agency/manage-")) category = "Clients & Organizations";
 		else if (key.startsWith("/agency/billing") || key === "/agency/transactions") category = "Billing Overview";
 		else if (key.startsWith("/agency/invoices") || key.startsWith("/agency/subscriptions") || key.startsWith("/agency/quotations"))
 			category = "Billing Details";

@@ -27,7 +27,7 @@ const TeamsTableSkeleton: React.FC = () => (
 		<Table>
 			<TableHeader>
 				<TableRow>
-					<TableHead className="pl-6">Team</TableHead>
+					<TableHead className="pl-6">Organization</TableHead>
 					<TableHead>Invoices</TableHead>
 					<TableHead>Unpaid</TableHead>
 					<TableHead>Last invoice</TableHead>
@@ -193,7 +193,7 @@ export default function InvoiceIndex() {
 				<div className="flex flex-col gap-2">
 					<h1 className="text-base font-semibold tracking-tight">Billing</h1>
 					<p className="text-xs text-muted-foreground">
-						Browse invoices by team, then open individual invoices.
+						Browse invoices by organization, then open individual invoices.
 					</p>
 				</div>
 
@@ -219,7 +219,7 @@ export default function InvoiceIndex() {
 									placeholder={
 										activeTab === "credit-notes"
 											? "Search credit notes..."
-											: "Search teams..."
+											: "Search organizations..."
 									}
 									value={searchTerm}
 									onChange={(event) => setSearchTerm(event.target.value)}
@@ -253,11 +253,11 @@ export default function InvoiceIndex() {
 					<TabsContent value="invoices" className="mt-6">
 						{teams.length === 0 ? (
 							<EmptyState
-								title={searchTerm.trim() ? "No teams match your search" : "No invoices yet"}
+								title={searchTerm.trim() ? "No organizations match your search" : "No invoices yet"}
 								description={
 									searchTerm.trim()
-										? `We couldn't find teams for "${searchTerm}". Try updating your search.`
-										: "Create an invoice to start billing your teams."
+										? `We couldn't find organizations for "${searchTerm}". Try updating your search.`
+										: "Create an invoice to start billing your organizations."
 								}
 								action={
 									!searchTerm.trim() ? (

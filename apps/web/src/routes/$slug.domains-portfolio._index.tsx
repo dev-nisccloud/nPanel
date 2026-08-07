@@ -177,7 +177,7 @@ export default function DomainsPortfolioPage() {
         <div className="flex flex-col gap-2">
           <h1 className="text-base font-semibold tracking-tight">My Domains</h1>
           <p className="text-xs text-muted-foreground">
-            Domain subscriptions for this team. View status and details.
+            Domain subscriptions for this organization. View status and details.
           </p>
         </div>
 
