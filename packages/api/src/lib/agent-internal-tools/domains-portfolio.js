@@ -1,8 +1,8 @@
 /**
  * Domains portfolio for the Zeepo AI Agent.
  *
- * Agency view  – merges live OpenProvider gTLD data with KENIC .ke subscriptions
- *                from the DB, matching what the agency/domains-portfolio page shows.
+ * Agency view  – merges live registry data with .ke subscriptions from the DB,
+ *                matching what the agency/domains-portfolio page shows.
  *
  * Customer view – reads nisc_client_subscription rows scoped to the session team
  *                 (same source as the /$slug/domains-portfolio page).
@@ -14,6 +14,7 @@ import { user as userTable } from "@npanel/db/schema/auth";
 import { team as teamTable } from "@npanel/db/schema/teams";
 import { createOpenProviderClient } from "../openprovider-client";
 import { getRedisClient } from "../redis";
+import { domainProductSqlFilter } from "../nisc-domain-product";
 // ── OpenProvider token cache (shared with domains.ts) ────────────────────────
 const OP_TOKEN_KEY = "openprovider:auth-token";
 async function getOpToken() {
@@ -146,7 +147,7 @@ async function fetchOpenProviderDomains() {
                 expiryDate: d.expiration_date ?? null,
                 registrationDate: d.creation_date ?? null,
                 autoRenewal: d.autorenew === "on",
-                source: "openprovider",
+                // source: "openprovider", // Hidden from agent
                 clientName: ownerName || undefined,
             });
         }
@@ -168,9 +169,10 @@ async function fetchKenicDomains() {
             teamName: teamTable.name,
         })
             .from(niscClientSubscription)
+            .innerJoin(niscProduct, eq(niscClientSubscription.productId, niscProduct.id))
             .leftJoin(userTable, eq(niscClientSubscription.userId, userTable.id))
             .leftJoin(teamTable, eq(niscClientSubscription.teamId, teamTable.id))
-            .where(and(isNotNull(niscClientSubscription.primaryDomain), like(niscClientSubscription.primaryDomain, "%.ke")))
+            .where(and(isNotNull(niscClientSubscription.primaryDomain), like(niscClientSubscription.primaryDomain, "%.ke"), domainProductSqlFilter()))
             .orderBy(desc(niscClientSubscription.subscriptionDate));
         const now = new Date();
         return rows.map((row) => {
@@ -188,7 +190,7 @@ async function fetchKenicDomains() {
                 expiryDate: expiry.toISOString(),
                 registrationDate: row.subscriptionDate?.toISOString() ?? null,
                 autoRenewal: false,
-                source: "kenic",
+                // source: "kenic" as const, // Hidden from agent
                 clientName: row.teamName ?? row.userName ?? undefined,
             };
         });
@@ -200,11 +202,11 @@ async function fetchKenicDomains() {
 // ── Customer portfolio ────────────────────────────────────────────────────────
 async function fetchCustomerPortfolio(teamId, teamName) {
     try {
-        // Resolve domain product IDs
+        // Resolve domain product IDs (Domains product only  never hosting with a .ke primaryDomain).
         const domainProducts = await db
             .select({ id: niscProduct.id })
             .from(niscProduct)
-            .where(and(eq(niscProduct.isActive, true), ilike(niscProduct.name, "%domains%")));
+            .where(and(eq(niscProduct.isActive, true), domainProductSqlFilter()));
         const productIds = domainProducts.map((p) => p.id);
         const domains = [];
         if (productIds.length > 0) {
@@ -234,7 +236,7 @@ async function fetchCustomerPortfolio(teamId, teamName) {
                     expiryDate: expiry?.toISOString() ?? null,
                     registrationDate: sub.subscriptionDate?.toISOString() ?? null,
                     autoRenewal: sub.autoRenew ?? false,
-                    source: "subscription",
+                    // source: "subscription", // Hidden from agent
                 });
             }
         }

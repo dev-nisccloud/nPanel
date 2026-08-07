@@ -1,14 +1,14 @@
 import { TRPCError } from "@trpc/server";
 import * as crypto from "crypto";
 import { z } from "zod";
-import { and, count, desc, eq, ilike, inArray, isNull, or, sql } from "@npanel/db";
+import { and, count, desc, eq, ilike, inArray, isNull, max, or, sql } from "@npanel/db";
 import { db } from "@npanel/db";
 import { user } from "@npanel/db/schema/auth";
 import { creditNote, creditNoteActivityLog, creditNoteCounter, invoice, invoiceActivityLog, invoiceCounter, invoiceLineItem, invoiceTransaction, invoiceTransactionActivityLog, } from "@npanel/db/schema/invoicing";
 import { order } from "@npanel/db/schema/orders";
 import { niscOrder } from "@npanel/db/schema/nisc-orders";
 import { cronWorkflowRunInvoice } from "@npanel/db/schema/cron-workflow-runs";
-import { teamMember } from "@npanel/db/schema/teams";
+import { team, teamMember } from "@npanel/db/schema/teams";
 import { protectedProcedure, router } from "../../trpc";
 import { resolveInvoicePaymentMethod } from "../../lib/invoice-payment-method";
 import { buildInvoiceKraInsertFields, buildInvoiceKraUpdateFields, mapInvoiceKraDetailFields, } from "../../lib/invoice-kra-db-fields";
@@ -21,7 +21,7 @@ import { sanitizeCreditNoteDetailForCustomer, } from "../../lib/credit-note-cust
 import { buildCreditNoteKraInsertFields, mapCreditNoteKraDetailFields, } from "../../lib/credit-note-kra-db-fields";
 import { processCreditNoteKraSync, } from "../../lib/credit-note-kra-sync";
 import { COMPANY_LOGO_URL } from "../../lib/company-branding";
-import { activityLogSchema, creditNoteInputSchema, creditNoteOutputSchema, creditNoteDetailSchema, creditNoteListFiltersSchema, creditNoteListResponseSchema, creditNoteSummarySchema, issueCreditNoteInputSchema, invoiceCreateInputSchema, invoiceDetailSchema, invoiceLineItemOutputSchema, invoiceListFiltersSchema, invoiceListResponseSchema, invoicePaymentStatusSchema, invoiceStatusSchema, invoiceSummarySchema, invoiceTransactionInputSchema, invoiceTransactionOutputSchema, invoiceUpdateInputSchema, nextInvoiceNumberSchema, nullableStringSchema, submitInvoiceSchema, updatePaymentInputSchema, } from "./schemas";
+import { activityLogSchema, creditNoteInputSchema, creditNoteOutputSchema, creditNoteDetailSchema, creditNoteListFiltersSchema, creditNoteListResponseSchema, creditNoteSummarySchema, issueCreditNoteInputSchema, invoiceCreateInputSchema, invoiceDetailSchema, invoiceLineItemOutputSchema, invoiceListFiltersSchema, invoiceListResponseSchema, invoicePaymentStatusSchema, invoiceStatusSchema, invoiceSummarySchema, invoiceTeamsSummaryFiltersSchema, invoiceTeamsSummaryResponseSchema, invoiceTeamSummarySchema, invoiceTransactionInputSchema, invoiceTransactionOutputSchema, invoiceUpdateInputSchema, nextInvoiceNumberSchema, nullableStringSchema, submitInvoiceSchema, updatePaymentInputSchema, } from "./schemas";
 const isAgencyUser = (role) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
 const isAgencySuperAdmin = (role) => role === "AGENCY_SUPER_ADMIN";
 // // Unused function commented out
@@ -419,6 +419,7 @@ function mapInvoiceDetail(invoice) {
         createdAt: invoice.createdAt,
         updatedAt: invoice.updatedAt,
         teamId: invoice.teamId,
+        teamName: invoice.teamName ?? null,
         customerId: invoice.customerId,
         subtotal: invoice.subtotal,
         tax: invoice.tax,
@@ -731,7 +732,13 @@ export const invoicingRouter = router({
         .query(async ({ ctx, input }) => {
         const user = await getAuthenticatedUser(ctx);
         const conditions = [];
-        if (input.teamId) {
+        if (input.unassignedOnly) {
+            conditions.push(isNull(invoice.teamId));
+            if (!isAgencyUser(user.role)) {
+                conditions.push(eq(invoice.createdBy, user.id));
+            }
+        }
+        else if (input.teamId) {
             await ensureTeamAccess(db, user.id, user.role, input.teamId);
             conditions.push(eq(invoice.teamId, input.teamId));
         }
@@ -772,8 +779,11 @@ export const invoicingRouter = router({
                 kraStatus: invoice.kraStatus,
                 createdAt: invoice.createdAt,
                 updatedAt: invoice.updatedAt,
+                teamId: invoice.teamId,
+                teamName: team.name,
             })
                 .from(invoice)
+                .leftJoin(team, eq(invoice.teamId, team.id))
                 .where(whereClause)
                 .orderBy(desc(invoice.createdAt))
                 .limit(input.limit)
@@ -784,10 +794,66 @@ export const invoicingRouter = router({
         const payload = {
             invoices: items.map((inv) => invoiceSummarySchema.parse({
                 ...inv,
+                teamName: inv.teamName ?? null,
             })),
             total,
         };
         return invoiceListResponseSchema.parse(payload);
+    }),
+    listTeamsSummary: protectedProcedure
+        .input(invoiceTeamsSummaryFiltersSchema)
+        .output(invoiceTeamsSummaryResponseSchema)
+        .query(async ({ ctx, input }) => {
+        const user = await getAuthenticatedUser(ctx);
+        const conditions = [];
+        if (!isAgencyUser(user.role)) {
+            const memberships = await db
+                .select({ teamId: teamMember.teamId })
+                .from(teamMember)
+                .where(eq(teamMember.userId, user.id));
+            const accessibleTeams = memberships
+                .map((m) => m.teamId)
+                .filter((id) => id != null);
+            const orParts = [];
+            if (accessibleTeams.length > 0) {
+                orParts.push(inArray(invoice.teamId, accessibleTeams));
+            }
+            orParts.push(and(isNull(invoice.teamId), eq(invoice.createdBy, user.id)));
+            conditions.push(or(...orParts));
+        }
+        if (input.search?.trim()) {
+            const raw = input.search.trim();
+            const q = `%${raw}%`;
+            const matchesUnassigned = "unassigned".includes(raw.toLowerCase());
+            const searchParts = [ilike(team.name, q)];
+            if (matchesUnassigned) {
+                searchParts.push(isNull(invoice.teamId));
+            }
+            conditions.push(or(...searchParts));
+        }
+        const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+        const rows = await db
+            .select({
+            teamId: invoice.teamId,
+            teamName: team.name,
+            invoiceCount: count(),
+            unpaidCount: sql `count(*) filter (where ${invoice.status} in ('SENT', 'PARTIALLY_PAID', 'OVERDUE'))`.mapWith(Number),
+            lastInvoiceAt: max(invoice.createdAt),
+        })
+            .from(invoice)
+            .leftJoin(team, eq(invoice.teamId, team.id))
+            .where(whereClause)
+            .groupBy(invoice.teamId, team.name)
+            .orderBy(sql `${team.name} asc nulls last`);
+        return invoiceTeamsSummaryResponseSchema.parse({
+            teams: rows.map((row) => invoiceTeamSummarySchema.parse({
+                teamId: row.teamId,
+                teamName: row.teamName ?? "Unassigned",
+                invoiceCount: Number(row.invoiceCount),
+                unpaidCount: Number(row.unpaidCount ?? 0),
+                lastInvoiceAt: row.lastInvoiceAt ?? null,
+            })),
+        });
     }),
     getById: protectedProcedure
         .input(z.object({
@@ -1788,7 +1854,13 @@ export const invoicingRouter = router({
         .query(async ({ ctx, input }) => {
         const user = await getAuthenticatedUser(ctx);
         const conditions = [];
-        if (input.teamId) {
+        if (input.unassignedOnly) {
+            conditions.push(isNull(creditNote.teamId));
+            if (!isAgencyUser(user.role)) {
+                conditions.push(eq(creditNote.createdBy, user.id));
+            }
+        }
+        else if (input.teamId) {
             await ensureTeamAccess(db, user.id, user.role, input.teamId);
             conditions.push(eq(creditNote.teamId, input.teamId));
         }

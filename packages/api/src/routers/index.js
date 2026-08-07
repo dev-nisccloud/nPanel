@@ -57,6 +57,7 @@ import { creativeAssetsRouter } from "./creative-assets";
 import { creativeBriefsRouter } from "./creative-briefs";
 import { notificationsRouter } from "./notifications";
 import { ticketsRouter } from "./tickets";
+import { supportGuestRouter } from "./support-guest";
 import { hostingRouter } from "./hosting";
 import { hostingPlansRouter } from "./hosting-plans";
 import { wordpressSubscriptionsRouter } from "./wordpress-subscriptions";
@@ -82,6 +83,7 @@ import { paymentGatewayRouter } from "./payment-gateway";
 import { paymentTransactionsRouter } from "./payment-transactions";
 import { pagespeedInsightsRouter } from "./pagespeed-insights";
 import { seoReportsRouter } from "./seo-reports";
+import { seoSuiteRouter } from "./seo-suite";
 import { emailMarketingRouter } from "./email-marketing";
 import { niscEmailMarketingRouter } from "./nisc-email-marketing";
 import { niscEmailBuilderRouter } from "./nisc-email-builder";
@@ -99,6 +101,7 @@ import { subscriptionUsageRouter } from "./subscription-usage";
 import { niscServiceOrdersRouter } from "./nisc-service-orders";
 import { publicPricingRouter } from "./public-pricing";
 import { agencyRbacRouter } from "./agency-rbac";
+import { agencyDashboardRouter } from "./agency-dashboard";
 import { hivelocityRouter } from "./hivelocity";
 import { hivelocityPricingSettingsRouter } from "./hivelocity-pricing-settings";
 import { cronWorkflowRunRouter } from "./cron-workflow-run";
@@ -125,6 +128,9 @@ import { niscBackupRestoreConditionsRouter } from "./nisc-backup/restore-conditi
 import { niscBackupFilePermissionsRouter } from "./nisc-backup/file-permissions";
 import { niscBackupPluginsRouter } from "./nisc-backup/plugins";
 import { storefrontRouter } from "./storefront";
+import { objectStorageRouter } from "./object-storage";
+import { whoisRouter } from "./whois";
+import { niscPaymentGatewayRouter } from "./nisc-payment-gateway";
 export const appRouter = router({
     healthCheck: publicProcedure.query(() => {
         return "OK";
@@ -219,6 +225,9 @@ export const appRouter = router({
     notifications: notificationsRouter,
     // Tickets/Support System Management
     tickets: ticketsRouter,
+    support: router({
+        guest: supportGuestRouter,
+    }),
     // Hosting Management
     hosting: hostingRouter,
     // Hosting Plans Management
@@ -269,6 +278,8 @@ export const appRouter = router({
     pagespeedInsights: pagespeedInsightsRouter,
     // SEO Reports
     seoReports: seoReportsRouter,
+    // SEO Suite (DataForSEO)
+    seoSuite: seoSuiteRouter,
     // Email Marketing (Resend Integration)
     emailMarketing: emailMarketingRouter,
     // nisc Email Marketing (SES Integration - new, parallel)
@@ -303,6 +314,8 @@ export const appRouter = router({
     publicPricing: publicPricingRouter,
     // Agency RBAC – roles and menu access
     agencyRbac: agencyRbacRouter,
+    // Agency Dashboard – dashboard metrics and summaries
+    agencyDashboard: agencyDashboardRouter,
     // Hivelocity integration (dedicated servers / VPS / VDS reseller)
     hivelocity: hivelocityRouter,
     // Hivelocity pricing (currency + margin shown in UI)
@@ -321,6 +334,10 @@ export const appRouter = router({
     zeepoAgent: zeepoAgentRouter,
     // Public landing-page storefront checkout (isolated from dashboard routers)
     storefront: storefrontRouter,
+    // MinIO / S3-compatible object storage (presigned uploads)
+    objectStorage: objectStorageRouter,
+    // WHOIS / RDAP domain lookup (public  no auth required)
+    whois: whoisRouter,
     // Nisc Backup Integration
     niscBackup: router({
         dashboard: niscBackupDashboardRouter,
@@ -341,4 +358,6 @@ export const appRouter = router({
         filePermissions: niscBackupFilePermissionsRouter,
         plugins: niscBackupPluginsRouter,
     }),
+    // Nisc Payment Gateway (White-label Payment Gateway)
+    niscPaymentGateway: niscPaymentGatewayRouter,
 });

@@ -60,11 +60,11 @@ export declare const imageGenProjectsRouter: import("@trpc/server").TRPCBuiltRou
                 name: string;
                 createdAt: Date;
                 updatedAt: Date;
-                teamId: string | null;
                 userId: string;
+                teamId: string | null;
                 thumbnailUrl: string | null;
-                height: number;
                 width: number;
+                height: number;
             }[];
             nextPage: number | null;
         };

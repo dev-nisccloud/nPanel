@@ -4,6 +4,7 @@ import { openProviderTldRouter } from './tlds';
 import { openProviderDomainsRouter } from './domains';
 import { openProviderCustomersRouter } from './customers';
 import { openProviderDnsRouter } from './dns';
+import { openProviderResellerRouter } from './reseller';
 export const openProviderRouter = router({
     /**
      * Authentication endpoints
@@ -25,6 +26,10 @@ export const openProviderRouter = router({
      * DNS zone management endpoints
      */
     dns: openProviderDnsRouter,
+    /**
+     * Reseller information endpoints
+     */
+    reseller: openProviderResellerRouter,
     /**
      * Health check for OpenProvider integration
      */

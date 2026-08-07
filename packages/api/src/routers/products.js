@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, asc, count, desc, eq, ilike, or } from "@npanel/db";
+import { and, asc, count, desc, eq, ilike, isNotNull, or } from "@npanel/db";
 import { db } from "@npanel/db";
 import { niscOrderItem } from "@npanel/db/schema/nisc-orders";
 import { niscClientSubscription, niscProduct, niscProductAddOn, niscProductPlan, niscProductPlanUsage, } from "@npanel/db/schema/products";
@@ -1818,5 +1818,44 @@ export const productsRouter = router({
             .delete(niscProductPlanUsage)
             .where(eq(niscProductPlanUsage.id, input.id));
         return { success: true };
+    }),
+    /**
+     * Get products summary with KRA sync status
+     */
+    getSummary: protectedProcedure
+        .query(async () => {
+        try {
+            // Get total products
+            const totalResult = await db
+                .select({ count: count() })
+                .from(niscProduct);
+            const total = totalResult[0]?.count || 0;
+            // Get products with KRA sync (have eTIMS item code)
+            const kraSyncedResult = await db
+                .select({ count: count() })
+                .from(niscProduct)
+                .where(isNotNull(niscProduct.etimsItemCd));
+            const kraSynced = kraSyncedResult[0]?.count || 0;
+            // Get active products
+            const activeResult = await db
+                .select({ count: count() })
+                .from(niscProduct)
+                .where(eq(niscProduct.isActive, true));
+            const active = activeResult[0]?.count || 0;
+            return {
+                total,
+                kraSynced,
+                noKraSync: total - kraSynced,
+                active,
+                inactive: total - active,
+            };
+        }
+        catch (error) {
+            console.error("Error getting products summary:", error);
+            throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message: "Failed to get products summary",
+            });
+        }
     }),
 });

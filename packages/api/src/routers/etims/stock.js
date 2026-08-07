@@ -1,14 +1,19 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../../trpc";
+import { router } from "../../trpc";
 import { TRPCError } from "@trpc/server";
 import { getEtimsContext } from "../../lib/etims-config";
+import { etimsProcedure, skipEtimsAuthChecks } from "./_procedure";
 const isAgencyUser = (r) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(r ?? "");
 const isSuperAdmin = (r) => r === "AGENCY_SUPER_ADMIN";
 function assertRead(role) {
+    if (skipEtimsAuthChecks())
+        return;
     if (!isAgencyUser(role))
         throw new TRPCError({ code: "FORBIDDEN", message: "Only agency users can access eTIMS stock data." });
 }
 function assertWrite(role) {
+    if (skipEtimsAuthChecks())
+        return;
     if (!isSuperAdmin(role))
         throw new TRPCError({ code: "FORBIDDEN", message: "Only agency super admins can modify eTIMS stock data." });
 }
@@ -56,7 +61,7 @@ export const etimsStockRouter = router({
      * Retrieve stock movement history.
      * POST /selectStockMoveList
      */
-    getStockMovements: protectedProcedure
+    getStockMovements: etimsProcedure
         .input(z.object({ lastReqDt: z.string().regex(/^\d{14}$/) }))
         .query(async ({ ctx, input }) => {
         assertRead(ctx.session?.user?.role);
@@ -75,7 +80,7 @@ export const etimsStockRouter = router({
      * Record stock in/out transaction.
      * POST /insertStockIO
      */
-    sendStockIO: protectedProcedure
+    sendStockIO: etimsProcedure
         .input(z.object({ stockData: stockIOSchema }))
         .mutation(async ({ ctx, input }) => {
         assertWrite(ctx.session?.user?.role);
@@ -94,7 +99,7 @@ export const etimsStockRouter = router({
      * Update the stock master record with current on-hand quantity.
      * POST /saveStockMaster
      */
-    saveStockMaster: protectedProcedure
+    saveStockMaster: etimsProcedure
         .input(z.object({
         stockMaster: z.object({
             itemCd: z.string().max(20),

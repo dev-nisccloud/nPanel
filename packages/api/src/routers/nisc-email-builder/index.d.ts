@@ -52,18 +52,22 @@ export declare const niscEmailBuilderRouter: import("@trpc/server").TRPCBuiltRou
             output: {
                 id: string;
                 name: string;
+                status: string;
                 createdAt: Date;
                 updatedAt: Date;
-                teamId: string | null;
-                status: string;
-                metadata: unknown;
                 userId: string;
-                subject: string | null;
+                teamId: string | null;
+                metadata: unknown;
                 thumbnailUrl: string | null;
+                saveStatus: string;
+                lastSaveError: string | null;
                 aiStatus: string;
+                clientVersion: number;
+                lastSavedAt: Date | null;
+                subject: string | null;
+                preheader: string | null;
                 htmlContent: string;
                 textContent: string | null;
-                preheader: string | null;
                 brandKitId: string | null;
                 brief: unknown;
                 creativeDesignUrl: string | null;
@@ -75,28 +79,28 @@ export declare const niscEmailBuilderRouter: import("@trpc/server").TRPCBuiltRou
                     id: string;
                     createdAt: Date;
                     updatedAt: Date;
-                    teamId: string | null;
                     userId: string;
+                    teamId: string | null;
                     designId: string;
                     messages: {
                         id: string;
+                        role: string;
                         createdAt: Date;
                         metadata: unknown;
-                        role: string;
-                        content: string;
                         sessionId: string;
+                        content: string;
                     }[];
                 } | null;
                 versions: {
                     id: string;
                     createdAt: Date;
-                    messageId: string | null;
+                    designId: string;
                     htmlContent: string;
                     textContent: string | null;
-                    designId: string;
                     versionNumber: number;
                     changeSummary: string | null;
                     trigger: string;
+                    messageId: string | null;
                     validationReport: unknown;
                 }[];
             };
@@ -136,18 +140,22 @@ export declare const niscEmailBuilderRouter: import("@trpc/server").TRPCBuiltRou
                 data: {
                     id: string;
                     name: string;
+                    status: string;
                     createdAt: Date;
                     updatedAt: Date;
-                    teamId: string | null;
-                    status: string;
-                    metadata: unknown;
                     userId: string;
-                    subject: string | null;
+                    teamId: string | null;
+                    metadata: unknown;
                     thumbnailUrl: string | null;
+                    saveStatus: string;
+                    lastSaveError: string | null;
                     aiStatus: string;
+                    clientVersion: number;
+                    lastSavedAt: Date | null;
+                    subject: string | null;
+                    preheader: string | null;
                     htmlContent: string;
                     textContent: string | null;
-                    preheader: string | null;
                     brandKitId: string | null;
                     brief: unknown;
                     creativeDesignUrl: string | null;
@@ -159,12 +167,52 @@ export declare const niscEmailBuilderRouter: import("@trpc/server").TRPCBuiltRou
             };
             meta: object;
         }>;
+        saveHtmlContent: import("@trpc/server").TRPCMutationProcedure<{
+            input: {
+                designId: string;
+                html: string;
+                clientVersion?: number | undefined;
+            };
+            output: {
+                success: boolean;
+                data: {
+                    id: string;
+                    name: string;
+                    userId: string;
+                    teamId: string | null;
+                    status: string;
+                    subject: string | null;
+                    preheader: string | null;
+                    htmlContent: string;
+                    textContent: string | null;
+                    thumbnailUrl: string | null;
+                    brandKitId: string | null;
+                    brief: unknown;
+                    metadata: unknown;
+                    creativeDesignUrl: string | null;
+                    creativeDesignPrompt: string | null;
+                    designPlan: unknown;
+                    currentVersionId: string | null;
+                    workflowPhase: string;
+                    aiStatus: string;
+                    saveStatus: string;
+                    lastSaveError: string | null;
+                    clientVersion: number;
+                    lastSavedAt: Date | null;
+                    createdAt: Date;
+                    updatedAt: Date;
+                };
+                version: number;
+            };
+            meta: object;
+        }>;
         saveHtml: import("@trpc/server").TRPCMutationProcedure<{
             input: {
                 designId: string;
                 html: string;
                 changeSummary?: string | undefined;
                 inPlace?: boolean | undefined;
+                clientVersion?: number | undefined;
             };
             output: {
                 success: boolean;
@@ -354,8 +402,8 @@ export declare const niscEmailBuilderRouter: import("@trpc/server").TRPCBuiltRou
                 name: string;
                 createdAt: Date;
                 updatedAt: Date;
-                teamId: string | null;
                 userId: string;
+                teamId: string | null;
                 logoAssetId: string | null;
                 colors: unknown;
                 fonts: unknown;

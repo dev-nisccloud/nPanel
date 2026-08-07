@@ -15,6 +15,7 @@ import {
   User,
   Users,
   Receipt,
+  CreditCard,
 } from "lucide-react";
 import { Spinner } from "@/components/npanel-ui/spinner";
 import { Label } from "@/components/ui/label";
@@ -56,6 +57,12 @@ import {
   PaymentMethodTrigger,
 } from "@/components/payment-method-accordion";
 import { MpesaPaymentFields } from "@/components/mpesa-payment-fields";
+import { JengaCardPaymentFields } from "@/components/jenga-card-payment-fields";
+import {
+  submitJengaPaymentForm,
+  validateJengaCustomerForm,
+  type JengaCustomerFormState,
+} from "@/lib/jenga-checkout";
 import { Badge } from "@/components/ui/badge";
 import { trpc, type RouterInputs } from "@/utils/trpc";
 import type { UseMutationResult } from "@tanstack/react-query";
@@ -915,6 +922,19 @@ export function BuyNowDialog({
   const [amountError, setAmountError] = React.useState<string>("");
   const [manualTransactionReference, setManualTransactionReference] = React.useState("");
   const [manualTransactionRefError, setManualTransactionRefError] = React.useState("");
+  const [jengaCustomer, setJengaCustomer] = React.useState<JengaCustomerFormState>({
+    customerFirstName: "",
+    customerLastName: "",
+    customerEmail: "",
+    customerPhone: "",
+    customerAddress: "",
+    customerPostalCodeZip: "",
+    countryCode: "KE",
+  });
+  const [jengaCustomerErrors, setJengaCustomerErrors] = React.useState<
+    Partial<Record<keyof JengaCustomerFormState, string>>
+  >({});
+  const [jengaRedirecting, setJengaRedirecting] = React.useState(false);
 
   // Payment status
   const [checkoutRequestId, setCheckoutRequestId] = React.useState<string | null>(null);
@@ -1250,6 +1270,27 @@ export function BuyNowDialog({
     setAccountReference(value);
     setAccountRefError(validateMpesaAccountReference(value));
   };
+
+  const userInfoQuery = trpc.userProfile.getUserInfo.useQuery(undefined, {
+    enabled: open && currentStep === "payment",
+    staleTime: 60_000,
+  });
+
+  React.useEffect(() => {
+    if (!userInfoQuery.data) return;
+    const profile = userInfoQuery.data.profile;
+    setJengaCustomer((prev) => ({
+      customerFirstName: prev.customerFirstName || profile?.firstName || "",
+      customerLastName: prev.customerLastName || profile?.lastName || "",
+      customerEmail: prev.customerEmail || userInfoQuery.data.email || "",
+      customerPhone: prev.customerPhone || profile?.phone || mpesaPhoneNumber || "",
+      customerAddress: prev.customerAddress || profile?.address || "",
+      customerPostalCodeZip: prev.customerPostalCodeZip || profile?.postalCode || "",
+      countryCode:
+        prev.countryCode ||
+        (profile?.country?.length === 2 ? profile.country.toUpperCase() : "KE"),
+    }));
+  }, [userInfoQuery.data, mpesaPhoneNumber]);
 
   // M-Pesa STK Push mutation
   const initiateMpesaPayment = trpc.paymentGateway.mpesa.initiateStkPush.useMutation({
@@ -1715,6 +1756,84 @@ export function BuyNowDialog({
       transactionDesc,
       ...(resolvedCheckoutTeamId && { teamId: resolvedCheckoutTeamId }),
     });
+  };
+
+  const initiateJengaPayment = trpc.paymentGateway.jenga.initiateCardPayment.useMutation({
+    onError: (error) => {
+      setJengaRedirecting(false);
+      toast.error(error.message || "Failed to start card payment");
+    },
+  });
+
+  const handleJengaPayment = () => {
+    if (!plan?.productId) {
+      toast.error("Plan details are missing");
+      return;
+    }
+
+    const errors = validateJengaCustomerForm(jengaCustomer);
+    setJengaCustomerErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      toast.error("Please complete the billing details for card payment");
+      return;
+    }
+
+    const amount = Number.parseFloat(
+      isAgencyUser ? paymentAmount || customerMpesaAmount : customerMpesaAmount,
+    );
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error("Invalid payment amount");
+      return;
+    }
+
+    const hivelocityItem = hivelocityCheckoutSnapshotRef.current;
+    const items =
+      plan.hivelocity && hivelocityItem
+        ? [hivelocityItem]
+        : [
+            {
+              productId: plan.productId,
+              productPlanId: plan.planId,
+              billingCycle: plan.billingCycle,
+              primaryDomain: showDomainStep ? effectiveDomain ?? undefined : undefined,
+              itemPrice: String(Math.ceil(amount)),
+              itemSubtotal: String(Math.ceil(amount)),
+              description: plan.planName,
+            },
+          ];
+
+    setJengaRedirecting(true);
+    captureEvent("jenga_payment_initiated", { amount });
+    initiateJengaPayment.mutate(
+      {
+        amount,
+        currency: (plan.currency as "KES" | "USD" | "EUR" | "GBP" | "TZS" | "UGX") || "KES",
+        productType: "Service",
+        productDescription: (plan.planName || "Service").slice(0, 200),
+        ...jengaCustomer,
+        ...(resolvedCheckoutTeamId ? { teamId: resolvedCheckoutTeamId } : {}),
+        orderIntent: {
+          source: "buy_now",
+          returnPath: "/payment/card/return",
+          returnOrigin: window.location.origin,
+          items,
+          currency: plan.currency ?? "KES",
+          teamId: resolvedCheckoutTeamId,
+          billedForUserId: resolvedBilledForUserId,
+        },
+      },
+      {
+        onSuccess: (response) => {
+          const data = response.data;
+          if (!data?.checkoutUrl || !data.paymentData) {
+            setJengaRedirecting(false);
+            toast.error("Failed to start card checkout");
+            return;
+          }
+          submitJengaPaymentForm(data.checkoutUrl, data.paymentData);
+        },
+      },
+    );
   };
 
   const handleManualTransactionReferenceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2845,6 +2964,47 @@ export function BuyNowDialog({
                           </div>
                         </div>
                       )}
+                </PaymentMethodContent>
+              </PaymentMethodOption>
+              <PaymentMethodOption
+                value="card"
+                trigger={
+                  <PaymentMethodTrigger
+                    icon={<CreditCard className="size-7 text-foreground" />}
+                    title="Card"
+                    description="Pay securely with Visa, Mastercard and more"
+                  />
+                }
+              >
+                <PaymentMethodContent>
+                  {jengaRedirecting || initiateJengaPayment.isPending ? (
+                    <div className="flex flex-col items-center justify-center py-8">
+                      <Spinner variant="ellipsis" size={48} className="mb-4 text-primary" />
+                      <p className="text-sm font-medium text-foreground mb-2">
+                        Redirecting to secure card payment…
+                      </p>
+                      <p className="text-xs text-muted-foreground text-center">
+                        You will enter your card details on a secure payment page.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4 pt-2">
+                      <JengaCardPaymentFields
+                        value={jengaCustomer}
+                        onChange={setJengaCustomer}
+                        errors={jengaCustomerErrors}
+                        idPrefix="buy-jenga"
+                      />
+                      <div className="flex justify-end pt-1">
+                        <Button
+                          onClick={handleJengaPayment}
+                          disabled={initiateJengaPayment.isPending || jengaRedirecting}
+                        >
+                          Pay with Card
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </PaymentMethodContent>
               </PaymentMethodOption>
               {isAgencyUser ? (

@@ -8,7 +8,7 @@ export declare const subscriptionsCreateRouter: import("@trpc/server").TRPCBuilt
         input: {
             name: string;
             ownerId: number;
-            hostingType?: "none" | "vrt_hst" | "standard" | undefined;
+            hostingType?: "none" | "standard" | "vrt_hst" | undefined;
             ipAddress?: string | undefined;
             status?: number | undefined;
             description?: string | undefined;

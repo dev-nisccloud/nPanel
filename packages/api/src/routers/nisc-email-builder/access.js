@@ -28,16 +28,58 @@ export function buildNebDesignListWhere(params) {
         return and(own, eq(nebDesign.teamId, teamId));
     return own;
 }
-export async function assertDesignAccess(params) {
+/**
+ * Check READ access: Owner, team member, or agency user can view.
+ */
+export async function assertDesignReadAccess(params) {
     const design = await db.query.nebDesign.findFirst({
         where: eq(nebDesign.id, params.designId),
     });
     if (!design) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Design not found" });
     }
+    // Owner always has access
     if (design.userId === params.userId)
         return design;
-    if (canManageAllNebDesigns(params.userRole))
+    // Agency users can view ALL designs
+    if (isAgencyUserRole(params.userRole))
         return design;
+    // Team members can view designs on their team
+    if (design.teamId) {
+        const { teamMember } = await import("@npanel/db/schema/teams");
+        const membership = await db.query.teamMember.findFirst({
+            where: and(eq(teamMember.teamId, design.teamId), eq(teamMember.userId, params.userId)),
+        });
+        if (membership)
+            return design;
+    }
     throw new TRPCError({ code: "FORBIDDEN", message: "No access to this design" });
+}
+/**
+ * Check MUTATION access: Only owner OR agency super admin can mutate.
+ */
+export async function assertDesignMutateAccess(params) {
+    const design = await db.query.nebDesign.findFirst({
+        where: eq(nebDesign.id, params.designId),
+    });
+    if (!design) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Design not found" });
+    }
+    // Owner can always mutate
+    if (design.userId === params.userId)
+        return design;
+    // Only agency SUPER ADMIN can override (not regular agency users)
+    if (isAgencySuperAdminRole(params.userRole))
+        return design;
+    throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Only the creator or agency super admin can modify this design",
+    });
+}
+/**
+ * Legacy: For backward compatibility, use read access.
+ * @deprecated Use assertDesignReadAccess or assertDesignMutateAccess explicitly.
+ */
+export async function assertDesignAccess(params) {
+    return assertDesignReadAccess(params);
 }

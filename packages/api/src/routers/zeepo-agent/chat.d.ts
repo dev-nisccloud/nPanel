@@ -13,26 +13,27 @@ export declare const zeepoAgentChatRouter: import("@trpc/server").TRPCBuiltRoute
                 url: string;
                 name: string;
                 mimeType: string;
+                storageKey?: string | undefined;
             }[] | undefined;
         };
         output: {
             data: {
                 id: string;
+                status: string;
                 createdAt: Date;
                 updatedAt: Date;
-                teamId: string | null;
-                status: string;
                 userId: string;
+                teamId: string | null;
                 title: string | null;
                 messages: {
                     id: string;
+                    role: string;
                     createdAt: Date;
                     metadata: unknown;
-                    role: string;
+                    sessionId: string;
                     content: string | null;
                     toolCalls: unknown;
                     toolCallId: string | null;
-                    sessionId: string;
                 }[];
             } | undefined;
             lastAssistantPreview: string;
@@ -73,7 +74,7 @@ export declare const zeepoAgentChatRouter: import("@trpc/server").TRPCBuiltRoute
             resolution?: "1 MP" | "2 MP" | undefined;
         };
         output: {
-            imageUrl: any;
+            imageUrl: string;
         };
         meta: object;
     }>;

@@ -40,13 +40,19 @@ export const env = createEnv({
         /** Public worker URLs for SEO Suite QStash jobs (optional; inline fallback when unset) */
         QSTASH_SEO_SUITE_RANK_WORKER_ENDPOINT: z.string().url().optional(),
         QSTASH_SEO_SUITE_AUDIT_WORKER_ENDPOINT: z.string().url().optional(),
-        QSTASH_EMAIL_BUILDER_AI_WORKER_ENDPOINT: z.string().url().optional(),
-        REPLICATE_EMAIL_BUILDER_AI_WEBHOOK_URL: z.string().url().optional(),
         /** Nisc Email Builder (neb) - standalone AI HTML builder */
         QSTASH_NISC_EMAIL_BUILDER_WORKER_ENDPOINT: z.string().url().optional(),
         QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT: z.string().url(),
         REPLICATE_META_ADS_ANALYSIS_WEBHOOK_URL: z.string().url().optional(),
         REPLICATE_API_TOKEN: z.string().min(1),
+        /** MinIO / S3-compatible object storage (optional until UploadThing migration) */
+        S3_ENDPOINT: z.string().url().optional(),
+        S3_ACCESS_KEY: z.string().min(1).optional(),
+        S3_SECRET_KEY: z.string().min(1).optional(),
+        S3_BUCKET: z.string().min(1).optional(),
+        S3_REGION: z.string().min(1).default("us-east-1"),
+        /** Public base URL for object reads, e.g. https://storage.nisccloud.com/npanel-uploads */
+        S3_PUBLIC_BASE_URL: z.string().url().optional(),
     },
     runtimeEnv: process.env,
     emptyStringAsUndefined: true,

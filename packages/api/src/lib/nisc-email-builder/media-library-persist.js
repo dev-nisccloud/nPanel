@@ -2,12 +2,12 @@ import { randomUUID } from "node:crypto";
 import { and, eq } from "@npanel/db";
 import { db } from "@npanel/db";
 import { nebMediaLibrary } from "@npanel/db/schema/nisc-email-builder";
-/** True when the asset lives on UploadThing (not a placeholder or transient Replicate URL). */
+import { isPersistedStorageAsset } from "../object-storage/persist";
+/** True when the asset lives on durable object storage (not a transient Replicate URL). */
 export function isPersistedUploadThingAsset(fileUrl, storageKey) {
-    if (storageKey?.trim())
-        return true;
-    return /uploadthing\.com|utfs\.io|ufs\.sh/i.test(fileUrl);
+    return isPersistedStorageAsset(fileUrl, storageKey);
 }
+export { isPersistedStorageAsset };
 /**
  * Upsert-by-URL into the user's Nisc media library (deduped per user + fileUrl).
  * Safe to call from builds, revisions, and manual uploads.

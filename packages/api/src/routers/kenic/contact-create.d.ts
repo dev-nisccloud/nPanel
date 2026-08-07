@@ -42,7 +42,7 @@ export declare const kenicContactCreateRouter: import("@trpc/server").TRPCBuiltR
             authInfo?: string | undefined;
             disclose?: {
                 flag: 0 | 1;
-                elements?: ("name" | "email" | "addr" | "fax" | "org" | "voice")[] | undefined;
+                elements?: ("name" | "email" | "org" | "voice" | "fax" | "addr")[] | undefined;
             } | undefined;
         };
         output: {

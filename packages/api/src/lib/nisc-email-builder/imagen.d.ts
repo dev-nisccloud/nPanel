@@ -1,5 +1,6 @@
 import Replicate from "replicate";
-export declare class NebImagePersistError extends Error {
+import { ObjectStoragePersistError } from "../object-storage/persist";
+export declare class NebImagePersistError extends ObjectStoragePersistError {
     constructor(message: string, options?: {
         cause?: unknown;
     });

@@ -32,8 +32,44 @@ export declare const storefrontOrdersRouter: import("@trpc/server").TRPCBuiltRou
             checkoutRequestId: string;
             productId: string;
             planId?: string | undefined;
-            billingCycle?: "MONTHLY" | "YEARLY" | undefined;
+            billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "TRIENNIALLY" | "QUADRENNIALLY" | undefined;
             primaryDomain?: string | undefined;
+            cart?: {
+                handoff?: string | undefined;
+                main?: {
+                    serviceType?: string | undefined;
+                    planId?: string | undefined;
+                    productId?: string | undefined;
+                    planName?: string | undefined;
+                    productName?: string | undefined;
+                    billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "TRIENNIALLY" | "QUADRENNIALLY" | undefined;
+                    locationName?: string | undefined;
+                    bundleDomains?: string[] | undefined;
+                    transferProvider?: "kenic" | "openprovider" | undefined;
+                    providerPriceAmount?: number | undefined;
+                    providerPriceCurrency?: string | undefined;
+                    customerPriceAmount?: number | undefined;
+                    customerPriceCurrency?: string | undefined;
+                } | undefined;
+                transferAuthCode?: string | undefined;
+                upsellDomain?: {
+                    domain: string;
+                    isExisting?: boolean | undefined;
+                    isTransfer?: boolean | undefined;
+                    provider?: "kenic" | "openprovider" | undefined;
+                } | undefined;
+                upsellHosting?: {
+                    serviceType: "web_hosting" | "wordpress_hosting" | "email_hosting";
+                    planId: string;
+                    billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "TRIENNIALLY" | "QUADRENNIALLY";
+                } | undefined;
+                hivelocity?: {
+                    hivelocityProductId: number;
+                    locationName: string;
+                    selectedOsId: string;
+                    selectedOptionIds: number[];
+                } | undefined;
+            } | undefined;
         };
         output: {
             orderId: string;

@@ -15,14 +15,14 @@ export declare const zeepoAgentImageEditsRouter: import("@trpc/server").TRPCBuil
             history: {
                 id: string;
                 createdAt: Date;
-                metadata: unknown;
                 userId: string;
-                sessionId: string;
                 prompt: string | null;
+                metadata: unknown;
+                operationType: string;
+                sessionId: string;
                 imageUrl: string;
                 generationId: string;
                 parentId: string | null;
-                operationType: string;
                 label: string | null;
             }[];
         };
@@ -70,7 +70,7 @@ export declare const zeepoAgentImageEditsRouter: import("@trpc/server").TRPCBuil
             sessionId: string;
             generationId: string;
             imageUrl: string;
-            style: "anime" | "cinematic" | "watercolor" | "oil_painting" | "pixel_art" | "neon" | "pencil_sketch" | "vintage";
+            style: "watercolor" | "oil_painting" | "cinematic" | "anime" | "pixel_art" | "neon" | "pencil_sketch" | "vintage";
             parentId?: string | undefined;
             customPrompt?: string | undefined;
             outputFormat?: "webp" | "png" | undefined;

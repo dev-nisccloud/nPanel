@@ -202,6 +202,7 @@ export const creditNoteSummarySchema = z.object({
 });
 export const creditNoteListFiltersSchema = z.object({
     teamId: z.string().uuid().optional(),
+    unassignedOnly: z.boolean().optional(),
     status: creditNoteStatusSchema.optional(),
     search: z.string().optional(),
     limit: z.number().int().min(1).max(100).optional().default(50),
@@ -307,10 +308,11 @@ export const invoiceSummarySchema = z.object({
     dueDate: z.date().nullable(),
     createdAt: z.date(),
     updatedAt: z.date(),
+    teamId: nullableStringSchema,
+    teamName: nullableStringSchema,
     kraStatus: invoiceKraStatusSchema.nullable().optional(),
 });
 export const invoiceDetailSchema = invoiceSummarySchema.extend({
-    teamId: nullableStringSchema,
     customerId: nullableStringSchema,
     subtotal: nullableStringSchema,
     tax: nullableStringSchema,
@@ -357,6 +359,7 @@ export const invoiceDetailSchema = invoiceSummarySchema.extend({
  */
 export const invoiceListFiltersSchema = z.object({
     teamId: z.string().uuid().optional(),
+    unassignedOnly: z.boolean().optional(),
     status: invoiceStatusSchema.optional(),
     search: z.string().optional(),
     limit: z.number().int().min(1).max(100).optional().default(50),
@@ -365,6 +368,19 @@ export const invoiceListFiltersSchema = z.object({
 export const invoiceListResponseSchema = z.object({
     invoices: z.array(invoiceSummarySchema),
     total: z.number().int().nonnegative(),
+});
+export const invoiceTeamSummarySchema = z.object({
+    teamId: z.string().uuid().nullable(),
+    teamName: z.string(),
+    invoiceCount: z.number().int().nonnegative(),
+    unpaidCount: z.number().int().nonnegative(),
+    lastInvoiceAt: z.date().nullable(),
+});
+export const invoiceTeamsSummaryFiltersSchema = z.object({
+    search: z.string().optional(),
+});
+export const invoiceTeamsSummaryResponseSchema = z.object({
+    teams: z.array(invoiceTeamSummarySchema),
 });
 /**
  * Update payment input – complete (use invoice total) or partial (supply amountPaid).

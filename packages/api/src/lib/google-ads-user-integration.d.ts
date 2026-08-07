@@ -3,9 +3,9 @@
  */
 export declare function getUserGoogleAdsIntegration(userId: string): Promise<{
     id: string;
+    status: string;
     createdAt: Date;
     updatedAt: Date;
-    status: string;
     userId: string;
     accessToken: string;
     refreshToken: string;
@@ -23,9 +23,9 @@ export declare function getGoogleAdsIntegrationForSession(params: {
     role?: string | null;
 }): Promise<{
     id: string;
+    status: string;
     createdAt: Date;
     updatedAt: Date;
-    status: string;
     userId: string;
     accessToken: string;
     refreshToken: string;

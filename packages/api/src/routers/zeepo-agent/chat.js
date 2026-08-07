@@ -14,7 +14,7 @@ import { zeepoAgentProcedure } from "./procedures";
 import { formatZeepoAgentToolError, resolveZeepoAgentOrchestrationClientMessage, resolveZeepoAgentPublicMessage, } from "../../lib/zeepo-agent-errors";
 import { generateSessionTitleSchema, imageEditSchema, sendMessageSchema } from "./schemas";
 import { zeepoAgentImageEditHistory } from "@npanel/db/schema/zeepo-agent";
-import { UTApi } from "uploadthing/server";
+import { persistRemoteUrlToObjectStorage } from "../../lib/object-storage/persist";
 import { insertAndEnqueueAgentGeneration } from "./generate";
 import { getZeepoAgentOrchestrationModel, listModelsForTool, pickModelForGeneration, } from "./model-helpers";
 import { getZeepoAgentSkillById } from "./skills-catalog";
@@ -1092,10 +1092,9 @@ export const zeepoAgentChatRouter = router({
         // Persist to edit history when a generationId is provided.
         if (input.generationId) {
             try {
-                const utapi = new UTApi();
-                const upRes = await utapi.uploadFilesFromUrl(resultUrl);
-                const upResult = Array.isArray(upRes) ? upRes[0] : upRes;
-                const persistedUrl = upResult?.data?.ufsUrl ?? upResult?.data?.url ?? resultUrl;
+                const { fileUrl: persistedUrl } = await persistRemoteUrlToObjectStorage(resultUrl, {
+                    skipNonReplicate: false,
+                });
                 await db.insert(zeepoAgentImageEditHistory).values({
                     id: randomUUID(),
                     sessionId: input.sessionId,

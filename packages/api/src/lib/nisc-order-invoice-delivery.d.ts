@@ -36,6 +36,8 @@ export type CreateAndEmailNiscOrderInvoiceInput = {
  * Provisioning must continue even when KRA or email fails  never throws.
  */
 export declare function createAndEmailNiscOrderInvoice(input: CreateAndEmailNiscOrderInvoiceInput): Promise<NiscOrderInvoiceDeliveryResult>;
+/** Agency manual create-from-payment: no invoice / customer billing emails. */
+export declare function niscOrderSkipsInvoice(metadata: unknown): boolean;
 /**
  * Loads order data and runs pre-provisioning invoice + email. Safe to call from QStash workers.
  */

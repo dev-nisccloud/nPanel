@@ -7,7 +7,7 @@ export interface EtimsContext {
 }
 /**
  * Build the KRA OSCU base URL for the given environment.
- * Uses env vars with sensible KRA defaults.
+ * Prefers env-specific vars, then legacy ETIMS_BASE_URL, then KRA defaults.
  */
 export declare function buildBaseUrl(isSandbox: boolean): string;
 /**

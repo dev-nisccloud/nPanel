@@ -1,16 +1,17 @@
-import { router, protectedProcedure } from "../../trpc";
+import { router } from "../../trpc";
 import { TRPCError } from "@trpc/server";
 import { db } from "@npanel/db";
 import { eTimsConfiguration } from "@npanel/db/schema/etims";
+import { etimsProcedure, skipEtimsAuthChecks } from "./_procedure";
 const isAgencyUser = (role) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
 export const etimsAuthRouter = router({
     /**
      * Get current eTIMS configuration status.
      * Used by the frontend to know if the device is initialized.
      */
-    getConfiguration: protectedProcedure
+    getConfiguration: etimsProcedure
         .query(async ({ ctx }) => {
-        if (!isAgencyUser(ctx.session?.user?.role)) {
+        if (!skipEtimsAuthChecks() && !isAgencyUser(ctx.session?.user?.role)) {
             throw new TRPCError({
                 code: "FORBIDDEN",
                 message: "Only agency users can view eTIMS configuration.",

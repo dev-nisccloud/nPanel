@@ -1,9 +1,7 @@
 /**
  * Domain detail lookup for the Zeepo AI Agent.
  *
- * Given a FQDN, resolves full domain detail from the appropriate backend:
- *  - gTLDs   → OpenProvider REST API (searchDomains with pattern)
- *  - .ke TLDs → KENIC EPP (domain:info) for live data, DB fallback
+ * Given a FQDN, resolves full domain detail from NISC Cloud's registry infrastructure.
  *
  * Authorization:
  *  - Agency users can look up any domain that appears in their portfolio.
@@ -26,8 +24,6 @@ export interface DomainDetailResult {
     _tool: "get_domain_detail";
     domain: string;
     found: boolean;
-    /** "openprovider" | "kenic" | "subscription" (customer DB only, no OP id) */
-    source?: "openprovider" | "kenic" | "subscription";
     status?: string;
     expiryDate?: string | null;
     registrationDate?: string | null;

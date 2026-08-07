@@ -386,9 +386,9 @@ export declare const hivelocityVpsSnapshotScheduleSchema: z.ZodObject<{
     volumeId: z.ZodString;
     intervalType: z.ZodEnum<{
         MONTHLY: "MONTHLY";
-        HOURLY: "HOURLY";
         DAILY: "DAILY";
         WEEKLY: "WEEKLY";
+        HOURLY: "HOURLY";
     }>;
     timezone: z.ZodString;
     hour: z.ZodOptional<z.ZodNumber>;
@@ -399,17 +399,17 @@ export declare const hivelocityVpsSnapshotScheduleSchema: z.ZodObject<{
 }, z.core.$loose>;
 export type HivelocityVpsSnapshotSchedule = z.infer<typeof hivelocityVpsSnapshotScheduleSchema>;
 export declare const hivelocityVpsSnapshotScheduleCreateSchema: z.ZodObject<{
+    day: z.ZodOptional<z.ZodNumber>;
+    hour: z.ZodOptional<z.ZodNumber>;
     timezone: z.ZodString;
     volumeId: z.ZodString;
     intervalType: z.ZodEnum<{
         MONTHLY: "MONTHLY";
-        HOURLY: "HOURLY";
         DAILY: "DAILY";
         WEEKLY: "WEEKLY";
+        HOURLY: "HOURLY";
     }>;
-    hour: z.ZodOptional<z.ZodNumber>;
     minute: z.ZodOptional<z.ZodNumber>;
-    day: z.ZodOptional<z.ZodNumber>;
     weekday: z.ZodOptional<z.ZodNumber>;
     maxSnapshots: z.ZodNumber;
     facilityCode: z.ZodString;

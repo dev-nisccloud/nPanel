@@ -4,10 +4,6 @@ export declare const etimsBranchRouter: import("@trpc/server").TRPCBuiltRouter<{
     errorShape: import("@trpc/server").TRPCDefaultErrorShape;
     transformer: false;
 }, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
-    /**
-     * Retrieve the list of registered branches for this taxpayer.
-     * POST /selectBhfList
-     */
     getBranchList: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             lastReqDt: string;
@@ -18,10 +14,6 @@ export declare const etimsBranchRouter: import("@trpc/server").TRPCBuiltRouter<{
         };
         meta: object;
     }>;
-    /**
-     * Register or update a customer record for a branch.
-     * POST /saveBhfCustomer
-     */
     saveCustomer: import("@trpc/server").TRPCMutationProcedure<{
         input: {
             customer: {
@@ -51,10 +43,6 @@ export declare const etimsBranchRouter: import("@trpc/server").TRPCBuiltRouter<{
         };
         meta: object;
     }>;
-    /**
-     * Create or update a branch user account.
-     * POST /saveBhfUser
-     */
     saveBranchUser: import("@trpc/server").TRPCMutationProcedure<{
         input: {
             user: {
@@ -70,6 +58,26 @@ export declare const etimsBranchRouter: import("@trpc/server").TRPCBuiltRouter<{
                 authCd?: string | null | undefined;
                 remark?: string | null | undefined;
                 useYn?: "Y" | "N" | undefined;
+            };
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /** POST /saveBhfInsurance */
+    saveBranchInsurance: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            insurance: {
+                isrccCd: string;
+                isrccNm: string;
+                isrcRt: number;
+                useYn?: "Y" | "N" | undefined;
+                regrId?: string | undefined;
+                regrNm?: string | undefined;
+                modrId?: string | undefined;
+                modrNm?: string | undefined;
             };
         };
         output: {

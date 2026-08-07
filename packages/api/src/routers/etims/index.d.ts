@@ -51,7 +51,8 @@ export declare const etimsRouter: import("@trpc/server").TRPCBuiltRouter<{
                     bhfNm?: string;
                     sdcId?: string;
                     mrcNo?: string;
-                };
+                } | null;
+                reusedExistingCmcKey: boolean;
             };
             meta: object;
         }>;
@@ -175,6 +176,26 @@ export declare const etimsRouter: import("@trpc/server").TRPCBuiltRouter<{
             };
             meta: object;
         }>;
+        getNotices: import("@trpc/server").TRPCQueryProcedure<{
+            input: {
+                lastReqDt: string;
+            };
+            output: {
+                success: boolean;
+                data: unknown;
+            };
+            meta: object;
+        }>;
+        getTaxPayerInfo: import("@trpc/server").TRPCQueryProcedure<{
+            input: {
+                lastReqDt?: string | undefined;
+            };
+            output: {
+                success: boolean;
+                data: unknown;
+            };
+            meta: object;
+        }>;
     }>>;
     branch: import("@trpc/server").TRPCBuiltRouter<{
         ctx: import("../..").Context;
@@ -236,6 +257,25 @@ export declare const etimsRouter: import("@trpc/server").TRPCBuiltRouter<{
                     authCd?: string | null | undefined;
                     remark?: string | null | undefined;
                     useYn?: "Y" | "N" | undefined;
+                };
+            };
+            output: {
+                success: boolean;
+                data: unknown;
+            };
+            meta: object;
+        }>;
+        saveBranchInsurance: import("@trpc/server").TRPCMutationProcedure<{
+            input: {
+                insurance: {
+                    isrccCd: string;
+                    isrccNm: string;
+                    isrcRt: number;
+                    useYn?: "Y" | "N" | undefined;
+                    regrId?: string | undefined;
+                    regrNm?: string | undefined;
+                    modrId?: string | undefined;
+                    modrNm?: string | undefined;
                 };
             };
             output: {
@@ -550,6 +590,16 @@ export declare const etimsRouter: import("@trpc/server").TRPCBuiltRouter<{
         getSalesTransactions: import("@trpc/server").TRPCQueryProcedure<{
             input: {
                 lastReqDt: string;
+            };
+            output: {
+                success: boolean;
+                data: unknown;
+            };
+            meta: object;
+        }>;
+        getInvoiceDetails: import("@trpc/server").TRPCQueryProcedure<{
+            input: {
+                invcNo: number;
             };
             output: {
                 success: boolean;

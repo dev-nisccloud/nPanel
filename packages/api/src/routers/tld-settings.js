@@ -5,6 +5,7 @@ import { db } from "@npanel/db";
 import { nameserver, nameserverGroup, tldSettings, tldSettingsActivityLog, } from "@npanel/db/schema/nameservers";
 import { z } from "zod";
 import { protectedProcedure, router } from "../trpc";
+import { findDefaultMargin, findOverrideByExtension, loadMarginMap, normalizeTldExtension, } from "../lib/tld-margin";
 // ============================================================================
 // VALIDATION SCHEMAS
 // ============================================================================
@@ -49,6 +50,25 @@ const getActivityLogsSchema = z.object({
     id: z.string(),
     limit: z.number().min(1).max(100).default(50),
     offset: z.number().min(0).default(0),
+});
+const extensionInputSchema = z.object({
+    extension: z.string().min(1).max(100),
+});
+const upsertExtensionMarginSchema = z.object({
+    extension: z.string().min(1).max(100),
+    marginType: z.enum(["PERCENTAGE", "FIXED"]),
+    percentageMargin: z.string().optional(),
+    fixedMargin: z.string().optional(),
+    roundOff: z.string().optional(),
+});
+const compactMarginConfigSchema = z.object({
+    id: z.string().optional(),
+    name: z.string().optional(),
+    marginType: z.string().nullable(),
+    percentageMargin: z.string().nullable(),
+    fixedMargin: z.string().nullable(),
+    roundOff: z.string().nullable(),
+    isDefault: z.boolean().optional(),
 });
 // Response schemas
 const nameserverGroupReferenceSchema = z.object({
@@ -244,16 +264,23 @@ export const tldSettingsRouter = router({
                     message: "Fixed margin is required when margin type is FIXED",
                 });
             }
+            const normalizedName = normalizeTldExtension(input.name);
+            if (!normalizedName) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "TLD setting name is required",
+                });
+            }
             // Check if TLD setting already exists for this user
             const [existingTld] = await db
                 .select({ id: tldSettings.id })
                 .from(tldSettings)
-                .where(and(eq(tldSettings.name, input.name), eq(tldSettings.userId, userId)))
+                .where(and(eq(tldSettings.name, normalizedName), eq(tldSettings.userId, userId)))
                 .limit(1);
             if (existingTld) {
                 throw new TRPCError({
                     code: "CONFLICT",
-                    message: `TLD setting for "${input.name}" already exists`,
+                    message: `TLD setting for "${normalizedName}" already exists`,
                 });
             }
             // Validate nameserver group if provided
@@ -278,7 +305,7 @@ export const tldSettingsRouter = router({
                 const id = crypto.randomUUID();
                 await tx.insert(tldSettings).values({
                     id,
-                    name: input.name,
+                    name: normalizedName,
                     userId,
                     nameserverGroupId: input.nameserverGroupId ?? null,
                     marginType: input.marginType ?? null,
@@ -294,7 +321,7 @@ export const tldSettingsRouter = router({
                     userId,
                     tldSettingId: id,
                     action: "CREATE",
-                    description: `Created TLD setting for "${input.name}"`,
+                    description: `Created TLD setting for "${normalizedName}"`,
                     metadata: null,
                     ipAddress: null,
                     userAgent: null,
@@ -390,6 +417,260 @@ export const tldSettingsRouter = router({
             throw new TRPCError({
                 code: "INTERNAL_SERVER_ERROR",
                 message: "Failed to fetch default TLD setting",
+            });
+        }
+    }),
+    /**
+     * Resolve margin for a TLD extension: custom override if present, else platform default.
+     * Also returns both rows so the UI can show "using default" vs "custom".
+     */
+    getForExtension: protectedProcedure
+        .input(extensionInputSchema)
+        .output(z.object({
+        success: z.boolean(),
+        data: z.object({
+            extension: z.string(),
+            isOverride: z.boolean(),
+            resolved: compactMarginConfigSchema.nullable(),
+            override: compactMarginConfigSchema.nullable(),
+            default: compactMarginConfigSchema.nullable(),
+        }),
+    }))
+        .query(async ({ input }) => {
+        try {
+            const extension = normalizeTldExtension(input.extension);
+            const [override, defaultConfig] = await Promise.all([
+                findOverrideByExtension(extension),
+                findDefaultMargin(),
+            ]);
+            return {
+                success: true,
+                data: {
+                    extension,
+                    isOverride: Boolean(override),
+                    resolved: override ?? defaultConfig,
+                    override,
+                    default: defaultConfig,
+                },
+            };
+        }
+        catch (error) {
+            console.error("Error resolving TLD margin for extension:", error);
+            throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message: "Failed to resolve TLD margin for extension",
+            });
+        }
+    }),
+    /**
+     * Compact map for client batch pricing: default + overrides keyed by normalized extension.
+     */
+    listMarginMap: protectedProcedure
+        .output(z.object({
+        success: z.boolean(),
+        data: z.object({
+            default: compactMarginConfigSchema.nullable(),
+            overrides: z.record(z.string(), compactMarginConfigSchema),
+        }),
+    }))
+        .query(async () => {
+        try {
+            const map = await loadMarginMap();
+            return {
+                success: true,
+                data: {
+                    default: map.default,
+                    overrides: map.overrides,
+                },
+            };
+        }
+        catch (error) {
+            console.error("Error listing TLD margin map:", error);
+            throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message: "Failed to list TLD margin map",
+            });
+        }
+    }),
+    /**
+     * Create or update a non-default per-extension margin override.
+     */
+    upsertExtensionMargin: protectedProcedure
+        .input(upsertExtensionMarginSchema)
+        .output(z.object({
+        success: z.boolean(),
+        data: tldSettingResponseSchema,
+    }))
+        .mutation(async ({ ctx, input }) => {
+        const actor = getActor(ctx);
+        const userId = actor.userId;
+        try {
+            if (!isAgencyUserRole(actor.role)) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Only agency users can set per-TLD margins",
+                });
+            }
+            if (input.marginType === "PERCENTAGE" && !input.percentageMargin) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Percentage margin is required when margin type is PERCENTAGE",
+                });
+            }
+            if (input.marginType === "FIXED" && !input.fixedMargin) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Fixed margin is required when margin type is FIXED",
+                });
+            }
+            const extension = normalizeTldExtension(input.extension);
+            if (!extension) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Extension is required",
+                });
+            }
+            const now = new Date();
+            const percentageMargin = input.marginType === "PERCENTAGE" ? input.percentageMargin ?? null : null;
+            const fixedMargin = input.marginType === "FIXED" ? input.fixedMargin ?? null : null;
+            const roundOff = input.roundOff ?? null;
+            // Platform-wide override by normalized name (pricing does not filter by user)
+            const [existing] = await db
+                .select()
+                .from(tldSettings)
+                .where(and(eq(tldSettings.isDefault, false), eq(tldSettings.name, extension)))
+                .limit(1);
+            let settingId;
+            if (existing) {
+                ensureOwnerOrSuperAdmin({
+                    ownerUserId: existing.userId,
+                    actorUserId: actor.userId,
+                    actorRole: actor.role,
+                });
+                await db.transaction(async (tx) => {
+                    await tx
+                        .update(tldSettings)
+                        .set({
+                        marginType: input.marginType,
+                        percentageMargin,
+                        fixedMargin,
+                        roundOff,
+                        updatedAt: now,
+                    })
+                        .where(eq(tldSettings.id, existing.id));
+                    await tx.insert(tldSettingsActivityLog).values({
+                        id: crypto.randomUUID(),
+                        userId,
+                        tldSettingId: existing.id,
+                        action: "UPDATE",
+                        description: `Updated custom margin for ".${extension}"`,
+                        metadata: null,
+                        ipAddress: null,
+                        userAgent: null,
+                        createdAt: now,
+                    });
+                });
+                settingId = existing.id;
+            }
+            else {
+                settingId = crypto.randomUUID();
+                await db.transaction(async (tx) => {
+                    await tx.insert(tldSettings).values({
+                        id: settingId,
+                        name: extension,
+                        userId,
+                        nameserverGroupId: null,
+                        marginType: input.marginType,
+                        percentageMargin,
+                        fixedMargin,
+                        roundOff,
+                        isDefault: false,
+                        createdAt: now,
+                        updatedAt: now,
+                    });
+                    await tx.insert(tldSettingsActivityLog).values({
+                        id: crypto.randomUUID(),
+                        userId,
+                        tldSettingId: settingId,
+                        action: "CREATE",
+                        description: `Created custom margin for ".${extension}"`,
+                        metadata: null,
+                        ipAddress: null,
+                        userAgent: null,
+                        createdAt: now,
+                    });
+                });
+            }
+            const saved = await fetchTldSettingById(settingId);
+            if (!saved) {
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: "Saved TLD margin could not be fetched",
+                });
+            }
+            return {
+                success: true,
+                data: transformTldSetting(saved),
+            };
+        }
+        catch (error) {
+            if (error instanceof TRPCError)
+                throw error;
+            console.error("Error upserting extension margin:", error);
+            throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message: "Failed to save extension margin",
+            });
+        }
+    }),
+    /**
+     * Delete a per-extension override so pricing falls back to the platform default.
+     */
+    clearExtensionMargin: protectedProcedure
+        .input(extensionInputSchema)
+        .output(z.object({
+        success: z.boolean(),
+        message: z.string(),
+    }))
+        .mutation(async ({ ctx, input }) => {
+        const actor = getActor(ctx);
+        try {
+            if (!isAgencyUserRole(actor.role)) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Only agency users can clear per-TLD margins",
+                });
+            }
+            const extension = normalizeTldExtension(input.extension);
+            const [existing] = await db
+                .select()
+                .from(tldSettings)
+                .where(and(eq(tldSettings.isDefault, false), eq(tldSettings.name, extension)))
+                .limit(1);
+            if (!existing) {
+                return {
+                    success: true,
+                    message: `No custom margin found for ".${extension}"`,
+                };
+            }
+            ensureOwnerOrSuperAdmin({
+                ownerUserId: existing.userId,
+                actorUserId: actor.userId,
+                actorRole: actor.role,
+            });
+            await db.delete(tldSettings).where(eq(tldSettings.id, existing.id));
+            return {
+                success: true,
+                message: `Custom margin for ".${extension}" cleared`,
+            };
+        }
+        catch (error) {
+            if (error instanceof TRPCError)
+                throw error;
+            console.error("Error clearing extension margin:", error);
+            throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message: "Failed to clear extension margin",
             });
         }
     }),
@@ -523,17 +804,24 @@ export const tldSettingsRouter = router({
                     });
                 }
             }
+            const normalizedName = input.name !== undefined ? normalizeTldExtension(input.name) : undefined;
+            if (input.name !== undefined && !normalizedName) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "TLD setting name is required",
+                });
+            }
             // Check for name conflicts if name is being changed
-            if (input.name && input.name !== existingTld.name) {
+            if (normalizedName && normalizedName !== existingTld.name) {
                 const [nameConflict] = await db
                     .select({ id: tldSettings.id })
                     .from(tldSettings)
-                    .where(and(eq(tldSettings.name, input.name), eq(tldSettings.userId, userId), ne(tldSettings.id, input.id)))
+                    .where(and(eq(tldSettings.name, normalizedName), eq(tldSettings.userId, userId), ne(tldSettings.id, input.id)))
                     .limit(1);
                 if (nameConflict) {
                     throw new TRPCError({
                         code: "CONFLICT",
-                        message: `TLD setting for "${input.name}" already exists`,
+                        message: `TLD setting for "${normalizedName}" already exists`,
                     });
                 }
             }
@@ -542,8 +830,8 @@ export const tldSettingsRouter = router({
                 const updateData = {
                     updatedAt: now,
                 };
-                if (input.name !== undefined)
-                    updateData.name = input.name;
+                if (normalizedName !== undefined)
+                    updateData.name = normalizedName;
                 if (input.nameserverGroupId !== undefined)
                     updateData.nameserverGroupId = input.nameserverGroupId;
                 if (input.marginType !== undefined)
@@ -568,7 +856,7 @@ export const tldSettingsRouter = router({
                     userId,
                     tldSettingId: input.id,
                     action: "UPDATE",
-                    description: `Updated TLD setting for "${input.name ?? existingTld.name}"`,
+                    description: `Updated TLD setting for "${normalizedName ?? existingTld.name}"`,
                     metadata: null,
                     ipAddress: null,
                     userAgent: null,

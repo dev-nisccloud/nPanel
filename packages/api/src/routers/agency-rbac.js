@@ -6,7 +6,7 @@ import { db } from "@npanel/db";
 import { user as userTable } from "@npanel/db/schema/auth";
 import { agencyPermission, agencyRole, agencyRolePermission, } from "@npanel/db/schema/agency-rbac";
 import { protectedProcedure, router } from "../trpc";
-import { agencyMenuKeySchema, agencyMenuKeys, remapAgencyMenuKeys } from "./agency-rbac/menu-keys";
+import { agencyMenuKeySchema, agencyMenuKeys, remapAgencyMenuKeys, } from "./agency-rbac/menu-keys";
 // ============================================================================
 // ZOD SCHEMAS – independent from database schema (including enums)
 // ============================================================================
@@ -121,6 +121,7 @@ export const agencyRbacRouter = router({
         const dbMenus = remapAgencyMenuKeys(role.menus ?? []);
         const permissionKeys = role.permissions
             .map((rp) => rp.permission.key)
+            .map((key) => remapAgencyMenuKeys([key])[0] ?? key)
             .filter((key) => agencyMenuKeySchema.safeParse(key).success) ?? [];
         return {
             id: role.id,
@@ -380,6 +381,7 @@ export const agencyRbacRouter = router({
         const dbMenus = remapAgencyMenuKeys(userRes.agencyRole?.menus ?? []);
         const permissionKeys = userRes.agencyRole?.permissions
             .map((p) => p.permission.key)
+            .map((k) => remapAgencyMenuKeys([k])[0] ?? k)
             .filter((k) => agencyMenuKeySchema.safeParse(k).success) ?? [];
         return {
             roleId: userRes.agencyRole?.id ?? null,

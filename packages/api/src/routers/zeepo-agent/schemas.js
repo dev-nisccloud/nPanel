@@ -25,6 +25,8 @@ export const attachmentSchema = z.object({
     url: z.string().url(),
     name: z.string().max(200),
     mimeType: z.string().max(100),
+    /** Object-storage key when uploaded via MinIO/S3 - used for cleanup on session delete. */
+    storageKey: z.string().max(512).optional(),
 });
 export const sendMessageSchema = z.object({
     sessionId: z.string(),

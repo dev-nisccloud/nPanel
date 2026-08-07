@@ -9,43 +9,29 @@
  *
  * Security:
  *  • Token is verified on every call (signature + expiry).
- *  • Amount is re-derived server-side from planId  client value is used only as
- *    a hint and overridden if the plan price differs.
+ *  • Checkout amount is always re-computed server-side from the cart payload.
  *  • Returns minimal data  no transaction IDs, no raw M-Pesa fields.
  */
 import * as crypto from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { and, eq } from "@npanel/db";
 import { db } from "@npanel/db";
-import { niscProductPlan } from "@npanel/db/schema/products";
 import { paymentTransaction, paymentTransactionActivityLog } from "@npanel/db/schema/payment-transactions";
 import { publicProcedure, router } from "../../trpc";
 import { verifyStorefrontTokenOrThrow } from "../../lib/storefront-token";
+import { computeStorefrontCartQuote, } from "../../lib/storefront-cart-pricing";
+import { resolveStorefrontCartQuoteInput, storefrontCartQuoteRequestSchema, } from "../../lib/storefront-cart-resolve";
 import { createMpesaClientFromEnv, MpesaApiError } from "../payment-gateway/mpesa/client";
 import { queryStkPushForUser } from "../payment-gateway/mpesa/query-stk-push-status";
 import { getUserFriendlyErrorMessage, isProcessingResultCode, isTerminalResultCode, } from "../payment-gateway/mpesa/error-codes";
+import { createJengaClientFromEnv, formatJengaPhone, generateJengaOrderReference, JengaApiError, } from "../payment-gateway/jenga/client";
+import { getJengaUserFriendlyError } from "../payment-gateway/jenga/error-codes";
+import { jengaCustomerFieldsSchema } from "../payment-gateway/jenga/types";
+import { parseJengaMetadata } from "../payment-gateway/jenga/apply-payment-update";
+import { and, eq } from "@npanel/db";
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-/** Resolve authoritative plan price from DB. Returns null if plan not found. */
-async function resolvePlanPrice(planId, billingCycle) {
-    const plan = await db.query.niscProductPlan.findFirst({
-        where: and(eq(niscProductPlan.id, planId), eq(niscProductPlan.isActive, true)),
-        columns: {
-            id: true,
-            name: true,
-            monthlyPrice: true,
-            yearlyPrice: true,
-            niscCurrency: true,
-        },
-    });
-    if (!plan)
-        return null;
-    const priceRaw = billingCycle === "YEARLY" ? plan.yearlyPrice : plan.monthlyPrice;
-    const priceKes = priceRaw ? Number.parseFloat(priceRaw) : 0;
-    return { priceKes, planName: plan.name ?? "" };
-}
 // ---------------------------------------------------------------------------
 // Input schemas
 // ---------------------------------------------------------------------------
@@ -56,11 +42,8 @@ const initiateStkPushInputSchema = z.object({
         .min(9)
         .max(20)
         .regex(/^[+\d\s()-]+$/, "Invalid phone number"),
-    /** Optional  planless services (domains, VPS) omit this. */
-    planId: z.string().optional(),
-    billingCycle: z.enum(["MONTHLY", "YEARLY"]).default("MONTHLY"),
-    /** Cart total in KES (incl. VAT). Authoritative for storefront checkout. */
-    clientAmount: z.number().positive(),
+    /** Full cart state  amount is computed server-side from this payload. */
+    cart: storefrontCartQuoteRequestSchema,
 });
 const pollPaymentStatusInputSchema = z.object({
     storefrontToken: z.string().min(1),
@@ -70,6 +53,17 @@ const queryStkPushInputSchema = z.object({
     storefrontToken: z.string().min(1),
     checkoutRequestId: z.string().min(1),
 });
+const initiateJengaCheckoutInputSchema = z.object({
+    storefrontToken: z.string().min(1),
+    cart: storefrontCartQuoteRequestSchema,
+    customer: jengaCustomerFieldsSchema,
+    returnOrigin: z.string().url().optional(),
+    returnPath: z.string().optional(),
+});
+const getJengaPaymentStatusInputSchema = z.object({
+    storefrontToken: z.string().min(1),
+    orderReference: z.string().min(8),
+});
 // ---------------------------------------------------------------------------
 // Router
 // ---------------------------------------------------------------------------
@@ -77,26 +71,62 @@ export const storefrontPaymentRouter = router({
     /**
      * Initiate an M-Pesa STK Push for a storefront checkout session.
      *
-     * The plan price is always re-fetched from the DB  the client-supplied
-     * amount is ignored if it doesn't match the authoritative price.
+     * The payable amount is always computed server-side from the cart payload.
      */
     initiateStkPush: publicProcedure
         .input(initiateStkPushInputSchema)
         .mutation(async ({ input }) => {
         const { userId, teamId } = verifyStorefrontTokenOrThrow(input.storefrontToken);
-        const amount = Math.ceil(input.clientAmount);
+        const resolved = resolveStorefrontCartQuoteInput(input.cart);
+        const hivelocityTypes = new Set(["vps", "vds", "dedicated_servers"]);
+        if (hivelocityTypes.has(resolved.main.serviceType) &&
+            !resolved.hivelocity?.selectedOsId) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Complete server configuration before payment.",
+            });
+        }
+        const domainRequiredHosting = new Set([
+            "web_hosting",
+            "wordpress_hosting",
+            "email_hosting",
+        ]);
+        if (domainRequiredHosting.has(resolved.main.serviceType) &&
+            !resolved.upsellDomain?.domain?.trim()) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Add a domain before payment  register, transfer, or connect one you already own.",
+            });
+        }
+        if (resolved.main.serviceType === "domain_transfer") {
+            const authCode = resolved.transferAuthCode?.trim();
+            if (!authCode) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Enter your domain authorization (EPP) code before payment.",
+                });
+            }
+        }
+        if (resolved.upsellDomain?.isTransfer) {
+            const authCode = resolved.transferAuthCode?.trim();
+            if (!authCode) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Enter your domain authorization (EPP) code before payment.",
+                });
+            }
+        }
+        const quote = await computeStorefrontCartQuote(resolved);
+        const amount = Math.ceil(quote.total);
         if (amount < 1) {
             throw new TRPCError({
                 code: "BAD_REQUEST",
                 message: "Invalid payment amount.",
             });
         }
-        let planLabel = "Storefront checkout";
-        if (input.planId) {
-            const planData = await resolvePlanPrice(input.planId, input.billingCycle);
-            if (planData)
-                planLabel = planData.planName;
-        }
+        const planLabel = quote.planName || "Storefront checkout";
+        const planId = resolved.main.planId;
+        const billingCycle = resolved.main.billingCycle;
         const now = new Date();
         const mpesa = createMpesaClientFromEnv();
         const accountRef = `NISC${Date.now().toString().slice(-8)}`;
@@ -137,8 +167,8 @@ export const storefrontPaymentRouter = router({
                 metadata: {
                     phoneNumber: input.phone,
                     amount,
-                    planId: input.planId ?? null,
-                    billingCycle: input.billingCycle,
+                    planId: planId ?? null,
+                    billingCycle,
                     checkoutRequestId: response.CheckoutRequestID,
                 }, ipAddress: null,
                 userAgent: null,
@@ -216,6 +246,211 @@ export const storefrontPaymentRouter = router({
             failureReason: result.data.resultDesc ??
                 getUserFriendlyErrorMessage(code) ??
                 "Payment was not completed.",
+        };
+    }),
+    /**
+     * Initiate Jenga hosted card checkout for storefront cart.
+     * Amount is always recomputed server-side from the cart payload.
+     */
+    initiateJengaCheckout: publicProcedure
+        .input(initiateJengaCheckoutInputSchema)
+        .mutation(async ({ input }) => {
+        const { userId, teamId } = verifyStorefrontTokenOrThrow(input.storefrontToken);
+        const resolved = resolveStorefrontCartQuoteInput(input.cart);
+        const hivelocityTypes = new Set(["vps", "vds", "dedicated_servers"]);
+        if (hivelocityTypes.has(resolved.main.serviceType) &&
+            !resolved.hivelocity?.selectedOsId) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Complete server configuration before payment.",
+            });
+        }
+        const domainRequiredHosting = new Set([
+            "web_hosting",
+            "wordpress_hosting",
+            "email_hosting",
+        ]);
+        if (domainRequiredHosting.has(resolved.main.serviceType) &&
+            !resolved.upsellDomain?.domain?.trim()) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Add a domain before payment  register, transfer, or connect one you already own.",
+            });
+        }
+        if (resolved.main.serviceType === "domain_transfer") {
+            const authCode = resolved.transferAuthCode?.trim();
+            if (!authCode) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Enter your domain authorization (EPP) code before payment.",
+                });
+            }
+        }
+        if (resolved.upsellDomain?.isTransfer) {
+            const authCode = resolved.transferAuthCode?.trim();
+            if (!authCode) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Enter your domain authorization (EPP) code before payment.",
+                });
+            }
+        }
+        const quote = await computeStorefrontCartQuote(resolved);
+        const amount = Math.ceil(quote.total);
+        if (amount < 1) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Invalid payment amount.",
+            });
+        }
+        const planLabel = quote.planName || "Storefront checkout";
+        const orderReference = generateJengaOrderReference();
+        const phone = formatJengaPhone(input.customer.customerPhone);
+        const now = new Date();
+        const paymentTimeLimit = process.env.JENGA_PAYMENT_TIME_LIMIT || "15mins";
+        const metadata = {
+            orderReference,
+            source: "storefront",
+            returnOrigin: input.returnOrigin,
+            returnPath: input.returnPath || "/cart",
+            customer: {
+                firstName: input.customer.customerFirstName,
+                lastName: input.customer.customerLastName,
+                email: input.customer.customerEmail,
+                phone,
+                address: input.customer.customerAddress,
+                postalCode: input.customer.customerPostalCodeZip,
+                countryCode: input.customer.countryCode,
+            },
+            currency: "KES",
+            teamId: teamId ?? undefined,
+            cart: input.cart,
+            planId: resolved.main.planId,
+            productId: resolved.main.productId,
+            billingCycle: resolved.main.billingCycle,
+            primaryDomain: resolved.upsellDomain?.domain || resolved.main.bundleDomains?.[0],
+        };
+        const extraData = JSON.stringify({
+            source: "storefront",
+            returnOrigin: metadata.returnOrigin,
+            returnPath: metadata.returnPath,
+            orderReference,
+        });
+        try {
+            const jenga = createJengaClientFromEnv();
+            const { checkoutUrl, paymentData } = await jenga.initiateCardPayment({
+                orderAmount: amount,
+                orderReference,
+                currency: "KES",
+                productType: "Service",
+                productDescription: planLabel.slice(0, 200),
+                paymentTimeLimit,
+                customerFirstName: input.customer.customerFirstName,
+                customerLastName: input.customer.customerLastName,
+                customerEmail: input.customer.customerEmail,
+                customerPhone: phone,
+                customerAddress: input.customer.customerAddress,
+                customerPostalCodeZip: input.customer.customerPostalCodeZip,
+                countryCode: input.customer.countryCode,
+                extraData,
+            });
+            const transactionId = crypto.randomUUID();
+            await db.insert(paymentTransaction).values({
+                id: transactionId,
+                userId,
+                teamId,
+                gateway: "JENGA",
+                gatewayStatus: "INITIATED",
+                gatewayMessage: "Storefront card checkout initiated",
+                checkoutRequestId: orderReference,
+                amount: amount.toFixed(2),
+                currency: "KES",
+                accountReference: orderReference,
+                transactionDesc: "NiscCloud",
+                phoneNumber: phone,
+                status: "PENDING",
+                rawResponse: { checkoutUrl, orderReference },
+                metadata: metadata,
+                initiatedAt: now,
+                createdAt: now,
+                updatedAt: now,
+            });
+            await db.insert(paymentTransactionActivityLog).values({
+                id: crypto.randomUUID(),
+                transactionId,
+                userId,
+                action: "INITIATE",
+                description: `Storefront Jenga card checkout. Plan: ${planLabel}`,
+                metadata: {
+                    orderReference,
+                    amount,
+                    planId: resolved.main.planId ?? null,
+                    billingCycle: resolved.main.billingCycle,
+                },
+                ipAddress: null,
+                userAgent: null,
+                createdAt: now,
+            });
+            return {
+                orderReference,
+                checkoutUrl,
+                paymentData,
+                message: "Redirecting to secure card payment…",
+            };
+        }
+        catch (error) {
+            if (error instanceof JengaApiError) {
+                throw new TRPCError({
+                    code: error.retryable ? "TIMEOUT" : "BAD_REQUEST",
+                    message: error.errorInfo?.userMessage ||
+                        getJengaUserFriendlyError(error.code) ||
+                        "Card payment initiation failed. Please try again.",
+                });
+            }
+            if (error instanceof TRPCError)
+                throw error;
+            console.error("[Storefront][Jenga] initiate error:", error);
+            throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message: "Failed to initiate card payment. Please try again.",
+            });
+        }
+    }),
+    /**
+     * Poll Jenga payment status (DB only; updated by callback/IPN).
+     */
+    getJengaPaymentStatus: publicProcedure
+        .input(getJengaPaymentStatusInputSchema)
+        .query(async ({ input }) => {
+        const { userId } = verifyStorefrontTokenOrThrow(input.storefrontToken);
+        const transaction = await db.query.paymentTransaction.findFirst({
+            where: and(eq(paymentTransaction.checkoutRequestId, input.orderReference), eq(paymentTransaction.gateway, "JENGA"), eq(paymentTransaction.userId, userId)),
+        });
+        if (!transaction) {
+            throw new TRPCError({
+                code: "NOT_FOUND",
+                message: "Payment not found",
+            });
+        }
+        const metadata = parseJengaMetadata(transaction.metadata);
+        return {
+            status: transaction.status,
+            orderReference: input.orderReference,
+            amount: transaction.amount,
+            paidAmount: transaction.paidAmount,
+            currency: transaction.currency,
+            failureReason: transaction.status === "FAILED" || transaction.status === "CANCELLED"
+                ? transaction.gatewayMessage || "Payment was not completed."
+                : undefined,
+            orderIntent: metadata
+                ? {
+                    cart: metadata.cart,
+                    planId: metadata.planId,
+                    productId: metadata.productId,
+                    billingCycle: metadata.billingCycle,
+                    primaryDomain: metadata.primaryDomain,
+                }
+                : null,
         };
     }),
 });

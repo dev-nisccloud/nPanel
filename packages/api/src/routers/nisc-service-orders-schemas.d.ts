@@ -437,5 +437,6 @@ export declare const createFromPaymentInputSchema: z.ZodObject<{
     currency: z.ZodDefault<z.ZodString>;
     teamId: z.ZodOptional<z.ZodString>;
     billedForUserId: z.ZodOptional<z.ZodString>;
+    skipInvoice: z.ZodOptional<z.ZodBoolean>;
 }, z.core.$strip>;
 export type CreateFromPaymentInput = z.infer<typeof createFromPaymentInputSchema>;

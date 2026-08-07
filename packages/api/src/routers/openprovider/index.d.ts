@@ -331,7 +331,7 @@ export declare const openProviderRouter: import("@trpc/server").TRPCBuiltRouter<
                 data: {
                     id: string;
                     domain: string;
-                    status: "PENDING" | "ACTIVE" | "SUSPENDED" | "EXPIRED" | "TRANSFERRING";
+                    status: "ACTIVE" | "PENDING" | "EXPIRED" | "SUSPENDED" | "TRANSFERRING";
                     registrationDate: string;
                     expiryDate: string;
                     clientName: any;
@@ -516,7 +516,7 @@ export declare const openProviderRouter: import("@trpc/server").TRPCBuiltRouter<
                     name: string;
                     extension: string;
                 };
-                operation: "create" | "renew" | "transfer" | "restore";
+                operation: "create" | "transfer" | "renew" | "restore";
                 period?: number | undefined;
                 additional_data?: {
                     idn_script?: string | undefined;
@@ -554,7 +554,7 @@ export declare const openProviderRouter: import("@trpc/server").TRPCBuiltRouter<
                 meta: {
                     priced_at: string;
                     domain: string;
-                    operation: "create" | "renew" | "transfer" | "restore";
+                    operation: "create" | "transfer" | "renew" | "restore";
                     period: number;
                 };
             };
@@ -1168,6 +1168,37 @@ export declare const openProviderRouter: import("@trpc/server").TRPCBuiltRouter<
                     limit: number;
                     offset: number;
                 };
+            };
+            meta: object;
+        }>;
+    }>>;
+    /**
+     * Reseller information endpoints
+     */
+    reseller: import("@trpc/server").TRPCBuiltRouter<{
+        ctx: import("../..").Context;
+        meta: object;
+        errorShape: import("@trpc/server").TRPCDefaultErrorShape;
+        transformer: false;
+    }, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
+        getInfo: import("@trpc/server").TRPCQueryProcedure<{
+            input: {
+                with_statistics?: boolean | undefined;
+                with_settings?: boolean | undefined;
+                with_contacts?: boolean | undefined;
+            };
+            output: {
+                success: boolean;
+                data: any;
+            };
+            meta: object;
+        }>;
+        getBalance: import("@trpc/server").TRPCQueryProcedure<{
+            input: void;
+            output: {
+                success: boolean;
+                balance: any;
+                currency: string;
             };
             meta: object;
         }>;

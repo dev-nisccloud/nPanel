@@ -78,6 +78,12 @@ export declare const saveHtmlSchema: z.ZodObject<{
     html: z.ZodString;
     changeSummary: z.ZodOptional<z.ZodString>;
     inPlace: z.ZodOptional<z.ZodBoolean>;
+    clientVersion: z.ZodOptional<z.ZodNumber>;
+}, z.core.$strip>;
+export declare const saveHtmlContentSchema: z.ZodObject<{
+    designId: z.ZodString;
+    html: z.ZodString;
+    clientVersion: z.ZodOptional<z.ZodNumber>;
 }, z.core.$strip>;
 export declare const createBrandKitSchema: z.ZodObject<{
     name: z.ZodString;

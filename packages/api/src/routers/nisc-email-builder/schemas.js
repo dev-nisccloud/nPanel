@@ -65,6 +65,13 @@ export const saveHtmlSchema = z.object({
     changeSummary: z.string().optional(),
     /** When true, updates the current version row instead of creating a new version (auto-save). */
     inPlace: z.boolean().optional(),
+    /** Client version for conflict resolution (optimistic updates). */
+    clientVersion: z.number().optional(),
+});
+export const saveHtmlContentSchema = z.object({
+    designId: z.string(),
+    html: z.string().min(1),
+    clientVersion: z.number().optional(),
 });
 export const createBrandKitSchema = z.object({
     name: z.string().min(1),

@@ -12,6 +12,7 @@ export const agencyMenuKeys = [
     "/agency/tlds",
     "/agency/domain-transfer",
     "/agency/domains-portfolio",
+    "/agency/whois",
     "/agency/hosting",
     "/agency/dedicated-servers",
     "/agency/vps",
@@ -59,6 +60,7 @@ export const agencyMenuKeys = [
     "/agency/invoices",
     "/agency/subscriptions",
     "/agency/quotations",
+    "/agency/nisc-payment-gateway",
     "/agency/kra-etims/sales",
     "/agency/kra-etims/purchases",
     "/agency/kra-etims/products",
@@ -89,6 +91,7 @@ export const agencyMenuKeys = [
 export const agencyMenuKeySchema = z.enum(agencyMenuKeys);
 /** Legacy menu paths remapped after product renames (Nisc Backup, Team → Organization). */
 const LEGACY_MENU_KEY_REMAP = {
+    // Keep literal legacy path for DB rows written before the rename.
     "/agency/backup-restore/jetbackup5": "/agency/backup-restore/nisc-backup",
     "/agency/manage-teams": "/agency/manage-organizations",
 };

@@ -919,7 +919,7 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
      */
     getMyAllResources: import("@trpc/server").TRPCQueryProcedure<{
         input: {
-            type?: "vps" | "vds" | "dedicated" | "all" | undefined;
+            type?: "all" | "vps" | "vds" | "dedicated" | undefined;
             search?: string | undefined;
             facilityCode?: string | undefined;
             limit?: number | undefined;
@@ -932,7 +932,7 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
                 totalMs: number;
                 filteredCount: number;
                 returnedCount: number;
-                typeFilter: "vps" | "vds" | "dedicated" | "all";
+                typeFilter: "all" | "vps" | "vds" | "dedicated";
                 hivelocity: {
                     device: HivelocityRequestTiming;
                     /** Not used for list views; kept for dev timing UI compatibility. */
@@ -1255,9 +1255,9 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
             intervalType: "MONTHLY" | "DAILY" | "WEEKLY" | "HOURLY";
             maxSnapshots: number;
             facilityCode: string;
+            day?: number | undefined;
             hour?: number | undefined;
             minute?: number | undefined;
-            day?: number | undefined;
             weekday?: number | undefined;
             clientId?: number | undefined;
             deviceId?: number | undefined;

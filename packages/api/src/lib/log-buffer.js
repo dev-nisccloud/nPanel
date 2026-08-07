@@ -14,7 +14,7 @@ function redact(obj) {
         return obj.map(redact);
     const result = {};
     for (const [key, value] of Object.entries(obj)) {
-        const isSensitive = SENSITIVE_KEYS.some(sk => key.toLowerCase().includes(sk.toLowerCase()));
+        const isSensitive = SENSITIVE_KEYS.some((sk) => key.toLowerCase().includes(sk.toLowerCase()));
         if (isSensitive) {
             result[key] = "[REDACTED]";
         }

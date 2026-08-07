@@ -452,7 +452,7 @@ export const aiDomainSearchRouter = router({
                     ...(entry.price ? { price: entry.price } : {}),
                     ...(entry.isPremium ? { isPremium: true } : {}),
                     // Derive backend from domain — DomainCheckEntry.via is hidden from agent tools
-                    via: isKenicDomain(entry.domain) ? "kenic" : "openprovider",
+                    via: (isKenicDomain(entry.domain) ? "kenic" : "openprovider"),
                 }));
                 return sortAvailabilityByDisplayOrder(entries);
             }

@@ -115,6 +115,14 @@ export declare class OpenProviderClient {
      */
     resetDomainAuthCode(id: number, params: OpenProviderAuthCodeResetRequest): Promise<OpenProviderAuthCodeResetResponse>;
     /**
+     * Get reseller information including balance
+     */
+    getResellerInfo(params?: {
+        with_statistics?: boolean;
+        with_settings?: boolean;
+        with_contacts?: boolean;
+    }): Promise<any>;
+    /**
      * Delete a domain
      */
     deleteDomain(id: number, params?: {
