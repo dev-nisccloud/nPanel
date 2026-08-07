@@ -1,3 +1,11 @@
+/**
+ * Buffered batch logger for API requests to minimize DB overhead.
+ *
+ * Hardening:
+ * - Skips flush when the Postgres pool is contended (waiting/saturated)
+ * - Exponential backoff after flush failures so we don't hammer a sick DB
+ * - Caps retained logs and prefers keeping ERROR rows when trimming
+ */
 declare class LogBuffer {
     private buffer;
     private readonly maxBufferSize;
@@ -43,3 +51,4 @@ declare class LogBuffer {
     private flush;
 }
 export declare const logBuffer: LogBuffer;
+export {};

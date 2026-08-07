@@ -50,9 +50,18 @@ function requiresExternalProvisioning(serviceType) {
     const resolved = resolveOrderServiceType(serviceType);
     return (resolved === "web_hosting" ||
         resolved === "email_hosting" ||
+        resolved === "wordpress_hosting" ||
+        resolved === "website_hosting" ||
         resolved === "domain_registration" ||
         resolved === "domain_transfer" ||
         HIVELOCITY_SERVICE_TYPES.includes(resolved));
+}
+function isHostingServiceType(serviceType) {
+    const st = serviceType.trim().toLowerCase();
+    return (st === "web_hosting" ||
+        st === "email_hosting" ||
+        st === "wordpress_hosting" ||
+        st === "website_hosting");
 }
 async function isTeamMember(teamId, userId) {
     const [member] = await db
@@ -333,41 +342,44 @@ export const niscServiceOrdersRouter = router({
                     message: `Plan ${item.productPlanId} not found or inactive`,
                 });
             }
-            if (product.serviceType === "web_hosting" ||
-                product.serviceType === "email_hosting") {
-                const domainSubId = item.domainSubscriptionId ?? null;
-                if (!domainSubId) {
+            if (isHostingServiceType(product.serviceType)) {
+                const domainSubId = item.domainSubscriptionId?.trim() || null;
+                const primaryDomain = item.primaryDomain?.trim() || null;
+                // Hosting needs a FQDN for Plesk / primaryDomain  not a separate Domains subscription.
+                if (!domainSubId && !primaryDomain) {
                     throw new TRPCError({
                         code: "BAD_REQUEST",
-                        message: `Hosting item "${product.name}" requires selecting a domain subscription.`,
+                        message: `Hosting item "${product.name}" requires a domain name (primaryDomain).`,
                     });
                 }
-                const domainParts = [
-                    eq(niscClientSubscription.id, domainSubId),
-                    or(ilike(niscProduct.serviceType, "%domain%"), ilike(niscProduct.name, "%domain%")),
-                ];
-                if (input.userId != null) {
-                    domainParts.push(eq(niscClientSubscription.userId, input.userId));
-                }
-                if (input.teamId != null) {
-                    domainParts.push(eq(niscClientSubscription.teamId, input.teamId));
-                }
-                const domainSubRows = await db
-                    .select({
-                    id: niscClientSubscription.id,
-                    primaryDomain: niscClientSubscription.primaryDomain,
-                    name: niscProduct.name,
-                })
-                    .from(niscClientSubscription)
-                    .innerJoin(niscProduct, eq(niscClientSubscription.productId, niscProduct.id))
-                    .where(and(...domainParts))
-                    .limit(1);
-                const domainSub = domainSubRows[0];
-                if (!domainSub) {
-                    throw new TRPCError({
-                        code: "BAD_REQUEST",
-                        message: `Invalid or inaccessible domain subscription for "${product.name}".`,
-                    });
+                if (domainSubId) {
+                    const domainParts = [
+                        eq(niscClientSubscription.id, domainSubId),
+                        or(ilike(niscProduct.serviceType, "%domain%"), ilike(niscProduct.name, "%domain%")),
+                    ];
+                    if (input.userId != null) {
+                        domainParts.push(eq(niscClientSubscription.userId, input.userId));
+                    }
+                    if (input.teamId != null) {
+                        domainParts.push(eq(niscClientSubscription.teamId, input.teamId));
+                    }
+                    const domainSubRows = await db
+                        .select({
+                        id: niscClientSubscription.id,
+                        primaryDomain: niscClientSubscription.primaryDomain,
+                        name: niscProduct.name,
+                    })
+                        .from(niscClientSubscription)
+                        .innerJoin(niscProduct, eq(niscClientSubscription.productId, niscProduct.id))
+                        .where(and(...domainParts))
+                        .limit(1);
+                    const domainSub = domainSubRows[0];
+                    if (!domainSub) {
+                        throw new TRPCError({
+                            code: "BAD_REQUEST",
+                            message: `Invalid or inaccessible domain subscription for "${product.name}".`,
+                        });
+                    }
                 }
             }
             if (product.serviceType === "domain_registration" && !item.primaryDomain) {
@@ -402,6 +414,8 @@ export const niscServiceOrdersRouter = router({
             const p = pRows[0];
             return (p?.serviceType === "web_hosting" ||
                 p?.serviceType === "email_hosting" ||
+                p?.serviceType === "wordpress_hosting" ||
+                p?.serviceType === "website_hosting" ||
                 p?.serviceType === "domain_registration" ||
                 p?.serviceType === "domain_transfer");
         })).then((arr) => arr.some(Boolean));
@@ -913,6 +927,17 @@ export const niscServiceOrdersRouter = router({
             }
             orderUserId = billedFor;
         }
+        const skipInvoiceRequested = input.skipInvoice === true;
+        if (skipInvoiceRequested) {
+            const role = session.user.role;
+            if (!canAssignBilledForUserId(role) && !(await userIsAgencyStaff(userId))) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Only agency users can create orders without invoices.",
+                });
+            }
+        }
+        const skipInvoice = skipInvoiceRequested;
         const payOrderIns = await db
             .insert(niscOrder)
             .values({
@@ -926,6 +951,14 @@ export const niscServiceOrdersRouter = router({
             total,
             currency,
             paymentTransactionId: transaction.id,
+            ...(skipInvoice
+                ? {
+                    metadata: {
+                        skipInvoice: true,
+                        agencyManualCreate: true,
+                    },
+                }
+                : {}),
         })
             .returning();
         const order = payOrderIns[0];
@@ -1002,62 +1035,64 @@ export const niscServiceOrdersRouter = router({
                 });
             }
         }
-        // Fire-and-forget: send "order received" email to the logged-in user
-        void (async () => {
-            try {
-                const orderWithUser = await db.query.niscOrder.findFirst({
-                    where: eq(niscOrder.id, order.id),
-                    with: {
-                        orderItems: {
-                            with: {
-                                product: { columns: { name: true, serviceType: true } },
-                                productPlan: { columns: { name: true } },
+        // Fire-and-forget: send "order received" email (skipped for agency manual provision).
+        if (!skipInvoice) {
+            void (async () => {
+                try {
+                    const orderWithUser = await db.query.niscOrder.findFirst({
+                        where: eq(niscOrder.id, order.id),
+                        with: {
+                            orderItems: {
+                                with: {
+                                    product: { columns: { name: true, serviceType: true } },
+                                    productPlan: { columns: { name: true } },
+                                },
                             },
+                            user: { columns: { id: true, name: true, email: true } },
                         },
-                        user: { columns: { id: true, name: true, email: true } },
-                    },
-                });
-                if (!orderWithUser?.user?.email)
-                    return;
-                const { sendEmail } = await import("../lib/email");
-                const { renderNiscOrderReceivedEmail } = await import("../lib/email-templates");
-                const { buildNiscOrderReceivedEmailItems } = await import("../lib/nisc-order-received-email");
-                const { formatNiscDateTime } = await import("../lib/nisc-datetime-format");
-                const { orderItems, totalAmount } = buildNiscOrderReceivedEmailItems({
-                    createdAt: orderWithUser.createdAt,
-                    currency: orderWithUser.currency,
-                    subtotal: orderWithUser.subtotal,
-                    orderItems: orderWithUser.orderItems.map((i) => ({
-                        itemPrice: i.itemPrice,
-                        itemSubtotal: i.itemSubtotal,
-                        primaryDomain: i.primaryDomain,
-                        billingCycle: i.billingCycle,
-                        description: i.description,
-                        product: {
-                            name: i.product?.name ?? "Service",
-                            serviceType: i.product?.serviceType ?? null,
-                        },
-                        productPlan: i.productPlan,
-                    })),
-                });
-                const html = await renderNiscOrderReceivedEmail({
-                    customerName: orderWithUser.user.name ?? undefined,
-                    orderNumber: orderWithUser.orderNumber,
-                    orderDate: formatNiscDateTime(orderWithUser.createdAt),
-                    totalAmount,
-                    currency: orderWithUser.currency,
-                    orderItems,
-                });
-                await sendEmail({
-                    to: orderWithUser.user.email,
-                    subject: `Order ${orderWithUser.orderNumber} received`,
-                    html,
-                });
-            }
-            catch (e) {
-                console.error("Failed to send order received email:", e);
-            }
-        })();
+                    });
+                    if (!orderWithUser?.user?.email)
+                        return;
+                    const { sendEmail } = await import("../lib/email");
+                    const { renderNiscOrderReceivedEmail } = await import("../lib/email-templates");
+                    const { buildNiscOrderReceivedEmailItems } = await import("../lib/nisc-order-received-email");
+                    const { formatNiscDateTime } = await import("../lib/nisc-datetime-format");
+                    const { orderItems, totalAmount } = buildNiscOrderReceivedEmailItems({
+                        createdAt: orderWithUser.createdAt,
+                        currency: orderWithUser.currency,
+                        subtotal: orderWithUser.subtotal,
+                        orderItems: orderWithUser.orderItems.map((i) => ({
+                            itemPrice: i.itemPrice,
+                            itemSubtotal: i.itemSubtotal,
+                            primaryDomain: i.primaryDomain,
+                            billingCycle: i.billingCycle,
+                            description: i.description,
+                            product: {
+                                name: i.product?.name ?? "Service",
+                                serviceType: i.product?.serviceType ?? null,
+                            },
+                            productPlan: i.productPlan,
+                        })),
+                    });
+                    const html = await renderNiscOrderReceivedEmail({
+                        customerName: orderWithUser.user.name ?? undefined,
+                        orderNumber: orderWithUser.orderNumber,
+                        orderDate: formatNiscDateTime(orderWithUser.createdAt),
+                        totalAmount,
+                        currency: orderWithUser.currency,
+                        orderItems,
+                    });
+                    await sendEmail({
+                        to: orderWithUser.user.email,
+                        subject: `Order ${orderWithUser.orderNumber} received`,
+                        html,
+                    });
+                }
+                catch (e) {
+                    console.error("Failed to send order received email:", e);
+                }
+            })();
+        }
         return db.query.niscOrder.findFirst({
             where: eq(niscOrder.id, order.id),
             with: {
@@ -1136,5 +1171,65 @@ export const niscServiceOrdersRouter = router({
             });
         }
         return { success: true, niscOrderId: order.id };
+    }),
+    /**
+     * Create order from a SUCCESS Jenga card payment using metadata stored at initiate time.
+     * Used by the post-redirect return page so the closed dialog payload is not required.
+     */
+    createFromJengaPayment: protectedProcedure
+        .input(z.object({ orderReference: z.string().min(8).max(32) }))
+        .mutation(async ({ ctx, input }) => {
+        const session = ctx.session;
+        if (!session?.user?.id) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You must be logged in to create an order from payment",
+            });
+        }
+        const userId = session.user.id;
+        const txRows = await db
+            .select()
+            .from(paymentTransaction)
+            .where(and(eq(paymentTransaction.checkoutRequestId, input.orderReference), eq(paymentTransaction.gateway, "JENGA"), eq(paymentTransaction.userId, userId)))
+            .limit(1);
+        const transaction = txRows[0];
+        if (!transaction) {
+            throw new TRPCError({
+                code: "NOT_FOUND",
+                message: "Payment not found",
+            });
+        }
+        if (transaction.status !== "SUCCESS") {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: transaction.status === "FAILED"
+                    ? "Payment failed. Please try again."
+                    : "Payment not yet confirmed. Wait a moment and try again.",
+            });
+        }
+        const metadata = (transaction.metadata ?? {});
+        const parsed = createFromPaymentInputSchema.safeParse({
+            checkoutRequestId: input.orderReference,
+            items: metadata.items,
+            currency: metadata.currency ?? transaction.currency ?? "KES",
+            teamId: metadata.teamId,
+            billedForUserId: metadata.billedForUserId,
+            skipInvoice: metadata.skipInvoice,
+        });
+        if (!parsed.success) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Order details were not saved with this payment. Contact support with your reference.",
+            });
+        }
+        const createCaller = ctx.createCaller;
+        if (!createCaller) {
+            throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message: "Order creation is temporarily unavailable. Please try again.",
+            });
+        }
+        const caller = createCaller(ctx);
+        return caller.niscServiceOrders.createFromPayment(parsed.data);
     }),
 });

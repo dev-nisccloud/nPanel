@@ -185,7 +185,7 @@ export function SeoSearchConsoleView({ sites, teamSlug }: SeoSearchConsoleViewPr
             <div className="flex flex-col items-center justify-center py-24 text-center max-w-2xl mx-auto px-4">
                 <p className="text-muted-foreground text-sm">
                     {teamSlug
-                        ? "No Search Console properties on your team’s active SEO subscriptions yet. One SEO plan covers both Search Console and GA4-if you also use GA4, check that tab."
+                        ? "No Search Console properties on your organization’s active SEO subscriptions yet. One SEO plan covers both Search Console and GA4-if you also use GA4, check that tab."
                         : "No sites available. Please connect Google Search Console."}
                 </p>
             </div>

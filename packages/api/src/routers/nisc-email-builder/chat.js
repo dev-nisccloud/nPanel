@@ -11,7 +11,7 @@ import { getRevisionUndoRedoState, popRevisionRedoSnapshot, popRevisionUndoSnaps
 import { applyRevisionHtmlToDesign } from "../../lib/nisc-email-builder/revision-apply";
 import { buildNebSessionHistoryContext } from "../../lib/nisc-email-builder/session-history";
 import { protectedProcedure, router } from "../../trpc";
-import { assertDesignAccess } from "./access";
+import { assertDesignAccess, assertDesignMutateAccess } from "./access";
 import { approveBuildSchema, designIdSchema, generateVariationSchema, retryHtmlBuildSchema, selectVariationSchema, sendChatSchema, startBuildSchema, } from "./schemas";
 function isBusy(design) {
     return design.aiStatus === "GENERATING" || design.aiStatus === "HYDRATING_IMAGES";
@@ -41,7 +41,7 @@ export const nebChatRouter = router({
         const userId = ctx.session?.user?.id;
         if (!userId)
             throw new TRPCError({ code: "UNAUTHORIZED" });
-        const design = await assertDesignAccess({
+        const design = await assertDesignMutateAccess({
             designId: input.designId,
             userId,
             userRole: ctx.session?.user?.role,
@@ -153,7 +153,7 @@ export const nebChatRouter = router({
         const userId = ctx.session?.user?.id;
         if (!userId)
             throw new TRPCError({ code: "UNAUTHORIZED" });
-        const design = await assertDesignAccess({
+        const design = await assertDesignMutateAccess({
             designId: input.designId,
             userId,
             userRole: ctx.session?.user?.role,
@@ -212,7 +212,7 @@ export const nebChatRouter = router({
         const userId = ctx.session?.user?.id;
         if (!userId)
             throw new TRPCError({ code: "UNAUTHORIZED" });
-        const design = await assertDesignAccess({
+        const design = await assertDesignMutateAccess({
             designId: input.designId,
             userId,
             userRole: ctx.session?.user?.role,
@@ -270,7 +270,7 @@ export const nebChatRouter = router({
         const userId = ctx.session?.user?.id;
         if (!userId)
             throw new TRPCError({ code: "UNAUTHORIZED" });
-        const design = await assertDesignAccess({
+        const design = await assertDesignMutateAccess({
             designId: input.designId,
             userId,
             userRole: ctx.session?.user?.role,
@@ -386,7 +386,7 @@ export const nebChatRouter = router({
         const userId = ctx.session?.user?.id;
         if (!userId)
             throw new TRPCError({ code: "UNAUTHORIZED" });
-        const design = await assertDesignAccess({
+        const design = await assertDesignMutateAccess({
             designId: input.designId,
             userId,
             userRole: ctx.session?.user?.role,
@@ -414,7 +414,7 @@ export const nebChatRouter = router({
         const userId = ctx.session?.user?.id;
         if (!userId)
             throw new TRPCError({ code: "UNAUTHORIZED" });
-        const design = await assertDesignAccess({
+        const design = await assertDesignMutateAccess({
             designId: input.designId,
             userId,
             userRole: ctx.session?.user?.role,
@@ -443,7 +443,7 @@ export const nebChatRouter = router({
         const userId = ctx.session?.user?.id;
         if (!userId)
             throw new TRPCError({ code: "UNAUTHORIZED" });
-        const design = await assertDesignAccess({
+        const design = await assertDesignMutateAccess({
             designId: input.designId,
             userId,
             userRole: ctx.session?.user?.role,
@@ -490,7 +490,7 @@ export const nebChatRouter = router({
         const userId = ctx.session?.user?.id;
         if (!userId)
             throw new TRPCError({ code: "UNAUTHORIZED" });
-        const design = await assertDesignAccess({
+        const design = await assertDesignMutateAccess({
             designId: input.designId,
             userId,
             userRole: ctx.session?.user?.role,

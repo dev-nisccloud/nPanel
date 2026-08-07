@@ -1,46 +1,91 @@
 import { request } from 'undici';
 import { getRedisClient } from './redis';
+/** Thrown when KRA returns a non-success business resultCd. Carries the full response body. */
+export class EtimsApiError extends Error {
+    resultCd;
+    resultMsg;
+    response;
+    constructor(endpointKey, resultCd, resultMsg, response) {
+        super(`eTIMS API (${endpointKey}) resultCd=${resultCd}: ${resultMsg}`);
+        this.name = 'EtimsApiError';
+        this.resultCd = resultCd;
+        this.resultMsg = resultMsg;
+        this.response = response;
+    }
+}
 // ─────────────────────────────────────────────
 // Constants
 // ─────────────────────────────────────────────
 /**
- * All valid KRA OSCU API endpoints per the official specification.
- * Keys are human-friendly names; values are the exact URL paths.
+ * Classic OSCU sandbox/prod host paths (etims-api*.kra.go.ke/etims-api).
+ * This is the shape that worked before commit 2ffc841e.
  */
-const ENDPOINTS = {
-    // Initialization
+const LEGACY_ENDPOINTS = {
     selectInitOsdcInfo: '/selectInitOsdcInfo',
-    // Code Lists
     selectCodeList: '/selectCodeList',
-    // Notices
     selectNoticeList: '/selectNoticeList',
-    // Customer
+    selectNotices: '/selectNoticeList',
     selectCustomer: '/selectCustomer',
     selectCustomerList: '/selectCustomerList',
-    // Branches
+    selectTaxPayerInfo: '/selectCustomer',
     selectBhfList: '/selectBhfList',
     saveBhfCustomer: '/saveBhfCustomer',
     saveBhfUser: '/saveBhfUser',
     saveBhfInsurance: '/saveBhfInsurance',
-    // Items
     selectItemClsList: '/selectItemClsList',
     selectItemList: '/selectItemList',
     saveItem: '/saveItem',
     saveItemComposition: '/saveItemComposition',
-    // Imported Items
     selectImportItemList: '/selectImportItemList',
     updateImportItem: '/updateImportItem',
-    // Sales
     saveTrnsSalesOsdc: '/saveTrnsSalesOsdc',
     selectTrnsSalesList: '/selectTrnsSalesList',
-    // Purchases
+    selectInvoiceDetails: '/selectInvoiceDetails',
     selectTrnsPurchaseSalesList: '/selectTrnsPurchaseSalesList',
     insertTrnsPurchase: '/insertTrnsPurchase',
-    // Stock
     selectStockMoveList: '/selectStockMoveList',
     insertStockIO: '/insertStockIO',
     saveStockMaster: '/saveStockMaster',
 };
+/**
+ * KRA Developer Platform (Apigee / etims-oscu) endpoint paths.
+ * Matches Postman collection + docs/kra-etims-api.md.
+ */
+const DEV_PLATFORM_ENDPOINTS = {
+    selectInitOsdcInfo: '/initialize',
+    selectCodeList: '/selectCodeList',
+    selectNoticeList: '/selectNoticeList',
+    selectNotices: '/selectNotices',
+    selectCustomer: '/customerPinInfo',
+    selectCustomerList: '/selectCustomerList',
+    selectTaxPayerInfo: '/selectTaxpayerInfo',
+    selectBhfList: '/branchList',
+    saveBhfCustomer: '/branchSendCustomerInfo',
+    saveBhfUser: '/branchUserAccount',
+    saveBhfInsurance: '/branchInsuranceInfo',
+    selectItemClsList: '/selectItemClass',
+    selectItemList: '/itemInfo',
+    saveItem: '/saveItem',
+    saveItemComposition: '/saveItemComposition',
+    selectImportItemList: '/importedItemInfo',
+    updateImportItem: '/importedItemConvertedInfo',
+    saveTrnsSalesOsdc: '/sendSalesTransaction',
+    selectTrnsSalesList: '/selectSalesTransactions',
+    selectInvoiceDetails: '/selectInvoiceDetail',
+    selectTrnsPurchaseSalesList: '/getPurchaseTransactionInfo',
+    insertTrnsPurchase: '/sendPurchaseTransactionInfo',
+    selectStockMoveList: '/selectStockMoveLists',
+    insertStockIO: '/insert/stockIO',
+    saveStockMaster: '/save/stockMaster',
+};
+function isDeveloperPlatformHost(baseUrl) {
+    return /etims-oscu/i.test(baseUrl);
+}
+function resolveEndpoints(baseUrl) {
+    return isDeveloperPlatformHost(baseUrl)
+        ? DEV_PLATFORM_ENDPOINTS
+        : LEGACY_ENDPOINTS;
+}
 const REDIS_TOKEN_KEY = 'etims:oauth_token';
 const TOKEN_BUFFER_SECS = 60; // Refresh 60s before actual expiry
 // ─────────────────────────────────────────────
@@ -141,25 +186,42 @@ export class EtimsOscuClient {
     // ───────────────────────
     // HTTP Core
     // ───────────────────────
+    endpointPath(endpointKey) {
+        return resolveEndpoints(this.config.baseUrl)[endpointKey];
+    }
     buildUrl(endpointKey) {
-        const path = ENDPOINTS[endpointKey];
-        return `${this.config.baseUrl.trim().replace(/\/+$/, '')}${path}`;
+        return `${this.config.baseUrl.trim().replace(/\/+$/, '')}${this.endpointPath(endpointKey)}`;
     }
     /**
      * Build request headers.
-     * Initialization only needs Authorization.
-     * All other endpoints also need tin + bhfId + cmcKey.
+     * Legacy host: Authorization + tin/bhfId(/cmcKey)  apigee optional.
+     * Developer Platform: also sends apigee_app_id (required for saveItem / session scoring).
      */
     async buildHeaders(endpointKey, oscu) {
         const token = await this.getToken();
+        const onDevPlatform = isDeveloperPlatformHost(this.config.baseUrl);
+        const explicitApigee = this.config.apigeeAppId?.trim();
         const base = {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
             'Authorization': `Bearer ${token}`,
         };
+        // Only force apigee on Developer Platform. Legacy worked without it (pre-2ffc841e).
+        if (onDevPlatform) {
+            base.apigee_app_id = (explicitApigee || this.config.consumerKey).trim();
+        }
+        else if (explicitApigee) {
+            base.apigee_app_id = explicitApigee;
+        }
         if (endpointKey === 'selectInitOsdcInfo') {
-            // Only auth header for initialization
-            return base;
+            if (!oscu?.tin || !oscu?.bhfId) {
+                throw new Error('tin and bhfId are required for device initialization');
+            }
+            return {
+                ...base,
+                tin: oscu.tin,
+                bhfId: oscu.bhfId,
+            };
         }
         if (!oscu)
             throw new Error(`OSCU headers (tin/bhfId/cmcKey) required for endpoint: ${endpointKey}`);
@@ -190,7 +252,12 @@ export class EtimsOscuClient {
         }
         return value;
     }
-    async post(endpointKey, body, oscu) {
+    /**
+     * Call a KRA endpoint and return the exact response as received.
+     * Does not unwrap responseBody, does not throw on business resultCd.
+     * Used for certification testing and response typing.
+     */
+    async requestRaw(endpointKey, body, oscu) {
         const url = this.buildUrl(endpointKey);
         const headers = await this.buildHeaders(endpointKey, oscu);
         const payload = this.omitNullish(body);
@@ -203,11 +270,9 @@ export class EtimsOscuClient {
             return { statusCode: res.statusCode, text: await res.body.text() };
         };
         let { statusCode, text } = await doRequest();
-        // Auto-retry once on 401 (expired token)
         if (statusCode === 401) {
             await this.clearToken();
             await this.getToken(true);
-            // Rebuild headers with new token
             const freshHeaders = await this.buildHeaders(endpointKey, oscu);
             const retryRes = await request(url, {
                 method: 'POST',
@@ -217,24 +282,46 @@ export class EtimsOscuClient {
             statusCode = retryRes.statusCode;
             text = await retryRes.body.text();
         }
-        let data;
+        let bodyJson = null;
         try {
-            data = JSON.parse(text);
+            bodyJson = JSON.parse(text);
         }
         catch {
-            throw new Error(`eTIMS API (${endpointKey}): invalid JSON response (${statusCode}): ${text}`);
+            bodyJson = null;
+        }
+        return {
+            endpointKey,
+            kraPath: this.endpointPath(endpointKey),
+            url,
+            statusCode,
+            bodyText: text,
+            bodyJson,
+        };
+    }
+    async post(endpointKey, body, oscu) {
+        const raw = await this.requestRaw(endpointKey, body, oscu);
+        const { statusCode, bodyText, bodyJson } = raw;
+        if (bodyJson == null || typeof bodyJson !== 'object') {
+            throw new Error(`eTIMS API (${endpointKey}): invalid JSON response (${statusCode}): ${bodyText}`);
+        }
+        let data = bodyJson;
+        // Developer Platform often wraps the OSCU body in responseBody
+        const wrapped = data.responseBody;
+        if (wrapped && typeof wrapped === 'object' && !Array.isArray(wrapped)) {
+            data = wrapped;
         }
         if (statusCode !== 200) {
             const msg = data.resultMsg
                 ?? data.errorMessage
-                ?? text;
+                ?? data.responseHeader?.customerMessage
+                ?? bodyText;
             throw new Error(`eTIMS API (${endpointKey}) HTTP ${statusCode}: ${msg}`);
         }
         // Validate KRA business result code
         const resultCd = data.resultCd;
         const resultMsg = data.resultMsg ?? 'Unknown eTIMS error';
         if (resultCd && resultCd !== '000' && resultCd !== '001') {
-            throw new Error(`eTIMS API (${endpointKey}) resultCd=${resultCd}: ${resultMsg}`);
+            throw new EtimsApiError(endpointKey, resultCd, resultMsg, data);
         }
         return data;
     }
@@ -242,17 +329,33 @@ export class EtimsOscuClient {
     // Initialization
     // ───────────────────────
     async selectInitOsdcInfo(payload) {
-        // No OSCU headers for init - only Authorization
-        return this.post('selectInitOsdcInfo', payload);
+        // Init: Authorization + apigee_app_id + tin + bhfId (cmcKey not yet available)
+        return this.post('selectInitOsdcInfo', payload, { tin: payload.tin, bhfId: payload.bhfId, cmcKey: '' });
+    }
+    /**
+     * Standard sync/search body for Developer Platform list endpoints.
+     * tin + bhfId (+ cmcKey) are required in the JSON body, not only headers.
+     */
+    lastReqBody(oscu, lastReqDt) {
+        return {
+            tin: oscu.tin,
+            bhfId: oscu.bhfId,
+            cmcKey: oscu.cmcKey,
+            lastReqDt,
+        };
     }
     // ───────────────────────
     // Code Lists
     // ───────────────────────
     async selectCodeList(oscu, lastReqDt) {
-        return this.post('selectCodeList', { lastReqDt }, oscu);
+        return this.post('selectCodeList', this.lastReqBody(oscu, lastReqDt), oscu);
     }
     async selectNoticeList(oscu, lastReqDt) {
-        return this.post('selectNoticeList', { lastReqDt }, oscu);
+        return this.post('selectNoticeList', this.lastReqBody(oscu, lastReqDt), oscu);
+    }
+    /** Dashboard test case path: /selectNotices */
+    async selectNotices(oscu, lastReqDt) {
+        return this.post('selectNotices', this.lastReqBody(oscu, lastReqDt), oscu);
     }
     // ───────────────────────
     // Customer
@@ -268,13 +371,26 @@ export class EtimsOscuClient {
     }
     /** List customers registered on this branch via saveBhfCustomer. */
     async selectCustomerList(oscu, lastReqDt) {
-        return this.post('selectCustomerList', { lastReqDt }, oscu);
+        return this.post('selectCustomerList', this.lastReqBody(oscu, lastReqDt), oscu);
+    }
+    async selectTaxPayerInfo(oscu, lastReqDt) {
+        // Classic OSCU has no /selectTaxPayerInfo  look up own PIN via /selectCustomer.
+        // Developer Platform keeps /selectTaxpayerInfo + lastReqDt.
+        if (isDeveloperPlatformHost(this.config.baseUrl)) {
+            return this.post('selectTaxPayerInfo', this.lastReqBody(oscu, lastReqDt), oscu);
+        }
+        return this.post('selectTaxPayerInfo', {
+            tin: oscu.tin,
+            bhfId: oscu.bhfId,
+            cmcKey: oscu.cmcKey,
+            custmTin: oscu.tin,
+        }, oscu);
     }
     // ───────────────────────
     // Branches
     // ───────────────────────
     async selectBhfList(oscu, lastReqDt) {
-        return this.post('selectBhfList', { lastReqDt }, oscu);
+        return this.post('selectBhfList', this.lastReqBody(oscu, lastReqDt), oscu);
     }
     async saveBhfCustomer(oscu, customerData) {
         return this.post('saveBhfCustomer', {
@@ -285,32 +401,55 @@ export class EtimsOscuClient {
         }, oscu);
     }
     async saveBhfUser(oscu, userData) {
-        return this.post('saveBhfUser', userData, oscu);
+        return this.post('saveBhfUser', {
+            tin: oscu.tin,
+            bhfId: oscu.bhfId,
+            cmcKey: oscu.cmcKey,
+            ...userData,
+        }, oscu);
+    }
+    async saveBhfInsurance(oscu, insurance) {
+        return this.post('saveBhfInsurance', {
+            tin: oscu.tin,
+            bhfId: oscu.bhfId,
+            cmcKey: oscu.cmcKey,
+            ...insurance,
+        }, oscu);
     }
     // ───────────────────────
     // Items
     // ───────────────────────
     async selectItemClsList(oscu, lastReqDt) {
-        return this.post('selectItemClsList', { lastReqDt }, oscu);
+        return this.post('selectItemClsList', this.lastReqBody(oscu, lastReqDt), oscu);
     }
     async selectItemList(oscu, lastReqDt) {
-        return this.post('selectItemList', { lastReqDt }, oscu);
+        return this.post('selectItemList', this.lastReqBody(oscu, lastReqDt), oscu);
     }
     async saveItem(oscu, item) {
         // tin + bhfId must also be in the request body for KRA session tracking
-        return this.post('saveItem', { tin: oscu.tin, bhfId: oscu.bhfId, ...item }, oscu);
+        return this.post('saveItem', { tin: oscu.tin, bhfId: oscu.bhfId, cmcKey: oscu.cmcKey, ...item }, oscu);
     }
     async saveItemComposition(oscu, composition) {
-        return this.post('saveItemComposition', { tin: oscu.tin, bhfId: oscu.bhfId, ...composition }, oscu);
+        return this.post('saveItemComposition', {
+            tin: oscu.tin,
+            bhfId: oscu.bhfId,
+            cmcKey: oscu.cmcKey,
+            ...composition,
+        }, oscu);
     }
     // ───────────────────────
     // Imported Items
     // ───────────────────────
     async selectImportItemList(oscu, lastReqDt) {
-        return this.post('selectImportItemList', { lastReqDt }, oscu);
+        return this.post('selectImportItemList', this.lastReqBody(oscu, lastReqDt), oscu);
     }
     async updateImportItem(oscu, item) {
-        return this.post('updateImportItem', item, oscu);
+        return this.post('updateImportItem', {
+            tin: oscu.tin,
+            bhfId: oscu.bhfId,
+            cmcKey: oscu.cmcKey,
+            ...item,
+        }, oscu);
     }
     // ───────────────────────
     // Sales
@@ -325,28 +464,51 @@ export class EtimsOscuClient {
     }
     /** List sales transactions submitted by this taxpayer/branch. */
     async selectTrnsSalesList(oscu, lastReqDt) {
-        return this.post('selectTrnsSalesList', { lastReqDt }, oscu);
+        return this.post('selectTrnsSalesList', this.lastReqBody(oscu, lastReqDt), oscu);
+    }
+    async selectInvoiceDetails(oscu, invcNo) {
+        return this.post('selectInvoiceDetails', {
+            tin: oscu.tin,
+            bhfId: oscu.bhfId,
+            cmcKey: oscu.cmcKey,
+            invcNo,
+        }, oscu);
     }
     // ───────────────────────
     // Purchases
     // ───────────────────────
     async selectTrnsPurchaseSalesList(oscu, lastReqDt) {
-        return this.post('selectTrnsPurchaseSalesList', { lastReqDt }, oscu);
+        return this.post('selectTrnsPurchaseSalesList', this.lastReqBody(oscu, lastReqDt), oscu);
     }
     async insertTrnsPurchase(oscu, purchase) {
-        return this.post('insertTrnsPurchase', purchase, oscu);
+        return this.post('insertTrnsPurchase', {
+            tin: oscu.tin,
+            bhfId: oscu.bhfId,
+            cmcKey: oscu.cmcKey,
+            ...purchase,
+        }, oscu);
     }
     // ───────────────────────
     // Stock
     // ───────────────────────
     async selectStockMoveList(oscu, lastReqDt) {
-        return this.post('selectStockMoveList', { lastReqDt }, oscu);
+        return this.post('selectStockMoveList', this.lastReqBody(oscu, lastReqDt), oscu);
     }
     async insertStockIO(oscu, stockData) {
-        return this.post('insertStockIO', stockData, oscu);
+        return this.post('insertStockIO', {
+            tin: oscu.tin,
+            bhfId: oscu.bhfId,
+            cmcKey: oscu.cmcKey,
+            ...stockData,
+        }, oscu);
     }
     async saveStockMaster(oscu, stockMaster) {
-        return this.post('saveStockMaster', stockMaster, oscu);
+        return this.post('saveStockMaster', {
+            tin: oscu.tin,
+            bhfId: oscu.bhfId,
+            cmcKey: oscu.cmcKey,
+            ...stockMaster,
+        }, oscu);
     }
 }
 // ─────────────────────────────────────────────
@@ -362,12 +524,8 @@ export function getEtimsClient(config) {
         _singleton = new EtimsOscuClient(config);
     }
     else {
-        // Update the config in case env vars changed (e.g. sandbox → prod switch)
-        // We do this by assigning the new config; the token cache is only invalidated
-        // if the tokenUrl changed (different env), since the old token won't be valid.
-        const prevUrl = _singleton.config.tokenUrl;
-        if (prevUrl !== config.tokenUrl) {
-            // Environment changed - kill the old singleton and the cached token
+        const prev = _singleton.config;
+        if (prev.tokenUrl !== config.tokenUrl || prev.baseUrl !== config.baseUrl) {
             _singleton.clearToken().catch(() => undefined);
             _singleton = new EtimsOscuClient(config);
         }

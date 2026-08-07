@@ -39,7 +39,14 @@ async function generateNextInvoiceNumber(tx) {
 // ============================================================================
 // ZOD SCHEMAS - Independent from database schema
 // ============================================================================
-const billingCycleSchema = z.enum(["MONTHLY", "YEARLY", "BIENNIALLY", "CUSTOM"]);
+const billingCycleSchema = z.enum([
+    "MONTHLY",
+    "YEARLY",
+    "BIENNIALLY",
+    "TRIENNIALLY",
+    "QUADRENNIALLY",
+    "CUSTOM",
+]);
 const orderItemStatusSchema = z.enum(["PENDING", "PROVISIONING", "PROVISIONED", "FAILED", "SKIPPED"]);
 const orderTypeSchema = z.enum([
     "DOMAIN_REGISTRATION",
@@ -248,6 +255,8 @@ function getBillingCycleMultiplier(planCycle, orderCycle) {
         MONTHLY: 1,
         YEARLY: 12,
         BIENNIALLY: 24,
+        TRIENNIALLY: 36,
+        QUADRENNIALLY: 48,
         CUSTOM: 1, // Default to 1 for custom
     };
     const planMonths = cycleMonths[planCycle] || 1;
@@ -263,6 +272,8 @@ function isValidBillingCycle(planCycle, orderCycle) {
         MONTHLY: 1,
         YEARLY: 12,
         BIENNIALLY: 24,
+        TRIENNIALLY: 36,
+        QUADRENNIALLY: 48,
         CUSTOM: 1, // Custom needs special handling
     };
     const planMonths = cycleMonths[planCycle] || 1;

@@ -103,7 +103,7 @@ export default function TeamLayout() {
   }
 
   if (!slug) {
-    return <Navigate to="/create-team" replace />;
+    return <Navigate to="/create-organization" replace />;
   }
 
   if (teamQuery.isLoading) {
@@ -115,12 +115,12 @@ export default function TeamLayout() {
   }
 
   if (teamQuery.isError) {
-    return <Navigate to="/create-team" replace />;
+    return <Navigate to="/create-organization" replace />;
   }
 
   const teamRow = teamQuery.data;
   if (!teamRow) {
-    return <Navigate to="/create-team" replace />;
+    return <Navigate to="/create-organization" replace />;
   }
 
   return (

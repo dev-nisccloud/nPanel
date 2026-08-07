@@ -1,7 +1,7 @@
 import { z } from "zod";
 export declare const backgroundRemoverStatusSchema: z.ZodEnum<{
-    PROCESSING: "PROCESSING";
     QUEUED: "QUEUED";
+    PROCESSING: "PROCESSING";
     COMPLETED: "COMPLETED";
     FAILED: "FAILED";
 }>;
@@ -17,8 +17,8 @@ export declare const startBackgroundRemovalSchema: z.ZodObject<{
 export declare const startBackgroundRemovalResponseSchema: z.ZodObject<{
     generationId: z.ZodString;
     status: z.ZodEnum<{
-        PROCESSING: "PROCESSING";
         QUEUED: "QUEUED";
+        PROCESSING: "PROCESSING";
         COMPLETED: "COMPLETED";
         FAILED: "FAILED";
     }>;
@@ -67,8 +67,8 @@ export declare const backgroundRemoverGenerationSchema: z.ZodObject<{
     modelId: z.ZodString;
     modelName: z.ZodNullable<z.ZodString>;
     status: z.ZodEnum<{
-        PROCESSING: "PROCESSING";
         QUEUED: "QUEUED";
+        PROCESSING: "PROCESSING";
         COMPLETED: "COMPLETED";
         FAILED: "FAILED";
     }>;
@@ -99,8 +99,8 @@ export declare const getBackgroundRemovalsResponseSchema: z.ZodObject<{
         modelId: z.ZodString;
         modelName: z.ZodNullable<z.ZodString>;
         status: z.ZodEnum<{
-            PROCESSING: "PROCESSING";
             QUEUED: "QUEUED";
+            PROCESSING: "PROCESSING";
             COMPLETED: "COMPLETED";
             FAILED: "FAILED";
         }>;

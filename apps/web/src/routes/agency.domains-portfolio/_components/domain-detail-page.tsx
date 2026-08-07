@@ -270,7 +270,7 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
                     <TooltipContent side="left" className="max-w-xs">
                       {hasExistingSubscription
                         ? "This domain already has a connected subscription. To connect you need to first suspend the existing to connect it."
-                        : "Create a Nisc subscription for this domain and link it to a user or team."}
+                        : "Create a Nisc subscription for this domain and link it to a user or organization."}
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -278,7 +278,7 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
               {kenicNeedsTeamLink && (
                 <DropdownMenuItem onClick={() => setLinkToTeamDialogOpen(true)}>
                   <Link2 className="h-4 w-4 mr-2" />
-                  Link to team
+                  Link to organization
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>

@@ -32,6 +32,38 @@ export declare const niscInvoicesRouter: import("@trpc/server").TRPCBuiltRouter<
         }[];
         meta: object;
     }>;
+    statusSummaryWithKra: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            from: unknown;
+            to: unknown;
+            granularity?: "MONTHLY" | "YEARLY" | "DAILY" | "WEEKLY" | "QUARTERLY" | undefined;
+            teamIds?: string[] | undefined;
+            productIds?: string[] | undefined;
+            productCategories?: ("AI" | "CUSTOM" | "CLOUD" | "MARKETING" | "CONSULTING")[] | undefined;
+            serviceTypes?: string[] | undefined;
+            billingCycles?: ("MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM")[] | undefined;
+            currency?: string | undefined;
+            invoiceStatuses?: string[] | undefined;
+            subscriptionStatuses?: string[] | undefined;
+            orderStatuses?: string[] | undefined;
+            quotationStatuses?: string[] | undefined;
+            page?: number | undefined;
+            pageSize?: number | undefined;
+            sortBy?: string | undefined;
+            sortDir?: "ASC" | "DESC" | undefined;
+        };
+        output: {
+            total: number;
+            paid: number;
+            unpaid: number;
+            overdue: number;
+            kraSynced: number;
+            kraNotSynced: number;
+            kraInFlight: number;
+            kraFailed: number;
+        };
+        meta: object;
+    }>;
     list: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             from: unknown;

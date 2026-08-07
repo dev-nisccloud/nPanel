@@ -335,6 +335,8 @@ export const clientsRouter = router({
                 email: input.email,
                 password: input.password,
                 name: input.name,
+                // Agency-created accounts bypass the public sign-up form; terms are implied.
+                acceptedTermsAndConditions: true,
             },
         });
         if (!signupResult) {
@@ -369,6 +371,9 @@ export const clientsRouter = router({
             ...(input.role && input.role !== updatedUser.role ? { role: input.role } : {}),
             ...pickEmailPreferenceUpdates(input),
             ...pickAdminFieldUpdates(input),
+            ...(input.acceptedTermsAndConditions === undefined
+                ? { acceptedTermsAndConditions: true }
+                : {}),
         };
         if (Object.keys(extraFieldUpdates).length > 0) {
             await db

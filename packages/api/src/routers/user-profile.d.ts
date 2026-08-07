@@ -15,7 +15,7 @@ export declare const userProfileRouter: import("@trpc/server").TRPCBuiltRouter<{
             email: string;
             emailVerified: boolean;
             image: string | null;
-            role: "CUSTOMER" | "AGENCY_USER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN";
+            role: "CUSTOMER" | "AGENCY_SUPER_ADMIN" | "AGENCY_ADMIN" | "AGENCY_USER";
             status: "ACTIVE" | "SUSPENDED" | "BANNED" | "DEACTIVATED";
             lastLoginAt: Date | null;
             createdAt: Date;
@@ -85,13 +85,25 @@ export declare const userProfileRouter: import("@trpc/server").TRPCBuiltRouter<{
         meta: object;
     }>;
     /**
+     * Revoke all sessions for the current user, including the current session.
+     */
+    revokeAllSessions: import("@trpc/server").TRPCMutationProcedure<{
+        input: void;
+        output: {
+            success: boolean;
+            revokedCount: number;
+            message?: string | undefined;
+        };
+        meta: object;
+    }>;
+    /**
      * Get user information by ID with optional field selection
      * This is useful for cases where you only need specific user fields
      */
     getUserById: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             userId: string;
-            fields?: ("id" | "name" | "createdAt" | "updatedAt" | "status" | "email" | "emailVerified" | "role" | "lastLoginAt" | "image" | "profile")[] | undefined;
+            fields?: ("id" | "name" | "email" | "emailVerified" | "role" | "status" | "lastLoginAt" | "image" | "createdAt" | "updatedAt" | "profile")[] | undefined;
         };
         output: Record<string, unknown>;
         meta: object;
@@ -103,7 +115,7 @@ export declare const userProfileRouter: import("@trpc/server").TRPCBuiltRouter<{
     getUsersByIds: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             userIds: string[];
-            fields?: ("id" | "name" | "createdAt" | "updatedAt" | "status" | "email" | "emailVerified" | "role" | "lastLoginAt" | "image" | "profile")[] | undefined;
+            fields?: ("id" | "name" | "email" | "emailVerified" | "role" | "status" | "lastLoginAt" | "image" | "createdAt" | "updatedAt" | "profile")[] | undefined;
         };
         output: Record<string, any>;
         meta: object;

@@ -1,6 +1,6 @@
 import { db } from "@npanel/db";
 import * as authSchema from "@npanel/db/schema/auth";
-import { userActivityLog, userMfaSession, userMfaSettings } from "@npanel/db/schema/auth-extras";
+import { userActivityLog } from "@npanel/db/schema/auth-extras";
 import { notification, notificationActivityLog, } from "@npanel/db/schema/notifications";
 import { session, user } from "@npanel/db/schema/auth";
 import { env } from "@npanel/env/server";
@@ -9,13 +9,26 @@ import { sendAuthEmail } from "./transactional-email";
 import { completeSignupSideEffects, isGoogleOAuthCallbackPath, isNewGoogleRegistration, sendGoogleSignupWelcomeEmail, } from "./signup-side-effects";
 import { applyStandardSessionExpiryByToken, validateAndRefreshIdleSessionById, } from "./session-enforcement";
 import { invalidateSessionCache } from "./session-cache";
+import { ensurePendingMfaSession, handleIpAnomaly, maybeNotifyNewSignIn, } from "./session-security";
 import { readCachedUserEnrichment, writeCachedUserEnrichment, } from "./user-enrich-cache";
 import { parseSignupTermsCookie, recordTermsAcceptance, rollbackSignupWithoutTerms, signupRequestAcceptsTerms, } from "./signup-terms";
 import { STANDARD_SESSION_MAX_AGE_SEC, SESSION_TOUCH_THROTTLE_MS } from "./session-policy";
+import { getRequestBrowserOrigin, isAllowedStorefrontBrowserRequest, isLandingPageOrigin, resolveLandingPageOrigins, } from "./landing-page-origins";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
-import { and, eq } from "@npanel/db";
+import { admin } from "better-auth/plugins";
+import { eq } from "@npanel/db";
+import { adminAccessRoles, adminAcController, agencyAdminRoles, IMPERSONATION_SESSION_DURATION_SEC, } from "./admin-access";
+import { isImpersonatedSession } from "./impersonation";
+function resolveRequestIp(headers) {
+    if (!headers)
+        return null;
+    return (headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+        headers.get("x-real-ip")?.trim() ||
+        headers.get("cf-connecting-ip")?.trim() ||
+        null);
+}
 const resolvedTrustedOrigins = (() => {
     const addUrlToList = (list, url) => {
         if (url) {
@@ -25,6 +38,12 @@ const resolvedTrustedOrigins = (() => {
             }
         }
     };
+    const addLandingPageOrigins = (list) => {
+        // Defaults (www, staging, Vercel) plus LANDING_PAGE_ORIGINS env extras.
+        for (const origin of resolveLandingPageOrigins()) {
+            addUrlToList(list, origin);
+        }
+    };
     if (process.env.BETTER_AUTH_ACCEPT_ANY_HTTPS === "true") {
         const list = process.env.BETTER_AUTH_URLS
             ? process.env.BETTER_AUTH_URLS.split(",").map((s) => s.trim()).filter(Boolean)
@@ -32,6 +51,7 @@ const resolvedTrustedOrigins = (() => {
         addUrlToList(list, process.env.BETTER_AUTH_URL);
         addUrlToList(list, process.env.APP_URL);
         addUrlToList(list, process.env.CORS_ORIGIN);
+        addLandingPageOrigins(list);
         const normalized = list.map((url) => url.replace(/\/+$/, ""));
         console.log("[Better Auth Config] BETTER_AUTH_ACCEPT_ANY_HTTPS=true, using trustedOrigins:", normalized);
         return normalized;
@@ -43,6 +63,7 @@ const resolvedTrustedOrigins = (() => {
         addUrlToList(list, process.env.BETTER_AUTH_URL);
         addUrlToList(list, process.env.APP_URL);
         addUrlToList(list, process.env.CORS_ORIGIN);
+        addLandingPageOrigins(list);
         const normalized = list.map((url) => url.replace(/\/+$/, ""));
         console.log("[Better Auth Config] Using BETTER_AUTH_URLS with additional URLs, trustedOrigins:", normalized);
         return normalized;
@@ -52,14 +73,17 @@ const resolvedTrustedOrigins = (() => {
         addUrlToList(urls, process.env.BETTER_AUTH_URL);
         addUrlToList(urls, process.env.APP_URL);
         addUrlToList(urls, process.env.CORS_ORIGIN);
+        addLandingPageOrigins(urls);
         const normalized = urls.map((url) => url.replace(/\/+$/, ""));
         console.log("[Better Auth Config] Using BETTER_AUTH_URL with additional URLs, trustedOrigins:", normalized);
         return normalized;
     }
     if (process.env.APP_URL) {
-        const normalized = process.env.APP_URL.replace(/\/+$/, "");
-        console.log("[Better Auth Config] Using APP_URL as trustedOrigin:", normalized);
-        return [normalized];
+        const urls = [process.env.APP_URL.replace(/\/+$/, "")];
+        addLandingPageOrigins(urls);
+        const normalized = urls.map((url) => url.replace(/\/+$/, ""));
+        console.log("[Better Auth Config] Using APP_URL + landing origins as trustedOrigins:", normalized);
+        return normalized;
     }
     console.log("[Better Auth Config] No trusted origins configured, setting to undefined");
     return undefined;
@@ -98,6 +122,59 @@ export const auth = betterAuth({
         updateAge: SESSION_TOUCH_THROTTLE_MS / 1000,
         disableSessionRefresh: false,
     },
+    databaseHooks: {
+        session: {
+            create: {
+                async before(session, ctx) {
+                    // Harden Better Auth impersonation: only AGENCY_SUPER_ADMIN → ACTIVE CUSTOMER.
+                    if (!isImpersonatedSession(session))
+                        return;
+                    const current = ctx?.context?.session?.session;
+                    if (isImpersonatedSession(current)) {
+                        throw new APIError("FORBIDDEN", {
+                            message: "Stop the current login-as-customer session before starting another",
+                        });
+                    }
+                    const actorId = session.impersonatedBy;
+                    const targetId = session.userId;
+                    const [actor] = await db
+                        .select({ id: user.id, role: user.role, status: user.status })
+                        .from(user)
+                        .where(eq(user.id, actorId))
+                        .limit(1);
+                    if (!actor || actor.role !== "AGENCY_SUPER_ADMIN" || actor.status !== "ACTIVE") {
+                        throw new APIError("FORBIDDEN", {
+                            message: "Only an active agency super admin can impersonate customers",
+                        });
+                    }
+                    const [target] = await db
+                        .select({ id: user.id, role: user.role, status: user.status })
+                        .from(user)
+                        .where(eq(user.id, targetId))
+                        .limit(1);
+                    if (!target || target.role !== "CUSTOMER") {
+                        throw new APIError("FORBIDDEN", {
+                            message: "You can only login as customer accounts",
+                        });
+                    }
+                    if (target.status !== "ACTIVE") {
+                        throw new APIError("FORBIDDEN", {
+                            message: `Cannot login as a ${target.status.toLowerCase()} customer account`,
+                        });
+                    }
+                },
+            },
+        },
+    },
+    plugins: [
+        admin({
+            defaultRole: "CUSTOMER",
+            adminRoles: [...agencyAdminRoles],
+            ac: adminAcController,
+            roles: adminAccessRoles,
+            impersonationSessionDuration: IMPERSONATION_SESSION_DURATION_SEC,
+        }),
+    ],
     hooks: {
         before: createAuthMiddleware(async (ctx) => {
             const isForgetPassword = ctx.path === "/request-password-reset" ||
@@ -168,12 +245,64 @@ export const auth = betterAuth({
                 }
             }
             const newSessionToken = ctx.context.newSession?.session?.token;
-            if (typeof newSessionToken === "string" && newSessionToken.length > 0) {
+            const newSessionIsImpersonation = isImpersonatedSession(ctx.context.newSession?.session);
+            // Impersonation keeps Better Auth's absolute duration; do not overwrite with idle TTL.
+            if (typeof newSessionToken === "string" &&
+                newSessionToken.length > 0 &&
+                !newSessionIsImpersonation) {
                 try {
                     await applyStandardSessionExpiryByToken(newSessionToken);
                 }
                 catch (error) {
                     console.error("Failed to apply standard session expiry:", error);
+                }
+            }
+            const isImpersonatePath = ctx.path === "/admin/impersonate-user" ||
+                ctx.path.endsWith("/admin/impersonate-user");
+            if (isImpersonatePath && newSessionIsImpersonation && ctx.context.newSession) {
+                const impersonatedSession = ctx.context.newSession.session;
+                const actorId = impersonatedSession.impersonatedBy;
+                const targetUserId = impersonatedSession.userId;
+                if (actorId && targetUserId) {
+                    void db
+                        .insert(userActivityLog)
+                        .values({
+                        id: crypto.randomUUID(),
+                        userId: actorId,
+                        action: "IMPERSONATION_STARTED",
+                        description: "Agency super admin started login-as-customer session",
+                        metadata: {
+                            targetUserId,
+                            impersonationSessionId: impersonatedSession.id ?? null,
+                        },
+                        ipAddress: resolveRequestIp(ctx.headers) || "unknown",
+                        userAgent: ctx.headers?.get("user-agent") || "unknown",
+                        createdAt: new Date(),
+                    })
+                        .catch((error) => console.error("Failed to log impersonation start:", error));
+                }
+            }
+            const isStopImpersonatePath = ctx.path === "/admin/stop-impersonating" ||
+                ctx.path.endsWith("/admin/stop-impersonating");
+            if (isStopImpersonatePath) {
+                const prior = ctx.context.session?.session;
+                if (isImpersonatedSession(prior) && prior?.impersonatedBy) {
+                    void db
+                        .insert(userActivityLog)
+                        .values({
+                        id: crypto.randomUUID(),
+                        userId: prior.impersonatedBy,
+                        action: "IMPERSONATION_STOPPED",
+                        description: "Agency super admin stopped login-as-customer session",
+                        metadata: {
+                            targetUserId: prior.userId ?? null,
+                            impersonationSessionId: prior.id ?? null,
+                        },
+                        ipAddress: resolveRequestIp(ctx.headers) || "unknown",
+                        userAgent: ctx.headers?.get("user-agent") || "unknown",
+                        createdAt: new Date(),
+                    })
+                        .catch((error) => console.error("Failed to log impersonation stop:", error));
                 }
             }
             const isGetSession = 
@@ -202,7 +331,20 @@ export const auth = betterAuth({
                 }
                 const sessionId = ctx.context.session?.session?.id;
                 if (typeof sessionId === "string" && sessionId.length > 0) {
-                    const lifetime = await validateAndRefreshIdleSessionById(sessionId);
+                    const requestUa = ctx.headers?.get("user-agent") ?? null;
+                    const requestIp = resolveRequestIp(ctx.headers);
+                    const softFail = isLandingPageOrigin(getRequestBrowserOrigin(ctx.headers ?? new Headers())) ||
+                        isAllowedStorefrontBrowserRequest(ctx.headers ?? undefined);
+                    // Do not rotate the session token on idle refresh. Rotating the DB token while
+                    // parallel tRPC/API requests still carry the previous cookie logs the active user out.
+                    // Idle extension only bumps expiresAt; UA bind + IP step-up + revoke-all cover theft.
+                    // softFail: storefront/landing probes must not delete the session or clear cookies.
+                    const lifetime = await validateAndRefreshIdleSessionById(sessionId, {
+                        userAgent: requestUa,
+                        ipAddress: requestIp,
+                        rotateToken: false,
+                        softFail,
+                    });
                     if (lifetime.status === "expired") {
                         ctx.context.session = null;
                         const returned = ctx.context.returned;
@@ -210,7 +352,45 @@ export const auth = betterAuth({
                             returned.session = null;
                             returned.user = null;
                         }
+                        if (!softFail) {
+                            try {
+                                const setCookie = ctx.setCookie;
+                                const authCookies = ctx.context.authCookies;
+                                if (typeof setCookie === "function" && authCookies?.sessionToken) {
+                                    setCookie(authCookies.sessionToken.name, "", {
+                                        ...authCookies.sessionToken.attributes,
+                                        maxAge: 0,
+                                    });
+                                }
+                            }
+                            catch {
+                                // Best-effort cookie clear on expiry / UA mismatch.
+                            }
+                        }
                         return;
+                    }
+                    if (lifetime.ipAnomaly && lifetime.userId && !softFail) {
+                        try {
+                            const anomaly = await handleIpAnomaly({
+                                userId: lifetime.userId,
+                                sessionId,
+                                ipAddress: requestIp,
+                                userAgent: requestUa,
+                                expiresAt: lifetime.expiresAt,
+                            });
+                            if (anomaly.invalidated) {
+                                ctx.context.session = null;
+                                const returned = ctx.context.returned;
+                                if (returned && typeof returned === "object") {
+                                    returned.session = null;
+                                    returned.user = null;
+                                }
+                                return;
+                            }
+                        }
+                        catch (error) {
+                            console.error("[auth][get-session] IP anomaly handling failed:", error);
+                        }
                     }
                     if (lifetime.extended) {
                         const returned = ctx.context.returned;
@@ -297,46 +477,14 @@ export const auth = betterAuth({
                     const loginUserId = newSession.user.id;
                     const loginSessionId = newSession.session?.id;
                     const loginHeaders = ctx.headers;
+                    const loginIp = resolveRequestIp(loginHeaders);
+                    const loginUa = loginHeaders?.get("user-agent") || null;
                     void db
                         .transaction(async (tx) => {
                         await tx
                             .update(user)
                             .set({ lastLoginAt: new Date() })
                             .where(eq(user.id, loginUserId));
-                        const mfaRows = await tx
-                            .select({ id: userMfaSettings.id })
-                            .from(userMfaSettings)
-                            .where(and(eq(userMfaSettings.userId, loginUserId), eq(userMfaSettings.emailOtpEnabled, true)))
-                            .limit(1);
-                        if (mfaRows[0] && loginSessionId) {
-                            const existingMfaSession = await tx
-                                .select({ id: userMfaSession.id })
-                                .from(userMfaSession)
-                                .where(eq(userMfaSession.sessionId, loginSessionId))
-                                .limit(1);
-                            if (!existingMfaSession[0]) {
-                                await tx.insert(userMfaSession).values({
-                                    id: crypto.randomUUID(),
-                                    userId: loginUserId,
-                                    sessionId: loginSessionId,
-                                    requiredAt: new Date(),
-                                    verifiedAt: null,
-                                    createdAt: new Date(),
-                                    updatedAt: new Date(),
-                                });
-                            }
-                            else {
-                                await tx
-                                    .update(userMfaSession)
-                                    .set({
-                                    userId: loginUserId,
-                                    requiredAt: new Date(),
-                                    verifiedAt: null,
-                                    updatedAt: new Date(),
-                                })
-                                    .where(eq(userMfaSession.sessionId, loginSessionId));
-                            }
-                        }
                         await tx.insert(userActivityLog).values({
                             id: crypto.randomUUID(),
                             userId: loginUserId,
@@ -346,19 +494,24 @@ export const auth = betterAuth({
                                 loginMethod: "email_password",
                                 sessionDuration: "30 minutes idle",
                             },
-                            ipAddress: loginHeaders?.get("x-forwarded-for") ||
-                                loginHeaders?.get("x-real-ip") ||
-                                "unknown",
-                            userAgent: loginHeaders?.get("user-agent") || "unknown",
+                            ipAddress: loginIp || "unknown",
+                            userAgent: loginUa || "unknown",
                             createdAt: new Date(),
                         });
                     })
                         .catch((error) => console.error("Failed to update login-related data:", error));
+                    if (loginSessionId) {
+                        void ensurePendingMfaSession(loginUserId, loginSessionId).catch((error) => console.error("Failed to ensure MFA session on login:", error));
+                        void maybeNotifyNewSignIn({
+                            userId: loginUserId,
+                            sessionId: loginSessionId,
+                            ipAddress: loginIp,
+                            userAgent: loginUa,
+                        });
+                    }
+                    // Keep a lightweight in-app notice for every email login (existing UX).
                     void db
                         .transaction(async (tx) => {
-                        const ipAddress = loginHeaders?.get("x-forwarded-for") ||
-                            loginHeaders?.get("x-real-ip") ||
-                            null;
                         const accessTime = new Date().toLocaleString("en-US", {
                             year: "numeric",
                             month: "long",
@@ -367,7 +520,7 @@ export const auth = betterAuth({
                             minute: "2-digit",
                             timeZoneName: "short",
                         });
-                        const ipDisplay = ipAddress ? ` from ${ipAddress}` : "";
+                        const ipDisplay = loginIp ? ` from ${loginIp}` : "";
                         const message = `Your account was recently accessed at ${accessTime}${ipDisplay}. If this was not you, kindly reach out to support to secure your account.`;
                         const nid = crypto.randomUUID();
                         await tx.insert(notification).values({
@@ -380,7 +533,7 @@ export const auth = betterAuth({
                             message,
                             link: null,
                             metadata: {
-                                ipAddress,
+                                ipAddress: loginIp,
                                 accessTime,
                                 loginMethod: "email_password",
                             },
@@ -395,9 +548,9 @@ export const auth = betterAuth({
                             userId: loginUserId,
                             action: "CREATE",
                             description: "Login notification created",
-                            metadata: { ipAddress, accessTime },
-                            ipAddress,
-                            userAgent: loginHeaders?.get("user-agent") || null,
+                            metadata: { ipAddress: loginIp, accessTime },
+                            ipAddress: loginIp,
+                            userAgent: loginUa,
                             createdAt: new Date(),
                         });
                     })
@@ -421,13 +574,44 @@ export const auth = betterAuth({
                 const newSession = ctx.context.newSession;
                 if (newSession?.user) {
                     const signupUserId = newSession.user.id;
+                    const googleSessionId = newSession.session?.id;
+                    const googleIp = resolveRequestIp(ctx.headers);
+                    const googleUa = ctx.headers?.get("user-agent") || null;
                     void (async () => {
                         const rows = await db
                             .select({ createdAt: user.createdAt })
                             .from(user)
                             .where(eq(user.id, signupUserId))
                             .limit(1);
-                        if (!isNewGoogleRegistration(ctx.context.returned, rows[0]?.createdAt)) {
+                        const isNewRegistration = isNewGoogleRegistration(ctx.context.returned, rows[0]?.createdAt);
+                        if (!isNewRegistration) {
+                            // Returning Google sign-in: MFA gate + security notify + lastLoginAt.
+                            await db
+                                .update(user)
+                                .set({ lastLoginAt: new Date() })
+                                .where(eq(user.id, signupUserId));
+                            await db.insert(userActivityLog).values({
+                                id: crypto.randomUUID(),
+                                userId: signupUserId,
+                                action: "LOGIN_SUCCESS",
+                                description: "User successfully logged in",
+                                metadata: {
+                                    loginMethod: "google",
+                                    sessionDuration: "30 minutes idle",
+                                },
+                                ipAddress: googleIp || "unknown",
+                                userAgent: googleUa || "unknown",
+                                createdAt: new Date(),
+                            });
+                            if (googleSessionId) {
+                                await ensurePendingMfaSession(signupUserId, googleSessionId);
+                                await maybeNotifyNewSignIn({
+                                    userId: signupUserId,
+                                    sessionId: googleSessionId,
+                                    ipAddress: googleIp,
+                                    userAgent: googleUa,
+                                });
+                            }
                             return;
                         }
                         if (!parseSignupTermsCookie(ctx.headers?.get("cookie"))) {
@@ -809,6 +993,29 @@ export const auth = betterAuth({
                 return env.NODE_ENV === "production" && isHttps;
             })(),
             httpOnly: true,
+            // Share session across npanel.* and www.* on the real domain so the
+            // storefront cart can see an existing nPanel login. Skip on *.run.app /
+            // localhost / raw IPs ( Domains are invalid or wrong there ).
+            domain: (() => {
+                const explicit = process.env.BETTER_AUTH_COOKIE_DOMAIN?.trim();
+                if (explicit)
+                    return explicit;
+                const url = process.env.APP_URL ||
+                    process.env.CORS_ORIGIN ||
+                    process.env.BETTER_AUTH_URL ||
+                    env.CORS_ORIGIN ||
+                    "";
+                try {
+                    const host = new URL(url).hostname.toLowerCase();
+                    if (host === "nisccloud.com" || host.endsWith(".nisccloud.com")) {
+                        return ".nisccloud.com";
+                    }
+                }
+                catch {
+                    /* ignore */
+                }
+                return undefined;
+            })(),
         },
     },
 });

@@ -1,10 +1,13 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../../trpc";
+import { router } from "../../trpc";
 import { TRPCError } from "@trpc/server";
 import { getEtimsContext } from "../../lib/etims-config";
 import { getEtimsItemClassMeta, getEtimsItemClassificationByCode, listEtimsItemClassifications, syncEtimsItemClassificationsBatch, } from "../../lib/etims-item-classification-store";
+import { etimsProcedure, skipEtimsAuthChecks } from "./_procedure";
 const isAgencyUser = (role) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
 function assertReadAccess(role) {
+    if (skipEtimsAuthChecks())
+        return;
     if (!isAgencyUser(role)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Only agency users can access eTIMS data." });
     }
@@ -69,7 +72,7 @@ export const etimsDataRouter = router({
      * Retrieve standard code lists (payment types, receipt types, tax codes, etc.)
      * POST /selectCodeList
      */
-    getCodeList: protectedProcedure
+    getCodeList: etimsProcedure
         .input(z.object({
         lastReqDt: z.string().regex(/^\d{14}$/, "Must be YYYYMMDDHHmmss"),
     }))
@@ -90,7 +93,7 @@ export const etimsDataRouter = router({
      * POST /selectItemClsList
      * @deprecated Prefer getItemClassMeta + listItemClassifications.
      */
-    getItemClassList: protectedProcedure
+    getItemClassList: etimsProcedure
         .input(z.object({
         lastReqDt: z.string().regex(/^\d{14}$/, "Must be YYYYMMDDHHmmss"),
     }))
@@ -110,7 +113,7 @@ export const etimsDataRouter = router({
         }
     }),
     /** Cached KRA item classification metadata (level counts, last sync). */
-    getItemClassMeta: protectedProcedure
+    getItemClassMeta: etimsProcedure
         .query(async ({ ctx }) => {
         assertReadAccess(ctx.session?.user?.role);
         const { oscu } = await getEtimsContext();
@@ -118,7 +121,7 @@ export const etimsDataRouter = router({
         return { success: true, meta, needsSync: !meta };
     }),
     /** Paginated, searchable item classifications for a chosen hierarchy level. */
-    listItemClassifications: protectedProcedure
+    listItemClassifications: etimsProcedure
         .input(z.object({
         level: z.number().int().min(1).max(5),
         search: z.string().optional(),
@@ -138,7 +141,7 @@ export const etimsDataRouter = router({
         }
     }),
     /** Look up one classification code from the Redis cache. */
-    getItemClassification: protectedProcedure
+    getItemClassification: etimsProcedure
         .input(z.object({ itemClsCd: z.string().min(1) }))
         .query(async ({ ctx, input }) => {
         assertReadAccess(ctx.session?.user?.role);
@@ -147,7 +150,7 @@ export const etimsDataRouter = router({
         return { success: true, item };
     }),
     /** Pull batches from KRA into Redis (call repeatedly until isComplete). */
-    syncItemClassifications: protectedProcedure
+    syncItemClassifications: etimsProcedure
         .input(z.object({
         lastReqDt: z.string().regex(/^\d{14}$/, "Must be YYYYMMDDHHmmss").optional(),
         maxPages: z.number().int().min(1).max(10).default(3),
@@ -170,7 +173,7 @@ export const etimsDataRouter = router({
      * 1. POST /selectCustomer  KRA central taxpayer registry
      * 2. POST /selectCustomerList  branch customers saved via saveBhfCustomer (sandbox fallback)
      */
-    lookupCustomer: protectedProcedure
+    lookupCustomer: etimsProcedure
         .input(z.object({
         custmTin: z.string().min(1, "Customer TIN is required"),
     }))
@@ -206,7 +209,7 @@ export const etimsDataRouter = router({
      * List customers registered on the active eTIMS branch.
      * POST /selectCustomerList
      */
-    getCustomerList: protectedProcedure
+    getCustomerList: etimsProcedure
         .input(z.object({
         lastReqDt: z.string().regex(/^\d{14}$/, "Must be YYYYMMDDHHmmss").default("20230101000000"),
     }))
@@ -229,7 +232,7 @@ export const etimsDataRouter = router({
      * Retrieve KRA notices (announcements, policy changes).
      * POST /selectNoticeList
      */
-    getNoticeList: protectedProcedure
+    getNoticeList: etimsProcedure
         .input(z.object({
         lastReqDt: z.string().regex(/^\d{14}$/, "Must be YYYYMMDDHHmmss"),
     }))
@@ -243,6 +246,40 @@ export const etimsDataRouter = router({
         catch (error) {
             const msg = error.message;
             throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: msg || "Failed to retrieve notice list" });
+        }
+    }),
+    /** Dashboard test case: POST /selectNotices */
+    getNotices: etimsProcedure
+        .input(z.object({
+        lastReqDt: z.string().regex(/^\d{14}$/, "Must be YYYYMMDDHHmmss"),
+    }))
+        .query(async ({ ctx, input }) => {
+        assertReadAccess(ctx.session?.user?.role);
+        const { client, oscu } = await getEtimsContext();
+        try {
+            const result = await client.selectNotices(oscu, input.lastReqDt);
+            return { success: true, data: result };
+        }
+        catch (error) {
+            const msg = error.message;
+            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: msg || "Failed to retrieve notices" });
+        }
+    }),
+    /** POST /selectTaxPayerInfo */
+    getTaxPayerInfo: etimsProcedure
+        .input(z.object({
+        lastReqDt: z.string().regex(/^\d{14}$/, "Must be YYYYMMDDHHmmss").default("20180101000000"),
+    }))
+        .query(async ({ ctx, input }) => {
+        assertReadAccess(ctx.session?.user?.role);
+        const { client, oscu } = await getEtimsContext();
+        try {
+            const result = await client.selectTaxPayerInfo(oscu, input.lastReqDt);
+            return { success: true, data: result };
+        }
+        catch (error) {
+            const msg = error.message;
+            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: msg || "Failed to retrieve taxpayer info" });
         }
     }),
 });

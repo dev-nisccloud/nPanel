@@ -1,12 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { and, asc, count, desc, eq, inArray, isNull, like, ne, or } from "@npanel/db";
+import { and, asc, count, desc, eq, inArray, isNull, like, ne } from "@npanel/db";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../trpc";
 import { db } from "@npanel/db";
 import { user } from "@npanel/db/schema/auth";
 import { team, teamMember } from "@npanel/db/schema/teams";
 import { ticket, ticketActivityLog, ticketAttachment, ticketMessage, } from "@npanel/db/schema/tickets";
+import { clearSupportGuestCookie, loadActiveGuestSession, } from "../lib/support-guest-session";
+import { supportGuestSession } from "@npanel/db/schema/support-guest-sessions";
 // ============================================================================
 // ZOD SCHEMAS - Independent from database schema (no shared types)
 // ============================================================================
@@ -75,6 +77,14 @@ const ticketMessageSchema = z.object({
         fileUrl: z.string(),
     })).optional(),
 });
+const guestContactSchema = z
+    .object({
+    name: z.string(),
+    email: z.string(),
+    phone: z.string().nullable(),
+})
+    .nullable()
+    .optional();
 // Ticket Schema
 const ticketSchema = z.object({
     id: z.string(),
@@ -94,6 +104,7 @@ const ticketSchema = z.object({
     unreadCount: z.number(),
     customerUnreadCount: z.number(),
     metadata: z.unknown().nullable(),
+    guestContact: guestContactSchema,
     internalNotes: z.string().nullable(),
     createdAt: z.date(),
     updatedAt: z.date(),
@@ -117,6 +128,7 @@ const ticketListItemSchema = z.object({
     unreadCount: z.number(),
     customerName: z.string().optional(), // For agency side
     assignedToName: z.string().nullable().optional(), // For customer side
+    isGuest: z.boolean().optional(),
     status: ticketStatusSchema,
     priority: ticketPrioritySchema,
 });
@@ -182,7 +194,19 @@ const updateTicketStatusInputSchema = z.object({
 // ============================================================================
 // TRANSFORM FUNCTIONS - Convert DB types to API response types
 // ============================================================================
+function extractGuestContact(metadata) {
+    const contact = metadata
+        ?.guestContact;
+    if (!contact?.name && !contact?.email)
+        return null;
+    return {
+        name: contact?.name?.trim() || "Guest",
+        email: contact?.email?.trim() || "",
+        phone: contact?.phone?.trim() || null,
+    };
+}
 function transformTicket(ticket) {
+    const guestContact = extractGuestContact(ticket.metadata);
     return {
         id: ticket.id,
         ticketNumber: ticket.ticketNumber,
@@ -201,6 +225,7 @@ function transformTicket(ticket) {
         unreadCount: ticket.unreadCount,
         customerUnreadCount: ticket.customerUnreadCount,
         metadata: ticket.metadata,
+        guestContact,
         internalNotes: ticket.internalNotes,
         createdAt: ticket.createdAt,
         updatedAt: ticket.updatedAt,
@@ -270,8 +295,15 @@ function transformTicketListItem(ticket, isAgency) {
         priority: ticket.priority,
     };
     if (isAgency) {
-        // For agency: show customer name
-        if (ticket.createdBy) {
+        // For agency: show customer name (prefer guest contact from landing FAB)
+        const guestContact = extractGuestContact(ticket.metadata);
+        result.isGuest = Boolean(guestContact);
+        if (guestContact) {
+            result.customerName = guestContact.email
+                ? `${guestContact.name} (${guestContact.email})`
+                : guestContact.name;
+        }
+        else if (ticket.createdBy) {
             result.customerName = ticket.createdBy.name || ticket.createdBy.email;
         }
     }
@@ -303,26 +335,55 @@ async function fetchUserRole(userId) {
 function roleIsAgency(role) {
     return (role ?? "").includes("AGENCY");
 }
-function roleIsAgencySuperAdmin(role) {
-    return role === "AGENCY_SUPER_ADMIN";
+/**
+ * If the browser has an unclaimed guest support cookie, permanently merge those
+ * tickets into the authenticated customer account (cookie proves ownership).
+ */
+async function mergeGuestTicketsIfPresent(ctx, userId) {
+    const sessionRow = await loadActiveGuestSession(ctx, { refresh: false });
+    if (!sessionRow || sessionRow.guestUserId === userId) {
+        if (sessionRow?.guestUserId === userId)
+            clearSupportGuestCookie(ctx);
+        return;
+    }
+    const now = new Date();
+    await db.transaction(async (tx) => {
+        await tx
+            .update(ticket)
+            .set({ createdById: userId, updatedAt: now, teamId: null })
+            .where(eq(ticket.createdById, sessionRow.guestUserId));
+        await tx
+            .update(ticketMessage)
+            .set({ senderId: userId, updatedAt: now })
+            .where(eq(ticketMessage.senderId, sessionRow.guestUserId));
+        await tx
+            .update(supportGuestSession)
+            .set({
+            claimedByUserId: userId,
+            claimedAt: now,
+            updatedAt: now,
+        })
+            .where(eq(supportGuestSession.id, sessionRow.id));
+        await tx
+            .update(user)
+            .set({ status: "DEACTIVATED", updatedAt: now })
+            .where(eq(user.id, sessionRow.guestUserId));
+    });
+    clearSupportGuestCookie(ctx);
 }
-async function getUserTeamIds(userId) {
-    const [memberships, ownedTeams] = await Promise.all([
-        db.query.teamMember.findMany({
-            where: eq(teamMember.userId, userId),
-            columns: { teamId: true },
-        }),
-        db.query.team.findMany({
-            where: eq(team.createdById, userId),
-            columns: { id: true },
-        }),
-    ]);
-    return [
-        ...new Set([
-            ...memberships.map((m) => m.teamId),
-            ...ownedTeams.map((t) => t.id),
-        ]),
-    ];
+/**
+ * Customer ticket owners: self, plus active guest shadow user when cookie present
+ * (covers the window before merge / when claim has not run yet).
+ */
+async function resolveCustomerOwnerIds(ctx, userId) {
+    const guest = await loadActiveGuestSession(ctx, { refresh: true });
+    if (guest?.guestUserId && guest.guestUserId !== userId) {
+        return [userId, guest.guestUserId];
+    }
+    return [userId];
+}
+function customerOwnsTicket(createdById, ownerIds) {
+    return ownerIds.includes(createdById);
 }
 async function ensureTeamReadAccess(teamId, userId, role) {
     if (roleIsAgency(role))
@@ -341,10 +402,14 @@ async function ensureTeamReadAccess(teamId, userId, role) {
         throw new TRPCError({ code: "FORBIDDEN", message: "You do not have access to this team" });
     }
 }
-function ensureTicketMutationAccess(ticketRow, userId, role) {
-    if (roleIsAgencySuperAdmin(role))
+function ensureTicketMutationAccess(ticketRow, userId, role, ownerIds) {
+    // Agency staff can reply / update any ticket; customers only own / cookie-bound guest tickets.
+    if (roleIsAgency(role))
         return;
-    if (ticketRow.createdById !== userId) {
+    const allowed = ownerIds?.length
+        ? customerOwnsTicket(ticketRow.createdById, ownerIds)
+        : ticketRow.createdById === userId;
+    if (!allowed) {
         throw new TRPCError({
             code: "FORBIDDEN",
             message: "You do not have permission to modify this ticket",
@@ -419,7 +484,6 @@ export const ticketsRouter = router({
         const sessionUser = await getAuthenticatedUser(ctx);
         const userRole = await fetchUserRole(sessionUser.id);
         const isAgency = roleIsAgency(userRole);
-        const userTeamIds = isAgency ? [] : await getUserTeamIds(sessionUser.id);
         const conds = [];
         if (isAgency) {
             if (input.assignedToId) {
@@ -427,12 +491,15 @@ export const ticketsRouter = router({
             }
         }
         else {
-            conds.push(userTeamIds.length > 0
-                ? or(eq(ticket.createdById, sessionUser.id), inArray(ticket.teamId, userTeamIds))
-                : eq(ticket.createdById, sessionUser.id));
-            if (input.teamId) {
-                conds.push(eq(ticket.teamId, input.teamId));
+            // Merge cookie-bound guest tickets into the account, then list user tickets.
+            // Also include any still-unmerged guest-owned tickets for this browser session.
+            if (!roleIsAgency(userRole) && userRole !== "GUEST") {
+                await mergeGuestTicketsIfPresent(ctx, sessionUser.id);
             }
+            const ownerIds = await resolveCustomerOwnerIds(ctx, sessionUser.id);
+            conds.push(ownerIds.length === 1
+                ? eq(ticket.createdById, ownerIds[0])
+                : inArray(ticket.createdById, ownerIds));
         }
         if (input.status) {
             conds.push(eq(ticket.status, input.status));
@@ -463,12 +530,15 @@ export const ticketsRouter = router({
         const sessionUser = await getAuthenticatedUser(ctx);
         const userRole = await fetchUserRole(sessionUser.id);
         const isAgency = roleIsAgency(userRole);
-        const userTeamIds = isAgency ? [] : await getUserTeamIds(sessionUser.id);
         const conds = [eq(ticket.id, input.id)];
         if (!isAgency) {
-            conds.push(userTeamIds.length > 0
-                ? or(eq(ticket.createdById, sessionUser.id), inArray(ticket.teamId, userTeamIds))
-                : eq(ticket.createdById, sessionUser.id));
+            if (userRole !== "GUEST") {
+                await mergeGuestTicketsIfPresent(ctx, sessionUser.id);
+            }
+            const ownerIds = await resolveCustomerOwnerIds(ctx, sessionUser.id);
+            conds.push(ownerIds.length === 1
+                ? eq(ticket.createdById, ownerIds[0])
+                : inArray(ticket.createdById, ownerIds));
         }
         const ticketRow = await db.query.ticket.findFirst({
             where: and(...conds),
@@ -489,8 +559,12 @@ export const ticketsRouter = router({
         .mutation(async ({ ctx, input }) => {
         const sessionUser = await getAuthenticatedUser(ctx);
         const userRole = await fetchUserRole(sessionUser.id);
-        if (input.teamId) {
+        const isAgency = roleIsAgency(userRole);
+        // Customers never attach tickets to teams; agency may still set teamId.
+        let teamId = null;
+        if (isAgency && input.teamId) {
             await ensureTeamReadAccess(input.teamId, sessionUser.id, userRole);
+            teamId = input.teamId;
         }
         const ticketNumber = await generateTicketNumber();
         const id = randomUUID();
@@ -505,7 +579,7 @@ export const ticketsRouter = router({
             status: "OPEN",
             source: input.source,
             createdById: sessionUser.id,
-            teamId: input.teamId ?? null,
+            teamId,
             assignedToId: null,
             lastMessageId: null,
             lastMessageAt: null,
@@ -616,12 +690,15 @@ export const ticketsRouter = router({
         const sessionUser = await getAuthenticatedUser(ctx);
         const userRole = await fetchUserRole(sessionUser.id);
         const isAgency = roleIsAgency(userRole);
-        const userTeamIds = isAgency ? [] : await getUserTeamIds(sessionUser.id);
         const ticketConds = [eq(ticket.id, input.ticketId)];
         if (!isAgency) {
-            ticketConds.push(userTeamIds.length > 0
-                ? or(eq(ticket.createdById, sessionUser.id), inArray(ticket.teamId, userTeamIds))
-                : eq(ticket.createdById, sessionUser.id));
+            if (userRole !== "GUEST") {
+                await mergeGuestTicketsIfPresent(ctx, sessionUser.id);
+            }
+            const ownerIds = await resolveCustomerOwnerIds(ctx, sessionUser.id);
+            ticketConds.push(ownerIds.length === 1
+                ? eq(ticket.createdById, ownerIds[0])
+                : inArray(ticket.createdById, ownerIds));
         }
         const [ticketRow] = await db
             .select({ id: ticket.id })
@@ -662,6 +739,11 @@ export const ticketsRouter = router({
         const sessionUser = await getAuthenticatedUser(ctx);
         const userRole = await fetchUserRole(sessionUser.id);
         const isAgency = roleIsAgency(userRole);
+        let ownerIds;
+        if (!isAgency && userRole !== "GUEST") {
+            await mergeGuestTicketsIfPresent(ctx, sessionUser.id);
+            ownerIds = await resolveCustomerOwnerIds(ctx, sessionUser.id);
+        }
         const [ticketRow] = await db
             .select()
             .from(ticket)
@@ -673,7 +755,7 @@ export const ticketsRouter = router({
                 message: "Ticket not found",
             });
         }
-        ensureTicketMutationAccess(ticketRow, sessionUser.id, userRole);
+        ensureTicketMutationAccess(ticketRow, sessionUser.id, userRole, ownerIds);
         if (input.isInternal && !isAgency) {
             throw new TRPCError({
                 code: "FORBIDDEN",
@@ -977,15 +1059,19 @@ export const ticketsRouter = router({
         const sessionUser = await getAuthenticatedUser(ctx);
         const userRole = await fetchUserRole(sessionUser.id);
         const isAgency = roleIsAgency(userRole);
-        const userTeamIds = isAgency ? [] : await getUserTeamIds(sessionUser.id);
+        let ownerIds;
         const ticketConds = [eq(ticket.id, input.ticketId)];
         if (!isAgency) {
-            ticketConds.push(userTeamIds.length > 0
-                ? or(eq(ticket.createdById, sessionUser.id), inArray(ticket.teamId, userTeamIds))
-                : eq(ticket.createdById, sessionUser.id));
+            if (userRole !== "GUEST") {
+                await mergeGuestTicketsIfPresent(ctx, sessionUser.id);
+            }
+            ownerIds = await resolveCustomerOwnerIds(ctx, sessionUser.id);
+            ticketConds.push(ownerIds.length === 1
+                ? eq(ticket.createdById, ownerIds[0])
+                : inArray(ticket.createdById, ownerIds));
         }
         const [ticketRow] = await db
-            .select({ id: ticket.id })
+            .select({ id: ticket.id, createdById: ticket.createdById })
             .from(ticket)
             .where(and(...ticketConds))
             .limit(1);
@@ -995,7 +1081,7 @@ export const ticketsRouter = router({
                 message: "Ticket not found",
             });
         }
-        ensureTicketMutationAccess(ticketRow, sessionUser.id, userRole);
+        ensureTicketMutationAccess(ticketRow, sessionUser.id, userRole, ownerIds);
         const result = await db.transaction(async (tx) => {
             const now = new Date();
             const unreadConds = [
@@ -1049,5 +1135,89 @@ export const ticketsRouter = router({
             markedCount: result.markedCount,
             ticket: transformTicket(result.ticket),
         };
+    }),
+    /**
+     * Get ticket summary statistics
+     */
+    getSummary: protectedProcedure.query(async ({ ctx }) => {
+        const sessionUser = ctx.session?.user;
+        if (!sessionUser?.id) {
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in." });
+        }
+        const sessionRole = sessionUser?.role;
+        const isAgencyUser = ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(sessionRole || "");
+        try {
+            let whereConditions;
+            if (isAgencyUser) {
+                // Agency users can see all tickets
+                whereConditions = undefined;
+            }
+            else {
+                // Regular users can only see their own tickets
+                whereConditions = eq(ticket.createdById, sessionUser.id);
+            }
+            // Get total count
+            const totalResult = await db
+                .select({ count: count() })
+                .from(ticket)
+                .where(whereConditions);
+            const total = totalResult[0]?.count || 0;
+            // Get count by status
+            const openCount = await db
+                .select({ count: count() })
+                .from(ticket)
+                .where(whereConditions
+                ? and(whereConditions, eq(ticket.status, "OPEN"))
+                : eq(ticket.status, "OPEN"));
+            const inProgressCount = await db
+                .select({ count: count() })
+                .from(ticket)
+                .where(whereConditions
+                ? and(whereConditions, eq(ticket.status, "IN_PROGRESS"))
+                : eq(ticket.status, "IN_PROGRESS"));
+            const waitingCount = await db
+                .select({ count: count() })
+                .from(ticket)
+                .where(whereConditions
+                ? and(whereConditions, eq(ticket.status, "WAITING"))
+                : eq(ticket.status, "WAITING"));
+            const closedCount = await db
+                .select({ count: count() })
+                .from(ticket)
+                .where(whereConditions
+                ? and(whereConditions, eq(ticket.status, "CLOSED"))
+                : eq(ticket.status, "CLOSED"));
+            const resolvedCount = await db
+                .select({ count: count() })
+                .from(ticket)
+                .where(whereConditions
+                ? and(whereConditions, eq(ticket.status, "RESOLVED"))
+                : eq(ticket.status, "RESOLVED"));
+            const cancelledCount = await db
+                .select({ count: count() })
+                .from(ticket)
+                .where(whereConditions
+                ? and(whereConditions, eq(ticket.status, "CANCELLED"))
+                : eq(ticket.status, "CANCELLED"));
+            return {
+                total,
+                open: openCount[0]?.count || 0,
+                inProgress: inProgressCount[0]?.count || 0,
+                waiting: waitingCount[0]?.count || 0,
+                closed: closedCount[0]?.count || 0,
+                resolved: resolvedCount[0]?.count || 0,
+                cancelled: cancelledCount[0]?.count || 0,
+                // Computed aggregates
+                openTotal: (openCount[0]?.count || 0) + (inProgressCount[0]?.count || 0) + (waitingCount[0]?.count || 0),
+                closedTotal: (closedCount[0]?.count || 0) + (resolvedCount[0]?.count || 0) + (cancelledCount[0]?.count || 0),
+            };
+        }
+        catch (error) {
+            console.error("Error getting ticket summary:", error);
+            throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message: "Failed to get ticket summary",
+            });
+        }
     }),
 });

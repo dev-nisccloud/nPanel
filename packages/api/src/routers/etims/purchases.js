@@ -1,14 +1,19 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../../trpc";
+import { router } from "../../trpc";
 import { TRPCError } from "@trpc/server";
 import { getEtimsContext } from "../../lib/etims-config";
+import { etimsProcedure, skipEtimsAuthChecks } from "./_procedure";
 const isAgencyUser = (r) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(r ?? "");
 const isSuperAdmin = (r) => r === "AGENCY_SUPER_ADMIN";
 function assertRead(role) {
+    if (skipEtimsAuthChecks())
+        return;
     if (!isAgencyUser(role))
         throw new TRPCError({ code: "FORBIDDEN", message: "Only agency users can access eTIMS purchase data." });
 }
 function assertWrite(role) {
+    if (skipEtimsAuthChecks())
+        return;
     if (!isSuperAdmin(role))
         throw new TRPCError({ code: "FORBIDDEN", message: "Only agency super admins can submit eTIMS purchases." });
 }
@@ -75,7 +80,7 @@ export const etimsPurchasesRouter = router({
      * Verified on KRA sandbox: this is the only valid list endpoint for purchases.
      * resultCd "001" means no supplier invoices exist yet  not an API/endpoint error.
      */
-    getPurchaseTransactions: protectedProcedure
+    getPurchaseTransactions: etimsProcedure
         .input(z.object({ lastReqDt: z.string().regex(/^\d{14}$/) }))
         .query(async ({ ctx, input }) => {
         assertRead(ctx.session?.user?.role);
@@ -93,7 +98,7 @@ export const etimsPurchasesRouter = router({
      * Submit a purchase transaction to KRA.
      * POST /insertTrnsPurchase
      */
-    sendPurchaseTransaction: protectedProcedure
+    sendPurchaseTransaction: etimsProcedure
         .input(z.object({ purchase: purchaseSchema }))
         .mutation(async ({ ctx, input }) => {
         assertWrite(ctx.session?.user?.role);

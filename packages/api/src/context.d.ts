@@ -1,5 +1,15 @@
 import { auth } from "@npanel/auth";
 import type { Context as HonoContext } from "hono";
+export declare const SUPPORT_GUEST_COOKIE = "nisc_support_guest";
+export type CookieOptions = {
+    path?: string;
+    domain?: string;
+    maxAge?: number;
+    expires?: Date;
+    httpOnly?: boolean;
+    secure?: boolean;
+    sameSite?: "Strict" | "Lax" | "None";
+};
 type AuthSessionNonNull = NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>;
 /**
  * User object expected on authenticated requests (legacy tRPC contract).
@@ -33,12 +43,18 @@ export type Context = {
     mfaRequired?: boolean;
     mfaVerified?: boolean;
     mfaSetupRequired?: boolean;
+    /** Password re-auth required after IP anomaly when MFA is disabled. */
+    reauthRequired?: boolean;
     /** Used by AI chat to get a tRPC caller. Injected by the app. */
     createCaller?: (ctx: Context) => unknown;
     ipAddress?: string | null;
     apiKeyError?: string | null;
     /** The raw Hono request, useful for URL and header inspection. */
     req: HonoContext["req"];
+    /** Read a request cookie by name. */
+    getCookie: (name: string) => string | undefined;
+    /** Set a response cookie (used by guest support sessions). */
+    setCookie: (name: string, value: string, options?: CookieOptions) => void;
 };
 export type CreateContextOptions = {
     context: HonoContext;

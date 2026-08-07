@@ -408,4 +408,39 @@ export const paymentTransactionsRouter = router({
             updatedAt: tx.updatedAt,
         };
     }),
+    /**
+     * Get summary statistics for payment transactions
+     */
+    getSummary: protectedProcedure
+        .query(async ({ ctx }) => {
+        const user = await getAuthenticatedUser(ctx);
+        const agencyUser = isAgencyUser(user.role);
+        if (!agencyUser) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Only agency users can view transaction summary.",
+            });
+        }
+        const [totalRes, successRes, pendingRes, failedRes, processingRes] = await Promise.all([
+            db.select({ count: count() }).from(paymentTransaction),
+            db.select({ count: count() }).from(paymentTransaction).where(eq(paymentTransaction.status, "SUCCESS")),
+            db.select({ count: count() }).from(paymentTransaction).where(eq(paymentTransaction.status, "PENDING")),
+            db.select({ count: count() }).from(paymentTransaction).where(eq(paymentTransaction.status, "FAILED")),
+            db.select({ count: count() }).from(paymentTransaction).where(eq(paymentTransaction.status, "PROCESSING")),
+        ]);
+        const total = totalRes[0]?.count ?? 0;
+        const success = successRes[0]?.count ?? 0;
+        const pending = pendingRes[0]?.count ?? 0;
+        const failed = failedRes[0]?.count ?? 0;
+        const processing = processingRes[0]?.count ?? 0;
+        return {
+            total,
+            success,
+            pending,
+            failed,
+            processing,
+            completedTotal: success,
+            activeTotal: pending + processing,
+        };
+    }),
 });

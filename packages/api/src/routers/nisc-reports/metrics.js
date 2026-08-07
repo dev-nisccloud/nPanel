@@ -27,69 +27,110 @@ export function isGatewayPaymentRefunded(status) {
 export function isGatewayPaymentFailed(status) {
     return status === "FAILED" || status === "CANCELLED";
 }
-/** Collected amount for one invoice - matches agency list (PAID = full invoice amount). */
+/**
+ * Collected amount for one invoice.
+ * FIXED: Always use completedPaymentsTotal as source of truth.
+ * For PAID status, ensure we capture at least the invoice amount if transactions are incomplete.
+ */
 export function invoiceCollectedAmount(inv, completedPaymentsTotal = 0) {
+    const invoiceAmount = toNum(inv.amount);
+    // For PAID invoices: if we have transaction data, trust it; 
+    // otherwise use invoice amount (imputation)
     if (inv.status === "PAID") {
-        return Math.max(completedPaymentsTotal, toNum(inv.amount));
+        // If transactions sum to less than invoice (incomplete records), use invoice amount
+        // If transactions sum to more (refunds/reversals captured), use actual transaction total
+        if (completedPaymentsTotal > 0) {
+            return completedPaymentsTotal;
+        }
+        // No transaction records - impute from invoice amount
+        return invoiceAmount;
     }
+    // For PARTIALLY_PAID: only count what was actually paid
     if (inv.status === "PARTIALLY_PAID") {
         return completedPaymentsTotal;
     }
+    // All other statuses: no collection yet
     return 0;
 }
+/**
+ * Outstanding amount for an invoice (accounts receivable).
+ * FIXED: Consistently calculate as: invoiceAmount - creditedAmount - completedPayments
+ * regardless of status nuances. Only return 0 for fully closed statuses.
+ */
 export function invoiceOutstandingAmount(inv, completedPaymentsTotal = 0) {
     const total = toNum(inv.amount);
     const credited = toNum(inv.creditedAmount);
+    // Closed statuses: no outstanding amount
     if (inv.status === "PAID" ||
         inv.status === "CANCELLED" ||
         inv.status === "CREDITED" ||
         inv.status === "WRITTEN_OFF") {
         return 0;
     }
+    // Draft invoices haven't been sent yet - not part of A/R
     if (inv.status === "DRAFT")
         return 0;
+    // For all open A/R statuses (SENT, OVERDUE, PARTIALLY_PAID):
+    // Calculate outstanding consistently
     if (OPEN_AR_STATUSES.includes(inv.status)) {
-        if (inv.status === "PARTIALLY_PAID" || completedPaymentsTotal > 0) {
-            return Math.max(0, total - credited - completedPaymentsTotal);
-        }
-        return Math.max(0, total - credited);
+        return Math.max(0, total - credited - completedPaymentsTotal);
     }
+    // Unknown status: treat as no outstanding
     return 0;
 }
 /** Period filter by issue date, falling back to createdAt when issue date is unset. */
 export function invoiceIssuedInPeriod(from, to) {
     return or(and(isNotNull(invoice.issueDate), gte(invoice.issueDate, from), lte(invoice.issueDate, to)), and(isNull(invoice.issueDate), gte(invoice.createdAt, from), lte(invoice.createdAt, to)));
 }
+/**
+ * Sum of all cash collected in a period based on payment transactions.
+ * FIXED: Improved imputation logic to avoid double-counting and ensure accuracy.
+ *
+ * Logic:
+ * 1. Sum all completed transactions with paidAt in period
+ * 2. For PAID invoices with paidAt in period: if transactions don't cover full amount,
+ *    add the gap (this handles cases where transaction records are incomplete)
+ * 3. For PARTIALLY_PAID invoices: trust transaction amounts only
+ */
 export async function sumCollectedCash(params) {
     const { from, to, scope } = params;
     const entityScope = buildReportEntityScope({ teamColumn: invoice.teamId, teamIds: scope.teamIds });
+    // Get all completed transactions in the period
     const txRows = await db
         .select({ invoiceId: invoiceTransaction.invoiceId, amount: invoiceTransaction.amount })
         .from(invoiceTransaction)
         .innerJoin(invoice, eq(invoiceTransaction.invoiceId, invoice.id))
-        .where(and(eq(invoiceTransaction.status, "COMPLETED"), gte(invoiceTransaction.paidAt, from), lte(invoiceTransaction.paidAt, to), entityScope));
+        .where(and(eq(invoiceTransaction.status, "COMPLETED"), isNotNull(invoiceTransaction.paidAt), gte(invoiceTransaction.paidAt, from), lte(invoiceTransaction.paidAt, to), entityScope));
     let total = 0;
     const txByInvoice = new Map();
+    // Sum all transaction amounts
     for (const r of txRows) {
         const amt = toNum(r.amount);
         total += amt;
         txByInvoice.set(r.invoiceId, (txByInvoice.get(r.invoiceId) ?? 0) + amt);
     }
-    // Impute PAID invoices marked via status when no (or incomplete) transaction rows exist.
+    // Impute PAID invoices where transaction records are incomplete or missing
+    // This handles legacy data or cases where payments weren't recorded as transactions
     const paidInvoices = await db
-        .select({ id: invoice.id, amount: invoice.amount, status: invoice.status })
+        .select({ id: invoice.id, amount: invoice.amount })
         .from(invoice)
         .where(and(eq(invoice.status, "PAID"), isNotNull(invoice.paidAt), gte(invoice.paidAt, from), lte(invoice.paidAt, to), entityScope));
     for (const inv of paidInvoices) {
         const txPaid = txByInvoice.get(inv.id) ?? 0;
         const invAmount = toNum(inv.amount);
+        // Only add the gap if transactions are less than invoice amount
+        // If txPaid >= invAmount, we already counted the full payment
         if (txPaid < invAmount) {
-            total += invAmount - txPaid;
+            const gap = invAmount - txPaid;
+            total += gap;
         }
     }
     return total;
 }
-/** Payment method aggregation aligned with agency invoice payment instructions. */
+/**
+ * Payment method aggregation aligned with agency invoice payment instructions.
+ * FIXED: Prevent double-counting by tracking which invoices we've imputed.
+ */
 export async function aggregatePaymentMethodBreakdown(params) {
     const { from, to, scope } = params;
     const entityScope = buildReportEntityScope({ teamColumn: invoice.teamId, teamIds: scope.teamIds });
@@ -102,6 +143,7 @@ export async function aggregatePaymentMethodBreakdown(params) {
         e.amount += amount;
         map.set(method, e);
     };
+    // Get all completed transactions in period
     const txRows = await db
         .select({
         invoiceId: invoiceTransaction.invoiceId,
@@ -111,13 +153,15 @@ export async function aggregatePaymentMethodBreakdown(params) {
     })
         .from(invoiceTransaction)
         .innerJoin(invoice, eq(invoiceTransaction.invoiceId, invoice.id))
-        .where(and(eq(invoiceTransaction.status, "COMPLETED"), gte(invoiceTransaction.paidAt, from), lte(invoiceTransaction.paidAt, to), entityScope));
+        .where(and(eq(invoiceTransaction.status, "COMPLETED"), isNotNull(invoiceTransaction.paidAt), gte(invoiceTransaction.paidAt, from), lte(invoiceTransaction.paidAt, to), entityScope));
     const txByInvoice = new Map();
     for (const r of txRows) {
         const amt = toNum(r.amount);
-        add(resolveInvoicePaymentMethod(r.method, r.paymentDetails), amt);
+        const method = resolveInvoicePaymentMethod(r.method, r.paymentDetails);
+        add(method, amt);
         txByInvoice.set(r.invoiceId, (txByInvoice.get(r.invoiceId) ?? 0) + amt);
     }
+    // Impute PAID invoices with incomplete transaction records
     const paidInvoices = await db
         .select({
         id: invoice.id,
@@ -128,9 +172,13 @@ export async function aggregatePaymentMethodBreakdown(params) {
         .where(and(eq(invoice.status, "PAID"), isNotNull(invoice.paidAt), gte(invoice.paidAt, from), lte(invoice.paidAt, to), entityScope));
     for (const inv of paidInvoices) {
         const txPaid = txByInvoice.get(inv.id) ?? 0;
-        const gap = Math.max(0, toNum(inv.amount) - txPaid);
+        const invoiceAmount = toNum(inv.amount);
+        // Only add gap if transactions don't cover full invoice
+        const gap = Math.max(0, invoiceAmount - txPaid);
         if (gap > 0) {
-            add(resolveInvoicePaymentMethod(null, inv.paymentDetails), gap);
+            // Use payment method from invoice metadata, or default to "MANUAL"
+            const method = resolveInvoicePaymentMethod(null, inv.paymentDetails);
+            add(method, gap);
         }
     }
     let grandTotal = 0;

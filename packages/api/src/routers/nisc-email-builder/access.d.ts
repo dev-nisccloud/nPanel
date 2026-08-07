@@ -13,6 +13,26 @@ export declare function buildNebDesignListWhere(params: {
     userRole?: string | null;
     teamId?: string;
 }): SQL | undefined;
+/**
+ * Check READ access: Owner, team member, or agency user can view.
+ */
+export declare function assertDesignReadAccess(params: {
+    designId: string;
+    userId: string;
+    userRole?: string | null;
+}): Promise<typeof nebDesign.$inferSelect>;
+/**
+ * Check MUTATION access: Only owner OR agency super admin can mutate.
+ */
+export declare function assertDesignMutateAccess(params: {
+    designId: string;
+    userId: string;
+    userRole?: string | null;
+}): Promise<typeof nebDesign.$inferSelect>;
+/**
+ * Legacy: For backward compatibility, use read access.
+ * @deprecated Use assertDesignReadAccess or assertDesignMutateAccess explicitly.
+ */
 export declare function assertDesignAccess(params: {
     designId: string;
     userId: string;

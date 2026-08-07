@@ -1,7 +1,7 @@
 import { z } from "zod";
 export declare const generationStatusSchema: z.ZodEnum<{
-    PROCESSING: "PROCESSING";
     QUEUED: "QUEUED";
+    PROCESSING: "PROCESSING";
     COMPLETED: "COMPLETED";
     FAILED: "FAILED";
 }>;
@@ -63,8 +63,8 @@ export declare const startGenerationSchema: z.ZodObject<{
 export declare const startGenerationResponseSchema: z.ZodObject<{
     generationId: z.ZodString;
     status: z.ZodEnum<{
-        PROCESSING: "PROCESSING";
         QUEUED: "QUEUED";
+        PROCESSING: "PROCESSING";
         COMPLETED: "COMPLETED";
         FAILED: "FAILED";
     }>;
@@ -110,8 +110,8 @@ export declare const imageGeneratorGenerationSchema: z.ZodObject<{
     modelId: z.ZodString;
     modelName: z.ZodNullable<z.ZodString>;
     status: z.ZodEnum<{
-        PROCESSING: "PROCESSING";
         QUEUED: "QUEUED";
+        PROCESSING: "PROCESSING";
         COMPLETED: "COMPLETED";
         FAILED: "FAILED";
     }>;
@@ -155,8 +155,8 @@ export declare const getGenerationsResponseSchema: z.ZodObject<{
         modelId: z.ZodString;
         modelName: z.ZodNullable<z.ZodString>;
         status: z.ZodEnum<{
-            PROCESSING: "PROCESSING";
             QUEUED: "QUEUED";
+            PROCESSING: "PROCESSING";
             COMPLETED: "COMPLETED";
             FAILED: "FAILED";
         }>;

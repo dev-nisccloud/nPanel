@@ -133,6 +133,13 @@ export const protectedProcedure = publicProcedure.use(async ({ ctx, next }) => {
             cause: "Session requires MFA verification",
         });
     }
+    if (ctx.reauthRequired) {
+        throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "REAUTH_REQUIRED",
+            cause: "Session requires password re-authentication after IP change",
+        });
+    }
     return next({
         ctx: {
             ...ctx,

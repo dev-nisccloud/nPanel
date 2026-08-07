@@ -177,7 +177,7 @@ export declare const kenicRouter: import("@trpc/server").TRPCBuiltRouter<{
                 authInfo?: string | undefined;
                 disclose?: {
                     flag: 0 | 1;
-                    elements?: ("name" | "email" | "addr" | "fax" | "org" | "voice")[] | undefined;
+                    elements?: ("name" | "email" | "org" | "voice" | "fax" | "addr")[] | undefined;
                 } | undefined;
             };
             output: {
@@ -292,6 +292,9 @@ export declare const kenicRouter: import("@trpc/server").TRPCBuiltRouter<{
                     autoRenewal: boolean;
                     nameservers: string[];
                     source: "kenic";
+                    teamId: string | null;
+                    userId: string | null;
+                    teamName: string | null;
                 }[];
             };
             meta: object;
@@ -347,7 +350,7 @@ export declare const kenicRouter: import("@trpc/server").TRPCBuiltRouter<{
                     upDate: any;
                     trDate: any;
                     rgpStatuses: any[];
-                    authInfo: any;
+                    authInfoSet: boolean;
                     raw: string;
                     parsed: any;
                 };
@@ -376,6 +379,40 @@ export declare const kenicRouter: import("@trpc/server").TRPCBuiltRouter<{
             };
             meta: object;
         }>;
+        getAuthCode: import("@trpc/server").TRPCQueryProcedure<{
+            input: {
+                domain: string;
+            };
+            output: {
+                success: boolean;
+                data: {
+                    auth_code: string | null;
+                    needsRegenerate: true;
+                    message: string;
+                };
+            } | {
+                success: boolean;
+                data: {
+                    auth_code: string;
+                    needsRegenerate: false;
+                    message: string | null;
+                };
+            };
+            meta: object;
+        }>;
+        regenerateAuthCode: import("@trpc/server").TRPCMutationProcedure<{
+            input: {
+                domain: string;
+            };
+            output: {
+                success: boolean;
+                data: {
+                    auth_code: string;
+                };
+                message: string;
+            };
+            meta: object;
+        }>;
         updateAuthCode: import("@trpc/server").TRPCMutationProcedure<{
             input: {
                 domain: string;
@@ -384,6 +421,31 @@ export declare const kenicRouter: import("@trpc/server").TRPCBuiltRouter<{
             output: {
                 success: boolean;
                 message: string;
+                data: {
+                    auth_code: string;
+                };
+            };
+            meta: object;
+        }>;
+    }>>;
+    /** Registrar account credit balance (CoCCA finance:info). */
+    balance: import("@trpc/server").TRPCBuiltRouter<{
+        ctx: import("../..").Context;
+        meta: object;
+        errorShape: import("@trpc/server").TRPCDefaultErrorShape;
+        transformer: false;
+    }, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
+        getBalance: import("@trpc/server").TRPCQueryProcedure<{
+            input: void;
+            output: {
+                success: boolean;
+                balance: number;
+                currency: string;
+                balances: {
+                    tld: string;
+                    currency: string;
+                    balance: number;
+                }[];
             };
             meta: object;
         }>;

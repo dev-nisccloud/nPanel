@@ -4,6 +4,7 @@ import { userActivityLog } from "@npanel/db/schema/auth-extras";
 import { team, teamMember } from "@npanel/db/schema/teams";
 import { and, asc, eq } from "@npanel/db";
 import { auth } from "./index";
+import { parseSafeLandingPageRedirect } from "./landing-page-origins";
 /**
  * First path segments that are never treated as customer team slugs when validating
  * post-login redirects (avoids open redirects and non-app paths).
@@ -13,7 +14,8 @@ const NON_TEAM_ROOT_SEGMENTS = new Set([
     "api",
     "agency",
     "offline",
-    "create-team",
+    "create-organization",
+    "create-team", // legacy alias → /create-organization
     "accept-invite",
     "account-status",
     "unauthorized",
@@ -22,6 +24,26 @@ const NON_TEAM_ROOT_SEGMENTS = new Set([
     "register",
     "manifest.webmanifest",
 ]);
+/** Remap legacy UI paths after Team → Organization rename. */
+function remapLegacyUiPath(pathWithQuery) {
+    const qIdx = pathWithQuery.indexOf("?");
+    const pathname = qIdx >= 0 ? pathWithQuery.slice(0, qIdx) : pathWithQuery;
+    const query = qIdx >= 0 ? pathWithQuery.slice(qIdx) : "";
+    const p = pathname.toLowerCase();
+    if (p === "/create-team" || p.startsWith("/create-team/")) {
+        return `/create-organization${pathname.slice("/create-team".length)}${query}`;
+    }
+    if (p === "/agency/manage-teams" || p.startsWith("/agency/manage-teams/")) {
+        return `/agency/manage-organizations${pathname.slice("/agency/manage-teams".length)}${query}`;
+    }
+    if (p === "/agency/teams" || p.startsWith("/agency/teams/")) {
+        return `/agency/organizations${pathname.slice("/agency/teams".length)}${query}`;
+    }
+    if (p.startsWith("/agency/invoices/teams/") || p === "/agency/invoices/teams") {
+        return `/agency/invoices/organizations${pathname.slice("/agency/invoices/teams".length)}${query}`;
+    }
+    return pathWithQuery;
+}
 function parseSafeInternalRedirectPath(raw) {
     if (raw == null)
         return null;
@@ -87,7 +109,7 @@ async function isUserAuthorizedForRedirectPath(pathWithQuery, userId, role) {
     if (pLower === "/agency" || pLower.startsWith("/agency/")) {
         return isAgency;
     }
-    if (pLower === "/create-team" || pLower.startsWith("/create-team/")) {
+    if (pLower === "/create-organization" || pLower.startsWith("/create-organization/")) {
         return !isAgency;
     }
     if (pLower === "/accept-invite" ||
@@ -140,7 +162,7 @@ export async function getCustomerTeamRedirectPath(user) {
         .orderBy(asc(teamMember.createdAt));
     const activeTeams = memberships.filter((m) => m.teamIsActive);
     if (activeTeams.length === 0)
-        return "/create-team";
+        return "/create-organization";
     const firstTeam = activeTeams[0];
     const teamId = firstTeam.teamId;
     const teamSlug = firstTeam.teamSlug;
@@ -237,9 +259,23 @@ export async function getRootRedirectTargetFromHeaders(headers, requestedRedirec
     const isAgency = role?.includes("AGENCY");
     const defaultRedirect = isAgency
         ? "/agency/dashboard"
-        : // CUSTOMER roles go through team routing (dashboard or create-team).
+        : // CUSTOMER roles go through team routing (dashboard or create-organization).
             await getCustomerTeamRedirectPath(u);
-    const safeRequested = parseSafeInternalRedirectPath(requestedRedirect ?? null);
+    const safeLandingRedirect = parseSafeLandingPageRedirect(requestedRedirect ?? null);
+    if (safeLandingRedirect) {
+        if (process.env.NODE_ENV !== "production") {
+            console.log("[redirect-target][using landing-page redirect]", {
+                userId: u.id,
+                role,
+                safeLandingRedirect,
+            });
+        }
+        return safeLandingRedirect;
+    }
+    const safeRequestedRaw = parseSafeInternalRedirectPath(requestedRedirect ?? null);
+    const safeRequested = safeRequestedRaw
+        ? remapLegacyUiPath(safeRequestedRaw)
+        : null;
     if (safeRequested) {
         const allowed = await isUserAuthorizedForRedirectPath(safeRequested, u.id, role);
         if (allowed) {

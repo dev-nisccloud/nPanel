@@ -20,14 +20,16 @@ import { z } from "zod";
 import { and, eq } from "@npanel/db";
 import { db } from "@npanel/db";
 import { niscOrder, niscOrderItem } from "@npanel/db/schema/nisc-orders";
-import { niscProductPlan } from "@npanel/db/schema/products";
+import { domainTransferRequest } from "@npanel/db/schema/domain-transfer-requests";
 import { paymentTransaction } from "@npanel/db/schema/payment-transactions";
 import { publicProcedure, router } from "../../trpc";
 import { verifyStorefrontTokenOrThrow } from "../../lib/storefront-token";
-import { resolveActiveNiscProductById } from "../../lib/planless-product-resolver";
 import { enqueueNiscOrderProcessing } from "../../lib/qstash/nisc-order-worker";
 import { processNiscOrder } from "../../lib/nisc-order-processor";
 import { runPreProvisioningInvoiceForOrder } from "../../lib/nisc-order-invoice-delivery";
+import { resolveStorefrontCartQuoteInput, storefrontCartQuoteRequestSchema, } from "../../lib/storefront-cart-resolve";
+import { buildStorefrontCartOrderLines } from "../../lib/storefront-cart-order-lines";
+import { storefrontBillingCycleSchema } from "../../lib/storefront-cart-pricing";
 // ---------------------------------------------------------------------------
 // Helpers (mirrors nisc-service-orders.ts)
 // ---------------------------------------------------------------------------
@@ -52,9 +54,11 @@ const createFromPaymentInputSchema = z.object({
     /** The plan the user purchased  optional for planless products (domains, VPS). */
     planId: z.string().optional(),
     productId: z.string().min(1),
-    billingCycle: z.enum(["MONTHLY", "YEARLY"]).default("MONTHLY"),
+    billingCycle: storefrontBillingCycleSchema.default("MONTHLY"),
     /** For domain-inclusive plans. */
     primaryDomain: z.string().optional(),
+    /** Full cart payload  required for domain transfers (EPP code). */
+    cart: storefrontCartQuoteRequestSchema.optional(),
 });
 // ---------------------------------------------------------------------------
 // Router
@@ -100,49 +104,83 @@ export const storefrontOrdersRouter = router({
                 teamSlug,
             };
         }
-        // 3. Fetch product and optional plan details for the order item
-        const product = await resolveActiveNiscProductById(input.productId);
-        if (!product) {
-            throw new TRPCError({
-                code: "NOT_FOUND",
-                message: "The selected product is no longer available.",
-            });
-        }
-        const plan = input.planId
-            ? await db.query.niscProductPlan.findFirst({
-                where: and(eq(niscProductPlan.id, input.planId), eq(niscProductPlan.isActive, true)),
-                columns: {
-                    id: true,
-                    name: true,
-                    monthlyPrice: true,
-                    yearlyPrice: true,
-                },
-            })
+        // 3. Resolve cart lines and authoritative pricing
+        const resolvedCart = input.cart
+            ? resolveStorefrontCartQuoteInput(input.cart)
             : null;
-        if (input.planId && !plan) {
-            throw new TRPCError({
-                code: "NOT_FOUND",
-                message: "The selected plan is no longer available.",
-            });
-        }
-        const isDomainProduct = product.serviceType === "domain_registration" ||
-            product.serviceType === "domains" ||
-            product.serviceType.toLowerCase().includes("domain");
-        if (isDomainProduct && !input.primaryDomain?.trim()) {
+        if (!resolvedCart) {
             throw new TRPCError({
                 code: "BAD_REQUEST",
-                message: "Domain registration requires a domain name.",
+                message: "Checkout cart payload is required.",
             });
         }
-        // 4. Resolve the canonical item price (from the payment amount actually paid)
+        const { lines, quote } = await buildStorefrontCartOrderLines({
+            cart: resolvedCart,
+            primaryDomain: input.primaryDomain,
+            fallbackProductId: input.productId,
+        });
         const paidAmountRaw = tx.paidAmount ?? tx.amount;
-        const itemPrice = String(Math.ceil(Number.parseFloat(paidAmountRaw)));
-        const currency = tx.currency ?? "KES";
+        const paidTotal = Math.ceil(Number.parseFloat(paidAmountRaw));
+        if (paidTotal !== quote.total) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Paid amount does not match the checkout total. Please refresh and try again.",
+            });
+        }
+        const currency = tx.currency ?? quote.currency ?? "KES";
         const now = new Date();
         const orderNumber = generateNiscOrderNumber();
         const orderId = crypto.randomUUID();
-        const orderItemId = crypto.randomUUID();
-        // 5. Create the order and order item in a single transaction
+        // Pre-create domain transfer requests for transfer lines
+        const transferRequestByLineIndex = new Map();
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            if (line.description !== "transfer")
+                continue;
+            const authCode = line.metadata?.transferAuthCode?.trim();
+            if (!authCode || !line.primaryDomain) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Domain transfer requires an authorization (EPP) code.",
+                });
+            }
+            const domainName = line.primaryDomain.trim().toLowerCase();
+            const transferProvider = line.metadata?.transferProvider ??
+                (resolvedCart.main.transferProvider ?? null);
+            const provider = transferProvider === "kenic"
+                ? "KENIC"
+                : transferProvider === "openprovider"
+                    ? "OPENPROVIDER"
+                    : domainName.endsWith(".ke") || domainName.includes(".co.ke")
+                        ? "KENIC"
+                        : "OPENPROVIDER";
+            const requestId = crypto.randomUUID();
+            await db.insert(domainTransferRequest).values({
+                id: requestId,
+                domainName,
+                authCode,
+                provider,
+                status: "PENDING",
+                providerPriceAmount: resolvedCart.main.providerPriceAmount != null
+                    ? String(resolvedCart.main.providerPriceAmount)
+                    : null,
+                providerPriceCurrency: resolvedCart.main.providerPriceCurrency ?? null,
+                customerPriceAmount: String(line.itemPrice),
+                customerPriceCurrency: currency,
+                teamId,
+                createdById: userId,
+                createdAt: now,
+                updatedAt: now,
+            });
+            transferRequestByLineIndex.set(i, {
+                id: requestId,
+                domainName,
+                authCode,
+                provider,
+                itemPrice: String(line.itemPrice),
+            });
+        }
+        // 4. Create the order and all line items
         await db.transaction(async (trx) => {
             await trx.insert(niscOrder).values({
                 id: orderId,
@@ -152,26 +190,44 @@ export const storefrontOrdersRouter = router({
                 createdBy: userId,
                 paymentTransactionId: tx.id,
                 status: "PENDING",
-                subtotal: itemPrice,
-                total: itemPrice,
+                subtotal: String(quote.subtotal),
+                total: String(quote.total),
                 currency,
                 createdAt: now,
                 updatedAt: now,
             });
-            await trx.insert(niscOrderItem).values({
-                id: orderItemId,
-                niscOrderId: orderId,
-                productId: product.id,
-                productPlanId: plan?.id ?? null,
-                billingCycle: input.billingCycle,
-                primaryDomain: input.primaryDomain?.trim() || null,
-                itemPrice,
-                itemSubtotal: itemPrice,
-                status: "PENDING",
-                createdAt: now,
-                updatedAt: now,
-            });
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                const transferRequest = transferRequestByLineIndex.get(i);
+                const metadata = transferRequest != null
+                    ? {
+                        transferAuthCode: transferRequest.authCode,
+                        domainTransferRequestId: transferRequest.id,
+                    }
+                    : line.metadata;
+                await trx.insert(niscOrderItem).values({
+                    id: crypto.randomUUID(),
+                    niscOrderId: orderId,
+                    productId: line.productId,
+                    productPlanId: line.productPlanId,
+                    billingCycle: line.billingCycle,
+                    primaryDomain: line.primaryDomain,
+                    description: line.description,
+                    metadata,
+                    itemPrice: String(line.itemPrice),
+                    itemSubtotal: String(line.itemPrice),
+                    status: "PENDING",
+                    createdAt: now,
+                    updatedAt: now,
+                });
+            }
         });
+        for (const transferRequest of transferRequestByLineIndex.values()) {
+            await db
+                .update(domainTransferRequest)
+                .set({ niscOrderId: orderId, updatedAt: new Date() })
+                .where(eq(domainTransferRequest.id, transferRequest.id));
+        }
         // 6. Enqueue for processing  IDENTICAL HANDOFF to dashboard flow
         try {
             await enqueueNiscOrderProcessing(orderId);

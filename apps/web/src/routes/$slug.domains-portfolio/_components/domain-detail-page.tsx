@@ -75,7 +75,7 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
   const [webDesignDialogOpen, setWebDesignDialogOpen] = React.useState(false);
   const [createSubscriptionDialogOpen, setCreateSubscriptionDialogOpen] = React.useState(false);
 
-  // Customer view: load subscription by id; teamSlug enforces access (subscription must belong to this team and user must be member)
+  // Customer view: load subscription by id; teamSlug enforces access (subscription must belong to this organization and user must be member)
   const {
     data: subscriptionById,
     isLoading: isLoadingSub,
@@ -644,7 +644,7 @@ function ConnectedServicesSection({
   onHostingClick: (type: "web" | "email") => void;
   isAgency: boolean;
   teamSlug: string;
-  /** Required for customer view: server scopes Plesk match to subscriptions linked to this team */
+  /** Required for customer view: server scopes Plesk match to subscriptions linked to this organization */
   customerTeamId: string | null;
 }) {
   const navigate = useNavigate();

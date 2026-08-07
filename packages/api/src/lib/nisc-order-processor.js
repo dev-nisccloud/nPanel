@@ -19,7 +19,7 @@ import { isZeepoAiAgentProduct, provisionZeepoAgentOrderItem, } from "./zeepo-ag
 import { isKenicDomain } from "./epp/kenic-tlds";
 import { ensureKenicIntegration, registerKenicDomain } from "./kenic-nisc";
 import { OpenProviderApiError } from "./openprovider-client";
-import { computeSubscriptionExpiryFromBillingCycle, resolveDomainTransferSubscriptionStartDate, } from "./nisc-subscription-dates";
+import { computeSubscriptionExpiryFromBillingCycle, resolveDomainTransferSubscriptionStartDate, resolveSubscriptionPeriodDates, } from "./nisc-subscription-dates";
 import { processHivelocityOrderItem } from "./hivelocity-nisc-processor";
 import { HIVELOCITY_SERVICE_TYPES } from "../routers/nisc-service-orders-schemas";
 /** Build a serializable error-details object for provisioningErrorDetails (exact provider response for debugging). */
@@ -42,7 +42,12 @@ function buildProvisioningErrorDetails(err) {
     return { provider: "unknown", raw: String(err) };
 }
 /** Service types that require external provisioning (Plesk or domain provider). All other service types are treated as DB-only: create NiscClientSubscription and optionally provision NiscClientSubscriptionUsage from plan. */
-const PLESK_SERVICE_TYPES = ["web_hosting", "email_hosting"];
+const PLESK_SERVICE_TYPES = [
+    "web_hosting",
+    "email_hosting",
+    "wordpress_hosting",
+    "website_hosting",
+];
 const OPENPROVIDER_SERVICE_TYPES = ["domain_registration", "domain_transfer"];
 /** Product serviceType "domains" is treated as domain_registration. */
 function resolveServiceType(serviceType) {
@@ -567,6 +572,7 @@ async function createSubscriptionForOrderItem(order, item) {
     const name = plan ? `${item.product.name} - ${plan.name}` : item.product.name;
     const pricingModel = plan?.pricingModel ?? "FIXED";
     const now = new Date();
+    const periodDates = resolveSubscriptionPeriodDates(now, item.billingCycle);
     const subId = randomUUID();
     const inserted = await db
         .insert(niscClientSubscription)
@@ -593,6 +599,8 @@ async function createSubscriptionForOrderItem(order, item) {
         providerCostCurrency: "KES",
         agreedCommissionRate: null,
         agreedCommissionBase: null,
+        expiryDate: periodDates.expiryDate,
+        nextRenewalDate: periodDates.nextRenewalDate,
         metadata: null,
     })
         .returning();
@@ -619,15 +627,19 @@ async function processPleskOrderItem(order, item) {
         item.domainSubscription?.name ||
         null;
     if (!domainName) {
-        return { ok: false, error: "Domain is required for hosting. Select a domain subscription." };
+        return { ok: false, error: "Domain is required for hosting. Enter a domain name for Plesk." };
     }
-    const teamOwnerId = order.teamId
-        ? (await db
-            .select({ createdById: team.createdById })
-            .from(team)
-            .where(eq(team.id, order.teamId))
-            .limit(1))[0]?.createdById
-        : order.userId;
+    const meta = item.metadata;
+    const provisionUserIdFromMeta = meta?.provisionUserId?.trim() || null;
+    const teamOwnerId = provisionUserIdFromMeta
+        ? provisionUserIdFromMeta
+        : order.teamId
+            ? (await db
+                .select({ createdById: team.createdById })
+                .from(team)
+                .where(eq(team.id, order.teamId))
+                .limit(1))[0]?.createdById
+            : order.userId;
     if (!teamOwnerId || !order.createdBy) {
         return { ok: false, error: "Order must have a team or user and createdBy for Plesk provisioning." };
     }
@@ -646,6 +658,8 @@ async function processPleskOrderItem(order, item) {
         });
         const name = `${item.product.name} - ${item.productPlan.name}`;
         const subId = randomUUID();
+        const subscriptionDate = new Date();
+        const periodDates = resolveSubscriptionPeriodDates(subscriptionDate, item.billingCycle);
         const inserted = await db
             .insert(niscClientSubscription)
             .values({
@@ -659,7 +673,7 @@ async function processPleskOrderItem(order, item) {
             niscOrderId: order.id,
             subscribedBy: order.createdBy,
             status: "ACTIVE",
-            subscriptionDate: new Date(),
+            subscriptionDate,
             billingCycle: item.billingCycle ?? null,
             pricingModel: item.productPlan.pricingModel,
             agreedPrice: item.itemPrice,
@@ -674,6 +688,8 @@ async function processPleskOrderItem(order, item) {
             hostingType: item.productPlan.hostingType ?? null,
             agreedCommissionRate: null,
             agreedCommissionBase: null,
+            expiryDate: periodDates.expiryDate,
+            nextRenewalDate: periodDates.nextRenewalDate,
             metadata: null,
         })
             .returning();
@@ -707,14 +723,29 @@ async function processPleskOrderItem(order, item) {
 function billingCycleToYears(billingCycle) {
     if (!billingCycle)
         return 1;
-    if (billingCycle === "BIENNIALLY")
+    const cycle = billingCycle.trim().toUpperCase();
+    if (cycle === "BIENNIALLY")
         return 2;
+    if (cycle === "TRIENNIALLY")
+        return 3;
+    if (cycle === "QUADRENNIALLY")
+        return 4;
+    if (cycle === "YEARLY")
+        return 1;
     return 1;
 }
 async function resolveOwnerId(order, item) {
     const metadata = item.metadata;
     if (metadata?.useRegistrantInfo === "myself") {
         return order.createdBy;
+    }
+    const provisionUserId = metadata?.provisionUserId?.trim();
+    if (provisionUserId) {
+        return provisionUserId;
+    }
+    /** Agency billed-for user when registrant is the customer (not the agency agent). */
+    if (metadata?.useRegistrantInfo === "customer" && order.userId) {
+        return order.userId;
     }
     if (order.teamId) {
         const teamRow = await db
@@ -775,6 +806,11 @@ async function processKenicOrderItem(order, item) {
             nameServers,
         });
         const subId = randomUUID();
+        const subscriptionDate = new Date();
+        const registryExpiry = regResult.exDate ? new Date(regResult.exDate) : null;
+        const periodDates = resolveSubscriptionPeriodDates(subscriptionDate, item.billingCycle, {
+            expiryOverride: registryExpiry,
+        });
         const inserted = await db
             .insert(niscClientSubscription)
             .values({
@@ -789,7 +825,7 @@ async function processKenicOrderItem(order, item) {
             niscOrderId: order.id,
             subscribedBy: order.createdBy,
             status: "ACTIVE",
-            subscriptionDate: new Date(),
+            subscriptionDate,
             billingCycle: item.billingCycle ?? null,
             pricingModel: "FIXED",
             agreedPrice: item.itemPrice,
@@ -798,7 +834,9 @@ async function processKenicOrderItem(order, item) {
             agreedCostCurrency: "KES",
             primaryDomain: domain,
             openProviderId: null,
-            expiryDate: regResult.exDate ? new Date(regResult.exDate) : null,
+            domainAuthCode: regResult.authInfo,
+            expiryDate: periodDates.expiryDate,
+            nextRenewalDate: periodDates.nextRenewalDate,
             agreedCommissionRate: null,
             agreedCommissionBase: null,
             metadata: null,
@@ -869,6 +907,18 @@ async function processKenicTransferOrderItem(order, item) {
             period: 1,
             nameServers,
         });
+        // CoCCA never returns plaintext auth codes later. Set a fresh outbound code when
+        // we already sponsor the domain (non-pending). Pending transfers get no stored code yet.
+        let outboundAuthCode = null;
+        if (!transferResult.pending) {
+            try {
+                const { setKenicDomainAuthCode } = await import("./kenic-nisc");
+                outboundAuthCode = await setKenicDomainAuthCode(domain);
+            }
+            catch (err) {
+                console.error("[KENIC] Failed to set outbound auth code after transfer:", err);
+            }
+        }
         const subscriptionDate = await resolveDomainTransferSubscriptionStartDate({
             domainTransferRequestId: metadata?.domainTransferRequestId,
             orderCreatedAt: order.createdAt,
@@ -899,6 +949,7 @@ async function processKenicTransferOrderItem(order, item) {
             agreedCostCurrency: "KES",
             primaryDomain: domain,
             openProviderId: null,
+            domainAuthCode: outboundAuthCode,
             expiryDate,
             agreedCommissionRate: null,
             agreedCommissionBase: null,

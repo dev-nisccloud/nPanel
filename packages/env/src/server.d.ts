@@ -1,7 +1,7 @@
 import "dotenv/config";
 export declare const env: Readonly<{
-    DIGITAX_API_KEY?: string | undefined;
     LANDING_PAGE_ORIGINS?: string | undefined;
+    DIGITAX_API_KEY?: string | undefined;
     REPLICATE_ZEEPO_CANVAS_WEBHOOK_URL?: string | undefined;
     QSTASH_ZEEPO_AGENT_WORKER_ENDPOINT?: string | undefined;
     REPLICATE_ZEEPO_AGENT_WEBHOOK_URL?: string | undefined;
@@ -11,10 +11,13 @@ export declare const env: Readonly<{
     DATAFORSEO_PASSWORD?: string | undefined;
     QSTASH_SEO_SUITE_RANK_WORKER_ENDPOINT?: string | undefined;
     QSTASH_SEO_SUITE_AUDIT_WORKER_ENDPOINT?: string | undefined;
-    QSTASH_EMAIL_BUILDER_AI_WORKER_ENDPOINT?: string | undefined;
-    REPLICATE_EMAIL_BUILDER_AI_WEBHOOK_URL?: string | undefined;
     QSTASH_NISC_EMAIL_BUILDER_WORKER_ENDPOINT?: string | undefined;
     REPLICATE_META_ADS_ANALYSIS_WEBHOOK_URL?: string | undefined;
+    S3_ENDPOINT?: string | undefined;
+    S3_ACCESS_KEY?: string | undefined;
+    S3_SECRET_KEY?: string | undefined;
+    S3_BUCKET?: string | undefined;
+    S3_PUBLIC_BASE_URL?: string | undefined;
     DATABASE_URL: string;
     BETTER_AUTH_SECRET: string;
     BETTER_AUTH_URL: string;
@@ -26,4 +29,5 @@ export declare const env: Readonly<{
     QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT: string;
     QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT: string;
     REPLICATE_API_TOKEN: string;
+    S3_REGION: string;
 }>;

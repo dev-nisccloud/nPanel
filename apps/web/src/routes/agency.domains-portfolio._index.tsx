@@ -309,7 +309,7 @@ export default function DomainsPortfolioPage() {
                                       : domain.id,
                                   )
                                     ? "This domain already has a connected subscription. To connect you need to first suspend the existing to connect it."
-                                    : "Create a Nisc subscription for this domain and link it to a user or team."}
+                                    : "Create a Nisc subscription for this domain and link it to a user or organization."}
                                 </TooltipContent>
                               </Tooltip>
                             )}
@@ -317,7 +317,7 @@ export default function DomainsPortfolioPage() {
                             {domain.source === "kenic" && !domain.teamId && (
                               <DropdownMenuItem onClick={() => setLinkToTeamDomain(domain)}>
                                 <Link2 className="mr-2 h-4 w-4" />
-                                Link to team
+                                Link to organization
                               </DropdownMenuItem>
                             )}
                           </DropdownMenuContent>

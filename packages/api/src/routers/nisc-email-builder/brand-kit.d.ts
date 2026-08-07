@@ -13,8 +13,8 @@ export declare const nebBrandKitRouter: import("@trpc/server").TRPCBuiltRouter<{
             name: string;
             createdAt: Date;
             updatedAt: Date;
-            teamId: string | null;
             userId: string;
+            teamId: string | null;
             logoAssetId: string | null;
             colors: unknown;
             fonts: unknown;

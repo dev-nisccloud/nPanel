@@ -5,10 +5,10 @@ import { db } from "@npanel/db";
 import { nebDesign, nebDesignVersion, nebSession, } from "@npanel/db/schema/nisc-email-builder";
 import { teamMember } from "@npanel/db/schema/teams";
 import { protectedProcedure, router } from "../../trpc";
-import { assertDesignAccess, buildNebDesignListWhere, isAgencySuperAdminRole, isAgencyUserRole, } from "./access";
+import { assertDesignAccess, assertDesignReadAccess, assertDesignMutateAccess, buildNebDesignListWhere, isAgencySuperAdminRole, isAgencyUserRole, } from "./access";
 import { stripEditorArtifactsFromHtml } from "../../lib/nisc-email-builder/html-sanitize-for-save";
 import { processEmailHtml } from "../../lib/nisc-email-builder/pipeline";
-import { createDesignSchema, designIdSchema, listDesignsSchema, nebDesignRefSchema, restoreVersionSchema, saveHtmlSchema, updateDesignMetaSchema, } from "./schemas";
+import { createDesignSchema, designIdSchema, listDesignsSchema, nebDesignRefSchema, restoreVersionSchema, saveHtmlSchema, saveHtmlContentSchema, updateDesignMetaSchema, } from "./schemas";
 export const nebDesignRouter = router({
     create: protectedProcedure.input(createDesignSchema).mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
@@ -116,7 +116,7 @@ export const nebDesignRouter = router({
         const userId = ctx.session?.user?.id;
         if (!userId)
             throw new TRPCError({ code: "UNAUTHORIZED" });
-        await assertDesignAccess({
+        await assertDesignMutateAccess({
             designId: input.designId,
             userId,
             userRole: ctx.session?.user?.role,
@@ -215,11 +215,74 @@ export const nebDesignRouter = router({
         });
         return { data: duplicated };
     }),
+    // NEW: Immediate HTML persistence for auto-save (network resilience)
+    saveHtmlContent: protectedProcedure
+        .input(saveHtmlContentSchema)
+        .mutation(async ({ ctx, input }) => {
+        const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
+        if (!userId)
+            throw new TRPCError({ code: "UNAUTHORIZED" });
+        // SECURITY: Check mutation access (only creator or agency super admin)
+        const design = await assertDesignMutateAccess({
+            designId: input.designId,
+            userId,
+            userRole,
+        });
+        const now = new Date();
+        const newVersion = (design.clientVersion || 0) + 1;
+        // Build WHERE clause with ownership check (defense in depth)
+        const isAgencySuperAdmin = userRole === "AGENCY_SUPER_ADMIN";
+        const whereClause = isAgencySuperAdmin
+            ? eq(nebDesign.id, input.designId)
+            : and(eq(nebDesign.id, input.designId), eq(nebDesign.userId, userId));
+        try {
+            // Immediate persistence of raw HTML (no validation to block save)
+            const [updated] = await db
+                .update(nebDesign)
+                .set({
+                htmlContent: input.html,
+                updatedAt: now,
+                lastSavedAt: now,
+                saveStatus: "SAVED",
+                clientVersion: newVersion,
+                lastSaveError: null,
+                workflowPhase: "READY",
+            })
+                .where(whereClause)
+                .returning();
+            if (!updated) {
+                throw new Error("Design not found or no permission to update");
+            }
+            return {
+                success: true,
+                data: updated,
+                version: newVersion,
+            };
+        }
+        catch (error) {
+            // Mark save as failed but don't throw - let UI retry
+            await db
+                .update(nebDesign)
+                .set({
+                saveStatus: "SAVE_FAILED",
+                lastSaveError: error instanceof Error ? error.message : "Unknown error",
+                updatedAt: now,
+            })
+                .where(whereClause);
+            throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message: "Failed to save HTML content",
+                cause: error,
+            });
+        }
+    }),
+    // EXISTING: Full HTML save with validation and versioning (manual saves)
     saveHtml: protectedProcedure.input(saveHtmlSchema).mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
         if (!userId)
             throw new TRPCError({ code: "UNAUTHORIZED" });
-        const design = await assertDesignAccess({
+        const design = await assertDesignMutateAccess({
             designId: input.designId,
             userId,
             userRole: ctx.session?.user?.role,
@@ -259,6 +322,8 @@ export const nebDesignRouter = router({
                 status: "DRAFT",
                 workflowPhase: "READY",
                 updatedAt: now,
+                lastSavedAt: now,
+                saveStatus: "SAVED",
             })
                 .where(eq(nebDesign.id, input.designId));
             return {
@@ -294,6 +359,8 @@ export const nebDesignRouter = router({
             status: "DRAFT",
             workflowPhase: "READY",
             updatedAt: now,
+            lastSavedAt: now,
+            saveStatus: "SAVED",
         })
             .where(eq(nebDesign.id, input.designId));
         return {
@@ -326,7 +393,7 @@ export const nebDesignRouter = router({
         const userId = ctx.session?.user?.id;
         if (!userId)
             throw new TRPCError({ code: "UNAUTHORIZED" });
-        await assertDesignAccess({
+        await assertDesignMutateAccess({
             designId: input.designId,
             userId,
             userRole: ctx.session?.user?.role,

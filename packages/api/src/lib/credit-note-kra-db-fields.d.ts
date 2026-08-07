@@ -20,7 +20,7 @@ export declare function buildCreditNoteKraInsertFields(input?: KraFieldInput): {
     kraSignature: string | null;
     kraQrCode: string | null;
     kraVerifiedDate: Date | null;
-    kraStatus: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED";
+    kraStatus: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED";
     kraError: string | null;
     kraSubmittedAt: Date | null;
     kraLastAttemptAt: Date | null;
@@ -37,7 +37,7 @@ export declare function mapCreditNoteKraDetailFields(creditNote: KraFieldInput &
     kraSignature: string | null;
     kraQrCode: string | null;
     kraVerifiedDate: Date | null;
-    kraStatus: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null;
+    kraStatus: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null;
     kraError: string | null;
     kraSubmittedAt: Date | null;
     kraLastAttemptAt: Date | null;

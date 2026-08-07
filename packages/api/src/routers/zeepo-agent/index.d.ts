@@ -18,11 +18,11 @@ export declare const zeepoAgentRouter: import("@trpc/server").TRPCBuiltRouter<{
             output: {
                 data: {
                     id: string;
+                    status: string;
                     createdAt: Date;
                     updatedAt: Date;
-                    teamId: string | null;
-                    status: string;
                     userId: string;
+                    teamId: string | null;
                     title: string | null;
                 } | undefined;
             };
@@ -37,11 +37,11 @@ export declare const zeepoAgentRouter: import("@trpc/server").TRPCBuiltRouter<{
             output: {
                 data: {
                     id: string;
+                    status: string;
                     createdAt: Date;
                     updatedAt: Date;
-                    teamId: string | null;
-                    status: string;
                     userId: string;
+                    teamId: string | null;
                     title: string | null;
                 }[];
                 total: any;
@@ -57,21 +57,21 @@ export declare const zeepoAgentRouter: import("@trpc/server").TRPCBuiltRouter<{
             output: {
                 data: {
                     id: string;
+                    status: string;
                     createdAt: Date;
                     updatedAt: Date;
-                    teamId: string | null;
-                    status: string;
                     userId: string;
+                    teamId: string | null;
                     title: string | null;
                     messages: {
                         id: string;
+                        role: string;
                         createdAt: Date;
                         metadata: unknown;
-                        role: string;
+                        sessionId: string;
                         content: string | null;
                         toolCalls: unknown;
                         toolCallId: string | null;
-                        sessionId: string;
                     }[];
                 };
             };
@@ -113,26 +113,27 @@ export declare const zeepoAgentRouter: import("@trpc/server").TRPCBuiltRouter<{
                     url: string;
                     name: string;
                     mimeType: string;
+                    storageKey?: string | undefined;
                 }[] | undefined;
             };
             output: {
                 data: {
                     id: string;
+                    status: string;
                     createdAt: Date;
                     updatedAt: Date;
-                    teamId: string | null;
-                    status: string;
                     userId: string;
+                    teamId: string | null;
                     title: string | null;
                     messages: {
                         id: string;
+                        role: string;
                         createdAt: Date;
                         metadata: unknown;
-                        role: string;
+                        sessionId: string;
                         content: string | null;
                         toolCalls: unknown;
                         toolCallId: string | null;
-                        sessionId: string;
                     }[];
                 } | undefined;
                 lastAssistantPreview: string;
@@ -160,7 +161,7 @@ export declare const zeepoAgentRouter: import("@trpc/server").TRPCBuiltRouter<{
                 resolution?: "1 MP" | "2 MP" | undefined;
             };
             output: {
-                imageUrl: any;
+                imageUrl: string;
             };
             meta: object;
         }>;
@@ -223,14 +224,14 @@ export declare const zeepoAgentRouter: import("@trpc/server").TRPCBuiltRouter<{
                 history: {
                     id: string;
                     createdAt: Date;
-                    metadata: unknown;
                     userId: string;
-                    sessionId: string;
                     prompt: string | null;
+                    metadata: unknown;
+                    operationType: string;
+                    sessionId: string;
                     imageUrl: string;
                     generationId: string;
                     parentId: string | null;
-                    operationType: string;
                     label: string | null;
                 }[];
             };
@@ -269,7 +270,7 @@ export declare const zeepoAgentRouter: import("@trpc/server").TRPCBuiltRouter<{
                 sessionId: string;
                 generationId: string;
                 imageUrl: string;
-                style: "anime" | "cinematic" | "watercolor" | "oil_painting" | "pixel_art" | "neon" | "pencil_sketch" | "vintage";
+                style: "watercolor" | "oil_painting" | "cinematic" | "anime" | "pixel_art" | "neon" | "pencil_sketch" | "vintage";
                 parentId?: string | undefined;
                 customPrompt?: string | undefined;
                 outputFormat?: "webp" | "png" | undefined;
@@ -449,8 +450,8 @@ export declare const zeepoAgentRouter: import("@trpc/server").TRPCBuiltRouter<{
                     id: string;
                     createdAt: Date;
                     description: string | null;
-                    balanceAfter: string;
                     operationType: string;
+                    balanceAfter: string;
                     direction: string;
                     tokens: string;
                 }[];

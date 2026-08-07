@@ -177,7 +177,7 @@ export function RegisterForm({ termsAccepted, onTermsAcceptedChange }: RegisterF
 
   if (isEmailSent) {
     const successMessage = redirectPath && inviteCode
-      ? "We've sent a verification link to your email address. After verifying, you'll be redirected back to accept the team invitation."
+      ? "We've sent a verification link to your email address. After verifying, you'll be redirected back to accept the organization invitation."
       : "We've sent a verification link to your email address. Please click the link to verify your account and get started.";
     
     return (

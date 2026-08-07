@@ -278,7 +278,7 @@ function isValidDomainName(value: string): boolean {
 
 const createFormSchema = z
 	.object({
-		teamId: z.string().min(1, "Select a team"),
+		teamId: z.string().min(1, "Select an organization"),
 		serviceProduct: z.enum(SERVICE_PRODUCT_IDS),
 		planId: z.string().optional(),
 		provisionUserId: z.string().optional(),
@@ -763,7 +763,7 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 				<SheetHeader className="px-6 pt-6 pb-2">
 					<SheetTitle>Create subscription</SheetTitle>
 					<SheetDescription>
-						Provision a service on behalf of a customer team. Payment is recorded for your
+						Provision a service on behalf of a customer organization. Payment is recorded for your
 						records only  no invoice or customer order emails are sent.
 					</SheetDescription>
 				</SheetHeader>
@@ -779,7 +779,7 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 										name="teamId"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Team</FormLabel>
+												<FormLabel>Organization</FormLabel>
 												{loadingTeams ? (
 													<Skeleton className="h-10 w-full" />
 												) : (
@@ -787,14 +787,14 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 														items={teamItems}
 														selectedItem={teamItems.find((i) => i.id === field.value)}
 														onSelect={(item) => field.onChange(item.id)}
-														placeholder="Select team"
-														searchPlaceholder="Search teams..."
-														emptyResults="No teams found"
+														placeholder="Select organization"
+														searchPlaceholder="Search organizations..."
+														emptyResults="No organizations found"
 														disabled={isBusy}
 													/>
 												)}
 												<FormDescription>
-													Subscription is linked to this customer team.
+													Subscription is linked to this customer organization.
 												</FormDescription>
 												<FormMessage />
 											</FormItem>
@@ -817,12 +817,12 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 															onSelect={(item) => field.onChange(item.id)}
 															placeholder="Select user"
 															searchPlaceholder="Search members..."
-															emptyResults="No team members found"
+															emptyResults="No organization members found"
 															disabled={isBusy}
 														/>
 													)}
 													<FormDescription>
-														Defaults to the team owner. Profile details from this user are
+														Defaults to the organization owner. Profile details from this user are
 														used when creating the third-party account (e.g. Plesk customer or
 														domain registrant).
 													</FormDescription>

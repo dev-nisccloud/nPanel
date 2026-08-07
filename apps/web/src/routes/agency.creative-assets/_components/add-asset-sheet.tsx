@@ -32,7 +32,7 @@ const FormSchema = z.object({
   description: z.string().optional(),
   category: z.string().optional(),
   status: z.enum(["DRAFT", "IN_REVIEW", "APPROVED", "ARCHIVED"]).default("DRAFT"),
-  teamId: z.string().min(1, { message: "Team is required." }),
+  teamId: z.string().min(1, { message: "Organization is required." }),
 });
 
 interface AddAssetSheetProps {
@@ -153,7 +153,7 @@ export function AddAssetSheet({ open, onOpenChange, onAddAsset }: AddAssetSheetP
             <div>
               <SheetTitle className="text-2xl font-bold">Create Creative Asset</SheetTitle>
               <SheetDescription className="text-base">
-                Create a new creative asset for a team
+                Create a new creative asset for an organization
               </SheetDescription>
             </div>
           </div>
@@ -267,7 +267,7 @@ export function AddAssetSheet({ open, onOpenChange, onAddAsset }: AddAssetSheetP
                     name="teamId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Team</FormLabel>
+                        <FormLabel>Organization</FormLabel>
                         <FormControl>
                           {isLoadingTeams ? (
                             <div className="flex items-center justify-center h-10 border rounded-md">
@@ -275,14 +275,14 @@ export function AddAssetSheet({ open, onOpenChange, onAddAsset }: AddAssetSheetP
                             </div>
                           ) : (
                             <ComboboxDropdown
-                              placeholder="Select team"
-                              searchPlaceholder="Search teams..."
+                              placeholder="Select organization"
+                              searchPlaceholder="Search organizations..."
                               items={teamOptions}
                               selectedItem={selectedTeam}
                               onSelect={(item) => {
                                 field.onChange(item.id);
                               }}
-                              emptyResults="No teams found"
+                              emptyResults="No organizations found"
                               disabled={isLoadingTeams || teamOptions.length === 0}
                               className="w-full"
                             />

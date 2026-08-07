@@ -33,7 +33,7 @@ const FormSchema = z.object({
   description: z.string().optional(),
   category: z.string().optional(),
   status: z.enum(["DRAFT", "IN_REVIEW", "APPROVED", "ARCHIVED"]).default("DRAFT"),
-  teamId: z.string().min(1, { message: "Team is required." }),
+  teamId: z.string().min(1, { message: "Organization is required." }),
 });
 
 interface EditAssetSheetProps {
@@ -286,7 +286,7 @@ export function EditAssetSheet({ open, onOpenChange, asset, onEditAsset }: EditA
                     name="teamId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Team</FormLabel>
+                        <FormLabel>Organization</FormLabel>
                         <FormControl>
                           {isLoadingTeams ? (
                             <div className="flex items-center justify-center h-10 border rounded-md">
@@ -294,14 +294,14 @@ export function EditAssetSheet({ open, onOpenChange, asset, onEditAsset }: EditA
                             </div>
                           ) : (
                             <ComboboxDropdown
-                              placeholder="Select team"
-                              searchPlaceholder="Search teams..."
+                              placeholder="Select organization"
+                              searchPlaceholder="Search organizations..."
                               items={teamOptions}
                               selectedItem={selectedTeam}
                               onSelect={(item) => {
                                 field.onChange(item.id);
                               }}
-                              emptyResults="No teams found"
+                              emptyResults="No organizations found"
                               disabled={isLoadingTeams || teamOptions.length === 0}
                               className="w-full"
                             />

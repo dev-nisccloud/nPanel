@@ -6,28 +6,41 @@ export function addBillingCycleToDate(start, billingCycle) {
     if (!billingCycle)
         return null;
     const end = new Date(start);
-    if (billingCycle === "MONTHLY") {
+    const cycle = billingCycle.trim().toUpperCase();
+    if (cycle === "MONTHLY") {
         end.setMonth(end.getMonth() + 1);
         return end;
     }
-    if (billingCycle === "YEARLY") {
+    if (cycle === "YEARLY") {
         end.setFullYear(end.getFullYear() + 1);
         return end;
     }
-    if (billingCycle === "BIENNIALLY") {
+    if (cycle === "BIENNIALLY") {
         end.setFullYear(end.getFullYear() + 2);
+        return end;
+    }
+    if (cycle === "TRIENNIALLY") {
+        end.setFullYear(end.getFullYear() + 3);
+        return end;
+    }
+    if (cycle === "QUADRENNIALLY") {
+        end.setFullYear(end.getFullYear() + 4);
         return end;
     }
     return null;
 }
 function billingCycleLabel(billingCycle) {
-    switch (billingCycle) {
+    switch ((billingCycle ?? "").trim().toUpperCase()) {
         case "MONTHLY":
             return "1 month";
         case "YEARLY":
             return "1 year";
         case "BIENNIALLY":
             return "2 years";
+        case "TRIENNIALLY":
+            return "3 years";
+        case "QUADRENNIALLY":
+            return "4 years";
         default:
             return "1 year";
     }

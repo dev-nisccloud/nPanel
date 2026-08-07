@@ -1331,4 +1331,92 @@ export const niscServiceOrdersRouter = router({
 
 			return { success: true, niscOrderId: order.id };
 		}),
+
+	/**
+	 * Create order from a SUCCESS Jenga card payment using metadata stored at initiate time.
+	 * Used by the post-redirect return page so the closed dialog payload is not required.
+	 */
+	createFromJengaPayment: protectedProcedure
+		.input(z.object({ orderReference: z.string().min(8).max(32) }))
+		.mutation(async ({ ctx, input }) => {
+			const session = ctx.session;
+			if (!session?.user?.id) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You must be logged in to create an order from payment",
+				});
+			}
+			const userId = session.user.id;
+
+			const txRows = await db
+				.select()
+				.from(paymentTransaction)
+				.where(
+					and(
+						eq(paymentTransaction.checkoutRequestId, input.orderReference),
+						eq(paymentTransaction.gateway, "JENGA"),
+						eq(paymentTransaction.userId, userId),
+					),
+				)
+				.limit(1);
+			const transaction = txRows[0];
+			if (!transaction) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Payment not found",
+				});
+			}
+			if (transaction.status !== "SUCCESS") {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						transaction.status === "FAILED"
+							? "Payment failed. Please try again."
+							: "Payment not yet confirmed. Wait a moment and try again.",
+				});
+			}
+
+			const metadata = (transaction.metadata ?? {}) as {
+				items?: unknown[];
+				currency?: string;
+				teamId?: string;
+				billedForUserId?: string;
+				skipInvoice?: boolean;
+			};
+
+			const parsed = createFromPaymentInputSchema.safeParse({
+				checkoutRequestId: input.orderReference,
+				items: metadata.items,
+				currency: metadata.currency ?? transaction.currency ?? "KES",
+				teamId: metadata.teamId,
+				billedForUserId: metadata.billedForUserId,
+				skipInvoice: metadata.skipInvoice,
+			});
+
+			if (!parsed.success) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						"Order details were not saved with this payment. Contact support with your reference.",
+				});
+			}
+
+			const createCaller = ctx.createCaller;
+			if (!createCaller) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Order creation is temporarily unavailable. Please try again.",
+				});
+			}
+
+			const caller = createCaller(ctx) as {
+				niscServiceOrders: {
+					createFromPayment: (
+						data: z.infer<typeof createFromPaymentInputSchema>,
+					) => Promise<unknown>;
+				};
+			};
+
+			return caller.niscServiceOrders.createFromPayment(parsed.data);
+		}),
 });

@@ -200,7 +200,7 @@ export default function OrdersPage() {
 							<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
 							<Input
 								type="text"
-								placeholder="Search orders by number, team, type..."
+								placeholder="Search orders by number, organization, type..."
 								value={searchQuery}
 								onChange={(e) => setSearchQuery(e.target.value)}
 								className="pl-9"
@@ -228,7 +228,7 @@ export default function OrdersPage() {
 					{!data || data.orders.length === 0 ? (
 						<EmptyState
 							title="No orders found"
-							description="Get started by creating your first order for a team."
+							description="Get started by creating your first order for an organization."
 							action={
 								<Button onClick={() => setIsAddOrderOpen(true)}>
 									<Plus className="mr-2 h-4 w-4" />
@@ -255,7 +255,7 @@ export default function OrdersPage() {
 								<TableHeader>
 									<TableRow>
 										<TableHead className="pl-6">Order #</TableHead>
-										<TableHead>Team</TableHead>
+										<TableHead>Organization</TableHead>
 										<TableHead>Type</TableHead>
 										<TableHead>Total</TableHead>
 										<TableHead>Status</TableHead>

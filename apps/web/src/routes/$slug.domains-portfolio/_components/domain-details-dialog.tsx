@@ -1451,7 +1451,7 @@ function DomainActionsMenu({ domain }: { domain: DomainPortfolio }) {
               <TooltipContent side="left" className="max-w-xs">
                 {hasExistingSubscription
                   ? "This domain already has a connected subscription. To connect you need to first suspend the existing to connect it."
-                  : "Create a Nisc subscription for this domain and link it to a user or team."}
+                  : "Create a Nisc subscription for this domain and link it to a user or organization."}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

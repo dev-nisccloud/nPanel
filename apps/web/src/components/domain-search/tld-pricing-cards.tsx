@@ -13,12 +13,11 @@ const PRICE_PROBE_NAME = "nisccloudprice";
 type ShowcaseTld = {
 	ext: string;
 	variant: "kenyan" | "openprovider";
-	note?: string;
 };
 
 /** Popular local + global extensions shown under domain search (live prices). */
 const SHOWCASE_TLDS: ShowcaseTld[] = [
-	{ ext: ".co.ke", variant: "kenyan", note: "Popular" },
+	{ ext: ".co.ke", variant: "kenyan" },
 	{ ext: ".ke", variant: "kenyan" },
 	{ ext: ".com", variant: "openprovider" },
 	{ ext: ".net", variant: "openprovider" },
@@ -69,9 +68,9 @@ function PriceCell({
 		return <span className="text-[11px] text-muted-foreground">Search for price</span>;
 	}
 	return (
-		<p className="text-sm font-semibold text-foreground tabular-nums">
+		<p className="text-sm font-extrabold text-foreground tabular-nums">
 			{formatPrice(price.amount, price.currency)}
-			<sup className="ml-0.5 text-[9px] font-normal text-muted-foreground align-super">
+			<sup className="ml-0.5 text-[9px] font-semibold text-muted-foreground align-super">
 				/yr
 			</sup>
 		</p>
@@ -210,24 +209,16 @@ export function TldPricingCards({ currencyContext, className }: TldPricingCardsP
 				Popular extensions · live prices include margin · search above for any TLD
 			</p>
 			<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-				{SHOWCASE_TLDS.map(({ ext, variant, note }) => (
+				{SHOWCASE_TLDS.map(({ ext, variant }) => (
 					<div
 						key={ext}
-						className="bg-card border border-border rounded-xl p-3.5 flex flex-col items-center justify-center text-center gap-2 min-h-[7.5rem]"
+						className="bg-card border border-border rounded-xl p-3.5 flex flex-col items-center justify-center text-center gap-2 min-h-[6.5rem]"
 					>
 						<TldLogo
 							tld={ext}
 							variant={variant}
 							className="bg-transparent bg-none shadow-none"
 						/>
-						<div className="flex items-center gap-1.5 flex-wrap justify-center">
-							<span className="font-bold text-sm text-foreground">{ext}</span>
-							{note ? (
-								<span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">
-									{note}
-								</span>
-							) : null}
-						</div>
 						<PriceCell price={pricesByExt[ext]} loading={showLoading} />
 					</div>
 				))}

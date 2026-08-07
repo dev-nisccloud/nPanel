@@ -6,28 +6,31 @@ type DbLike = typeof db | DbTransaction;
 declare function mapInvoiceDetail(invoice: any): InvoiceDetail;
 declare function fetchInvoiceDetail(tx: DbLike, invoiceId: string): Promise<{
     id: string;
+    status: string;
     createdAt: Date;
     updatedAt: Date;
+    token: string;
     teamId: string | null;
+    metadata: unknown;
+    createdBy: string;
+    amount: string | null;
+    currency: string;
+    sentAt: Date | null;
+    updatedBy: string | null;
     customerId: string | null;
     customerName: string | null;
     customerEmail: string | null;
     invoiceNumber: string | null;
-    token: string;
-    status: string;
-    amount: string | null;
     subtotal: string | null;
     tax: string | null;
     taxPercentage: number | null;
     vat: string | null;
     discount: string | null;
-    currency: string;
     creditedAmount: string | null;
     creditBalance: string | null;
     issueDate: Date | null;
     dueDate: Date | null;
     paidAt: Date | null;
-    sentAt: Date | null;
     reminderSentAt: Date | null;
     viewedAt: Date | null;
     note: string | null;
@@ -39,9 +42,6 @@ declare function fetchInvoiceDetail(tx: DbLike, invoiceId: string): Promise<{
     template: unknown;
     topBlock: unknown;
     bottomBlock: unknown;
-    metadata: unknown;
-    createdBy: string;
-    updatedBy: string | null;
     kraInvoiceNumber: string | null;
     kraReceiptNumber: string | null;
     kraSignature: string | null;
@@ -55,62 +55,59 @@ declare function fetchInvoiceDetail(tx: DbLike, invoiceId: string): Promise<{
     kraVerificationUrl: string | null;
     kraSyncPayload: unknown;
     kraSyncResponse: unknown;
-    lineItems: {
+    activityLogs: {
         id: string;
-        name: string | null;
         createdAt: Date;
-        updatedAt: Date;
-        discount: string | null;
-        metadata: unknown;
-        invoiceId: string;
-        position: number;
+        ipAddress: string | null;
+        userAgent: string | null;
+        userId: string;
         description: string | null;
-        quantity: number | null;
-        unit: string | null;
-        price: string | null;
-        total: string | null;
+        metadata: unknown;
+        action: string;
+        invoiceId: string;
     }[];
     transactions: {
         id: string;
+        status: string;
         createdAt: Date;
         updatedAt: Date;
-        status: string;
+        notes: string | null;
+        metadata: unknown;
         amount: string;
         currency: string;
+        method: string;
         paidAt: Date | null;
-        metadata: unknown;
         invoiceId: string;
         reference: string | null;
         providerReference: string | null;
-        method: string;
-        notes: string | null;
         recordedBy: string | null;
         balanceBefore: string | null;
         balanceAfter: string | null;
         activityLogs: {
             id: string;
             createdAt: Date;
-            metadata: unknown;
-            description: string | null;
-            userId: string;
-            action: string;
             ipAddress: string | null;
             userAgent: string | null;
+            userId: string;
+            description: string | null;
+            metadata: unknown;
+            action: string;
             invoiceTransactionId: string;
         }[];
     }[];
     creditNote: {
         id: string;
+        status: string;
         createdAt: Date;
         updatedAt: Date;
         teamId: string | null;
-        status: string;
-        amount: string;
-        currency: string;
-        note: string | null;
+        reason: string | null;
         metadata: unknown;
         createdBy: string;
+        amount: string;
+        currency: string;
         updatedBy: string | null;
+        note: string | null;
         kraInvoiceNumber: string | null;
         kraReceiptNumber: string | null;
         kraSignature: string | null;
@@ -126,7 +123,6 @@ declare function fetchInvoiceDetail(tx: DbLike, invoiceId: string): Promise<{
         kraSyncResponse: unknown;
         invoiceId: string;
         creditNumber: string | null;
-        reason: string | null;
         issuedAt: Date | null;
         appliedAt: Date | null;
         kraRefundReasonCode: string | null;
@@ -134,25 +130,29 @@ declare function fetchInvoiceDetail(tx: DbLike, invoiceId: string): Promise<{
         activityLogs: {
             id: string;
             createdAt: Date;
-            metadata: unknown;
-            description: string | null;
-            userId: string;
-            action: string;
             ipAddress: string | null;
             userAgent: string | null;
+            userId: string;
+            description: string | null;
+            metadata: unknown;
+            action: string;
             creditNoteId: string;
         }[];
     };
-    activityLogs: {
+    lineItems: {
         id: string;
+        name: string | null;
         createdAt: Date;
-        metadata: unknown;
-        invoiceId: string;
+        updatedAt: Date;
         description: string | null;
-        userId: string;
-        action: string;
-        ipAddress: string | null;
-        userAgent: string | null;
+        position: number;
+        metadata: unknown;
+        price: string | null;
+        discount: string | null;
+        invoiceId: string;
+        quantity: number | null;
+        unit: string | null;
+        total: string | null;
     }[];
 }>;
 declare function mapCreditNoteDetail(raw: {
@@ -206,7 +206,7 @@ declare function fetchCreditNoteDetail(tx: DbLike, creditNoteId: string): Promis
     kraSignature?: string | null | undefined;
     kraQrCode?: string | null | undefined;
     kraVerifiedDate?: Date | null | undefined;
-    kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
+    kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
     kraError?: string | null | undefined;
     kraSubmittedAt?: Date | null | undefined;
     kraLastAttemptAt?: Date | null | undefined;
@@ -243,6 +243,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
     list: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             teamId?: string | undefined;
+            unassignedOnly?: boolean | undefined;
             status?: "DRAFT" | "SENT" | "CANCELLED" | "PARTIALLY_PAID" | "PAID" | "OVERDUE" | "WRITTEN_OFF" | undefined;
             search?: string | undefined;
             limit?: number | undefined;
@@ -260,9 +261,26 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 customerName?: string | null | undefined;
                 customerEmail?: string | null | undefined;
                 amount?: string | null | undefined;
-                kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
+                teamId?: string | null | undefined;
+                teamName?: string | null | undefined;
+                kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
             }[];
             total: number;
+        };
+        meta: object;
+    }>;
+    listTeamsSummary: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            search?: string | undefined;
+        };
+        output: {
+            teams: {
+                teamId: string | null;
+                teamName: string;
+                invoiceCount: number;
+                unpaidCount: number;
+                lastInvoiceAt: Date | null;
+            }[];
         };
         meta: object;
     }>;
@@ -302,7 +320,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 amount: string;
                 currency: string;
                 id: string;
-                status: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED";
+                status: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED";
                 paidAt: Date | null;
                 createdAt: Date;
                 updatedAt: Date;
@@ -328,8 +346,9 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
             customerName?: string | null | undefined;
             customerEmail?: string | null | undefined;
             amount?: string | null | undefined;
-            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
             teamId?: string | null | undefined;
+            teamName?: string | null | undefined;
+            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
             customerId?: string | null | undefined;
             subtotal?: string | null | undefined;
             tax?: string | null | undefined;
@@ -375,7 +394,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 kraSignature?: string | null | undefined;
                 kraQrCode?: string | null | undefined;
                 kraVerifiedDate?: Date | null | undefined;
-                kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
+                kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
                 kraError?: string | null | undefined;
                 kraSubmittedAt?: Date | null | undefined;
                 kraLastAttemptAt?: Date | null | undefined;
@@ -463,7 +482,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 amount: string;
                 currency: string;
                 id: string;
-                status: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED";
+                status: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED";
                 paidAt: Date | null;
                 createdAt: Date;
                 updatedAt: Date;
@@ -489,8 +508,9 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
             customerName?: string | null | undefined;
             customerEmail?: string | null | undefined;
             amount?: string | null | undefined;
-            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
             teamId?: string | null | undefined;
+            teamName?: string | null | undefined;
+            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
             customerId?: string | null | undefined;
             subtotal?: string | null | undefined;
             tax?: string | null | undefined;
@@ -536,7 +556,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 kraSignature?: string | null | undefined;
                 kraQrCode?: string | null | undefined;
                 kraVerifiedDate?: Date | null | undefined;
-                kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
+                kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
                 kraError?: string | null | undefined;
                 kraSubmittedAt?: Date | null | undefined;
                 kraLastAttemptAt?: Date | null | undefined;
@@ -625,7 +645,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 id?: string | undefined;
                 reference?: string | null | undefined;
                 providerReference?: string | null | undefined;
-                status?: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED" | undefined;
+                status?: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED" | undefined;
                 currency?: string | undefined;
                 paidAt?: unknown;
                 notes?: string | null | undefined;
@@ -655,7 +675,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
             kraSignature?: string | null | undefined;
             kraQrCode?: string | null | undefined;
             kraVerifiedDate?: unknown;
-            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
+            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
             kraError?: string | null | undefined;
             kraSubmittedAt?: unknown;
             kraLastAttemptAt?: unknown;
@@ -721,7 +741,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 amount: string;
                 currency: string;
                 id: string;
-                status: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED";
+                status: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED";
                 paidAt: Date | null;
                 createdAt: Date;
                 updatedAt: Date;
@@ -747,8 +767,9 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
             customerName?: string | null | undefined;
             customerEmail?: string | null | undefined;
             amount?: string | null | undefined;
-            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
             teamId?: string | null | undefined;
+            teamName?: string | null | undefined;
+            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
             customerId?: string | null | undefined;
             subtotal?: string | null | undefined;
             tax?: string | null | undefined;
@@ -794,7 +815,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 kraSignature?: string | null | undefined;
                 kraQrCode?: string | null | undefined;
                 kraVerifiedDate?: Date | null | undefined;
-                kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
+                kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
                 kraError?: string | null | undefined;
                 kraSubmittedAt?: Date | null | undefined;
                 kraLastAttemptAt?: Date | null | undefined;
@@ -863,7 +884,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 id?: string | undefined;
                 reference?: string | null | undefined;
                 providerReference?: string | null | undefined;
-                status?: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED" | undefined;
+                status?: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED" | undefined;
                 currency?: string | undefined;
                 paidAt?: unknown;
                 notes?: string | null | undefined;
@@ -893,7 +914,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
             kraSignature?: string | null | undefined;
             kraQrCode?: string | null | undefined;
             kraVerifiedDate?: unknown;
-            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
+            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
             kraError?: string | null | undefined;
             kraSubmittedAt?: unknown;
             kraLastAttemptAt?: unknown;
@@ -971,7 +992,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 amount: string;
                 currency: string;
                 id: string;
-                status: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED";
+                status: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED";
                 paidAt: Date | null;
                 createdAt: Date;
                 updatedAt: Date;
@@ -997,8 +1018,9 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
             customerName?: string | null | undefined;
             customerEmail?: string | null | undefined;
             amount?: string | null | undefined;
-            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
             teamId?: string | null | undefined;
+            teamName?: string | null | undefined;
+            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
             customerId?: string | null | undefined;
             subtotal?: string | null | undefined;
             tax?: string | null | undefined;
@@ -1044,7 +1066,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 kraSignature?: string | null | undefined;
                 kraQrCode?: string | null | undefined;
                 kraVerifiedDate?: Date | null | undefined;
-                kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
+                kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
                 kraError?: string | null | undefined;
                 kraSubmittedAt?: Date | null | undefined;
                 kraLastAttemptAt?: Date | null | undefined;
@@ -1132,7 +1154,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 amount: string;
                 currency: string;
                 id: string;
-                status: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED";
+                status: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED";
                 paidAt: Date | null;
                 createdAt: Date;
                 updatedAt: Date;
@@ -1158,8 +1180,9 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
             customerName?: string | null | undefined;
             customerEmail?: string | null | undefined;
             amount?: string | null | undefined;
-            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
             teamId?: string | null | undefined;
+            teamName?: string | null | undefined;
+            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
             customerId?: string | null | undefined;
             subtotal?: string | null | undefined;
             tax?: string | null | undefined;
@@ -1205,7 +1228,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 kraSignature?: string | null | undefined;
                 kraQrCode?: string | null | undefined;
                 kraVerifiedDate?: Date | null | undefined;
-                kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
+                kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
                 kraError?: string | null | undefined;
                 kraSubmittedAt?: Date | null | undefined;
                 kraLastAttemptAt?: Date | null | undefined;
@@ -1263,7 +1286,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
             id?: string | undefined;
             reference?: string | null | undefined;
             providerReference?: string | null | undefined;
-            status?: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED" | undefined;
+            status?: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED" | undefined;
             currency?: string | undefined;
             paidAt?: unknown;
             notes?: string | null | undefined;
@@ -1304,7 +1327,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 amount: string;
                 currency: string;
                 id: string;
-                status: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED";
+                status: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED";
                 paidAt: Date | null;
                 createdAt: Date;
                 updatedAt: Date;
@@ -1330,8 +1353,9 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
             customerName?: string | null | undefined;
             customerEmail?: string | null | undefined;
             amount?: string | null | undefined;
-            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
             teamId?: string | null | undefined;
+            teamName?: string | null | undefined;
+            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
             customerId?: string | null | undefined;
             subtotal?: string | null | undefined;
             tax?: string | null | undefined;
@@ -1377,7 +1401,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 kraSignature?: string | null | undefined;
                 kraQrCode?: string | null | undefined;
                 kraVerifiedDate?: Date | null | undefined;
-                kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
+                kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
                 kraError?: string | null | undefined;
                 kraSubmittedAt?: Date | null | undefined;
                 kraLastAttemptAt?: Date | null | undefined;
@@ -1464,7 +1488,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 amount: string;
                 currency: string;
                 id: string;
-                status: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED";
+                status: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED";
                 paidAt: Date | null;
                 createdAt: Date;
                 updatedAt: Date;
@@ -1490,8 +1514,9 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
             customerName?: string | null | undefined;
             customerEmail?: string | null | undefined;
             amount?: string | null | undefined;
-            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
             teamId?: string | null | undefined;
+            teamName?: string | null | undefined;
+            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
             customerId?: string | null | undefined;
             subtotal?: string | null | undefined;
             tax?: string | null | undefined;
@@ -1537,7 +1562,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 kraSignature?: string | null | undefined;
                 kraQrCode?: string | null | undefined;
                 kraVerifiedDate?: Date | null | undefined;
-                kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
+                kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
                 kraError?: string | null | undefined;
                 kraSubmittedAt?: Date | null | undefined;
                 kraLastAttemptAt?: Date | null | undefined;
@@ -1636,7 +1661,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 amount: string;
                 currency: string;
                 id: string;
-                status: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED";
+                status: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED";
                 paidAt: Date | null;
                 createdAt: Date;
                 updatedAt: Date;
@@ -1662,8 +1687,9 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
             customerName?: string | null | undefined;
             customerEmail?: string | null | undefined;
             amount?: string | null | undefined;
-            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
             teamId?: string | null | undefined;
+            teamName?: string | null | undefined;
+            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
             customerId?: string | null | undefined;
             subtotal?: string | null | undefined;
             tax?: string | null | undefined;
@@ -1709,7 +1735,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 kraSignature?: string | null | undefined;
                 kraQrCode?: string | null | undefined;
                 kraVerifiedDate?: Date | null | undefined;
-                kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
+                kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
                 kraError?: string | null | undefined;
                 kraSubmittedAt?: Date | null | undefined;
                 kraLastAttemptAt?: Date | null | undefined;
@@ -1795,7 +1821,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 amount: string;
                 currency: string;
                 id: string;
-                status: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED";
+                status: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED";
                 paidAt: Date | null;
                 createdAt: Date;
                 updatedAt: Date;
@@ -1821,8 +1847,9 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
             customerName?: string | null | undefined;
             customerEmail?: string | null | undefined;
             amount?: string | null | undefined;
-            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
             teamId?: string | null | undefined;
+            teamName?: string | null | undefined;
+            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
             customerId?: string | null | undefined;
             subtotal?: string | null | undefined;
             tax?: string | null | undefined;
@@ -1868,7 +1895,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 kraSignature?: string | null | undefined;
                 kraQrCode?: string | null | undefined;
                 kraVerifiedDate?: Date | null | undefined;
-                kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
+                kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
                 kraError?: string | null | undefined;
                 kraSubmittedAt?: Date | null | undefined;
                 kraLastAttemptAt?: Date | null | undefined;
@@ -1949,7 +1976,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 id?: string | undefined;
                 reference?: string | null | undefined;
                 providerReference?: string | null | undefined;
-                status?: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED" | undefined;
+                status?: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED" | undefined;
                 currency?: string | undefined;
                 paidAt?: unknown;
                 notes?: string | null | undefined;
@@ -1979,7 +2006,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
             kraSignature?: string | null | undefined;
             kraQrCode?: string | null | undefined;
             kraVerifiedDate?: unknown;
-            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
+            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
             kraError?: string | null | undefined;
             kraSubmittedAt?: unknown;
             kraLastAttemptAt?: unknown;
@@ -2047,7 +2074,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 amount: string;
                 currency: string;
                 id: string;
-                status: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED";
+                status: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED";
                 paidAt: Date | null;
                 createdAt: Date;
                 updatedAt: Date;
@@ -2073,8 +2100,9 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
             customerName?: string | null | undefined;
             customerEmail?: string | null | undefined;
             amount?: string | null | undefined;
-            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
             teamId?: string | null | undefined;
+            teamName?: string | null | undefined;
+            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
             customerId?: string | null | undefined;
             subtotal?: string | null | undefined;
             tax?: string | null | undefined;
@@ -2120,7 +2148,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 kraSignature?: string | null | undefined;
                 kraQrCode?: string | null | undefined;
                 kraVerifiedDate?: Date | null | undefined;
-                kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
+                kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
                 kraError?: string | null | undefined;
                 kraSubmittedAt?: Date | null | undefined;
                 kraLastAttemptAt?: Date | null | undefined;
@@ -2229,7 +2257,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 amount: string;
                 currency: string;
                 id: string;
-                status: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED";
+                status: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED";
                 paidAt: Date | null;
                 createdAt: Date;
                 updatedAt: Date;
@@ -2255,8 +2283,9 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
             customerName?: string | null | undefined;
             customerEmail?: string | null | undefined;
             amount?: string | null | undefined;
-            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
             teamId?: string | null | undefined;
+            teamName?: string | null | undefined;
+            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
             customerId?: string | null | undefined;
             subtotal?: string | null | undefined;
             tax?: string | null | undefined;
@@ -2302,7 +2331,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 kraSignature?: string | null | undefined;
                 kraQrCode?: string | null | undefined;
                 kraVerifiedDate?: Date | null | undefined;
-                kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
+                kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
                 kraError?: string | null | undefined;
                 kraSubmittedAt?: Date | null | undefined;
                 kraLastAttemptAt?: Date | null | undefined;
@@ -2393,7 +2422,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                     amount: string;
                     currency: string;
                     id: string;
-                    status: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED";
+                    status: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED";
                     paidAt: Date | null;
                     createdAt: Date;
                     updatedAt: Date;
@@ -2419,8 +2448,9 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 customerName?: string | null | undefined;
                 customerEmail?: string | null | undefined;
                 amount?: string | null | undefined;
-                kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
                 teamId?: string | null | undefined;
+                teamName?: string | null | undefined;
+                kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
                 customerId?: string | null | undefined;
                 subtotal?: string | null | undefined;
                 tax?: string | null | undefined;
@@ -2466,7 +2496,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                     kraSignature?: string | null | undefined;
                     kraQrCode?: string | null | undefined;
                     kraVerifiedDate?: Date | null | undefined;
-                    kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
+                    kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
                     kraError?: string | null | undefined;
                     kraSubmittedAt?: Date | null | undefined;
                     kraLastAttemptAt?: Date | null | undefined;
@@ -2520,6 +2550,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
     listCreditNotes: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             teamId?: string | undefined;
+            unassignedOnly?: boolean | undefined;
             status?: "DRAFT" | "ISSUED" | "APPLIED" | "VOIDED" | undefined;
             search?: string | undefined;
             limit?: number | undefined;
@@ -2538,7 +2569,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 invoiceNumber?: string | null | undefined;
                 customerName?: string | null | undefined;
                 customerEmail?: string | null | undefined;
-                kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
+                kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
                 originalInvoiceNumber?: string | null | undefined;
                 teamId?: string | null | undefined;
             }[];
@@ -2597,7 +2628,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
             kraSignature?: string | null | undefined;
             kraQrCode?: string | null | undefined;
             kraVerifiedDate?: Date | null | undefined;
-            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
+            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
             kraError?: string | null | undefined;
             kraSubmittedAt?: Date | null | undefined;
             kraLastAttemptAt?: Date | null | undefined;
@@ -2681,7 +2712,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
             kraSignature?: string | null | undefined;
             kraQrCode?: string | null | undefined;
             kraVerifiedDate?: Date | null | undefined;
-            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
+            kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
             kraError?: string | null | undefined;
             kraSubmittedAt?: Date | null | undefined;
             kraLastAttemptAt?: Date | null | undefined;
@@ -2767,7 +2798,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 kraSignature?: string | null | undefined;
                 kraQrCode?: string | null | undefined;
                 kraVerifiedDate?: Date | null | undefined;
-                kraStatus?: "PENDING" | "NOT_APPLICABLE" | "SUBMITTING" | "SYNCED" | "FAILED" | "SKIPPED" | "VERIFIED" | null | undefined;
+                kraStatus?: "PENDING" | "NOT_APPLICABLE" | "FAILED" | "SKIPPED" | "SUBMITTING" | "SYNCED" | "VERIFIED" | null | undefined;
                 kraError?: string | null | undefined;
                 kraSubmittedAt?: Date | null | undefined;
                 kraLastAttemptAt?: Date | null | undefined;
@@ -2802,7 +2833,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
         input: {
             limit?: number | undefined;
             offset?: number | undefined;
-            status?: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED" | undefined;
+            status?: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED" | undefined;
         };
         output: {
             transactions: {
@@ -2811,7 +2842,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 amount: string;
                 currency: string;
                 id: string;
-                status: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED";
+                status: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED";
                 paidAt: Date | null;
                 createdAt: Date;
                 updatedAt: Date;

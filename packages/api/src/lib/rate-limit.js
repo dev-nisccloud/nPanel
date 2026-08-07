@@ -27,6 +27,39 @@ export async function checkRateLimit(params) {
 }
 /** Per-path limits: heavy billing/subscription routes get tighter caps. */
 export function resolveProcedureRateLimit(path) {
+    if (path === "storefront.auth.checkoutIdentity") {
+        return { authenticated: 30, apiKey: 30, anonymous: 20, windowSec: 60 };
+    }
+    if (path === "storefront.auth.issueCheckoutToken") {
+        return { authenticated: 10, apiKey: 10, anonymous: 5, windowSec: 60 };
+    }
+    if (path === "storefront.auth.completeProfile") {
+        return { authenticated: 8, apiKey: 8, anonymous: 3, windowSec: 60 };
+    }
+    if (path === "storefront.auth.createOrganization") {
+        return { authenticated: 5, apiKey: 5, anonymous: 2, windowSec: 60 };
+    }
+    // Presigned uploads — keep below the default so spam cannot mint endless URLs.
+    if (path === "objectStorage.createUploadUrl") {
+        return { authenticated: 40, apiKey: 40, anonymous: 5, windowSec: 60 };
+    }
+    // Landing guest support  tight anonymous caps to limit abuse.
+    if (path === "support.guest.startSession") {
+        return { authenticated: 10, apiKey: 10, anonymous: 5, windowSec: 3600 };
+    }
+    if (path === "support.guest.create") {
+        return { authenticated: 10, apiKey: 10, anonymous: 3, windowSec: 3600 };
+    }
+    if (path === "support.guest.createMessage") {
+        return { authenticated: 60, apiKey: 60, anonymous: 30, windowSec: 3600 };
+    }
+    if (path === "support.guest.getList" ||
+        path === "support.guest.getMessages" ||
+        path === "support.guest.getSession" ||
+        path === "support.guest.markAllRead" ||
+        path === "support.guest.claimToAccount") {
+        return { authenticated: 60, apiKey: 60, anonymous: 40, windowSec: 60 };
+    }
     const heavyPrefixes = [
         "clientSubscriptions.",
         "invoicing.",

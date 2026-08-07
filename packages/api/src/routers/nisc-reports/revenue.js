@@ -103,6 +103,7 @@ export const niscRevenueRouter = router({
             const amt = toNum(inv.amount);
             const paid = paidByInvoice.get(inv.id) ?? 0;
             const due = invoiceOutstandingAmount(inv, paid);
+            const tax = toNum(inv.tax);
             totalInvoiced += amt;
             const e = byStatusMap.get(inv.status) ?? { count: 0, amount: 0 };
             e.count += 1;
@@ -113,9 +114,17 @@ export const niscRevenueRouter = router({
             if (OPEN_AR_STATUSES.includes(inv.status)) {
                 billedUnpaid += due;
             }
-            if (inv.status === "PAID") {
-                taxCollected += toNum(inv.tax);
-                paidCount += 1;
+            // FIXED: Calculate tax collected based on amount actually paid, not just status
+            // Tax should be proportional to payment received
+            if (inv.status === "PAID" || inv.status === "PARTIALLY_PAID") {
+                if (amt > 0) {
+                    // Proportional tax: (paid / invoiceAmount) * tax
+                    const taxRatio = paid / amt;
+                    taxCollected += tax * taxRatio;
+                }
+                if (inv.status === "PAID") {
+                    paidCount += 1;
+                }
             }
             if (["SENT", "OVERDUE", "PARTIALLY_PAID", "PAID"].includes(inv.status)) {
                 billedCount += 1;
@@ -189,6 +198,7 @@ export const niscRevenueRouter = router({
             .from(invoice)
             .where(and(invoiceIssuedInPeriod(from, to), entityScope));
         const paidByInvoice = await fetchCompletedPaymentsByInvoice(invoices.map(i => i.id));
+        // FIXED: Ensure we have proper filters for completed transactions
         const txRows = await db
             .select({
             invoiceId: invoiceTransaction.invoiceId,
@@ -233,21 +243,25 @@ export const niscRevenueRouter = router({
             }
             buckets.set(key, b);
         }
+        // FIXED: Track transaction totals per invoice for consistent imputation
         const txTotalsByInvoice = new Map();
         for (const tx of txRows) {
             if (!tx.paidAt)
                 continue;
+            const txAmt = toNum(tx.amount);
             const key = getKey(tx.paidAt);
             const b = buckets.get(key) ?? { invoiced: 0, collected: 0, overdue: 0, draft: 0, creditNotes: 0, invoiceCount: 0 };
-            b.collected += toNum(tx.amount);
+            b.collected += txAmt;
             buckets.set(key, b);
-            txTotalsByInvoice.set(tx.invoiceId, (txTotalsByInvoice.get(tx.invoiceId) ?? 0) + toNum(tx.amount));
+            txTotalsByInvoice.set(tx.invoiceId, (txTotalsByInvoice.get(tx.invoiceId) ?? 0) + txAmt);
         }
+        // Impute PAID invoices where transaction records are incomplete
         for (const inv of invoices) {
             if (inv.status !== "PAID" || !inv.paidAt || inv.paidAt < from || inv.paidAt > to)
                 continue;
             const txPaid = txTotalsByInvoice.get(inv.id) ?? 0;
-            const gap = Math.max(0, toNum(inv.amount) - txPaid);
+            const invAmount = toNum(inv.amount);
+            const gap = Math.max(0, invAmount - txPaid);
             if (gap <= 0)
                 continue;
             const key = getKey(inv.paidAt);
@@ -292,24 +306,29 @@ export const niscRevenueRouter = router({
             },
         });
         const paidByInvoice = await fetchCompletedPaymentsByInvoice(invoices.map(i => i.id));
+        // FIXED: Use consistent logic for collecting amounts in period
+        // Only count payments that occurred within the period
         const txInPeriod = await db
             .select({ invoiceId: invoiceTransaction.invoiceId, amount: invoiceTransaction.amount })
             .from(invoiceTransaction)
             .innerJoin(invoice, eq(invoiceTransaction.invoiceId, invoice.id))
-            .where(and(eq(invoiceTransaction.status, "COMPLETED"), gte(invoiceTransaction.paidAt, from), lte(invoiceTransaction.paidAt, to), entityScope));
+            .where(and(eq(invoiceTransaction.status, "COMPLETED"), isNotNull(invoiceTransaction.paidAt), gte(invoiceTransaction.paidAt, from), lte(invoiceTransaction.paidAt, to), entityScope));
         const collectedInPeriodByInvoice = new Map();
         for (const tx of txInPeriod) {
-            collectedInPeriodByInvoice.set(tx.invoiceId, (collectedInPeriodByInvoice.get(tx.invoiceId) ?? 0) + toNum(tx.amount));
+            const txAmt = toNum(tx.amount);
+            collectedInPeriodByInvoice.set(tx.invoiceId, (collectedInPeriodByInvoice.get(tx.invoiceId) ?? 0) + txAmt);
         }
+        // Impute PAID invoices with paidAt in period where transactions are incomplete
         for (const inv of invoices) {
             if (inv.status === "PAID" &&
                 inv.paidAt &&
                 inv.paidAt >= from &&
                 inv.paidAt <= to) {
                 const txCol = collectedInPeriodByInvoice.get(inv.id) ?? 0;
-                const full = toNum(inv.amount);
-                if (txCol < full) {
-                    collectedInPeriodByInvoice.set(inv.id, full);
+                const invAmount = toNum(inv.amount);
+                // Only update if transactions don't cover the full amount
+                if (txCol < invAmount) {
+                    collectedInPeriodByInvoice.set(inv.id, invAmount);
                 }
             }
         }

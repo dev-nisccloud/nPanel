@@ -30,8 +30,8 @@ export declare const zeepoAgentBillingMiddleware: import("@trpc/server").TRPCMid
         teamId: string | null;
         sessionId: string | null;
     } | null;
-    ipAddress: string | null | undefined;
     session: import("..").Session;
+    ipAddress: string | null | undefined;
     apiKey: {
         id: string;
         permissions: string[];
@@ -39,7 +39,10 @@ export declare const zeepoAgentBillingMiddleware: import("@trpc/server").TRPCMid
     mfaRequired: boolean | undefined;
     mfaVerified: boolean | undefined;
     mfaSetupRequired: boolean | undefined;
+    reauthRequired: boolean | undefined;
     createCaller: ((ctx: import("..").Context) => unknown) | undefined;
     apiKeyError: string | null | undefined;
     req: import("hono").HonoRequest<any, unknown>;
+    getCookie: (name: string) => string | undefined;
+    setCookie: (name: string, value: string, options?: import("../context").CookieOptions) => void;
 }, unknown>;

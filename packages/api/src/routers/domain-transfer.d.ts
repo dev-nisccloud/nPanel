@@ -1,5 +1,5 @@
-/** User-facing transfer check status for the UI. */
-export type TransferStatus = "available" | "locked" | "ready" | "pending_check" | "reserved" | "unavailable";
+import { type TransferStatus } from "../lib/domain-transfer-check";
+export type { TransferStatus };
 type TransferDirection = "incoming" | "outgoing";
 type DomainTransferRequestListItem = {
     id: string;
@@ -43,29 +43,7 @@ export declare const domainTransferRouter: import("@trpc/server").TRPCBuiltRoute
         input: {
             domain: string;
         };
-        output: {
-            transferStatus: TransferStatus;
-            transferrable: boolean;
-            provider: "kenic" | "openprovider" | null;
-            domain: string;
-            name: string;
-            extension: string;
-            price: number | null;
-            currency: string | null;
-            createPrice: number | null;
-            createCurrency: string | null;
-            error: string | null;
-        } | {
-            transferStatus: "unavailable";
-            transferrable: boolean;
-            provider: null;
-            domain: string;
-            name: null;
-            extension: null;
-            price: null;
-            currency: null;
-            error: string;
-        };
+        output: import("../lib/domain-transfer-check").CheckTransferResult;
         meta: object;
     }>;
     /**
@@ -161,4 +139,3 @@ export declare const domainTransferRouter: import("@trpc/server").TRPCBuiltRoute
         meta: object;
     }>;
 }>>;
-export {};

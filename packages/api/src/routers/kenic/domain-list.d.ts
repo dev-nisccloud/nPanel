@@ -9,6 +9,7 @@ export declare const kenicDomainListRouter: import("@trpc/server").TRPCBuiltRout
 }, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
     /**
      * List all KENIC domains registered through this agency.
+     * One row per unique primaryDomain (latest non-superseded subscription).
      */
     list: import("@trpc/server").TRPCQueryProcedure<{
         input: Record<string, never> | undefined;
@@ -26,6 +27,9 @@ export declare const kenicDomainListRouter: import("@trpc/server").TRPCBuiltRout
                 autoRenewal: boolean;
                 nameservers: string[];
                 source: "kenic";
+                teamId: string | null;
+                userId: string | null;
+                teamName: string | null;
             }[];
         };
         meta: object;
@@ -84,7 +88,7 @@ export declare const kenicDomainListRouter: import("@trpc/server").TRPCBuiltRout
                 upDate: any;
                 trDate: any;
                 rgpStatuses: any[];
-                authInfo: any;
+                authInfoSet: boolean;
                 raw: string;
                 parsed: any;
             };
@@ -120,7 +124,47 @@ export declare const kenicDomainListRouter: import("@trpc/server").TRPCBuiltRout
         meta: object;
     }>;
     /**
-     * Update KENIC domain authorization (EPP) code.
+     * Read the stored plaintext KENIC auth code (never from domain:info  CoCCA returns a hash).
+     */
+    getAuthCode: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            domain: string;
+        };
+        output: {
+            success: boolean;
+            data: {
+                auth_code: string | null;
+                needsRegenerate: true;
+                message: string;
+            };
+        } | {
+            success: boolean;
+            data: {
+                auth_code: string;
+                needsRegenerate: false;
+                message: string | null;
+            };
+        };
+        meta: object;
+    }>;
+    /**
+     * Generate a new plaintext auth code, push to KENIC, and store locally.
+     */
+    regenerateAuthCode: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            domain: string;
+        };
+        output: {
+            success: boolean;
+            data: {
+                auth_code: string;
+            };
+            message: string;
+        };
+        meta: object;
+    }>;
+    /**
+     * Update KENIC domain authorization (EPP) code and persist plaintext locally.
      */
     updateAuthCode: import("@trpc/server").TRPCMutationProcedure<{
         input: {
@@ -130,6 +174,9 @@ export declare const kenicDomainListRouter: import("@trpc/server").TRPCBuiltRout
         output: {
             success: boolean;
             message: string;
+            data: {
+                auth_code: string;
+            };
         };
         meta: object;
     }>;

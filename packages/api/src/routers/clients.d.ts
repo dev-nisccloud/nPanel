@@ -11,7 +11,7 @@ export declare const clientsRouter: import("@trpc/server").TRPCBuiltRouter<{
             name: string;
             email: string;
             emailVerified: boolean;
-            role: "CUSTOMER" | "AGENCY_USER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN";
+            role: "CUSTOMER" | "AGENCY_SUPER_ADMIN" | "AGENCY_ADMIN" | "AGENCY_USER";
             status: "ACTIVE" | "SUSPENDED" | "BANNED" | "DEACTIVATED";
             image: string | null;
             lastLoginAt: Date | null;
@@ -36,7 +36,7 @@ export declare const clientsRouter: import("@trpc/server").TRPCBuiltRouter<{
             name: string;
             email: string;
             password: string;
-            role?: "CUSTOMER" | "AGENCY_USER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN" | undefined;
+            role?: "CUSTOMER" | "AGENCY_SUPER_ADMIN" | "AGENCY_ADMIN" | "AGENCY_USER" | undefined;
             generalEmailsAccepted?: boolean | null | undefined;
             invoiceEmailsAccepted?: boolean | null | undefined;
             supportEmailsAccepted?: boolean | null | undefined;
@@ -54,7 +54,7 @@ export declare const clientsRouter: import("@trpc/server").TRPCBuiltRouter<{
             name: string;
             email: string;
             emailVerified: boolean;
-            role: "CUSTOMER" | "AGENCY_USER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN";
+            role: "CUSTOMER" | "AGENCY_SUPER_ADMIN" | "AGENCY_ADMIN" | "AGENCY_USER";
             status: "ACTIVE" | "SUSPENDED" | "BANNED" | "DEACTIVATED";
             image: string | null;
             lastLoginAt: Date | null;
@@ -79,7 +79,7 @@ export declare const clientsRouter: import("@trpc/server").TRPCBuiltRouter<{
             userId: string;
             name?: string | undefined;
             email?: string | undefined;
-            role?: "CUSTOMER" | "AGENCY_USER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN" | undefined;
+            role?: "CUSTOMER" | "AGENCY_SUPER_ADMIN" | "AGENCY_ADMIN" | "AGENCY_USER" | undefined;
             generalEmailsAccepted?: boolean | null | undefined;
             invoiceEmailsAccepted?: boolean | null | undefined;
             supportEmailsAccepted?: boolean | null | undefined;
@@ -97,7 +97,7 @@ export declare const clientsRouter: import("@trpc/server").TRPCBuiltRouter<{
             name: string;
             email: string;
             emailVerified: boolean;
-            role: "CUSTOMER" | "AGENCY_USER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN";
+            role: "CUSTOMER" | "AGENCY_SUPER_ADMIN" | "AGENCY_ADMIN" | "AGENCY_USER";
             status: "ACTIVE" | "SUSPENDED" | "BANNED" | "DEACTIVATED";
             image: string | null;
             lastLoginAt: Date | null;

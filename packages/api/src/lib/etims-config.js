@@ -3,24 +3,30 @@ import { db } from "@npanel/db";
 import { eTimsConfiguration } from "@npanel/db/schema/etims";
 import { getEtimsClient } from "./etims-client";
 export { getEtimsClient };
+function trimUrl(value, fallback) {
+    const raw = (value && value.trim()) || fallback;
+    return raw.replace(/\/+$/, '');
+}
 /**
  * Build the KRA OSCU base URL for the given environment.
- * Uses env vars with sensible KRA defaults.
+ * Prefers env-specific vars, then legacy ETIMS_BASE_URL, then KRA defaults.
  */
 export function buildBaseUrl(isSandbox) {
     if (isSandbox) {
-        return (process.env.ETIMS_SANDBOX_BASE_URL ?? 'https://etims-api-sbx.kra.go.ke/etims-api').trim().replace(/\/+$/, '');
+        return trimUrl(process.env.ETIMS_SANDBOX_BASE_URL ?? process.env.ETIMS_BASE_URL, 
+        // Classic OSCU sandbox (worked pre-2ffc841e). Dev Platform: sbx.kra.go.ke/etims-oscu/api/v1
+        'https://etims-api-sbx.kra.go.ke/etims-api');
     }
-    return (process.env.ETIMS_PROD_BASE_URL ?? 'https://etims-api.kra.go.ke/etims-api').trim().replace(/\/+$/, '');
+    return trimUrl(process.env.ETIMS_PROD_BASE_URL ?? process.env.ETIMS_BASE_URL, 'https://etims-api.kra.go.ke/etims-api');
 }
 /**
  * Build the KRA OAuth token URL for the given environment.
  */
 export function buildTokenUrl(isSandbox) {
     if (isSandbox) {
-        return (process.env.ETIMS_SANDBOX_TOKEN_URL ?? 'https://sbx.kra.go.ke/v1/token/generate').trim().replace(/\/+$/, '');
+        return trimUrl(process.env.ETIMS_SANDBOX_TOKEN_URL ?? process.env.ETIMS_TOKEN_URL, 'https://sbx.kra.go.ke/v1/token/generate');
     }
-    return (process.env.ETIMS_PROD_TOKEN_URL ?? 'https://api.kra.go.ke/v1/token/generate').trim().replace(/\/+$/, '');
+    return trimUrl(process.env.ETIMS_PROD_TOKEN_URL ?? process.env.ETIMS_TOKEN_URL, 'https://api.kra.go.ke/v1/token/generate');
 }
 /**
  * Build EtimsClientConfig from environment variables (no DB).
@@ -35,11 +41,18 @@ export function buildClientConfigFromEnv(isSandbox) {
             message: 'eTIMS Consumer Key and Secret are not configured in environment variables.',
         });
     }
+    // Prefer explicit APigee app id when KRA issued one separately from the consumer key.
+    // Falls back to consumer key (matches Postman / developer.go.ke docs).
+    const apigeeAppId = ((isSandbox
+        ? process.env.ETIMS_APIGEE_APP_ID
+        : (process.env.ETIMS_PROD_APIGEE_APP_ID ?? process.env.ETIMS_APIGEE_APP_ID))
+        ?? consumerKey).trim();
     return {
         baseUrl: buildBaseUrl(isSandbox),
         tokenUrl: buildTokenUrl(isSandbox),
         consumerKey,
         consumerSecret,
+        apigeeAppId,
     };
 }
 /**

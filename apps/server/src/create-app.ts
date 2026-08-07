@@ -42,6 +42,7 @@ import { handleNiscBackupDownloadFile } from "./api/nisc-backup-download-file";
 import { handleTestPleskConnection } from "./api/test-plesk-connection";
 import { handleTestKenicConnection } from "./api/test-kenic-connection";
 import { handleMpesaWebhook } from "./api/webhooks/mpesa";
+import { handleJengaCallback, handleJengaIpn } from "./api/webhooks/jenga";
 import { handleReplicateWebhook } from "./api/webhooks/replicate-image-generator";
 import { handleResendWebhook } from "./api/webhooks/resend";
 import { handleSnsWebhook } from "./api/webhooks/sns";
@@ -243,6 +244,8 @@ export function createApp(options: CreateAppOptions = {}) {
     app.route("/api/nisc-gateway", createNiscPaymentGatewayRoutes());
 
     app.on(["POST"], "/api/webhooks/mpesa", handleMpesaWebhook);
+    app.on(["GET"], "/api/webhooks/jenga/callback", handleJengaCallback);
+    app.on(["POST"], "/api/webhooks/jenga/ipn", handleJengaIpn);
     app.on(["POST"], "/api/webhooks/replicate", handleReplicateWebhook);
     app.on(["POST"], "/api/webhooks/zeepo-canvas", handleZeepoCanvasWebhook);
     app.on(["POST"], "/api/webhooks/zeepo-agent", handleZeepoAgentWebhook);

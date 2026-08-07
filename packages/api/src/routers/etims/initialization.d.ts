@@ -29,7 +29,8 @@ export declare const etimsInitializationRouter: import("@trpc/server").TRPCBuilt
                 bhfNm?: string;
                 sdcId?: string;
                 mrcNo?: string;
-            };
+            } | null;
+            reusedExistingCmcKey: boolean;
         };
         meta: object;
     }>;

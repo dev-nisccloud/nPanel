@@ -1,22 +1,27 @@
 import * as crypto from "node:crypto";
 import { z } from "zod";
-import { router, protectedProcedure } from "../../trpc";
+import { router } from "../../trpc";
 import { TRPCError } from "@trpc/server";
 import { db } from "@npanel/db";
 import { eTimsItem } from "@npanel/db/schema/etims";
 import { getEtimsContext } from "../../lib/etims-config";
+import { etimsProcedure, skipEtimsAuthChecks } from "./_procedure";
 const isAgencyUser = (r) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(r ?? "");
 const isSuperAdmin = (r) => r === "AGENCY_SUPER_ADMIN";
 function assertRead(role) {
+    if (skipEtimsAuthChecks())
+        return;
     if (!isAgencyUser(role))
         throw new TRPCError({ code: "FORBIDDEN", message: "Only agency users can access eTIMS item data." });
 }
 function assertWrite(role) {
+    if (skipEtimsAuthChecks())
+        return;
     if (!isSuperAdmin(role))
         throw new TRPCError({ code: "FORBIDDEN", message: "Only agency super admins can modify eTIMS item data." });
 }
 export const etimsItemsRouter = router({
-    getItemList: protectedProcedure
+    getItemList: etimsProcedure
         .input(z.object({ lastReqDt: z.string().regex(/^\d{14}$/) }))
         .query(async ({ ctx, input }) => {
         assertRead(ctx.session?.user?.role);
@@ -29,7 +34,7 @@ export const etimsItemsRouter = router({
             throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: e.message || "Failed to retrieve item list" });
         }
     }),
-    saveItem: protectedProcedure
+    saveItem: etimsProcedure
         .input(z.object({
         item: z.object({
             itemCd: z.string().min(1, "itemCd is required"),
@@ -97,7 +102,7 @@ export const etimsItemsRouter = router({
             return { success: false, data: null, requiresReinitialization: false, errorMessage: msg || "Failed to save item" };
         }
     }),
-    saveItemComposition: protectedProcedure
+    saveItemComposition: etimsProcedure
         .input(z.object({
         composition: z.object({
             itemCd: z.string().min(1),

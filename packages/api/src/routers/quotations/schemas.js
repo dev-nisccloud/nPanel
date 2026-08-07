@@ -132,12 +132,28 @@ export const quotationDetailSchema = quotationSummarySchema.extend({
 export const quotationListFiltersSchema = z.object({
     status: quotationStatusSchema.optional(),
     search: z.string().optional(),
+    /** Group key from listCustomersSummary: `email:…`, `name:…`, or `unassigned`. */
+    customerGroupKey: z.string().min(1).optional(),
     limit: z.number().int().min(1).max(100).optional().default(50),
     offset: z.number().int().min(0).optional().default(0),
 });
 export const quotationListResponseSchema = z.object({
     quotations: z.array(quotationSummarySchema),
     total: z.number().int().nonnegative(),
+});
+export const quotationCustomerSummarySchema = z.object({
+    customerGroupKey: z.string(),
+    customerName: nullableStringSchema,
+    customerEmail: nullableStringSchema,
+    quotationCount: z.number().int().nonnegative(),
+    openCount: z.number().int().nonnegative(),
+    lastQuotationAt: z.date().nullable(),
+});
+export const quotationCustomersSummaryFiltersSchema = z.object({
+    search: z.string().optional(),
+});
+export const quotationCustomersSummaryResponseSchema = z.object({
+    customers: z.array(quotationCustomerSummarySchema),
 });
 export const nextQuotationNumberSchema = z.object({
     quotationNumber: z.string(),

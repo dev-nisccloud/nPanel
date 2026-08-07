@@ -21,14 +21,14 @@ export declare const hostingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 expiryDate: Date | null;
                 notes: string | null;
                 autoRenew: boolean;
-                hostingType: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING";
+                hostingType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING";
             } | null;
             serviceSubscription: {
                 id: string;
                 subscriptionDate: string | null;
                 billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM";
                 nextRenewalDate: string | null;
-                status: "PENDING" | "ACTIVE" | "PROCESSING" | "FAILED" | "CANCELLED" | "SUSPENDED" | "EXPIRED";
+                status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED";
                 autoRenew: boolean;
             } | null;
         };
@@ -48,7 +48,7 @@ export declare const hostingRouter: import("@trpc/server").TRPCBuiltRouter<{
             expiryDate: Date | null;
             notes: string | null;
             autoRenew: boolean;
-            hostingType: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING";
+            hostingType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING";
         } | null;
         meta: object;
     }>;
@@ -69,7 +69,7 @@ export declare const hostingRouter: import("@trpc/server").TRPCBuiltRouter<{
             teamId: string;
             pleskFilterId: string;
             hostingPlanId?: string | undefined;
-            hostingType?: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | undefined;
+            hostingType?: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | undefined;
             billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | undefined;
             nextRenewalDate?: unknown;
             expiryDate?: unknown;

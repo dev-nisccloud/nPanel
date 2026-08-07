@@ -1,14 +1,38 @@
 import { TRPCError } from "@trpc/server";
 import * as crypto from "crypto";
 import { z } from "zod";
-import { and, count, desc, eq, ilike, inArray, or, sql } from "@npanel/db";
+import { and, count, desc, eq, ilike, inArray, max, or, sql } from "@npanel/db";
 import { db } from "@npanel/db";
 import { user } from "@npanel/db/schema/auth";
 import { quotation, quotationActivityLog, quotationCounter, quotationLineItem, } from "@npanel/db/schema/quotations";
 import { protectedProcedure, router } from "../../trpc";
-import { quotationActivityLogSchema, quotationCreateInputSchema, quotationDetailSchema, quotationLineItemOutputSchema, quotationListFiltersSchema, quotationListResponseSchema, quotationStatusSchema, quotationSummarySchema, quotationUpdateInputSchema, nextQuotationNumberSchema, sendQuotationEmailSchema, } from "./schemas";
+import { quotationActivityLogSchema, quotationCreateInputSchema, quotationCustomerSummarySchema, quotationCustomersSummaryFiltersSchema, quotationCustomersSummaryResponseSchema, quotationDetailSchema, quotationLineItemOutputSchema, quotationListFiltersSchema, quotationListResponseSchema, quotationStatusSchema, quotationSummarySchema, quotationUpdateInputSchema, nextQuotationNumberSchema, sendQuotationEmailSchema, } from "./schemas";
 const isAgencyUser = (role) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
 const isAgencySuperAdmin = (role) => role === "AGENCY_SUPER_ADMIN";
+/** Prefer email, else normalized name, else unassigned — groups similar customers. */
+function customerGroupKeySql() {
+    return sql `CASE
+		WHEN nullif(trim(lower(${quotation.customerEmail})), '') IS NOT NULL
+			THEN 'email:' || trim(lower(${quotation.customerEmail}))
+		WHEN nullif(trim(lower(${quotation.customerName})), '') IS NOT NULL
+			THEN 'name:' || trim(lower(regexp_replace(${quotation.customerName}, '\\s+', ' ', 'g')))
+		ELSE 'unassigned'
+	END`;
+}
+function customerGroupKeyCondition(customerGroupKey) {
+    if (customerGroupKey === "unassigned") {
+        return and(or(sql `nullif(trim(${quotation.customerEmail}), '') IS NULL`, sql `${quotation.customerEmail} IS NULL`), or(sql `nullif(trim(${quotation.customerName}), '') IS NULL`, sql `${quotation.customerName} IS NULL`));
+    }
+    if (customerGroupKey.startsWith("email:")) {
+        const email = customerGroupKey.slice("email:".length);
+        return sql `trim(lower(${quotation.customerEmail})) = ${email}`;
+    }
+    if (customerGroupKey.startsWith("name:")) {
+        const name = customerGroupKey.slice("name:".length);
+        return and(or(sql `nullif(trim(${quotation.customerEmail}), '') IS NULL`, sql `${quotation.customerEmail} IS NULL`), sql `trim(lower(regexp_replace(coalesce(${quotation.customerName}, ''), '\\s+', ' ', 'g'))) = ${name}`);
+    }
+    return sql `false`;
+}
 function parseDate(value) {
     if (!value)
         return null;
@@ -288,6 +312,9 @@ export const quotationsRouter = router({
         if (!isAgencyUser(user.role)) {
             conditions.push(eq(quotation.createdBy, user.id));
         }
+        if (input.customerGroupKey?.trim()) {
+            conditions.push(customerGroupKeyCondition(input.customerGroupKey.trim()));
+        }
         if (input.status) {
             conditions.push(eq(quotation.status, input.status));
         }
@@ -328,6 +355,47 @@ export const quotationsRouter = router({
                 subtotal: q.subtotal != null ? String(q.subtotal) : null,
             })),
             total,
+        });
+    }),
+    listCustomersSummary: protectedProcedure
+        .input(quotationCustomersSummaryFiltersSchema)
+        .output(quotationCustomersSummaryResponseSchema)
+        .query(async ({ ctx, input }) => {
+        const user = await getAuthenticatedUser(ctx);
+        const conditions = [];
+        if (!isAgencyUser(user.role)) {
+            conditions.push(eq(quotation.createdBy, user.id));
+        }
+        if (input.search?.trim()) {
+            const q = `%${input.search.trim()}%`;
+            conditions.push(or(ilike(quotation.customerName, q), ilike(quotation.customerEmail, q)));
+        }
+        const whereClause = conditions.length ? and(...conditions) : undefined;
+        const groupKey = customerGroupKeySql();
+        const rows = await db
+            .select({
+            customerGroupKey: groupKey,
+            customerName: max(quotation.customerName),
+            customerEmail: max(quotation.customerEmail),
+            quotationCount: count(),
+            openCount: sql `count(*) filter (where ${quotation.status} in ('DRAFT', 'SENT'))`.mapWith(Number),
+            lastQuotationAt: max(quotation.createdAt),
+        })
+            .from(quotation)
+            .where(whereClause ?? sql `true`)
+            .groupBy(groupKey)
+            .orderBy(sql `max(${quotation.customerName}) asc nulls last`);
+        return quotationCustomersSummaryResponseSchema.parse({
+            customers: rows.map((row) => quotationCustomerSummarySchema.parse({
+                customerGroupKey: row.customerGroupKey,
+                customerName: row.customerGroupKey === "unassigned"
+                    ? "Unassigned"
+                    : row.customerName ?? null,
+                customerEmail: row.customerGroupKey === "unassigned" ? null : row.customerEmail ?? null,
+                quotationCount: Number(row.quotationCount),
+                openCount: Number(row.openCount ?? 0),
+                lastQuotationAt: row.lastQuotationAt ?? null,
+            })),
         });
     }),
     getById: protectedProcedure
@@ -616,5 +684,74 @@ export const quotationsRouter = router({
             metadata: { toEmail: input.toEmail },
         });
         return { success: true };
+    }),
+    /**
+     * Get quotations summary statistics
+     */
+    getSummary: protectedProcedure.query(async ({ ctx }) => {
+        const actor = await getAuthenticatedUser(ctx);
+        const isAgency = isAgencyUser(actor.role);
+        try {
+            let whereConditions;
+            if (!isAgency) {
+                // Regular users can only see their own quotations
+                whereConditions = eq(quotation.createdBy, actor.id);
+            }
+            // Get total count
+            const totalResult = await db
+                .select({ count: count() })
+                .from(quotation)
+                .where(whereConditions);
+            const total = totalResult[0]?.count || 0;
+            // Get count by status
+            const draftCount = await db
+                .select({ count: count() })
+                .from(quotation)
+                .where(whereConditions
+                ? and(whereConditions, eq(quotation.status, "DRAFT"))
+                : eq(quotation.status, "DRAFT"));
+            const sentCount = await db
+                .select({ count: count() })
+                .from(quotation)
+                .where(whereConditions
+                ? and(whereConditions, eq(quotation.status, "SENT"))
+                : eq(quotation.status, "SENT"));
+            const acceptedCount = await db
+                .select({ count: count() })
+                .from(quotation)
+                .where(whereConditions
+                ? and(whereConditions, eq(quotation.status, "ACCEPTED"))
+                : eq(quotation.status, "ACCEPTED"));
+            const rejectedCount = await db
+                .select({ count: count() })
+                .from(quotation)
+                .where(whereConditions
+                ? and(whereConditions, eq(quotation.status, "REJECTED"))
+                : eq(quotation.status, "REJECTED"));
+            const expiredCount = await db
+                .select({ count: count() })
+                .from(quotation)
+                .where(whereConditions
+                ? and(whereConditions, eq(quotation.status, "EXPIRED"))
+                : eq(quotation.status, "EXPIRED"));
+            return {
+                total,
+                draft: draftCount[0]?.count || 0,
+                sent: sentCount[0]?.count || 0,
+                accepted: acceptedCount[0]?.count || 0,
+                rejected: rejectedCount[0]?.count || 0,
+                expired: expiredCount[0]?.count || 0,
+                // Computed aggregates
+                pending: (draftCount[0]?.count || 0) + (sentCount[0]?.count || 0),
+                closed: (acceptedCount[0]?.count || 0) + (rejectedCount[0]?.count || 0) + (expiredCount[0]?.count || 0),
+            };
+        }
+        catch (error) {
+            console.error("Error getting quotations summary:", error);
+            throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message: "Failed to get quotations summary",
+            });
+        }
     }),
 });

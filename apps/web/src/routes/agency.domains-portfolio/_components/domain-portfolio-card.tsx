@@ -102,7 +102,7 @@ interface DomainPortfolioCardProps {
 const CREATE_SUBSCRIPTION_TOOLTIP_EXISTING =
   "This domain already has a connected subscription. To connect you need to first suspend the existing to connect it.";
 const CREATE_SUBSCRIPTION_TOOLTIP_DEFAULT =
-  "Create a Nisc subscription for this domain and link it to a user or team.";
+  "Create a Nisc subscription for this domain and link it to a user or organization.";
 
 export function DomainPortfolioCard({
   data,
@@ -267,7 +267,7 @@ export function DomainPortfolioCard({
                 }}
               >
                 <Link2 className="mr-2 h-4 w-4" />
-                Link to team
+                Link to organization
               </DropdownMenuItem>
             )}
             <DropdownMenuItem

@@ -26,7 +26,7 @@ export declare const subscriptionsRouter: import("@trpc/server").TRPCBuiltRouter
     getByTeamFilterIds: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             teamId: string;
-            hostingSubType?: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | undefined;
+            hostingSubType?: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | undefined;
         };
         output: {
             hasServiceSubscriptions: boolean;
