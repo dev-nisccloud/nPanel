@@ -534,7 +534,7 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
             pleskServicePlanId: string | null;
             pleskFilterId: string | null;
             pleskIpAddress: string | null;
-            hostingType: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
+            hostingType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
             metadata: unknown;
             createdAt: Date;
             updatedAt: Date;
@@ -569,7 +569,7 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
             pleskServicePlanId?: string | undefined;
             pleskFilterId?: string | undefined;
             pleskIpAddress?: string | undefined;
-            hostingType?: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | undefined;
+            hostingType?: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | undefined;
             metadata?: Record<string, unknown> | undefined;
         };
         output: {
@@ -595,7 +595,7 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
             pleskServicePlanId: string | null;
             pleskFilterId: string | null;
             pleskIpAddress: string | null;
-            hostingType: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
+            hostingType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
             metadata: unknown;
             createdAt: Date;
             updatedAt: Date;
@@ -631,7 +631,7 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
             pleskServicePlanId?: string | undefined;
             pleskFilterId?: string | undefined;
             pleskIpAddress?: string | undefined;
-            hostingType?: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | undefined;
+            hostingType?: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | undefined;
             metadata?: Record<string, unknown> | undefined;
         };
         output: {
@@ -657,7 +657,7 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
             pleskServicePlanId: string | null;
             pleskFilterId: string | null;
             pleskIpAddress: string | null;
-            hostingType: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
+            hostingType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
             metadata: unknown;
             createdAt: Date;
             updatedAt: Date;
@@ -771,6 +771,20 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
         };
         output: {
             success: boolean;
+        };
+        meta: object;
+    }>;
+    /**
+     * Get products summary with KRA sync status
+     */
+    getSummary: import("@trpc/server").TRPCQueryProcedure<{
+        input: void;
+        output: {
+            total: number;
+            kraSynced: number;
+            noKraSync: number;
+            active: number;
+            inactive: number;
         };
         meta: object;
     }>;

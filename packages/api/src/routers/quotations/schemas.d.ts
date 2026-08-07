@@ -237,6 +237,7 @@ export declare const quotationListFiltersSchema: z.ZodObject<{
         CANCELLED: "CANCELLED";
     }>>;
     search: z.ZodOptional<z.ZodString>;
+    customerGroupKey: z.ZodOptional<z.ZodString>;
     limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
     offset: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
 }, z.core.$strip>;
@@ -265,6 +266,30 @@ export declare const quotationListResponseSchema: z.ZodObject<{
     total: z.ZodNumber;
 }, z.core.$strip>;
 export type QuotationListResponse = z.infer<typeof quotationListResponseSchema>;
+export declare const quotationCustomerSummarySchema: z.ZodObject<{
+    customerGroupKey: z.ZodString;
+    customerName: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    customerEmail: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    quotationCount: z.ZodNumber;
+    openCount: z.ZodNumber;
+    lastQuotationAt: z.ZodNullable<z.ZodDate>;
+}, z.core.$strip>;
+export type QuotationCustomerSummary = z.infer<typeof quotationCustomerSummarySchema>;
+export declare const quotationCustomersSummaryFiltersSchema: z.ZodObject<{
+    search: z.ZodOptional<z.ZodString>;
+}, z.core.$strip>;
+export type QuotationCustomersSummaryFilters = z.infer<typeof quotationCustomersSummaryFiltersSchema>;
+export declare const quotationCustomersSummaryResponseSchema: z.ZodObject<{
+    customers: z.ZodArray<z.ZodObject<{
+        customerGroupKey: z.ZodString;
+        customerName: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        customerEmail: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        quotationCount: z.ZodNumber;
+        openCount: z.ZodNumber;
+        lastQuotationAt: z.ZodNullable<z.ZodDate>;
+    }, z.core.$strip>>;
+}, z.core.$strip>;
+export type QuotationCustomersSummaryResponse = z.infer<typeof quotationCustomersSummaryResponseSchema>;
 export declare const nextQuotationNumberSchema: z.ZodObject<{
     quotationNumber: z.ZodString;
     nextNumber: z.ZodNumber;

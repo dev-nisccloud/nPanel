@@ -165,4 +165,26 @@ export declare const etimsDataRouter: import("@trpc/server").TRPCBuiltRouter<{
         };
         meta: object;
     }>;
+    /** Dashboard test case: POST /selectNotices */
+    getNotices: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            lastReqDt: string;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /** POST /selectTaxPayerInfo */
+    getTaxPayerInfo: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            lastReqDt?: string | undefined;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
 }>>;

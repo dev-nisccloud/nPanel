@@ -1,13 +1,10 @@
 /**
  * Domain availability checking for the Zeepo AI Agent.
  *
- * Routes .ke / .co.ke / .or.ke etc. through KENIC EPP and all other
- * extensions through the OpenProvider REST API - both of which are
- * Nisc Cloud's existing backend integrations. The agent never needs to
- * direct users to external registrars.
+ * Routes domain checks through NISC Cloud's domain registry infrastructure.
+ * The agent never needs to direct users to external registrars.
  *
- * Reuses the same Redis auth-token caching that the OpenProvider tRPC
- * router uses, so tokens are shared across in-process callers.
+ * Reuses existing Redis auth-token caching for efficiency.
  */
 import { createOpenProviderClient } from "../openprovider-client";
 import { checkKenicAvailabilityAndFee } from "../epp/kenic-availability";
@@ -141,7 +138,7 @@ async function checkViaOpenProvider(name, extensions, targetCurrency) {
                 domain: fullDomain,
                 status: statusNorm,
                 available,
-                via: "openprovider",
+                // via: "openprovider", // Hidden from agent
                 ...(retailPrice ? { price: retailPrice } : {}),
                 ...(r.is_premium ? { isPremium: true } : {}),
             });
@@ -154,7 +151,7 @@ async function checkViaOpenProvider(name, extensions, targetCurrency) {
                 domain: `${name}${ext}`,
                 status: "unknown",
                 available: false,
-                via: "error",
+                // via: "error", // Hidden from agent
                 error: msg,
             });
         }
@@ -187,8 +184,8 @@ async function checkViaKenic(name, extensions, targetCurrency) {
                     domain,
                     status: "unknown",
                     available: false,
-                    via: "error",
-                    error: "KENIC EPP check unavailable",
+                    // via: "error", // Hidden from agent
+                    error: "NISC Cloud registry check unavailable",
                 });
                 continue;
             }
@@ -223,7 +220,7 @@ async function checkViaKenic(name, extensions, targetCurrency) {
                 domain,
                 status: r.available ? "available" : "taken",
                 available: r.available,
-                via: "kenic",
+                // via: "kenic", // Hidden from agent
                 ...(retailPrice ? { price: retailPrice } : {}),
             });
         }
@@ -232,8 +229,8 @@ async function checkViaKenic(name, extensions, targetCurrency) {
                 domain,
                 status: "unknown",
                 available: false,
-                via: "error",
-                error: e instanceof Error ? e.message : "KENIC check failed",
+                // via: "error", // Hidden from agent
+                error: e instanceof Error ? e.message : "Registry check failed",
             });
         }
     }
@@ -241,8 +238,7 @@ async function checkViaKenic(name, extensions, targetCurrency) {
 }
 /**
  * Check availability for `name` across the requested `extensions`,
- * routing each through the correct backend (KENIC EPP for .ke TLDs,
- * OpenProvider for everything else).
+ * routing each through NISC Cloud's domain registry infrastructure.
  *
  * @param targetCurrency ISO 4217 code for pricing display (e.g. "KES", "USD").
  *   Defaults to KES (Kenyan Shilling) - the most common currency for Nisc Cloud clients.

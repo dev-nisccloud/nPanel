@@ -243,6 +243,13 @@ export async function createAndEmailNiscOrderInvoice(input) {
         return { ok: true, invoiceId, invoiceNumber, emailed: false, kraSynced: true, source };
     }
 }
+/** Agency manual create-from-payment: no invoice / customer billing emails. */
+export function niscOrderSkipsInvoice(metadata) {
+    if (!metadata || typeof metadata !== "object")
+        return false;
+    const m = metadata;
+    return m.skipInvoice === true || m.agencyManualCreate === true;
+}
 /**
  * Loads order data and runs pre-provisioning invoice + email. Safe to call from QStash workers.
  */
@@ -265,6 +272,14 @@ export async function runPreProvisioningInvoiceForOrder(niscOrderId) {
         await niscLog("invoice_not_created", {
             niscOrderId,
             reason: "missing_order_actor",
+        });
+        return;
+    }
+    if (niscOrderSkipsInvoice(order.metadata)) {
+        await niscLog("invoice_not_created", {
+            niscOrderId,
+            reason: "agency_manual_create_skip_invoice",
+            reasonMessage: "Agency manual subscription create  invoice and customer billing email skipped.",
         });
         return;
     }

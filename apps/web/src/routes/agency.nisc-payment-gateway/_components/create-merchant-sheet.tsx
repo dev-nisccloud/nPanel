@@ -177,23 +177,23 @@ export function CreateMerchantSheet({
                 </div>
               </div>
 
-              {/* Team Link (Optional) */}
+              {/* Organization Link (Optional) */}
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold">Team Link (Optional)</h3>
+                <h3 className="text-sm font-semibold">Organization Link (Optional)</h3>
 
                 <FormField
                   control={form.control}
                   name="teamId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Link to Existing Team</FormLabel>
+                      <FormLabel>Link to Existing Organization</FormLabel>
                       <Select 
                         onValueChange={(value) => field.onChange(value === "none" ? undefined : value)} 
                         value={field.value || "none"}
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select a team (optional)" />
+                            <SelectValue placeholder="Select an organization (optional)" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -206,7 +206,7 @@ export function CreateMerchantSheet({
                         </SelectContent>
                       </Select>
                       <FormDescription>
-                        Link this merchant to an existing team for organization
+                        Link this merchant to an existing organization
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

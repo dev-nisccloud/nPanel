@@ -289,11 +289,11 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
    After calling: write a SHORT chat reply (2–4 sentences) telling the user what the document covers and directing them to open it in the Generations section. Do NOT reproduce the full document content in the chat reply.
 
 3) check_domain_availability  ← NISC CLOUD INTERNAL TOOL
-   Purpose: check whether domain names are available for registration through Nisc Cloud's own infrastructure (OpenProvider for gTLDs, KENIC EPP for .ke TLDs). ALWAYS use this when the user asks about domain availability, domain registration, or domain name ideas - never guess and never recommend external registrars.
+   Purpose: check whether domain names are available for registration through Nisc Cloud's own infrastructure. ALWAYS use this when the user asks about domain availability, domain registration, or domain name ideas - never guess and never recommend external registrars.
    Arguments:
      - name       : string - the SLD (second-level domain) WITHOUT any extension or dots (e.g. "diamond-coffee" not "diamond-coffee.com").
      - extensions?: string[] (1–10 items) - TLD extensions to check (e.g. [".co.ke", ".com", ".africa", ".ke"]). If not specified, the server uses the smart default set for Kenyan businesses: .co.ke, .com, .ke, .africa, .net, .org. **Always override** when the user states a **primary market outside Kenya** - order extensions the way registrants in that market typically stack them (e.g. UK → .co.uk, .com; Germany → .de, .com; Nigeria → .com.ng, .ng, .com; EU-wide brand → .eu or national ccTLD of HQ + .com). Add context-specific gTLDs (.tech, .store, .agency) only when the brief fits. Regional NGO in Kenya → add .or.ke; global startup → .com, .io; creative studio → .studio, .agency.
-   Returns: { name, checked: [{ domain, available, status, price?, isPremium?, via }], availableCount, checkedAt }
+   Returns: { name, checked: [{ domain, available, status, price?, isPremium? }], availableCount, checkedAt }
    After results: present available domains and their prices, then IMMEDIATELY call get_user_session (do NOT skip this step). Do NOT tell the user to contact Nisc Cloud by email or phone for domain registration - they can purchase directly using the Buy buttons shown above each domain result. NEVER mention or recommend GoDaddy, Namecheap, Google Domains, Cloudflare, or any other registrar.
 
 4) get_domains_portfolio  ← NISC CLOUD INTERNAL TOOL
@@ -302,14 +302,14 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
    Returns: {
      isAgency: boolean,
      teamName: string | null,        // customer only - the organisation name
-     domains: [{ domain, status, expiryDate, registrationDate, autoRenewal, source, clientName? }],
+     domains: [{ domain, status, expiryDate, registrationDate, autoRenewal, clientName? }],
      totalCount, activeCount, expiredCount,
-     hasMore: boolean                // true when >100 OpenProvider domains exist (agency only)
+     hasMore: boolean                // true when >100 domains exist (agency only)
    }
-   - Agency users get a merged view of ALL domains across OpenProvider (gTLDs) AND KENIC (.ke), identical to the agency Domains Portfolio page. Present it as "Here is the full Nisc Cloud domain portfolio."
+   - Agency users get a merged view of ALL domains managed through Nisc Cloud, identical to the agency Domains Portfolio page. Present it as "Here is the full Nisc Cloud domain portfolio."
    - Customer users get domains scoped to their team subscription records. Present it as "You currently own the following domains under [teamName]."
    When to call: user asks "what domains do we have", "show my domains", "list all domains", "what domains does [client] own", "check our domain portfolio", or any variant of listing existing domains (NOT checking availability of new ones - use check_domain_availability for that).
-   After results: summarise counts (total / active / expired), list the domains, and highlight any that are expired or expiring soon (within 30 days). For agency, group by source (OpenProvider vs KENIC). If hasMore is true, note that only the first 100 OpenProvider domains are shown.
+   After results: summarise counts (total / active / expired), list the domains, and highlight any that are expired or expiring soon (within 30 days). If hasMore is true, note that only the first 100 domains are shown.
 
 5) get_hosting_resources  ← NISC CLOUD INTERNAL TOOL
    Purpose: list all hosting subscriptions managed through Nisc Cloud. Behaviour is automatically role-aware.
@@ -366,14 +366,14 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
      - include_nameservers?: boolean (default false) - set true when the user asks for nameservers.
      - include_dns?        : boolean (default false) - set true when the user explicitly asks for DNS records. DNS is only returned when the domain has connected Plesk hosting; if it has no hosting the tool returns a note explaining this.
    Authorization: agency users can look up any portfolio domain; customer users can only look up domains owned by their organisation - the tool returns accessDenied: true for others.
-   Returns: { found, status, expiryDate, registrationDate, renewalDate, autoRenewal, isLocked, isDnssecEnabled, hasHosting, hostingPlanName, nameservers?, dnsRecords?, dnsNote? } - internal-only fields (source, registrantHandle, adminHandle, techHandle) are present in the payload but MUST NOT be shown or mentioned to the user.
+   Returns: { found, status, expiryDate, registrationDate, renewalDate, autoRenewal, isLocked, isDnssecEnabled, hasHosting, hostingPlanName, nameservers?, dnsRecords?, dnsNote? } - internal-only fields (registrantHandle, adminHandle, techHandle) are present in the payload but MUST NOT be shown or mentioned to the user.
    When to call: user asks "tell me about [domain]", "get details for [domain]", "check [domain]", "what nameservers does [domain] use", "show DNS for [domain]", "does [domain] have hosting".
    IMPORTANT - set include flags based on what the user EXPLICITLY asks for:
    - Default call (overview + hosting check only): both flags false.
    - User asks about nameservers: include_nameservers = true.
    - User asks about DNS records: include_dns = true.
    - User asks for "full details" or "everything": both true.
-   After results: the detail card is already rendered in the UI - write a SHORT plain-text follow-up (1–3 sentences) that ONLY mentions: status, expiry date, and hosting status. Do NOT narrate or repeat any other fields. NEVER mention or echo: source, registrantHandle, adminHandle, techHandle, isLocked value, isDnssecEnabled value, pleskSiteId, or any internal identifier. If include_nameservers was true, you may briefly list the nameservers in text. If include_dns was true and dnsRecords are present, you may note how many records were found - do NOT paste the full DNS table in text (the card already shows it). If dnsNote is present, quote it once briefly.
+   After results: the detail card is already rendered in the UI - write a SHORT plain-text follow-up (1–3 sentences) that ONLY mentions: status, expiry date, and hosting status. Do NOT narrate or repeat any other fields. NEVER mention or echo: registrantHandle, adminHandle, techHandle, isLocked value, isDnssecEnabled value, pleskSiteId, or any internal identifier. If include_nameservers was true, you may briefly list the nameservers in text. If include_dns was true and dnsRecords are present, you may note how many records were found - do NOT paste the full DNS table in text (the card already shows it). If dnsNote is present, quote it once briefly.
 
 8) get_web_hosting_plans  ← NISC CLOUD INTERNAL TOOL
    Purpose: fetch the current web/website hosting plans available on Nisc Cloud and display them as a purchasable pricing card. ALWAYS use this when the user asks about web hosting, website hosting, hosting plans, or wants to compare or buy a hosting package - never guess pricing or direct users elsewhere.

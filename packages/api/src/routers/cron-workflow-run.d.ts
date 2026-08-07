@@ -51,7 +51,7 @@ export declare const cronWorkflowRunRouter: import("@trpc/server").TRPCBuiltRout
         input: {
             id: string;
             name?: string | undefined;
-            status?: "running" | "completed" | "failed" | "cancelled" | "paused" | undefined;
+            status?: "completed" | "running" | "cancelled" | "failed" | "paused" | undefined;
             lastError?: string | null | undefined;
         };
         output: {
@@ -94,7 +94,7 @@ export declare const cronWorkflowRunRouter: import("@trpc/server").TRPCBuiltRout
     linkInvoice: import("@trpc/server").TRPCMutationProcedure<{
         input: {
             runId: string;
-            platform: "google" | "linkedin" | "meta";
+            platform: "google" | "meta" | "linkedin";
             invoiceId: string;
         };
         output: {

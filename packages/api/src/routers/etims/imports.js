@@ -1,14 +1,19 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../../trpc";
+import { router } from "../../trpc";
 import { TRPCError } from "@trpc/server";
 import { getEtimsContext } from "../../lib/etims-config";
+import { etimsProcedure, skipEtimsAuthChecks } from "./_procedure";
 const isAgencyUser = (r) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(r ?? "");
 const isSuperAdmin = (r) => r === "AGENCY_SUPER_ADMIN";
 function assertRead(role) {
+    if (skipEtimsAuthChecks())
+        return;
     if (!isAgencyUser(role))
         throw new TRPCError({ code: "FORBIDDEN", message: "Only agency users can access eTIMS imports data." });
 }
 function assertWrite(role) {
+    if (skipEtimsAuthChecks())
+        return;
     if (!isSuperAdmin(role))
         throw new TRPCError({ code: "FORBIDDEN", message: "Only agency super admins can update eTIMS imported items." });
 }
@@ -17,7 +22,7 @@ export const etimsImportsRouter = router({
      * Retrieve imported items from KRA customs system.
      * POST /selectImportItemList
      */
-    getImportedItems: protectedProcedure
+    getImportedItems: etimsProcedure
         .input(z.object({ lastReqDt: z.string().regex(/^\d{14}$/) }))
         .query(async ({ ctx, input }) => {
         assertRead(ctx.session?.user?.role);
@@ -34,7 +39,7 @@ export const etimsImportsRouter = router({
      * Confirm an imported item and map it to a local item code.
      * POST /updateImportItem
      */
-    confirmImportedItem: protectedProcedure
+    confirmImportedItem: etimsProcedure
         .input(z.object({
         item: z.object({
             taskCd: z.string(),

@@ -1,5 +1,4 @@
 export declare const hivelocityProcedure: import("@trpc/server").TRPCProcedureBuilder<import("../..").Context, object, {
-    ipAddress: string | null | undefined;
     session: {
         user: import("../..").SessionUser;
         session: {
@@ -13,6 +12,7 @@ export declare const hivelocityProcedure: import("@trpc/server").TRPCProcedureBu
             userAgent?: string | null | undefined | undefined;
         };
     };
+    ipAddress: string | null | undefined;
     apiKey: {
         id: string;
         permissions: string[];
@@ -20,7 +20,10 @@ export declare const hivelocityProcedure: import("@trpc/server").TRPCProcedureBu
     mfaRequired: boolean | undefined;
     mfaVerified: boolean | undefined;
     mfaSetupRequired: boolean | undefined;
+    reauthRequired: boolean | undefined;
     createCaller: ((ctx: import("../..").Context) => unknown) | undefined;
     apiKeyError: string | null | undefined;
     req: import("hono").HonoRequest<any, unknown>;
+    getCookie: (name: string) => string | undefined;
+    setCookie: (name: string, value: string, options?: import("../../context").CookieOptions) => void;
 }, import("@trpc/server").TRPCUnsetMarker, import("@trpc/server").TRPCUnsetMarker, import("@trpc/server").TRPCUnsetMarker, import("@trpc/server").TRPCUnsetMarker, false>;

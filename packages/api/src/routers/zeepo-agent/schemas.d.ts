@@ -1,8 +1,8 @@
 import { z } from "zod";
 export declare const zeepoAgentModelCategorySchema: z.ZodEnum<{
     image: "image";
-    video: "video";
     text: "text";
+    video: "video";
     audio: "audio";
     "background-remover": "background-remover";
 }>;
@@ -25,6 +25,7 @@ export declare const attachmentSchema: z.ZodObject<{
     url: z.ZodString;
     name: z.ZodString;
     mimeType: z.ZodString;
+    storageKey: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
 export type Attachment = z.infer<typeof attachmentSchema>;
 export declare const sendMessageSchema: z.ZodObject<{
@@ -35,6 +36,7 @@ export declare const sendMessageSchema: z.ZodObject<{
         url: z.ZodString;
         name: z.ZodString;
         mimeType: z.ZodString;
+        storageKey: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>>>;
 }, z.core.$strip>;
 export declare const getGenerationSchema: z.ZodObject<{
@@ -77,10 +79,10 @@ export declare const styleTransferSchema: z.ZodObject<{
     parentId: z.ZodOptional<z.ZodString>;
     imageUrl: z.ZodString;
     style: z.ZodEnum<{
-        anime: "anime";
-        cinematic: "cinematic";
         watercolor: "watercolor";
         oil_painting: "oil_painting";
+        cinematic: "cinematic";
+        anime: "anime";
         pixel_art: "pixel_art";
         neon: "neon";
         pencil_sketch: "pencil_sketch";

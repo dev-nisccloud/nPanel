@@ -7,6 +7,7 @@ import { db } from "@npanel/db";
 import { session, user } from "@npanel/db/schema/auth";
 import { userActivityLog, userProfile } from "@npanel/db/schema/auth-extras";
 import { mapUserAdminFields, mapUserEmailPreferences } from "../lib/user-extra-fields";
+import { invalidateSessionCache } from "@npanel/auth/session-cache";
 // Zod schemas for API - independent from database schema
 const userInfoOutputSchema = z.object({
     id: z.string(),
@@ -64,6 +65,11 @@ const revokeSessionInputSchema = z.object({
 const revokeSessionOutputSchema = z.object({
     success: z.boolean(),
     message: z.string().optional(),
+});
+const revokeAllSessionsOutputSchema = z.object({
+    success: z.boolean(),
+    message: z.string().optional(),
+    revokedCount: z.number(),
 });
 // Schema for getUserById input
 const getUserByIdInputSchema = z.object({
@@ -293,13 +299,13 @@ export const userProfileRouter = router({
             throw new Error("Unauthorized: You must be logged in");
         }
         const userId = sessionCtx.user.id;
+        const currentSessionId = sessionCtx.session?.id ?? null;
         const sessionsList = await db
             .select()
             .from(session)
             .where(and(eq(session.userId, userId), gt(session.expiresAt, new Date())))
             .orderBy(desc(session.updatedAt));
-        const currentSessionToken = sessionsList[0]?.token ?? null;
-        return sessionsList.map((s, index) => ({
+        return sessionsList.map((s) => ({
             id: s.id,
             token: `${s.token.substring(0, 10)}...`,
             ipAddress: s.ipAddress,
@@ -307,7 +313,7 @@ export const userProfileRouter = router({
             createdAt: s.createdAt,
             updatedAt: s.updatedAt,
             expiresAt: s.expiresAt,
-            isCurrent: index === 0 && s.token === currentSessionToken,
+            isCurrent: Boolean(currentSessionId && s.id === currentSessionId),
         }));
     }),
     /**
@@ -322,6 +328,7 @@ export const userProfileRouter = router({
             throw new Error("Unauthorized: You must be logged in");
         }
         const userId = sessionCtx.user.id;
+        const currentSessionId = sessionCtx.session?.id ?? null;
         await db.transaction(async (tx) => {
             const [sessionToRevoke] = await tx
                 .select()
@@ -334,13 +341,7 @@ export const userProfileRouter = router({
             if (sessionToRevoke.userId !== userId) {
                 throw new Error("You can only revoke your own sessions");
             }
-            const [currentSession] = await tx
-                .select()
-                .from(session)
-                .where(and(eq(session.userId, userId), gt(session.expiresAt, new Date())))
-                .orderBy(desc(session.updatedAt))
-                .limit(1);
-            if (currentSession && sessionToRevoke.token === currentSession.token) {
+            if (currentSessionId && sessionToRevoke.id === currentSessionId) {
                 throw new Error("You cannot revoke your current session. Please log out instead.");
             }
             await tx.delete(session).where(eq(session.id, input.sessionId));
@@ -358,9 +359,51 @@ export const userProfileRouter = router({
                 createdAt: new Date(),
             });
         });
+        await invalidateSessionCache(input.sessionId);
         return {
             success: true,
             message: "Session revoked successfully",
+        };
+    }),
+    /**
+     * Revoke all sessions for the current user, including the current session.
+     */
+    revokeAllSessions: protectedProcedure
+        .output(revokeAllSessionsOutputSchema)
+        .mutation(async ({ ctx }) => {
+        const sessionCtx = ctx.session;
+        if (!sessionCtx?.user?.id) {
+            throw new Error("Unauthorized: You must be logged in");
+        }
+        const userId = sessionCtx.user.id;
+        const activeSessions = await db
+            .select({ id: session.id })
+            .from(session)
+            .where(eq(session.userId, userId));
+        const sessionIds = activeSessions.map((s) => s.id);
+        await db.transaction(async (tx) => {
+            if (sessionIds.length > 0) {
+                await tx.delete(session).where(eq(session.userId, userId));
+            }
+            await tx.insert(userActivityLog).values({
+                id: crypto.randomUUID(),
+                userId,
+                action: "SESSIONS_REVOKED_ALL",
+                description: "User revoked all sessions including current",
+                metadata: {
+                    revokedCount: sessionIds.length,
+                    sessionIds,
+                },
+                ipAddress: ctx.ipAddress ?? null,
+                userAgent: ctx.req?.raw?.headers?.get("user-agent") ?? null,
+                createdAt: new Date(),
+            });
+        });
+        await Promise.all(sessionIds.map((id) => invalidateSessionCache(id)));
+        return {
+            success: true,
+            message: "All sessions revoked successfully",
+            revokedCount: sessionIds.length,
         };
     }),
     /**

@@ -205,4 +205,15 @@ export declare const etimsSalesRouter: import("@trpc/server").TRPCBuiltRouter<{
         };
         meta: object;
     }>;
+    /** POST /selectInvoiceDetails */
+    getInvoiceDetails: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            invcNo: number;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
 }>>;

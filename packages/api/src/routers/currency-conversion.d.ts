@@ -71,7 +71,7 @@ export declare const currencyConversionRouter: import("@trpc/server").TRPCBuiltR
         input: void;
         output: {
             apiKeyConfigured: boolean;
-            apiTier: "free" | "paid";
+            apiTier: "paid" | "free";
             apiEndpoint: string;
             monthlyLimit: number;
         };
@@ -93,7 +93,7 @@ export declare const currencyConversionRouter: import("@trpc/server").TRPCBuiltR
             currentUsage: number;
             monthlyLimit: number;
             usagePercentage: number;
-            status: "normal" | "warning" | "critical";
+            status: "warning" | "normal" | "critical";
         };
         meta: object;
     }>;

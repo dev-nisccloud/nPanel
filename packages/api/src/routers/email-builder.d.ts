@@ -20,14 +20,18 @@ export declare const emailBuilderRouter: import("@trpc/server").TRPCBuiltRouter<
                 name: string;
                 createdAt: Date;
                 updatedAt: Date;
-                teamId: string | null;
-                description: string | null;
                 userId: string;
-                isPublic: boolean;
+                description: string | null;
+                teamId: string | null;
                 thumbnailUrl: string | null;
+                isPublic: boolean;
+                saveStatus: string;
+                lastSaveError: string | null;
                 isAiGenerated: boolean;
                 aiStatus: string;
                 aiContext: unknown;
+                clientVersion: number;
+                lastSavedAt: Date | null;
             };
         };
         meta: object;
@@ -43,14 +47,18 @@ export declare const emailBuilderRouter: import("@trpc/server").TRPCBuiltRouter<
                 name: string;
                 createdAt: Date;
                 updatedAt: Date;
-                teamId: string | null;
-                description: string | null;
                 userId: string;
-                isPublic: boolean;
+                description: string | null;
+                teamId: string | null;
                 thumbnailUrl: string | null;
+                isPublic: boolean;
+                saveStatus: string;
+                lastSaveError: string | null;
                 isAiGenerated: boolean;
                 aiStatus: string;
                 aiContext: unknown;
+                clientVersion: number;
+                lastSavedAt: Date | null;
             };
         };
         meta: object;
@@ -96,11 +104,115 @@ export declare const emailBuilderRouter: import("@trpc/server").TRPCBuiltRouter<
                 json: string;
                 thumbnailUrl: string | null;
                 isPublic: boolean;
+                saveStatus: string;
+                lastSaveError: string | null;
                 isAiGenerated: boolean;
                 aiStatus: string;
                 aiContext: unknown;
+                clientVersion: number;
                 createdAt: Date;
                 updatedAt: Date;
+                lastSavedAt: Date | null;
+            };
+        };
+        meta: object;
+    }>;
+    saveContent: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            designId: string;
+            json: string;
+            clientVersion?: number | undefined;
+        };
+        output: {
+            success: boolean;
+            data: {
+                id: string;
+                name: string;
+                description: string | null;
+                userId: string;
+                teamId: string | null;
+                json: string;
+                thumbnailUrl: string | null;
+                isPublic: boolean;
+                saveStatus: string;
+                lastSaveError: string | null;
+                isAiGenerated: boolean;
+                aiStatus: string;
+                aiContext: unknown;
+                clientVersion: number;
+                createdAt: Date;
+                updatedAt: Date;
+                lastSavedAt: Date | null;
+            } | undefined;
+            operationId: `${string}-${string}-${string}-${string}-${string}`;
+            version: number;
+        };
+        meta: object;
+    }>;
+    getOperations: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            designId: string;
+            status?: "QUEUED" | "PROCESSING" | "COMPLETED" | "FAILED" | undefined;
+            limit?: number | undefined;
+        };
+        output: {
+            data: {
+                id: string;
+                status: string;
+                createdAt: Date;
+                updatedAt: Date;
+                userId: string;
+                teamId: string | null;
+                errorMessage: string | null;
+                startedAt: Date | null;
+                completedAt: Date | null;
+                payload: unknown;
+                clientVersion: number | null;
+                designId: string;
+                operationType: string;
+                qstashMessageId: string | null;
+                result: unknown;
+            }[];
+        };
+        meta: object;
+    }>;
+    createOperation: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            designId: string;
+            operationType: "AUTO_SAVE" | "AI_GENERATION" | "IMAGE_UPLOAD";
+            payload?: any;
+            status?: "QUEUED" | "PROCESSING" | "COMPLETED" | "FAILED" | undefined;
+        };
+        output: {
+            data: {
+                id: string;
+                status: string;
+                createdAt: Date;
+                updatedAt: Date;
+                userId: string;
+                teamId: string | null;
+                errorMessage: string | null;
+                startedAt: Date | null;
+                completedAt: Date | null;
+                payload: unknown;
+                clientVersion: number | null;
+                designId: string;
+                operationType: string;
+                qstashMessageId: string | null;
+                result: unknown;
+            } | undefined;
+        };
+        meta: object;
+    }>;
+    getDesignHtml: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            designId: string;
+        };
+        output: {
+            success: boolean;
+            data: {
+                html: string;
+                name: string;
             };
         };
         meta: object;
@@ -127,14 +239,18 @@ export declare const emailBuilderRouter: import("@trpc/server").TRPCBuiltRouter<
                 name: string;
                 createdAt: Date;
                 updatedAt: Date;
-                teamId: string | null;
-                description: string | null;
                 userId: string;
-                isPublic: boolean;
+                description: string | null;
+                teamId: string | null;
                 thumbnailUrl: string | null;
+                isPublic: boolean;
+                saveStatus: string;
+                lastSaveError: string | null;
                 isAiGenerated: boolean;
                 aiStatus: string;
                 aiContext: unknown;
+                clientVersion: number;
+                lastSavedAt: Date | null;
             };
         };
         meta: object;

@@ -19,6 +19,12 @@ export type WebsiteBrandEnrichment = {
     /** Full block for creative director / planner prompts. */
     webContext: string | null;
     warnings: string[];
+    /** Confidence scores for color detection (0-1) */
+    colorConfidence?: {
+        primary: number;
+        accent: number;
+        secondary: number;
+    };
 };
 export declare function paletteToColorArray(palette: BrandPalette): string[];
 export declare function colorsToPalette(colors: string[]): BrandPalette;

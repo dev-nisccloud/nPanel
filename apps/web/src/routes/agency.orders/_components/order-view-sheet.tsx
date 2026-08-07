@@ -179,7 +179,7 @@ export function OrderViewSheet({ open, onOpenChange, orderId }: OrderViewSheetPr
                                             </p>
                                         </div>
                                         <div className="space-y-1">
-                                            <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Associated Team</span>
+                                            <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Associated Organization</span>
                                             <div className="flex items-center gap-2 pt-1">
                                                 <Building2 className="h-4 w-4 text-muted-foreground" />
                                                 <p className="text-sm font-medium">{order.team?.name || "N/A"}</p>

@@ -127,7 +127,7 @@ export function CreateOrderSheet({
 				<SheetHeader>
 					<SheetTitle>Create Nisc order</SheetTitle>
 					<SheetDescription>
-						Select user/team and add product items. Order will be processed in the background.
+						Select user/organization and add product items. Order will be processed in the background.
 					</SheetDescription>
 				</SheetHeader>
 
@@ -138,7 +138,7 @@ export function CreateOrderSheet({
 							name="teamId"
 							render={({ field }) => (
 								<FormItem className="w-full">
-									<FormLabel>Team (optional)</FormLabel>
+									<FormLabel>Organization (optional)</FormLabel>
 									<Select
 										onValueChange={(v) => field.onChange(v === NONE_VALUE ? undefined : v)}
 										value={field.value ?? NONE_VALUE}
@@ -146,7 +146,7 @@ export function CreateOrderSheet({
 									>
 										<FormControl>
 											<SelectTrigger className="w-full">
-												<SelectValue placeholder="Select team" />
+												<SelectValue placeholder="Select organization" />
 											</SelectTrigger>
 										</FormControl>
 										<SelectContent>
@@ -192,7 +192,7 @@ export function CreateOrderSheet({
 							)}
 						/>
 						<p className="text-xs text-muted-foreground">
-							At least one of Team or User must be selected.
+							At least one of Organization or User must be selected.
 						</p>
 
 						<div className="w-full">

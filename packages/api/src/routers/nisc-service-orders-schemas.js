@@ -247,4 +247,9 @@ export const createFromPaymentInputSchema = z.object({
     teamId: z.string().optional(),
     /** Agency only: order / subscription owner (e.g. end customer user) instead of the payer session user. */
     billedForUserId: z.string().min(1).optional(),
+    /**
+     * Agency manual provision: skip invoice creation/email and customer order emails.
+     * Stored on order.metadata for the QStash worker path.
+     */
+    skipInvoice: z.boolean().optional(),
 });

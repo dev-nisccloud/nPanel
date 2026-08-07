@@ -13,8 +13,8 @@ import { useLocation } from "react-router";
 import { TopProgressBar } from "@/components/top-progress-bar";
 
 type SwitchingTeamContextValue = {
-  isSwitchingTeam: boolean;
-  startSwitchTeam: () => void;
+  isSwitchingOrganization: boolean;
+  startSwitchOrganization: () => void;
 };
 
 const SwitchingTeamContext = createContext<SwitchingTeamContextValue | null>(null);

@@ -51,7 +51,7 @@ interface VpsDetailPageProps {
   /** Back link target (VPS/VDS list). Default agency list. */
   vpsListPath?: string;
   subscriptionsPathPrefix?: string;
-  /** When set, all Hivelocity calls are scoped to this team's subscription-linked devices. */
+  /** When set, all Hivelocity calls are scoped to this organization's subscription-linked devices. */
   teamHivelocityAccess?: TeamHivelocityAccess | null;
 }
 

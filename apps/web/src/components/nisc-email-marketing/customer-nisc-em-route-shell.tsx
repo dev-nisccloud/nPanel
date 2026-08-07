@@ -35,7 +35,7 @@ export function CustomerNiscEmRouteShell({ children }: { children: React.ReactNo
 	if (!teamSlug) {
 		return (
 			<div className="flex flex-1 items-center justify-center p-6">
-				<p className="text-sm text-muted-foreground">Invalid or missing team context.</p>
+				<p className="text-sm text-muted-foreground">Invalid or missing organization context.</p>
 			</div>
 		);
 	}
@@ -53,7 +53,7 @@ export function CustomerNiscEmRouteShell({ children }: { children: React.ReactNo
 		return (
 			<div className="flex flex-1 items-center justify-center p-6">
 				<p className="text-sm text-muted-foreground">
-					We could not resolve this team. Check the URL or switch team from the sidebar.
+					We could not resolve this organization. Check the URL or switch organization from the sidebar.
 				</p>
 			</div>
 		);

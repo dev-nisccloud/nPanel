@@ -792,12 +792,14 @@ function domainSubscriptionDescription(orderDescription) {
 }
 async function createDomainSubscription(params, _integrationId, primaryDomain, openProviderId, status, options) {
     const subscriptionDate = options?.subscriptionDate ?? new Date();
+    const applyExpiry = options?.applyBillingCycleExpiry !== false;
     let expiryDate = null;
     let nextRenewalDate = null;
-    if (options?.applyBillingCycleExpiry) {
-        const { computeSubscriptionExpiryFromBillingCycle } = await import("./nisc-subscription-dates");
-        expiryDate = computeSubscriptionExpiryFromBillingCycle(subscriptionDate, params.billingCycle);
-        nextRenewalDate = expiryDate;
+    if (applyExpiry) {
+        const { resolveSubscriptionPeriodDates } = await import("./nisc-subscription-dates");
+        const period = resolveSubscriptionPeriodDates(subscriptionDate, params.billingCycle);
+        expiryDate = period.expiryDate;
+        nextRenewalDate = period.nextRenewalDate;
     }
     const subId = crypto.randomUUID();
     const [sub] = await db

@@ -9,7 +9,7 @@ import { db } from "@npanel/db";
 import { user } from "@npanel/db/schema/auth";
 import { customerIntegration, userProfile } from "@npanel/db/schema/auth-extras";
 import { createConnection, readFrame, sendFrame } from "./epp/epp-client";
-import { buildLoginXml, buildLogoutXml, buildContactCreateXml, buildDomainCreateXml, } from "./epp/epp-xml";
+import { buildLoginXml, buildLogoutXml, buildContactCreateXml, buildDomainCreateXml, buildDomainUpdateXml, } from "./epp/epp-xml";
 import { getKenicEppConfig } from "./epp/kenic-config";
 import { isKenicDomain } from "./epp/kenic-tlds";
 import { niscLog } from "./nisc-order-logger";
@@ -323,7 +323,50 @@ export async function registerKenicDomain(params) {
         const creData = resData?.["domain:creData"];
         const name = creData?.["domain:name"] ?? params.domainName;
         const exDate = creData?.["domain:exDate"];
-        return { success: true, domain: name, exDate: exDate ?? null };
+        return { success: true, domain: name, exDate: exDate ?? null, authInfo };
+    }
+    finally {
+        socket?.destroy();
+    }
+}
+/** CoCCA returns a one-way hash from domain:info  never treat those as displayable codes. */
+export function isCoccaAuthInfoHash(value) {
+    if (!value)
+        return false;
+    return /^[0-9a-f]{64,}$/i.test(value.trim());
+}
+/**
+ * Generate a plaintext EPP auth code, push it to KENIC via domain:update, and return it.
+ * Callers must persist the returned value (CoCCA will not give it back later).
+ */
+export async function setKenicDomainAuthCode(domainName, authCode) {
+    const code = authCode?.trim() ||
+        crypto.randomBytes(12).toString("base64url");
+    let socket;
+    try {
+        const config = getKenicEppConfig(true);
+        socket = await createConnection(config);
+        await readFrame(socket);
+        sendFrame(socket, buildLoginXml(config.username, config.password));
+        const loginBuf = await readFrame(socket);
+        const loginParsed = parser.parse(loginBuf.toString("utf8"));
+        const loginResult = getEppResult(loginParsed);
+        if (loginResult.code !== EPP_CODE_SUCCESS) {
+            throw new Error(`KENIC EPP login failed: ${loginResult.msg}`);
+        }
+        sendFrame(socket, buildDomainUpdateXml({
+            domain: domainName,
+            authInfo: code,
+        }));
+        const updateBuf = await readFrame(socket);
+        const updateParsed = parser.parse(updateBuf.toString("utf8"));
+        const updateResult = getEppResult(updateParsed);
+        sendFrame(socket, buildLogoutXml());
+        await readFrame(socket);
+        if (updateResult.code !== EPP_CODE_SUCCESS && updateResult.code !== "1001") {
+            throw new Error(`KENIC auth code update failed: ${updateResult.msg}`);
+        }
+        return code;
     }
     finally {
         socket?.destroy();

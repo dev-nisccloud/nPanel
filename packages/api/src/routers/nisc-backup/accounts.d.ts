@@ -48,7 +48,7 @@ export declare const niscBackupAccountsRouter: import("@trpc/server").TRPCBuiltR
     }>;
     manageTag: import("@trpc/server").TRPCMutationProcedure<{
         input: {
-            action: "delete" | "create" | "modify";
+            action: "create" | "delete" | "modify";
             _id?: string | undefined;
             name?: string | undefined;
             color?: string | undefined;

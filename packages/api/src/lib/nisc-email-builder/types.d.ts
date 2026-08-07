@@ -18,8 +18,8 @@ export type NebBrief = z.infer<typeof nebBriefSchema>;
 export declare const imageSlotSchema: z.ZodObject<{
     key: z.ZodString;
     kind: z.ZodDefault<z.ZodOptional<z.ZodEnum<{
-        photo: "photo";
         icon: "icon";
+        photo: "photo";
         hero: "hero";
     }>>>;
     prompt: z.ZodString;
@@ -40,8 +40,8 @@ export declare const plannerOutputSchema: z.ZodObject<{
     image_slots: z.ZodDefault<z.ZodArray<z.ZodObject<{
         key: z.ZodString;
         kind: z.ZodDefault<z.ZodOptional<z.ZodEnum<{
-            photo: "photo";
             icon: "icon";
+            photo: "photo";
             hero: "hero";
         }>>>;
         prompt: z.ZodString;
@@ -69,8 +69,8 @@ export declare const revisionOutputSchema: z.ZodObject<{
     image_slots: z.ZodOptional<z.ZodArray<z.ZodObject<{
         key: z.ZodString;
         kind: z.ZodDefault<z.ZodOptional<z.ZodEnum<{
-            photo: "photo";
             icon: "icon";
+            photo: "photo";
             hero: "hero";
         }>>>;
         prompt: z.ZodString;
@@ -94,8 +94,8 @@ export declare const directBuildOutputSchema: z.ZodObject<{
     image_slots: z.ZodDefault<z.ZodOptional<z.ZodArray<z.ZodObject<{
         key: z.ZodString;
         kind: z.ZodDefault<z.ZodOptional<z.ZodEnum<{
-            photo: "photo";
             icon: "icon";
+            photo: "photo";
             hero: "hero";
         }>>>;
         prompt: z.ZodString;
@@ -156,8 +156,8 @@ export declare const compAnalysisOutputSchema: z.ZodObject<{
     image_slots: z.ZodDefault<z.ZodArray<z.ZodObject<{
         key: z.ZodString;
         kind: z.ZodDefault<z.ZodOptional<z.ZodEnum<{
-            photo: "photo";
             icon: "icon";
+            photo: "photo";
             hero: "hero";
         }>>>;
         prompt: z.ZodString;

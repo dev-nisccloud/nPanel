@@ -234,10 +234,10 @@ function SesDomainRowActions(props: { domain: SesDomainLive; onVerified?: () => 
             </div>
 
             <div className="space-y-2">
-              <Label>Team (optional)</Label>
+              <Label>Organization (optional)</Label>
               <Select value={selectedTeamId} onValueChange={setSelectedTeamId} disabled={teamsLoading || connectMutation.isPending}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a team (optional)" />
+                  <SelectValue placeholder="Select an organization (optional)" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">None</SelectItem>

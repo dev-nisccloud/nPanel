@@ -490,7 +490,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
       // If new ticket, create it now (after files are uploaded) - this is the FIRST message
       if (isNewTicket || !ticketId) {
         if (!teamData?.id) {
-          toast.error("Team ID not available. Please refresh the page.");
+          toast.error("Organization ID not available. Please refresh the page.");
           return;
         }
 

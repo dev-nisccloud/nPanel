@@ -1,14 +1,19 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../../trpc";
+import { router } from "../../trpc";
 import { TRPCError } from "@trpc/server";
 import { getEtimsContext } from "../../lib/etims-config";
+import { etimsProcedure, skipEtimsAuthChecks } from "./_procedure";
 const isAgencyUser = (r) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(r ?? "");
 const isSuperAdmin = (r) => r === "AGENCY_SUPER_ADMIN";
 function assertRead(role) {
+    if (skipEtimsAuthChecks())
+        return;
     if (!isAgencyUser(role))
         throw new TRPCError({ code: "FORBIDDEN", message: "Only agency users can access eTIMS sales data." });
 }
 function assertWrite(role) {
+    if (skipEtimsAuthChecks())
+        return;
     if (!isSuperAdmin(role))
         throw new TRPCError({ code: "FORBIDDEN", message: "Only agency super admins can submit eTIMS sales." });
 }
@@ -90,7 +95,7 @@ export const etimsSalesRouter = router({
      * Submit a sales transaction to KRA and generate a tax invoice.
      * POST /saveTrnsSalesOsdc
      */
-    sendSalesTransaction: protectedProcedure
+    sendSalesTransaction: etimsProcedure
         .input(z.object({ transaction: salesTransactionSchema }))
         .mutation(async ({ ctx, input }) => {
         assertWrite(ctx.session?.user?.role);
@@ -109,7 +114,7 @@ export const etimsSalesRouter = router({
      * Issue a credit note against a prior sale.
      * POST /saveTrnsSalesOsdc (rcptTyCd=R, orgInvcNo=original invoice)
      */
-    sendCreditNote: protectedProcedure
+    sendCreditNote: etimsProcedure
         .input(z.object({ transaction: creditNoteTransactionSchema }))
         .mutation(async ({ ctx, input }) => {
         assertWrite(ctx.session?.user?.role);
@@ -131,7 +136,7 @@ export const etimsSalesRouter = router({
     /**
      * POST /selectTrnsSalesList
      */
-    getSalesTransactions: protectedProcedure
+    getSalesTransactions: etimsProcedure
         .input(z.object({ lastReqDt: z.string().regex(/^\d{14}$/) }))
         .query(async ({ ctx, input }) => {
         assertRead(ctx.session?.user?.role);
@@ -142,6 +147,20 @@ export const etimsSalesRouter = router({
         }
         catch (e) {
             throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: e.message || "Failed to retrieve sales transactions" });
+        }
+    }),
+    /** POST /selectInvoiceDetails */
+    getInvoiceDetails: etimsProcedure
+        .input(z.object({ invcNo: z.number().int().min(0) }))
+        .query(async ({ ctx, input }) => {
+        assertRead(ctx.session?.user?.role);
+        const { client, oscu } = await getEtimsContext();
+        try {
+            const result = await client.selectInvoiceDetails(oscu, input.invcNo);
+            return { success: true, data: result };
+        }
+        catch (e) {
+            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: e.message || "Failed to retrieve invoice details" });
         }
     }),
 });

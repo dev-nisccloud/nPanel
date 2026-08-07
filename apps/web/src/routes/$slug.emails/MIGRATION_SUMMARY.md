@@ -38,7 +38,7 @@ Updated all routes from agency paths to customer paths:
 #### Files Updated:
 1. **hosting-detail-page.tsx**:
    - Changed `/agency/hosting` → `/${teamSlug}/hosting`
-   - Removed agency-only features (Link to Team, Link to Subscription, Unlink)
+   - Removed agency-only features (Link to Organization, Link to Subscription, Unlink)
    - Updated error component to use customer paths
 
 2. **hosting-data-table.tsx**:
@@ -103,7 +103,7 @@ apps/npanel/src/app/(main)/[slug]/hosting/
 ## Notes
 
 1. **Columns.tsx**: Currently commented out in `hosting-data-table.tsx` but updated for future use
-2. **Agency-Only Features**: Removed from customer side (Link to Team, Link to Subscription, Unlink)
+2. **Agency-Only Features**: Removed from customer side (Link to Organization, Link to Subscription, Unlink)
 3. **Duplicate Folder**: Removed `hosting/hosting/` duplicate folder if it existed
 4. **Pricing Plans**: Uses same loading method as before (`trpc.hostingPlans.getAll.useQuery`)
 

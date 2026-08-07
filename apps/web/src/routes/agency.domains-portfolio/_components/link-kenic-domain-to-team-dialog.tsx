@@ -61,7 +61,7 @@ export function LinkKenicDomainToTeamDialog({
 
   const updateMutation = trpc.clientSubscriptions.update.useMutation({
     onSuccess: async () => {
-      toast.success("Domain linked to team");
+      toast.success("Domain linked to organization");
       setConfirmOpen(false);
       onOpenChange(false);
       resetForm();
@@ -99,7 +99,7 @@ export function LinkKenicDomainToTeamDialog({
   const handleContinue = () => {
     setSubmitError(null);
     if (!selectedTeamId) {
-      toast.error("Please select a team");
+      toast.error("Please select an organization");
       return;
     }
     setConfirmOpen(true);
@@ -128,9 +128,9 @@ export function LinkKenicDomainToTeamDialog({
       >
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Link to team</DialogTitle>
+            <DialogTitle>Link to organization</DialogTitle>
             <DialogDescription>
-              Link {domainName} to a customer team so it appears in their Domains Portfolio.
+              Link {domainName} to a customer organization so it appears in their Domains Portfolio.
             </DialogDescription>
           </DialogHeader>
 
@@ -138,7 +138,7 @@ export function LinkKenicDomainToTeamDialog({
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Building2 className="h-4 w-4 text-muted-foreground" />
-                Team *
+                Organization *
               </Label>
               {isLoadingTeams ? (
                 <div className="flex h-10 items-center justify-center rounded-md border">
@@ -149,9 +149,9 @@ export function LinkKenicDomainToTeamDialog({
                   items={teamItems}
                   selectedItem={selectedTeam}
                   onSelect={(item) => setSelectedTeamId(item.id)}
-                  placeholder="Select a team..."
-                  searchPlaceholder="Search teams..."
-                  emptyResults="No teams found"
+                  placeholder="Select an organization..."
+                  searchPlaceholder="Search organizations..."
+                  emptyResults="No organizations found"
                   disabled={isSubmitting}
                 />
               )}
@@ -194,13 +194,13 @@ export function LinkKenicDomainToTeamDialog({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm link to team?</AlertDialogTitle>
+            <AlertDialogTitle>Confirm link to organization?</AlertDialogTitle>
             <AlertDialogDescription>
               Link <span className="font-medium text-foreground">{domainName}</span> to{" "}
               <span className="font-medium text-foreground">
-                {selectedTeam?.label ?? "the selected team"}
+                {selectedTeam?.label ?? "the selected organization"}
               </span>
-              ? The domain will appear in that team&apos;s Domains Portfolio.
+              ? The domain will appear in that organization&apos;s Domains Portfolio.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -220,7 +220,7 @@ export function LinkKenicDomainToTeamDialog({
               ) : (
                 <>
                   <Link2 className="mr-2 h-4 w-4" />
-                  Link to team
+                  Link to organization
                 </>
               )}
             </AlertDialogAction>

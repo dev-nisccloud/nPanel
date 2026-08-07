@@ -17,7 +17,8 @@ const PUBLIC_PREFIXES = [
   "/accept-invite",
   "/verify-contact",
   "/confirm-transfer",
-  "/create-team",
+  "/create-organization",
+  "/create-team", // legacy alias redirects to /create-organization
   "/account-status",
   "/unauthorized",
   "/update-role",

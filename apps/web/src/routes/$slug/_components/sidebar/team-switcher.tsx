@@ -59,7 +59,7 @@ export function TeamSwitcher() {
   };
 
   const handleCreateTeam = () => {
-    navigate("/create-team");
+    navigate("/create-organization");
   };
 
   // Loading state
@@ -82,7 +82,7 @@ export function TeamSwitcher() {
     );
   }
 
-  // No teams state
+  // No organizations state
   if (!teams || teams.length === 0) {
     return (
       <Button variant="ghost" size="icon" onClick={handleCreateTeam}>

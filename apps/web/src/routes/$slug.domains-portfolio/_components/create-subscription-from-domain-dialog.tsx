@@ -133,7 +133,7 @@ export function CreateSubscriptionFromDomainDialog({
     }
 
     if (linkType === "team" && !selectedTeamId) {
-      toast.error("Please select a team");
+      toast.error("Please select an organization");
       return;
     }
     if (linkType === "user" && !selectedUserId) {
@@ -175,7 +175,7 @@ export function CreateSubscriptionFromDomainDialog({
         <DialogHeader>
           <DialogTitle>Create subscription</DialogTitle>
           <DialogDescription>
-            Create a Nisc subscription for {domain.domain} and link it to a user or team.
+            Create a Nisc subscription for {domain.domain} and link it to a user or organization.
           </DialogDescription>
         </DialogHeader>
 
@@ -201,7 +201,7 @@ export function CreateSubscriptionFromDomainDialog({
                     disabled={isSubmitting}
                   >
                     <Users className="mr-2 h-4 w-4" />
-                    Team
+                    Organization
                   </Button>
                   <Button
                     type="button"
@@ -217,7 +217,7 @@ export function CreateSubscriptionFromDomainDialog({
               </div>
 
               <div className="space-y-2">
-                <Label>{linkType === "team" ? "Team" : "User"} *</Label>
+                <Label>{linkType === "team" ? "Organization" : "User"} *</Label>
                 {isLoadingOptions ? (
                   <div className="flex h-10 items-center justify-center rounded-md border">
                     <Spinner size={18} />
@@ -227,9 +227,9 @@ export function CreateSubscriptionFromDomainDialog({
                     items={teamItems}
                     selectedItem={selectedTeam}
                     onSelect={(item) => setSelectedTeamId(item.id)}
-                    placeholder="Select a team..."
-                    searchPlaceholder="Search teams..."
-                    emptyResults="No teams found"
+                    placeholder="Select an organization..."
+                    searchPlaceholder="Search organizations..."
+                    emptyResults="No organizations found"
                     disabled={isSubmitting}
                   />
                 ) : (

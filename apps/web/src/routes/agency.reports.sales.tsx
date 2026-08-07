@@ -881,7 +881,7 @@ export default function SalesReportsPage() {
 											</div>
 										))
 									) : (
-										<p className="text-sm text-muted-foreground italic">No team MRR data</p>
+										<p className="text-sm text-muted-foreground italic">No organization MRR data</p>
 									)}
 								</CardContent>
 							</Card>

@@ -12,7 +12,10 @@ import { HostingUpsell } from "./_components/HostingUpsell.tsx";
 import { OrderSummary } from "./_components/OrderSummary.tsx";
 import { CustomerInfoStep, CUSTOMER_INFO_FORM_ID, SIGNED_IN_CHECKOUT_FORM_ID, SIGNED_IN_ORG_FORM_ID, SIGNED_IN_PROFILE_FORM_ID } from "./_components/CustomerInfoStep.tsx";
 import type { CustomerInfoIdentity } from "./_components/CustomerInfoStep.tsx";
-import { StorefrontPaymentDialog } from "./_components/StorefrontPaymentDialog.tsx";
+import {
+  StorefrontPaymentDialog,
+  resumeStorefrontJengaCheckout,
+} from "./_components/StorefrontPaymentDialog.tsx";
 import {
   HivelocityConfigStep,
   createInitialHivelocityConfig,
@@ -42,6 +45,7 @@ import {
   resolveStorefrontProductId,
   type StorefrontCartDraft,
   type StorefrontCartQuoteRequest,
+  type StorefrontJengaCustomer,
   type StorefrontProfilePrefill,
 } from "@/lib/storefront-checkout-api.ts";
 import { useStorefrontCartQuote } from "@/lib/use-storefront-cart-quote.ts";
@@ -200,7 +204,9 @@ export default function CartPage() {
     storefrontToken: string;
     teamSlug: string;
     phone: string;
+    jengaCustomer?: Partial<StorefrontJengaCustomer>;
   } | null>(null);
+  const [jengaResumePending, setJengaResumePending] = React.useState(false);
   const [hivelocityConfig, setHivelocityConfig] = React.useState<HivelocityCheckoutConfig | null>(
     () => getInitialCartDraft()?.hivelocityConfig ?? null,
   );
@@ -467,6 +473,7 @@ export default function CartPage() {
       setCheckoutIdentity({
         status: "signed-in",
         userName: identity.user.name,
+        userEmail: identity.user.email,
         profileComplete: identity.profile.complete,
         profilePrefill: identity.profile.prefill,
         teams: identity.teams,
@@ -627,6 +634,15 @@ export default function CartPage() {
         storefrontToken: reg.storefrontToken,
         teamSlug: reg.teamSlug,
         phone: info.phone,
+        jengaCustomer: {
+          customerFirstName: info.firstName,
+          customerLastName: info.lastName,
+          customerEmail: info.email,
+          customerPhone: info.phone,
+          customerAddress: "",
+          customerPostalCodeZip: "",
+          countryCode: "KE",
+        },
       });
       setPaymentOpen(true);
     } catch (err) {
@@ -642,14 +658,29 @@ export default function CartPage() {
     setIsSubmitting(true);
     try {
       const issued = await issueStorefrontCheckoutToken(teamId);
-      const phone =
+      const prefill =
         checkoutIdentity.status === "signed-in"
-          ? checkoutIdentity.profilePrefill.phone
-          : "";
+          ? checkoutIdentity.profilePrefill
+          : null;
+      const email =
+        checkoutIdentity.status === "signed-in" ? checkoutIdentity.userEmail : "";
+      const phone = prefill?.phone || "";
       setCheckoutSession({
         storefrontToken: issued.storefrontToken,
         teamSlug: issued.teamSlug,
         phone,
+        jengaCustomer: prefill
+          ? {
+              customerFirstName: prefill.firstName,
+              customerLastName: prefill.lastName,
+              customerEmail: email,
+              customerPhone: prefill.phone,
+              customerAddress: prefill.address,
+              customerPostalCodeZip: prefill.postalCode,
+              countryCode:
+                prefill.country.length === 2 ? prefill.country.toUpperCase() : "KE",
+            }
+          : undefined,
       });
       setPaymentOpen(true);
     } catch (err) {
@@ -670,6 +701,7 @@ export default function CartPage() {
         return {
           ...prev,
           userName: result.displayName || prev.userName,
+          userEmail: prev.userEmail,
           profileComplete: result.complete,
           profilePrefill: result.prefill,
         };
@@ -739,6 +771,82 @@ export default function CartPage() {
     toast.success(`Order ${order.orderNumber} confirmed! Redirecting to your dashboard…`);
     window.location.href = `${NPANEL_URL}/${order.teamSlug}/dashboard`;
   };
+
+  // Resume after hosted card redirect (?cardRef=...)
+  React.useEffect(() => {
+    const cardRef =
+      searchParams.get("cardRef")?.trim() ||
+      searchParams.get("jengaRef")?.trim();
+    if (!cardRef || jengaResumePending) return;
+
+    const raw = sessionStorage.getItem("storefront_jenga_checkout");
+    if (!raw) {
+      toast.error("Could not resume card payment. Please try checkout again.");
+      return;
+    }
+
+    let stored: {
+      storefrontToken: string;
+      orderReference: string;
+      cart?: StorefrontCartQuoteRequest;
+    };
+    try {
+      stored = JSON.parse(raw) as typeof stored;
+    } catch {
+      toast.error("Could not resume card payment. Please try checkout again.");
+      return;
+    }
+
+    if (stored.orderReference !== cardRef) {
+      toast.error("Payment reference mismatch. Please try checkout again.");
+      return;
+    }
+
+    setJengaResumePending(true);
+    setCheckoutSession({
+      storefrontToken: stored.storefrontToken,
+      teamSlug: "",
+      phone: "",
+    });
+
+    void resumeStorefrontJengaCheckout({
+      storefrontToken: stored.storefrontToken,
+      orderReference: cardRef,
+      onSuccess: async (orderReference) => {
+        const resolvedProductId =
+          resolveStorefrontProductId(serviceType, productId) ||
+          (serviceType === "domain_transfer" ? productId : "");
+        if (!resolvedProductId) {
+          throw new Error("Missing product configuration. Please select a plan again.");
+        }
+        const order = await createStorefrontOrderFromPayment({
+          storefrontToken: stored.storefrontToken,
+          checkoutRequestId: orderReference,
+          planId: planId || undefined,
+          productId: resolvedProductId,
+          billingCycle: displayBillingCycle,
+          primaryDomain: resolvePrimaryDomain(),
+          cart: stored.cart ?? cartQuoteRequest ?? undefined,
+        });
+        sessionStorage.removeItem("storefront_jenga_checkout");
+        clearStorefrontCartDraft();
+        clearStorefrontCartResume();
+        toast.success(`Order ${order.orderNumber} confirmed! Redirecting to your dashboard…`);
+        window.location.href = `${NPANEL_URL}/${order.teamSlug}/dashboard`;
+      },
+    }).catch((err) => {
+      setJengaResumePending(false);
+      toast.error(err instanceof Error ? err.message : "Card payment confirmation failed.");
+    });
+  }, [
+    searchParams,
+    jengaResumePending,
+    serviceType,
+    productId,
+    planId,
+    displayBillingCycle,
+    cartQuoteRequest,
+  ]);
 
   if (!handoff) return (
     <div className="min-h-screen bg-background text-foreground">
@@ -974,8 +1082,17 @@ export default function CartPage() {
           defaultPhone={checkoutSession.phone}
           totalAmount={checkoutTotal}
           cart={cartQuoteRequest}
+          customerPrefill={checkoutSession.jengaCustomer}
           onPaymentSuccess={handlePaymentSuccess}
         />
+      )}
+      {jengaResumePending && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="rounded-xl border border-border bg-card px-6 py-5 text-center shadow-lg space-y-2">
+            <p className="font-medium text-foreground">Confirming card payment…</p>
+            <p className="text-xs text-muted-foreground">Please wait while we create your order.</p>
+          </div>
+        </div>
       )}
     </div>
   );

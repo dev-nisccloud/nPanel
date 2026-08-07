@@ -12,6 +12,15 @@ M-Pesa STK Push integration for processing mobile money payments in Kenya.
 
 Jenga Payment Gateway integration for secure card payment processing. Supports Visa, Mastercard, AMEX, Union Pay, JCB, and Diners Club cards with 3D Secure authentication. [See full documentation →](./JENGA-CARDS.md)
 
+**Live wiring (implemented):**
+- tRPC: `paymentGateway.jenga.initiateCardPayment` / `getPaymentStatus`
+- Storefront: `storefront.payment.initiateJengaCheckout` / `getJengaPaymentStatus`
+- Webhooks: `GET /api/webhooks/jenga/callback`, `POST /api/webhooks/jenga/ipn` (Basic Auth)
+- Dashboard return: `/payment/jenga/return` → `niscServiceOrders.createFromJengaPayment`
+- UI: Card method on buy-now, global buy-now, and storefront cart payment dialog
+
+**Env template:** [jenga/.env.jenga.example](./jenga/.env.jenga.example)
+
 ## Setup
 
 ### Environment Variables

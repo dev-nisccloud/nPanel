@@ -92,4 +92,20 @@ export declare const paymentTransactionsRouter: import("@trpc/server").TRPCBuilt
         };
         meta: object;
     }>;
+    /**
+     * Get summary statistics for payment transactions
+     */
+    getSummary: import("@trpc/server").TRPCQueryProcedure<{
+        input: void;
+        output: {
+            total: number;
+            success: number;
+            pending: number;
+            failed: number;
+            processing: number;
+            completedTotal: number;
+            activeTotal: number;
+        };
+        meta: object;
+    }>;
 }>>;

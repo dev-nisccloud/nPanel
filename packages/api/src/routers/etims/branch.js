@@ -1,23 +1,24 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../../trpc";
+import { router } from "../../trpc";
 import { TRPCError } from "@trpc/server";
 import { getEtimsContext } from "../../lib/etims-config";
+import { etimsProcedure, skipEtimsAuthChecks } from "./_procedure";
 const isAgencyUser = (r) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(r ?? "");
 const isSuperAdmin = (r) => r === "AGENCY_SUPER_ADMIN";
 function assertRead(role) {
+    if (skipEtimsAuthChecks())
+        return;
     if (!isAgencyUser(role))
         throw new TRPCError({ code: "FORBIDDEN", message: "Only agency users can access eTIMS branch data." });
 }
 function assertWrite(role) {
+    if (skipEtimsAuthChecks())
+        return;
     if (!isSuperAdmin(role))
         throw new TRPCError({ code: "FORBIDDEN", message: "Only agency super admins can modify eTIMS branch data." });
 }
 export const etimsBranchRouter = router({
-    /**
-     * Retrieve the list of registered branches for this taxpayer.
-     * POST /selectBhfList
-     */
-    getBranchList: protectedProcedure
+    getBranchList: etimsProcedure
         .input(z.object({ lastReqDt: z.string().regex(/^\d{14}$/) }))
         .query(async ({ ctx, input }) => {
         assertRead(ctx.session?.user?.role);
@@ -30,11 +31,7 @@ export const etimsBranchRouter = router({
             throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: e.message || "Failed to retrieve branch list" });
         }
     }),
-    /**
-     * Register or update a customer record for a branch.
-     * POST /saveBhfCustomer
-     */
-    saveCustomer: protectedProcedure
+    saveCustomer: etimsProcedure
         .input(z.object({
         customer: z.object({
             custNo: z.string().min(1),
@@ -69,11 +66,7 @@ export const etimsBranchRouter = router({
             return { success: false, data: null, errorMessage: msg || "Failed to save branch customer" };
         }
     }),
-    /**
-     * Create or update a branch user account.
-     * POST /saveBhfUser
-     */
-    saveBranchUser: protectedProcedure
+    saveBranchUser: etimsProcedure
         .input(z.object({
         user: z.object({
             userId: z.string().min(1),
@@ -99,6 +92,31 @@ export const etimsBranchRouter = router({
         }
         catch (e) {
             throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: e.message || "Failed to save branch user" });
+        }
+    }),
+    /** POST /saveBhfInsurance */
+    saveBranchInsurance: etimsProcedure
+        .input(z.object({
+        insurance: z.object({
+            isrccCd: z.string().min(1).max(10),
+            isrccNm: z.string().min(1).max(100),
+            isrcRt: z.number(),
+            useYn: z.enum(["Y", "N"]).default("Y"),
+            regrId: z.string().default("Admin"),
+            regrNm: z.string().default("Admin"),
+            modrId: z.string().default("Admin"),
+            modrNm: z.string().default("Admin"),
+        }),
+    }))
+        .mutation(async ({ ctx, input }) => {
+        assertWrite(ctx.session?.user?.role);
+        const { client, oscu } = await getEtimsContext();
+        try {
+            const result = await client.saveBhfInsurance(oscu, input.insurance);
+            return { success: true, data: result };
+        }
+        catch (e) {
+            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: e.message || "Failed to save branch insurance" });
         }
     }),
 });

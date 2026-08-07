@@ -36,7 +36,7 @@ export declare const teamsRouter: import("@trpc/server").TRPCBuiltRouter<{
                 id: string;
                 email: string;
                 role: "MEMBER" | "OWNER" | "ADMIN" | "VIEWER";
-                status: "PENDING" | "ACCEPTED" | "CANCELLED" | "EXPIRED" | "DECLINED";
+                status: "PENDING" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CANCELLED";
                 expiresAt: Date;
                 team: {
                     id: string;
@@ -143,7 +143,7 @@ export declare const teamsRouter: import("@trpc/server").TRPCBuiltRouter<{
             id: string;
             email: string;
             role: "MEMBER" | "OWNER" | "ADMIN" | "VIEWER";
-            status: "PENDING" | "ACCEPTED" | "CANCELLED" | "EXPIRED" | "DECLINED";
+            status: "PENDING" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CANCELLED";
             invitedById: string;
             expiresAt: Date;
             acceptedAt: Date | null;
@@ -190,7 +190,7 @@ export declare const teamsRouter: import("@trpc/server").TRPCBuiltRouter<{
             id: string;
             email: string;
             role: "MEMBER" | "OWNER" | "ADMIN" | "VIEWER";
-            status: "PENDING" | "ACCEPTED" | "CANCELLED" | "EXPIRED" | "DECLINED";
+            status: "PENDING" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CANCELLED";
             invitedById: string;
             expiresAt: Date;
             acceptedAt: Date | null;
@@ -211,7 +211,7 @@ export declare const teamsRouter: import("@trpc/server").TRPCBuiltRouter<{
             nextRenewalDate: Date | null;
             expiryDate: Date | null;
             autoRenew: boolean;
-            hostingType: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING";
+            hostingType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING";
             createdAt: Date;
             updatedAt: Date;
         }[];
@@ -244,6 +244,21 @@ export declare const teamsRouter: import("@trpc/server").TRPCBuiltRouter<{
         };
         output: {
             success: boolean;
+        };
+        meta: object;
+    }>;
+    /**
+     * Agency-only: add an existing user to a team immediately (no invite email).
+     */
+    addMember: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            teamId: string;
+            userId: string;
+            role?: "MEMBER" | "OWNER" | "ADMIN" | "VIEWER" | undefined;
+        };
+        output: {
+            success: boolean;
+            memberId: string;
         };
         meta: object;
     }>;

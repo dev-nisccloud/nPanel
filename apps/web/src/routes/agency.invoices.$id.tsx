@@ -470,7 +470,7 @@ export default function InvoiceViewPage() {
 	}
 
 	const invoicesBackPath = invoice.teamId
-		? `/agency/invoices/teams/${invoice.teamId}`
+		? `/agency/invoices/organizations/${invoice.teamId}`
 		: "/agency/invoices";
 
 	const previewData = transformInvoiceToPreviewData(invoice);

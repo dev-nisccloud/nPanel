@@ -21,7 +21,7 @@ export declare const aiDomainSearchRouter: import("@trpc/server").TRPCBuiltRoute
                     tld: string;
                     domain: string;
                     available: boolean;
-                    status: "unknown" | "available" | "reserved" | "taken";
+                    status: "unknown" | "available" | "taken" | "reserved";
                     via: "error" | "kenic" | "openprovider";
                     price?: {
                         amount: number;

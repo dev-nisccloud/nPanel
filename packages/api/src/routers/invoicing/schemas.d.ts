@@ -15,8 +15,8 @@ export declare const invoiceStatusSchema: z.ZodEnum<{
 export type InvoiceStatusType = z.infer<typeof invoiceStatusSchema>;
 export declare const invoicePaymentStatusSchema: z.ZodEnum<{
     PENDING: "PENDING";
-    FAILED: "FAILED";
     COMPLETED: "COMPLETED";
+    FAILED: "FAILED";
     REFUNDED: "REFUNDED";
 }>;
 export type InvoicePaymentStatusType = z.infer<typeof invoicePaymentStatusSchema>;
@@ -39,10 +39,10 @@ export type CreditNoteStatusType = z.infer<typeof creditNoteStatusSchema>;
 export declare const invoiceKraStatusSchema: z.ZodEnum<{
     PENDING: "PENDING";
     NOT_APPLICABLE: "NOT_APPLICABLE";
-    SUBMITTING: "SUBMITTING";
-    SYNCED: "SYNCED";
     FAILED: "FAILED";
     SKIPPED: "SKIPPED";
+    SUBMITTING: "SUBMITTING";
+    SYNCED: "SYNCED";
     VERIFIED: "VERIFIED";
 }>;
 export type InvoiceKraStatusType = z.infer<typeof invoiceKraStatusSchema>;
@@ -72,10 +72,10 @@ export declare const invoiceKraFieldsSchema: z.ZodObject<{
     kraStatus: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
         PENDING: "PENDING";
         NOT_APPLICABLE: "NOT_APPLICABLE";
-        SUBMITTING: "SUBMITTING";
-        SYNCED: "SYNCED";
         FAILED: "FAILED";
         SKIPPED: "SKIPPED";
+        SUBMITTING: "SUBMITTING";
+        SYNCED: "SYNCED";
         VERIFIED: "VERIFIED";
     }>>>;
     kraError: z.ZodNullable<z.ZodOptional<z.ZodString>>;
@@ -142,8 +142,8 @@ export declare const invoiceTransactionInputSchema: z.ZodObject<{
     providerReference: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     status: z.ZodDefault<z.ZodEnum<{
         PENDING: "PENDING";
-        FAILED: "FAILED";
         COMPLETED: "COMPLETED";
+        FAILED: "FAILED";
         REFUNDED: "REFUNDED";
     }>>;
     method: z.ZodEnum<{
@@ -185,8 +185,8 @@ export declare const invoiceTransactionOutputSchema: z.ZodObject<{
     id: z.ZodString;
     status: z.ZodEnum<{
         PENDING: "PENDING";
-        FAILED: "FAILED";
         COMPLETED: "COMPLETED";
+        FAILED: "FAILED";
         REFUNDED: "REFUNDED";
     }>;
     paidAt: z.ZodNullable<z.ZodDate>;
@@ -272,10 +272,10 @@ export declare const creditNoteOutputSchema: z.ZodObject<{
     kraStatus: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
         PENDING: "PENDING";
         NOT_APPLICABLE: "NOT_APPLICABLE";
-        SUBMITTING: "SUBMITTING";
-        SYNCED: "SYNCED";
         FAILED: "FAILED";
         SKIPPED: "SKIPPED";
+        SUBMITTING: "SUBMITTING";
+        SYNCED: "SYNCED";
         VERIFIED: "VERIFIED";
     }>>>;
     kraError: z.ZodNullable<z.ZodOptional<z.ZodString>>;
@@ -306,10 +306,10 @@ export declare const creditNoteSummarySchema: z.ZodObject<{
     kraStatus: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
         PENDING: "PENDING";
         NOT_APPLICABLE: "NOT_APPLICABLE";
-        SUBMITTING: "SUBMITTING";
-        SYNCED: "SYNCED";
         FAILED: "FAILED";
         SKIPPED: "SKIPPED";
+        SUBMITTING: "SUBMITTING";
+        SYNCED: "SYNCED";
         VERIFIED: "VERIFIED";
     }>>>;
     originalInvoiceNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
@@ -319,6 +319,7 @@ export declare const creditNoteSummarySchema: z.ZodObject<{
 export type CreditNoteSummary = z.infer<typeof creditNoteSummarySchema>;
 export declare const creditNoteListFiltersSchema: z.ZodObject<{
     teamId: z.ZodOptional<z.ZodString>;
+    unassignedOnly: z.ZodOptional<z.ZodBoolean>;
     status: z.ZodOptional<z.ZodEnum<{
         DRAFT: "DRAFT";
         ISSUED: "ISSUED";
@@ -350,10 +351,10 @@ export declare const creditNoteListResponseSchema: z.ZodObject<{
         kraStatus: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
             PENDING: "PENDING";
             NOT_APPLICABLE: "NOT_APPLICABLE";
-            SUBMITTING: "SUBMITTING";
-            SYNCED: "SYNCED";
             FAILED: "FAILED";
             SKIPPED: "SKIPPED";
+            SUBMITTING: "SUBMITTING";
+            SYNCED: "SYNCED";
             VERIFIED: "VERIFIED";
         }>>>;
         originalInvoiceNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
@@ -403,10 +404,10 @@ export declare const creditNoteDetailSchema: z.ZodObject<{
     kraStatus: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
         PENDING: "PENDING";
         NOT_APPLICABLE: "NOT_APPLICABLE";
-        SUBMITTING: "SUBMITTING";
-        SYNCED: "SYNCED";
         FAILED: "FAILED";
         SKIPPED: "SKIPPED";
+        SUBMITTING: "SUBMITTING";
+        SYNCED: "SYNCED";
         VERIFIED: "VERIFIED";
     }>>>;
     kraError: z.ZodNullable<z.ZodOptional<z.ZodString>>;
@@ -514,8 +515,8 @@ export declare const invoiceCreateInputSchema: z.ZodObject<{
         providerReference: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         status: z.ZodDefault<z.ZodEnum<{
             PENDING: "PENDING";
-            FAILED: "FAILED";
             COMPLETED: "COMPLETED";
+            FAILED: "FAILED";
             REFUNDED: "REFUNDED";
         }>>;
         method: z.ZodEnum<{
@@ -564,10 +565,10 @@ export declare const invoiceCreateInputSchema: z.ZodObject<{
     kraStatus: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
         PENDING: "PENDING";
         NOT_APPLICABLE: "NOT_APPLICABLE";
-        SUBMITTING: "SUBMITTING";
-        SYNCED: "SYNCED";
         FAILED: "FAILED";
         SKIPPED: "SKIPPED";
+        SUBMITTING: "SUBMITTING";
+        SYNCED: "SYNCED";
         VERIFIED: "VERIFIED";
     }>>>;
     kraError: z.ZodNullable<z.ZodOptional<z.ZodString>>;
@@ -630,8 +631,8 @@ export declare const invoiceUpdateInputSchema: z.ZodObject<{
         providerReference: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         status: z.ZodDefault<z.ZodEnum<{
             PENDING: "PENDING";
-            FAILED: "FAILED";
             COMPLETED: "COMPLETED";
+            FAILED: "FAILED";
             REFUNDED: "REFUNDED";
         }>>;
         method: z.ZodEnum<{
@@ -680,10 +681,10 @@ export declare const invoiceUpdateInputSchema: z.ZodObject<{
     kraStatus: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
         PENDING: "PENDING";
         NOT_APPLICABLE: "NOT_APPLICABLE";
-        SUBMITTING: "SUBMITTING";
-        SYNCED: "SYNCED";
         FAILED: "FAILED";
         SKIPPED: "SKIPPED";
+        SUBMITTING: "SUBMITTING";
+        SYNCED: "SYNCED";
         VERIFIED: "VERIFIED";
     }>>>;
     kraError: z.ZodNullable<z.ZodOptional<z.ZodString>>;
@@ -752,13 +753,15 @@ export declare const invoiceSummarySchema: z.ZodObject<{
     dueDate: z.ZodNullable<z.ZodDate>;
     createdAt: z.ZodDate;
     updatedAt: z.ZodDate;
+    teamId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    teamName: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     kraStatus: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
         PENDING: "PENDING";
         NOT_APPLICABLE: "NOT_APPLICABLE";
-        SUBMITTING: "SUBMITTING";
-        SYNCED: "SYNCED";
         FAILED: "FAILED";
         SKIPPED: "SKIPPED";
+        SUBMITTING: "SUBMITTING";
+        SYNCED: "SYNCED";
         VERIFIED: "VERIFIED";
     }>>>;
 }, z.core.$strip>;
@@ -782,16 +785,17 @@ export declare const invoiceDetailSchema: z.ZodObject<{
     dueDate: z.ZodNullable<z.ZodDate>;
     createdAt: z.ZodDate;
     updatedAt: z.ZodDate;
+    teamId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    teamName: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     kraStatus: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
         PENDING: "PENDING";
         NOT_APPLICABLE: "NOT_APPLICABLE";
-        SUBMITTING: "SUBMITTING";
-        SYNCED: "SYNCED";
         FAILED: "FAILED";
         SKIPPED: "SKIPPED";
+        SUBMITTING: "SUBMITTING";
+        SYNCED: "SYNCED";
         VERIFIED: "VERIFIED";
     }>>>;
-    teamId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     customerId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     subtotal: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     tax: z.ZodNullable<z.ZodOptional<z.ZodString>>;
@@ -843,8 +847,8 @@ export declare const invoiceDetailSchema: z.ZodObject<{
         id: z.ZodString;
         status: z.ZodEnum<{
             PENDING: "PENDING";
-            FAILED: "FAILED";
             COMPLETED: "COMPLETED";
+            FAILED: "FAILED";
             REFUNDED: "REFUNDED";
         }>;
         paidAt: z.ZodNullable<z.ZodDate>;
@@ -904,10 +908,10 @@ export declare const invoiceDetailSchema: z.ZodObject<{
         kraStatus: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
             PENDING: "PENDING";
             NOT_APPLICABLE: "NOT_APPLICABLE";
-            SUBMITTING: "SUBMITTING";
-            SYNCED: "SYNCED";
             FAILED: "FAILED";
             SKIPPED: "SKIPPED";
+            SUBMITTING: "SUBMITTING";
+            SYNCED: "SYNCED";
             VERIFIED: "VERIFIED";
         }>>>;
         kraError: z.ZodNullable<z.ZodOptional<z.ZodString>>;
@@ -963,6 +967,7 @@ export type InvoiceDetail = z.infer<typeof invoiceDetailSchema>;
  */
 export declare const invoiceListFiltersSchema: z.ZodObject<{
     teamId: z.ZodOptional<z.ZodString>;
+    unassignedOnly: z.ZodOptional<z.ZodBoolean>;
     status: z.ZodOptional<z.ZodEnum<{
         DRAFT: "DRAFT";
         SENT: "SENT";
@@ -997,19 +1002,43 @@ export declare const invoiceListResponseSchema: z.ZodObject<{
         dueDate: z.ZodNullable<z.ZodDate>;
         createdAt: z.ZodDate;
         updatedAt: z.ZodDate;
+        teamId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        teamName: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         kraStatus: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
             PENDING: "PENDING";
             NOT_APPLICABLE: "NOT_APPLICABLE";
-            SUBMITTING: "SUBMITTING";
-            SYNCED: "SYNCED";
             FAILED: "FAILED";
             SKIPPED: "SKIPPED";
+            SUBMITTING: "SUBMITTING";
+            SYNCED: "SYNCED";
             VERIFIED: "VERIFIED";
         }>>>;
     }, z.core.$strip>>;
     total: z.ZodNumber;
 }, z.core.$strip>;
 export type InvoiceListResponse = z.infer<typeof invoiceListResponseSchema>;
+export declare const invoiceTeamSummarySchema: z.ZodObject<{
+    teamId: z.ZodNullable<z.ZodString>;
+    teamName: z.ZodString;
+    invoiceCount: z.ZodNumber;
+    unpaidCount: z.ZodNumber;
+    lastInvoiceAt: z.ZodNullable<z.ZodDate>;
+}, z.core.$strip>;
+export type InvoiceTeamSummary = z.infer<typeof invoiceTeamSummarySchema>;
+export declare const invoiceTeamsSummaryFiltersSchema: z.ZodObject<{
+    search: z.ZodOptional<z.ZodString>;
+}, z.core.$strip>;
+export type InvoiceTeamsSummaryFilters = z.infer<typeof invoiceTeamsSummaryFiltersSchema>;
+export declare const invoiceTeamsSummaryResponseSchema: z.ZodObject<{
+    teams: z.ZodArray<z.ZodObject<{
+        teamId: z.ZodNullable<z.ZodString>;
+        teamName: z.ZodString;
+        invoiceCount: z.ZodNumber;
+        unpaidCount: z.ZodNumber;
+        lastInvoiceAt: z.ZodNullable<z.ZodDate>;
+    }, z.core.$strip>>;
+}, z.core.$strip>;
+export type InvoiceTeamsSummaryResponse = z.infer<typeof invoiceTeamsSummaryResponseSchema>;
 /**
  * Update payment input – complete (use invoice total) or partial (supply amountPaid).
  */
@@ -1071,8 +1100,8 @@ export declare const submitInvoiceSchema: z.ZodObject<{
         providerReference: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         status: z.ZodDefault<z.ZodEnum<{
             PENDING: "PENDING";
-            FAILED: "FAILED";
             COMPLETED: "COMPLETED";
+            FAILED: "FAILED";
             REFUNDED: "REFUNDED";
         }>>;
         method: z.ZodEnum<{
@@ -1121,10 +1150,10 @@ export declare const submitInvoiceSchema: z.ZodObject<{
     kraStatus: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
         PENDING: "PENDING";
         NOT_APPLICABLE: "NOT_APPLICABLE";
-        SUBMITTING: "SUBMITTING";
-        SYNCED: "SYNCED";
         FAILED: "FAILED";
         SKIPPED: "SKIPPED";
+        SUBMITTING: "SUBMITTING";
+        SYNCED: "SYNCED";
         VERIFIED: "VERIFIED";
     }>>>;
     kraError: z.ZodNullable<z.ZodOptional<z.ZodString>>;

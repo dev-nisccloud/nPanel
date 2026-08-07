@@ -150,7 +150,7 @@ export function SubscriptionsTable({ onViewSubscription, onEditSubscription }: S
 					<TableHeader>
 						<TableRow>
 							<TableHead className="pl-6">Service Name</TableHead>
-							<TableHead>Team / User</TableHead>
+							<TableHead>Organization / User</TableHead>
 							<TableHead>Billing cycle</TableHead>
 							<TableHead>Subscription date</TableHead>
 							<TableHead>Expiry date</TableHead>
@@ -223,7 +223,7 @@ export function SubscriptionsTable({ onViewSubscription, onEditSubscription }: S
 					<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
 					<Input
 						type="text"
-						placeholder="Search by service, team, user, status..."
+						placeholder="Search by service, organization, user, status..."
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
 						className="pl-9"
@@ -239,7 +239,7 @@ export function SubscriptionsTable({ onViewSubscription, onEditSubscription }: S
 						<TableHeader>
 							<TableRow>
 								<TableHead className="pl-6">Service Name</TableHead>
-								<TableHead>Team / User</TableHead>
+								<TableHead>Organization / User</TableHead>
 								<TableHead>Billing cycle</TableHead>
 								<TableHead>Subscription date</TableHead>
 								<TableHead>Expiry date</TableHead>

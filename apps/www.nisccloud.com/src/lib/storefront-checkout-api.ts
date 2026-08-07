@@ -364,6 +364,72 @@ export async function initiateStorefrontStkPush(input: {
   return trpcMutation("storefront.payment.initiateStkPush", input);
 }
 
+export type StorefrontJengaCustomer = {
+  customerFirstName: string;
+  customerLastName: string;
+  customerEmail: string;
+  customerPhone: string;
+  customerAddress: string;
+  customerPostalCodeZip: string;
+  countryCode: string;
+};
+
+export async function initiateStorefrontJengaCheckout(input: {
+  storefrontToken: string;
+  cart: StorefrontCartQuoteRequest;
+  customer: StorefrontJengaCustomer;
+  /** Origin of the storefront tab (window.location.origin). */
+  returnOrigin: string;
+  returnPath?: string;
+}): Promise<{
+  orderReference: string;
+  checkoutUrl: string;
+  paymentData: Record<string, string>;
+  message: string;
+}> {
+  return trpcMutation("storefront.payment.initiateJengaCheckout", input);
+}
+
+export async function getStorefrontJengaPaymentStatus(input: {
+  storefrontToken: string;
+  orderReference: string;
+}): Promise<{
+  status: string;
+  orderReference: string;
+  amount?: string;
+  paidAmount?: string | null;
+  currency?: string;
+  failureReason?: string;
+  orderIntent?: {
+    cart?: StorefrontCartQuoteRequest;
+    planId?: string;
+    productId?: string;
+    billingCycle?: string;
+    primaryDomain?: string;
+  } | null;
+}> {
+  return trpcQuery("storefront.payment.getJengaPaymentStatus", input);
+}
+
+export function submitJengaPaymentForm(
+  checkoutUrl: string,
+  paymentData: Record<string, string>,
+): void {
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = checkoutUrl;
+  form.style.display = "none";
+  for (const [key, value] of Object.entries(paymentData)) {
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = key;
+    input.value = value;
+    form.appendChild(input);
+  }
+  document.body.appendChild(form);
+  form.submit();
+}
+
 export async function pollStorefrontPaymentStatus(input: {
   storefrontToken: string;
   checkoutRequestId: string;

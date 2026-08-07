@@ -9,7 +9,11 @@ export { paymentMethodFromDetails, resolveInvoicePaymentMethod };
 export declare function isGatewayPaymentSuccessful(status: string): boolean;
 export declare function isGatewayPaymentRefunded(status: string): boolean;
 export declare function isGatewayPaymentFailed(status: string): boolean;
-/** Collected amount for one invoice - matches agency list (PAID = full invoice amount). */
+/**
+ * Collected amount for one invoice.
+ * FIXED: Always use completedPaymentsTotal as source of truth.
+ * For PAID status, ensure we capture at least the invoice amount if transactions are incomplete.
+ */
 export declare function invoiceCollectedAmount(inv: {
     status: string;
     amount: string | null;
@@ -19,9 +23,24 @@ export type InvoiceBalanceInput = {
     amount: string | null;
     creditedAmount?: string | null;
 };
+/**
+ * Outstanding amount for an invoice (accounts receivable).
+ * FIXED: Consistently calculate as: invoiceAmount - creditedAmount - completedPayments
+ * regardless of status nuances. Only return 0 for fully closed statuses.
+ */
 export declare function invoiceOutstandingAmount(inv: InvoiceBalanceInput, completedPaymentsTotal?: number): number;
 /** Period filter by issue date, falling back to createdAt when issue date is unset. */
 export declare function invoiceIssuedInPeriod(from: Date, to: Date): import("drizzle-orm").SQL<unknown> | undefined;
+/**
+ * Sum of all cash collected in a period based on payment transactions.
+ * FIXED: Improved imputation logic to avoid double-counting and ensure accuracy.
+ *
+ * Logic:
+ * 1. Sum all completed transactions with paidAt in period
+ * 2. For PAID invoices with paidAt in period: if transactions don't cover full amount,
+ *    add the gap (this handles cases where transaction records are incomplete)
+ * 3. For PARTIALLY_PAID invoices: trust transaction amounts only
+ */
 export declare function sumCollectedCash(params: {
     from: Date;
     to: Date;
@@ -33,7 +52,10 @@ export type PaymentMethodBreakdownRow = {
     amount: number;
     percentOfTotal: number;
 };
-/** Payment method aggregation aligned with agency invoice payment instructions. */
+/**
+ * Payment method aggregation aligned with agency invoice payment instructions.
+ * FIXED: Prevent double-counting by tracking which invoices we've imputed.
+ */
 export declare function aggregatePaymentMethodBreakdown(params: {
     from: Date;
     to: Date;

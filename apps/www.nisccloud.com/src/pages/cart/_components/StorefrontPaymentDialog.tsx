@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Loader2 } from "lucide-react";
+import { CreditCard, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -8,7 +8,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.tsx";
+import { Button } from "@/components/ui/button.tsx";
 import { MpesaPaymentFields } from "./MpesaPaymentFields.tsx";
+import { JengaCardPaymentFields } from "./JengaCardPaymentFields.tsx";
 import {
   MpesaPayButton,
   PaymentMethodAccordion,
@@ -19,9 +21,13 @@ import {
 import {
   formatMpesaPhone,
   generateAccountReference,
+  getStorefrontJengaPaymentStatus,
+  initiateStorefrontJengaCheckout,
   initiateStorefrontStkPush,
   queryStorefrontStkPush,
+  submitJengaPaymentForm,
   type StorefrontCartQuoteRequest,
+  type StorefrontJengaCustomer,
 } from "@/lib/storefront-checkout-api.ts";
 import {
   getMpesaUserFriendlyError,
@@ -36,6 +42,24 @@ function fmtKes(amount: number) {
   return `KES ${amount.toLocaleString("en-KE", { minimumFractionDigits: 0 })}`;
 }
 
+function validateJengaCustomer(
+  customer: StorefrontJengaCustomer,
+): Partial<Record<keyof StorefrontJengaCustomer, string>> {
+  const errors: Partial<Record<keyof StorefrontJengaCustomer, string>> = {};
+  if (!customer.customerFirstName.trim()) errors.customerFirstName = "Required";
+  if (!customer.customerLastName.trim()) errors.customerLastName = "Required";
+  if (!customer.customerEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.customerEmail)) {
+    errors.customerEmail = "Valid email required";
+  }
+  if (customer.customerPhone.replace(/\D/g, "").length < 10) {
+    errors.customerPhone = "Valid phone required";
+  }
+  if (!customer.customerAddress.trim()) errors.customerAddress = "Required";
+  if (!customer.customerPostalCodeZip.trim()) errors.customerPostalCodeZip = "Required";
+  if (!/^[A-Z]{2}$/.test(customer.countryCode)) errors.countryCode = "Use KE etc.";
+  return errors;
+}
+
 interface StorefrontPaymentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -43,6 +67,7 @@ interface StorefrontPaymentDialogProps {
   defaultPhone: string;
   totalAmount: number;
   cart: StorefrontCartQuoteRequest;
+  customerPrefill?: Partial<StorefrontJengaCustomer>;
   onPaymentSuccess: (checkoutRequestId: string) => Promise<void>;
 }
 
@@ -53,15 +78,30 @@ export function StorefrontPaymentDialog({
   defaultPhone,
   totalAmount,
   cart,
+  customerPrefill,
   onPaymentSuccess,
 }: StorefrontPaymentDialogProps) {
   const [paymentMethod, setPaymentMethod] = React.useState<string | null>("mpesa");
   const [phoneNumber, setPhoneNumber] = React.useState(defaultPhone);
   const [phoneError, setPhoneError] = React.useState("");
   const [accountReference] = React.useState(() => generateAccountReference());
-  const [phase, setPhase] = React.useState<"form" | "waiting" | "creating">("form");
+  const [phase, setPhase] = React.useState<"form" | "waiting" | "creating" | "redirecting">(
+    "form",
+  );
   const [paymentError, setPaymentError] = React.useState<string | null>(null);
   const [isPolling, setIsPolling] = React.useState(false);
+  const [jengaCustomer, setJengaCustomer] = React.useState<StorefrontJengaCustomer>({
+    customerFirstName: "",
+    customerLastName: "",
+    customerEmail: "",
+    customerPhone: defaultPhone,
+    customerAddress: "",
+    customerPostalCodeZip: "",
+    countryCode: "KE",
+  });
+  const [jengaErrors, setJengaErrors] = React.useState<
+    Partial<Record<keyof StorefrontJengaCustomer, string>>
+  >({});
   const pollingIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
   const pollingQuickRetryRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const terminalStateDetectedRef = React.useRef(false);
@@ -88,11 +128,21 @@ export function StorefrontPaymentDialog({
       setPaymentMethod("mpesa");
       terminalStateDetectedRef.current = false;
       pollAttemptsRef.current = 0;
+      setJengaCustomer({
+        customerFirstName: customerPrefill?.customerFirstName || "",
+        customerLastName: customerPrefill?.customerLastName || "",
+        customerEmail: customerPrefill?.customerEmail || "",
+        customerPhone: customerPrefill?.customerPhone || defaultPhone,
+        customerAddress: customerPrefill?.customerAddress || "",
+        customerPostalCodeZip: customerPrefill?.customerPostalCodeZip || "",
+        countryCode: customerPrefill?.countryCode || "KE",
+      });
+      setJengaErrors({});
     }
     return () => {
       stopPolling();
     };
-  }, [open, defaultPhone, stopPolling]);
+  }, [open, defaultPhone, customerPrefill, stopPolling]);
 
   const handlePaymentFailure = React.useCallback(
     (msg: string) => {
@@ -176,7 +226,6 @@ export function StorefrontPaymentDialog({
         }
       };
 
-      // First poll immediately, quick retry at 1s, then every MPESA_POLL_INTERVAL_MS (dashboard pattern)
       poll().then((finished) => {
         if (finished) return;
 
@@ -240,12 +289,52 @@ export function StorefrontPaymentDialog({
     }
   };
 
+  const handleCardPay = async () => {
+    setPaymentError(null);
+    const errors = validateJengaCustomer(jengaCustomer);
+    setJengaErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      toast.error("Please complete billing details for card payment");
+      return;
+    }
+
+    setPhase("redirecting");
+    try {
+      const res = await initiateStorefrontJengaCheckout({
+        storefrontToken,
+        cart,
+        customer: {
+          ...jengaCustomer,
+          customerPhone: formatMpesaPhone(jengaCustomer.customerPhone),
+        },
+        returnOrigin: window.location.origin,
+        returnPath: `${window.location.pathname || "/cart"}`,
+      });
+      // Persist token/ref so return from Jenga can resume order creation
+      sessionStorage.setItem(
+        "storefront_jenga_checkout",
+        JSON.stringify({
+          storefrontToken,
+          orderReference: res.orderReference,
+          cart,
+        }),
+      );
+      submitJengaPaymentForm(res.checkoutUrl, res.paymentData);
+    } catch (err) {
+      setPhase("form");
+      const msg = err instanceof Error ? err.message : "Failed to start card payment.";
+      setPaymentError(msg);
+      toast.error(msg);
+    }
+  };
+
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPhoneNumber(e.target.value);
     if (phoneError) setPhoneError("");
   };
 
-  const isWaiting = phase === "waiting" || phase === "creating" || isPolling;
+  const isWaiting =
+    phase === "waiting" || phase === "creating" || phase === "redirecting" || isPolling;
 
   return (
     <Dialog
@@ -255,11 +344,11 @@ export function StorefrontPaymentDialog({
         onOpenChange(next);
       }}
     >
-      <DialogContent className="sm:max-w-lg gap-0 p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-lg gap-0 p-0 overflow-hidden max-h-[90vh] overflow-y-auto">
         <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
           <DialogTitle>Complete payment</DialogTitle>
           <DialogDescription>
-            Pay {fmtKes(totalAmount)} via M-Pesa to finish your order.
+            Pay {fmtKes(totalAmount)} to finish your order.
           </DialogDescription>
         </DialogHeader>
 
@@ -276,12 +365,11 @@ export function StorefrontPaymentDialog({
               trigger={
                 <PaymentMethodTrigger
                   icon={
-                    <span
-                      className="text-lg font-extrabold"
-                      style={{ color: "#43B02A" }}
-                    >
-                      M
-                    </span>
+                    <img
+                      src="/mpesa.png"
+                      alt="M-Pesa"
+                      className="h-full w-full object-contain"
+                    />
                   }
                   title="M-Pesa"
                   description="Pay instantly with STK Push on your phone"
@@ -289,7 +377,7 @@ export function StorefrontPaymentDialog({
               }
             >
               <PaymentMethodContent>
-                {isWaiting ? (
+                {isWaiting && paymentMethod === "mpesa" ? (
                   <div className="py-8 flex flex-col items-center text-center">
                     <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
                     <p className="text-sm font-medium text-foreground">
@@ -323,9 +411,71 @@ export function StorefrontPaymentDialog({
                 )}
               </PaymentMethodContent>
             </PaymentMethodOption>
+
+            <PaymentMethodOption
+              value="card"
+              trigger={
+                <PaymentMethodTrigger
+                  icon={<CreditCard className="h-7 w-7 text-foreground" />}
+                  title="Card"
+                  description="Pay securely with Visa, Mastercard and more"
+                />
+              }
+            >
+              <PaymentMethodContent>
+                {phase === "redirecting" && paymentMethod === "card" ? (
+                  <div className="py-8 flex flex-col items-center text-center">
+                    <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+                    <p className="text-sm font-medium text-foreground">
+                      Redirecting to secure card payment…
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <JengaCardPaymentFields
+                      value={jengaCustomer}
+                      onChange={setJengaCustomer}
+                      errors={jengaErrors}
+                      disabled={isWaiting}
+                    />
+                    <div className="flex justify-end pt-1">
+                      <Button onClick={() => void handleCardPay()} className="min-w-[140px]">
+                        Pay with Card
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </PaymentMethodContent>
+            </PaymentMethodOption>
           </PaymentMethodAccordion>
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Resume after Jenga redirect: poll status then create order. */
+export async function resumeStorefrontJengaCheckout(params: {
+  storefrontToken: string;
+  orderReference: string;
+  onSuccess: (orderReference: string) => Promise<void>;
+}): Promise<void> {
+  const maxAttempts = 45;
+  for (let i = 0; i < maxAttempts; i++) {
+    const status = await getStorefrontJengaPaymentStatus({
+      storefrontToken: params.storefrontToken,
+      orderReference: params.orderReference,
+    });
+    if (status.status === "SUCCESS") {
+      await params.onSuccess(params.orderReference);
+      return;
+    }
+    if (status.status === "FAILED" || status.status === "CANCELLED") {
+      throw new Error(status.failureReason || "Card payment was not completed.");
+    }
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+  throw new Error(
+    "Payment is taking longer than expected. If you were charged, contact support with your reference.",
   );
 }

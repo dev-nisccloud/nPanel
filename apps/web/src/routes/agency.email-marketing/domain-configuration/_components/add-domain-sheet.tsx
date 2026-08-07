@@ -288,7 +288,7 @@ export function AddDomainSheet({ open, onOpenChange, onSuccess }: AddDomainSheet
 												name="teamId"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>Team (Optional)</FormLabel>
+														<FormLabel>Organization (optional)</FormLabel>
 														<Select
 															onValueChange={(v) => field.onChange(v === "__none__" ? "" : v)}
 															value={field.value && field.value !== "" ? field.value : "__none__"}
@@ -296,7 +296,7 @@ export function AddDomainSheet({ open, onOpenChange, onSuccess }: AddDomainSheet
 														>
 															<FormControl>
 																<SelectTrigger>
-																	<SelectValue placeholder="Select a team (optional)" />
+																	<SelectValue placeholder="Select an organization (optional)" />
 																</SelectTrigger>
 															</FormControl>
 															<SelectContent>

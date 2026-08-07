@@ -12,11 +12,11 @@ export declare const zeepoAgentSessionsRouter: import("@trpc/server").TRPCBuiltR
         output: {
             data: {
                 id: string;
+                status: string;
                 createdAt: Date;
                 updatedAt: Date;
-                teamId: string | null;
-                status: string;
                 userId: string;
+                teamId: string | null;
                 title: string | null;
             } | undefined;
         };
@@ -31,11 +31,11 @@ export declare const zeepoAgentSessionsRouter: import("@trpc/server").TRPCBuiltR
         output: {
             data: {
                 id: string;
+                status: string;
                 createdAt: Date;
                 updatedAt: Date;
-                teamId: string | null;
-                status: string;
                 userId: string;
+                teamId: string | null;
                 title: string | null;
             }[];
             total: any;
@@ -51,21 +51,21 @@ export declare const zeepoAgentSessionsRouter: import("@trpc/server").TRPCBuiltR
         output: {
             data: {
                 id: string;
+                status: string;
                 createdAt: Date;
                 updatedAt: Date;
-                teamId: string | null;
-                status: string;
                 userId: string;
+                teamId: string | null;
                 title: string | null;
                 messages: {
                     id: string;
+                    role: string;
                     createdAt: Date;
                     metadata: unknown;
-                    role: string;
+                    sessionId: string;
                     content: string | null;
                     toolCalls: unknown;
                     toolCallId: string | null;
-                    sessionId: string;
                 }[];
             };
         };

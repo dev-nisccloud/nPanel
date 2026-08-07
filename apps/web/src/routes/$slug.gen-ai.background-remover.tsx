@@ -103,7 +103,7 @@ export default function CustomerBackgroundRemoverPage() {
     return (
       <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
         <div className="w-full max-w-7xl mx-auto">
-          <p className="text-sm text-muted-foreground">Invalid or missing team context.</p>
+          <p className="text-sm text-muted-foreground">Invalid or missing organization context.</p>
         </div>
       </div>
     );

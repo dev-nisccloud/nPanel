@@ -28,7 +28,7 @@ export declare const niscEmailMarketingDomainsRouter: import("@trpc/server").TRP
         output: {
             id: string;
             domainName: string;
-            status: "PENDING" | "FAILED" | "VERIFIED" | "EXPIRED";
+            status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
             resendDomainId: string | null;
             userId: string;
             teamId: string | null;
@@ -48,7 +48,7 @@ export declare const niscEmailMarketingDomainsRouter: import("@trpc/server").TRP
         output: {
             id: string;
             domainName: string;
-            status: "PENDING" | "FAILED" | "VERIFIED" | "EXPIRED";
+            status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
             resendDomainId: string | null;
             userId: string;
             teamId: string | null;
@@ -68,7 +68,7 @@ export declare const niscEmailMarketingDomainsRouter: import("@trpc/server").TRP
         output: {
             id: string;
             domainName: string;
-            status: "PENDING" | "FAILED" | "VERIFIED" | "EXPIRED";
+            status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
             resendDomainId: string | null;
             userId: string;
             teamId: string | null;
@@ -106,7 +106,7 @@ export declare const niscEmailMarketingDomainsRouter: import("@trpc/server").TRP
     listLegacy: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             teamId?: string | null | undefined;
-            status?: "PENDING" | "FAILED" | "VERIFIED" | "EXPIRED" | undefined;
+            status?: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED" | undefined;
             search?: string | undefined;
             limit?: number | undefined;
             offset?: number | undefined;
@@ -115,7 +115,7 @@ export declare const niscEmailMarketingDomainsRouter: import("@trpc/server").TRP
             domains: {
                 id: string;
                 domainName: string;
-                status: "PENDING" | "FAILED" | "VERIFIED" | "EXPIRED";
+                status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
                 resendDomainId: string | null;
                 userId: string;
                 teamId: string | null;

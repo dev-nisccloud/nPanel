@@ -14,7 +14,7 @@ export default function CustomerZeepoAiAgentIndexPage() {
 	if (!teamId) {
 		return (
 			<div className="flex flex-1 items-center justify-center p-6">
-				<p className="text-sm text-muted-foreground">Invalid or missing team context.</p>
+				<p className="text-sm text-muted-foreground">Invalid or missing organization context.</p>
 			</div>
 		);
 	}

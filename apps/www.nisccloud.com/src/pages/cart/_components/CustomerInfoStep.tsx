@@ -56,6 +56,7 @@ export type CustomerInfoIdentity =
   | {
       status: "signed-in";
       userName: string;
+      userEmail: string;
       profileComplete: boolean;
       profilePrefill: StorefrontProfilePrefill;
       teams: StorefrontCheckoutTeam[];
