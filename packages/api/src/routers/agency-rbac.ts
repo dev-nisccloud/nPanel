@@ -446,7 +446,9 @@ export const agencyRbacRouter = router({
 			return { roleId: null, roleName: null, allowedKeys: [] };
 		}
 
-		if (userRes.role === "AGENCY_SUPER_ADMIN") {
+		// Super admins always get full sidebar access.
+		// Agency users with no assigned RBAC role (null agencyRoleId) also get full/default access.
+		if (userRes.role === "AGENCY_SUPER_ADMIN" || !userRes.agencyRole) {
 			return {
 				roleId: userRes.agencyRole?.id ?? null,
 				roleName: userRes.agencyRole?.name ?? null,
@@ -454,16 +456,16 @@ export const agencyRbacRouter = router({
 			};
 		}
 
-		const dbMenus = remapAgencyMenuKeys((userRes.agencyRole?.menus as string[]) ?? []);
+		const dbMenus = remapAgencyMenuKeys((userRes.agencyRole.menus as string[]) ?? []);
 		const permissionKeys =
-			userRes.agencyRole?.permissions
+			userRes.agencyRole.permissions
 				.map((p) => p.permission.key)
 				.map((k) => remapAgencyMenuKeys([k])[0] ?? k)
 				.filter((k): k is z.infer<typeof agencyMenuKeySchema> => agencyMenuKeySchema.safeParse(k).success) ?? [];
 
 		return {
-			roleId: userRes.agencyRole?.id ?? null,
-			roleName: userRes.agencyRole?.name ?? null,
+			roleId: userRes.agencyRole.id,
+			roleName: userRes.agencyRole.name,
 			allowedKeys: Array.from(new Set([...dbMenus, ...permissionKeys])),
 		};
 	}),
