@@ -290,9 +290,6 @@ export function CreateUserSheet({
                         />
                       )}
                     </FormControl>
-                    <p className="text-xs text-muted-foreground">
-                      Full rights (no role) leaves the assignment empty so the user gets default sidebar access.
-                    </p>
                     <FormMessage />
                   </FormItem>
                 );
