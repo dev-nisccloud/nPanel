@@ -17,6 +17,7 @@ export declare const manageUsersRouter: import("@trpc/server").TRPCBuiltRouter<{
             lastLoginAt: Date | null;
             createdAt: Date;
             updatedAt: Date;
+            agencyRoleId: string | null;
         }[];
         meta: object;
     }>;
@@ -35,6 +36,7 @@ export declare const manageUsersRouter: import("@trpc/server").TRPCBuiltRouter<{
             lastLoginAt: Date | null;
             createdAt: Date;
             updatedAt: Date;
+            agencyRoleId: string | null;
         };
         meta: object;
     }>;
@@ -56,6 +58,7 @@ export declare const manageUsersRouter: import("@trpc/server").TRPCBuiltRouter<{
             lastLoginAt: Date | null;
             createdAt: Date;
             updatedAt: Date;
+            agencyRoleId: string | null;
         };
         meta: object;
     }>;
@@ -77,6 +80,7 @@ export declare const manageUsersRouter: import("@trpc/server").TRPCBuiltRouter<{
             lastLoginAt: Date | null;
             createdAt: Date;
             updatedAt: Date;
+            agencyRoleId: string | null;
         };
         meta: object;
     }>;

@@ -8,11 +8,9 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from "@/components/ui/sidebar";
-import { APP_CONFIG } from "@/config/app-config";
+import { SidebarBrandMenu } from "@/components/sidebar-brand-menu";
 import { rootUser } from "@/data/users";
 import { sidebarItems } from "@/navigation/sidebar/sidebar-items";
 
@@ -60,31 +58,12 @@ export function AppSidebar({
   teamSlug,
   ...props 
 }: React.ComponentProps<typeof Sidebar> & { teamSlug?: string }) {
-  const { state } = useSidebar();
-  const isExpanded = state === "expanded";
-
   return (
     <Sidebar {...props}>
     <SidebarHeader>
       <SidebarMenu>
         <SidebarMenuItem>
-          <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!py-6 !px-4">
-            <a href="#">
-              {isExpanded ? (
-                <img
-                  src="/nisclogooriginal.png"
-                  alt={APP_CONFIG.name}
-                  className="h-12 w-auto max-w-full"
-                />
-              ) : (
-                <img
-                  src="/nisciconoriginal.png"
-                  alt={APP_CONFIG.name}
-                  className="h-11 w-auto max-w-full object-contain"
-                />
-              )}
-            </a>
-          </SidebarMenuButton>
+          <SidebarBrandMenu />
         </SidebarMenuItem>
       </SidebarMenu>
     </SidebarHeader>

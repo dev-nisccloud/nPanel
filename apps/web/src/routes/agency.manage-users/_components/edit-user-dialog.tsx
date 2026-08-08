@@ -19,7 +19,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@npanel/ui/components/dialog";
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -39,6 +39,14 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
+
+/** Sentinel for "no agency RBAC role" → stored as null (full/default sidebar access). */
+const FULL_RIGHTS_ROLE_ID = "__none__";
+
+const FULL_RIGHTS_ITEM: ComboboxItem = {
+  id: FULL_RIGHTS_ROLE_ID,
+  label: "Full rights (no role)",
+};
 
 const editFormSchema = z.object({
   name: z.string().min(1, "Name is required").optional(),
@@ -60,6 +68,15 @@ const editFormSchema = z.object({
 );
 
 type FormData = z.infer<typeof editFormSchema>;
+
+function toFormAgencyRoleId(agencyRoleId: string | null | undefined): string {
+  return agencyRoleId?.trim() ? agencyRoleId : FULL_RIGHTS_ROLE_ID;
+}
+
+function toDbAgencyRoleId(agencyRoleId: string | null | undefined): string | null {
+  if (!agencyRoleId || agencyRoleId === FULL_RIGHTS_ROLE_ID) return null;
+  return agencyRoleId;
+}
 
 interface EditUserDialogProps {
   open: boolean;
@@ -87,24 +104,27 @@ export function EditUserDialog({
       name: initialData.name,
       email: initialData.email,
       role: initialData.role,
-      agencyRoleId: initialData.agencyRoleId ?? undefined,
+      agencyRoleId: toFormAgencyRoleId(initialData.agencyRoleId),
     },
   });
 
   React.useEffect(() => {
+    if (!open) return;
     form.reset({
       name: initialData.name,
       email: initialData.email,
       role: initialData.role,
-      agencyRoleId: initialData.agencyRoleId ?? undefined,
+      agencyRoleId: toFormAgencyRoleId(initialData.agencyRoleId),
     });
-  }, [initialData, form]);
+  }, [open, initialData, form]);
 
   const { data: roles, isLoading: isLoadingRoles, error: rolesError, refetch: refetchRoles } =
     trpc.agencyRbac.rolesList.useQuery(undefined, {
       enabled: open,
       staleTime: 60_000,
     });
+
+  const utils = trpc.useUtils();
 
   const assignRoleMutation = trpc.agencyRbac.userAgencyRoleAssign.useMutation({
     onError: (error) => {
@@ -113,12 +133,6 @@ export function EditUserDialog({
   });
 
   const updateUserMutation = trpc.manageUsers.update.useMutation({
-    onSuccess: () => {
-      toast.success("User updated successfully");
-      form.reset();
-      onOpenChange(false);
-      onSuccess?.();
-    },
     onError: (error) => {
       toast.error(error.message || "Failed to update user");
     },
@@ -134,15 +148,22 @@ export function EditUserDialog({
   });
 
   const roleOptions: ComboboxItem[] = React.useMemo(() => {
-    if (!roles) return [];
-    return roles.map((role) => ({
+    const fromApi = (roles ?? []).map((role) => ({
       id: role.id,
       label: role.name,
     }));
+    return [FULL_RIGHTS_ITEM, ...fromApi];
   }, [roles]);
 
+  const isSaving = updateUserMutation.isPending || assignRoleMutation.isPending;
+
   const onSubmit = async (data: FormData) => {
-    const submitData: any = { userId };
+    const submitData: {
+      userId: string;
+      name?: string;
+      email?: string;
+      role?: FormData["role"];
+    } = { userId };
 
     if (data.name !== undefined && data.name !== initialData.name) {
       submitData.name = data.name;
@@ -156,10 +177,11 @@ export function EditUserDialog({
       submitData.role = data.role;
     }
 
-    const selectedAgencyRoleId = data.agencyRoleId;
+    const selectedAgencyRoleId = toDbAgencyRoleId(data.agencyRoleId);
+    const initialAgencyRoleId = toDbAgencyRoleId(initialData.agencyRoleId);
 
     const hasProfileChanges = Object.keys(submitData).length > 1;
-    const agencyRoleChanged = selectedAgencyRoleId !== initialData.agencyRoleId;
+    const agencyRoleChanged = selectedAgencyRoleId !== initialAgencyRoleId;
 
     if (!hasProfileChanges && !agencyRoleChanged) {
       toast.info("No changes to save");
@@ -174,9 +196,12 @@ export function EditUserDialog({
       if (agencyRoleChanged) {
         await assignRoleMutation.mutateAsync({
           userId,
-          roleId: selectedAgencyRoleId ?? null,
+          roleId: selectedAgencyRoleId,
         });
-        captureEvent("agency_role_assigned", { role_name: selectedAgencyRoleId || "none" });
+        captureEvent("agency_role_assigned", {
+          role_name: selectedAgencyRoleId || "none",
+        });
+        void utils.agencyRbac.myMenuAccess.invalidate();
       }
 
       toast.success("User updated successfully");
@@ -184,7 +209,7 @@ export function EditUserDialog({
         name: data.name ?? initialData.name,
         email: data.email ?? initialData.email,
         role: data.role ?? initialData.role,
-        agencyRoleId: selectedAgencyRoleId,
+        agencyRoleId: toFormAgencyRoleId(selectedAgencyRoleId),
       });
       onOpenChange(false);
       onSuccess?.();
@@ -199,7 +224,7 @@ export function EditUserDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-6" hideClose>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-6">
         <DialogHeader className="pb-4">
           <DialogTitle>Edit User</DialogTitle>
           <DialogDescription>
@@ -267,7 +292,8 @@ export function EditUserDialog({
               control={form.control}
               name="agencyRoleId"
               render={({ field }) => {
-                const selectedRole = roleOptions.find((r) => r.id === field.value);
+                const selectedRole =
+                  roleOptions.find((r) => r.id === field.value) ?? FULL_RIGHTS_ITEM;
 
                 return (
                   <FormItem>
@@ -290,6 +316,7 @@ export function EditUserDialog({
                             onSelect={() => undefined}
                             emptyResults="Failed to load roles"
                             disabled
+                            inDialog
                             className="w-full"
                           />
                           <Button
@@ -304,7 +331,7 @@ export function EditUserDialog({
                         </div>
                       ) : (
                         <ComboboxDropdown
-                          placeholder="Select agency role (optional)"
+                          placeholder="Select agency role"
                           searchPlaceholder="Search roles..."
                           items={roleOptions}
                           selectedItem={selectedRole}
@@ -312,7 +339,7 @@ export function EditUserDialog({
                             field.onChange(item.id);
                           }}
                           emptyResults="No roles found"
-                          disabled={roleOptions.length === 0}
+                          inDialog
                           className="w-full"
                         />
                       )}
@@ -361,15 +388,15 @@ export function EditUserDialog({
                   form.reset();
                   onOpenChange(false);
                 }}
-                disabled={updateUserMutation.isPending}
+                disabled={isSaving}
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
-                disabled={updateUserMutation.isPending}
+                disabled={isSaving}
               >
-                {updateUserMutation.isPending ? (
+                {isSaving ? (
                   <>
                     <Spinner size={16} className="mr-2" />
                     Updating...
@@ -385,5 +412,3 @@ export function EditUserDialog({
     </Dialog>
   );
 }
-
-

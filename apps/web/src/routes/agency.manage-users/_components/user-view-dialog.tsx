@@ -269,6 +269,7 @@ export function UserViewDialog({
               name: user.name,
               email: user.email,
               role: user.role === "CUSTOMER" ? "AGENCY_USER" : user.role as "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN" | "AGENCY_USER",
+              agencyRoleId: user.agencyRoleId ?? null,
             }}
             onSuccess={handleEditSuccess}
           />

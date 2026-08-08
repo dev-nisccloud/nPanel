@@ -9,11 +9,9 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from "@/components/ui/sidebar";
-import { APP_CONFIG } from "@/config/app-config";
+import { SidebarBrandMenu } from "@/components/sidebar-brand-menu";
 import { trpc } from "@/utils/trpc";
 import { type NavGroup, type NavMainItem, agencysidebarItems } from "@/navigation/sidebar/sidebar-items";
 
@@ -72,9 +70,6 @@ function filterSidebarItems(
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { state } = useSidebar();
-  const isExpanded = state === "expanded";
-
   const { data: menuAccess, isLoading } = trpc.agencyRbac.myMenuAccess.useQuery();
 
   const filteredItems = React.useMemo(() => {
@@ -88,23 +83,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!py-6 !px-4">
-              <a href="#">
-                {isExpanded ? (
-                  <img
-                    src="/nisclogooriginal.png"
-                    alt={APP_CONFIG.name}
-                    className="h-12 w-auto max-w-full"
-                  />
-                ) : (
-                  <img
-                    src="/nisciconoriginal.png"
-                    alt={APP_CONFIG.name}
-                    className="h-24 w-auto max-w-full object-contain"
-                  />
-                )}
-              </a>
-            </SidebarMenuButton>
+            <SidebarBrandMenu />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
