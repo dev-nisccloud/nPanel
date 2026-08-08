@@ -14,7 +14,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@npanel/ui/components/dialog";
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -41,8 +41,7 @@ const profileFormSchema = z.object({
   postalCode: z.string().optional(),
 }).refine(
   (data) => {
-    // At least one field must be provided
-    const hasValue = 
+    const hasValue =
       (data.name !== undefined && data.name.trim() !== "") ||
       (data.firstName !== undefined && data.firstName.trim() !== "") ||
       (data.lastName !== undefined && data.lastName.trim() !== "") ||
@@ -82,7 +81,7 @@ export function EditProfileDialog({
     { enabled: open && !!userId }
   );
 
-  const { data: userInfo } = trpc.userProfile.getUserById.useQuery(
+  const { data: userInfo, isLoading: isLoadingUser } = trpc.userProfile.getUserById.useQuery(
     { userId, fields: ["name"] },
     { enabled: open && !!userId }
   );
@@ -135,7 +134,6 @@ export function EditProfileDialog({
   });
 
   const onSubmit = async (data: ProfileFormValues) => {
-    // Only include fields that have values
     const updateData: ProfileFormValues = {};
     if (data.name && data.name.trim()) updateData.name = data.name;
     if (data.firstName && data.firstName.trim()) updateData.firstName = data.firstName;
@@ -147,7 +145,6 @@ export function EditProfileDialog({
     if (data.country && data.country.trim()) updateData.country = data.country;
     if (data.postalCode && data.postalCode.trim()) updateData.postalCode = data.postalCode;
 
-    // Check if there are any fields to update
     if (Object.keys(updateData).length === 0) {
       toast.error("Please fill in at least one field to update");
       return;
@@ -159,212 +156,199 @@ export function EditProfileDialog({
     });
   };
 
-  if (isLoadingProfile) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-8" hideClose>
-          <div className="flex items-center justify-center py-12">
-            <Spinner size={24} />
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+  const isLoading = isLoadingProfile || isLoadingUser;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-8" hideClose>
-        <DialogHeader className="pb-6 space-y-2">
-          <DialogTitle className="text-xl">Edit Profile</DialogTitle>
-          <DialogDescription className="pt-1 text-sm">
-            Update profile information for {userName}
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-8">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Spinner size={24} />
+          </div>
+        ) : (
+          <>
+            <DialogHeader className="pb-6 space-y-2">
+              <DialogTitle className="text-xl">Edit Profile</DialogTitle>
+              <DialogDescription className="pt-1 text-sm">
+                Update profile information for {userName}
+              </DialogDescription>
+            </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4">
-            {/* Display Name */}
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Display Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="John Doe" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Display Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="John Doe" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <div className="grid gap-6 md:grid-cols-2">
-              {/* First Name */}
-              <FormField
-                control={form.control}
-                name="firstName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>First Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="John" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <div className="grid gap-6 md:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="firstName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>First Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="John" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              {/* Last Name */}
-              <FormField
-                control={form.control}
-                name="lastName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Last Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Doe" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                  <FormField
+                    control={form.control}
+                    name="lastName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Last Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Doe" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-            {/* Phone */}
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center gap-2">
-                    <Phone className="h-4 w-4" />
-                    Phone Number
-                  </FormLabel>
-                  <FormControl>
-                    <Input placeholder="+254 700 000 000" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <Phone className="h-4 w-4" />
+                        Phone Number
+                      </FormLabel>
+                      <FormControl>
+                        <Input placeholder="+254 700 000 000" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <Separator />
+                <Separator />
 
-            {/* Address */}
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
-                    Address
-                  </FormLabel>
-                  <FormControl>
-                    <Input placeholder="123 Main Street" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                <FormField
+                  control={form.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4" />
+                        Address
+                      </FormLabel>
+                      <FormControl>
+                        <Input placeholder="123 Main Street" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <div className="grid gap-6 md:grid-cols-3">
-              {/* City */}
-              <FormField
-                control={form.control}
-                name="city"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>City</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Nairobi" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <div className="grid gap-6 md:grid-cols-3">
+                  <FormField
+                    control={form.control}
+                    name="city"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>City</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Nairobi" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              {/* State/Province */}
-              <FormField
-                control={form.control}
-                name="state"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>State/Province</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Nairobi" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  <FormField
+                    control={form.control}
+                    name="state"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>State/Province</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Nairobi" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              {/* Postal Code */}
-              <FormField
-                control={form.control}
-                name="postalCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Postal Code</FormLabel>
-                    <FormControl>
-                      <Input placeholder="00100" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                  <FormField
+                    control={form.control}
+                    name="postalCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Postal Code</FormLabel>
+                        <FormControl>
+                          <Input placeholder="00100" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-            {/* Country */}
-            <FormField
-              control={form.control}
-              name="country"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Country</FormLabel>
-                  <FormControl>
-                    <CountrySelect 
-                      value={field.value} 
-                      onValueChange={field.onChange}
-                      placeholder="Select country..."
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                <FormField
+                  control={form.control}
+                  name="country"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Country</FormLabel>
+                      <FormControl>
+                        <CountrySelect
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          placeholder="Select country..."
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <DialogFooter className="gap-2 sm:gap-0 pt-6">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  form.reset();
-                  onOpenChange(false);
-                }}
-                disabled={updateProfileMutation.isPending}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={updateProfileMutation.isPending}
-              >
-                {updateProfileMutation.isPending ? (
-                  <>
-                    <Spinner size={16} className="mr-2" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Changes"
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+                <DialogFooter className="gap-2 sm:gap-0 pt-6">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      form.reset();
+                      onOpenChange(false);
+                    }}
+                    disabled={updateProfileMutation.isPending}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={updateProfileMutation.isPending}
+                  >
+                    {updateProfileMutation.isPending ? (
+                      <>
+                        <Spinner size={16} className="mr-2" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Save Changes"
+                    )}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
 }
-
-

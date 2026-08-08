@@ -39,6 +39,14 @@ import {
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 
+/** Sentinel for "no agency RBAC role" → stored as null (full/default sidebar access). */
+const FULL_RIGHTS_ROLE_ID = "__none__";
+
+const FULL_RIGHTS_ITEM: ComboboxItem = {
+  id: FULL_RIGHTS_ROLE_ID,
+  label: "Full rights (no role)",
+};
+
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
@@ -69,7 +77,7 @@ export function CreateUserSheet({
       email: "",
       password: "",
       role: "AGENCY_USER",
-      agencyRoleId: undefined,
+      agencyRoleId: FULL_RIGHTS_ROLE_ID,
     },
   });
 
@@ -88,26 +96,30 @@ export function CreateUserSheet({
   const createUserMutation = trpc.manageUsers.create.useMutation({
     onSuccess: async (user) => {
       const selectedAgencyRoleId = form.getValues("agencyRoleId");
+      const roleId =
+        selectedAgencyRoleId && selectedAgencyRoleId !== FULL_RIGHTS_ROLE_ID
+          ? selectedAgencyRoleId
+          : null;
 
-      if (selectedAgencyRoleId) {
+      if (roleId) {
         try {
           await assignRoleMutation.mutateAsync({
             userId: user.id,
-            roleId: selectedAgencyRoleId,
+            roleId,
           });
         } catch {
           // error already handled by mutation onError
         }
       }
 
-      toast.success("User created successfully")
-      if (form.getValues("agencyRoleId")) captureEvent("agency_role_assigned", { role_name: form.getValues("agencyRoleId") });
+      toast.success("User created successfully");
+      if (roleId) captureEvent("agency_role_assigned", { role_name: roleId });
       form.reset({
         name: "",
         email: "",
         password: "",
         role: "AGENCY_USER",
-        agencyRoleId: undefined,
+        agencyRoleId: FULL_RIGHTS_ROLE_ID,
       });
       onOpenChange(false);
       onSuccess?.();
@@ -118,11 +130,11 @@ export function CreateUserSheet({
   });
 
   const roleOptions: ComboboxItem[] = React.useMemo(() => {
-    if (!roles) return [];
-    return roles.map((role) => ({
+    const fromApi = (roles ?? []).map((role) => ({
       id: role.id,
       label: role.name,
     }));
+    return [FULL_RIGHTS_ITEM, ...fromApi];
   }, [roles]);
 
   // Password generator function
@@ -226,7 +238,8 @@ export function CreateUserSheet({
               control={form.control}
               name="agencyRoleId"
               render={({ field }) => {
-                const selectedRole = roleOptions.find((r) => r.id === field.value);
+                const selectedRole =
+                  roleOptions.find((r) => r.id === field.value) ?? FULL_RIGHTS_ITEM;
 
                 return (
                   <FormItem>
@@ -249,6 +262,7 @@ export function CreateUserSheet({
                             onSelect={() => undefined}
                             emptyResults="Failed to load roles"
                             disabled
+                            inDialog
                             className="w-full"
                           />
                           <Button
@@ -263,7 +277,7 @@ export function CreateUserSheet({
                         </div>
                       ) : (
                         <ComboboxDropdown
-                          placeholder="Select agency role (optional)"
+                          placeholder="Select agency role"
                           searchPlaceholder="Search roles..."
                           items={roleOptions}
                           selectedItem={selectedRole}
@@ -271,11 +285,14 @@ export function CreateUserSheet({
                             field.onChange(item.id);
                           }}
                           emptyResults="No roles found"
-                          disabled={roleOptions.length === 0}
+                          inDialog
                           className="w-full"
                         />
                       )}
                     </FormControl>
+                    <p className="text-xs text-muted-foreground">
+                      Full rights (no role) leaves the assignment empty so the user gets default sidebar access.
+                    </p>
                     <FormMessage />
                   </FormItem>
                 );
