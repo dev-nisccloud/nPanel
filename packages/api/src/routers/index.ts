@@ -110,6 +110,7 @@ import { digitaxRouter } from "./digitax";
 import { ipRecordsRouter } from "./ip-records";
 import { zeepoCanvasRouter } from "./zeepo-canvas";
 import { zeepoAgentRouter } from "./zeepo-agent";
+import { zeepoAiRouter } from "./zeepo-ai";
 import { niscBackupDashboardRouter } from "./nisc-backup/dashboard";
 import { niscBackupSystemRouter } from "./nisc-backup/system";
 import { niscBackupAccountsRouter } from "./nisc-backup/accounts";
@@ -334,6 +335,7 @@ export const appRouter = router({
 	zeepoCanvas: zeepoCanvasRouter,
 	// Zeepo AI Agent (chat + Replicate jobs)
 	zeepoAgent: zeepoAgentRouter,
+	zeepoAi: zeepoAiRouter,
 	// Public landing-page storefront checkout (isolated from dashboard routers)
 	storefront: storefrontRouter,
 	// MinIO / S3-compatible object storage (presigned uploads)

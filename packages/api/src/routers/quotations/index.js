@@ -9,7 +9,7 @@ import { protectedProcedure, router } from "../../trpc";
 import { quotationActivityLogSchema, quotationCreateInputSchema, quotationCustomerSummarySchema, quotationCustomersSummaryFiltersSchema, quotationCustomersSummaryResponseSchema, quotationDetailSchema, quotationLineItemOutputSchema, quotationListFiltersSchema, quotationListResponseSchema, quotationStatusSchema, quotationSummarySchema, quotationUpdateInputSchema, nextQuotationNumberSchema, sendQuotationEmailSchema, } from "./schemas";
 const isAgencyUser = (role) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
 const isAgencySuperAdmin = (role) => role === "AGENCY_SUPER_ADMIN";
-/** Prefer email, else normalized name, else unassigned — groups similar customers. */
+/** Prefer email, else normalized name, else unassigned  groups similar customers. */
 function customerGroupKeySql() {
     return sql `CASE
 		WHEN nullif(trim(lower(${quotation.customerEmail})), '') IS NOT NULL

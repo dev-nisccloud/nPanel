@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Settings, CircleHelp, Search, Database, ClipboardList, File } from "lucide-react";
+import { useLocation } from "react-router";
 
 import {
   Sidebar,
@@ -17,6 +17,7 @@ import { type NavGroup, type NavMainItem, agencysidebarItems } from "@/navigatio
 
 import { NavMain } from "./nav-main";
 import { NavUser } from "./nav-user";
+import { isZeepoAiChatSessionPath, NavZeepoAiHistory } from "./nav-zeepo-ai-history";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
 const NISC_REPORTS_PREFIX = "/agency/nisc-reports";
@@ -40,15 +41,13 @@ function filterSidebarItems(
     .map((group) => {
       const filteredItems = group.items
         .map((item) => {
-          // If item has subItems, filter them too
           const filteredSubItems = item.subItems?.filter((sub) =>
             hasMenuKey(sub.url, allowedKeys)
           );
 
-          // An item is visible if:
-          // 1. Its URL is directly in allowedKeys
-          // 2. It has at least one visible subItem
-          const isItemVisible = hasMenuKey(item.url, allowedKeys) || (filteredSubItems && filteredSubItems.length > 0);
+          const isItemVisible =
+            hasMenuKey(item.url, allowedKeys) ||
+            (filteredSubItems && filteredSubItems.length > 0);
 
           if (!isItemVisible) return null;
 
@@ -70,13 +69,18 @@ function filterSidebarItems(
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { data: menuAccess, isLoading } = trpc.agencyRbac.myMenuAccess.useQuery();
+  const { pathname } = useLocation();
+  const showZeepoAiHistory = isZeepoAiChatSessionPath(pathname);
+  const { data: menuAccess, isLoading } = trpc.agencyRbac.myMenuAccess.useQuery(undefined, {
+    enabled: !showZeepoAiHistory,
+  });
 
   const filteredItems = React.useMemo(() => {
+    if (showZeepoAiHistory) return [];
     if (isLoading || !menuAccess) return [];
     const allowedKeys = new Set(menuAccess.allowedKeys);
     return filterSidebarItems(agencysidebarItems, allowedKeys);
-  }, [menuAccess, isLoading]);
+  }, [menuAccess, isLoading, showZeepoAiHistory]);
 
   return (
     <Sidebar {...props}>
@@ -88,7 +92,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        {isLoading ? (
+        {showZeepoAiHistory ? (
+          <NavZeepoAiHistory />
+        ) : isLoading ? (
           <div className="flex grow flex-col items-center justify-center gap-2 p-4">
             <Spinner variant="ellipsis" className="text-primary" />
             <span className="text-muted-foreground animate-pulse text-[10px] font-medium uppercase tracking-wider">
