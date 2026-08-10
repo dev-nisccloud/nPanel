@@ -14,13 +14,13 @@ import { Button } from "@/components/ui/button";
 import type { InvoiceTransaction } from "@/routes/agency.invoices/create/api/schemas";
 
 function formatDate(v: string | Date | null | undefined): string {
-	if (!v) return "—";
+	if (!v) return "";
 	const d = v instanceof Date ? v : new Date(v);
-	return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
+	return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString();
 }
 
 function formatCurrency(amount: string | null | undefined, currency: string): string {
-	if (!amount) return "—";
+	if (!amount) return "";
 	const n = Number(amount);
 	return Number.isFinite(n)
 		? new Intl.NumberFormat("en-US", {

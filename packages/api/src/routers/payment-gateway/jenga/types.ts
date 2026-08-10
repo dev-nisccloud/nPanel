@@ -130,7 +130,7 @@ export const jengaCallbackQuerySchema = z.object({
 export type JengaCallbackQuery = z.infer<typeof jengaCallbackQuerySchema>;
 
 /**
- * Real Jenga IPN shape (from JengaHQ sample) — currency fields are often omitted;
+ * Real Jenga IPN shape (from JengaHQ sample)  currency fields are often omitted;
  * bank.account may be the string "null".
  */
 export const jengaIpnPayloadSchema = z.object({
@@ -168,7 +168,7 @@ export type JengaIpnPayload = z.infer<typeof jengaIpnPayloadSchema>;
 export type JengaPaymentMetadata = {
 	source?: "buy_now" | "global_buy_now" | "storefront";
 	returnPath?: string;
-	/** Origin of the app that started checkout — used for post-Jenga redirect */
+	/** Origin of the app that started checkout  used for post-Jenga redirect */
 	returnOrigin?: string;
 	orderReference: string;
 	customer?: {

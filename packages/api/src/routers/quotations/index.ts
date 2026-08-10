@@ -37,7 +37,7 @@ const isAgencyUser = (role: string) =>
 	["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
 const isAgencySuperAdmin = (role: string) => role === "AGENCY_SUPER_ADMIN";
 
-/** Prefer email, else normalized name, else unassigned — groups similar customers. */
+/** Prefer email, else normalized name, else unassigned  groups similar customers. */
 function customerGroupKeySql() {
 	return sql<string>`CASE
 		WHEN nullif(trim(lower(${quotation.customerEmail})), '') IS NOT NULL

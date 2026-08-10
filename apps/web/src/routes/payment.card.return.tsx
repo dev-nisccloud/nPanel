@@ -137,7 +137,7 @@ export default function CardPaymentReturnPage() {
 					<Spinner variant="ellipsis" size={48} className="mx-auto text-primary" />
 					<p className="font-medium text-foreground">
 						{phase === "creating"
-							? "Payment confirmed — creating your order…"
+							? "Payment confirmed  creating your order…"
 							: "Confirming card payment…"}
 					</p>
 					<p className="text-xs text-muted-foreground">

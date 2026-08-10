@@ -108,7 +108,7 @@ export async function applyJengaIpnUpdate(payload: JengaIpnPayload): Promise<App
 		return { ok: false, reason: "Missing billNumber/order reference in IPN" };
 	}
 
-	// Jenga sample IPN: billNumber + customer.reference — match either against our orderReference
+	// Jenga sample IPN: billNumber + customer.reference  match either against our orderReference
 	const transaction = await db.query.paymentTransaction.findFirst({
 		where: and(
 			eq(paymentTransaction.gateway, "JENGA"),

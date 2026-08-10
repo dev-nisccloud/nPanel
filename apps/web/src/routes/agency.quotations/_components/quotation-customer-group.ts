@@ -1,4 +1,4 @@
-/** Prefer email, else normalized name, else unassigned — matches API grouping. */
+/** Prefer email, else normalized name, else unassigned  matches API grouping. */
 export function quotationCustomerGroupKey(
 	customerName: string | null | undefined,
 	customerEmail: string | null | undefined,
