@@ -46,8 +46,11 @@ export function AgencyContentInner({ children }: { children: React.ReactNode }) 
 
   return (
     <div
+      data-agency-content-inner=""
       className={cn(
-        isZeepoAgent ? "bg-background" : "bg-[#f8fafb] dark:bg-background",
+        isZeepoAgent
+          ? "bg-background [--agency-content-bg:var(--background)]"
+          : "bg-[#f8fafb] dark:bg-background [--agency-content-bg:#f8fafb] dark:[--agency-content-bg:var(--background)]",
         isImageGenStudioEditor
           ? "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-0"
           : isZeepoAgent || isNebDesignEditor

@@ -111,7 +111,7 @@ export async function loadMarginMap(): Promise<MarginMap> {
 		}
 		const key = normalizeTldExtension(row.name);
 		if (!key) continue;
-		// Prefer first seen; rows are unordered — last write wins via upsert updating in place
+		// Prefer first seen; rows are unordered  last write wins via upsert updating in place
 		overrides[key] = config;
 	}
 

@@ -10,6 +10,7 @@
     "dev": "bun run --hot src/index.ts",
     "start": "bun run src/index.ts",
     "seed:zeepo-ai-agent": "bun run src/scripts/seed-zeepo-ai-agent-product.ts",
+    "seed:zeepo-ai": "bun run src/scripts/seed-zeepo-ai-product.ts",
     "seed:nisc-email-marketing": "bun run src/scripts/seed-nisc-email-marketing-product.ts",
     "seed:creatives-design": "bun run src/scripts/seed-creatives-design-product.ts",
     "seed:seo-reports": "bun run src/scripts/seed-seo-reports-product.ts",

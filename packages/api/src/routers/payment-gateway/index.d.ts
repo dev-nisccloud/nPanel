@@ -3,8 +3,8 @@
  *
  * This router contains all payment gateway integrations.
  * Currently supports:
- * - M-Pesa (Kenya) — STK Push
- * - Jenga — hosted card checkout
+ * - M-Pesa (Kenya)  STK Push
+ * - Jenga  hosted card checkout
  *
  * Future gateways can be added here:
  * - Stripe

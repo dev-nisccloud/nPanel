@@ -14,13 +14,13 @@ import { Receipt, FileJson } from "lucide-react";
 import type { InvoiceTransaction } from "@/routes/agency.invoices/create/api/schemas";
 
 function formatDate(v: string | Date | null | undefined): string {
-	if (!v) return "—";
+	if (!v) return "";
 	const d = v instanceof Date ? v : new Date(v);
-	return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString();
+	return Number.isNaN(d.getTime()) ? "" : d.toLocaleString();
 }
 
 function formatCurrency(amount: string | null | undefined, currency: string): string {
-	if (!amount) return "—";
+	if (!amount) return "";
 	const n = Number(amount);
 	return Number.isFinite(n)
 		? new Intl.NumberFormat("en-US", {
@@ -78,7 +78,7 @@ export function InvoiceTransactionViewSheet({
 	const refLabel =
 		transaction?.reference ??
 		transaction?.providerReference ??
-		(transaction ? `${transaction.id.slice(0, 12)}…` : "—");
+		(transaction ? `${transaction.id.slice(0, 12)}…` : "");
 
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>

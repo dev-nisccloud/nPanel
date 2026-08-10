@@ -14,9 +14,9 @@ import { Badge } from "@/components/ui/badge";
 import type { InvoiceTeamSummary } from "@npanel/api/routers/invoicing/schemas";
 
 const formatDate = (value: string | Date | null | undefined) => {
-	if (!value) return "—";
+	if (!value) return "";
 	const d = value instanceof Date ? value : new Date(value);
-	return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
+	return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString();
 };
 
 export interface InvoiceTeamsTableProps {
