@@ -155,15 +155,31 @@ interface ZeepoDomainsPortfolioCardProps {
   result: AgentDomainsPortfolioResult;
 }
 
-export function ZeepoDomainsPortfolioCard({ result }: ZeepoDomainsPortfolioCardProps) {
-  const opDomains = result.domains.filter((d) => d.source === "openprovider");
-  const kenicDomains = result.domains.filter((d) => d.source === "kenic");
-  const subDomains = result.domains.filter((d) => d.source === "subscription");
+function isKeDomain(domain: string): boolean {
+  return /\.ke$/i.test(domain.trim());
+}
 
-  const expiringSoon = result.domains.filter((d) => {
+export function ZeepoDomainsPortfolioCard({ result }: ZeepoDomainsPortfolioCardProps) {
+  const domains = Array.isArray(result.domains) ? result.domains : [];
+  // Prefer explicit source when present; otherwise infer .ke vs gTLD for agency grouping.
+  const opDomains = domains.filter(
+    (d) => d.source === "openprovider" || (!d.source && !isKeDomain(d.domain)),
+  );
+  const kenicDomains = domains.filter(
+    (d) => d.source === "kenic" || (!d.source && isKeDomain(d.domain)),
+  );
+  // Customer payloads may omit source entirely — fall back to the full list.
+  const customerDomains =
+    domains.filter((d) => d.source === "subscription").length > 0
+      ? domains.filter((d) => d.source === "subscription")
+      : domains;
+
+  const expiringSoon = domains.filter((d) => {
     const days = daysUntil(d.expiryDate);
     return days !== null && days > 0 && days <= 30;
   });
+
+  const totalCount = result.totalCount || domains.length;
 
   return (
     <div className="w-full rounded-2xl rounded-bl-md border bg-card shadow-sm overflow-hidden">
@@ -174,9 +190,9 @@ export function ZeepoDomainsPortfolioCard({ result }: ZeepoDomainsPortfolioCardP
           <span className="text-sm font-semibold text-foreground">
             {result.isAgency ? "Domains Portfolio" : "Your Domains"}
           </span>
-          {result.totalCount > 0 && (
+          {totalCount > 0 && (
             <Badge className="h-5 bg-primary/10 text-primary hover:bg-primary/10 text-[10px] px-1.5 border-primary/20">
-              {result.totalCount}
+              {totalCount}
             </Badge>
           )}
         </div>
@@ -217,24 +233,34 @@ export function ZeepoDomainsPortfolioCard({ result }: ZeepoDomainsPortfolioCardP
         </div>
       )}
 
-      {/* Domain rows */}
+      {/* Domain rows — API may omit `source`; never filter the list away */}
       <div className="flex flex-col gap-3 p-3">
-        {result.totalCount === 0 ? (
+        {domains.length === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">
             {result.isAgency
               ? "No domains found in the portfolio."
               : "No domains found for this organisation."}
           </p>
         ) : result.isAgency ? (
-          <>
-            <SourceSection label="OpenProvider (gTLDs)" entries={opDomains} />
-            {opDomains.length > 0 && kenicDomains.length > 0 && (
-              <Separator />
-            )}
-            <SourceSection label="KENIC (.ke)" entries={kenicDomains} />
-          </>
+          opDomains.length === 0 && kenicDomains.length === 0 ? (
+            <div className="flex flex-col gap-1">
+              {domains.map((e) => (
+                <DomainRow key={e.domain} entry={e} />
+              ))}
+            </div>
+          ) : (
+            <>
+              <SourceSection label="Global TLDs" entries={opDomains} />
+              {opDomains.length > 0 && kenicDomains.length > 0 ? <Separator /> : null}
+              <SourceSection label="Local" entries={kenicDomains} />
+            </>
+          )
         ) : (
-          subDomains.map((e) => <DomainRow key={e.domain} entry={e} />)
+          <div className="flex flex-col gap-1">
+            {customerDomains.map((e) => (
+              <DomainRow key={e.domain} entry={e} />
+            ))}
+          </div>
         )}
       </div>
 
@@ -242,7 +268,7 @@ export function ZeepoDomainsPortfolioCard({ result }: ZeepoDomainsPortfolioCardP
       {result.hasMore && (
         <div className="border-t px-4 py-2.5">
           <p className="text-xs text-muted-foreground">
-            Showing first 100 OpenProvider domains. Visit the Domains Portfolio page to see all.
+            Showing the first 100 global TLD domains. Visit Domains Portfolio to see all.
           </p>
         </div>
       )}

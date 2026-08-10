@@ -81,10 +81,24 @@ export function useAppFileUpload() {
 		[uploadBatch],
 	);
 
+	const uploadZeepoAiAttachments = React.useCallback(
+		async (files: File[]): Promise<ObjectStorageUploadResult[]> => {
+			const { accepted, rejectedMessage } = filterZeepoAgentAttachmentFiles(files);
+			if (rejectedMessage && accepted.length === 0) {
+				throw new Error(rejectedMessage);
+			}
+			if (accepted.length === 0) return [];
+			const normalized = normalizeImageFilesForUpload(accepted);
+			return uploadBatch(normalized, STORAGE_PREFIXES.ZEEPO_AI);
+		},
+		[uploadBatch],
+	);
+
 	return {
 		uploadOne,
 		uploadBatch,
 		uploadAgentAttachments,
+		uploadZeepoAiAttachments,
 		isUploading,
 		progressPercent,
 		progressLabel,

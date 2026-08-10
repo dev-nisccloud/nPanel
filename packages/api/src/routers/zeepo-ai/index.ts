@@ -1,0 +1,17 @@
+import { router } from "../../trpc";
+import { zeepoAiSessionsRouter } from "./sessions";
+import { zeepoAiMessagesRouter, zeepoAiSkillsRouter } from "./messages";
+import { zeepoAiBillingRouter } from "./billing";
+import { zeepoAiImageEditsRouter } from "./image-edits";
+
+export const zeepoAiRouter = router({
+	sessions: zeepoAiSessionsRouter,
+	messages: zeepoAiMessagesRouter,
+	skills: zeepoAiSkillsRouter,
+	billing: zeepoAiBillingRouter,
+	imageEdits: zeepoAiImageEditsRouter,
+});
+
+export { streamZeepoAiTurn } from "./stream-turn";
+export { streamTurnBodySchema } from "./schemas";
+export type { ZeepoAiStreamEvent } from "./stream-turn";

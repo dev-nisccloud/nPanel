@@ -351,6 +351,13 @@
       "when": 1785831914971,
       "tag": "0049_slimy_sprite",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1786350356877,
+      "tag": "0050_old_ricochet",
+      "breakpoints": true
     }
   ]
 }

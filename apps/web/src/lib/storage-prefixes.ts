@@ -5,4 +5,5 @@ export const STORAGE_PREFIXES = {
 	CREATIVE_ASSETS: "creative-assets",
 	EMAIL_BUILDER: "email-builder",
 	ZEEPO_AGENT: "zeepo-agent",
+	ZEEPO_AI: "zeepo-ai",
 } as const;
