@@ -291,7 +291,7 @@ export function ZeepoAiAssistantInterface() {
         </div>
       </div>
 
-      {/* Floating chat input + Agent sample prompts — always visible */}
+      {/* Floating chat input + Agent sample prompts  always visible */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-1 pb-1 pt-10 sm:px-2 sm:pb-2 md:px-4">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-t from-[var(--agency-content-bg,#f8fafb)] via-[var(--agency-content-bg,#f8fafb)]/85 to-transparent" />
         <div

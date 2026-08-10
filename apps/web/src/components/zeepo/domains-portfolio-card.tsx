@@ -168,7 +168,7 @@ export function ZeepoDomainsPortfolioCard({ result }: ZeepoDomainsPortfolioCardP
   const kenicDomains = domains.filter(
     (d) => d.source === "kenic" || (!d.source && isKeDomain(d.domain)),
   );
-  // Customer payloads may omit source entirely — fall back to the full list.
+  // Customer payloads may omit source entirely  fall back to the full list.
   const customerDomains =
     domains.filter((d) => d.source === "subscription").length > 0
       ? domains.filter((d) => d.source === "subscription")
@@ -233,7 +233,7 @@ export function ZeepoDomainsPortfolioCard({ result }: ZeepoDomainsPortfolioCardP
         </div>
       )}
 
-      {/* Domain rows — API may omit `source`; never filter the list away */}
+      {/* Domain rows  API may omit `source`; never filter the list away */}
       <div className="flex flex-col gap-3 p-3">
         {domains.length === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">

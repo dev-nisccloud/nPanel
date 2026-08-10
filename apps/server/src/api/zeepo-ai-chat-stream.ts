@@ -77,7 +77,7 @@ export async function handleZeepoAiChatStream(c: Context) {
 				const message =
 					err && typeof err === "object" && "message" in err && typeof (err as { message: unknown }).message === "string"
 						? (err as { message: string }).message
-						: "Stream failed. Your partial reply was saved — you can retry.";
+						: "Stream failed. Your partial reply was saved  you can retry.";
 				await send({
 					type: "error",
 					message,

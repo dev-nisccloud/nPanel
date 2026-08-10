@@ -265,7 +265,7 @@ export async function creditZeepoAiTokens(
 	return { balanceAfter: newValue };
 }
 
-/** Agency monitoring row — no balance change, tokens recorded as 0. */
+/** Agency monitoring row  no balance change, tokens recorded as 0. */
 export async function logZeepoAiAgencyUsage(params: {
 	teamId: string | null;
 	userId: string;
@@ -292,7 +292,7 @@ export async function logZeepoAiAgencyUsage(params: {
 		balanceBefore: "unlimited",
 		balanceAfter: "unlimited",
 		operationType: params.operationType,
-		description: `Agency usage (unlimited) — est. ${params.estimatedTokens} tokens`,
+		description: `Agency usage (unlimited)  est. ${params.estimatedTokens} tokens`,
 		providerCostUsdMicros: params.providerCostUsdMicros ?? null,
 		providerRequestId: params.providerRequestId ?? null,
 		modelId: params.modelId,

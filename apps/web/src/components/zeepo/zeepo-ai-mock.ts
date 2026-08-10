@@ -1,5 +1,5 @@
 /**
- * Compatibility shim — prefer importing from zeepo-ai-types.
+ * Compatibility shim  prefer importing from zeepo-ai-types.
  * Kept so any lingering mock imports resolve during the API cutover.
  */
 export {

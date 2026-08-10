@@ -63,7 +63,7 @@ export const ZEEPO_AI_OPS_CLIENT_TOOLS = [
 			properties: {
 				name: {
 					type: "string",
-					description: "SLD only — letters, digits, hyphens; no dots or TLD",
+					description: "SLD only  letters, digits, hyphens; no dots or TLD",
 				},
 				extensions: {
 					type: "array",

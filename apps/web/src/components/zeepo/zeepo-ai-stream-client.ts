@@ -91,7 +91,7 @@ export async function streamZeepoAiChat(params: StreamZeepoAiChatParams): Promis
       type: "error",
       message:
         err instanceof TypeError
-          ? "Connection lost. Your partial reply was saved — tap Retry to continue."
+          ? "Connection lost. Your partial reply was saved  tap Retry to continue."
           : "Could not reach Zeepo. Check your connection and try again.",
       code: "NETWORK",
       recoverable: true,
@@ -157,7 +157,7 @@ export async function streamZeepoAiChat(params: StreamZeepoAiChatParams): Promis
     onEvent({
       type: "error",
       message:
-        "The connection dropped mid-reply. Your progress was saved — tap Retry to continue.",
+        "The connection dropped mid-reply. Your progress was saved  tap Retry to continue.",
       code: "NETWORK_INTERRUPT",
       recoverable: true,
     });

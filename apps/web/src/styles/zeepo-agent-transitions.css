@@ -315,7 +315,7 @@
 }
 
 .zeepo-ai-msg {
-  /* no entrance animation by default — streaming remounts must stay still */
+  /* no entrance animation by default  streaming remounts must stay still */
 }
 
 .zeepo-ai-reasoning-panel[data-state="open"] {

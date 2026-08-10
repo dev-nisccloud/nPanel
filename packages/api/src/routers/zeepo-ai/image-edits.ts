@@ -1,5 +1,5 @@
 /**
- * Zeepo AI image edits — Gemini Interactions (no Replicate).
+ * Zeepo AI image edits  Gemini Interactions (no Replicate).
  * Mirrors Agent image-edit surface for the live edit panel.
  */
 import { TRPCError } from "@trpc/server";

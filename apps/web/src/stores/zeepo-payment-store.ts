@@ -68,7 +68,7 @@ export interface AgentPortfolioDomainEntry {
   expiryDate: string | null;
   registrationDate: string | null;
   autoRenewal: boolean;
-  /** Optional — tool payloads often omit this; UI infers grouping when missing. */
+  /** Optional  tool payloads often omit this; UI infers grouping when missing. */
   source?: "openprovider" | "kenic" | "subscription";
   clientName?: string;
 }

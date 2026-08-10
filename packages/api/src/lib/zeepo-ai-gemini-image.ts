@@ -1,6 +1,6 @@
 /**
  * Zeepo AI image generation via Google Interactions API (Nano Banana family).
- * No Replicate / QStash — synchronous Interactions.create for real-time SSE UX.
+ * No Replicate / QStash  synchronous Interactions.create for real-time SSE UX.
  */
 import { GoogleGenAI } from "@google/genai";
 import { persistBufferToObjectStorage } from "./object-storage/persist";

@@ -60,7 +60,7 @@ export function ZeepoRenameChatDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Rename chat</AlertDialogTitle>
           <AlertDialogDescription>
-            Choose a clear name for this conversation. Messages and generated files stay the same —
+            Choose a clear name for this conversation. Messages and generated files stay the same 
             only the title in your history changes.
           </AlertDialogDescription>
         </AlertDialogHeader>

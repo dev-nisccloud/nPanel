@@ -89,7 +89,7 @@ const EDIT_TABS: { id: ImageEditMode; label: string; icon: React.ReactNode }[] =
 ];
 
 function mockToast(_action: string) {
-  // no-op — live edits use sonner success/error
+  // no-op  live edits use sonner success/error
 }
 
 async function downloadUrl(url: string, filename: string) {
@@ -111,7 +111,7 @@ async function downloadUrl(url: string, filename: string) {
   }
 }
 
-/** Agent-parity image edit panel — live Zeepo AI Gemini edits. */
+/** Agent-parity image edit panel  live Zeepo AI Gemini edits. */
 export function ZeepoAiImageEditPanel({
   url,
   title,
@@ -309,7 +309,7 @@ export function ZeepoAiImageEditPanel({
 
   const runMockOp = async (label: string, _nextUrl?: string) => {
     if (!sessionId) {
-      toast.error("Missing session — reopen the image from chat.");
+      toast.error("Missing session  reopen the image from chat.");
       return;
     }
     setEditOpPending(true);
@@ -540,7 +540,7 @@ export function ZeepoAiImageEditPanel({
         ) : null}
       </div>
 
-      {/* Image body — must shrink; never paint over toolbar */}
+      {/* Image body  must shrink; never paint over toolbar */}
       <div className="relative z-0 flex min-h-0 flex-1 flex-col overflow-hidden bg-muted/10">
         <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden p-3 sm:p-4">
           {editOpPending ? (
@@ -643,7 +643,7 @@ export function ZeepoAiImageEditPanel({
         </div>
       </div>
 
-      {/* Edit toolbar — always below media, never covered */}
+      {/* Edit toolbar  always below media, never covered */}
       {!viewOnly && (
         <div className="relative z-20 shrink-0 border-t bg-background">
           <div className="flex items-center gap-0.5 overflow-x-auto border-b px-2 py-1.5 scrollbar-none">

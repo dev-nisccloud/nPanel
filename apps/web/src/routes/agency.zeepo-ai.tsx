@@ -6,7 +6,7 @@ import {
   ZeepoAiRouteProvider,
 } from "@/components/zeepo/zeepo-ai-route-context";
 
-/** Agency mount — shared UI lives in components; swap provider config for customer later. */
+/** Agency mount  shared UI lives in components; swap provider config for customer later. */
 export default function ZeepoAiLayout() {
   return (
     <ZeepoAiRouteProvider config={DEFAULT_ZEEPO_AI_ROUTE}>

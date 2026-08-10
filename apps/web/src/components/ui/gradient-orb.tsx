@@ -244,7 +244,7 @@ const fragmentShader = /* glsl */ `
     uv = vec2(c * uv.x - s * uv.y, s * uv.x + c * uv.y);
 
     vec4 col = draw(uv);
-    // Premultiplied alpha — required for clean transparent canvas edges
+    // Premultiplied alpha  required for clean transparent canvas edges
     gl_FragColor = vec4(col.rgb * col.a, col.a);
   }
 `;

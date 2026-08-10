@@ -74,7 +74,7 @@ export const ZEEPO_AI_CLIENT_TOOLS = [
 	{
 		name: "ask_clarifying_questions",
 		description:
-			"Ask the user 1–3 sharp clarifying questions with option chips before producing a deliverable. Use ONLY when context is missing. Do NOT call create_document or create_presentation in the same turn. Do NOT include an 'Other' option — the UI adds it.",
+			"Ask the user 1–3 sharp clarifying questions with option chips before producing a deliverable. Use ONLY when context is missing. Do NOT call create_document or create_presentation in the same turn. Do NOT include an 'Other' option  the UI adds it.",
 		input_schema: {
 			type: "object" as const,
 			properties: {
@@ -111,7 +111,7 @@ export const ZEEPO_AI_CLIENT_TOOLS = [
 	{
 		name: "create_document",
 		description:
-			"Create a long-form markdown document (report, brief, strategy, analysis). Put the COMPLETE markdown in content — do not truncate.",
+			"Create a long-form markdown document (report, brief, strategy, analysis). Put the COMPLETE markdown in content  do not truncate.",
 		input_schema: {
 			type: "object" as const,
 			properties: {

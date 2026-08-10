@@ -1,6 +1,6 @@
 /**
  * Redact proprietary / internal details from Zeepo AI "thought" text before UI display.
- * Defense in depth — prompts also forbid this, but models still leak tool names occasionally.
+ * Defense in depth  prompts also forbid this, but models still leak tool names occasionally.
  */
 
 const KNOWN_TOOL_NAMES = [

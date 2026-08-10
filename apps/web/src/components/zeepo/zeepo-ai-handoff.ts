@@ -3,7 +3,7 @@
  * Survives navigation via module memory + sessionStorage.
  *
  * Do NOT gate auto-send with a process-wide "claimed" flag across React Strict Mode
- * remounts — the first mount's setState is discarded, which left the UI stuck on
+ * remounts  the first mount's setState is discarded, which left the UI stuck on
  * "Connecting to Zeepo…". Remounts re-check the server and only send if empty.
  */
 

@@ -1,5 +1,5 @@
 /**
- * Idempotent seed for Zeepo AI product — PAYG / token top-ups only (no fixed plans).
+ * Idempotent seed for Zeepo AI product  PAYG / token top-ups only (no fixed plans).
  *
  * Run from apps/server:
  *   bun run seed:zeepo-ai
@@ -57,14 +57,14 @@ const PRODUCT = {
 	id: ZEEPO_AI_PRODUCT_ID,
 	name: "Zeepo AI",
 	description:
-		"Chat with Zeepo — research, write documents and presentations, and move work forward. Pay as you go: buy tokens when you need them.",
+		"Chat with Zeepo  research, write documents and presentations, and move work forward. Pay as you go: buy tokens when you need them.",
 	category: "AI",
 	serviceType: "ZEEPO_AI",
 	isActive: true,
 	sortOrder: 19,
 	features: PRODUCT_FEATURES,
 	highlights: [
-		"Pay as you go — no monthly plan required",
+		"Pay as you go  no monthly plan required",
 		"Streaming replies with visible reasoning",
 		"Documents and presentations in-chat",
 		"Optional live web research",
@@ -99,7 +99,7 @@ type PlanSeed = {
 const PLANS: PlanSeed[] = [
 	{
 		id: ZEEPO_AI_PLAN_IDS.topUp500,
-		name: "Token Top-Up — 500",
+		name: "Token Top-Up  500",
 		description: "One-time purchase of 500 tokens. Adds to your balance whenever you need a boost.",
 		priceUsd: "7.00",
 		tokenGrant: 500,
@@ -109,7 +109,7 @@ const PLANS: PlanSeed[] = [
 	},
 	{
 		id: ZEEPO_AI_PLAN_IDS.topUp1500,
-		name: "Token Top-Up — 1,500",
+		name: "Token Top-Up  1,500",
 		description: "One-time purchase of 1,500 tokens for campaigns and heavier work.",
 		priceUsd: "18.00",
 		tokenGrant: 1500,
@@ -121,7 +121,7 @@ const PLANS: PlanSeed[] = [
 	},
 	{
 		id: ZEEPO_AI_PLAN_IDS.topUp5000,
-		name: "Token Top-Up — 5,000",
+		name: "Token Top-Up  5,000",
 		description: "One-time purchase of 5,000 tokens for sustained production.",
 		priceUsd: "55.00",
 		tokenGrant: 5000,

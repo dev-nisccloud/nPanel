@@ -1,11 +1,11 @@
 /**
- * Zeepo AI (direct Claude chat) — customer token billing constants.
+ * Zeepo AI (direct Claude chat)  customer token billing constants.
  *
  * PAYG only: users buy token packs; no fixed monthly subscription tiers.
  * Agency roles are unlimited but usage is still logged for monitoring.
  */
 
-/** Stable product id — seeded by apps/server/src/scripts/seed-zeepo-ai-product.ts */
+/** Stable product id  seeded by apps/server/src/scripts/seed-zeepo-ai-product.ts */
 export const ZEEPO_AI_PRODUCT_ID = "zeepo-ai";
 
 /** Subscription usage row kind for token balance. */
@@ -20,7 +20,7 @@ export const ZEEPO_AI_INTERNAL_USD_PER_TOKEN = 0.01;
 /** Anthropic provider label stored on usage/ledger rows (internal only). */
 export const ZEEPO_AI_PROVIDER = "anthropic";
 
-/** Default Messages API model — overridable via env / future UI picker. */
+/** Default Messages API model  overridable via env / future UI picker. */
 export const ZEEPO_AI_DEFAULT_MODEL = "claude-sonnet-4-5";
 
 export function resolveZeepoAiModelId(requested?: string | null): string {

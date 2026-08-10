@@ -19,7 +19,7 @@ export type AiStreamingTextProps = {
 
 /**
  * Smooth typewriter for live SSE streams.
- * Growing `text` does not reset — the reveal catches up to the latest target.
+ * Growing `text` does not reset  the reveal catches up to the latest target.
  */
 export function AiStreamingText({
   text,

@@ -471,7 +471,7 @@ export function ZeepoAiMessageList({
   const isStreaming = Boolean(streamingMessageId);
   const last = messages[messages.length - 1];
   const gensForLast = generations.filter((g) => g.messageId === last?.id).length;
-  // Coarser scroll key while streaming — avoid layout work on every character.
+  // Coarser scroll key while streaming  avoid layout work on every character.
   const scrollKey = isStreaming
     ? `${messages.length}:${Math.floor((last?.content?.length ?? 0) / 48)}:${last?.reasoningStatus ?? ""}:${gensForLast}`
     : `${messages.length}:${last?.content?.length ?? 0}:${last?.reasoning?.length ?? 0}:${last?.status ?? ""}:${last?.reasoningStatus ?? ""}:${gensForLast}`;

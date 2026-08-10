@@ -388,7 +388,7 @@ export function PricingTable({
           containerClassName
         )}
       >
-        {/* CTA — full pages keep it on top; embedded puts it under plan cards to avoid congestion */}
+        {/* CTA  full pages keep it on top; embedded puts it under plan cards to avoid congestion */}
         {!embedded ? (
           <div
             className={cn(
@@ -418,7 +418,7 @@ export function PricingTable({
 
         {embedded ? <div className="mb-3">{renderCta()}</div> : null}
 
-        {/* Features table — sticky first column so labels stay visible while scrolling */}
+        {/* Features table  sticky first column so labels stay visible while scrolling */}
         <div className="rounded-xl border border-border overflow-hidden shadow-sm bg-card/30">
           <div className="overflow-x-auto overscroll-x-contain">
             <div className={cn(embedded ? "min-w-[520px]" : "min-w-[640px]")}>

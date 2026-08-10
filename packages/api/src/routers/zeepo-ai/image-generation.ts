@@ -446,7 +446,7 @@ export async function executeCreateImagePresentationTool(
 			slide,
 			id: randomUUID(),
 			index: i,
-			title: `${args.title} — slide ${i + 1}`,
+			title: `${args.title}  slide ${i + 1}`,
 		}));
 		const modelId = pickZeepoAiImageModel({ intent: "design", count: slots.length });
 		const now = new Date();
