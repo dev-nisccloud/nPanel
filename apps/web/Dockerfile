@@ -38,6 +38,19 @@ RUN if [ -z "$VITE_SERVER_URL" ]; then \
       *) echo "ERROR: VITE_SERVER_URL must be an https URL. Got: $VITE_SERVER_URL" >&2; exit 1 ;; \
     esac
 
+# Public marketing site URL for sidebar "Back to website" (Vite build-time only).
+# Runtime Cloud Run env vars are NOT available to import.meta.env — must be a build arg.
+ARG VITE_LANDING_PAGE_URL="https://www.nisccloud.com"
+ENV VITE_LANDING_PAGE_URL=$VITE_LANDING_PAGE_URL
+RUN if [ -z "$VITE_LANDING_PAGE_URL" ]; then \
+      echo "ERROR: VITE_LANDING_PAGE_URL build arg is required for production web build." >&2; \
+      exit 1; \
+    fi \
+    && case "$VITE_LANDING_PAGE_URL" in \
+      https://*) ;; \
+      *) echo "ERROR: VITE_LANDING_PAGE_URL must be an https URL. Got: $VITE_LANDING_PAGE_URL" >&2; exit 1 ;; \
+    esac
+
 # Build the web app
 ENV NODE_OPTIONS="--max-old-space-size=8192"
 RUN bun run turbo build --filter=web...
