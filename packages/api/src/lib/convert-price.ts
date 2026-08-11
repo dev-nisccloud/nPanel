@@ -55,6 +55,16 @@ export function reverseCeilVatToExVat(
   return Math.max(0, exVat);
 }
 
+/** Prefer itemSubtotal, fall back to itemPrice — both are ex-VAT on order lines. */
+export function orderLineExVatAmount(item: {
+  itemSubtotal?: string | number | null;
+  itemPrice?: string | number | null;
+}): number {
+  const raw = item.itemSubtotal ?? item.itemPrice ?? 0;
+  const n = typeof raw === "number" ? raw : Number.parseFloat(String(raw));
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
 /** Subscription agreed price = line ex-VAT + ceil VAT (what the customer pays for that line). */
 export function agreedPriceIncVatFromExVat(
   exVatAmount: string | number | null | undefined,
@@ -66,6 +76,14 @@ export function agreedPriceIncVatFromExVat(
       : Number.parseFloat(String(exVatAmount ?? "0"));
   if (!Number.isFinite(n) || n < 0) return "0";
   return paymentTotalString(computeCeilVatTotals(n, vatRate).totalIncVat);
+}
+
+/** agreedPrice from an order line (ex-VAT subtotal preferred). */
+export function agreedPriceIncVatFromOrderLine(item: {
+  itemSubtotal?: string | number | null;
+  itemPrice?: string | number | null;
+}, vatRate = 0.16): string {
+  return agreedPriceIncVatFromExVat(orderLineExVatAmount(item), vatRate);
 }
 
 /** Whole-number string for M-Pesa / payment inputs. */

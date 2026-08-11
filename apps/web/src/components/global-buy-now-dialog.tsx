@@ -1435,6 +1435,7 @@ export function GlobalBuyNowDialog() {
         amount,
         accountReference: resolved.accountReference,
         transactionDesc: transactionDesc.slice(0, 13),
+        checkoutTotalIncVat: effectiveTotal,
       });
     } catch {
       // handled in onError

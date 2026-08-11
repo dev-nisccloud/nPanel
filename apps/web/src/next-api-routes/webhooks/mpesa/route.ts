@@ -8,6 +8,7 @@ import {
 } from "@npanel/api/routers/payment-gateway/mpesa/callback";
 import { sendEmail } from "@npanel/api/lib/email";
 import { renderPaymentReceiptEmail } from "@npanel/api/lib/email-templates";
+import { claimWebhookEvent } from "@npanel/api/lib/webhook-idempotency";
 
 /**
  * M-Pesa Webhook Handler
@@ -137,6 +138,48 @@ export async function POST(req: Request) {
 				checkoutRequestId: checkoutRequestId,
 			},
 		});
+
+		// If poll marked SUCCESS before the webhook arrived, still backfill receipt / paidAmount.
+		if (transaction?.status === "SUCCESS" && isPaymentSuccessful(validatedCallback)) {
+			const receipt = paymentStatus.metadata?.mpesaReceiptNumber || null;
+			const paidFromCallback = paymentStatus.metadata?.amount;
+			const needsReceipt = Boolean(receipt && !transaction.receiptNumber);
+			const needsPaidAmount =
+				paidFromCallback != null &&
+				Number.isFinite(paidFromCallback) &&
+				!transaction.paidAmount;
+			if (needsReceipt || needsPaidAmount) {
+				await prisma.paymentTransaction.update({
+					where: { id: transaction.id },
+					data: {
+						...(needsReceipt
+							? {
+									receiptNumber: receipt,
+									gatewayTransactionId: receipt,
+								}
+							: {}),
+						...(needsPaidAmount
+							? { paidAmount: String(Math.ceil(paidFromCallback as number)) }
+							: {}),
+						rawResponse: JSON.parse(JSON.stringify(validatedCallback)),
+						updatedAt: now,
+					},
+				});
+			}
+			return Response.json({
+				ResultCode: 0,
+				ResultDesc: "Already processed",
+			});
+		}
+
+		const idempotencyKey = `${checkoutRequestId}:${paymentStatus.resultCode}`;
+		const claimed = await claimWebhookEvent("mpesa", idempotencyKey);
+		if (!claimed) {
+			return Response.json({
+				ResultCode: 0,
+				ResultDesc: "Duplicate callback",
+			});
+		}
 
 		// Process successful payment
 		if (isPaymentSuccessful(validatedCallback)) {

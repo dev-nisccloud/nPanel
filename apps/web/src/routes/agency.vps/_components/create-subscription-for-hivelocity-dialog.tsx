@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { User, Users, RefreshCw, Server } from "lucide-react";
+import { RefreshCw, Server } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -51,8 +51,6 @@ interface CreateSubscriptionForHivelocityDialogProps {
   serviceType: "vps" | "dedicated" | "vds";
 }
 
-type LinkType = "user" | "team";
-
 export function CreateSubscriptionForHivelocityDialog({
   open,
   onOpenChange,
@@ -61,8 +59,6 @@ export function CreateSubscriptionForHivelocityDialog({
   deviceName,
   serviceType,
 }: CreateSubscriptionForHivelocityDialogProps) {
-  const [linkType, setLinkType] = React.useState<LinkType>("team");
-  const [selectedUserId, setSelectedUserId] = React.useState("");
   const [selectedTeamId, setSelectedTeamId] = React.useState("");
   const [selectedProductId, setSelectedProductId] = React.useState("");
   const [name, setName] = React.useState("");
@@ -90,13 +86,8 @@ export function CreateSubscriptionForHivelocityDialog({
 
   const { data: teams = [], isLoading: isLoadingTeams } = trpc.teams.getAll.useQuery(
     undefined,
-    { enabled: open && linkType === "team" }
+    { enabled: open }
   );
-
-  const { data: users = [], isLoading: isLoadingUsers } =
-    trpc.creativeBriefs.listUsersForApprover.useQuery(undefined, {
-      enabled: open && linkType === "user",
-    });
 
   const createMutation = trpc.clientSubscriptions.create.useMutation({
     onSuccess: () => {    const ht = String(hostingType || defaultHostingType || serviceType || "");
@@ -123,7 +114,6 @@ export function CreateSubscriptionForHivelocityDialog({
   });
 
   function resetForm() {
-    setSelectedUserId("");
     setSelectedTeamId("");
     setSelectedProductId("");
     setName(deviceName || "");
@@ -172,18 +162,9 @@ export function CreateSubscriptionForHivelocityDialog({
     () => teams.map((t) => ({ id: t.id, label: t.name })),
     [teams]
   );
-  const userItems: ComboboxItem[] = React.useMemo(
-    () =>
-      users.map((u) => ({
-        id: u.id,
-        label: u.name ? `${u.name} (${u.email})` : u.email,
-      })),
-    [users]
-  );
 
   const selectedProduct = productItems.find((p) => p.id === selectedProductId);
   const selectedTeam = teamItems.find((t) => t.id === selectedTeamId);
-  const selectedUser = userItems.find((u) => u.id === selectedUserId);
 
   const handleSubmit = () => {
     setSubmitError(null);
@@ -193,20 +174,15 @@ export function CreateSubscriptionForHivelocityDialog({
       return;
     }
 
-    if (linkType === "team" && !selectedTeamId) {
+    if (!selectedTeamId) {
       toast.error("Please select an organization");
-      return;
-    }
-    if (linkType === "user" && !selectedUserId) {
-      toast.error("Please select a user");
       return;
     }
 
     createMutation.mutate({
       productId: selectedProductId,
       name: name.trim() || undefined,
-      userId: linkType === "user" ? selectedUserId : undefined,
-      teamId: linkType === "team" ? selectedTeamId : undefined,
+      teamId: selectedTeamId,
       status: "ACTIVE",
       subscriptionDate,
       expiryDate,
@@ -225,8 +201,8 @@ export function CreateSubscriptionForHivelocityDialog({
     });
   };
 
-  const isLoadingOptions = linkType === "team" ? isLoadingTeams : isLoadingUsers;
-  const hasSelection = linkType === "team" ? !!selectedTeamId : !!selectedUserId;
+  const isLoadingOptions = isLoadingTeams;
+  const hasSelection = !!selectedTeamId;
   const isSubmitting = createMutation.isPending;
 
   return (
@@ -279,38 +255,12 @@ export function CreateSubscriptionForHivelocityDialog({
               </div>
 
               <div className="space-y-2">
-                <Label>Link to</Label>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant={linkType === "team" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setLinkType("team")}
-                    disabled={isSubmitting}
-                  >
-                    <Users className="mr-2 h-4 w-4" />
-                    Organization
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={linkType === "user" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setLinkType("user")}
-                    disabled={isSubmitting}
-                  >
-                    <User className="mr-2 h-4 w-4" />
-                    User
-                  </Button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>{linkType === "team" ? "Organization" : "User"} *</Label>
+                <Label>Organization *</Label>
                 {isLoadingOptions ? (
                   <div className="flex h-10 items-center justify-center rounded-md border">
                     <Spinner size={18} />
                   </div>
-                ) : linkType === "team" ? (
+                ) : (
                   <ComboboxDropdown
                     items={teamItems}
                     selectedItem={selectedTeam}
@@ -318,16 +268,6 @@ export function CreateSubscriptionForHivelocityDialog({
                     placeholder="Select an organization..."
                     searchPlaceholder="Search organizations..."
                     emptyResults="No organizations found"
-                    disabled={isSubmitting}
-                  />
-                ) : (
-                  <ComboboxDropdown
-                    items={userItems}
-                    selectedItem={selectedUser}
-                    onSelect={(item) => setSelectedUserId(item.id)}
-                    placeholder="Select a user..."
-                    searchPlaceholder="Search users..."
-                    emptyResults="No users found"
                     disabled={isSubmitting}
                   />
                 )}

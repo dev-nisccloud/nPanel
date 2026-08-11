@@ -2,20 +2,21 @@
  * Zeepo AI order provisioning after payment (invoices via nisc orders).
  * Welcome free grant is separate and must never create an invoice.
  */
-import { and, eq } from "@npanel/db";
+import { and, eq, sql } from "@npanel/db";
 import { db } from "@npanel/db";
 import {
 	niscClientSubscription,
 	niscClientSubscriptionUsage,
 	niscProductPlan,
 } from "@npanel/db/schema/products";
+import { zeepoAiTokenLedger } from "@npanel/db/schema/zeepo-ai";
 import { randomUUID } from "node:crypto";
 import {
 	ZEEPO_AI_PRODUCT_ID,
 	ZEEPO_AI_USAGE_KIND,
 	type ZeepoAiPlanType,
 } from "./zeepo-ai-billing";
-import { agreedPriceIncVatFromExVat } from "./convert-price";
+import { agreedPriceIncVatFromOrderLine } from "./convert-price";
 import { creditZeepoAiTokens } from "./zeepo-ai-tokens";
 
 type PlanMeta = {
@@ -80,6 +81,7 @@ export type ZeepoAiOrderItem = {
 	productPlanId: string | null;
 	billingCycle: string | null;
 	itemPrice: string;
+	itemSubtotal?: string | null;
 	description: string | null;
 	metadata?: Record<string, unknown> | null;
 	product: { name: string };
@@ -122,7 +124,7 @@ async function createZeepoAiPaygSubscription(
 			subscriptionDate: now,
 			billingCycle: (item.billingCycle as "CUSTOM" | null) ?? "CUSTOM",
 			pricingModel: "USAGE",
-			agreedPrice: agreedPriceIncVatFromExVat(item.itemPrice),
+			agreedPrice: agreedPriceIncVatFromOrderLine(item),
 			agreedCurrency: order.currency,
 			agreedCost: plan.cost ?? null,
 			agreedCostCurrency: "USD",
@@ -181,18 +183,33 @@ export async function provisionZeepoAiOrderItem(
 	}
 
 	if (meta.tokenGrant > 0) {
-		await creditZeepoAiTokens({
-			teamId: order.teamId,
-			userId: performedBy,
-			tokens: meta.tokenGrant,
-			operationType: "top_up",
-			description: `Token top-up: ${item.productPlan.name}`,
-			metadata: {
-				niscOrderId: order.orderId,
-				productPlanId: item.productPlanId,
-				tokenGrant: meta.tokenGrant,
-			},
-		});
+		// Idempotent: skip if this order already credited tokens (retry / crash recovery).
+		const [alreadyCredited] = await db
+			.select({ id: zeepoAiTokenLedger.id })
+			.from(zeepoAiTokenLedger)
+			.where(
+				and(
+					eq(zeepoAiTokenLedger.teamId, order.teamId),
+					eq(zeepoAiTokenLedger.direction, "CREDIT"),
+					eq(zeepoAiTokenLedger.operationType, "top_up"),
+					sql`${zeepoAiTokenLedger.metadata}->>'niscOrderId' = ${order.orderId}`,
+				),
+			)
+			.limit(1);
+		if (!alreadyCredited) {
+			await creditZeepoAiTokens({
+				teamId: order.teamId,
+				userId: performedBy,
+				tokens: meta.tokenGrant,
+				operationType: "top_up",
+				description: `Token top-up: ${item.productPlan.name}`,
+				metadata: {
+					niscOrderId: order.orderId,
+					productPlanId: item.productPlanId,
+					tokenGrant: meta.tokenGrant,
+				},
+			});
+		}
 	}
 
 	return { subscriptionId: existingSub.id };

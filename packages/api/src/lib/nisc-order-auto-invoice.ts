@@ -3,7 +3,7 @@
  * Used by the process-nisc-order worker via nisc-order-invoice-delivery.
  */
 import * as crypto from "crypto";
-import { eq, sql } from "@npanel/db";
+import { and, eq, sql } from "@npanel/db";
 import type { TeamBillingSettings } from "../schemas/team-billing";
 import { isTeamBillingComplete } from "../schemas/team-billing";
 import type { NiscOrderForInvoice } from "../schemas/nisc-order-invoice";
@@ -286,10 +286,33 @@ export async function createInvoiceForNiscOrder(
 		createdAt: now,
 	});
 
-	await db
+	const claimed = await db
 		.update(niscOrder)
-		.set({ invoiceId: newInvoiceId, invoiceNumber: generatedInvoiceNumber, updatedAt: now })
-		.where(eq(niscOrder.id, order.id));
+		.set({
+			invoiceId: newInvoiceId,
+			invoiceNumber: generatedInvoiceNumber,
+			updatedAt: now,
+		})
+		.where(and(eq(niscOrder.id, order.id), sql`${niscOrder.invoiceId} IS NULL`))
+		.returning({ id: niscOrder.id });
+
+	if (!claimed[0]) {
+		// Another worker linked an invoice — delete the orphan we created, return the existing one.
+		await db.delete(invoiceActivityLog).where(eq(invoiceActivityLog.invoiceId, newInvoiceId));
+		await db.delete(invoiceLineItem).where(eq(invoiceLineItem.invoiceId, newInvoiceId));
+		await db.delete(invoice).where(eq(invoice.id, newInvoiceId));
+		const [current] = await db
+			.select({
+				invoiceId: niscOrder.invoiceId,
+				invoiceNumber: niscOrder.invoiceNumber,
+			})
+			.from(niscOrder)
+			.where(eq(niscOrder.id, order.id))
+			.limit(1);
+		if (current?.invoiceId && current.invoiceNumber) {
+			return { invoiceId: current.invoiceId, invoiceNumber: current.invoiceNumber };
+		}
+	}
 
 	return { invoiceId: newInvoiceId, invoiceNumber: generatedInvoiceNumber };
 }

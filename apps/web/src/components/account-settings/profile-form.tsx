@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -15,6 +16,7 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import { captureEvent } from "@/lib/posthog";
 import { CountrySelect } from "./country-select";
+import { ChangeEmailDialog } from "./change-email-dialog";
 import { SettingsSection } from "./settings-section";
 
 const profileFormSchema = z.object({
@@ -48,6 +50,7 @@ function ProfileFormSkeleton() {
 }
 
 export function ProfileForm() {
+  const [changeEmailOpen, setChangeEmailOpen] = useState(false);
   const { data: userInfo, isLoading, refetch } = trpc.userProfile.getUserInfo.useQuery();
 
   const updateProfileMutation = trpc.userProfile.updateProfile.useMutation({
@@ -165,9 +168,23 @@ export function ProfileForm() {
                   <Mail className="h-3.5 w-3.5" />
                   Email address
                 </p>
-                <p className="mt-0.5 text-sm">{userInfo.email}</p>
+                <p className="mt-0.5 truncate text-sm">{userInfo.email}</p>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="mt-2"
+                  onClick={() => setChangeEmailOpen(true)}
+                >
+                  Request email change
+                </Button>
               </div>
             </SettingsSection>
+
+            <ChangeEmailDialog
+              open={changeEmailOpen}
+              onOpenChange={setChangeEmailOpen}
+              currentEmail={userInfo.email}
+            />
 
             <Separator />
 

@@ -1378,6 +1378,8 @@ export function BuyNowDialog({
           hivelocityTargetDeviceId: u.targetDeviceId,
           hivelocityCurrentProductId: undefined,
           upgradeDeltaUsd: u.upgradeDeltaUsd,
+          targetMonthlyPriceExVat: u.targetDisplayMonthlyPrice,
+          targetMonthlyUsd: u.targetMonthlyUsd,
           hivelocityLocationName: u.currentLocationName,
           hivelocityOsName: u.currentOsName,
           hivelocityHostname: u.currentHostname,
@@ -1748,6 +1750,7 @@ export function BuyNowDialog({
       amount: amount,
       accountReference: resolved.accountReference,
       transactionDesc,
+      checkoutTotalIncVat: pricing.total,
       ...(resolvedCheckoutTeamId && { teamId: resolvedCheckoutTeamId }),
     });
   };

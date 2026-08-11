@@ -37,6 +37,8 @@ export const StkPushRequestSchema = z.object({
 		.optional(), // Max 13 chars
 	callbackUrl: z.string().url("Invalid callback URL").optional(),
 	teamId: z.string().optional(), // Optional team ID for team payments
+	/** Tax-inclusive checkout total; used to reject underpayment (and allow agency overpay). */
+	checkoutTotalIncVat: z.number().positive().optional(),
 });
 
 export type StkPushRequest = z.infer<typeof StkPushRequestSchema>;

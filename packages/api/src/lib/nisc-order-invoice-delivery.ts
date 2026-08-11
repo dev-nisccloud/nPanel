@@ -97,6 +97,22 @@ export async function createAndEmailNiscOrderInvoice(
 	let invoiceNumber = order.invoiceNumber ?? null;
 
 	if (!invoiceId) {
+		// Re-read once more in case another worker already linked an invoice.
+		const [freshOrder] = await db
+			.select({
+				invoiceId: niscOrder.invoiceId,
+				invoiceNumber: niscOrder.invoiceNumber,
+			})
+			.from(niscOrder)
+			.where(eq(niscOrder.id, niscOrderId))
+			.limit(1);
+		if (freshOrder?.invoiceId) {
+			invoiceId = freshOrder.invoiceId;
+			invoiceNumber = freshOrder.invoiceNumber ?? invoiceNumber;
+		}
+	}
+
+	if (!invoiceId) {
 		try {
 			let paymentGateway: string | null = null;
 			const orderRow = await db

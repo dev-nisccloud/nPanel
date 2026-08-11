@@ -668,6 +668,7 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
         amount: amount,
         accountReference: resolved.accountReference.trim(),
         transactionDesc: transactionDesc,
+        checkoutTotalIncVat: total,
       });
     } catch (error) {
       // Error is handled by mutation onError

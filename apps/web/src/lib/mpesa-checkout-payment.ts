@@ -16,12 +16,17 @@ export function resolveMpesaCheckoutPayment(input: ResolveMpesaCheckoutPaymentIn
 	amountString: string;
 } {
 	if (input.isAgencyUser) {
-		const amountString = input.formAmount.trim();
 		const accountReference = input.formAccountReference.trim();
+		const formAmount = parseFloat(input.formAmount.trim());
+		// Agency may overpay for testing, but never underpay vs checkout total.
+		const amount = Number.isFinite(formAmount)
+			? Math.max(Math.ceil(formAmount), Math.ceil(input.checkoutTotalIncVat))
+			: Math.ceil(input.checkoutTotalIncVat);
+		const amountString = paymentTotalString(amount);
 		return {
 			amountString,
 			accountReference,
-			amount: parseFloat(amountString),
+			amount,
 		};
 	}
 

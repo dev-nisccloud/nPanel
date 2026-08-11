@@ -1,13 +1,14 @@
 /**
  * Zeepo AI Agent order provisioning: subscriptions, top-ups, pay-as-you-go.
  */
-import { and, eq } from "@npanel/db";
+import { and, eq, sql } from "@npanel/db";
 import { db } from "@npanel/db";
 import {
 	niscClientSubscription,
 	niscClientSubscriptionUsage,
 	niscProductPlan,
 } from "@npanel/db/schema/products";
+import { zeepoAgentTokenLedger } from "@npanel/db/schema/zeepo-agent";
 import { randomUUID } from "node:crypto";
 import {
 	ZEEPO_AGENT_USAGE_KIND,
@@ -15,7 +16,7 @@ import {
 	type ZeepoAgentPlanType,
 } from "./zeepo-agent-billing";
 import { creditZeepoAgentTokens, setZeepoAgentTokenBalance } from "./zeepo-agent-tokens";
-import { agreedPriceIncVatFromExVat } from "./convert-price";
+import { agreedPriceIncVatFromOrderLine } from "./convert-price";
 import { provisionInitialUsageCreditsForSubscription } from "./subscription-usage-provisioning";
 
 type PlanMeta = {
@@ -88,6 +89,7 @@ export type ZeepoOrderItem = {
 	productPlanId: string | null;
 	billingCycle: string | null;
 	itemPrice: string;
+	itemSubtotal?: string | null;
 	description: string | null;
 	metadata?: Record<string, unknown> | null;
 	product: { name: string };
@@ -150,19 +152,33 @@ export async function provisionZeepoAgentOrderItem(
 		}
 		await ensureTokenUsageRow(existingSub.id);
 		if (effectiveTokenGrant > 0) {
-			await creditZeepoAgentTokens({
-				teamId: order.teamId,
-				userId: performedBy,
-				tokens: effectiveTokenGrant,
-				operationType: "top_up",
-				description: `Token top-up: ${item.productPlan.name}`,
-				metadata: {
-					niscOrderId: order.orderId,
-					productPlanId: item.productPlanId,
-					tokenGrant: effectiveTokenGrant,
-					...(tokenOverride != null ? { agencyTokenOverride: tokenOverride } : {}),
-				},
-			});
+			const [alreadyCredited] = await db
+				.select({ id: zeepoAgentTokenLedger.id })
+				.from(zeepoAgentTokenLedger)
+				.where(
+					and(
+						eq(zeepoAgentTokenLedger.teamId, order.teamId),
+						eq(zeepoAgentTokenLedger.direction, "CREDIT"),
+						eq(zeepoAgentTokenLedger.operationType, "top_up"),
+						sql`${zeepoAgentTokenLedger.metadata}->>'niscOrderId' = ${order.orderId}`,
+					),
+				)
+				.limit(1);
+			if (!alreadyCredited) {
+				await creditZeepoAgentTokens({
+					teamId: order.teamId,
+					userId: performedBy,
+					tokens: effectiveTokenGrant,
+					operationType: "top_up",
+					description: `Token top-up: ${item.productPlan.name}`,
+					metadata: {
+						niscOrderId: order.orderId,
+						productPlanId: item.productPlanId,
+						tokenGrant: effectiveTokenGrant,
+						...(tokenOverride != null ? { agencyTokenOverride: tokenOverride } : {}),
+					},
+				});
+			}
 		}
 		return { subscriptionId: existingSub.id };
 	}
@@ -179,18 +195,91 @@ export async function provisionZeepoAgentOrderItem(
 
 	// --- Monthly subscription: one active sub per team; reset tokens on (re)purchase ---
 	if (existingSub) {
+		const existingMeta = (existingSub.metadata ?? {}) as Record<string, unknown>;
+		const alreadyAppliedForOrder =
+			existingMeta.lastAppliedNiscOrderId === order.orderId ||
+			(await db
+				.select({ id: zeepoAgentTokenLedger.id })
+				.from(zeepoAgentTokenLedger)
+				.where(
+					and(
+						eq(zeepoAgentTokenLedger.teamId, order.teamId),
+						eq(zeepoAgentTokenLedger.direction, "CREDIT"),
+						sql`${zeepoAgentTokenLedger.metadata}->>'niscOrderId' = ${order.orderId}`,
+						sql`${zeepoAgentTokenLedger.operationType} in ('subscription', 'subscription_reset', 'agency_token_override')`,
+					),
+				)
+				.limit(1)
+				.then((rows) => Boolean(rows[0])));
+
 		await db
 			.update(niscClientSubscription)
 			.set({
 				productPlanId: item.productPlanId,
 				billingCycle: (item.billingCycle as "MONTHLY" | null) ?? "MONTHLY",
-				agreedPrice: agreedPriceIncVatFromExVat(item.itemPrice),
+				agreedPrice: agreedPriceIncVatFromOrderLine(item),
 				updatedAt: new Date(),
 			})
 			.where(eq(niscClientSubscription.id, existingSub.id));
 
+		if (!alreadyAppliedForOrder) {
+			await provisionInitialUsageCreditsForSubscription({
+				subscriptionId: existingSub.id,
+				productId: item.productId,
+				productPlanId: item.productPlanId,
+				performedByUserId: performedBy,
+				mode: "reset",
+			});
+
+			if (tokenOverride != null) {
+				await ensureTokenUsageRow(existingSub.id);
+				await setZeepoAgentTokenBalance({
+					teamId: order.teamId,
+					userId: performedBy,
+					tokens: tokenOverride,
+					operationType: "agency_token_override",
+					description: `Agency token grant override (${tokenOverride} tokens)`,
+					metadata: {
+						niscOrderId: order.orderId,
+						productPlanId: item.productPlanId,
+						planTokenGrant: meta.tokenGrant,
+					},
+				});
+			}
+
+			await db
+				.update(niscClientSubscription)
+				.set({
+					metadata: { ...existingMeta, lastAppliedNiscOrderId: order.orderId },
+					updatedAt: new Date(),
+				})
+				.where(eq(niscClientSubscription.id, existingSub.id));
+		}
+
+		return { subscriptionId: existingSub.id };
+	}
+
+	const sub = await createZeepoSubscription(order, item, meta);
+	const subMeta = (sub.metadata ?? {}) as Record<string, unknown>;
+	const alreadyAppliedNewSub =
+		subMeta.lastAppliedNiscOrderId === order.orderId ||
+		(await db
+			.select({ id: zeepoAgentTokenLedger.id })
+			.from(zeepoAgentTokenLedger)
+			.where(
+				and(
+					eq(zeepoAgentTokenLedger.teamId, order.teamId),
+					eq(zeepoAgentTokenLedger.direction, "CREDIT"),
+					sql`${zeepoAgentTokenLedger.metadata}->>'niscOrderId' = ${order.orderId}`,
+					sql`${zeepoAgentTokenLedger.operationType} in ('subscription', 'subscription_reset', 'agency_token_override')`,
+				),
+			)
+			.limit(1)
+			.then((rows) => Boolean(rows[0])));
+
+	if (!alreadyAppliedNewSub) {
 		await provisionInitialUsageCreditsForSubscription({
-			subscriptionId: existingSub.id,
+			subscriptionId: sub.id,
 			productId: item.productId,
 			productPlanId: item.productPlanId,
 			performedByUserId: performedBy,
@@ -198,7 +287,7 @@ export async function provisionZeepoAgentOrderItem(
 		});
 
 		if (tokenOverride != null) {
-			await ensureTokenUsageRow(existingSub.id);
+			await ensureTokenUsageRow(sub.id);
 			await setZeepoAgentTokenBalance({
 				teamId: order.teamId,
 				userId: performedBy,
@@ -213,32 +302,13 @@ export async function provisionZeepoAgentOrderItem(
 			});
 		}
 
-		return { subscriptionId: existingSub.id };
-	}
-
-	const sub = await createZeepoSubscription(order, item, meta);
-	await provisionInitialUsageCreditsForSubscription({
-		subscriptionId: sub.id,
-		productId: item.productId,
-		productPlanId: item.productPlanId,
-		performedByUserId: performedBy,
-		mode: "reset",
-	});
-
-	if (tokenOverride != null) {
-		await ensureTokenUsageRow(sub.id);
-		await setZeepoAgentTokenBalance({
-			teamId: order.teamId,
-			userId: performedBy,
-			tokens: tokenOverride,
-			operationType: "agency_token_override",
-			description: `Agency token grant override (${tokenOverride} tokens)`,
-			metadata: {
-				niscOrderId: order.orderId,
-				productPlanId: item.productPlanId,
-				planTokenGrant: meta.tokenGrant,
-			},
-		});
+		await db
+			.update(niscClientSubscription)
+			.set({
+				metadata: { ...subMeta, lastAppliedNiscOrderId: order.orderId },
+				updatedAt: new Date(),
+			})
+			.where(eq(niscClientSubscription.id, sub.id));
 	}
 
 	return { subscriptionId: sub.id };
@@ -271,7 +341,7 @@ async function createZeepoSubscription(
 			subscriptionDate: now,
 			billingCycle: (item.billingCycle as "MONTHLY" | "CUSTOM" | null) ?? null,
 			pricingModel: "FIXED",
-			agreedPrice: agreedPriceIncVatFromExVat(item.itemPrice),
+			agreedPrice: agreedPriceIncVatFromOrderLine(item),
 			agreedCurrency: order.currency,
 			agreedCost: plan.cost ?? null,
 			agreedCostCurrency: "USD",
