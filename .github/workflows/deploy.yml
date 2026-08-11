@@ -286,8 +286,14 @@ jobs:
 
       - name: Build and Push Web Container
         run: |
+          LANDING_URL="${{ secrets.VITE_LANDING_PAGE_URL_STAGING }}"
+          if [ -z "$LANDING_URL" ]; then
+            LANDING_URL="https://staging.nisccloud.com"
+          fi
+          echo "Using landing page URL for web build: $LANDING_URL"
           docker build -f apps/web/Dockerfile \
             --build-arg VITE_SERVER_URL=${{ steps.resolve-server-url.outputs.server_url }} \
+            --build-arg VITE_LANDING_PAGE_URL="$LANDING_URL" \
             --build-arg BETTER_AUTH_SECRET=build-time-placeholder-do-not-use-in-production \
             -t ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
             .
@@ -545,8 +551,14 @@ jobs:
 
       - name: Build and Push Web Container
         run: |
+          LANDING_URL="${{ secrets.VITE_LANDING_PAGE_URL_PRODUCTION }}"
+          if [ -z "$LANDING_URL" ]; then
+            LANDING_URL="https://www.nisccloud.com"
+          fi
+          echo "Using landing page URL for web build: $LANDING_URL"
           docker build -f apps/web/Dockerfile \
             --build-arg VITE_SERVER_URL=${{ steps.resolve-server-url.outputs.server_url }} \
+            --build-arg VITE_LANDING_PAGE_URL="$LANDING_URL" \
             --build-arg BETTER_AUTH_SECRET=build-time-placeholder-do-not-use-in-production \
             -t ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
             .
