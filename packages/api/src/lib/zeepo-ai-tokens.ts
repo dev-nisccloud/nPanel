@@ -216,7 +216,7 @@ export async function debitZeepoAiTokensOrThrow(
 		});
 	}
 	if (result.tokensDebited < params.tokens) {
-		// Partial debit — refund and fail closed so we don't under-bill silently for paid work.
+		// Partial debit  refund and fail closed so we don't under-bill silently for paid work.
 		await creditZeepoAiTokens({
 			teamId: params.teamId,
 			userId: params.userId,

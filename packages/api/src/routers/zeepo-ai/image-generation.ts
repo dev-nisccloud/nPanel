@@ -386,7 +386,7 @@ export async function executeGenerateImagesTool(
 
 	const now = new Date();
 
-	// Emit loaders FIRST — before any network (reference fetch) or DB work
+	// Emit loaders FIRST  before any network (reference fetch) or DB work
 	const emitPromise = Promise.all([
 		emitSurplusDrops(ctx.emit, surplus),
 		...slots.flatMap((slot) => [
@@ -437,7 +437,7 @@ export async function executeGenerateImagesTool(
 		})),
 	);
 
-	// Kick off reference fetch in parallel with emit + DB — never block loaders on it
+	// Kick off reference fetch in parallel with emit + DB  never block loaders on it
 	const refsPromise = resolveReferenceImages(
 		args.reference_attachment_ids ?? [],
 		ctx.sessionId,
@@ -510,7 +510,7 @@ export async function executeCreateImagePresentationTool(
 		const modelId = pickZeepoAiImageModel({ intent: "design", count: slots.length });
 		const now = new Date();
 
-		// Emit loaders FIRST for instant UI — don't block on DB writes
+		// Emit loaders FIRST for instant UI  don't block on DB writes
 		const emitPromise = Promise.all([
 			emitSurplusDrops(ctx.emit, surplus),
 			...slots.flatMap((slot) => [
@@ -535,7 +535,7 @@ export async function executeCreateImagePresentationTool(
 			]),
 		]);
 
-		// Persist to DB in parallel with UI updates — instant loader appearance
+		// Persist to DB in parallel with UI updates  instant loader appearance
 		const dbPromise = db.insert(zeepoAiGeneration).values(
 			slots.map((slot) => ({
 				id: slot.id,
@@ -627,7 +627,7 @@ export async function executeCreateImagePresentationTool(
 	const readyCount = orderedSlides.filter((s) => s.imageUrl).length;
 	const finalStatus = readyCount === orderedSlides.length ? "COMPLETED" : "FAILED";
 
-	// Emit to UI instantly — don't block on DB
+	// Emit to UI instantly  don't block on DB
 	const emitPromise = ctx.emit({
 		type: "generation",
 		generation: {
@@ -691,7 +691,7 @@ export async function failStaleZeepoAiGenerations(
 	for (const row of rows) {
 		const started = (row.startedAt ?? row.createdAt)?.getTime() ?? 0;
 		if (started > cutoff) continue;
-		// Conditional update — never overwrite COMPLETED/FAILED if status raced.
+		// Conditional update  never overwrite COMPLETED/FAILED if status raced.
 		await db
 			.update(zeepoAiGeneration)
 			.set({

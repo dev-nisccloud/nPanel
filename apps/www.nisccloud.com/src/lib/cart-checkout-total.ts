@@ -31,7 +31,7 @@ export function computeCartCheckoutTotal(params: {
   const hivelocityExtras = (params.hivelocityLines ?? []).reduce((s, l) => s + l.priceKes, 0);
 
   const subtotal = main + domain + hosting + hivelocityExtras;
-  // VAT always ceils (never rounds down) — matches dashboard / storefront checkout.
+  // VAT always ceils (never rounds down)  matches dashboard / storefront checkout.
   const taxAmount = Math.ceil(subtotal * 0.16);
   const total = subtotal + taxAmount;
 

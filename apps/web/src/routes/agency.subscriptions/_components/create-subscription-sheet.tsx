@@ -291,7 +291,7 @@ const createFormSchema = z
 			.trim()
 			.min(3, "Transaction reference must be at least 3 characters")
 			.max(120, "Transaction reference is too long"),
-		/** How the customer paid — stored on payment_transaction.gateway. */
+		/** How the customer paid  stored on payment_transaction.gateway. */
 		gateway: z.enum(["MPESA", "JENGA", "OTHER"]),
 	})
 	.superRefine((data, ctx) => {

@@ -172,7 +172,7 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 			};
 		}
 		if (current?.status === "PROCESSING") {
-			// Fresh claim held by another worker — do not pretend COMPLETED (avoids early emails).
+			// Fresh claim held by another worker  do not pretend COMPLETED (avoids early emails).
 			return {
 				ok: true,
 				status: "PROCESSING",
@@ -724,7 +724,7 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 
 	const failureReason = failureReasons.length > 0 ? failureReasons.join("; ") : null;
 	let orderStatus: "COMPLETED" | "FAILED" | "PARTIAL";
-	// Pending verification is not terminal failure — keep PARTIAL so reclaim/retry can finish later.
+	// Pending verification is not terminal failure  keep PARTIAL so reclaim/retry can finish later.
 	if (hasFailure && !hasSuccess && !hasPendingVerification) {
 		orderStatus = "FAILED";
 	} else if (hasFailure || hasPendingVerification) {
@@ -1181,7 +1181,7 @@ async function processKenicOrderItem(
 			const msg = err instanceof Error ? err.message : String(err);
 			console.error("[KENIC] Failed to enable transfer lock after registration:", err);
 			warnings.push(
-				`Domain provisioned but transfer lock could not be enabled (${msg}) — enable lock manually.`,
+				`Domain provisioned but transfer lock could not be enabled (${msg})  enable lock manually.`,
 			);
 		}
 		const subId = randomUUID();
@@ -1330,7 +1330,7 @@ async function processKenicTransferOrderItem(
 				const msg = err instanceof Error ? err.message : String(err);
 				console.error("[KENIC] Failed to enable transfer lock after transfer:", err);
 				warnings.push(
-					`Domain transferred but transfer lock could not be enabled (${msg}) — enable lock manually.`,
+					`Domain transferred but transfer lock could not be enabled (${msg})  enable lock manually.`,
 				);
 			}
 		}

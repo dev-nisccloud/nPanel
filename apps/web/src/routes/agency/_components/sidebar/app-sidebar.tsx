@@ -27,7 +27,7 @@ function hasMenuKey(url: string, allowedKeys: Set<string>): boolean {
   if (url === NISC_REPORTS_PREFIX) {
     return [...allowedKeys].some((key) => key.startsWith(NISC_REPORTS_PREFIX));
   }
-  // Activity lives under Zeepo AI — inherit parent access when not granted separately.
+  // Activity lives under Zeepo AI  inherit parent access when not granted separately.
   if (url === "/agency/zeepo-ai/activity" && allowedKeys.has("/agency/zeepo-ai")) {
     return true;
   }

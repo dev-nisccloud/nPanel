@@ -69,7 +69,7 @@ function formatInt(n: number): string {
 function providerLabel(provider: string | null | undefined): string {
   if (provider === "anthropic") return "Claude";
   if (provider === "google") return "Google";
-  return provider || "—";
+  return provider || "";
 }
 
 function eventLabel(eventType: string): string {
@@ -183,7 +183,7 @@ export function ZeepoAiActivityPage() {
           <div className="flex min-w-0 flex-col gap-2">
             <h1 className="text-base font-semibold tracking-tight">Activity usage</h1>
             <p className="text-xs text-muted-foreground">
-              Usage, cost, and token activity across all Zeepo AI model providers — grouped by user or
+              Usage, cost, and token activity across all Zeepo AI model providers  grouped by user or
               team.
             </p>
           </div>
@@ -578,7 +578,7 @@ export function ZeepoAiActivityPage() {
                     <TableCell>
                       {groupBy === "user" ? (
                         <div className="min-w-0 max-w-[220px]">
-                          <p className="truncate text-sm font-medium">{row.userName || "—"}</p>
+                          <p className="truncate text-sm font-medium">{row.userName || ""}</p>
                           <p className="truncate text-[11px] text-muted-foreground">
                             {row.userEmail || ""}
                           </p>
@@ -619,7 +619,7 @@ export function ZeepoAiActivityPage() {
                       )}
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-right text-xs tabular-nums text-muted-foreground">
-                      {row.lastAt ? format(new Date(row.lastAt), "MMM d, HH:mm") : "—"}
+                      {row.lastAt ? format(new Date(row.lastAt), "MMM d, HH:mm") : ""}
                     </TableCell>
                   </TableRow>
                 ))

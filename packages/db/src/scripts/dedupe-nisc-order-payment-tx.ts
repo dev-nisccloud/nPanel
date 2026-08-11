@@ -1,6 +1,6 @@
 /**
  * Uniquify duplicate nisc_order.payment_transaction_id values so the partial
- * unique index can apply — without deleting orders or nulling payment links.
+ * unique index can apply  without deleting orders or nulling payment links.
  *
  * Strategy (live-safe):
  * - Keep the oldest order per payment_transaction_id linked to the original payment.
@@ -86,7 +86,7 @@ try {
 			const original = payResult.rows[0] as Record<string, unknown> | undefined;
 			if (!original) {
 				console.warn(
-					`  ! ${dup.order_number}: original payment ${dup.payment_transaction_id} missing — skipping`,
+					`  ! ${dup.order_number}: original payment ${dup.payment_transaction_id} missing  skipping`,
 				);
 				await client.query("ROLLBACK");
 				continue;

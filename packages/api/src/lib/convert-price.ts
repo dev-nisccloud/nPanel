@@ -55,7 +55,7 @@ export function reverseCeilVatToExVat(
   return Math.max(0, exVat);
 }
 
-/** Prefer itemSubtotal, fall back to itemPrice — both are ex-VAT on order lines. */
+/** Prefer itemSubtotal, fall back to itemPrice  both are ex-VAT on order lines. */
 export function orderLineExVatAmount(item: {
   itemSubtotal?: string | number | null;
   itemPrice?: string | number | null;

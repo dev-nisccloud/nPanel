@@ -159,7 +159,7 @@ export const ZEEPO_AI_CLIENT_TOOLS = [
 	{
 		name: "generate_images",
 		description:
-			"Generate 1–8 images with the Zeepo design engine. Use for logos, brand assets, photos, mockups, ads, drafts. For N DISTINCT subjects (e.g. 6 products), pass prompts as an array of N single-subject prompts — never one mega-prompt with count=N (that renders collage/grids). Prefer intent=design|logo|mockup for graphic design; intent=draft for fast thumbnails; intent=suite for multi-ad campaigns. Never mention underlying model/provider names to the user.",
+			"Generate 1–8 images with the Zeepo design engine. Use for logos, brand assets, photos, mockups, ads, drafts. For N DISTINCT subjects (e.g. 6 products), pass prompts as an array of N single-subject prompts  never one mega-prompt with count=N (that renders collage/grids). Prefer intent=design|logo|mockup for graphic design; intent=draft for fast thumbnails; intent=suite for multi-ad campaigns. Never mention underlying model/provider names to the user.",
 		input_schema: {
 			type: "object" as const,
 			properties: {

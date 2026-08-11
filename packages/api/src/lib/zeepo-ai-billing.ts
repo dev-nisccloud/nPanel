@@ -35,11 +35,11 @@ export function resolveZeepoAiModelId(requested?: string | null): string {
 export const ZEEPO_AI_PRICE_USD_PER_MTOK = {
 	input: 3,
 	output: 15,
-	/** Cache hit / refresh — 0.1× base input. */
+	/** Cache hit / refresh  0.1× base input. */
 	cacheRead: 0.3,
-	/** 5-minute ephemeral cache write — 1.25× base input. */
+	/** 5-minute ephemeral cache write  1.25× base input. */
 	cacheWrite5m: 3.75,
-	/** 1-hour ephemeral cache write — 2× base input. */
+	/** 1-hour ephemeral cache write  2× base input. */
 	cacheWrite1h: 6,
 	/** @deprecated Prefer cacheWrite5m; kept for older call sites. */
 	cacheWrite: 3.75,
@@ -73,7 +73,7 @@ export type AnthropicUsageLike = {
 	output_tokens?: number | null;
 	cache_creation_input_tokens?: number | null;
 	cache_read_input_tokens?: number | null;
-	/** Preferred when present — splits 5m vs 1h write rates. */
+	/** Preferred when present  splits 5m vs 1h write rates. */
 	cache_creation?: AnthropicCacheCreationLike | null;
 	server_tool_use?: {
 		web_search_requests?: number | null;
@@ -123,7 +123,7 @@ function splitCacheWriteTokens(usage: AnthropicUsageLike): {
 			cacheWrite1h: oneHour ?? 0,
 		};
 	}
-	// Legacy flat field — Anthropic default TTL is 5 minutes.
+	// Legacy flat field  Anthropic default TTL is 5 minutes.
 	return {
 		cacheWrite5m: usage.cache_creation_input_tokens ?? 0,
 		cacheWrite1h: 0,

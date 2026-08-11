@@ -67,7 +67,7 @@ export function resolveZeepoAiGeminiImagePrices(modelId: string): ZeepoAiGeminiP
 	const id = modelId.toLowerCase();
 	if (id.includes("lite")) return ZEEPO_AI_GEMINI_FLASH_LITE_IMAGE_PRICES;
 	if (id.includes("pro")) return ZEEPO_AI_GEMINI_PRO_IMAGE_PRICES;
-	// gemini-2.5-flash-image (legacy Nano Banana) — $30/MTok image, 1290 @ 1K
+	// gemini-2.5-flash-image (legacy Nano Banana)  $30/MTok image, 1290 @ 1K
 	if (id.includes("2.5") && id.includes("flash-image")) {
 		return {
 			inputUsdPerMTok: 0.3,

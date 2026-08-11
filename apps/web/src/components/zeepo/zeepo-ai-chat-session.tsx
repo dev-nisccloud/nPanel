@@ -137,7 +137,7 @@ function inferOptimisticGenerations(
       `\\b(${createVerb})\\s+(?:\\d+|a|an|some|my|me\\s+)?(?:\\s+)?(${mediaNoun})\\b`,
       "i",
     ).test(lower) ||
-    // Attachments alone are not enough — need an edit/create cue
+    // Attachments alone are not enough  need an edit/create cue
     (Boolean(opts?.hasAttachments) &&
       (new RegExp(`\\b(${editVerb}|${createVerb})\\b`, "i").test(lower) ||
         /\b(based on|using|from)\s+(this|these|the)\b/i.test(lower) ||
@@ -418,7 +418,7 @@ export function ZeepoAiChatSessionPage() {
     }
     const m = msgs[lastIdx]!;
     if (dismissedQuestionIds.has(m.id)) return null;
-    // Show chips as soon as we have questions — including mid-stream partials
+    // Show chips as soon as we have questions  including mid-stream partials
     return { messageId: m.id, questions: m.clarifyingQuestions! };
   }, [session?.messages, dismissedQuestionIds]);
 
@@ -870,7 +870,7 @@ export function ZeepoAiChatSessionPage() {
                 flushStreamUi();
               }
               // Proxy / idle timeouts used to kill SSE while Gemini kept finishing images.
-              // Treat that as "keep waiting on loaders" — not a failed chat turn.
+              // Treat that as "keep waiting on loaders"  not a failed chat turn.
               // Only when a *server* generation event was seen (not optimistic-only).
               const softDisconnect =
                 mediaGenerationActive &&
@@ -911,7 +911,7 @@ export function ZeepoAiChatSessionPage() {
             }
 
             if (event.type === "usage") {
-              // Debit already committed server-side — update wallet immediately.
+              // Debit already committed server-side  update wallet immediately.
               if (route.teamId && event.tokensDebited > 0) {
                 utils.zeepoAi.billing.getTokenBalance.setData(
                   { teamId: route.teamId },

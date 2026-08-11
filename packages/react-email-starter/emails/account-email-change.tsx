@@ -61,7 +61,7 @@ export const AccountEmailChangeEmail = ({
         )}
         <EmailButton href={actionLink || '#'}>{buttonLabel}</EmailButton>
         <EmailText>
-          If you didn&apos;t request this change, you can ignore this message —
+          If you didn&apos;t request this change, you can ignore this message 
           no changes will be made to your account.
         </EmailText>
         <EmailText>

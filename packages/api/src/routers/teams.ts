@@ -11,7 +11,7 @@ import { team, teamInvite, teamMember } from "@npanel/db/schema/teams";
 import { renderTeamInviteEmail } from "../lib/email-templates";
 import { getSesClient, sendSesRawEmail } from "../lib/ses-client";
 
-// Zeepo AI Agent signup welcome grants removed — Zeepo AI uses gated first-use credits.
+// Zeepo AI Agent signup welcome grants removed  Zeepo AI uses gated first-use credits.
 
 const isAgencyRole = (role: string | null | undefined) =>
   ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");

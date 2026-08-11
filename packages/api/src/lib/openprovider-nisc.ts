@@ -978,7 +978,7 @@ async function findDomainInAccount(
 
 /**
  * Enable transfer lock after successful OpenProvider register/transfer.
- * Returns false (with logged response) when the lock call fails — callers should surface a warning.
+ * Returns false (with logged response) when the lock call fails  callers should surface a warning.
  */
 async function lockOpenProviderDomain(
 	client: ReturnType<typeof createOpenProviderClient>,
@@ -1011,7 +1011,7 @@ async function lockOpenProviderDomain(
 }
 
 const TRANSFER_LOCK_WARNING =
-	"Domain provisioned but transfer lock could not be enabled — enable lock manually.";
+	"Domain provisioned but transfer lock could not be enabled  enable lock manually.";
 
 function buildOpenProviderCustomerRequest(
 	profile: { firstName: string; lastName: string; address: string; city: string; country: string; postalCode: string; state?: string; phone: string },

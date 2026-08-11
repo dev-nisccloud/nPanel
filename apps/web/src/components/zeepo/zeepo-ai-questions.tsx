@@ -66,7 +66,7 @@ export function ZeepoAiClarifyingQuestions({
           isUploadingForStep: false,
         };
       }
-      // Questions can grow while partial JSON streams — keep progress, clamp index.
+      // Questions can grow while partial JSON streams  keep progress, clamp index.
       if (questions.length === 0) return prev;
       let currentIndex = prev.currentIndex;
       if (currentIndex >= questions.length) {

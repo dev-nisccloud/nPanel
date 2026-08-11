@@ -3,7 +3,7 @@
  *
  * Rules (team-scoped, once):
  * - Team must have ≥1 ACTIVE subscription that is NOT the Zeepo AI wallet itself
- *   (hosting, domain, etc. — proves they bought / hold a service with us)
+ *   (hosting, domain, etc.  proves they bought / hold a service with us)
  * - Grant flag on usage metadata must be unset
  * - No prior Zeepo AI messages for this team
  * - Creates PAYG wallet if missing, then credits welcome tokens in one transaction

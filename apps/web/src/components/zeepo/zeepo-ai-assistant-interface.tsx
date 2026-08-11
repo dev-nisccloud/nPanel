@@ -101,7 +101,7 @@ export function ZeepoAiAssistantInterface() {
         if (result.granted) {
           refreshZeepoAiTokenBalance(utils, route.teamId);
           toast.success(
-            `Welcome to Zeepo AI — ${result.tokensGranted} free tokens are on your team wallet to try it out.`,
+            `Welcome to Zeepo AI  ${result.tokensGranted} free tokens are on your team wallet to try it out.`,
             { duration: 7000 },
           );
         } else if (result.reason === "no_qualifying_service") {
@@ -115,7 +115,7 @@ export function ZeepoAiAssistantInterface() {
       .catch(() => {
         welcomeClaimedRef.current = false;
       });
-    // Intentionally omit mutation object from deps — fire once per mount when team is ready
+    // Intentionally omit mutation object from deps  fire once per mount when team is ready
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route.isCustomer, route.teamId, session?.user?.id]);
 

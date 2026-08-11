@@ -89,7 +89,7 @@ export type ZeepoAiStreamEvent =
 				options: string[];
 				allow_upload?: boolean;
 			}>;
-			/** True while tool JSON is still streaming — UI should keep the turn open. */
+			/** True while tool JSON is still streaming  UI should keep the turn open. */
 			partial?: boolean;
 	  }
 	| {
@@ -302,7 +302,7 @@ function tryParseImageSlotCount(partialJson: string): number | null {
 			return Math.min(8, Math.max(1, Math.floor(parsed.count)));
 		}
 	} catch {
-		/* incomplete JSON — heuristics below */
+		/* incomplete JSON  heuristics below */
 	}
 
 	const promptsIdx = trimmed.search(/"prompts"\s*:\s*\[/);
@@ -333,7 +333,7 @@ function tryParseImageSlotCount(partialJson: string): number | null {
 		}
 	}
 
-	// Prefer prompts (above) over count — count can arrive early and overshoot.
+	// Prefer prompts (above) over count  count can arrive early and overshoot.
 	const countMatch = trimmed.match(/"count"\s*:\s*(\d+)/);
 	if (countMatch) {
 		const n = Number(countMatch[1]);
@@ -414,7 +414,7 @@ function tryParseClarifyingQuestionsPartial(
 			return mapped.length > 0 ? mapped : null;
 		}
 	} catch {
-		/* incomplete — scan for closed objects */
+		/* incomplete  scan for closed objects */
 	}
 
 	const results: ParsedClarifyingQuestion[] = [];
@@ -1070,7 +1070,7 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 							toolUseId: block.id,
 						});
 
-						// Instant loaders / question skeleton the moment the tool block starts —
+						// Instant loaders / question skeleton the moment the tool block starts 
 						// do not wait for full tool JSON or finalMessage().
 						if (block.name === "ask_clarifying_questions") {
 							await emit(onEvent, {
@@ -1325,7 +1325,7 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 								message:
 									"Questions are shown to the user. Wait for their next message with answers. Do not call other tools this turn.",
 							};
-							// Final (non-partial) emit — replace any progressive chips
+							// Final (non-partial) emit  replace any progressive chips
 							await emit(onEvent, {
 								type: "clarifying_questions",
 								messageId: assistantMessageId,
@@ -1354,7 +1354,7 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 									content: parsed.data.content,
 								},
 							};
-							// Emit to UI instantly — don't block on DB
+							// Emit to UI instantly  don't block on DB
 							const emitPromise = emit(onEvent, {
 								type: "generation",
 								generation: {
@@ -1401,7 +1401,7 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 									slides: parsed.data.slides,
 								},
 							};
-							// Emit to UI instantly — don't block on DB
+							// Emit to UI instantly  don't block on DB
 							const emitPromise = emit(onEvent, {
 								type: "generation",
 								generation: {

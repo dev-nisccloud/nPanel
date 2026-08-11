@@ -53,6 +53,6 @@ export declare function isCoccaAuthInfoHash(value: string | null | undefined): b
 export declare function setKenicDomainAuthCode(domainName: string, authCode?: string): Promise<string>;
 /**
  * Enable or disable KENIC transfer lock (clientTransferProhibited).
- * Best-effort after successful registration/transfer — callers should not fail provision on lock errors.
+ * Best-effort after successful registration/transfer  callers should not fail provision on lock errors.
  */
 export declare function setKenicTransferLock(domainName: string, locked?: boolean): Promise<void>;

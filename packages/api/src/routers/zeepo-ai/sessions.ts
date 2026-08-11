@@ -214,7 +214,7 @@ export const zeepoAiSessionsRouter = router({
 		const total =
 			Number(genCountRow[0]?.value ?? 0) + Number(editCountRow[0]?.value ?? 0);
 
-		// Fetch a bounded window (page * limit from each side) then merge-sort —
+		// Fetch a bounded window (page * limit from each side) then merge-sort 
 		// avoids loading the entire library while staying correct for mixed timelines.
 		const fetchCap = Math.min(total, offset + limit);
 		const [generations, editHistory] = await Promise.all([

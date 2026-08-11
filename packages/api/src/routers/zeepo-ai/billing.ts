@@ -134,7 +134,7 @@ export const zeepoAiBillingRouter = router({
 
 		return {
 			unlimited: false,
-			/** Always a number for customers — 0 when wallet not initialized. */
+			/** Always a number for customers  0 when wallet not initialized. */
 			tokens: summary.hasSubscription ? summary.tokens : 0,
 			hasSubscription: summary.hasSubscription,
 			subscriptionId: summary.subscriptionId,
@@ -428,7 +428,7 @@ export const zeepoAiBillingRouter = router({
 
 	/**
 	 * Top-up packs for purchase UI (invoice via BuyNowDialog → nisc order).
-	 * PAYG plan is hidden — wallet is bootstrapped by welcome grant / first top-up.
+	 * PAYG plan is hidden  wallet is bootstrapped by welcome grant / first top-up.
 	 */
 	listPurchasePlans: zeepoAiProcedure
 		.input(z.object({ displayCurrency: z.string().default("KES") }))

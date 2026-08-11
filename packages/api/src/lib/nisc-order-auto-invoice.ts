@@ -297,7 +297,7 @@ export async function createInvoiceForNiscOrder(
 		.returning({ id: niscOrder.id });
 
 	if (!claimed[0]) {
-		// Another worker linked an invoice — delete the orphan we created, return the existing one.
+		// Another worker linked an invoice  delete the orphan we created, return the existing one.
 		await db.delete(invoiceActivityLog).where(eq(invoiceActivityLog.invoiceId, newInvoiceId));
 		await db.delete(invoiceLineItem).where(eq(invoiceLineItem.invoiceId, newInvoiceId));
 		await db.delete(invoice).where(eq(invoice.id, newInvoiceId));

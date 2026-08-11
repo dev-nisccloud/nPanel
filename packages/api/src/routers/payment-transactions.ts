@@ -168,7 +168,7 @@ export const paymentTransactionsRouter = router({
 				transactionReference: z.string().min(1).max(64),
 				amount: z.number().positive(),
 				currency: z.string().min(1).max(8).default("KES"),
-				/** How the customer actually paid — stored on payment_transaction.gateway. */
+				/** How the customer actually paid  stored on payment_transaction.gateway. */
 				gateway: z.enum(["MPESA", "JENGA", "OTHER"]).default("OTHER"),
 				accountReference: z.string().max(64).optional(),
 				transactionDesc: z.string().max(200).optional(),

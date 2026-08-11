@@ -128,7 +128,7 @@ export function ZeepoAiTokenWallet({ className }: Props) {
 								</span>
 								{!walletInitialized && (
 									<span className="text-[11px] font-normal leading-snug text-muted-foreground">
-										Wallet not started yet — balance is 0 until you unlock free credits or buy a pack.
+										Wallet not started yet  balance is 0 until you unlock free credits or buy a pack.
 									</span>
 								)}
 							</div>
@@ -217,7 +217,7 @@ export function ZeepoAiFreeCreditsNudge({ className }: { className?: string }) {
 			<p className="mt-1 text-muted-foreground leading-relaxed">
 				Your balance is 0 because this team doesn’t have an active service yet. Get hosting (or
 				another subscription) with us and we’ll credit {welcomeTokenGrant} free tokens to try Zeepo
-				AI — no invoice for that welcome grant.
+				AI  no invoice for that welcome grant.
 			</p>
 			<div className="mt-3 flex flex-wrap gap-2">
 				<Button type="button" size="sm" className="gap-1.5" asChild>

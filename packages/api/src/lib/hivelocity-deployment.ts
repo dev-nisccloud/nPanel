@@ -196,7 +196,7 @@ export async function provisionHivelocityViaDeployment(
 		created = parseDeployment(createRaw);
 		deploymentId = created.deploymentId;
 		if (!deploymentId || deploymentId <= 0) {
-			// Race: another worker created it — adopt that deployment.
+			// Race: another worker created it  adopt that deployment.
 			const raced = await findDeploymentByName(deploymentName);
 			deploymentId = raced?.deploymentId;
 			created = raced ?? created;
