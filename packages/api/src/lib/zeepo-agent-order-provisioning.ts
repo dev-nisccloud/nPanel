@@ -15,6 +15,7 @@ import {
 	type ZeepoAgentPlanType,
 } from "./zeepo-agent-billing";
 import { creditZeepoAgentTokens, setZeepoAgentTokenBalance } from "./zeepo-agent-tokens";
+import { agreedPriceIncVatFromExVat } from "./convert-price";
 import { provisionInitialUsageCreditsForSubscription } from "./subscription-usage-provisioning";
 
 type PlanMeta = {
@@ -183,7 +184,7 @@ export async function provisionZeepoAgentOrderItem(
 			.set({
 				productPlanId: item.productPlanId,
 				billingCycle: (item.billingCycle as "MONTHLY" | null) ?? "MONTHLY",
-				agreedPrice: item.itemPrice,
+				agreedPrice: agreedPriceIncVatFromExVat(item.itemPrice),
 				updatedAt: new Date(),
 			})
 			.where(eq(niscClientSubscription.id, existingSub.id));
@@ -270,7 +271,7 @@ async function createZeepoSubscription(
 			subscriptionDate: now,
 			billingCycle: (item.billingCycle as "MONTHLY" | "CUSTOM" | null) ?? null,
 			pricingModel: "FIXED",
-			agreedPrice: item.itemPrice,
+			agreedPrice: agreedPriceIncVatFromExVat(item.itemPrice),
 			agreedCurrency: order.currency,
 			agreedCost: plan.cost ?? null,
 			agreedCostCurrency: "USD",

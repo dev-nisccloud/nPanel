@@ -149,14 +149,20 @@ export async function POST(req: Request) {
 
 			// Update transaction if found
 			if (transaction) {
+				const receipt = paymentStatus.metadata?.mpesaReceiptNumber || null;
+				const paidFromCallback = paymentStatus.metadata?.amount;
 				await prisma.paymentTransaction.update({
 					where: { id: transaction.id },
 					data: {
 						status: "SUCCESS",
 						gatewayStatus: "0",
 						gatewayMessage: paymentStatus.resultDesc,
-						gatewayTransactionId: paymentStatus.metadata?.mpesaReceiptNumber || null,
-						receiptNumber: paymentStatus.metadata?.mpesaReceiptNumber || null,
+						gatewayTransactionId: receipt,
+						receiptNumber: receipt,
+						paidAmount:
+							paidFromCallback != null && Number.isFinite(paidFromCallback)
+								? String(Math.ceil(paidFromCallback))
+								: transaction.amount,
 						rawResponse: JSON.parse(JSON.stringify(validatedCallback)),
 						processedAt: now,
 						updatedAt: now,

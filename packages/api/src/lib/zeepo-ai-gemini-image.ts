@@ -9,6 +9,10 @@ import {
 	assertAllowedZeepoAiMediaUrl,
 	isZeepoAiDataImageUrl,
 } from "./zeepo-ai-media-url";
+import {
+	normalizeZeepoAiGeminiUsage,
+	type ZeepoAiGeminiUsageLike,
+} from "./zeepo-ai-gemini-pricing";
 
 async function withAbortSignal<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
 	if (!signal) return promise;
@@ -72,11 +76,8 @@ export type ZeepoAiImageResult = {
 	mimeType: string;
 	interactionId: string | null;
 	modelId: string;
-	usage?: {
-		totalInputTokens?: number;
-		totalOutputTokens?: number;
-		totalTokens?: number;
-	};
+	imageSize: "0.5K" | "1K" | "2K" | "4K";
+	usage?: ZeepoAiGeminiUsageLike;
 };
 
 function getGeminiClient(): GoogleGenAI {
@@ -123,7 +124,7 @@ function extractImageFromInteraction(interaction: unknown): {
 	data: string;
 	mimeType: string;
 	interactionId: string | null;
-	usage?: ZeepoAiImageResult["usage"];
+	usage?: ZeepoAiGeminiUsageLike;
 } {
 	const ix = interaction as {
 		id?: string;
@@ -138,12 +139,16 @@ function extractImageFromInteraction(interaction: unknown): {
 				mimeType?: string;
 			}>;
 		}>;
-		usage?: {
-			total_input_tokens?: number;
-			total_output_tokens?: number;
-			total_tokens?: number;
-		};
+		usage?: unknown;
+		usage_metadata?: unknown;
+		usageMetadata?: unknown;
 	};
+
+	const usage =
+		normalizeZeepoAiGeminiUsage(ix.usage) ??
+		normalizeZeepoAiGeminiUsage(ix.usage_metadata) ??
+		normalizeZeepoAiGeminiUsage(ix.usageMetadata) ??
+		undefined;
 
 	const fromConvenience = ix.output_image;
 	if (fromConvenience?.data) {
@@ -151,11 +156,7 @@ function extractImageFromInteraction(interaction: unknown): {
 			data: fromConvenience.data,
 			mimeType: fromConvenience.mime_type ?? fromConvenience.mimeType ?? "image/png",
 			interactionId: ix.id ?? null,
-			usage: {
-				totalInputTokens: ix.usage?.total_input_tokens,
-				totalOutputTokens: ix.usage?.total_output_tokens,
-				totalTokens: ix.usage?.total_tokens,
-			},
+			usage,
 		};
 	}
 
@@ -166,11 +167,7 @@ function extractImageFromInteraction(interaction: unknown): {
 					data: block.data,
 					mimeType: block.mime_type ?? block.mimeType ?? "image/png",
 					interactionId: ix.id ?? null,
-					usage: {
-						totalInputTokens: ix.usage?.total_input_tokens,
-						totalOutputTokens: ix.usage?.total_output_tokens,
-						totalTokens: ix.usage?.total_tokens,
-					},
+					usage,
 				};
 			}
 		}
@@ -182,6 +179,7 @@ function extractImageFromInteraction(interaction: unknown): {
 				data: out.data,
 				mimeType: out.mime_type ?? out.mimeType ?? "image/png",
 				interactionId: ix.id ?? null,
+				usage,
 			};
 		}
 	}
@@ -226,6 +224,7 @@ export async function createZeepoAiImage(params: {
 	const aspectRatio = (params.aspectRatio ?? "1:1") as string;
 	// Interactions API only supports image/jpeg
 	const mimeType = "image/jpeg";
+	const imageSize = modelId.includes("lite") ? ("1K" as const) : ("2K" as const);
 
 	try {
 		if (params.signal?.aborted) throw new Error("Cancelled");
@@ -241,7 +240,7 @@ export async function createZeepoAiImage(params: {
 					type: "image",
 					mime_type: mimeType,
 					aspect_ratio: aspectRatio,
-					image_size: modelId.includes("lite") ? "1K" : "2K",
+					image_size: imageSize,
 				} as never,
 				...(params.previousInteractionId
 					? { previous_interaction_id: params.previousInteractionId }
@@ -257,6 +256,7 @@ export async function createZeepoAiImage(params: {
 			mimeType: extracted.mimeType,
 			interactionId: extracted.interactionId,
 			modelId,
+			imageSize,
 			usage: extracted.usage,
 		};
 	} catch (error: unknown) {

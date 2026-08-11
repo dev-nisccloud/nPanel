@@ -4,6 +4,7 @@
 import { db, eq } from "@npanel/db";
 import { invoice as invoiceTable } from "@npanel/db/schema/invoicing";
 import { niscOrder } from "@npanel/db/schema/nisc-orders";
+import { paymentTransaction } from "@npanel/db/schema/payment-transactions";
 import { user as userTable } from "@npanel/db/schema/auth";
 import { createInvoiceForNiscOrder } from "./nisc-order-auto-invoice";
 import type { NiscOrderForInvoice } from "../schemas/nisc-order-invoice";
@@ -97,7 +98,24 @@ export async function createAndEmailNiscOrderInvoice(
 
 	if (!invoiceId) {
 		try {
-			const created = await createInvoiceForNiscOrder(db, order, billing, createdBy);
+			let paymentGateway: string | null = null;
+			const orderRow = await db
+				.select({ paymentTransactionId: niscOrder.paymentTransactionId })
+				.from(niscOrder)
+				.where(eq(niscOrder.id, niscOrderId))
+				.limit(1);
+			const paymentTxId = orderRow[0]?.paymentTransactionId?.trim();
+			if (paymentTxId) {
+				const [tx] = await db
+					.select({ gateway: paymentTransaction.gateway })
+					.from(paymentTransaction)
+					.where(eq(paymentTransaction.id, paymentTxId))
+					.limit(1);
+				paymentGateway = tx?.gateway ?? null;
+			}
+			const created = await createInvoiceForNiscOrder(db, order, billing, createdBy, {
+				paymentGateway,
+			});
 			if (!created) {
 				const reasonCode = NISC_INVOICE_SKIP_REASON_CODES.INVOICE_CREATION_FAILED;
 				const reasonMessage = NISC_INVOICE_SKIP_REASON_MESSAGES[reasonCode];

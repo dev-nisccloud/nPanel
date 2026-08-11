@@ -17,6 +17,11 @@ import {
 import { paymentTransaction } from "@npanel/db/schema/payment-transactions";
 import { team, teamMember, teamBillingSettings } from "@npanel/db/schema/teams";
 import { protectedProcedure, router } from "../trpc";
+import {
+	computeCeilVatTotals,
+	paymentTotalString,
+	reverseCeilVatToExVat,
+} from "../lib/convert-price";
 import { enqueueNiscOrderProcessing } from "../lib/qstash/nisc-order-worker";
 import { userIsAgencyStaff } from "../lib/domain-transfer-access";
 import { isKenicDomain } from "../lib/epp/kenic-tlds";
@@ -28,6 +33,7 @@ import { processNiscOrder } from "../lib/nisc-order-processor";
 import { runPreProvisioningInvoiceForOrder } from "../lib/nisc-order-invoice-delivery";
 import { isZeepoAiAgentProduct } from "../lib/zeepo-agent-order-provisioning";
 import { resolveActiveNiscProductById } from "../lib/planless-product-resolver";
+import { resolveDomainBillingCycle } from "../lib/nisc-subscription-dates";
 import {
 	createFromPaymentInputSchema,
 	createOrderInputSchema,
@@ -545,7 +551,8 @@ export const niscServiceOrdersRouter = router({
 				}),
 			);
 			const subtotal = planPrices.reduce((sum, { price }) => sum + price, 0);
-			const total = subtotal;
+			const { totalIncVat } = computeCeilVatTotals(subtotal);
+			const total = totalIncVat;
 
 			const insertedOrder = await db
 				.insert(niscOrder)
@@ -689,7 +696,30 @@ export const niscServiceOrdersRouter = router({
 				});
 			}
 
+			// Idempotency: one payment → one order (retries / card-return remounts must not double-create).
+			const existingForPayment = await db.query.niscOrder.findFirst({
+				where: eq(niscOrder.paymentTransactionId, transaction.id),
+				columns: { id: true },
+			});
+			if (existingForPayment) {
+				return db.query.niscOrder.findFirst({
+					where: eq(niscOrder.id, existingForPayment.id),
+					with: {
+						orderItems: {
+							with: {
+								product: { columns: { id: true, name: true, serviceType: true } },
+								productPlan: { columns: { id: true, name: true } },
+							},
+						},
+						user: { columns: { id: true, name: true, email: true } },
+						team: { columns: { id: true, name: true } },
+					},
+				});
+			}
+
 			// Align line items with the amount actually paid (supports editable M-Pesa test amounts).
+			// Paid STK amounts are tax-inclusive; store reversed ex-VAT on lines so invoices
+			// and agreedPrice (+VAT) stay consistent.
 			const paidAmountRaw = transaction.paidAmount ?? transaction.amount;
 			const paidAmountNum = Number.parseFloat(paidAmountRaw);
 			const isBundleOrder = orderItemsIncludeDomainBundle(input.items);
@@ -697,14 +727,36 @@ export const niscServiceOrdersRouter = router({
 				? input.items.findIndex((item) => isDomainBundleLeadItem(item.metadata))
 				: -1;
 			if (Number.isFinite(paidAmountNum) && paidAmountNum > 0) {
+				const paidExVat = reverseCeilVatToExVat(paidAmountNum);
 				if (input.items.length === 1) {
-					const paidStr = String(Math.ceil(paidAmountNum));
-					input.items[0]!.itemPrice = paidStr;
-					input.items[0]!.itemSubtotal = paidStr;
+					const exVatStr = String(paidExVat);
+					input.items[0]!.itemPrice = exVatStr;
+					input.items[0]!.itemSubtotal = exVatStr;
 				} else if (bundleLeadIndex >= 0) {
-					const paidStr = String(Math.ceil(paidAmountNum));
-					input.items[bundleLeadIndex]!.itemPrice = paidStr;
-					input.items[bundleLeadIndex]!.itemSubtotal = paidStr;
+					const exVatStr = String(paidExVat);
+					input.items[bundleLeadIndex]!.itemPrice = exVatStr;
+					input.items[bundleLeadIndex]!.itemSubtotal = exVatStr;
+				} else {
+					// Multi-item carts: scale client ex-VAT lines so they sum to paid (ex VAT).
+					const currentSum = input.items.reduce(
+						(sum, i) => sum + (Number.parseFloat(i.itemSubtotal || "0") || 0),
+						0,
+					);
+					if (currentSum > 0 && Math.abs(currentSum - paidExVat) > 0.5) {
+						let allocated = 0;
+						for (let i = 0; i < input.items.length; i++) {
+							const item = input.items[i]!;
+							const raw = Number.parseFloat(item.itemSubtotal || "0") || 0;
+							const next =
+								i === input.items.length - 1
+									? Math.max(0, paidExVat - allocated)
+									: Math.round((raw / currentSum) * paidExVat);
+							allocated += next;
+							const nextStr = String(next);
+							item.itemPrice = nextStr;
+							item.itemSubtotal = nextStr;
+						}
+					}
 				}
 			}
 
@@ -718,6 +770,17 @@ export const niscServiceOrdersRouter = router({
 				}
 				if (product.id !== item.productId) {
 					item.productId = product.id;
+				}
+				const serviceType = product.serviceType;
+				if (
+					serviceType === "domain_registration" ||
+					serviceType === "domain_transfer" ||
+					serviceType === "domains"
+				) {
+					item.billingCycle = resolveDomainBillingCycle(item.billingCycle) as
+						| "YEARLY"
+						| "BIENNIALLY"
+						| "MONTHLY";
 				}
 				if (isZeepoAiAgentProduct(item.productId)) {
 					if (!input.teamId?.trim()) {
@@ -1035,9 +1098,13 @@ export const niscServiceOrdersRouter = router({
 			} while (existing);
 
 			const subtotalNum = input.items.reduce((sum, i) => sum + parseFloat(i.itemSubtotal || "0"), 0);
-			const totalNum = subtotalNum;
+			const { totalIncVat } = computeCeilVatTotals(subtotalNum);
+			const totalNum =
+				Number.isFinite(paidAmountNum) && paidAmountNum > 0
+					? Math.ceil(paidAmountNum)
+					: totalIncVat;
 			const subtotal = String(subtotalNum);
-			const total = String(totalNum);
+			const total = paymentTotalString(totalNum);
 			const currency = input.currency || "KES";
 
 			let orderUserId = userId;
@@ -1078,35 +1145,81 @@ export const niscServiceOrdersRouter = router({
 				}
 			}
 			const skipInvoice = skipInvoiceRequested;
-			const payOrderIns = await db
-				.insert(niscOrder)
-				.values({
-					id: randomUUID(),
-					orderNumber,
-					userId: orderUserId,
-					teamId: orderTeamId,
-					createdBy: session.user.id,
-					status: "PENDING",
-					subtotal,
-					total,
-					currency,
-					paymentTransactionId: transaction.id,
-					...(skipInvoice
-						? {
-								metadata: {
-									skipInvoice: true,
-									agencyManualCreate: true,
-								},
-							}
-						: {}),
-				})
-				.returning();
-			const order = payOrderIns[0];
-			if (!order) {
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to create Nisc order",
+			const loadOrderById = (id: string) =>
+				db.query.niscOrder.findFirst({
+					where: eq(niscOrder.id, id),
+					with: {
+						orderItems: {
+							with: {
+								product: { columns: { id: true, name: true, serviceType: true } },
+								productPlan: { columns: { id: true, name: true } },
+							},
+						},
+						user: { columns: { id: true, name: true, email: true } },
+						team: { columns: { id: true, name: true } },
+					},
 				});
+
+			const isUniqueViolation = (err: unknown): boolean => {
+				let current: unknown = err;
+				for (let i = 0; i < 5 && current; i++) {
+					if (
+						typeof current === "object" &&
+						current !== null &&
+						"code" in current &&
+						(current as { code?: string }).code === "23505"
+					) {
+						return true;
+					}
+					current =
+						typeof current === "object" && current !== null && "cause" in current
+							? (current as { cause?: unknown }).cause
+							: undefined;
+				}
+				return false;
+			};
+
+			let order: typeof niscOrder.$inferSelect;
+			try {
+				const payOrderIns = await db
+					.insert(niscOrder)
+					.values({
+						id: randomUUID(),
+						orderNumber,
+						userId: orderUserId,
+						teamId: orderTeamId,
+						createdBy: session.user.id,
+						status: "PENDING",
+						subtotal,
+						total,
+						currency,
+						paymentTransactionId: transaction.id,
+						...(skipInvoice
+							? {
+									metadata: {
+										skipInvoice: true,
+										agencyManualCreate: true,
+									},
+								}
+							: {}),
+					})
+					.returning();
+				const created = payOrderIns[0];
+				if (!created) {
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: "Failed to create Nisc order",
+					});
+				}
+				order = created;
+			} catch (err) {
+				if (!isUniqueViolation(err)) throw err;
+				const raced = await db.query.niscOrder.findFirst({
+					where: eq(niscOrder.paymentTransactionId, transaction.id),
+					columns: { id: true },
+				});
+				if (!raced) throw err;
+				return loadOrderById(raced.id);
 			}
 
 			for (let idx = 0; idx < input.items.length; idx++) {

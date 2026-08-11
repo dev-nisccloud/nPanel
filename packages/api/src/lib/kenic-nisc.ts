@@ -506,3 +506,52 @@ export async function setKenicDomainAuthCode(
 		socket?.destroy();
 	}
 }
+
+/**
+ * Enable or disable KENIC transfer lock (clientTransferProhibited).
+ * Best-effort after successful registration/transfer  callers should not fail provision on lock errors.
+ */
+export async function setKenicTransferLock(
+	domainName: string,
+	locked = true,
+): Promise<void> {
+	const domain = domainName.trim();
+	if (!domain) throw new Error("Domain is required to set transfer lock");
+
+	let socket;
+	try {
+		const config = getKenicEppConfig(true);
+		socket = await createConnection(config);
+		await readFrame(socket);
+
+		sendFrame(socket, buildLoginXml(config.username, config.password));
+		const loginBuf = await readFrame(socket);
+		const loginParsed = parser.parse(loginBuf.toString("utf8")) as Record<string, unknown>;
+		const loginResult = getEppResult(loginParsed);
+		if (loginResult.code !== EPP_CODE_SUCCESS) {
+			throw new Error(`KENIC EPP login failed: ${loginResult.msg}`);
+		}
+
+		sendFrame(
+			socket,
+			buildDomainUpdateXml({
+				domain,
+				...(locked
+					? { addStatus: ["clientTransferProhibited"] }
+					: { remStatus: ["clientTransferProhibited"] }),
+			}),
+		);
+		const updateBuf = await readFrame(socket);
+		const updateParsed = parser.parse(updateBuf.toString("utf8")) as Record<string, unknown>;
+		const updateResult = getEppResult(updateParsed);
+
+		sendFrame(socket, buildLogoutXml());
+		await readFrame(socket);
+
+		if (updateResult.code !== EPP_CODE_SUCCESS && updateResult.code !== "1001") {
+			throw new Error(`KENIC transfer lock update failed: ${updateResult.msg}`);
+		}
+	} finally {
+		socket?.destroy();
+	}
+}

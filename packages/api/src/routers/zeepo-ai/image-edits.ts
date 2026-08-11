@@ -24,6 +24,12 @@ import {
 } from "../../lib/zeepo-ai-gemini-image";
 import { providerMicrosToCustomerTokens } from "../../lib/zeepo-ai-billing";
 import {
+	estimateZeepoAiGeminiImageCostUsdMicros,
+	splitZeepoAiGeminiImageUsage,
+	type ZeepoAiGeminiImageSize,
+	type ZeepoAiGeminiUsageLike,
+} from "../../lib/zeepo-ai-gemini-pricing";
+import {
 	assertZeepoAiCanStartTurn,
 	debitZeepoAiTokensOrThrow,
 	logZeepoAiAgencyUsage,
@@ -189,8 +195,19 @@ async function billEdit(params: {
 	modelId: string;
 	interactionId: string | null;
 	operationType: string;
+	usage?: ZeepoAiGeminiUsageLike | null;
+	imageSize?: ZeepoAiGeminiImageSize;
 }) {
-	const micros = 25_000;
+	const micros = estimateZeepoAiGeminiImageCostUsdMicros({
+		modelId: params.modelId,
+		usage: params.usage,
+		imageSize: params.imageSize,
+	});
+	const split = splitZeepoAiGeminiImageUsage({
+		usage: params.usage,
+		modelId: params.modelId,
+		imageSize: params.imageSize,
+	});
 	const tokens = providerMicrosToCustomerTokens(micros);
 	const usageEventId = randomUUID();
 	const bill = shouldBillZeepoAiTokens({
@@ -211,8 +228,18 @@ async function billEdit(params: {
 		kind: "image",
 		status: "succeeded",
 		tokensDebited: String(bill ? tokens : 0),
+		inputTokens: split.inputTokens || null,
+		outputTokens: split.outputTokensForDisplay || null,
 		providerCostUsdMicros: micros,
-		metadata: { operationType: params.operationType },
+		metadata: {
+			operationType: params.operationType,
+			providerRequestId: params.interactionId,
+			thoughtTokens: split.thoughtTokens || undefined,
+			imageOutputTokens: split.imageOutputTokens || undefined,
+			imageSize: params.imageSize,
+			totalTokens: params.usage?.totalTokens ?? undefined,
+			pricingSource: "https://ai.google.dev/gemini-api/docs/pricing",
+		},
 	});
 
 	if (bill && params.teamId && tokens > 0) {
@@ -269,6 +296,8 @@ async function runGeminiEdit(params: {
 		imageUrl: persisted.fileUrl,
 		modelId: result.modelId,
 		interactionId: result.interactionId,
+		usage: result.usage,
+		imageSize: result.imageSize,
 	};
 }
 
@@ -372,6 +401,8 @@ export const zeepoAiImageEditsRouter = router({
 			generationId: input.generationId,
 			modelId: edited.modelId,
 			interactionId: edited.interactionId,
+			usage: edited.usage,
+			imageSize: edited.imageSize,
 			operationType: "instruction",
 		});
 
@@ -432,6 +463,8 @@ export const zeepoAiImageEditsRouter = router({
 			generationId: input.generationId,
 			modelId: edited.modelId,
 			interactionId: edited.interactionId,
+			usage: edited.usage,
+			imageSize: edited.imageSize,
 			operationType: "style",
 		});
 
@@ -480,6 +513,8 @@ export const zeepoAiImageEditsRouter = router({
 			generationId: input.generationId,
 			modelId: edited.modelId,
 			interactionId: edited.interactionId,
+			usage: edited.usage,
+			imageSize: edited.imageSize,
 			operationType: "erase",
 		});
 
@@ -538,6 +573,8 @@ export const zeepoAiImageEditsRouter = router({
 			generationId: input.generationId,
 			modelId: edited.modelId,
 			interactionId: edited.interactionId,
+			usage: edited.usage,
+			imageSize: edited.imageSize,
 			operationType: "background_swap",
 		});
 
@@ -584,6 +621,8 @@ export const zeepoAiImageEditsRouter = router({
 			generationId: input.generationId,
 			modelId: edited.modelId,
 			interactionId: edited.interactionId,
+			usage: edited.usage,
+			imageSize: edited.imageSize,
 			operationType: "upscale",
 		});
 
@@ -630,6 +669,8 @@ export const zeepoAiImageEditsRouter = router({
 			generationId: input.generationId,
 			modelId: edited.modelId,
 			interactionId: edited.interactionId,
+			usage: edited.usage,
+			imageSize: edited.imageSize,
 			operationType: "text_edit",
 		});
 
@@ -689,6 +730,8 @@ export const zeepoAiImageEditsRouter = router({
 						generationId: input.generationId,
 						modelId: result.modelId,
 						interactionId: result.interactionId,
+						usage: result.usage,
+						imageSize: result.imageSize,
 						operationType: "variation",
 					});
 					return { imageUrl: persisted.fileUrl, record };

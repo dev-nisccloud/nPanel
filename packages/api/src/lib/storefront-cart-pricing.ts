@@ -15,7 +15,7 @@ import {
 	type HivelocityMarginRow,
 	type HivelocityProductTypeKey,
 } from "./hivelocity-display-pricing";
-import { ceilConvertedPrice } from "./convert-price";
+import { ceilConvertedPrice, computeCeilVatTotals } from "./convert-price";
 import { checkDomainTransferEligibility } from "./domain-transfer-check";
 import { toRetailPrice } from "./agent-internal-tools/pricing";
 import { hivelocityRequest } from "./hivelocity-client";
@@ -643,8 +643,7 @@ export async function computeStorefrontCartQuote(
 		});
 	}
 
-	const taxAmount = Math.round(subtotal * 0.16);
-	const total = subtotal + taxAmount;
+	const { vatAmount: taxAmount, totalIncVat: total } = computeCeilVatTotals(subtotal);
 
 	return {
 		currency: mainQuote.currency,

@@ -1,11 +1,18 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { and, eq } from "@npanel/db";
+import { and, count, eq, gte, lte, sql } from "@npanel/db";
 import { db } from "@npanel/db";
 import { niscProduct, niscProductPlan } from "@npanel/db/schema/products";
+import { user } from "@npanel/db/schema/auth";
+import { team } from "@npanel/db/schema/teams";
+import { zeepoAiUsageEvent } from "@npanel/db/schema/zeepo-ai";
 import { router } from "../../trpc";
 import { zeepoAiProcedure } from "./procedures";
-import { getBalanceSchema, listBillingActivitySchema } from "./schemas";
+import {
+	getBalanceSchema,
+	listBillingActivitySchema,
+	listUsageActivitySchema,
+} from "./schemas";
 import {
 	assertZeepoAiTeamAccess,
 	getZeepoAiSubscriptionSummary,
@@ -14,9 +21,16 @@ import {
 	isZeepoAiAgencyUser,
 	listZeepoAiTokenLedger,
 } from "../../lib/zeepo-ai-tokens";
-import { ZEEPO_AI_PLAN_IDS, ZEEPO_AI_PRODUCT_ID, ZEEPO_AI_WELCOME_TOKEN_GRANT } from "../../lib/zeepo-ai-billing";
+import {
+	ZEEPO_AI_PLAN_IDS,
+	ZEEPO_AI_PRODUCT_ID,
+	ZEEPO_AI_WELCOME_TOKEN_GRANT,
+} from "../../lib/zeepo-ai-billing";
 import { convertPriceWithCeil } from "../../lib/convert-price";
-import { checkWelcomeTokenEligibility, teamHasQualifyingService } from "../../lib/zeepo-ai-free-token-grant";
+import {
+	checkWelcomeTokenEligibility,
+	teamHasQualifyingService,
+} from "../../lib/zeepo-ai-free-token-grant";
 
 async function fetchUsdToKesRate(): Promise<number | null> {
 	try {
@@ -28,6 +42,51 @@ async function fetchUsdToKesRate(): Promise<number | null> {
 	} catch {
 		return null;
 	}
+}
+
+function endOfDay(d: Date): Date {
+	const out = new Date(d);
+	out.setHours(23, 59, 59, 999);
+	return out;
+}
+
+function startOfDay(d: Date): Date {
+	const out = new Date(d);
+	out.setHours(0, 0, 0, 0);
+	return out;
+}
+
+function buildUsageWhere(input: z.infer<typeof listUsageActivitySchema>) {
+	const from = startOfDay(input.from);
+	const to = endOfDay(input.to);
+	const conditions = [
+		gte(zeepoAiUsageEvent.createdAt, from),
+		lte(zeepoAiUsageEvent.createdAt, to),
+	];
+
+	if (input.provider === "anthropic") {
+		conditions.push(eq(zeepoAiUsageEvent.provider, "anthropic"));
+	} else if (input.provider === "google") {
+		conditions.push(eq(zeepoAiUsageEvent.provider, "google"));
+	}
+
+	if (input.eventType === "other") {
+		conditions.push(
+			sql`${zeepoAiUsageEvent.eventType} not in ('chat_turn', 'generation', 'image_edit')`,
+		);
+	} else if (input.eventType !== "all") {
+		conditions.push(eq(zeepoAiUsageEvent.eventType, input.eventType));
+	}
+
+	if (input.status !== "all") {
+		conditions.push(eq(zeepoAiUsageEvent.status, input.status));
+	}
+
+	if (input.teamId) {
+		conditions.push(eq(zeepoAiUsageEvent.teamId, input.teamId));
+	}
+
+	return and(...conditions);
 }
 
 export const zeepoAiBillingRouter = router({
@@ -103,6 +162,249 @@ export const zeepoAiBillingRouter = router({
 				teamId: input.teamId,
 				limit: input.limit,
 			});
+		}),
+
+	/**
+	 * Agency ops: Claude + Google usage rolled up by user (agency) or team (customers).
+	 * Sourced from zeepo_ai_usage_event (product truth), not provider Admin APIs.
+	 */
+	listUsageActivity: zeepoAiProcedure
+		.input(listUsageActivitySchema)
+		.query(async ({ ctx, input }) => {
+			const userId = ctx.session?.user?.id;
+			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+			if (!isZeepoAiAgencyUser(ctx.session?.user?.role)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Activity usage is available to agency users only.",
+				});
+			}
+
+			const where = buildUsageWhere(input);
+			const page = input.page;
+			const limit = input.limit;
+			const offset = (page - 1) * limit;
+			const groupBy = input.groupBy;
+
+			const summarySelect = {
+				events: count(),
+				inputTokens: sql<number>`coalesce(sum(${zeepoAiUsageEvent.inputTokens}), 0)`,
+				outputTokens: sql<number>`coalesce(sum(${zeepoAiUsageEvent.outputTokens}), 0)`,
+				providerCostUsdMicros: sql<number>`coalesce(sum(${zeepoAiUsageEvent.providerCostUsdMicros}), 0)`,
+				tokensDebited: sql<number>`coalesce(sum(nullif(${zeepoAiUsageEvent.tokensDebited}, '')::numeric), 0)`,
+				failed: sql<number>`coalesce(sum(case when ${zeepoAiUsageEvent.status} = 'failed' then 1 else 0 end), 0)`,
+				avgLatencyMs: sql<number>`coalesce(avg(${zeepoAiUsageEvent.latencyMs}), 0)`,
+			};
+
+			const [
+				groupedRows,
+				groupCountRow,
+				summaryRow,
+				byProviderRows,
+				byEventTypeRows,
+				byModelRows,
+			] = await Promise.all([
+				groupBy === "user"
+					? db
+							.select({
+								userId: zeepoAiUsageEvent.userId,
+								userName: user.name,
+								userEmail: user.email,
+								events: count(),
+								inputTokens: sql<number>`coalesce(sum(${zeepoAiUsageEvent.inputTokens}), 0)`,
+								outputTokens: sql<number>`coalesce(sum(${zeepoAiUsageEvent.outputTokens}), 0)`,
+								providerCostUsdMicros: sql<number>`coalesce(sum(${zeepoAiUsageEvent.providerCostUsdMicros}), 0)`,
+								tokensDebited: sql<number>`coalesce(sum(nullif(${zeepoAiUsageEvent.tokensDebited}, '')::numeric), 0)`,
+								failed: sql<number>`coalesce(sum(case when ${zeepoAiUsageEvent.status} = 'failed' then 1 else 0 end), 0)`,
+								teamsTouched: sql<number>`count(distinct ${zeepoAiUsageEvent.teamId})`,
+								lastAt: sql<Date>`max(${zeepoAiUsageEvent.createdAt})`,
+							})
+							.from(zeepoAiUsageEvent)
+							.leftJoin(user, eq(zeepoAiUsageEvent.userId, user.id))
+							.where(where)
+							.groupBy(zeepoAiUsageEvent.userId, user.name, user.email)
+							.orderBy(
+								sql`coalesce(sum(${zeepoAiUsageEvent.providerCostUsdMicros}), 0) desc`,
+							)
+							.limit(limit)
+							.offset(offset)
+					: db
+							.select({
+								teamId: zeepoAiUsageEvent.teamId,
+								teamName: team.name,
+								teamSlug: team.slug,
+								events: count(),
+								inputTokens: sql<number>`coalesce(sum(${zeepoAiUsageEvent.inputTokens}), 0)`,
+								outputTokens: sql<number>`coalesce(sum(${zeepoAiUsageEvent.outputTokens}), 0)`,
+								providerCostUsdMicros: sql<number>`coalesce(sum(${zeepoAiUsageEvent.providerCostUsdMicros}), 0)`,
+								tokensDebited: sql<number>`coalesce(sum(nullif(${zeepoAiUsageEvent.tokensDebited}, '')::numeric), 0)`,
+								failed: sql<number>`coalesce(sum(case when ${zeepoAiUsageEvent.status} = 'failed' then 1 else 0 end), 0)`,
+								usersTouched: sql<number>`count(distinct ${zeepoAiUsageEvent.userId})`,
+								lastAt: sql<Date>`max(${zeepoAiUsageEvent.createdAt})`,
+							})
+							.from(zeepoAiUsageEvent)
+							.leftJoin(team, eq(zeepoAiUsageEvent.teamId, team.id))
+							.where(where)
+							.groupBy(zeepoAiUsageEvent.teamId, team.name, team.slug)
+							.orderBy(
+								sql`coalesce(sum(${zeepoAiUsageEvent.providerCostUsdMicros}), 0) desc`,
+							)
+							.limit(limit)
+							.offset(offset),
+				groupBy === "user"
+					? db
+							.select({
+								value: sql<number>`count(distinct ${zeepoAiUsageEvent.userId})`,
+							})
+							.from(zeepoAiUsageEvent)
+							.where(where)
+					: db
+							.select({
+								value: sql<number>`count(distinct ${zeepoAiUsageEvent.teamId})`,
+							})
+							.from(zeepoAiUsageEvent)
+							.where(where),
+				db.select(summarySelect).from(zeepoAiUsageEvent).where(where),
+				db
+					.select({
+						provider: zeepoAiUsageEvent.provider,
+						events: count(),
+						providerCostUsdMicros: sql<number>`coalesce(sum(${zeepoAiUsageEvent.providerCostUsdMicros}), 0)`,
+						inputTokens: sql<number>`coalesce(sum(${zeepoAiUsageEvent.inputTokens}), 0)`,
+						outputTokens: sql<number>`coalesce(sum(${zeepoAiUsageEvent.outputTokens}), 0)`,
+					})
+					.from(zeepoAiUsageEvent)
+					.where(where)
+					.groupBy(zeepoAiUsageEvent.provider),
+				db
+					.select({
+						eventType: zeepoAiUsageEvent.eventType,
+						events: count(),
+						providerCostUsdMicros: sql<number>`coalesce(sum(${zeepoAiUsageEvent.providerCostUsdMicros}), 0)`,
+					})
+					.from(zeepoAiUsageEvent)
+					.where(where)
+					.groupBy(zeepoAiUsageEvent.eventType),
+				db
+					.select({
+						modelId: zeepoAiUsageEvent.modelId,
+						provider: zeepoAiUsageEvent.provider,
+						events: count(),
+						providerCostUsdMicros: sql<number>`coalesce(sum(${zeepoAiUsageEvent.providerCostUsdMicros}), 0)`,
+					})
+					.from(zeepoAiUsageEvent)
+					.where(where)
+					.groupBy(zeepoAiUsageEvent.modelId, zeepoAiUsageEvent.provider)
+					.orderBy(
+						sql`coalesce(sum(${zeepoAiUsageEvent.providerCostUsdMicros}), 0) desc`,
+					)
+					.limit(8),
+			]);
+
+			const summaryRaw = summaryRow[0];
+			const total = Number(groupCountRow[0]?.value ?? 0);
+
+			const items =
+				groupBy === "user"
+					? (
+							groupedRows as Array<{
+								userId: string;
+								userName: string | null;
+								userEmail: string | null;
+								events: number;
+								inputTokens: number;
+								outputTokens: number;
+								providerCostUsdMicros: number;
+								tokensDebited: number;
+								failed: number;
+								teamsTouched: number;
+								lastAt: Date;
+							}>
+						).map((r) => ({
+							groupBy: "user" as const,
+							userId: r.userId,
+							userName: r.userName,
+							userEmail: r.userEmail,
+							teamId: null as string | null,
+							teamName: null as string | null,
+							teamSlug: null as string | null,
+							events: Number(r.events ?? 0),
+							inputTokens: Number(r.inputTokens ?? 0),
+							outputTokens: Number(r.outputTokens ?? 0),
+							providerCostUsd: Number(r.providerCostUsdMicros ?? 0) / 1_000_000,
+							tokensDebited: Number(r.tokensDebited ?? 0),
+							failed: Number(r.failed ?? 0),
+							teamsTouched: Number(r.teamsTouched ?? 0),
+							usersTouched: 1,
+							lastAt: r.lastAt,
+						}))
+					: (
+							groupedRows as Array<{
+								teamId: string | null;
+								teamName: string | null;
+								teamSlug: string | null;
+								events: number;
+								inputTokens: number;
+								outputTokens: number;
+								providerCostUsdMicros: number;
+								tokensDebited: number;
+								failed: number;
+								usersTouched: number;
+								lastAt: Date;
+							}>
+						).map((r) => ({
+							groupBy: "team" as const,
+							userId: null as string | null,
+							userName: null as string | null,
+							userEmail: null as string | null,
+							teamId: r.teamId,
+							teamName: r.teamName ?? (r.teamId ? "Unknown team" : "Agency"),
+							teamSlug: r.teamSlug,
+							events: Number(r.events ?? 0),
+							inputTokens: Number(r.inputTokens ?? 0),
+							outputTokens: Number(r.outputTokens ?? 0),
+							providerCostUsd: Number(r.providerCostUsdMicros ?? 0) / 1_000_000,
+							tokensDebited: Number(r.tokensDebited ?? 0),
+							failed: Number(r.failed ?? 0),
+							teamsTouched: 1,
+							usersTouched: Number(r.usersTouched ?? 0),
+							lastAt: r.lastAt,
+						}));
+
+			return {
+				groupBy,
+				items,
+				page,
+				limit,
+				total,
+				summary: {
+					events: Number(summaryRaw?.events ?? 0),
+					inputTokens: Number(summaryRaw?.inputTokens ?? 0),
+					outputTokens: Number(summaryRaw?.outputTokens ?? 0),
+					providerCostUsd: Number(summaryRaw?.providerCostUsdMicros ?? 0) / 1_000_000,
+					tokensDebited: Number(summaryRaw?.tokensDebited ?? 0),
+					failed: Number(summaryRaw?.failed ?? 0),
+					avgLatencyMs: Math.round(Number(summaryRaw?.avgLatencyMs ?? 0)),
+				},
+				byProvider: byProviderRows.map((r) => ({
+					provider: r.provider ?? "unknown",
+					events: Number(r.events ?? 0),
+					providerCostUsd: Number(r.providerCostUsdMicros ?? 0) / 1_000_000,
+					inputTokens: Number(r.inputTokens ?? 0),
+					outputTokens: Number(r.outputTokens ?? 0),
+				})),
+				byEventType: byEventTypeRows.map((r) => ({
+					eventType: r.eventType,
+					events: Number(r.events ?? 0),
+					providerCostUsd: Number(r.providerCostUsdMicros ?? 0) / 1_000_000,
+				})),
+				byModel: byModelRows.map((r) => ({
+					modelId: r.modelId ?? "unknown",
+					provider: r.provider ?? "unknown",
+					events: Number(r.events ?? 0),
+					providerCostUsd: Number(r.providerCostUsdMicros ?? 0) / 1_000_000,
+				})),
+			};
 		}),
 
 	listPaygPacks: zeepoAiProcedure.query(async () => {

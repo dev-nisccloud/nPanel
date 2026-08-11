@@ -38,6 +38,11 @@ import { computeCeilVatTotals, paymentTotalString } from "@npanel/api/lib/conver
 import { toast } from "@/components/ui/sonner";
 import type { DomainSearchResult } from "@/hooks/use-domain-search";
 import { captureEvent } from "@/lib/posthog";
+import { authClient } from "@/lib/auth-client";
+import {
+  canonicalMpesaPaymentAmount,
+  resolveMpesaCheckoutPayment,
+} from "@/lib/mpesa-checkout-payment";
 
 interface BuyNowDialogProps {
   open: boolean;
@@ -101,6 +106,10 @@ const formatPrice = (price?: number, currency?: string) => {
 };
 
 export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) {
+  const { data: session } = authClient.useSession();
+  const isAgencyUser = Boolean(
+    session?.user?.role && String(session.user.role).startsWith("AGENCY_"),
+  );
   const [currentStep, setCurrentStep] = React.useState<Step>("domain");
   const [duration, setDuration] = React.useState(1);
   const [couponCode, setCouponCode] = React.useState("");
@@ -617,11 +626,20 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
     setAmountError(validateAmount(value));
   };
 
+  const customerMpesaAmount = canonicalMpesaPaymentAmount(total);
+
   const handleMpesaPayment = async () => {
     // Validate all fields
     const accountRefErr = validateAccountReference(accountReference);
     const phoneErr = validatePhoneNumber(mpesaPhoneNumber);
-    const amountErr = validateAmount(paymentAmount);
+    const resolved = resolveMpesaCheckoutPayment({
+      isAgencyUser,
+      formAmount: paymentAmount,
+      formAccountReference: accountReference,
+      checkoutTotalIncVat: total,
+      intendedAccountReference: accountReference,
+    });
+    const amountErr = validateAmount(resolved.amountString);
 
     setAccountRefError(accountRefErr);
     setPhoneError(phoneErr);
@@ -632,7 +650,7 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
       return;
     }
 
-    const amount = parseFloat(paymentAmount);
+    const amount = resolved.amount;
     
     // Generate transaction description - max 13 chars
     // Format: DOM{domain} (e.g., DOMexample)
@@ -648,7 +666,7 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
       await initiateMpesaPayment.mutateAsync({
         phoneNumber: mpesaPhoneNumber.trim(),
         amount: amount,
-        accountReference: accountReference.trim(),
+        accountReference: resolved.accountReference.trim(),
         transactionDesc: transactionDesc,
       });
     } catch (error) {
@@ -1331,8 +1349,9 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
                               id="payment-amount"
                               type="number"
                               placeholder="Enter amount"
-                              value={paymentAmount}
+                              value={isAgencyUser ? paymentAmount : customerMpesaAmount}
                               onChange={handleAmountChange}
+                              readOnly={!isAgencyUser}
                               className={`w-full ${amountError ? "border-destructive" : ""}`}
                               min="1"
                               step="1"
@@ -1341,7 +1360,9 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
                               <p className="text-xs text-destructive">{amountError}</p>
                             ) : (
                               <p className="text-xs text-muted-foreground">
-                                Cart total: {formatPrice(total, displayCurrency)} (editable for testing)
+                                {isAgencyUser
+                                  ? `Order total (incl. 16% VAT): ${formatPrice(total, displayCurrency)} (editable)`
+                                  : `Order total (incl. 16% VAT): ${formatPrice(total, displayCurrency)}`}
                               </p>
                             )}
                           </div>

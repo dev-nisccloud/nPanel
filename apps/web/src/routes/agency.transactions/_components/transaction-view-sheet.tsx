@@ -34,7 +34,16 @@ function getStatusBadgeClass(status: string): string {
 }
 
 function getGatewayDisplay(gateway: string): string {
-	return gateway === "MPESA" ? "M-Pesa" : gateway;
+	switch (gateway) {
+		case "MPESA":
+			return "M-Pesa";
+		case "JENGA":
+			return "Card (Jenga)";
+		case "OTHER":
+			return "Other / Manual";
+		default:
+			return gateway;
+	}
 }
 
 interface TransactionViewSheetProps {
@@ -133,7 +142,9 @@ export function TransactionViewSheet({
 									)}
 									{tx.receiptNumber && (
 										<div className="flex justify-between items-center gap-2">
-											<span className="text-muted-foreground">MPESA Receipt number</span>
+											<span className="text-muted-foreground">
+												{tx.gateway === "MPESA" ? "M-Pesa receipt number" : "Receipt number"}
+											</span>
 											<span className="font-medium">{tx.receiptNumber}</span>
 										</div>
 									)}

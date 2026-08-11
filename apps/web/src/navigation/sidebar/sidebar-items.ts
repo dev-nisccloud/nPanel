@@ -320,6 +320,10 @@ export const agencysidebarItems: NavGroup[] = [
         title: "Zeepo AI",
         url: "/agency/zeepo-ai",
         icon: (props: any) => React.createElement(Icons.AISupport, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        subItems: [
+          { title: "Chat", url: "/agency/zeepo-ai" },
+          { title: "Activity", url: "/agency/zeepo-ai/activity" },
+        ],
       },
     ],
   },

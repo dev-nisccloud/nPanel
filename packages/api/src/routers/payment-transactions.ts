@@ -23,6 +23,7 @@ const paymentTransactionStatusSchema = z.enum([
 
 const paymentGatewaySchema = z.enum([
 	"MPESA",
+	"JENGA",
 	"STRIPE",
 	"PAYPAL",
 	"FLUTTERWAVE",
@@ -167,6 +168,8 @@ export const paymentTransactionsRouter = router({
 				transactionReference: z.string().min(1).max(64),
 				amount: z.number().positive(),
 				currency: z.string().min(1).max(8).default("KES"),
+				/** How the customer actually paid — stored on payment_transaction.gateway. */
+				gateway: z.enum(["MPESA", "JENGA", "OTHER"]).default("OTHER"),
 				accountReference: z.string().max(64).optional(),
 				transactionDesc: z.string().max(200).optional(),
 				teamId: z.string().optional(),
@@ -199,14 +202,15 @@ export const paymentTransactionsRouter = router({
 			const now = new Date();
 			const transactionId = crypto.randomUUID();
 			const amountStr = String(input.amount);
+			const gateway = input.gateway;
 
 			await db.insert(paymentTransaction).values({
 				id: transactionId,
 				userId: agencyUser.id,
 				teamId: input.teamId ?? null,
-				gateway: "OTHER",
+				gateway,
 				gatewayStatus: "MANUAL",
-				gatewayMessage: "Recorded manually by agency",
+				gatewayMessage: `Recorded manually by agency (${gateway})`,
 				gatewayTransactionId: transactionReference,
 				checkoutRequestId: transactionReference,
 				receiptNumber: transactionReference,
@@ -221,12 +225,14 @@ export const paymentTransactionsRouter = router({
 					source: "agency_manual_checkout",
 					recordedBy: agencyUser.id,
 					recordedAt: now.toISOString(),
+					gateway,
 				},
 				notes: input.notes ?? null,
 				metadata: {
 					source: "agency_manual_checkout",
 					recordedBy: agencyUser.id,
 					recordedByRole: agencyUser.role,
+					gateway,
 				},
 				initiatedAt: now,
 				processedAt: now,

@@ -68,6 +68,21 @@ export const listBillingActivitySchema = z.object({
 	limit: z.number().int().min(1).max(100).optional(),
 });
 
+export const listUsageActivitySchema = z.object({
+	from: z.coerce.date(),
+	to: z.coerce.date(),
+	page: z.number().int().min(1).default(1),
+	limit: z.number().int().min(1).max(100).default(50),
+	provider: z.enum(["all", "anthropic", "google"]).default("all"),
+	eventType: z
+		.enum(["all", "chat_turn", "generation", "image_edit", "other"])
+		.default("all"),
+	status: z.enum(["all", "succeeded", "failed", "cancelled", "partial"]).default("all"),
+	teamId: z.string().optional(),
+	/** Agency ops: roll up request log by user. Customer-facing: roll up by team. */
+	groupBy: z.enum(["user", "team"]).default("user"),
+});
+
 export const getBalanceSchema = z.object({
 	teamId: z.string().optional(),
 });

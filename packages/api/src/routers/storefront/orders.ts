@@ -222,51 +222,87 @@ export const storefrontOrdersRouter = router({
         });
       }
 
+      const isUniqueViolation = (err: unknown): boolean => {
+        let current: unknown = err;
+        for (let i = 0; i < 5 && current; i++) {
+          if (
+            typeof current === "object" &&
+            current !== null &&
+            "code" in current &&
+            (current as { code?: string }).code === "23505"
+          ) {
+            return true;
+          }
+          current =
+            typeof current === "object" && current !== null && "cause" in current
+              ? (current as { cause?: unknown }).cause
+              : undefined;
+        }
+        return false;
+      };
+
       // 4. Create the order and all line items
-      await db.transaction(async (trx) => {
-        await trx.insert(niscOrder).values({
-          id: orderId,
-          orderNumber,
-          userId,
-          teamId,
-          createdBy: userId,
-          paymentTransactionId: tx.id,
-          status: "PENDING",
-          subtotal: String(quote.subtotal),
-          total: String(quote.total),
-          currency,
-          createdAt: now,
-          updatedAt: now,
-        });
-
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i]!;
-          const transferRequest = transferRequestByLineIndex.get(i);
-          const metadata =
-            transferRequest != null
-              ? {
-                  transferAuthCode: transferRequest.authCode,
-                  domainTransferRequestId: transferRequest.id,
-                }
-              : line.metadata;
-
-          await trx.insert(niscOrderItem).values({
-            id: crypto.randomUUID(),
-            niscOrderId: orderId,
-            productId: line.productId,
-            productPlanId: line.productPlanId,
-            billingCycle: line.billingCycle,
-            primaryDomain: line.primaryDomain,
-            description: line.description,
-            metadata,
-            itemPrice: String(line.itemPrice),
-            itemSubtotal: String(line.itemPrice),
+      try {
+        await db.transaction(async (trx) => {
+          await trx.insert(niscOrder).values({
+            id: orderId,
+            orderNumber,
+            userId,
+            teamId,
+            createdBy: userId,
+            paymentTransactionId: tx.id,
             status: "PENDING",
+            subtotal: String(quote.subtotal),
+            total: String(quote.total),
+            currency,
             createdAt: now,
             updatedAt: now,
           });
-        }
-      });
+
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i]!;
+            const transferRequest = transferRequestByLineIndex.get(i);
+            const metadata =
+              transferRequest != null
+                ? {
+                    transferAuthCode: transferRequest.authCode,
+                    domainTransferRequestId: transferRequest.id,
+                  }
+                : line.metadata;
+
+            await trx.insert(niscOrderItem).values({
+              id: crypto.randomUUID(),
+              niscOrderId: orderId,
+              productId: line.productId,
+              productPlanId: line.productPlanId,
+              billingCycle: line.billingCycle,
+              primaryDomain: line.primaryDomain,
+              description: line.description,
+              metadata,
+              itemPrice: String(line.itemPrice),
+              itemSubtotal: String(line.itemPrice),
+              status: "PENDING",
+              createdAt: now,
+              updatedAt: now,
+            });
+          }
+        });
+      } catch (err) {
+        if (!isUniqueViolation(err)) throw err;
+        const raced = await db.query.niscOrder.findFirst({
+          where: and(
+            eq(niscOrder.paymentTransactionId, tx.id),
+            eq(niscOrder.userId, userId),
+          ),
+          columns: { id: true, orderNumber: true },
+        });
+        if (!raced) throw err;
+        return {
+          orderId: raced.id,
+          orderNumber: raced.orderNumber,
+          teamSlug,
+        };
+      }
 
       for (const transferRequest of transferRequestByLineIndex.values()) {
         await db

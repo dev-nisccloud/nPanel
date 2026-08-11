@@ -22,6 +22,7 @@ import { assertHivelocityOptionIdsExclusive } from "./hivelocity-option-validati
 import { applyHivelocityVpsReactivation } from "./hivelocity-vps-instance-suspend";
 import { reloadHivelocityDevice } from "./hivelocity-vps-reload";
 import { upgradeHivelocityVpsInstance } from "./hivelocity-vps-upgrade";
+import { agreedPriceIncVatFromExVat } from "./convert-price";
 import { resolveSubscriptionPeriodDates } from "./nisc-subscription-dates";
 
 function buildHivelocityDeploymentName(orderNumberOrId: string): string {
@@ -131,7 +132,7 @@ async function processHivelocityVpsUpgradeOrderItem(
 		const [updated] = await db
 			.update(niscClientSubscription)
 			.set({
-				agreedPrice: item.itemPrice,
+				agreedPrice: agreedPriceIncVatFromExVat(item.itemSubtotal || item.itemPrice),
 				agreedCurrency: order.currency,
 				providerCost:
 					meta.upgradeDeltaUsd != null ? String(meta.upgradeDeltaUsd) : existing.providerCost,
@@ -177,7 +178,7 @@ async function processHivelocityVpsUpgradeOrderItem(
 			subscriptionDate: now,
 			billingCycle: (item.billingCycle as "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM") ?? null,
 			pricingModel: "FIXED",
-			agreedPrice: item.itemPrice,
+			agreedPrice: agreedPriceIncVatFromExVat(item.itemSubtotal || item.itemPrice),
 			agreedCurrency: order.currency,
 			agreedCost: null,
 			agreedCostCurrency: "USD",
@@ -326,7 +327,7 @@ async function processHivelocityVpsReloadOrderItem(
 			subscriptionDate: now,
 			billingCycle: (item.billingCycle as "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM") ?? null,
 			pricingModel: "FIXED",
-			agreedPrice: item.itemPrice,
+			agreedPrice: agreedPriceIncVatFromExVat(item.itemSubtotal || item.itemPrice),
 			agreedCurrency: order.currency,
 			agreedCost: null,
 			agreedCostCurrency: "USD",
@@ -551,7 +552,7 @@ export async function processHivelocityOrderItem(
 			subscriptionDate: now,
 			billingCycle: (item.billingCycle as "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM") ?? null,
 			pricingModel: "FIXED",
-			agreedPrice: item.itemPrice,
+			agreedPrice: agreedPriceIncVatFromExVat(item.itemSubtotal || item.itemPrice),
 			agreedCurrency: order.currency,
 			agreedCost: null,
 			agreedCostCurrency: "USD",

@@ -15,7 +15,9 @@ import { team } from "@npanel/db/schema/teams";
 import { user as userTable } from "@npanel/db/schema/auth";
 import { randomUUID } from "node:crypto";
 import {
+	anthropicUsageBillingMeta,
 	estimateZeepoAiProviderCostUsdMicros,
+	mergeAnthropicUsage,
 	providerMicrosToCustomerTokens,
 	resolveZeepoAiModelId,
 	ZEEPO_AI_PROVIDER,
@@ -1045,13 +1047,15 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 
 				if (event.type === "message_start") {
 					providerMessageId = event.message.id;
-					usage = {
-						input_tokens: event.message.usage?.input_tokens,
-						output_tokens: event.message.usage?.output_tokens,
-						cache_creation_input_tokens:
-							event.message.usage?.cache_creation_input_tokens,
-						cache_read_input_tokens: event.message.usage?.cache_read_input_tokens,
-					};
+					const u = event.message.usage;
+					usage = mergeAnthropicUsage(usage, {
+						input_tokens: u?.input_tokens,
+						output_tokens: u?.output_tokens,
+						cache_creation_input_tokens: u?.cache_creation_input_tokens,
+						cache_read_input_tokens: u?.cache_read_input_tokens,
+						cache_creation: (u as { cache_creation?: AnthropicUsageLike["cache_creation"] } | undefined)
+							?.cache_creation,
+					});
 				} else if (event.type === "content_block_start") {
 					const block = event.content_block;
 					if (block.type === "tool_use") {
@@ -1213,12 +1217,15 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 				} else if (event.type === "message_delta") {
 					stopReason = event.delta.stop_reason ?? stopReason;
 					if (event.usage) {
-						usage = {
-							...usage,
-							output_tokens: event.usage.output_tokens ?? usage.output_tokens,
-							input_tokens: event.usage.input_tokens ?? usage.input_tokens,
-							server_tool_use: event.usage.server_tool_use ?? usage.server_tool_use,
-						};
+						const u = event.usage as AnthropicUsageLike;
+						usage = mergeAnthropicUsage(usage, {
+							input_tokens: u.input_tokens,
+							output_tokens: u.output_tokens,
+							cache_creation_input_tokens: u.cache_creation_input_tokens,
+							cache_read_input_tokens: u.cache_read_input_tokens,
+							cache_creation: u.cache_creation,
+							server_tool_use: u.server_tool_use,
+						});
 					}
 				}
 
@@ -1247,13 +1254,15 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 
 			const finalMessage = await stream.finalMessage();
 			providerMessageId = finalMessage.id;
-			usage = {
-				input_tokens: finalMessage.usage.input_tokens,
-				output_tokens: finalMessage.usage.output_tokens,
-				cache_creation_input_tokens: finalMessage.usage.cache_creation_input_tokens,
-				cache_read_input_tokens: finalMessage.usage.cache_read_input_tokens,
-				server_tool_use: finalMessage.usage.server_tool_use,
-			};
+			const fu = finalMessage.usage as AnthropicUsageLike;
+			usage = mergeAnthropicUsage(usage, {
+				input_tokens: fu.input_tokens,
+				output_tokens: fu.output_tokens,
+				cache_creation_input_tokens: fu.cache_creation_input_tokens,
+				cache_read_input_tokens: fu.cache_read_input_tokens,
+				cache_creation: fu.cache_creation,
+				server_tool_use: fu.server_tool_use,
+			});
 			stopReason = finalMessage.stop_reason;
 
 			const clientToolBlocks = finalMessage.content.filter(
@@ -1678,8 +1687,7 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 			stopReason,
 			providerMessageId,
 			searchEnabled,
-			webSearchRequests: usage.server_tool_use?.web_search_requests ?? 0,
-			webFetchRequests: usage.server_tool_use?.web_fetch_requests ?? 0,
+			...anthropicUsageBillingMeta(usage),
 		},
 	});
 

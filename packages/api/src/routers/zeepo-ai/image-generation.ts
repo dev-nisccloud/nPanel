@@ -25,6 +25,12 @@ import {
 	providerMicrosToCustomerTokens,
 } from "../../lib/zeepo-ai-billing";
 import {
+	estimateZeepoAiGeminiImageCostUsdMicros,
+	splitZeepoAiGeminiImageUsage,
+	type ZeepoAiGeminiImageSize,
+	type ZeepoAiGeminiUsageLike,
+} from "../../lib/zeepo-ai-gemini-pricing";
+import {
 	debitZeepoAiTokens,
 	logZeepoAiAgencyUsage,
 	shouldBillZeepoAiTokens,
@@ -89,16 +95,6 @@ async function emitSurplusDrops(
 	await emit({ type: "generation_drop", generationIds: surplus });
 }
 
-function estimateImageCostUsdMicros(modelId: string, usageTokens?: number): number {
-	if (usageTokens && usageTokens > 0) {
-		// Rough image-token pricing fallback (~$30 / 1M tokens for image models).
-		return Math.max(1, Math.round((usageTokens / 1_000_000) * 30 * 1_000_000));
-	}
-	if (modelId.includes("pro")) return 40_000;
-	if (modelId.includes("lite")) return 8_000;
-	return 20_000;
-}
-
 async function resolveReferenceImages(
 	attachmentIds: string[],
 	sessionId: string,
@@ -137,7 +133,14 @@ async function billImageGeneration(params: {
 	modelId: string;
 	micros: number;
 	interactionId: string | null;
+	usage?: ZeepoAiGeminiUsageLike | null;
+	imageSize?: ZeepoAiGeminiImageSize;
 }) {
+	const split = splitZeepoAiGeminiImageUsage({
+		usage: params.usage,
+		modelId: params.modelId,
+		imageSize: params.imageSize,
+	});
 	const tokens = providerMicrosToCustomerTokens(params.micros);
 	const usageEventId = randomUUID();
 	const bill = shouldBillZeepoAiTokens({
@@ -159,8 +162,17 @@ async function billImageGeneration(params: {
 		kind: "image",
 		status: "succeeded",
 		tokensDebited: String(bill ? tokens : 0),
+		inputTokens: split.inputTokens || null,
+		outputTokens: split.outputTokensForDisplay || null,
 		providerCostUsdMicros: params.micros,
-		metadata: { providerRequestId: params.interactionId },
+		metadata: {
+			providerRequestId: params.interactionId,
+			thoughtTokens: split.thoughtTokens || undefined,
+			imageOutputTokens: split.imageOutputTokens || undefined,
+			imageSize: params.imageSize,
+			totalTokens: params.usage?.totalTokens ?? undefined,
+			pricingSource: "https://ai.google.dev/gemini-api/docs/pricing",
+		},
 	});
 
 	if (bill && params.ctx.teamId && tokens > 0) {
@@ -280,16 +292,19 @@ async function runOneImageSlot(params: {
 			providerRequestId: result.interactionId,
 		});
 
-		const micros = estimateImageCostUsdMicros(
-			result.modelId,
-			result.usage?.totalTokens,
-		);
+		const micros = estimateZeepoAiGeminiImageCostUsdMicros({
+			modelId: result.modelId,
+			usage: result.usage,
+			imageSize: result.imageSize,
+		});
 		await billImageGeneration({
 			ctx,
 			generationId: params.generationId,
 			modelId: result.modelId,
 			micros,
 			interactionId: result.interactionId,
+			usage: result.usage,
+			imageSize: result.imageSize,
 		});
 
 		await ctx.emit({

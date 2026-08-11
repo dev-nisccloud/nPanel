@@ -1341,7 +1341,7 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
                               <p className="text-xs text-destructive">{amountError}</p>
                             ) : (
                               <p className="text-xs text-muted-foreground">
-                                Cart total: {formatPrice(total, displayCurrency)} (editable for testing)
+                                Order total (incl. 16% VAT): {formatPrice(total, displayCurrency)} (editable)
                               </p>
                             )}
                           </div>

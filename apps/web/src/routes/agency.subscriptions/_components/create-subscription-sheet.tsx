@@ -291,6 +291,8 @@ const createFormSchema = z
 			.trim()
 			.min(3, "Transaction reference must be at least 3 characters")
 			.max(120, "Transaction reference is too long"),
+		/** How the customer paid — stored on payment_transaction.gateway. */
+		gateway: z.enum(["MPESA", "JENGA", "OTHER"]),
 	})
 	.superRefine((data, ctx) => {
 		const def = getServiceDef(data.serviceProduct);
@@ -415,6 +417,7 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 			overrideTokens: false,
 			tokenGrant: "",
 			transactionReference: "",
+			gateway: "MPESA",
 		},
 	});
 
@@ -677,6 +680,7 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 				transactionReference: data.transactionReference.trim(),
 				amount,
 				currency,
+				gateway: data.gateway,
 				teamId: data.teamId,
 				transactionDesc: `Agency subscription: ${productLabel} - ${planLabel}`.slice(0, 200),
 			});
@@ -1057,6 +1061,35 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 												<FormDescription>
 													Whole-number amount in {displayCurrency} (prefilled from plan;
 													editable). No invoice is generated.
+												</FormDescription>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+									<FormField
+										control={form.control}
+										name="gateway"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Payment method</FormLabel>
+												<Select
+													onValueChange={field.onChange}
+													value={field.value}
+													disabled={isBusy}
+												>
+													<FormControl>
+														<SelectTrigger className="w-full">
+															<SelectValue placeholder="Select payment method" />
+														</SelectTrigger>
+													</FormControl>
+													<SelectContent>
+														<SelectItem value="MPESA">M-Pesa</SelectItem>
+														<SelectItem value="JENGA">Card (Jenga)</SelectItem>
+														<SelectItem value="OTHER">Other / Manual</SelectItem>
+													</SelectContent>
+												</Select>
+												<FormDescription>
+													Stored on the payment transaction for invoices and reporting.
 												</FormDescription>
 												<FormMessage />
 											</FormItem>

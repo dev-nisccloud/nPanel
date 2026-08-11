@@ -6,7 +6,7 @@
  * OpenProvider (domain_transfer) → ensure integration, verify email, transfer domain (auth code in item.metadata);
  * Hivelocity (dedicated_server_hosting, vps_hosting, vds_hosting) → Deployment API, create subscription with device refs.
  */
-import { eq } from "@npanel/db";
+import { and, eq } from "@npanel/db";
 import { randomUUID } from "node:crypto";
 
 import { db } from "@npanel/db";
@@ -25,10 +25,16 @@ import {
 	provisionZeepoAiOrderItem,
 } from "./zeepo-ai-order-provisioning";
 import { isKenicDomain } from "./epp/kenic-tlds";
-import { ensureKenicIntegration, registerKenicDomain } from "./kenic-nisc";
+import { agreedPriceIncVatFromExVat } from "./convert-price";
+import {
+	ensureKenicIntegration,
+	registerKenicDomain,
+	setKenicTransferLock,
+} from "./kenic-nisc";
 import { OpenProviderApiError } from "./openprovider-client";
 import {
-	computeSubscriptionExpiryFromBillingCycle,
+	resolveDomainBillingCycle,
+	resolveDomainRegistrationPeriodYears,
 	resolveDomainTransferSubscriptionStartDate,
 	resolveSubscriptionPeriodDates,
 } from "./nisc-subscription-dates";
@@ -123,10 +129,39 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 	});
 
 	const now = new Date();
-	await db
+	// Atomic claim: only one worker/inline run may transition PENDING → PROCESSING.
+	const claimed = await db
 		.update(niscOrder)
 		.set({ status: "PROCESSING", processedAt: now, updatedAt: now })
-		.where(eq(niscOrder.id, niscOrderId));
+		.where(and(eq(niscOrder.id, niscOrderId), eq(niscOrder.status, "PENDING")))
+		.returning({ id: niscOrder.id, status: niscOrder.status });
+	if (!claimed[0]) {
+		const [current] = await db
+			.select({ status: niscOrder.status, failureReason: niscOrder.failureReason })
+			.from(niscOrder)
+			.where(eq(niscOrder.id, niscOrderId))
+			.limit(1);
+		await niscLog("processor_order_claim_skipped", {
+			niscOrderId,
+			status: current?.status ?? null,
+		});
+		if (current?.status === "FAILED") {
+			return {
+				ok: false,
+				status: "FAILED",
+				failureReason: current.failureReason ?? "Order already failed",
+			};
+		}
+		if (current?.status === "PARTIAL") {
+			return {
+				ok: true,
+				status: "PARTIAL",
+				failureReason: current.failureReason ?? undefined,
+			};
+		}
+		// COMPLETED, PROCESSING, or unknown — another worker owns it or already done.
+		return { ok: true, status: "COMPLETED" };
+	}
 	await niscLog("processor_order_status_updated", { niscOrderId, status: "PROCESSING" });
 
 	let hasFailure = false;
@@ -382,12 +417,20 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 							});
 						}
 					}
+					const warnings =
+						"warnings" in result && Array.isArray(result.warnings)
+							? (result.warnings as string[]).filter(Boolean)
+							: [];
 					await db
 						.update(niscOrderItem)
 						.set({
 							status: result.status,
 							niscClientSubscriptionId: result.subscriptionId ?? undefined,
-							provisioningError: result.pendingVerification ? "Pending email verification" : undefined,
+							provisioningError: result.pendingVerification
+								? "Pending email verification"
+								: warnings.length
+									? warnings.join("; ")
+									: undefined,
 							updatedAt: now,
 						})
 						.where(eq(niscOrderItem.id, item.id));
@@ -400,6 +443,7 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 									subscriptionId: result.subscriptionId ?? null,
 									status: result.status,
 									pendingVerification: result.pendingVerification ?? false,
+									warnings: warnings.length ? warnings : undefined,
 								},
 								updatedAt: now,
 							})
@@ -412,8 +456,15 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 						subscriptionId: result.subscriptionId ?? null,
 						status: result.status,
 						pendingVerification: result.pendingVerification ?? false,
+						warnings: warnings.length ? warnings : undefined,
 					});
 					hasSuccess = true;
+					if (warnings.length) {
+						hasFailure = true;
+						for (const warning of warnings) {
+							failureReasons.push(`Item ${item.product.name}: ${warning}`);
+						}
+					}
 				} else {
 					const errDetails = "errorDetails" in result ? result.errorDetails : undefined;
 					if (branchName === "kenic_transfer" || branchName === "openprovider_transfer") {
@@ -681,6 +732,7 @@ async function createSubscriptionForOrderItem(
 	const pricingModel = (plan?.pricingModel as "FIXED" | "COMMISSION") ?? "FIXED";
 	const now = new Date();
 	const periodDates = resolveSubscriptionPeriodDates(now, item.billingCycle);
+	const exVatLine = item.itemSubtotal || item.itemPrice;
 	const subId = randomUUID();
 	const inserted = await db
 		.insert(niscClientSubscription)
@@ -699,7 +751,7 @@ async function createSubscriptionForOrderItem(
 			subscriptionDate: now,
 			billingCycle: (item.billingCycle as any) ?? null,
 			pricingModel,
-			agreedPrice: item.itemPrice,
+			agreedPrice: agreedPriceIncVatFromExVat(exVatLine),
 			agreedCurrency: order.currency,
 			agreedCost: plan?.cost ?? null,
 			agreedCostCurrency: "KES",
@@ -822,7 +874,7 @@ async function processPleskOrderItem(
 				subscriptionDate,
 				billingCycle: item.billingCycle as any ?? null,
 				pricingModel: item.productPlan.pricingModel as any,
-				agreedPrice: item.itemPrice,
+				agreedPrice: agreedPriceIncVatFromExVat(item.itemSubtotal || item.itemPrice),
 				agreedCurrency: order.currency,
 				agreedCost: item.productPlan.cost ?? null,
 				agreedCostCurrency: "KES",
@@ -898,14 +950,8 @@ type DomainOrder = {
 	createdAt: Date;
 };
 
-function billingCycleToYears(billingCycle: string | null): number {
-	if (!billingCycle) return 1;
-	const cycle = billingCycle.trim().toUpperCase();
-	if (cycle === "BIENNIALLY") return 2;
-	if (cycle === "TRIENNIALLY") return 3;
-	if (cycle === "QUADRENNIALLY") return 4;
-	if (cycle === "YEARLY") return 1;
-	return 1;
+function billingCycleToYears(billingCycle: string | null, metadata?: unknown): number {
+	return resolveDomainRegistrationPeriodYears(billingCycle, metadata);
 }
 
 async function resolveOwnerId(order: DomainOrder, item: DomainOrderItem): Promise<string | null> {
@@ -944,7 +990,13 @@ async function processKenicOrderItem(
 	order: DomainOrder,
 	item: DomainOrderItem,
 ): Promise<
-	| { ok: true; subscriptionId: string; status: "PROVISIONED"; pendingVerification?: boolean }
+	| {
+			ok: true;
+			subscriptionId: string;
+			status: "PROVISIONED";
+			pendingVerification?: boolean;
+			warnings?: string[];
+	  }
 	| { ok: false; error: string; errorDetails?: Record<string, unknown> }
 > {
 	const domain = item.primaryDomain?.trim();
@@ -973,7 +1025,7 @@ async function processKenicOrderItem(
 			logContext: { niscOrderId: order.id, orderItemId: item.id },
 			manualDetails: metadata?.manualRegistrantDetails,
 		});
-		const period = billingCycleToYears(item.billingCycle);
+		const period = billingCycleToYears(item.billingCycle, item.metadata);
 		let nameServers = metadata?.nameServers;
 
 		if (!nameServers || nameServers.length === 0) {
@@ -999,11 +1051,23 @@ async function processKenicOrderItem(
 			orderItemId: item.id,
 			nameServers,
 		});
+		const warnings: string[] = [];
+		try {
+			await setKenicTransferLock(domain, true);
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : String(err);
+			console.error("[KENIC] Failed to enable transfer lock after registration:", err);
+			warnings.push(
+				`Domain provisioned but transfer lock could not be enabled (${msg}) — enable lock manually.`,
+			);
+		}
 		const subId = randomUUID();
 		const subscriptionDate = new Date();
+		const billingCycle = resolveDomainBillingCycle(item.billingCycle);
 		const registryExpiry = regResult.exDate ? new Date(regResult.exDate) : null;
-		const periodDates = resolveSubscriptionPeriodDates(subscriptionDate, item.billingCycle, {
-			expiryOverride: registryExpiry,
+		const periodDates = resolveSubscriptionPeriodDates(subscriptionDate, billingCycle, {
+			expiryOverride:
+				registryExpiry && !Number.isNaN(registryExpiry.getTime()) ? registryExpiry : null,
 		});
 		const inserted = await db
 			.insert(niscClientSubscription)
@@ -1020,9 +1084,9 @@ async function processKenicOrderItem(
 				subscribedBy: order.createdBy,
 				status: "ACTIVE",
 				subscriptionDate,
-				billingCycle: (item.billingCycle as "YEARLY" | "BIENNIALLY" | null) ?? null,
+				billingCycle: billingCycle as "YEARLY" | "BIENNIALLY",
 				pricingModel: "FIXED",
-				agreedPrice: item.itemPrice,
+				agreedPrice: agreedPriceIncVatFromExVat(item.itemSubtotal || item.itemPrice),
 				agreedCurrency: order.currency,
 				agreedCost: item.productPlan?.cost ?? null,
 				agreedCostCurrency: "KES",
@@ -1033,7 +1097,7 @@ async function processKenicOrderItem(
 				nextRenewalDate: periodDates.nextRenewalDate,
 				agreedCommissionRate: null as any,
 				agreedCommissionBase: null,
-				metadata: null,
+				metadata: warnings.length ? { transferLockWarning: warnings[0] } : null,
 			})
 			.returning();
 		const sub = inserted[0];
@@ -1054,6 +1118,7 @@ async function processKenicOrderItem(
 			ok: true,
 			subscriptionId: sub!.id,
 			status: "PROVISIONED",
+			...(warnings.length ? { warnings } : {}),
 		};
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
@@ -1071,7 +1136,14 @@ async function processKenicTransferOrderItem(
 	order: DomainOrder,
 	item: DomainOrderItem,
 ): Promise<
-	| { ok: true; subscriptionId: string; status: "PROVISIONED" | "PENDING"; pendingVerification?: boolean; rawResponse?: unknown }
+	| {
+			ok: true;
+			subscriptionId: string;
+			status: "PROVISIONED" | "PENDING";
+			pendingVerification?: boolean;
+			rawResponse?: unknown;
+			warnings?: string[];
+	  }
 	| { ok: false; error: string; errorDetails?: Record<string, unknown> }
 > {
 	const domain = item.primaryDomain?.trim();
@@ -1104,10 +1176,14 @@ async function processKenicTransferOrderItem(
 		}
 
 		const { executeKenicTransferRequest } = await import("./kenic-transfer-request");
+		const transferPeriod = resolveDomainRegistrationPeriodYears(
+			item.billingCycle,
+			item.metadata,
+		);
 		const transferResult = await executeKenicTransferRequest({
 			name: domain,
 			authCode,
-			period: 1,
+			period: transferPeriod,
 			nameServers,
 		});
 
@@ -1123,14 +1199,29 @@ async function processKenicTransferOrderItem(
 			}
 		}
 
+		const warnings: string[] = [];
+		if (!transferResult.pending) {
+			try {
+				await setKenicTransferLock(domain, true);
+			} catch (err) {
+				const msg = err instanceof Error ? err.message : String(err);
+				console.error("[KENIC] Failed to enable transfer lock after transfer:", err);
+				warnings.push(
+					`Domain transferred but transfer lock could not be enabled (${msg}) — enable lock manually.`,
+				);
+			}
+		}
+
 		const subscriptionDate = await resolveDomainTransferSubscriptionStartDate({
 			domainTransferRequestId: metadata?.domainTransferRequestId,
 			orderCreatedAt: order.createdAt,
 		});
-		const expiryDate = computeSubscriptionExpiryFromBillingCycle(
-			subscriptionDate,
-			item.billingCycle,
-		);
+		const billingCycle = resolveDomainBillingCycle(item.billingCycle);
+		const registryExpiry = transferResult.exDate ? new Date(transferResult.exDate) : null;
+		const periodDates = resolveSubscriptionPeriodDates(subscriptionDate, billingCycle, {
+			expiryOverride:
+				registryExpiry && !Number.isNaN(registryExpiry.getTime()) ? registryExpiry : null,
+		});
 		const subId = randomUUID();
 		const inserted = await db
 			.insert(niscClientSubscription)
@@ -1148,20 +1239,20 @@ async function processKenicTransferOrderItem(
 				subscribedBy: order.createdBy,
 				status: "ACTIVE",
 				subscriptionDate,
-				billingCycle: (item.billingCycle as "YEARLY" | "BIENNIALLY" | null) ?? null,
-				nextRenewalDate: expiryDate,
+				billingCycle: billingCycle as "YEARLY" | "BIENNIALLY",
+				nextRenewalDate: periodDates.nextRenewalDate,
 				pricingModel: "FIXED",
-				agreedPrice: item.itemPrice,
+				agreedPrice: agreedPriceIncVatFromExVat(item.itemSubtotal || item.itemPrice),
 				agreedCurrency: order.currency,
 				agreedCost: item.productPlan?.cost ?? null,
 				agreedCostCurrency: "KES",
 				primaryDomain: domain,
 				openProviderId: null,
 				domainAuthCode: outboundAuthCode,
-				expiryDate,
+				expiryDate: periodDates.expiryDate,
 				agreedCommissionRate: null as any,
 				agreedCommissionBase: null,
-				metadata: null,
+				metadata: warnings.length ? { transferLockWarning: warnings[0] } : null,
 			})
 			.returning();
 		const sub = inserted[0];
@@ -1184,6 +1275,7 @@ async function processKenicTransferOrderItem(
 			status: transferResult.pending ? "PENDING" : "PROVISIONED",
 			pendingVerification: transferResult.pending,
 			rawResponse: transferResult.raw,
+			...(warnings.length ? { warnings } : {}),
 		};
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
@@ -1212,7 +1304,14 @@ async function processOpenProviderTransferOrderItem(
 		productPlan: { name: string; pricingModel: string; price: string | null; cost: string | null } | null;
 	},
 ): Promise<
-	| { ok: true; subscriptionId?: string; status: "PROVISIONED" | "PENDING"; pendingVerification?: boolean; rawResponse?: unknown }
+	| {
+			ok: true;
+			subscriptionId?: string;
+			status: "PROVISIONED" | "PENDING";
+			pendingVerification?: boolean;
+			rawResponse?: unknown;
+			warnings?: string[];
+	  }
 	| { ok: false; error: string; errorDetails?: Record<string, unknown> }
 > {
 	const domainName = item.primaryDomain;
@@ -1258,10 +1357,12 @@ async function processOpenProviderTransferOrderItem(
 			description: item.description ?? undefined,
 			userId: order.userId,
 			teamId: order.teamId,
-			billingCycle: item.billingCycle,
-			itemPrice: item.itemPrice,
+			billingCycle: resolveDomainBillingCycle(item.billingCycle),
+			itemPrice: item.itemSubtotal || item.itemPrice,
 			currency: order.currency,
 			nameServers,
+			period: resolveDomainRegistrationPeriodYears(item.billingCycle, item.metadata),
+			metadata: item.metadata,
 			manualDetails: metadata?.manualRegistrantDetails,
 			domainTransferRequestId: metadata?.domainTransferRequestId,
 			orderCreatedAt: order.createdAt,
@@ -1272,6 +1373,7 @@ async function processOpenProviderTransferOrderItem(
 			status: result.pendingVerification ? "PENDING" : "PROVISIONED",
 			pendingVerification: result.pendingVerification,
 			rawResponse: result.rawResponse,
+			...(result.warnings?.length ? { warnings: result.warnings } : {}),
 		};
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
@@ -1294,11 +1396,18 @@ async function processOpenProviderOrderItem(
 		itemSubtotal: string;
 		primaryDomain: string | null;
 		description: string | null;
+		metadata: unknown;
 		product: { name: string };
 		productPlan: { name: string; pricingModel: string; price: string | null; cost: string | null } | null;
 	},
 ): Promise<
-	| { ok: true; subscriptionId?: string; status: "PROVISIONED" | "PENDING"; pendingVerification?: boolean }
+	| {
+			ok: true;
+			subscriptionId?: string;
+			status: "PROVISIONED" | "PENDING";
+			pendingVerification?: boolean;
+			warnings?: string[];
+	  }
 	| { ok: false; error: string; errorDetails?: Record<string, unknown> }
 > {
 	const domainName = item.primaryDomain;
@@ -1339,10 +1448,12 @@ async function processOpenProviderOrderItem(
 			description: item.description ?? undefined,
 			userId: order.userId,
 			teamId: order.teamId,
-			billingCycle: item.billingCycle,
-			itemPrice: item.itemPrice,
+			billingCycle: resolveDomainBillingCycle(item.billingCycle),
+			itemPrice: item.itemSubtotal || item.itemPrice,
 			currency: order.currency,
 			nameServers,
+			period: resolveDomainRegistrationPeriodYears(item.billingCycle, item.metadata),
+			metadata: item.metadata,
 			manualDetails: metadata?.manualRegistrantDetails,
 		});
 		if (result.subscriptionId) {
@@ -1351,6 +1462,7 @@ async function processOpenProviderOrderItem(
 				subscriptionId: result.subscriptionId,
 				status: result.pendingVerification ? "PENDING" : "PROVISIONED",
 				pendingVerification: result.pendingVerification,
+				...(result.warnings?.length ? { warnings: result.warnings } : {}),
 			};
 		}
 		return {

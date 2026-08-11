@@ -15,6 +15,7 @@ import {
 	ZEEPO_AI_USAGE_KIND,
 	type ZeepoAiPlanType,
 } from "./zeepo-ai-billing";
+import { agreedPriceIncVatFromExVat } from "./convert-price";
 import { creditZeepoAiTokens } from "./zeepo-ai-tokens";
 
 type PlanMeta = {
@@ -121,7 +122,7 @@ async function createZeepoAiPaygSubscription(
 			subscriptionDate: now,
 			billingCycle: (item.billingCycle as "CUSTOM" | null) ?? "CUSTOM",
 			pricingModel: "USAGE",
-			agreedPrice: item.itemPrice,
+			agreedPrice: agreedPriceIncVatFromExVat(item.itemPrice),
 			agreedCurrency: order.currency,
 			agreedCost: plan.cost ?? null,
 			agreedCostCurrency: "USD",

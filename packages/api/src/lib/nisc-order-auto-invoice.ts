@@ -31,6 +31,7 @@ import {
 } from "./domain-bundle-order";
 import { buildNiscInvoiceLineMetadata } from "./invoice-kra-mapper";
 import { COMPANY_LOGO_URL } from "./company-branding";
+import { invoicePaymentMethodFromGateway } from "./invoice-payment-method";
 
 const FROM_DETAILS = {
 	name: "Nisc Cloud Limited",
@@ -53,6 +54,21 @@ const BANK_PAYMENT_DETAILS = {
 	swiftCode: "BARCKENX",
 };
 
+function paymentDetailsForPaidOrder(gateway: string | null | undefined) {
+	const method = invoicePaymentMethodFromGateway(gateway);
+	if (method === "MPESA") {
+		return { paymentMethod: "MPESA", method: "MPESA" };
+	}
+	if (method === "CARD") {
+		return { paymentMethod: "CARD", method: "CARD" };
+	}
+	if (method === "OTHER") {
+		return { paymentMethod: "OTHER", method: "OTHER" };
+	}
+	// Unpaid / unknown: keep bank instructions for settlement.
+	return { ...BANK_PAYMENT_DETAILS };
+}
+
 const TAX_PERCENTAGE = NISC_ORDER_VAT_PERCENTAGE;
 
 export { isTeamBillingComplete };
@@ -69,6 +85,7 @@ export async function createInvoiceForNiscOrder(
 	order: NiscOrderForInvoice,
 	billing: TeamBillingSettings,
 	createdBy: string,
+	options?: { paymentGateway?: string | null },
 ): Promise<{ invoiceId: string; invoiceNumber: string } | null> {
 	const now = new Date();
 	const issueDate = now;
@@ -95,7 +112,7 @@ export async function createInvoiceForNiscOrder(
 		taxId: billing.taxId ?? null,
 	};
 
-	const paymentDetails = { ...BANK_PAYMENT_DETAILS };
+	const paymentDetails = paymentDetailsForPaidOrder(options?.paymentGateway);
 
 	const newInvoiceId = crypto.randomUUID();
 	const token = crypto.randomUUID();

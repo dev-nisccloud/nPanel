@@ -66,6 +66,10 @@ function getMethodDisplayText(method: InvoiceTransactionUI["method"]) {
       return "Bank Transfer";
     case "MPESA":
       return "M-Pesa";
+    case "CARD":
+      return "Card";
+    case "OTHER":
+      return "Other / Manual";
     default:
       return method;
   }
