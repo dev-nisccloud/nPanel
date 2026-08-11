@@ -13,9 +13,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { BuyNowDialog } from "../../$slug.domains/_components/buy-now-dialog";
 import { trpc } from "@/utils/trpc";
 import { useCartStore } from "@/stores/cart-store";
+import { useGlobalBuyNowStore } from "@/stores/global-buy-now-store";
 import { useCurrency } from "../../$slug.domains/_components/currency-context";
 import { CurrencyProvider } from "../../$slug.domains/_components/currency-context";
 import type { DomainSearchResult } from "@/hooks/use-domain-search";
@@ -212,14 +212,24 @@ function ProtectBrandTabContent({ domainNameWithoutTld, isActive = true }: Prote
     return `${symbol} ${formattedNumber}`;
   }, []);
 
-  // Buy Now dialog state
-  const [buyNowOpen, setBuyNowOpen] = React.useState(false);
-  const [selectedDomain, setSelectedDomain] = React.useState<DomainSearchResult | null>(null);
+  const openForProduct = useGlobalBuyNowStore((s) => s.openForProduct);
+  const { data: domainsProductId } = trpc.clientSubscriptions.getDomainsProductId.useQuery(undefined, {
+    enabled: isActive,
+  });
 
-  const handleBuyNow = React.useCallback((result: DomainSearchResult) => {
-    setSelectedDomain(result);
-    setBuyNowOpen(true);
-  }, []);
+  const handleBuyNow = React.useCallback(
+    (result: DomainSearchResult) => {
+      if (!domainsProductId) {
+        return;
+      }
+      openForProduct({
+        productId: domainsProductId,
+        productName: "Domains",
+        domain: result,
+      });
+    },
+    [domainsProductId, openForProduct],
+  );
 
   // Show loading until all data is ready: domain search, TLD settings, exchange rates, and price processing
   const isLoadingResults = isLoading || 
@@ -359,13 +369,6 @@ function ProtectBrandTabContent({ domainNameWithoutTld, isActive = true }: Prote
               </TableBody>
             </Table>
           </div>
-          {selectedDomain && (
-            <BuyNowDialog
-              open={buyNowOpen}
-              onOpenChange={setBuyNowOpen}
-              domain={selectedDomain}
-            />
-          )}
         </>
       ) : (
         <div className="text-center py-12">

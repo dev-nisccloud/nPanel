@@ -4,6 +4,7 @@ import * as React from "react";
 import { HelpCircle, Check, Receipt, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { computeCeilVatTotals, paymentTotalString } from "@npanel/api/lib/convert-price";
+import { domainBillingCycleFromYears } from "@npanel/api/lib/nisc-domain-billing-cycle";
 import {
   canonicalMpesaPaymentAmount,
   resolveMpesaCheckoutPayment,
@@ -503,8 +504,7 @@ export function GlobalBuyNowDialog() {
   const transferSubtotal = isTransferMode && transferContext ? transferContext.price : 0;
   const subtotal = isTransferMode ? transferSubtotal : isCartMode ? cartSubtotal : productSubtotal;
   const VAT_RATE = 0.16;
-  const taxes = subtotal * VAT_RATE;
-  const total = subtotal + taxes;
+  const { vatAmount: taxes, totalIncVat: total } = computeCeilVatTotals(subtotal, VAT_RATE);
   const totalItems = getItemCount();
 
   const effectiveTransferSubtotal =
@@ -814,24 +814,33 @@ export function GlobalBuyNowDialog() {
     const linePrice = (key: string, base: number) =>
       isAgencyUser ? parsePriceOverrideInput(priceOverrideByKey[key]) ?? base : base;
 
+    const domainCycle = domainBillingCycleFromYears(duration) as
+      | "YEARLY"
+      | "BIENNIALLY"
+      | "TRIENNIALLY"
+      | "QUADRENNIALLY";
     const items: Array<{
       productId: string;
       productPlanId?: string | null;
-      billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY";
+      billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "TRIENNIALLY" | "QUADRENNIALLY";
       primaryDomain: string;
       description?: string;
       itemPrice: string;
       itemSubtotal: string;
-      metadata?: ReturnType<typeof buildRegistrantOrderMetadata>;
+      metadata?: Record<string, unknown>;
     }> = [
       {
         productId: ctx.productId,
         primaryDomain: domainName,
         description: "registration",
         productPlanId: null,
+        billingCycle: domainCycle,
         itemPrice: str(linePrice("product-domain", domainTotal)),
         itemSubtotal: str(linePrice("product-domain", domainTotal)),
-        metadata: registrantOrderMetadata,
+        metadata: {
+          ...registrantOrderMetadata,
+          registrationPeriodYears: duration,
+        },
       },
     ];
 
@@ -840,6 +849,7 @@ export function GlobalBuyNowDialog() {
       items.push({
         productId: addon.productId,
         productPlanId: addon.planId,
+        billingCycle: "YEARLY",
         primaryDomain: domainName,
         itemPrice: str(price),
         itemSubtotal: str(price),
@@ -876,6 +886,7 @@ export function GlobalBuyNowDialog() {
     buildDomainBundleOrderItems,
     ctx,
     domainTotal,
+    duration,
     isAgencyUser,
     priceOverrideByKey,
     registrantOrderMetadata,
@@ -909,6 +920,7 @@ export function GlobalBuyNowDialog() {
               primaryDomain: transferContext.domain,
               description: "transfer",
               productPlanId: null,
+              billingCycle: "YEARLY" as const,
               itemPrice: str(recorded),
               itemSubtotal: str(recorded),
               metadata: {
@@ -978,6 +990,7 @@ export function GlobalBuyNowDialog() {
               primaryDomain: item.domain,
               description: "registration",
               productPlanId: null,
+              billingCycle: "YEARLY",
               itemPrice: str(line),
               itemSubtotal: str(line),
               metadata: registrantOrderMetadata,
@@ -1077,6 +1090,7 @@ export function GlobalBuyNowDialog() {
           primaryDomain: transferContext.domain,
           description: "transfer",
           productPlanId: null,
+          billingCycle: "YEARLY" as const,
           itemPrice: str(recorded),
           itemSubtotal: str(recorded),
           metadata: {
@@ -1132,6 +1146,7 @@ export function GlobalBuyNowDialog() {
             primaryDomain: item.domain,
             description: "registration",
             productPlanId: null,
+            billingCycle: "YEARLY",
             itemPrice: str(line),
             itemSubtotal: str(line),
             metadata: registrantOrderMetadata,
@@ -1420,6 +1435,7 @@ export function GlobalBuyNowDialog() {
         amount,
         accountReference: resolved.accountReference,
         transactionDesc: transactionDesc.slice(0, 13),
+        checkoutTotalIncVat: effectiveTotal,
       });
     } catch {
       // handled in onError
@@ -1479,6 +1495,12 @@ export function GlobalBuyNowDialog() {
         transactionReference: ref,
         amount,
         currency: isCartMode ? primaryCurrency : displayCurrency,
+        gateway:
+          selectedPaymentMethod === "card"
+            ? "JENGA"
+            : selectedPaymentMethod === "mpesa"
+              ? "MPESA"
+              : "OTHER",
         accountReference: resolved.accountReference || undefined,
         transactionDesc: isTransferMode && transferContext
           ? `Transfer ${transferContext.domain}`

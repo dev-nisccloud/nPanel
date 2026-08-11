@@ -42,7 +42,7 @@ export const paymentTransactionUiSchema = z.object({
   userId: z.string(),
   teamId: z.string().nullable(),
   userName: z.string().nullable(),
-  gateway: z.enum(["MPESA", "STRIPE", "PAYPAL", "FLUTTERWAVE", "OTHER"]),
+  gateway: z.enum(["MPESA", "JENGA", "STRIPE", "PAYPAL", "FLUTTERWAVE", "OTHER"]),
   status: z.enum(["PENDING", "PROCESSING", "SUCCESS", "FAILED", "CANCELLED", "REFUNDED", "PARTIALLY_REFUNDED"]),
   amount: z.string(),
   currency: z.string(),

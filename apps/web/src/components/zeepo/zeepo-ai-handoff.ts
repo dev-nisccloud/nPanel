@@ -12,6 +12,8 @@ export type ZeepoAiHandoffPayload = {
   searchEnabled?: boolean;
   skillId?: string;
   attachmentIds?: string[];
+  /** Display-only image refs for the handoff user bubble before the turn persists. */
+  attachments?: Array<{ url: string; name: string; mimeType: string }>;
   fromCompose?: boolean;
 };
 

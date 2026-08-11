@@ -35,6 +35,7 @@ function getBillingCycleDisplayName(cycle: string | null): string {
 		YEARLY: "Yearly",
 		BIENNIALLY: "Biennially",
 		CUSTOM: "Custom",
+		ONE_TIME: "One-time",
 	};
 	return m[cycle] ?? cycle;
 }
@@ -70,9 +71,8 @@ function displayServiceName(
 	return subscriptionName?.trim() ? `${base} (${subscriptionName})` : base;
 }
 
-function teamOrUserName(userName: string | null, teamName: string | null): string {
-	// If both userId and teamId exist, prefer userId (user name)
-	return userName ?? teamName ?? "- ";
+function organizationName(teamName: string | null): string {
+	return teamName ?? "- ";
 }
 
 export interface SubscriptionsTableProps {
@@ -119,7 +119,6 @@ export function SubscriptionsTable({ onViewSubscription, onEditSubscription }: S
 			(s) =>
 				s.productName.toLowerCase().includes(q) ||
 				(s.productPlanName ?? "").toLowerCase().includes(q) ||
-				(s.userName ?? "").toLowerCase().includes(q) ||
 				(s.teamName ?? "").toLowerCase().includes(q) ||
 				s.status.toLowerCase().includes(q)
 		);
@@ -239,7 +238,7 @@ export function SubscriptionsTable({ onViewSubscription, onEditSubscription }: S
 						<TableHeader>
 							<TableRow>
 								<TableHead className="pl-6">Service Name</TableHead>
-								<TableHead>Organization / User</TableHead>
+								<TableHead>Organization</TableHead>
 								<TableHead>Billing cycle</TableHead>
 								<TableHead>Subscription date</TableHead>
 								<TableHead>Expiry date</TableHead>
@@ -263,7 +262,7 @@ export function SubscriptionsTable({ onViewSubscription, onEditSubscription }: S
 									>
 										{displayServiceName(sub.productName, sub.productPlanName, sub.subscriptionName)}
 									</TableCell>
-									<TableCell>{teamOrUserName(sub.userName, sub.teamName)}</TableCell>
+									<TableCell>{organizationName(sub.teamName)}</TableCell>
 									<TableCell>{getBillingCycleDisplayName(sub.billingCycle)}</TableCell>
 									<TableCell>{formatDate(sub.subscriptionDate)}</TableCell>
 									<TableCell>{formatDate(sub.expiryDate)}</TableCell>

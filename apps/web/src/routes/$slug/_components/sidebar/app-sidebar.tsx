@@ -1,6 +1,7 @@
 "use client";
 
-import { Settings, CircleHelp, Search, Database, ClipboardList, File, Command } from "lucide-react";
+import * as React from "react";
+import { useLocation } from "react-router";
 
 import {
   Sidebar,
@@ -10,67 +11,78 @@ import {
   SidebarMenu,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { SidebarBrandMenu } from "@/components/sidebar-brand-menu";
-import { rootUser } from "@/data/users";
 import { sidebarItems } from "@/navigation/sidebar/sidebar-items";
+import {
+  ZeepoAiRouteProvider,
+  type ZeepoAiRouteConfig,
+} from "@/components/zeepo/zeepo-ai-route-context";
+import {
+  isZeepoAiChatSessionPath,
+  NavZeepoAiHistory,
+} from "@/routes/agency/_components/sidebar/nav-zeepo-ai-history";
+import { trpc } from "@/utils/trpc";
 
 import { NavMain } from "./nav-main";
 import { NavUser } from "./nav-user";
 
-const data = {
-  navSecondary: [
-    {
-      title: "Settings",
-      url: "#",
-      icon: Settings,
-    },
-    {
-      title: "Get Help",
-      url: "#",
-      icon: CircleHelp,
-    },
-    {
-      title: "Search",
-      url: "#",
-      icon: Search,
-    },
-  ],
-  documents: [
-    {
-      name: "Data Library",
-      url: "#",
-      icon: Database,
-    },
-    {
-      name: "Reports",
-      url: "#",
-      icon: ClipboardList,
-    },
-    {
-      name: "Word Assistant",
-      url: "#",
-      icon: File,
-    },
-  ],
-};
+function CustomerZeepoAiHistoryNav({ teamSlug }: { teamSlug: string }) {
+  const { data: teamData, isLoading } = trpc.teams.getTeamIdBySlug.useQuery(
+    { slug: teamSlug },
+    { enabled: Boolean(teamSlug) },
+  );
 
-export function AppSidebar({ 
+  const config = React.useMemo<ZeepoAiRouteConfig>(
+    () => ({
+      basePath: `/${teamSlug}/zeepo-ai`,
+      teamId: teamData?.id ?? null,
+      teamSlug,
+      isCustomer: true,
+    }),
+    [teamSlug, teamData?.id],
+  );
+
+  if (isLoading || !teamData?.id) {
+    return (
+      <div className="flex grow flex-col items-center justify-center gap-2 p-4">
+        <Spinner variant="ellipsis" className="text-primary" />
+        <span className="animate-pulse text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          Loading chats…
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <ZeepoAiRouteProvider config={config}>
+      <NavZeepoAiHistory />
+    </ZeepoAiRouteProvider>
+  );
+}
+
+export function AppSidebar({
   teamSlug,
-  ...props 
+  ...props
 }: React.ComponentProps<typeof Sidebar> & { teamSlug?: string }) {
+  const { pathname } = useLocation();
+  const showZeepoAiHistory = isZeepoAiChatSessionPath(pathname);
+
   return (
     <Sidebar {...props}>
-    <SidebarHeader>
-      <SidebarMenu>
-        <SidebarMenuItem>
-          <SidebarBrandMenu />
-        </SidebarMenuItem>
-      </SidebarMenu>
-    </SidebarHeader>
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarBrandMenu />
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
       <SidebarContent>
-        <NavMain items={sidebarItems} teamSlug={teamSlug} />
-        {/* <NavDocuments items={data.documents} /> */}
-        {/* <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
+        {showZeepoAiHistory && teamSlug ? (
+          <CustomerZeepoAiHistoryNav teamSlug={teamSlug} />
+        ) : (
+          <NavMain items={sidebarItems} teamSlug={teamSlug} />
+        )}
       </SidebarContent>
       <SidebarFooter>
         <NavUser />

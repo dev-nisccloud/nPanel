@@ -6,7 +6,7 @@
  * OpenProvider (domain_transfer) → ensure integration, verify email, transfer domain (auth code in item.metadata);
  * Hivelocity (dedicated_server_hosting, vps_hosting, vds_hosting) → Deployment API, create subscription with device refs.
  */
-import { eq } from "@npanel/db";
+import { and, eq, lt, or, sql } from "@npanel/db";
 import { randomUUID } from "node:crypto";
 
 import { db } from "@npanel/db";
@@ -20,11 +20,21 @@ import {
 	isZeepoAiAgentProduct,
 	provisionZeepoAgentOrderItem,
 } from "./zeepo-agent-order-provisioning";
+import {
+	isZeepoAiProduct,
+	provisionZeepoAiOrderItem,
+} from "./zeepo-ai-order-provisioning";
 import { isKenicDomain } from "./epp/kenic-tlds";
-import { ensureKenicIntegration, registerKenicDomain } from "./kenic-nisc";
+import { agreedPriceIncVatFromOrderLine } from "./convert-price";
+import {
+	ensureKenicIntegration,
+	registerKenicDomain,
+	setKenicTransferLock,
+} from "./kenic-nisc";
 import { OpenProviderApiError } from "./openprovider-client";
 import {
-	computeSubscriptionExpiryFromBillingCycle,
+	resolveDomainBillingCycle,
+	resolveDomainRegistrationPeriodYears,
 	resolveDomainTransferSubscriptionStartDate,
 	resolveSubscriptionPeriodDates,
 } from "./nisc-subscription-dates";
@@ -86,8 +96,11 @@ function getDomainProvider(domain: string | null): "kenic" | "openprovider" {
 	return isKenicDomain(domain) ? "kenic" : "openprovider";
 }
 
+/** Stale PROCESSING claims older than this may be reclaimed by another worker. */
+const STALE_PROCESSING_MS = 15 * 60 * 1000;
+
 export type ProcessNiscOrderResult =
-	| { ok: true; status: "COMPLETED" | "PARTIAL"; failureReason?: string }
+	| { ok: true; status: "COMPLETED" | "PARTIAL" | "PROCESSING"; failureReason?: string }
 	| { ok: false; status: "FAILED"; failureReason: string };
 
 export async function processNiscOrder(niscOrderId: string): Promise<ProcessNiscOrderResult> {
@@ -119,14 +132,67 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 	});
 
 	const now = new Date();
-	await db
+	const staleBefore = new Date(now.getTime() - STALE_PROCESSING_MS);
+	// Atomic claim: PENDING → PROCESSING, or reclaim stale PROCESSING (crash recovery).
+	const claimed = await db
 		.update(niscOrder)
 		.set({ status: "PROCESSING", processedAt: now, updatedAt: now })
-		.where(eq(niscOrder.id, niscOrderId));
+		.where(
+			and(
+				eq(niscOrder.id, niscOrderId),
+				or(
+					eq(niscOrder.status, "PENDING"),
+					and(eq(niscOrder.status, "PROCESSING"), lt(niscOrder.processedAt, staleBefore)),
+				),
+			),
+		)
+		.returning({ id: niscOrder.id, status: niscOrder.status });
+	if (!claimed[0]) {
+		const [current] = await db
+			.select({ status: niscOrder.status, failureReason: niscOrder.failureReason })
+			.from(niscOrder)
+			.where(eq(niscOrder.id, niscOrderId))
+			.limit(1);
+		await niscLog("processor_order_claim_skipped", {
+			niscOrderId,
+			status: current?.status ?? null,
+		});
+		if (current?.status === "FAILED") {
+			return {
+				ok: false,
+				status: "FAILED",
+				failureReason: current.failureReason ?? "Order already failed",
+			};
+		}
+		if (current?.status === "PARTIAL") {
+			return {
+				ok: true,
+				status: "PARTIAL",
+				failureReason: current.failureReason ?? undefined,
+			};
+		}
+		if (current?.status === "PROCESSING") {
+			// Fresh claim held by another worker  do not pretend COMPLETED (avoids early emails).
+			return {
+				ok: true,
+				status: "PROCESSING",
+				failureReason: "Order is already being processed",
+			};
+		}
+		if (current?.status === "COMPLETED") {
+			return { ok: true, status: "COMPLETED" };
+		}
+		return {
+			ok: false,
+			status: "FAILED",
+			failureReason: `Order is not claimable (status: ${current?.status ?? "unknown"})`,
+		};
+	}
 	await niscLog("processor_order_status_updated", { niscOrderId, status: "PROCESSING" });
 
 	let hasFailure = false;
 	let hasSuccess = false;
+	let hasPendingVerification = false;
 	const failureReasons: string[] = [];
 
 	for (const item of order.orderItems) {
@@ -151,6 +217,36 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 			hasSuccess = true;
 			continue;
 		}
+		// Already linked to a subscription (e.g. crash after provision, before status write).
+		if (item.niscClientSubscriptionId) {
+			// PENDING + linked = awaiting provider verification (e.g. domain transfer); do not force PROVISIONED.
+			if (item.status === "PENDING") {
+				await niscLog("processor_item_skip_pending_verification", {
+					niscOrderId,
+					orderItemId: item.id,
+					subscriptionId: item.niscClientSubscriptionId,
+				});
+				hasPendingVerification = true;
+				continue;
+			}
+			await db
+				.update(niscOrderItem)
+				.set({ status: "PROVISIONED", provisioningError: null, updatedAt: now })
+				.where(eq(niscOrderItem.id, item.id));
+			await niscLog("processor_item_skip_already_linked", {
+				niscOrderId,
+				orderItemId: item.id,
+				subscriptionId: item.niscClientSubscriptionId,
+			});
+			hasSuccess = true;
+			continue;
+		}
+		// Heartbeat so stale-claim reclaim does not steal a long multi-item run.
+		const heartbeat = new Date();
+		await db
+			.update(niscOrder)
+			.set({ processedAt: heartbeat, updatedAt: heartbeat })
+			.where(eq(niscOrder.id, niscOrderId));
 		await db
 			.update(niscOrderItem)
 			.set({ status: "PROCESSING", updatedAt: now })
@@ -378,24 +474,35 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 							});
 						}
 					}
+					const warnings =
+						"warnings" in result && Array.isArray(result.warnings)
+							? (result.warnings as string[]).filter(Boolean)
+							: [];
 					await db
 						.update(niscOrderItem)
 						.set({
 							status: result.status,
 							niscClientSubscriptionId: result.subscriptionId ?? undefined,
-							provisioningError: result.pendingVerification ? "Pending email verification" : undefined,
+							provisioningError: result.pendingVerification
+								? "Pending email verification"
+								: warnings.length
+									? warnings.join("; ")
+									: undefined,
 							updatedAt: now,
 						})
 						.where(eq(niscOrderItem.id, item.id));
+					const isPendingVerification =
+						Boolean(result.pendingVerification) || result.status === "PENDING";
 					if (domainTransferRequestId) {
 						await db
 							.update(domainTransferRequest)
 							.set({
-								status: "COMPLETED",
+								status: isPendingVerification ? "SUBMITTED_TO_PROVIDER" : "COMPLETED",
 								providerResponse: {
 									subscriptionId: result.subscriptionId ?? null,
 									status: result.status,
 									pendingVerification: result.pendingVerification ?? false,
+									warnings: warnings.length ? warnings : undefined,
 								},
 								updatedAt: now,
 							})
@@ -408,8 +515,14 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 						subscriptionId: result.subscriptionId ?? null,
 						status: result.status,
 						pendingVerification: result.pendingVerification ?? false,
+						warnings: warnings.length ? warnings : undefined,
 					});
-					hasSuccess = true;
+					if (isPendingVerification) {
+						hasPendingVerification = true;
+					} else {
+						hasSuccess = true;
+					}
+					// Transfer-lock warnings stay on item.provisioningError for visibility but are not failures.
 				} else {
 					const errDetails = "errorDetails" in result ? result.errorDetails : undefined;
 					if (branchName === "kenic_transfer" || branchName === "openprovider_transfer") {
@@ -469,16 +582,52 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 
 			// Default: DB-only (no external provider). Create subscription and provision usage from plan when configured.
 			// Covers all service types not requiring Plesk or domain provider, e.g. ai_image_generator, background_remover, creatives, consulting, custom, etc.
-			const isZeepoItem = isZeepoAiAgentProduct(item.productId);
+			const isZeepoAgentItem = isZeepoAiAgentProduct(item.productId);
+			const isZeepoAiItem = isZeepoAiProduct(item.productId);
+			const isZeepoItem = isZeepoAgentItem || isZeepoAiItem;
 			await niscLog("processor_item_branch", {
 				niscOrderId,
 				orderItemId: item.id,
-				branch: isZeepoItem ? "zeepo_ai_agent" : "no_integration",
+				branch: isZeepoAiItem
+					? "zeepo_ai"
+					: isZeepoAgentItem
+						? "zeepo_ai_agent"
+						: "no_integration",
 				serviceType,
 				...(isZeepoItem ? { teamId: order.teamId ?? null } : {}),
 			});
 			let sub: { id: string };
-			if (isZeepoItem) {
+			if (isZeepoAiItem) {
+				const zeepoResult = await provisionZeepoAiOrderItem(
+					{
+						userId: order.userId,
+						teamId: order.teamId,
+						createdBy: order.createdBy,
+						orderId: order.id,
+						currency: order.currency,
+					},
+					{
+						productId: item.productId,
+						productPlanId: item.productPlanId,
+						billingCycle: item.billingCycle,
+						itemPrice: item.itemPrice,
+						itemSubtotal: item.itemSubtotal,
+						description: item.description,
+						metadata: item.metadata as Record<string, unknown> | null,
+						product: { name: item.product.name },
+						productPlan: item.productPlan
+							? {
+									name: item.productPlan.name,
+									pricingModel: item.productPlan.pricingModel,
+									price: item.productPlan.price,
+									cost: item.productPlan.cost,
+									metadata: item.productPlan.metadata,
+								}
+							: null,
+					},
+				);
+				sub = { id: zeepoResult.subscriptionId };
+			} else if (isZeepoAgentItem) {
 				const zeepoResult = await provisionZeepoAgentOrderItem(
 					{
 						userId: order.userId,
@@ -492,6 +641,7 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 						productPlanId: item.productPlanId,
 						billingCycle: item.billingCycle,
 						itemPrice: item.itemPrice,
+						itemSubtotal: item.itemSubtotal,
 						description: item.description,
 						metadata: item.metadata as Record<string, unknown> | null,
 						product: { name: item.product.name },
@@ -521,7 +671,11 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 			await niscLog("processor_item_success", {
 				niscOrderId,
 				orderItemId: item.id,
-				branch: isZeepoItem ? "zeepo_ai_agent" : "no_integration",
+				branch: isZeepoAiItem
+					? "zeepo_ai"
+					: isZeepoAgentItem
+						? "zeepo_ai_agent"
+						: "no_integration",
 				subscriptionId: sub.id,
 			});
 			hasSuccess = true;
@@ -570,9 +724,10 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 
 	const failureReason = failureReasons.length > 0 ? failureReasons.join("; ") : null;
 	let orderStatus: "COMPLETED" | "FAILED" | "PARTIAL";
-	if (hasFailure && !hasSuccess) {
+	// Pending verification is not terminal failure  keep PARTIAL so reclaim/retry can finish later.
+	if (hasFailure && !hasSuccess && !hasPendingVerification) {
 		orderStatus = "FAILED";
-	} else if (hasFailure && hasSuccess) {
+	} else if (hasFailure || hasPendingVerification) {
 		orderStatus = "PARTIAL";
 	} else {
 		orderStatus = "COMPLETED";
@@ -583,6 +738,7 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 		orderStatus,
 		hasFailure,
 		hasSuccess,
+		hasPendingVerification,
 		failureReason: failureReason ?? null,
 		failureReasons,
 	});
@@ -638,6 +794,18 @@ async function createSubscriptionForOrderItem(
 	const pricingModel = (plan?.pricingModel as "FIXED" | "COMMISSION") ?? "FIXED";
 	const now = new Date();
 	const periodDates = resolveSubscriptionPeriodDates(now, item.billingCycle);
+	// Idempotent: reuse subscription already created for this order item (crash recovery).
+	const existingForItem = await db.query.niscClientSubscription.findFirst({
+		where: and(
+			eq(niscClientSubscription.niscOrderId, order.id),
+			sql`${niscClientSubscription.metadata}->>'niscOrderItemId' = ${item.id}`,
+		),
+		columns: { id: true },
+	});
+	if (existingForItem) {
+		return existingForItem;
+	}
+
 	const subId = randomUUID();
 	const inserted = await db
 		.insert(niscClientSubscription)
@@ -656,7 +824,7 @@ async function createSubscriptionForOrderItem(
 			subscriptionDate: now,
 			billingCycle: (item.billingCycle as any) ?? null,
 			pricingModel,
-			agreedPrice: item.itemPrice,
+			agreedPrice: agreedPriceIncVatFromOrderLine(item),
 			agreedCurrency: order.currency,
 			agreedCost: plan?.cost ?? null,
 			agreedCostCurrency: "KES",
@@ -666,7 +834,7 @@ async function createSubscriptionForOrderItem(
 			agreedCommissionBase: null,
 			expiryDate: periodDates.expiryDate,
 			nextRenewalDate: periodDates.nextRenewalDate,
-			metadata: null,
+			metadata: { niscOrderItemId: item.id },
 		})
 		.returning();
 	const sub = inserted[0];
@@ -697,6 +865,7 @@ async function processPleskOrderItem(
 		itemSubtotal: string;
 		primaryDomain: string | null;
 		domainSubscriptionId: string | null;
+		metadata?: unknown;
 		product: { name: string };
 		productPlan: {
 			name: string;
@@ -723,6 +892,22 @@ async function processPleskOrderItem(
 		null;
 	if (!domainName) {
 		return { ok: false, error: "Domain is required for hosting. Enter a domain name for Plesk." };
+	}
+
+	// Crash/retry: reuse subscription already created for this order item.
+	const existingForItem = await db.query.niscClientSubscription.findFirst({
+		where: and(
+			eq(niscClientSubscription.niscOrderId, order.id),
+			sql`${niscClientSubscription.metadata}->>'niscOrderItemId' = ${item.id}`,
+		),
+		columns: { id: true },
+	});
+	if (existingForItem) {
+		return {
+			ok: true,
+			subscriptionId: existingForItem.id,
+			rawResponse: { skipped: true, reason: "subscription_already_exists_for_order_item" },
+		};
 	}
 
 	const meta = item.metadata as { provisionUserId?: string } | null;
@@ -752,12 +937,45 @@ async function processPleskOrderItem(
 			"@npanel/api/lib/plesk-integration"
 		);
 		const pleskOwnerId = await ensurePleskIntegration(teamOwnerId, order.createdBy);
-		const result = await provisionToPlesk({
-			domainName,
-			pleskOwnerId,
-			pleskServicePlanId: planId,
-			ipAddress: item.productPlan.pleskIpAddress ?? undefined,
-		});
+		let result: Awaited<ReturnType<typeof provisionToPlesk>>;
+		try {
+			result = await provisionToPlesk({
+				domainName,
+				pleskOwnerId,
+				pleskServicePlanId: planId,
+				ipAddress: item.productPlan.pleskIpAddress ?? undefined,
+			});
+		} catch (provisionErr) {
+			const provisionMessage =
+				provisionErr instanceof Error ? provisionErr.message : String(provisionErr);
+			const looksLikeDuplicate =
+				/already exists|duplicate|object already exists|exists already/i.test(provisionMessage);
+			if (looksLikeDuplicate) {
+				const existingSub = await db.query.niscClientSubscription.findFirst({
+					where: and(
+						eq(niscClientSubscription.primaryDomain, domainName),
+						eq(niscClientSubscription.productId, item.productId),
+						order.teamId
+							? eq(niscClientSubscription.teamId, order.teamId)
+							: sql`${niscClientSubscription.teamId} is null`,
+						eq(niscClientSubscription.niscOrderId, order.id),
+					),
+					columns: { id: true },
+				});
+				if (existingSub) {
+					return {
+						ok: true,
+						subscriptionId: existingSub.id,
+						rawResponse: {
+							skipped: true,
+							reason: "plesk_domain_already_exists_reused_subscription",
+							message: provisionMessage,
+						},
+					};
+				}
+			}
+			throw provisionErr;
+		}
 
 		const name = `${item.product.name} - ${item.productPlan.name}`;
 		const subId = randomUUID();
@@ -779,7 +997,7 @@ async function processPleskOrderItem(
 				subscriptionDate,
 				billingCycle: item.billingCycle as any ?? null,
 				pricingModel: item.productPlan.pricingModel as any,
-				agreedPrice: item.itemPrice,
+				agreedPrice: agreedPriceIncVatFromOrderLine(item),
 				agreedCurrency: order.currency,
 				agreedCost: item.productPlan.cost ?? null,
 				agreedCostCurrency: "KES",
@@ -793,7 +1011,7 @@ async function processPleskOrderItem(
 				agreedCommissionBase: null,
 				expiryDate: periodDates.expiryDate,
 				nextRenewalDate: periodDates.nextRenewalDate,
-				metadata: null,
+				metadata: { niscOrderItemId: item.id },
 			})
 			.returning();
 		const sub = inserted[0];
@@ -855,14 +1073,8 @@ type DomainOrder = {
 	createdAt: Date;
 };
 
-function billingCycleToYears(billingCycle: string | null): number {
-	if (!billingCycle) return 1;
-	const cycle = billingCycle.trim().toUpperCase();
-	if (cycle === "BIENNIALLY") return 2;
-	if (cycle === "TRIENNIALLY") return 3;
-	if (cycle === "QUADRENNIALLY") return 4;
-	if (cycle === "YEARLY") return 1;
-	return 1;
+function billingCycleToYears(billingCycle: string | null, metadata?: unknown): number {
+	return resolveDomainRegistrationPeriodYears(billingCycle, metadata);
 }
 
 async function resolveOwnerId(order: DomainOrder, item: DomainOrderItem): Promise<string | null> {
@@ -901,7 +1113,13 @@ async function processKenicOrderItem(
 	order: DomainOrder,
 	item: DomainOrderItem,
 ): Promise<
-	| { ok: true; subscriptionId: string; status: "PROVISIONED"; pendingVerification?: boolean }
+	| {
+			ok: true;
+			subscriptionId: string;
+			status: "PROVISIONED";
+			pendingVerification?: boolean;
+			warnings?: string[];
+	  }
 	| { ok: false; error: string; errorDetails?: Record<string, unknown> }
 > {
 	const domain = item.primaryDomain?.trim();
@@ -930,7 +1148,7 @@ async function processKenicOrderItem(
 			logContext: { niscOrderId: order.id, orderItemId: item.id },
 			manualDetails: metadata?.manualRegistrantDetails,
 		});
-		const period = billingCycleToYears(item.billingCycle);
+		const period = billingCycleToYears(item.billingCycle, item.metadata);
 		let nameServers = metadata?.nameServers;
 
 		if (!nameServers || nameServers.length === 0) {
@@ -956,11 +1174,23 @@ async function processKenicOrderItem(
 			orderItemId: item.id,
 			nameServers,
 		});
+		const warnings: string[] = [];
+		try {
+			await setKenicTransferLock(domain, true);
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : String(err);
+			console.error("[KENIC] Failed to enable transfer lock after registration:", err);
+			warnings.push(
+				`Domain provisioned but transfer lock could not be enabled (${msg})  enable lock manually.`,
+			);
+		}
 		const subId = randomUUID();
 		const subscriptionDate = new Date();
+		const billingCycle = resolveDomainBillingCycle(item.billingCycle);
 		const registryExpiry = regResult.exDate ? new Date(regResult.exDate) : null;
-		const periodDates = resolveSubscriptionPeriodDates(subscriptionDate, item.billingCycle, {
-			expiryOverride: registryExpiry,
+		const periodDates = resolveSubscriptionPeriodDates(subscriptionDate, billingCycle, {
+			expiryOverride:
+				registryExpiry && !Number.isNaN(registryExpiry.getTime()) ? registryExpiry : null,
 		});
 		const inserted = await db
 			.insert(niscClientSubscription)
@@ -977,9 +1207,9 @@ async function processKenicOrderItem(
 				subscribedBy: order.createdBy,
 				status: "ACTIVE",
 				subscriptionDate,
-				billingCycle: (item.billingCycle as "YEARLY" | "BIENNIALLY" | null) ?? null,
+				billingCycle: billingCycle as "YEARLY" | "BIENNIALLY",
 				pricingModel: "FIXED",
-				agreedPrice: item.itemPrice,
+				agreedPrice: agreedPriceIncVatFromOrderLine(item),
 				agreedCurrency: order.currency,
 				agreedCost: item.productPlan?.cost ?? null,
 				agreedCostCurrency: "KES",
@@ -990,7 +1220,7 @@ async function processKenicOrderItem(
 				nextRenewalDate: periodDates.nextRenewalDate,
 				agreedCommissionRate: null as any,
 				agreedCommissionBase: null,
-				metadata: null,
+				metadata: warnings.length ? { transferLockWarning: warnings[0] } : null,
 			})
 			.returning();
 		const sub = inserted[0];
@@ -1011,6 +1241,7 @@ async function processKenicOrderItem(
 			ok: true,
 			subscriptionId: sub!.id,
 			status: "PROVISIONED",
+			...(warnings.length ? { warnings } : {}),
 		};
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
@@ -1028,7 +1259,14 @@ async function processKenicTransferOrderItem(
 	order: DomainOrder,
 	item: DomainOrderItem,
 ): Promise<
-	| { ok: true; subscriptionId: string; status: "PROVISIONED" | "PENDING"; pendingVerification?: boolean; rawResponse?: unknown }
+	| {
+			ok: true;
+			subscriptionId: string;
+			status: "PROVISIONED" | "PENDING";
+			pendingVerification?: boolean;
+			rawResponse?: unknown;
+			warnings?: string[];
+	  }
 	| { ok: false; error: string; errorDetails?: Record<string, unknown> }
 > {
 	const domain = item.primaryDomain?.trim();
@@ -1061,10 +1299,14 @@ async function processKenicTransferOrderItem(
 		}
 
 		const { executeKenicTransferRequest } = await import("./kenic-transfer-request");
+		const transferPeriod = resolveDomainRegistrationPeriodYears(
+			item.billingCycle,
+			item.metadata,
+		);
 		const transferResult = await executeKenicTransferRequest({
 			name: domain,
 			authCode,
-			period: 1,
+			period: transferPeriod,
 			nameServers,
 		});
 
@@ -1080,14 +1322,29 @@ async function processKenicTransferOrderItem(
 			}
 		}
 
+		const warnings: string[] = [];
+		if (!transferResult.pending) {
+			try {
+				await setKenicTransferLock(domain, true);
+			} catch (err) {
+				const msg = err instanceof Error ? err.message : String(err);
+				console.error("[KENIC] Failed to enable transfer lock after transfer:", err);
+				warnings.push(
+					`Domain transferred but transfer lock could not be enabled (${msg})  enable lock manually.`,
+				);
+			}
+		}
+
 		const subscriptionDate = await resolveDomainTransferSubscriptionStartDate({
 			domainTransferRequestId: metadata?.domainTransferRequestId,
 			orderCreatedAt: order.createdAt,
 		});
-		const expiryDate = computeSubscriptionExpiryFromBillingCycle(
-			subscriptionDate,
-			item.billingCycle,
-		);
+		const billingCycle = resolveDomainBillingCycle(item.billingCycle);
+		const registryExpiry = transferResult.exDate ? new Date(transferResult.exDate) : null;
+		const periodDates = resolveSubscriptionPeriodDates(subscriptionDate, billingCycle, {
+			expiryOverride:
+				registryExpiry && !Number.isNaN(registryExpiry.getTime()) ? registryExpiry : null,
+		});
 		const subId = randomUUID();
 		const inserted = await db
 			.insert(niscClientSubscription)
@@ -1105,20 +1362,20 @@ async function processKenicTransferOrderItem(
 				subscribedBy: order.createdBy,
 				status: "ACTIVE",
 				subscriptionDate,
-				billingCycle: (item.billingCycle as "YEARLY" | "BIENNIALLY" | null) ?? null,
-				nextRenewalDate: expiryDate,
+				billingCycle: billingCycle as "YEARLY" | "BIENNIALLY",
+				nextRenewalDate: periodDates.nextRenewalDate,
 				pricingModel: "FIXED",
-				agreedPrice: item.itemPrice,
+				agreedPrice: agreedPriceIncVatFromOrderLine(item),
 				agreedCurrency: order.currency,
 				agreedCost: item.productPlan?.cost ?? null,
 				agreedCostCurrency: "KES",
 				primaryDomain: domain,
 				openProviderId: null,
 				domainAuthCode: outboundAuthCode,
-				expiryDate,
+				expiryDate: periodDates.expiryDate,
 				agreedCommissionRate: null as any,
 				agreedCommissionBase: null,
-				metadata: null,
+				metadata: warnings.length ? { transferLockWarning: warnings[0] } : null,
 			})
 			.returning();
 		const sub = inserted[0];
@@ -1141,6 +1398,7 @@ async function processKenicTransferOrderItem(
 			status: transferResult.pending ? "PENDING" : "PROVISIONED",
 			pendingVerification: transferResult.pending,
 			rawResponse: transferResult.raw,
+			...(warnings.length ? { warnings } : {}),
 		};
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
@@ -1169,7 +1427,14 @@ async function processOpenProviderTransferOrderItem(
 		productPlan: { name: string; pricingModel: string; price: string | null; cost: string | null } | null;
 	},
 ): Promise<
-	| { ok: true; subscriptionId?: string; status: "PROVISIONED" | "PENDING"; pendingVerification?: boolean; rawResponse?: unknown }
+	| {
+			ok: true;
+			subscriptionId?: string;
+			status: "PROVISIONED" | "PENDING";
+			pendingVerification?: boolean;
+			rawResponse?: unknown;
+			warnings?: string[];
+	  }
 	| { ok: false; error: string; errorDetails?: Record<string, unknown> }
 > {
 	const domainName = item.primaryDomain;
@@ -1215,10 +1480,12 @@ async function processOpenProviderTransferOrderItem(
 			description: item.description ?? undefined,
 			userId: order.userId,
 			teamId: order.teamId,
-			billingCycle: item.billingCycle,
-			itemPrice: item.itemPrice,
+			billingCycle: resolveDomainBillingCycle(item.billingCycle),
+			itemPrice: item.itemSubtotal || item.itemPrice,
 			currency: order.currency,
 			nameServers,
+			period: resolveDomainRegistrationPeriodYears(item.billingCycle, item.metadata),
+			metadata: item.metadata,
 			manualDetails: metadata?.manualRegistrantDetails,
 			domainTransferRequestId: metadata?.domainTransferRequestId,
 			orderCreatedAt: order.createdAt,
@@ -1229,6 +1496,7 @@ async function processOpenProviderTransferOrderItem(
 			status: result.pendingVerification ? "PENDING" : "PROVISIONED",
 			pendingVerification: result.pendingVerification,
 			rawResponse: result.rawResponse,
+			...(result.warnings?.length ? { warnings: result.warnings } : {}),
 		};
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
@@ -1251,11 +1519,18 @@ async function processOpenProviderOrderItem(
 		itemSubtotal: string;
 		primaryDomain: string | null;
 		description: string | null;
+		metadata: unknown;
 		product: { name: string };
 		productPlan: { name: string; pricingModel: string; price: string | null; cost: string | null } | null;
 	},
 ): Promise<
-	| { ok: true; subscriptionId?: string; status: "PROVISIONED" | "PENDING"; pendingVerification?: boolean }
+	| {
+			ok: true;
+			subscriptionId?: string;
+			status: "PROVISIONED" | "PENDING";
+			pendingVerification?: boolean;
+			warnings?: string[];
+	  }
 	| { ok: false; error: string; errorDetails?: Record<string, unknown> }
 > {
 	const domainName = item.primaryDomain;
@@ -1296,10 +1571,12 @@ async function processOpenProviderOrderItem(
 			description: item.description ?? undefined,
 			userId: order.userId,
 			teamId: order.teamId,
-			billingCycle: item.billingCycle,
-			itemPrice: item.itemPrice,
+			billingCycle: resolveDomainBillingCycle(item.billingCycle),
+			itemPrice: item.itemSubtotal || item.itemPrice,
 			currency: order.currency,
 			nameServers,
+			period: resolveDomainRegistrationPeriodYears(item.billingCycle, item.metadata),
+			metadata: item.metadata,
 			manualDetails: metadata?.manualRegistrantDetails,
 		});
 		if (result.subscriptionId) {
@@ -1308,6 +1585,7 @@ async function processOpenProviderOrderItem(
 				subscriptionId: result.subscriptionId,
 				status: result.pendingVerification ? "PENDING" : "PROVISIONED",
 				pendingVerification: result.pendingVerification,
+				...(result.warnings?.length ? { warnings: result.warnings } : {}),
 			};
 		}
 		return {

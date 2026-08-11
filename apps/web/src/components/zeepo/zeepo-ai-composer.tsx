@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FileText, Paperclip, Plus, Search, Send, Sparkles, Square, X } from "lucide-react";
+import { Paperclip, Plus, Search, Send, Sparkles, Square, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
-  filterZeepoAgentAttachmentFiles,
+  filterZeepoAiImageAttachments,
   ZEEPO_AGENT_MAX_ATTACHMENTS,
 } from "@/lib/app-file-upload";
 import { UploadProgressRing } from "@/components/upload-progress-ring";
@@ -39,6 +39,7 @@ export function ZeepoAiComposer({
     searchEnabled: boolean;
     skillId?: string;
     attachmentIds?: string[];
+    attachments?: Array<{ url: string; name: string; mimeType: string }>;
   }) => void | Promise<void>;
   onStop?: () => void;
   showStop?: boolean;
@@ -121,10 +122,10 @@ export function ZeepoAiComposer({
     if (!files?.length) return;
     const room = ZEEPO_AGENT_MAX_ATTACHMENTS - pendingFiles.length;
     if (room <= 0) {
-      toast.error(`You can attach up to ${ZEEPO_AGENT_MAX_ATTACHMENTS} files.`);
+      toast.error(`You can attach up to ${ZEEPO_AGENT_MAX_ATTACHMENTS} images.`);
       return;
     }
-    const { accepted, rejectedMessage } = filterZeepoAgentAttachmentFiles(
+    const { accepted, rejectedMessage } = filterZeepoAiImageAttachments(
       Array.from(files).slice(0, room),
     );
     if (rejectedMessage) toast.error(rejectedMessage);
@@ -135,7 +136,7 @@ export function ZeepoAiComposer({
         file: f,
         previewUrl: URL.createObjectURL(f),
         name: f.name,
-        mimeType: f.type || "application/octet-stream",
+        mimeType: f.type || "image/jpeg",
       })),
     ]);
   };
@@ -162,12 +163,16 @@ export function ZeepoAiComposer({
 
   const handleSend = async () => {
     if (!canSend) return;
-    const message = inputValue.trim();
     const staged = [...pendingFiles];
+    const message = inputValue.trim() || (staged.length ? "See attached." : "");
+    if (!message) return;
     const skillId = activeSkillId;
 
     try {
       let attachmentIds: string[] | undefined;
+      let attachments:
+        | Array<{ url: string; name: string; mimeType: string }>
+        | undefined;
       if (staged.length) {
         if (!sessionId) {
           toast.error("Open or start a chat before attaching files.");
@@ -175,21 +180,29 @@ export function ZeepoAiComposer({
         }
         const uploaded = await uploadZeepoAiAttachments(staged.map((f) => f.file));
         attachmentIds = [];
+        attachments = [];
         for (let i = 0; i < uploaded.length; i++) {
           const up = uploaded[i]!;
           const file = staged[i]?.file;
+          const mime =
+            up.contentType || staged[i]?.mimeType || "image/jpeg";
           const registered = await registerAttachment.mutateAsync({
             sessionId,
             url: up.publicUrl,
             storageKey: up.key,
             name: file?.name ?? staged[i]?.name ?? "attachment",
-            mimeType: up.contentType || staged[i]?.mimeType || "application/octet-stream",
+            mimeType: mime,
             sizeBytes: up.size,
           });
           attachmentIds.push(registered.id);
+          attachments.push({
+            url: registered.url,
+            name: registered.name,
+            mimeType: registered.mimeType,
+          });
         }
       }
-      await onSubmit({ message, searchEnabled, skillId, attachmentIds });
+      await onSubmit({ message, searchEnabled, skillId, attachmentIds, attachments });
       setInputValue("");
       setActiveSkillId(undefined);
       staged.forEach((f) => URL.revokeObjectURL(f.previewUrl));
@@ -204,7 +217,7 @@ export function ZeepoAiComposer({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*,.pdf,.doc,.docx,.txt,.md,.csv"
+        accept="image/*"
         multiple
         className="hidden"
         onChange={(e) => {
@@ -222,35 +235,23 @@ export function ZeepoAiComposer({
       >
         {pendingFiles.length > 0 ? (
           <div className="flex flex-wrap gap-2 border-b border-border/60 px-3 py-2">
-            {pendingFiles.map((file, index) => {
-              const isImage = file.mimeType.startsWith("image/");
-              return (
-                <div key={`${file.name}-${index}`} className="relative">
-                  {isImage ? (
-                    <img
-                      src={file.previewUrl}
-                      alt={file.name}
-                      className="size-14 rounded-lg border border-border object-cover"
-                    />
-                  ) : (
-                    <div className="flex size-14 flex-col items-center justify-center gap-1 rounded-lg border border-border bg-muted/60 px-1">
-                      <FileText className="size-4 text-primary" />
-                      <span className="w-full truncate text-center text-[9px] text-muted-foreground">
-                        {file.name}
-                      </span>
-                    </div>
-                  )}
-                  <button
-                    type="button"
-                    aria-label={`Remove ${file.name}`}
-                    className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm"
-                    onClick={() => removePendingFile(index)}
-                  >
-                    <X className="size-3" />
-                  </button>
-                </div>
-              );
-            })}
+            {pendingFiles.map((file, index) => (
+              <div key={`${file.name}-${index}`} className="relative">
+                <img
+                  src={file.previewUrl}
+                  alt={file.name}
+                  className="size-14 rounded-lg border border-border object-cover"
+                />
+                <button
+                  type="button"
+                  aria-label={`Remove ${file.name}`}
+                  className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm"
+                  onClick={() => removePendingFile(index)}
+                >
+                  <X className="size-3" />
+                </button>
+              </div>
+            ))}
           </div>
         ) : null}
 
@@ -348,7 +349,7 @@ export function ZeepoAiComposer({
 
             <button
               type="button"
-              aria-label="Attach files"
+              aria-label="Attach images"
               disabled={
                 disabled ||
                 showStop ||

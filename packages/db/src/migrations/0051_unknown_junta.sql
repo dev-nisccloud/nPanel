@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "nisc_order_paymentTransactionId_uidx" ON "nisc_order" USING btree ("payment_transaction_id") WHERE "nisc_order"."payment_transaction_id" IS NOT NULL;

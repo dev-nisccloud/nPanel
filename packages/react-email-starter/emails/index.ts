@@ -1,5 +1,7 @@
 export { ResetPasswordEmail } from './reset-password';
 export { PasswordResetSuccessEmail } from './password-reset-success';
+export { AccountEmailChangeEmail } from './account-email-change';
+export type { AccountEmailChangePurpose } from './account-email-change';
 export { WelcomeEmail } from './welcome-email';
 export { SecurityAlertEmail } from './security-alert';
 export { DomainExpirationReminderEmail } from './domain-expiration-reminder';

@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { captureEvent } from "@/lib/posthog";
 import { SectionCards } from "./$slug.dashboard/_components/section-cards";
 import { DashboardPromoSection } from "./$slug.dashboard/_components/dashboard-promo-section";
+import { DashboardSetupTodos } from "./$slug.dashboard/_components/dashboard-setup-todos";
 import { DashboardTabs } from "./$slug.dashboard/_components/dashboard-tabs";
 
 export default function DashboardPage() {
@@ -18,6 +19,10 @@ export default function DashboardPage() {
           <p className="text-xs text-muted-foreground">
             Overview of your company&apos;s key metrics and activities
           </p>
+        </div>
+
+        <div className="mt-6">
+          <DashboardSetupTodos />
         </div>
 
         <div className="mt-6">

@@ -75,6 +75,16 @@ function getGatewayDisplayText(gateway: PaymentTransactionUI["gateway"]) {
   switch (gateway) {
     case "MPESA":
       return "M-Pesa";
+    case "JENGA":
+      return "Card (Jenga)";
+    case "OTHER":
+      return "Other / Manual";
+    case "STRIPE":
+      return "Stripe";
+    case "PAYPAL":
+      return "PayPal";
+    case "FLUTTERWAVE":
+      return "Flutterwave";
     default:
       return gateway;
   }

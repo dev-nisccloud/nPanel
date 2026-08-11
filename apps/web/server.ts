@@ -14,7 +14,14 @@ if (!API_TARGET) {
 }
 
 const BACKEND_ORIGIN = new URL(API_TARGET);
+/** Default API proxy budget (non-streaming). */
 const PROXY_TIMEOUT_MS = 55_000;
+/**
+ * SSE / long tool turns (Zeepo AI image batches) need far longer than 55s.
+ * Aborting the upstream mid-stream caused "reply ended unexpectedly" while
+ * image jobs kept finishing in the background.
+ */
+const STREAM_PROXY_TIMEOUT_MS = 1_800_000;
 
 const HOP_BY_HOP_HEADERS = new Set([
   "connection",
@@ -103,6 +110,12 @@ function buildProxyHeaders(request: Request, incoming: URL): Headers {
   return headers;
 }
 
+function isLongLivedApiProxy(pathname: string, request: Request): boolean {
+  if (pathname === "/api/zeepo-ai/chat/stream") return true;
+  const accept = request.headers.get("accept") ?? "";
+  return accept.includes("text/event-stream");
+}
+
 async function proxyToBackend(request: Request): Promise<Response> {
   const incoming = new URL(request.url);
   const target = `${API_TARGET}${incoming.pathname}${incoming.search}`;
@@ -113,12 +126,16 @@ async function proxyToBackend(request: Request): Promise<Response> {
     request.method !== "HEAD" &&
     request.method !== "OPTIONS";
 
+  const timeoutMs = isLongLivedApiProxy(incoming.pathname, request)
+    ? STREAM_PROXY_TIMEOUT_MS
+    : PROXY_TIMEOUT_MS;
+
   const backendResponse = await fetch(target, {
     method: request.method,
     headers,
     body: hasBody ? request.body : undefined,
     redirect: "manual",
-    signal: AbortSignal.timeout(PROXY_TIMEOUT_MS),
+    signal: AbortSignal.timeout(timeoutMs),
     ...(hasBody ? { duplex: "half" as const } : {}),
   });
 

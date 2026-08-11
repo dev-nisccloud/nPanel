@@ -1370,7 +1370,7 @@ export function BuyNowDialog({
         productPlanId: null,
         billingCycle: "MONTHLY",
         description: `VPS upgrade to ${u.targetPlanName} (device ${u.targetDeviceId})`,
-        itemPrice: paymentTotalString(hivelocityInvoiceBreakdown.totalIncVat),
+        itemPrice: paymentTotalString(hivelocityInvoiceBreakdown.subtotalExVat),
         itemSubtotal: paymentTotalString(hivelocityInvoiceBreakdown.subtotalExVat),
         metadata: {
           operation: "vps_upgrade",
@@ -1378,6 +1378,8 @@ export function BuyNowDialog({
           hivelocityTargetDeviceId: u.targetDeviceId,
           hivelocityCurrentProductId: undefined,
           upgradeDeltaUsd: u.upgradeDeltaUsd,
+          targetMonthlyPriceExVat: u.targetDisplayMonthlyPrice,
+          targetMonthlyUsd: u.targetMonthlyUsd,
           hivelocityLocationName: u.currentLocationName,
           hivelocityOsName: u.currentOsName,
           hivelocityHostname: u.currentHostname,
@@ -1402,7 +1404,7 @@ export function BuyNowDialog({
         productPlanId: null,
         billingCycle: "MONTHLY",
         description: `VPS OS reload to ${r.targetOsName} (device ${r.targetDeviceId})`,
-        itemPrice: paymentTotalString(hivelocityInvoiceBreakdown.totalIncVat),
+        itemPrice: paymentTotalString(hivelocityInvoiceBreakdown.subtotalExVat),
         itemSubtotal: paymentTotalString(hivelocityInvoiceBreakdown.subtotalExVat),
         metadata: {
           operation: "vps_reload",
@@ -1434,7 +1436,7 @@ export function BuyNowDialog({
         productPlanId: null,
         billingCycle: plan.billingCycle,
         description: `Restore ${r.serviceLabel}`,
-        itemPrice: paymentTotalString(hivelocityInvoiceBreakdown.totalIncVat),
+        itemPrice: paymentTotalString(hivelocityInvoiceBreakdown.subtotalExVat),
         itemSubtotal: paymentTotalString(hivelocityInvoiceBreakdown.subtotalExVat),
         metadata: {
           operation: "vps_reactivate",
@@ -1474,7 +1476,7 @@ export function BuyNowDialog({
       productPlanId: null,
       billingCycle: mapHivelocityPeriodToBillingCycle(hivelocityPeriod),
       description: `${plan.planName} @ ${plan.hivelocity.locationDisplayName ?? plan.hivelocity.locationName}`,
-      itemPrice: paymentTotalString(hivelocityInvoiceBreakdown.totalIncVat),
+      itemPrice: paymentTotalString(hivelocityInvoiceBreakdown.subtotalExVat),
       itemSubtotal: paymentTotalString(hivelocityInvoiceBreakdown.subtotalExVat),
       metadata: {
         hivelocityProductId: Number(plan.hivelocity.hivelocityProductId),
@@ -1570,14 +1572,8 @@ export function BuyNowDialog({
       return;
     }
 
-    const resolved = resolveMpesaCheckoutPayment({
-      isAgencyUser,
-      formAmount: paymentAmount,
-      formAccountReference: accountReference,
-      checkoutTotalIncVat: pricing.total,
-      intendedAccountReference: intendedAccountReferenceRef.current,
-    });
-    const priceStr = resolved.amountString;
+    // Order lines stay ex-VAT; createFromPayment / provisioning add ceil VAT for agreedPrice + totals.
+    const exVatStr = paymentTotalString(pricing.subtotal);
     createOrderFromPayment.mutate(
       {
         checkoutRequestId,
@@ -1590,8 +1586,8 @@ export function BuyNowDialog({
             productPlanId: plan.planId,
             billingCycle: plan.billingCycle,
             primaryDomain: showDomainStep ? effectiveDomain ?? undefined : undefined,
-            itemPrice: priceStr,
-            itemSubtotal: priceStr,
+            itemPrice: exVatStr,
+            itemSubtotal: exVatStr,
             description: plan.planName,
           },
         ],
@@ -1754,6 +1750,7 @@ export function BuyNowDialog({
       amount: amount,
       accountReference: resolved.accountReference,
       transactionDesc,
+      checkoutTotalIncVat: pricing.total,
       ...(resolvedCheckoutTeamId && { teamId: resolvedCheckoutTeamId }),
     });
   };
@@ -1787,6 +1784,7 @@ export function BuyNowDialog({
     }
 
     const hivelocityItem = hivelocityCheckoutSnapshotRef.current;
+    const exVatStr = paymentTotalString(pricing.subtotal);
     const items =
       plan.hivelocity && hivelocityItem
         ? [hivelocityItem]
@@ -1796,8 +1794,8 @@ export function BuyNowDialog({
               productPlanId: plan.planId,
               billingCycle: plan.billingCycle,
               primaryDomain: showDomainStep ? effectiveDomain ?? undefined : undefined,
-              itemPrice: String(Math.ceil(amount)),
-              itemSubtotal: String(Math.ceil(amount)),
+              itemPrice: exVatStr,
+              itemSubtotal: exVatStr,
               description: plan.planName,
             },
           ];
@@ -1878,6 +1876,12 @@ export function BuyNowDialog({
         transactionReference: ref,
         amount,
         currency: plan?.currency ?? "KES",
+        gateway:
+          selectedPaymentMethod === "card"
+            ? "JENGA"
+            : selectedPaymentMethod === "mpesa"
+              ? "MPESA"
+              : "OTHER",
         accountReference: resolved.accountReference || undefined,
         transactionDesc,
         ...(resolvedCheckoutTeamId ? { teamId: resolvedCheckoutTeamId } : {}),

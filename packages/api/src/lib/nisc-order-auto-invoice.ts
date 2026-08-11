@@ -3,7 +3,7 @@
  * Used by the process-nisc-order worker via nisc-order-invoice-delivery.
  */
 import * as crypto from "crypto";
-import { eq, sql } from "@npanel/db";
+import { and, eq, sql } from "@npanel/db";
 import type { TeamBillingSettings } from "../schemas/team-billing";
 import { isTeamBillingComplete } from "../schemas/team-billing";
 import type { NiscOrderForInvoice } from "../schemas/nisc-order-invoice";
@@ -31,6 +31,7 @@ import {
 } from "./domain-bundle-order";
 import { buildNiscInvoiceLineMetadata } from "./invoice-kra-mapper";
 import { COMPANY_LOGO_URL } from "./company-branding";
+import { invoicePaymentMethodFromGateway } from "./invoice-payment-method";
 
 const FROM_DETAILS = {
 	name: "Nisc Cloud Limited",
@@ -53,6 +54,21 @@ const BANK_PAYMENT_DETAILS = {
 	swiftCode: "BARCKENX",
 };
 
+function paymentDetailsForPaidOrder(gateway: string | null | undefined) {
+	const method = invoicePaymentMethodFromGateway(gateway);
+	if (method === "MPESA") {
+		return { paymentMethod: "MPESA", method: "MPESA" };
+	}
+	if (method === "CARD") {
+		return { paymentMethod: "CARD", method: "CARD" };
+	}
+	if (method === "OTHER") {
+		return { paymentMethod: "OTHER", method: "OTHER" };
+	}
+	// Unpaid / unknown: keep bank instructions for settlement.
+	return { ...BANK_PAYMENT_DETAILS };
+}
+
 const TAX_PERCENTAGE = NISC_ORDER_VAT_PERCENTAGE;
 
 export { isTeamBillingComplete };
@@ -69,6 +85,7 @@ export async function createInvoiceForNiscOrder(
 	order: NiscOrderForInvoice,
 	billing: TeamBillingSettings,
 	createdBy: string,
+	options?: { paymentGateway?: string | null },
 ): Promise<{ invoiceId: string; invoiceNumber: string } | null> {
 	const now = new Date();
 	const issueDate = now;
@@ -95,7 +112,7 @@ export async function createInvoiceForNiscOrder(
 		taxId: billing.taxId ?? null,
 	};
 
-	const paymentDetails = { ...BANK_PAYMENT_DETAILS };
+	const paymentDetails = paymentDetailsForPaidOrder(options?.paymentGateway);
 
 	const newInvoiceId = crypto.randomUUID();
 	const token = crypto.randomUUID();
@@ -269,10 +286,33 @@ export async function createInvoiceForNiscOrder(
 		createdAt: now,
 	});
 
-	await db
+	const claimed = await db
 		.update(niscOrder)
-		.set({ invoiceId: newInvoiceId, invoiceNumber: generatedInvoiceNumber, updatedAt: now })
-		.where(eq(niscOrder.id, order.id));
+		.set({
+			invoiceId: newInvoiceId,
+			invoiceNumber: generatedInvoiceNumber,
+			updatedAt: now,
+		})
+		.where(and(eq(niscOrder.id, order.id), sql`${niscOrder.invoiceId} IS NULL`))
+		.returning({ id: niscOrder.id });
+
+	if (!claimed[0]) {
+		// Another worker linked an invoice  delete the orphan we created, return the existing one.
+		await db.delete(invoiceActivityLog).where(eq(invoiceActivityLog.invoiceId, newInvoiceId));
+		await db.delete(invoiceLineItem).where(eq(invoiceLineItem.invoiceId, newInvoiceId));
+		await db.delete(invoice).where(eq(invoice.id, newInvoiceId));
+		const [current] = await db
+			.select({
+				invoiceId: niscOrder.invoiceId,
+				invoiceNumber: niscOrder.invoiceNumber,
+			})
+			.from(niscOrder)
+			.where(eq(niscOrder.id, order.id))
+			.limit(1);
+		if (current?.invoiceId && current.invoiceNumber) {
+			return { invoiceId: current.invoiceId, invoiceNumber: current.invoiceNumber };
+		}
+	}
 
 	return { invoiceId: newInvoiceId, invoiceNumber: generatedInvoiceNumber };
 }

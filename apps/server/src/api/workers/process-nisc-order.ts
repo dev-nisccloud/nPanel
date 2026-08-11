@@ -80,7 +80,7 @@ export async function handleProcessNiscOrder(c: Context) {
 		itemCount: order.orderItems.length,
 	});
 
-	if (order.status !== "PENDING") {
+	if (order.status !== "PENDING" && order.status !== "PROCESSING") {
 		await niscLog("worker_order_skip_not_pending", { niscOrderId, status: order.status });
 		return c.json({ message: "Order already processed", status: order.status }, 200);
 	}

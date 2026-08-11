@@ -22,7 +22,47 @@ import { assertHivelocityOptionIdsExclusive } from "./hivelocity-option-validati
 import { applyHivelocityVpsReactivation } from "./hivelocity-vps-instance-suspend";
 import { reloadHivelocityDevice } from "./hivelocity-vps-reload";
 import { upgradeHivelocityVpsInstance } from "./hivelocity-vps-upgrade";
+import {
+	agreedPriceIncVatFromExVat,
+	agreedPriceIncVatFromOrderLine,
+} from "./convert-price";
 import { resolveSubscriptionPeriodDates } from "./nisc-subscription-dates";
+
+function subscriptionAlreadyAppliedForOrder(
+	existingMeta: Record<string, unknown> | null | undefined,
+	orderId: string,
+	operation: string,
+): boolean {
+	if (!existingMeta) return false;
+	if (existingMeta.lastAppliedNiscOrderId === orderId && existingMeta.lastAppliedOperation === operation) {
+		return true;
+	}
+	const upgrades = Array.isArray(existingMeta.upgrades) ? existingMeta.upgrades : [];
+	if (
+		operation === "vps_upgrade" &&
+		upgrades.some(
+			(u) =>
+				u &&
+				typeof u === "object" &&
+				(u as { niscOrderId?: string }).niscOrderId === orderId,
+		)
+	) {
+		return true;
+	}
+	const reloads = Array.isArray(existingMeta.reloads) ? existingMeta.reloads : [];
+	if (
+		operation === "vps_reload" &&
+		reloads.some(
+			(u) =>
+				u &&
+				typeof u === "object" &&
+				(u as { niscOrderId?: string }).niscOrderId === orderId,
+		)
+	) {
+		return true;
+	}
+	return false;
+}
 
 function buildHivelocityDeploymentName(orderNumberOrId: string): string {
 	const base = orderNumberOrId.trim();
@@ -99,6 +139,20 @@ async function processHivelocityVpsUpgradeOrderItem(
 		return { ok: false, error: "VPS upgrade metadata is missing the target device id." };
 	}
 
+	const now = new Date();
+	const existing = await findSubscriptionByHivelocityDeviceId(deviceId, order.teamId);
+	const prevMeta =
+		existing?.metadata && typeof existing.metadata === "object"
+			? (existing.metadata as Record<string, unknown>)
+			: {};
+	if (existing && subscriptionAlreadyAppliedForOrder(prevMeta, order.id, "vps_upgrade")) {
+		return {
+			ok: true,
+			subscriptionId: existing.id,
+			rawResponse: { skipped: true, reason: "upgrade_already_applied_for_order" },
+		};
+	}
+
 	let rawResponse: unknown;
 	try {
 		rawResponse = await upgradeHivelocityVpsInstance(deviceId, meta.hivelocityProductId);
@@ -111,8 +165,6 @@ async function processHivelocityVpsUpgradeOrderItem(
 		};
 	}
 
-	const now = new Date();
-	const existing = await findSubscriptionByHivelocityDeviceId(deviceId, order.teamId);
 	const upgradeRecord = {
 		at: now.toISOString(),
 		niscOrderId: order.id,
@@ -120,26 +172,34 @@ async function processHivelocityVpsUpgradeOrderItem(
 		toProductId: meta.hivelocityProductId,
 		upgradeDeltaUsd: meta.upgradeDeltaUsd ?? null,
 	};
+	// Recurring agreed price = new plan total (inc VAT), not the one-time upgrade delta charged at checkout.
+	const recurringAgreedPrice =
+		meta.targetMonthlyPriceExVat != null && Number.isFinite(meta.targetMonthlyPriceExVat)
+			? agreedPriceIncVatFromExVat(meta.targetMonthlyPriceExVat)
+			: agreedPriceIncVatFromOrderLine(item);
+	const recurringProviderCost =
+		meta.targetMonthlyUsd != null
+			? String(meta.targetMonthlyUsd)
+			: meta.upgradeDeltaUsd != null
+				? String(meta.upgradeDeltaUsd)
+				: existing?.providerCost ?? null;
 
 	if (existing) {
-		const prevMeta =
-			existing.metadata && typeof existing.metadata === "object"
-				? (existing.metadata as Record<string, unknown>)
-				: {};
 		const upgrades = Array.isArray(prevMeta.upgrades) ? [...prevMeta.upgrades] : [];
 
 		const [updated] = await db
 			.update(niscClientSubscription)
 			.set({
-				agreedPrice: item.itemPrice,
+				agreedPrice: recurringAgreedPrice,
 				agreedCurrency: order.currency,
-				providerCost:
-					meta.upgradeDeltaUsd != null ? String(meta.upgradeDeltaUsd) : existing.providerCost,
+				providerCost: recurringProviderCost,
 				metadata: {
 					...prevMeta,
 					hivelocityProductId: meta.hivelocityProductId,
 					lastUpgrade: upgradeRecord,
 					upgrades: [...upgrades, upgradeRecord],
+					lastAppliedNiscOrderId: order.id,
+					lastAppliedOperation: "vps_upgrade",
 					provisionMethod: "vps_upgrade_api",
 				},
 				updatedAt: now,
@@ -177,11 +237,11 @@ async function processHivelocityVpsUpgradeOrderItem(
 			subscriptionDate: now,
 			billingCycle: (item.billingCycle as "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM") ?? null,
 			pricingModel: "FIXED",
-			agreedPrice: item.itemPrice,
+			agreedPrice: recurringAgreedPrice,
 			agreedCurrency: order.currency,
 			agreedCost: null,
 			agreedCostCurrency: "USD",
-			providerCost: meta.upgradeDeltaUsd != null ? String(meta.upgradeDeltaUsd) : null,
+			providerCost: recurringProviderCost,
 			providerCostCurrency: "USD",
 			agreedCommissionRate: null as any,
 			agreedCommissionBase: null,
@@ -197,6 +257,8 @@ async function processHivelocityVpsUpgradeOrderItem(
 				locationName: meta.hivelocityLocationName,
 				osName: meta.hivelocityOsName,
 				hostname: meta.hivelocityHostname,
+				lastAppliedNiscOrderId: order.id,
+				lastAppliedOperation: "vps_upgrade",
 				period: meta.hivelocityPeriod,
 				productType: "VPS",
 				lastUpgrade: upgradeRecord,
@@ -248,6 +310,20 @@ async function processHivelocityVpsReloadOrderItem(
 		return { ok: false, error: "VPS reload metadata is missing the target operating system id." };
 	}
 
+	const now = new Date();
+	const existing = await findSubscriptionByHivelocityDeviceId(deviceId, order.teamId);
+	const prevMeta =
+		existing?.metadata && typeof existing.metadata === "object"
+			? (existing.metadata as Record<string, unknown>)
+			: {};
+	if (existing && subscriptionAlreadyAppliedForOrder(prevMeta, order.id, "vps_reload")) {
+		return {
+			ok: true,
+			subscriptionId: existing.id,
+			rawResponse: { skipped: true, reason: "reload_already_applied_for_order" },
+		};
+	}
+
 	let rawResponse: unknown;
 	try {
 		rawResponse = await reloadHivelocityDevice({
@@ -264,8 +340,6 @@ async function processHivelocityVpsReloadOrderItem(
 		};
 	}
 
-	const now = new Date();
-	const existing = await findSubscriptionByHivelocityDeviceId(deviceId, order.teamId);
 	const reloadRecord = {
 		at: now.toISOString(),
 		niscOrderId: order.id,
@@ -275,10 +349,6 @@ async function processHivelocityVpsReloadOrderItem(
 	};
 
 	if (existing) {
-		const prevMeta =
-			existing.metadata && typeof existing.metadata === "object"
-				? (existing.metadata as Record<string, unknown>)
-				: {};
 		const reloads = Array.isArray(prevMeta.reloads) ? [...prevMeta.reloads] : [];
 
 		const [updated] = await db
@@ -289,6 +359,8 @@ async function processHivelocityVpsReloadOrderItem(
 					osName: meta.hivelocityOsName,
 					lastReload: reloadRecord,
 					reloads: [...reloads, reloadRecord],
+					lastAppliedNiscOrderId: order.id,
+					lastAppliedOperation: "vps_reload",
 					provisionMethod: "vps_reload_api",
 				},
 				updatedAt: now,
@@ -326,7 +398,7 @@ async function processHivelocityVpsReloadOrderItem(
 			subscriptionDate: now,
 			billingCycle: (item.billingCycle as "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM") ?? null,
 			pricingModel: "FIXED",
-			agreedPrice: item.itemPrice,
+			agreedPrice: agreedPriceIncVatFromOrderLine(item),
 			agreedCurrency: order.currency,
 			agreedCost: null,
 			agreedCostCurrency: "USD",
@@ -494,6 +566,25 @@ export async function processHivelocityOrderItem(
 		};
 	}
 
+	// Crash/retry: reuse subscription already created for this order item.
+	const [existingForItem] = await db
+		.select({ id: niscClientSubscription.id })
+		.from(niscClientSubscription)
+		.where(
+			and(
+				eq(niscClientSubscription.niscOrderId, order.id),
+				sql`${niscClientSubscription.metadata}->>'niscOrderItemId' = ${item.id}`,
+			),
+		)
+		.limit(1);
+	if (existingForItem) {
+		return {
+			ok: true,
+			subscriptionId: existingForItem.id,
+			rawResponse: { skipped: true, reason: "subscription_already_exists_for_order_item" },
+		};
+	}
+
 	const {
 		hivelocityProductId,
 		hivelocityLocationName,
@@ -503,11 +594,15 @@ export async function processHivelocityOrderItem(
 		hivelocityOptionIds,
 	} = meta;
 
+	const deploymentName = buildHivelocityDeploymentName(
+		`${order.orderNumber ?? order.id}-${item.id.slice(0, 8)}`,
+	);
+
 	let deploymentResult;
 	try {
 		await assertHivelocityOptionIdsExclusive(hivelocityProductId, hivelocityOptionIds);
 		deploymentResult = await provisionHivelocityViaDeployment({
-			deploymentName: buildHivelocityDeploymentName(order.orderNumber ?? item.id),
+			deploymentName,
 			meta,
 		});
 	} catch (err) {
@@ -551,7 +646,7 @@ export async function processHivelocityOrderItem(
 			subscriptionDate: now,
 			billingCycle: (item.billingCycle as "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM") ?? null,
 			pricingModel: "FIXED",
-			agreedPrice: item.itemPrice,
+			agreedPrice: agreedPriceIncVatFromOrderLine(item),
 			agreedCurrency: order.currency,
 			agreedCost: null,
 			agreedCostCurrency: "USD",
@@ -568,7 +663,9 @@ export async function processHivelocityOrderItem(
 					}
 				: null,
 			metadata: {
+				niscOrderItemId: item.id,
 				hivelocityDeploymentId: deploymentResult.deploymentId,
+				hivelocityDeploymentName: deploymentName,
 				hivelocityOrderId:
 					hivelocityOrderId != null && Number.isFinite(hivelocityOrderId) ? hivelocityOrderId : null,
 				hivelocityOrderNumber: deploymentResult.orderNumber,

@@ -12,6 +12,10 @@ export type ZeepoAiSseEvent =
       result: unknown;
     }
   | {
+      type: "clarifying_preparing";
+      messageId: string;
+    }
+  | {
       type: "clarifying_questions";
       messageId: string;
       questions: Array<{
@@ -19,6 +23,7 @@ export type ZeepoAiSseEvent =
         options: string[];
         allow_upload?: boolean;
       }>;
+      partial?: boolean;
     }
   | {
       type: "generation_start";
@@ -44,6 +49,10 @@ export type ZeepoAiSseEvent =
         status: string;
         outputs: unknown;
       };
+    }
+  | {
+      type: "generation_drop";
+      generationIds: string[];
     }
   | { type: "usage"; inputTokens: number; outputTokens: number; tokensDebited: number }
   | { type: "error"; message: string; code?: string; recoverable?: boolean }
@@ -146,6 +155,26 @@ export async function streamZeepoAiChat(params: StreamZeepoAiChatParams): Promis
           onEvent(event);
         } catch {
           /* ignore malformed chunk */
+        }
+      }
+    }
+    // Flush decoder + any trailing frame if the socket closed right after `done`.
+    buffer += decoder.decode();
+    if (buffer.trim()) {
+      const dataLine = buffer
+        .split("\n")
+        .map((l) => l.trim())
+        .find((l) => l.startsWith("data:"));
+      if (dataLine) {
+        const payload = dataLine.replace(/^data:\s?/, "");
+        if (payload && payload !== "[DONE]") {
+          try {
+            const event = JSON.parse(payload) as ZeepoAiSseEvent;
+            if (event.type === "done") sawDone = true;
+            onEvent(event);
+          } catch {
+            /* ignore */
+          }
         }
       }
     }

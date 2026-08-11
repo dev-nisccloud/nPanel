@@ -120,10 +120,10 @@ export function OrderSummary({
 
   const taxRate = 0.16;
   const clientSubtotal = mainPrice + domainPrice + hostingPrice + hivelocityExtras;
+  const clientTaxAmount = Math.ceil(clientSubtotal * taxRate);
   const subtotal = authoritativeTotals?.subtotal ?? clientSubtotal;
-  const taxAmount =
-    authoritativeTotals?.taxAmount ?? Math.round(clientSubtotal * taxRate);
-  const total = authoritativeTotals?.total ?? clientSubtotal + Math.round(clientSubtotal * taxRate);
+  const taxAmount = authoritativeTotals?.taxAmount ?? clientTaxAmount;
+  const total = authoritativeTotals?.total ?? clientSubtotal + clientTaxAmount;
   const summaryBusy = quoteSummaryLoading || (quoteInitialLoading && !authoritativeTotals);
 
   return (

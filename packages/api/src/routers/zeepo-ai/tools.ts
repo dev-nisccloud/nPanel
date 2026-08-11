@@ -159,17 +159,25 @@ export const ZEEPO_AI_CLIENT_TOOLS = [
 	{
 		name: "generate_images",
 		description:
-			"Generate 1–8 images with the Zeepo design engine. Use for logos, brand assets, photos, mockups, ads, drafts. Write a rich creative brief as prompt. Prefer intent=design|logo|mockup for graphic design; intent=draft for fast thumbnails; intent=suite for multi-ad campaigns. Never mention underlying model/provider names to the user.",
+			"Generate 1–8 images with the Zeepo design engine. Use for logos, brand assets, photos, mockups, ads, drafts. For N DISTINCT subjects (e.g. 6 products), pass prompts as an array of N single-subject prompts  never one mega-prompt with count=N (that renders collage/grids). Prefer intent=design|logo|mockup for graphic design; intent=draft for fast thumbnails; intent=suite for multi-ad campaigns. Never mention underlying model/provider names to the user.",
 		input_schema: {
 			type: "object" as const,
 			properties: {
 				prompt: {
 					type: "string",
-					description: "Full creative brief / image prompt (detailed)",
+					description:
+						"Single creative brief when generating one image, or identical variations. Do NOT list multiple distinct subjects here with count>1.",
+				},
+				prompts: {
+					type: "array",
+					items: { type: "string" },
+					description:
+						"Preferred for multi-image sets: one complete single-subject prompt per image (max 8). Length sets how many images to generate.",
 				},
 				count: {
 					type: "number",
-					description: "How many images to generate (1–8). Default 1.",
+					description:
+						"How many images when using a single prompt for variations (1–8). Ignored when prompts[] is provided.",
 				},
 				aspect_ratio: {
 					type: "string",
@@ -187,10 +195,15 @@ export const ZEEPO_AI_CLIENT_TOOLS = [
 				},
 				title: {
 					type: "string",
-					description: "Short label shown in the UI",
+					description: "Short label shown in the UI (shared prefix for a set)",
+				},
+				titles: {
+					type: "array",
+					items: { type: "string" },
+					description: "Optional per-image labels matching prompts[] length",
 				},
 			},
-			required: ["prompt"],
+			required: [],
 		},
 	},
 	{

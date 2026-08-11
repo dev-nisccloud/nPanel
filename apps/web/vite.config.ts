@@ -98,7 +98,15 @@ export default defineConfig(async (config) => {
       proxy: {
         // Keep the original `Host` header (e.g. `localhost:5173`) so Better Auth
         // sets cookies for the same host the browser will later send them from.
-        "/api": { target: apiTarget, changeOrigin: false, timeout: 120000, proxyTimeout: 120000, ws: true },
+        // Image / long tool turns stream for many minutes; 2m timeouts caused
+        // STREAM_INCOMPLETE while Gemini kept generating server-side.
+        "/api": {
+          target: apiTarget,
+          changeOrigin: false,
+          timeout: 1_800_000,
+          proxyTimeout: 1_800_000,
+          ws: true,
+        },
       },
     },
   };

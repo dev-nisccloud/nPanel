@@ -39,9 +39,24 @@ function formatChatTime(value: string | Date): string {
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-/** Session chat paths + library (not the landing). */
+/**
+ * Session chat paths + library (not landing / activity).
+ * Agency: `/agency/zeepo-ai/library` or `/agency/zeepo-ai/:sessionId`
+ * Customer: `/:slug/zeepo-ai/library` or `/:slug/zeepo-ai/:sessionId`
+ */
 export function isZeepoAiChatSessionPath(pathname: string | undefined): boolean {
-  return Boolean(pathname && /^\/agency\/zeepo-ai\/[^/]+/.test(pathname));
+  if (!pathname) return false;
+  const agency = pathname.match(/^\/agency\/zeepo-ai\/([^/]+)\/?$/);
+  if (agency) {
+    const seg = agency[1]!;
+    return seg === "library" || /^[0-9a-f-]{36}$/i.test(seg);
+  }
+  const customer = pathname.match(/^\/[^/]+\/zeepo-ai\/([^/]+)\/?$/);
+  if (customer) {
+    const seg = customer[1]!;
+    return seg === "library" || /^[0-9a-f-]{36}$/i.test(seg);
+  }
+  return false;
 }
 
 export function NavZeepoAiHistory() {

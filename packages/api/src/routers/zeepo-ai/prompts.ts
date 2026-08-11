@@ -110,7 +110,8 @@ Always append quality anchors: "masterwork graphic design, professionally compos
 
 LOGOS: aspect_ratio 1:1; one concept per generation; transparent-friendly neutral background; wordmark / icon / combination mark explicit.
 BUSINESS CARDS: front and back = two separate generate_images calls; aspect_ratio 3:2.
-SUITES (ads/campaigns): one generate_images call with count=N and distinct composition guidance in a single master prompt, or separate calls if prompts differ a lot.
+MULTI-IMAGE SETS (critical): When the user wants N distinct subjects (products, mockups, scenes, brand assets), you MUST pass prompts as an array of N separate single-subject prompts (one image = one subject). NEVER stuff all N subjects into one prompt with count=N  that makes every output a collage/grid of all items. Shared style/palette may repeat in each prompt; each prompt describes exactly ONE final frame. Optional titles[] for UI labels. Use count only for variations of the SAME subject.
+SUITES (ads/campaigns): same rule  prompts[] with one composition each, or separate generate_images calls if briefs differ a lot.
 IMAGE DECKS: use create_image_presentation with a detailed prompt per slide (prefer aspect_ratio 3:2).
 
 D1–D5 CLARIFYING (use ask_clarifying_questions when needed):

@@ -24,10 +24,12 @@ export function ZeepoAiInlineGenerations({
   generations,
   activeGenerationId,
   onOpen,
+  isAgencySuperAdmin = false,
 }: {
   generations: ZeepoAiGeneration[];
   activeGenerationId?: string | null;
   onOpen: (panel: NonNullable<ZeepoAiActivePanel>) => void;
+  isAgencySuperAdmin?: boolean;
 }) {
   if (!generations.length) return null;
 
@@ -51,7 +53,7 @@ export function ZeepoAiInlineGenerations({
               <button
                 key={g.id}
                 type="button"
-                disabled={pending || failed}
+                disabled={pending}
                 onClick={() => {
                   const panel = generationToPanel(g);
                   if (panel) onOpen(panel);
@@ -61,28 +63,65 @@ export function ZeepoAiInlineGenerations({
                   "transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   active ? "border-primary ring-2 ring-primary/25" : "border-border/70",
                   pending && "cursor-wait",
+                  failed && "border-destructive/50 bg-destructive/5",
                 )}
                 aria-label={
                   pending
                     ? "Generating image…"
                     : failed
-                      ? "Image generation failed"
+                      ? isAgencySuperAdmin
+                        ? `Image generation failed: ${g.errorMessage || "Unknown error"}`
+                        : "Generation failed"
                       : g.title || "Generated image"
                 }
+                title={
+                  failed
+                    ? isAgencySuperAdmin
+                      ? g.errorMessage || "Image generation failed"
+                      : "Generation failed. Contact support to report this issue."
+                    : undefined
+                }
               >
-                {g.imageUrl && !pending ? (
+                {g.imageUrl && !pending && !failed ? (
                   <img
                     src={g.imageUrl}
                     alt={g.title || ""}
                     className="size-full object-cover transition duration-300 group-hover:scale-[1.02]"
                   />
+                ) : failed ? (
+                  <div className="relative flex size-full flex-col items-center justify-center gap-1.5 p-3">
+                    <div className="rounded-full bg-destructive/15 p-2">
+                      <svg
+                        className="size-5 text-destructive"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                        />
+                      </svg>
+                    </div>
+                    <span className="text-center text-[10px] font-medium leading-tight text-destructive">
+                      Failed
+                    </span>
+                    <span className="line-clamp-3 text-center text-[9px] leading-snug text-destructive/80">
+                      {isAgencySuperAdmin
+                        ? g.errorMessage || "Click for details"
+                        : "Contact support"}
+                    </span>
+                  </div>
                 ) : (
                   <div className="relative flex size-full flex-col items-center justify-center">
                     <div className="absolute inset-0" aria-hidden>
                       <GradientOrb config={{ orbScale: 0.45, rotationSpeed: 0.3 }} />
                     </div>
                     <span className="absolute bottom-3 z-10 text-[11px] font-medium text-muted-foreground">
-                      {failed ? "Failed" : "Generating…"}
+                      Generating…
                     </span>
                   </div>
                 )}

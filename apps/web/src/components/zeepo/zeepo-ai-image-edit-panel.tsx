@@ -119,6 +119,9 @@ export function ZeepoAiImageEditPanel({
   sessionId,
   onClose,
   viewOnly = false,
+  failed = false,
+  errorMessage,
+  isAgencySuperAdmin = false,
 }: {
   url: string;
   title?: string;
@@ -126,6 +129,9 @@ export function ZeepoAiImageEditPanel({
   sessionId: string;
   onClose?: () => void;
   viewOnly?: boolean;
+  failed?: boolean;
+  errorMessage?: string;
+  isAgencySuperAdmin?: boolean;
 }) {
   const [panelImageUrl, setPanelImageUrl] = useState(url);
   const [panelImageHistory, setPanelImageHistory] = useState<string[]>([]);
@@ -429,6 +435,80 @@ export function ZeepoAiImageEditPanel({
     setPanelRedoStack(rest);
     setPanelImageUrl(next!);
   };
+
+  // Show error state for failed generations
+  if (failed) {
+    return (
+      <div className="flex h-full min-h-0 flex-col overflow-hidden">
+        <div className="relative z-20 flex shrink-0 items-center gap-1 border-b bg-background px-3 py-2.5">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <div className="shrink-0 rounded-lg bg-destructive/10 p-1.5">
+              <ImageIcon className="size-4 text-destructive" />
+            </div>
+            <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+              {title || "Image Generation Failed"}
+            </span>
+          </div>
+          {onClose ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-7"
+              aria-label="Close panel"
+              onClick={onClose}
+            >
+              <X className="size-3.5" />
+            </Button>
+          ) : null}
+        </div>
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6">
+          <div className="flex flex-col items-center gap-2">
+            <div className="rounded-full bg-destructive/15 p-4">
+              <svg
+                className="size-12 text-destructive"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-foreground">Generation Failed</h3>
+            <p className="max-w-md text-center text-sm text-muted-foreground">
+              {isAgencySuperAdmin
+                ? errorMessage || "The image generation encountered an error and could not be completed."
+                : "The image generation encountered an error. Please contact support to report this issue."}
+            </p>
+          </div>
+          {isAgencySuperAdmin ? (
+            <div className="flex flex-col gap-2 text-center">
+              <p className="text-xs text-muted-foreground">Possible causes:</p>
+              <ul className="space-y-1 text-xs text-muted-foreground">
+                <li>• API quota exceeded or authentication issue</li>
+                <li>• Invalid prompt or content policy violation</li>
+                <li>• Temporary service unavailability</li>
+              </ul>
+            </div>
+          ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onClose}
+            className="mt-2"
+          >
+            Close
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">

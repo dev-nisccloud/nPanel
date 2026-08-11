@@ -4,7 +4,7 @@ import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Building2, Edit, Package, User, Users } from "lucide-react";
+import { Building2, Edit, Package } from "lucide-react";
 import {
 	Sheet,
 	SheetContent,
@@ -65,12 +65,9 @@ function serviceName(productName: string, productPlanName: string | null): strin
 	return `${productName} - ${productPlanName}`;
 }
 
-type LinkType = "team" | "user";
-
 const editFormSchema = z.object({
 	name: z.string().optional(),
-	linkType: z.enum(["team", "user"]),
-	ownerId: z.string().min(1, "Select an organization or user"),
+	ownerId: z.string().min(1, "Select an organization"),
 	status: z.enum([
 		"ACTIVE",
 		"PENDING",
@@ -131,15 +128,9 @@ export function SubscriptionEditSheet({
 		enabled: open,
 	});
 
-	const { data: users = [], isLoading: isLoadingUsers } =
-		trpc.creativeBriefs.listUsersForApprover.useQuery(undefined, {
-			enabled: open,
-		});
-
 	const form = useForm<EditFormData>({
 		resolver: zodResolver(editFormSchema),
 		defaultValues: {
-			linkType: "team",
 			ownerId: "",
 			status: "ACTIVE",
 			autoRenew: false,
@@ -147,18 +138,12 @@ export function SubscriptionEditSheet({
 		},
 	});
 
-	const linkType = form.watch("linkType");
-
 	React.useEffect(() => {
 		if (!sub || !open) return;
 
-		const initialLinkType: LinkType = sub.userId ? "user" : "team";
-		const ownerId = sub.userId ?? sub.teamId ?? "";
-
 		form.reset({
 			name: sub.name ?? "",
-			linkType: initialLinkType,
-			ownerId,
+			ownerId: sub.teamId ?? "",
 			status: sub.status as EditFormData["status"],
 			subscriptionDate: parseDate(sub.subscriptionDate),
 			expiryDate: parseDate(sub.expiryDate),
@@ -193,23 +178,13 @@ export function SubscriptionEditSheet({
 		[teams],
 	);
 
-	const userItems: ComboboxItem[] = React.useMemo(
-		() =>
-			users.map((u) => ({
-				id: u.id,
-				label: u.name ? `${u.name} (${u.email})` : u.email,
-			})),
-		[users],
-	);
-
 	const planItems: ComboboxItem[] = React.useMemo(() => {
 		const plans = (product as { plans?: { id: string; name: string }[] } | undefined)?.plans ?? [];
 		return plans.map((p) => ({ id: p.id, label: p.name }));
 	}, [product]);
 
-	const ownerItems = linkType === "team" ? teamItems : userItems;
 	const selectedOwnerId = form.watch("ownerId");
-	const selectedOwner = ownerItems.find((item) => item.id === selectedOwnerId);
+	const selectedOwner = teamItems.find((item) => item.id === selectedOwnerId);
 	const selectedPlanId = form.watch("productPlanId");
 	const selectedPlan = planItems.find((p) => p.id === selectedPlanId);
 
@@ -226,10 +201,11 @@ export function SubscriptionEditSheet({
 			payload.name = trimmedName || null;
 		}
 
-		const newUserId = data.linkType === "user" ? data.ownerId : null;
-		const newTeamId = data.linkType === "team" ? data.ownerId : null;
-		if (newUserId !== (sub.userId ?? null)) payload.userId = newUserId;
-		if (newTeamId !== (sub.teamId ?? null)) payload.teamId = newTeamId;
+		const newTeamId = data.ownerId;
+		if (newTeamId !== (sub.teamId ?? null) || sub.userId != null) {
+			payload.teamId = newTeamId;
+			payload.userId = null;
+		}
 
 		if (data.status !== sub.status) payload.status = data.status;
 
@@ -291,7 +267,7 @@ export function SubscriptionEditSheet({
 
 	const productName = sub?.product?.name ?? "";
 	const productPlanName = sub?.productPlan?.name ?? null;
-	const isLoadingOwnerOptions = linkType === "team" ? isLoadingTeams : isLoadingUsers;
+	const isLoadingOwnerOptions = isLoadingTeams;
 	const isCommission = sub?.pricingModel === "COMMISSION";
 
 	return (
@@ -385,50 +361,14 @@ export function SubscriptionEditSheet({
 												)}
 											/>
 
-											<div className="space-y-2">
-												<FormLabel>Link to</FormLabel>
-												<div className="flex gap-2">
-													<Button
-														type="button"
-														variant={linkType === "team" ? "default" : "outline"}
-														size="sm"
-														onClick={() => {
-															form.setValue("linkType", "team");
-															form.setValue("ownerId", "");
-														}}
-														disabled={updateSubscription.isPending}
-													>
-														<Users className="mr-2 h-4 w-4" />
-														Organization
-													</Button>
-													<Button
-														type="button"
-														variant={linkType === "user" ? "default" : "outline"}
-														size="sm"
-														onClick={() => {
-															form.setValue("linkType", "user");
-															form.setValue("ownerId", "");
-														}}
-														disabled={updateSubscription.isPending}
-													>
-														<User className="mr-2 h-4 w-4" />
-														User
-													</Button>
-												</div>
-											</div>
-
 											<FormField
 												control={form.control}
 												name="ownerId"
 												render={({ field }) => (
 													<FormItem>
 														<FormLabel className="flex items-center gap-2">
-															{linkType === "team" ? (
-																<Building2 className="h-4 w-4 text-muted-foreground" />
-															) : (
-																<User className="h-4 w-4 text-muted-foreground" />
-															)}
-															{linkType === "team" ? "Organization" : "User"}
+															<Building2 className="h-4 w-4 text-muted-foreground" />
+															Organization
 														</FormLabel>
 														<FormControl>
 															{isLoadingOwnerOptions ? (
@@ -437,24 +377,12 @@ export function SubscriptionEditSheet({
 																</div>
 															) : (
 																<ComboboxDropdown
-																	items={ownerItems}
+																	items={teamItems}
 																	selectedItem={selectedOwner}
 																	onSelect={(item) => field.onChange(item.id)}
-																	placeholder={
-																		linkType === "team"
-																			? "Select an organization..."
-																			: "Select a user..."
-																	}
-																	searchPlaceholder={
-																		linkType === "team"
-																			? "Search organizations..."
-																			: "Search users..."
-																	}
-																	emptyResults={
-																		linkType === "team"
-																			? "No organizations found"
-																			: "No users found"
-																	}
+																	placeholder="Select an organization..."
+																	searchPlaceholder="Search organizations..."
+																	emptyResults="No organizations found"
 																	disabled={updateSubscription.isPending}
 																/>
 															)}

@@ -14,6 +14,7 @@ import {
 	buildLogoutXml,
 	buildContactCreateXml,
 	buildDomainCreateXml,
+	buildDomainInfoXml,
 	buildDomainUpdateXml,
 	type ContactCreateParams,
 	type ContactCreatePostalInfo,
@@ -423,9 +424,6 @@ export async function registerKenicDomain(
 		const createParsed = parser.parse(createXmlStr) as Record<string, unknown>;
 		const createResult = getEppResult(createParsed);
 
-		sendFrame(socket, buildLogoutXml());
-		await readFrame(socket);
-
 		if (params.orderId && params.orderItemId) {
 			void niscLog("processor_api_raw_response", {
 				niscOrderId: params.orderId,
@@ -436,7 +434,33 @@ export async function registerKenicDomain(
 			});
 		}
 
+		// Idempotent: domain already registered at KENIC (e.g. retry after crash).
+		// Fetch domain:info for registry expiry so subscription dates stay accurate.
+		if (createResult.code === EPP_CODE_OBJECT_EXISTS) {
+			let exDate: string | null = null;
+			try {
+				sendFrame(socket, buildDomainInfoXml(params.domainName));
+				const infoBuf = await readFrame(socket);
+				const infoParsed = parser.parse(infoBuf.toString("utf8")) as Record<string, unknown>;
+				const infoResult = getEppResult(infoParsed);
+				if (infoResult.code === EPP_CODE_SUCCESS) {
+					const infData = getResData(infoParsed)?.["domain:infData"] as
+						| Record<string, unknown>
+						| undefined;
+					const rawEx = infData?.["domain:exDate"];
+					exDate = typeof rawEx === "string" && rawEx.trim() ? rawEx.trim() : null;
+				}
+			} catch {
+				// Best-effort; still treat 2302 as success even if info fails.
+			}
+			sendFrame(socket, buildLogoutXml());
+			await readFrame(socket);
+			return { success: true, domain: params.domainName, exDate, authInfo };
+		}
+
 		if (createResult.code !== EPP_CODE_SUCCESS) {
+			sendFrame(socket, buildLogoutXml());
+			await readFrame(socket);
 			throw new Error(`KENIC domain create failed: ${createResult.msg}`);
 		}
 
@@ -444,6 +468,9 @@ export async function registerKenicDomain(
 		const creData = resData?.["domain:creData"] as Record<string, unknown> | undefined;
 		const name = (creData?.["domain:name"] as string) ?? params.domainName;
 		const exDate = creData?.["domain:exDate"] as string | undefined;
+
+		sendFrame(socket, buildLogoutXml());
+		await readFrame(socket);
 
 		return { success: true, domain: name, exDate: exDate ?? null, authInfo };
 	} finally {
@@ -502,6 +529,55 @@ export async function setKenicDomainAuthCode(
 		}
 
 		return code;
+	} finally {
+		socket?.destroy();
+	}
+}
+
+/**
+ * Enable or disable KENIC transfer lock (clientTransferProhibited).
+ * Best-effort after successful registration/transfer  callers should not fail provision on lock errors.
+ */
+export async function setKenicTransferLock(
+	domainName: string,
+	locked = true,
+): Promise<void> {
+	const domain = domainName.trim();
+	if (!domain) throw new Error("Domain is required to set transfer lock");
+
+	let socket;
+	try {
+		const config = getKenicEppConfig(true);
+		socket = await createConnection(config);
+		await readFrame(socket);
+
+		sendFrame(socket, buildLoginXml(config.username, config.password));
+		const loginBuf = await readFrame(socket);
+		const loginParsed = parser.parse(loginBuf.toString("utf8")) as Record<string, unknown>;
+		const loginResult = getEppResult(loginParsed);
+		if (loginResult.code !== EPP_CODE_SUCCESS) {
+			throw new Error(`KENIC EPP login failed: ${loginResult.msg}`);
+		}
+
+		sendFrame(
+			socket,
+			buildDomainUpdateXml({
+				domain,
+				...(locked
+					? { addStatus: ["clientTransferProhibited"] }
+					: { remStatus: ["clientTransferProhibited"] }),
+			}),
+		);
+		const updateBuf = await readFrame(socket);
+		const updateParsed = parser.parse(updateBuf.toString("utf8")) as Record<string, unknown>;
+		const updateResult = getEppResult(updateParsed);
+
+		sendFrame(socket, buildLogoutXml());
+		await readFrame(socket);
+
+		if (updateResult.code !== EPP_CODE_SUCCESS && updateResult.code !== "1001") {
+			throw new Error(`KENIC transfer lock update failed: ${updateResult.msg}`);
+		}
 	} finally {
 		socket?.destroy();
 	}

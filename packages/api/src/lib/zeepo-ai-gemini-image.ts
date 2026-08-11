@@ -5,6 +5,33 @@
 import { GoogleGenAI } from "@google/genai";
 import { persistBufferToObjectStorage } from "./object-storage/persist";
 import { STORAGE_PREFIXES } from "./object-storage/prefixes";
+import {
+	assertAllowedZeepoAiMediaUrl,
+	isZeepoAiDataImageUrl,
+} from "./zeepo-ai-media-url";
+import {
+	normalizeZeepoAiGeminiUsage,
+	type ZeepoAiGeminiUsageLike,
+} from "./zeepo-ai-gemini-pricing";
+
+async function withAbortSignal<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
+	if (!signal) return promise;
+	if (signal.aborted) throw new Error("Cancelled");
+	return new Promise<T>((resolve, reject) => {
+		const onAbort = () => reject(new Error("Cancelled"));
+		signal.addEventListener("abort", onAbort, { once: true });
+		promise.then(
+			(v) => {
+				signal.removeEventListener("abort", onAbort);
+				resolve(v);
+			},
+			(e) => {
+				signal.removeEventListener("abort", onAbort);
+				reject(e);
+			},
+		);
+	});
+}
 
 export const ZEEPO_AI_IMAGE_PROVIDER = "google" as const;
 
@@ -49,11 +76,8 @@ export type ZeepoAiImageResult = {
 	mimeType: string;
 	interactionId: string | null;
 	modelId: string;
-	usage?: {
-		totalInputTokens?: number;
-		totalOutputTokens?: number;
-		totalTokens?: number;
-	};
+	imageSize: "0.5K" | "1K" | "2K" | "4K";
+	usage?: ZeepoAiGeminiUsageLike;
 };
 
 function getGeminiClient(): GoogleGenAI {
@@ -100,7 +124,7 @@ function extractImageFromInteraction(interaction: unknown): {
 	data: string;
 	mimeType: string;
 	interactionId: string | null;
-	usage?: ZeepoAiImageResult["usage"];
+	usage?: ZeepoAiGeminiUsageLike;
 } {
 	const ix = interaction as {
 		id?: string;
@@ -115,12 +139,16 @@ function extractImageFromInteraction(interaction: unknown): {
 				mimeType?: string;
 			}>;
 		}>;
-		usage?: {
-			total_input_tokens?: number;
-			total_output_tokens?: number;
-			total_tokens?: number;
-		};
+		usage?: unknown;
+		usage_metadata?: unknown;
+		usageMetadata?: unknown;
 	};
+
+	const usage =
+		normalizeZeepoAiGeminiUsage(ix.usage) ??
+		normalizeZeepoAiGeminiUsage(ix.usage_metadata) ??
+		normalizeZeepoAiGeminiUsage(ix.usageMetadata) ??
+		undefined;
 
 	const fromConvenience = ix.output_image;
 	if (fromConvenience?.data) {
@@ -128,11 +156,7 @@ function extractImageFromInteraction(interaction: unknown): {
 			data: fromConvenience.data,
 			mimeType: fromConvenience.mime_type ?? fromConvenience.mimeType ?? "image/png",
 			interactionId: ix.id ?? null,
-			usage: {
-				totalInputTokens: ix.usage?.total_input_tokens,
-				totalOutputTokens: ix.usage?.total_output_tokens,
-				totalTokens: ix.usage?.total_tokens,
-			},
+			usage,
 		};
 	}
 
@@ -143,11 +167,7 @@ function extractImageFromInteraction(interaction: unknown): {
 					data: block.data,
 					mimeType: block.mime_type ?? block.mimeType ?? "image/png",
 					interactionId: ix.id ?? null,
-					usage: {
-						totalInputTokens: ix.usage?.total_input_tokens,
-						totalOutputTokens: ix.usage?.total_output_tokens,
-						totalTokens: ix.usage?.total_tokens,
-					},
+					usage,
 				};
 			}
 		}
@@ -159,6 +179,7 @@ function extractImageFromInteraction(interaction: unknown): {
 				data: out.data,
 				mimeType: out.mime_type ?? out.mimeType ?? "image/png",
 				interactionId: ix.id ?? null,
+				usage,
 			};
 		}
 	}
@@ -191,6 +212,7 @@ export async function createZeepoAiImage(params: {
 	references?: ZeepoAiImageRef[];
 	previousInteractionId?: string | null;
 	intent?: ZeepoAiImageIntent | string;
+	signal?: AbortSignal;
 }): Promise<ZeepoAiImageResult> {
 	const client = getGeminiClient();
 	const modelId =
@@ -202,25 +224,31 @@ export async function createZeepoAiImage(params: {
 	const aspectRatio = (params.aspectRatio ?? "1:1") as string;
 	// Interactions API only supports image/jpeg
 	const mimeType = "image/jpeg";
+	const imageSize = modelId.includes("lite") ? ("1K" as const) : ("2K" as const);
 
 	try {
-		const interaction = await client.interactions.create({
-			model: modelId,
-			input: buildInputParts({
-				prompt: params.prompt,
-				references: params.references,
-			}) as never,
-			response_format: {
-				type: "image",
-				mime_type: mimeType,
-				aspect_ratio: aspectRatio,
-				image_size: modelId.includes("lite") ? "1K" : "2K",
-			} as never,
-			...(params.previousInteractionId
-				? { previous_interaction_id: params.previousInteractionId }
-				: {}),
-			store: true,
-		} as never);
+		if (params.signal?.aborted) throw new Error("Cancelled");
+
+		const interaction = await withAbortSignal(
+			client.interactions.create({
+				model: modelId,
+				input: buildInputParts({
+					prompt: params.prompt,
+					references: params.references,
+				}) as never,
+				response_format: {
+					type: "image",
+					mime_type: mimeType,
+					aspect_ratio: aspectRatio,
+					image_size: imageSize,
+				} as never,
+				...(params.previousInteractionId
+					? { previous_interaction_id: params.previousInteractionId }
+					: {}),
+				store: true,
+			} as never),
+			params.signal,
+		);
 
 		const extracted = extractImageFromInteraction(interaction);
 		return {
@@ -228,6 +256,7 @@ export async function createZeepoAiImage(params: {
 			mimeType: extracted.mimeType,
 			interactionId: extracted.interactionId,
 			modelId,
+			imageSize,
 			usage: extracted.usage,
 		};
 	} catch (error: unknown) {
@@ -245,11 +274,23 @@ export async function createZeepoAiImage(params: {
 		};
 		console.error("[zeepo-ai-gemini-image] Image generation failed:", errorDetails);
 		
-		// Provide more helpful error message based on error type
+		// Provide user-friendly error messages based on error type
 		if (errorDetails.status === 401 || errorDetails.errorMessage?.includes("UNAUTHENTICATED")) {
-			throw new Error("Authentication failed. The API key may need to be linked to a GCP project with Generative Language API enabled.");
+			throw new Error("Authentication failed. Please check your API key configuration.");
 		}
-		throw error;
+		if (errorDetails.status === 429 || errorDetails.errorMessage?.includes("quota") || errorDetails.errorMessage?.includes("RESOURCE_EXHAUSTED")) {
+			throw new Error("API quota exceeded. Please try again later or upgrade your plan.");
+		}
+		if (errorDetails.status === 400 || errorDetails.errorMessage?.includes("INVALID_ARGUMENT")) {
+			throw new Error("Invalid request. Please check your prompt and settings.");
+		}
+		if (errorDetails.status === 503 || errorDetails.errorMessage?.includes("UNAVAILABLE")) {
+			throw new Error("Service temporarily unavailable. Please try again in a moment.");
+		}
+		
+		// Return generic but helpful message
+		const userMessage = error instanceof Error ? error.message : "Image generation failed";
+		throw new Error(userMessage.length > 150 ? "Image generation failed. Please try again." : userMessage);
 	}
 }
 
@@ -321,13 +362,18 @@ export async function mapWithConcurrency<T, R>(
 	return results;
 }
 
-export async function fetchImageAsRef(url: string): Promise<ZeepoAiImageRef> {
-	if (url.startsWith("data:")) {
+export async function fetchImageAsRef(
+	url: string,
+	opts?: { signal?: AbortSignal },
+): Promise<ZeepoAiImageRef> {
+	assertAllowedZeepoAiMediaUrl(url, "Reference image");
+
+	if (isZeepoAiDataImageUrl(url) || url.startsWith("data:")) {
 		const [header, b64] = url.split(",");
 		const mime = header?.match(/data:([^;]+)/)?.[1] ?? "image/png";
 		return { dataBase64: b64 ?? "", mimeType: mime };
 	}
-	const res = await fetch(url);
+	const res = await fetch(url, { signal: opts?.signal });
 	if (!res.ok) throw new Error(`Failed to fetch reference image (${res.status})`);
 	const mime = res.headers.get("content-type")?.split(";")[0]?.trim() ?? "image/png";
 	const buf = Buffer.from(await res.arrayBuffer());

@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { and, asc, count, desc, eq, inArray, sql } from "@npanel/db";
 import { randomUUID } from "node:crypto";
 import { db } from "@npanel/db";
+import { z } from "zod";
 import {
 	zeepoAiActivityLog,
 	zeepoAiAttachment,
@@ -17,6 +18,7 @@ import {
 	assertCustomerCanUseZeepoAi,
 	assertZeepoAiTeamAccess,
 } from "../../lib/zeepo-ai-access";
+import { checkWelcomeTokenEligibility, tryGrantWelcomeTokens } from "../../lib/zeepo-ai-free-token-grant";
 import { failStaleZeepoAiGenerations } from "./image-generation";
 import {
 	createSessionSchema,
@@ -119,17 +121,22 @@ export const zeepoAiSessionsRouter = router({
 		const userId = ctx.session?.user?.id;
 		if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
 
+		// 1) Confirm access (agency → personal library; customer → must be team member).
 		const teamId = await assertZeepoAiTeamAccess({
 			userId,
 			userRole: ctx.session?.user?.role,
 			teamId: input.teamId,
 		});
 
-		const sessionConditions = [
-			eq(zeepoAiSession.userId, userId),
-			eq(zeepoAiSession.status, "ACTIVE"),
-		];
-		if (teamId) sessionConditions.push(eq(zeepoAiSession.teamId, teamId));
+		// 2) Resolve sessions that belong to this library.
+		// Customer team library = all active sessions for that team (any member).
+		// Agency library = the current user's sessions only.
+		const sessionConditions = [eq(zeepoAiSession.status, "ACTIVE")];
+		if (teamId) {
+			sessionConditions.push(eq(zeepoAiSession.teamId, teamId));
+		} else {
+			sessionConditions.push(eq(zeepoAiSession.userId, userId));
+		}
 
 		const sessions = await db.query.zeepoAiSession.findMany({
 			where: and(...sessionConditions),
@@ -186,31 +193,49 @@ export const zeepoAiSessionsRouter = router({
 			};
 		}
 
-		// Complex case: include image edit history as separate items
+		// Complex case: include image edit history as separate items.
+		// Paginate via SQL union of (generation ts, edit ts) then hydrate the page.
+		// Team library → all edits on those sessions; agency → current user's edits.
 		const editHistoryWhere = and(
 			inArray(zeepoAiImageEditHistory.sessionId, sessionIds),
-			eq(zeepoAiImageEditHistory.userId, userId),
+			...(teamId ? [] : [eq(zeepoAiImageEditHistory.userId, userId)]),
 		);
 
-		// Fetch both generations and edit history
+		const offset = (page - 1) * limit;
+
+		const genCountRow = await db
+			.select({ value: count() })
+			.from(zeepoAiGeneration)
+			.where(generationsWhere);
+		const editCountRow = await db
+			.select({ value: count() })
+			.from(zeepoAiImageEditHistory)
+			.where(editHistoryWhere);
+		const total =
+			Number(genCountRow[0]?.value ?? 0) + Number(editCountRow[0]?.value ?? 0);
+
+		// Fetch a bounded window (page * limit from each side) then merge-sort 
+		// avoids loading the entire library while staying correct for mixed timelines.
+		const fetchCap = Math.min(total, offset + limit);
 		const [generations, editHistory] = await Promise.all([
 			db.query.zeepoAiGeneration.findMany({
 				where: generationsWhere,
 				orderBy: [desc(zeepoAiGeneration.createdAt)],
+				limit: fetchCap,
 			}),
 			db.query.zeepoAiImageEditHistory.findMany({
 				where: editHistoryWhere,
 				orderBy: [desc(zeepoAiImageEditHistory.createdAt)],
+				limit: fetchCap,
 			}),
 		]);
 
-		// Map edit history to generation-like structure
 		const editHistoryItems = editHistory.map((edit) => ({
 			id: edit.id,
 			sessionId: edit.sessionId,
 			userId: edit.userId,
-			teamId: null,
-			messageId: null,
+			teamId: teamId,
+			messageId: null as string | null,
 			kind: "image" as const,
 			provider: edit.provider ?? "gemini",
 			status: "COMPLETED" as const,
@@ -223,7 +248,7 @@ export const zeepoAiSessionsRouter = router({
 			prompt: edit.prompt,
 			outputs: { imageUrl: edit.imageUrl },
 			metadata: {
-				...((edit.metadata as any) ?? {}),
+				...((edit.metadata as Record<string, unknown> | null) ?? {}),
 				operationType: edit.operationType,
 				parentGenerationId: edit.generationId,
 				isEditHistory: true,
@@ -236,29 +261,25 @@ export const zeepoAiSessionsRouter = router({
 			createdAt: edit.createdAt,
 			updatedAt: edit.createdAt,
 			sessionTitle: titleById.get(edit.sessionId) ?? "New chat",
-			isEditHistory: true,
+			isEditHistory: true as const,
 		}));
 
 		const generationItems = generations.map((g) => ({
 			...g,
 			sessionTitle: titleById.get(g.sessionId) ?? "New chat",
-			isEditHistory: false,
+			isEditHistory: false as const,
 		}));
 
-		// Combine and sort by createdAt descending
 		const allItems = [...generationItems, ...editHistoryItems].sort(
 			(a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
 		);
-
-		// Apply pagination
-		const offset = (page - 1) * limit;
 		const paginatedItems = allItems.slice(offset, offset + limit);
 
 		return {
 			items: paginatedItems,
 			page,
 			limit,
-			total: allItems.length,
+			total,
 		};
 	}),
 
@@ -274,6 +295,36 @@ export const zeepoAiSessionsRouter = router({
 		}
 
 		await failStaleZeepoAiGenerations(input.id);
+
+		// Reap orphan assistant rows left "streaming" after crash/deploy.
+		const orphanCutoff = new Date(Date.now() - 35 * 60 * 1000);
+		const orphanRows = await db.query.zeepoAiMessage.findMany({
+			where: and(
+				eq(zeepoAiMessage.sessionId, input.id),
+				eq(zeepoAiMessage.role, "assistant"),
+				eq(zeepoAiMessage.status, "streaming"),
+			),
+			columns: { id: true, metadata: true, createdAt: true },
+		});
+		for (const row of orphanRows) {
+			if (row.createdAt.getTime() > orphanCutoff.getTime()) continue;
+			const prev =
+				row.metadata && typeof row.metadata === "object"
+					? (row.metadata as Record<string, unknown>)
+					: {};
+			await db
+				.update(zeepoAiMessage)
+				.set({
+					status: "error",
+					metadata: { ...prev, interrupted: true, orphanReaped: true },
+				})
+				.where(
+					and(
+						eq(zeepoAiMessage.id, row.id),
+						eq(zeepoAiMessage.status, "streaming"),
+					),
+				);
+		}
 
 		const [messages, generations, attachments, toolInvocations] = await Promise.all([
 			db.query.zeepoAiMessage.findMany({
@@ -359,4 +410,42 @@ export const zeepoAiSessionsRouter = router({
 
 		return { ok: true };
 	}),
+
+	checkWelcomeEligibility: zeepoAiProcedure
+		.input(z.object({ teamId: z.string().optional() }))
+		.query(async ({ ctx, input }) => {
+			const userId = ctx.session?.user?.id;
+			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+
+			const teamId = await assertZeepoAiTeamAccess({
+				userId,
+				userRole: ctx.session?.user?.role,
+				teamId: input.teamId,
+			});
+
+			if (!teamId) {
+				return { eligible: false, reason: "no_team", tokensIfGranted: 0 };
+			}
+
+			return checkWelcomeTokenEligibility(teamId);
+		}),
+
+	/** Actually attempt the one-time welcome grant (idempotent). */
+	claimWelcomeGrant: zeepoAiProcedure
+		.input(z.object({ teamId: z.string() }))
+		.mutation(async ({ ctx, input }) => {
+			const userId = ctx.session?.user?.id;
+			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+
+			const teamId = await assertZeepoAiTeamAccess({
+				userId,
+				userRole: ctx.session?.user?.role,
+				teamId: input.teamId,
+			});
+			if (!teamId) {
+				throw new TRPCError({ code: "BAD_REQUEST", message: "teamId required" });
+			}
+
+			return tryGrantWelcomeTokens({ teamId, userId });
+		}),
 });
