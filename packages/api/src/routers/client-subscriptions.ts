@@ -41,13 +41,14 @@ const subscriptionStatusSchema = z.enum([
 
 type SubscriptionStatus = z.infer<typeof subscriptionStatusSchema>;
 
-const pricingModelSchema = z.enum(["FIXED", "COMMISSION"]);
+const pricingModelSchema = z.enum(["FIXED", "COMMISSION", "USAGE"]);
 
 const billingCycleSchema = z.enum([
     "YEARLY",
     "MONTHLY",
     "BIENNIALLY",
     "CUSTOM",
+    "ONE_TIME",
 ]);
 
 const hostingTypeSchema = z.enum([
@@ -138,10 +139,10 @@ const createSubscriptionInputSchema = z
         metadata: z.record(z.string(), z.unknown()).optional(),
     })
     .superRefine((data, ctx) => {
-        if (data.pricingModel === "FIXED" && !data.billingCycle) {
+        if ((data.pricingModel === "FIXED" || data.pricingModel === "USAGE") && !data.billingCycle) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
-                message: "billingCycle is required for FIXED pricing subscriptions",
+                message: "billingCycle is required for FIXED/USAGE pricing subscriptions",
                 path: ["billingCycle"],
             });
         }
@@ -438,7 +439,19 @@ const commissionEntryOutputSchema = z.object({
 // HELPERS
 // ============================================================================
 
+function coerceEnumOrNull<T extends string>(
+    value: unknown,
+    allowed: readonly T[],
+): T | null {
+    if (value == null || value === "") return null;
+    return (allowed as readonly string[]).includes(String(value))
+        ? (String(value) as T)
+        : null;
+}
+
 function mapSubscription(sub: any): z.infer<typeof subscriptionOutputSchema> {
+    const statusParsed = subscriptionStatusSchema.safeParse(sub.status);
+    const pricingParsed = pricingModelSchema.safeParse(sub.pricingModel);
     return {
         id: sub.id,
         name: sub.name ?? null,
@@ -449,13 +462,13 @@ function mapSubscription(sub: any): z.infer<typeof subscriptionOutputSchema> {
         orderId: sub.orderId ?? null,
         subscribedBy: sub.subscribedBy ?? null,
         recordedBy: sub.recordedBy ?? null,
-        status: sub.status,
+        status: statusParsed.success ? statusParsed.data : "PENDING",
         subscriptionDate: sub.subscriptionDate ?? null,
-        billingCycle: sub.billingCycle ?? null,
+        billingCycle: coerceEnumOrNull(sub.billingCycle, billingCycleSchema.options),
         nextRenewalDate: sub.nextRenewalDate ?? null,
         expiryDate: sub.expiryDate ?? null,
-        autoRenew: sub.autoRenew,
-        pricingModel: sub.pricingModel,
+        autoRenew: Boolean(sub.autoRenew),
+        pricingModel: pricingParsed.success ? pricingParsed.data : "FIXED",
         agreedPrice: sub.agreedPrice ?? null,
         agreedCurrency: sub.agreedCurrency ?? "KES",
         agreedCommissionRate: sub.agreedCommissionRate ?? null,
@@ -464,7 +477,7 @@ function mapSubscription(sub: any): z.infer<typeof subscriptionOutputSchema> {
         pleskFilterId: sub.pleskFilterId ?? null,
         pleskOwnerId: sub.pleskOwnerId ?? null,
         pleskFtpLogin: sub.pleskFtpLogin ?? null,
-        hostingType: sub.hostingType ?? null,
+        hostingType: coerceEnumOrNull(sub.hostingType, hostingTypeSchema.options),
         openProviderId: sub.openProviderId ?? null,
         domainAuthCode: sub.domainAuthCode ?? null,
         nameserverGroupId: sub.nameserverGroupId ?? null,

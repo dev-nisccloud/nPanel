@@ -5,8 +5,11 @@ import pg from "pg";
 import { resolve } from "node:path";
 
 // Load local .env only when DATABASE_URL is not already set (CI / explicit env wins).
+// DOTENV_PATH overrides the default apps/server/.env (e.g. .env.production / .env.staging).
 if (!process.env.DATABASE_URL) {
-  dotenv.config({ path: resolve(import.meta.dir, "../../../../apps/server/.env") });
+  const envPath =
+    process.env.DOTENV_PATH ?? resolve(import.meta.dir, "../../../../apps/server/.env");
+  dotenv.config({ path: envPath });
 }
 
 const databaseUrl = process.env.DATABASE_URL;

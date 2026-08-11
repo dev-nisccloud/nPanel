@@ -16,7 +16,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
 	Package,
 	Building2,
-	User,
 	PauseCircle,
 	PlayCircle,
 	XCircle,
@@ -48,6 +47,7 @@ function getBillingCycleDisplayName(cycle: string | null): string {
 		YEARLY: "Yearly",
 		BIENNIALLY: "Biennially",
 		CUSTOM: "Custom",
+		ONE_TIME: "One-time",
 	};
 	return m[cycle] ?? cycle;
 }
@@ -160,8 +160,6 @@ export function SubscriptionViewSheet({
 	const productName = sub?.product?.name ?? "";
 	const productPlanName = sub?.productPlan?.name ?? null;
 	const teamName = sub?.team?.name ?? null;
-	const userName = sub?.userName ?? null;
-	const displayOwner = userName ?? "- ";
 
 	const isSuspended = sub?.status === "SUSPENDED";
 	const canReactivate = isSuspended;
@@ -268,21 +266,10 @@ export function SubscriptionViewSheet({
 											</Badge>
 										</div>
 										<div className="flex items-center gap-2 text-sm">
-											{sub.userId ? (
-												<User className="h-4 w-4 text-muted-foreground shrink-0" />
-											) : (
-												<Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
-											)}
-											<span className="text-muted-foreground">Owner</span>
-											<span className="font-medium">{displayOwner}</span>
+											<Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+											<span className="text-muted-foreground">Organization</span>
+											<span className="font-medium">{teamName ?? "- "}</span>
 										</div>
-										{teamName ? (
-											<div className="flex items-center gap-2 text-sm">
-												<Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
-												<span className="text-muted-foreground">Organization</span>
-												<span className="font-medium">{teamName}</span>
-											</div>
-										) : null}
 										{isHostingLinked && hostingServiceId ? (
 											<div className="flex items-center gap-2 text-sm">
 												<Server className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -363,7 +350,7 @@ export function SubscriptionViewSheet({
 								variant="outline"
 								size="sm"
 								onClick={() => onSendRenewalEmail?.(sub.id)}
-								disabled={(!sub.teamId && !sub.userId) || !onSendRenewalEmail || isActionPending}
+								disabled={!sub.teamId || !onSendRenewalEmail || isActionPending}
 							>
 								<Mail className="mr-2 h-4 w-4" />
 								Send renewal email

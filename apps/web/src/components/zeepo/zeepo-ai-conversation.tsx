@@ -27,6 +27,7 @@ import type {
   ZeepoAiActivePanel,
   ZeepoAiGeneration,
   ZeepoAiMessage,
+  ZeepoAiMessageAttachment,
 } from "@/components/zeepo/zeepo-ai-types";
 
 function formatThoughtDuration(ms?: number): string {
@@ -40,11 +41,14 @@ function ZeepoAiReasoningAccordion({
   reasoningStatus,
   reasoningDurationMs,
   forceOpen,
+  hideDetails = false,
 }: {
   reasoning?: string;
   reasoningStatus?: ZeepoAiMessage["reasoningStatus"];
   reasoningDurationMs?: number;
   forceOpen?: boolean;
+  /** If true, show only "Thinking..." loader without expandable reasoning content */
+  hideDetails?: boolean;
 }) {
   const isStreaming = reasoningStatus === "streaming";
   const hasReasoning = Boolean(reasoning?.trim()) || isStreaming;
@@ -61,6 +65,24 @@ function ZeepoAiReasoningAccordion({
     }
   }, [isStreaming, reasoningStatus, forceOpen]);
 
+  if (!hasReasoning) return null;
+
+  // Customer mode: show only "Thinking..." when streaming, nothing when complete
+  if (hideDetails) {
+    if (!isStreaming) return null;
+    return (
+      <div className="mb-3 flex items-center gap-2 text-[13px] text-muted-foreground/90">
+        <span className="zeepo-ai-thinking-label">Thinking</span>
+        <span className="zeepo-ai-thinking-dots inline-flex gap-0.5" aria-hidden>
+          <span />
+          <span />
+          <span />
+        </span>
+      </div>
+    );
+  }
+
+  // Agency mode: full reasoning accordion
   if (!hasReasoning) return null;
 
   const safeReasoning = sanitizeZeepoAiReasoning(reasoning);
@@ -148,12 +170,14 @@ function ActionButton({
 
 export const ZeepoAiUserBubble = memo(function ZeepoAiUserBubble({
   content,
+  attachments,
   onCopy,
   onRetry,
   onEditSave,
   animateEnter = true,
 }: {
   content: string;
+  attachments?: ZeepoAiMessageAttachment[];
   onCopy?: () => void;
   onRetry?: () => void;
   onEditSave?: (nextContent: string) => void;
@@ -251,15 +275,36 @@ export const ZeepoAiUserBubble = memo(function ZeepoAiUserBubble({
         animateEnter && "zeepo-ai-msg-enter",
       )}
     >
-      <div
-        className={cn(
-          "max-w-[min(92%,34rem)] rounded-2xl rounded-br-md",
-          "bg-muted/80 px-4 py-2.5 text-foreground",
-          "ring-1 ring-border/40",
-        )}
-      >
-        <p className="whitespace-pre-wrap text-[15px] leading-[1.55]">{content}</p>
-      </div>
+      {attachments && attachments.length > 0 ? (
+        <div className="flex max-w-[min(92%,34rem)] flex-wrap justify-end gap-1.5">
+          {attachments.map((a, i) => (
+            <a
+              key={`${a.url}-${i}`}
+              href={a.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block overflow-hidden rounded-xl ring-1 ring-border/50 shadow-sm transition-opacity hover:opacity-90"
+            >
+              <img
+                src={a.url}
+                alt={a.name}
+                className="h-[5.5rem] w-auto max-w-[8rem] object-cover"
+              />
+            </a>
+          ))}
+        </div>
+      ) : null}
+      {content.trim() ? (
+        <div
+          className={cn(
+            "max-w-[min(92%,34rem)] rounded-2xl rounded-br-md",
+            "bg-muted/80 px-4 py-2.5 text-foreground",
+            "ring-1 ring-border/40",
+          )}
+        >
+          <p className="whitespace-pre-wrap text-[15px] leading-[1.55]">{content}</p>
+        </div>
+      ) : null}
       <div className="flex items-center gap-0.5 pr-0.5">
         <ActionButton label="Copy" onClick={() => void handleCopy()}>
           {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
@@ -309,6 +354,8 @@ export const ZeepoAiAssistantBubble = memo(function ZeepoAiAssistantBubble({
   onFeedback,
   onCopy,
   animateEnter = true,
+  isAgencySuperAdmin = false,
+  hideReasoning = false,
 }: {
   message: ZeepoAiMessage;
   generations?: ZeepoAiGeneration[];
@@ -318,6 +365,9 @@ export const ZeepoAiAssistantBubble = memo(function ZeepoAiAssistantBubble({
   onFeedback?: (messageId: string, feedback: "like" | "dislike" | "clear") => void;
   onCopy?: () => void;
   animateEnter?: boolean;
+  isAgencySuperAdmin?: boolean;
+  /** Hide reasoning details for customer users */
+  hideReasoning?: boolean;
 }) {
   const isStreaming = message.status === "streaming";
   const isReasoning = message.reasoningStatus === "streaming";
@@ -366,6 +416,7 @@ export const ZeepoAiAssistantBubble = memo(function ZeepoAiAssistantBubble({
           reasoningStatus={message.reasoningStatus}
           reasoningDurationMs={message.reasoningDurationMs}
           forceOpen={keepReasoningOpen || isReasoning}
+          hideDetails={hideReasoning}
         />
 
         {message.content ? (
@@ -392,6 +443,7 @@ export const ZeepoAiAssistantBubble = memo(function ZeepoAiAssistantBubble({
             generations={inlineGens}
             activeGenerationId={activeGenerationId}
             onOpen={onOpenGeneration}
+            isAgencySuperAdmin={isAgencySuperAdmin}
           />
         ) : null}
 
@@ -454,6 +506,8 @@ export function ZeepoAiMessageList({
   onEditUser,
   onFeedback,
   onCopy,
+  isAgencySuperAdmin = false,
+  hideReasoning = false,
 }: {
   messages: ZeepoAiMessage[];
   generations: ZeepoAiGeneration[];
@@ -465,6 +519,9 @@ export function ZeepoAiMessageList({
   onEditUser?: (message: ZeepoAiMessage, nextContent: string) => void;
   onFeedback?: (messageId: string, feedback: "like" | "dislike" | "clear") => void;
   onCopy?: () => void;
+  isAgencySuperAdmin?: boolean;
+  /** Hide reasoning details for customer users */
+  hideReasoning?: boolean;
 }) {
   const stickToBottomRef = useRef(true);
   const rafRef = useRef<number | null>(null);
@@ -548,6 +605,7 @@ export function ZeepoAiMessageList({
             <ZeepoAiUserBubble
               key={message.id}
               content={message.content}
+              attachments={message.attachments}
               onCopy={onCopy}
               animateEnter={animateEnter}
               onRetry={
@@ -574,6 +632,8 @@ export function ZeepoAiMessageList({
             onFeedback={onFeedback}
             onCopy={onCopy}
             animateEnter={animateEnter}
+            isAgencySuperAdmin={isAgencySuperAdmin}
+            hideReasoning={hideReasoning}
           />
         );
       })}

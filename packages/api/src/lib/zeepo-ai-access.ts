@@ -9,6 +9,7 @@ import {
 	isZeepoAiAgencyUser,
 } from "./zeepo-ai-tokens";
 import { ZEEPO_AI_PRODUCT_ID } from "./zeepo-ai-billing";
+import { tryGrantWelcomeTokens } from "./zeepo-ai-free-token-grant";
 
 export async function assertUserIsTeamMember(userId: string, teamId: string): Promise<void> {
 	const row = await db.query.teamMember.findFirst({
@@ -66,10 +67,19 @@ export async function assertCustomerCanUseZeepoAi(params: {
 	userRole: string | null | undefined;
 	teamId: string | null | undefined;
 	requireTokens?: boolean;
+	tryWelcomeGrant?: boolean;
 }): Promise<string | null> {
 	const teamId = await assertZeepoAiTeamAccess(params);
 	if (isZeepoAiAgencyUser(params.userRole) || !teamId) {
 		return teamId;
+	}
+
+	// Welcome grant may bootstrap the PAYG wallet for eligible teams first.
+	if (params.tryWelcomeGrant) {
+		await tryGrantWelcomeTokens({
+			teamId,
+			userId: params.userId,
+		});
 	}
 
 	await assertZeepoAiSubscriptionForTeam(teamId);

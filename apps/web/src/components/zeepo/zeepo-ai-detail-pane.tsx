@@ -92,12 +92,14 @@ export function ZeepoAiDetailPane({
   onClose,
   className,
   viewOnly = false,
+  isAgencySuperAdmin = false,
 }: {
   panel: NonNullable<ZeepoAiActivePanel>;
   sessionId?: string;
   onClose: () => void;
   className?: string;
   viewOnly?: boolean;
+  isAgencySuperAdmin?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
   const [slideIndex, setSlideIndex] = useState(0);
@@ -178,6 +180,9 @@ export function ZeepoAiDetailPane({
           sessionId={sessionId ?? ""}
           onClose={onClose}
           viewOnly={viewOnly}
+          failed={panel.failed}
+          errorMessage={panel.errorMessage}
+          isAgencySuperAdmin={isAgencySuperAdmin}
         />
       </aside>
     );

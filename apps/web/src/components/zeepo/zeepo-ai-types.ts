@@ -15,6 +15,12 @@ export type ZeepoAiToolResult = {
   result: unknown;
 };
 
+export type ZeepoAiMessageAttachment = {
+  url: string;
+  name: string;
+  mimeType: string;
+};
+
 export type ZeepoAiMessage = {
   id: string;
   role: ZeepoAiMessageRole;
@@ -28,6 +34,7 @@ export type ZeepoAiMessage = {
   toolResults?: ZeepoAiToolResult[];
   feedback?: "like" | "dislike" | null;
   interrupted?: boolean;
+  attachments?: ZeepoAiMessageAttachment[];
 };
 
 export type ZeepoAiGenerationKind =
@@ -74,10 +81,11 @@ export type ZeepoAiGeneration = {
   imageUrl?: string;
   documentContent?: string;
   presentation?: ZeepoAiPresentationData;
+  errorMessage?: string;
 };
 
 export type ZeepoAiActivePanel =
-  | { type: "image"; generationId: string; url: string; prompt?: string; title?: string }
+  | { type: "image"; generationId: string; url: string; prompt?: string; title?: string; failed?: boolean; errorMessage?: string }
   | { type: "document"; generationId: string; title: string; content: string }
   | { type: "presentation"; generationId: string; data: ZeepoAiPresentationData }
   | null;
@@ -155,14 +163,28 @@ export const ZEEPO_AI_SKILLS: ZeepoAiSkill[] = [
 export function generationToPanel(
   g: ZeepoAiGeneration,
 ): NonNullable<ZeepoAiActivePanel> | null {
-  if (g.kind === "image" && g.imageUrl) {
-    return {
-      type: "image",
-      generationId: g.id,
-      url: g.imageUrl,
-      prompt: g.prompt,
-      title: g.title,
-    };
+  if (g.kind === "image") {
+    // Allow opening failed images to show error details
+    if (g.status === "FAILED") {
+      return {
+        type: "image",
+        generationId: g.id,
+        url: "", // No image URL for failed generations
+        prompt: g.prompt,
+        title: g.title,
+        failed: true,
+        errorMessage: g.errorMessage,
+      };
+    }
+    if (g.imageUrl) {
+      return {
+        type: "image",
+        generationId: g.id,
+        url: g.imageUrl,
+        prompt: g.prompt,
+        title: g.title,
+      };
+    }
   }
   if (g.kind === "document" && g.documentContent) {
     return {
@@ -216,6 +238,7 @@ export function mapApiGeneration(row: {
     document?: { title?: string; content?: string };
     presentation?: ZeepoAiPresentationData;
     imageUrl?: string;
+    error?: string;
   };
   return {
     id: row.id,
@@ -232,6 +255,7 @@ export function mapApiGeneration(row: {
     documentContent: outputs.document?.content,
     presentation: outputs.presentation,
     imageUrl: outputs.imageUrl,
+    errorMessage: outputs.error,
   };
 }
 
@@ -246,6 +270,7 @@ export function mapApiMessage(
     createdAt: string | Date;
   },
   toolResults?: ZeepoAiToolResult[],
+  attachments?: ZeepoAiMessageAttachment[],
 ): ZeepoAiMessage | null {
   if (row.role !== "user" && row.role !== "assistant") return null;
   const meta = (row.metadata ?? {}) as {
@@ -274,6 +299,7 @@ export function mapApiMessage(
     toolResults: toolResults?.length ? toolResults : undefined,
     feedback: meta.feedback ?? null,
     interrupted: Boolean(meta.interrupted),
+    attachments: attachments?.length ? attachments : undefined,
   };
 }
 

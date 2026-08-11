@@ -78,6 +78,11 @@ export const zeepoAiMessagesRouter = router({
 			});
 			if (!session) throw new TRPCError({ code: "NOT_FOUND" });
 
+			const { assertAllowedZeepoAiMediaUrl } = await import(
+				"../../lib/zeepo-ai-media-url"
+			);
+			assertAllowedZeepoAiMediaUrl(input.url, "Attachment");
+
 			const id = randomUUID();
 			await db.insert(zeepoAiAttachment).values({
 				id,

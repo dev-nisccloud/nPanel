@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { User, Users, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -26,16 +26,12 @@ interface CreateSubscriptionFromDomainDialogProps {
   onSuccess?: () => void;
 }
 
-type LinkType = "user" | "team";
-
 export function CreateSubscriptionFromDomainDialog({
   open,
   onOpenChange,
   domain,
   onSuccess,
 }: CreateSubscriptionFromDomainDialogProps) {
-  const [linkType, setLinkType] = React.useState<LinkType>("team");
-  const [selectedUserId, setSelectedUserId] = React.useState("");
   const [selectedTeamId, setSelectedTeamId] = React.useState("");
   const [providerCost, setProviderCost] = React.useState("");
   const [providerCostCurrency, setProviderCostCurrency] = React.useState("KES");
@@ -50,13 +46,8 @@ export function CreateSubscriptionFromDomainDialog({
 
   const { data: teams = [], isLoading: isLoadingTeams } = trpc.teams.getUserTeams.useQuery(
     undefined,
-    { enabled: open && linkType === "team" }
+    { enabled: open }
   );
-
-  const { data: users = [], isLoading: isLoadingUsers } =
-    trpc.creativeBriefs.listUsersForApprover.useQuery(undefined, {
-      enabled: open && linkType === "user",
-    });
 
   const createMutation = trpc.clientSubscriptions.create.useMutation({
     onSuccess: () => {
@@ -72,7 +63,6 @@ export function CreateSubscriptionFromDomainDialog({
   });
 
   function resetForm() {
-    setSelectedUserId("");
     setSelectedTeamId("");
     setProviderCost("");
     setProviderCostCurrency("KES");
@@ -89,17 +79,8 @@ export function CreateSubscriptionFromDomainDialog({
     () => teams.map((t) => ({ id: t.id, label: t.name })),
     [teams]
   );
-  const userItems: ComboboxItem[] = React.useMemo(
-    () =>
-      users.map((u) => ({
-        id: u.id,
-        label: u.name ? `${u.name} (${u.email})` : u.email,
-      })),
-    [users]
-  );
 
   const selectedTeam = teamItems.find((t) => t.id === selectedTeamId);
-  const selectedUser = userItems.find((u) => u.id === selectedUserId);
 
   const subscriptionDate = domain.activeDate
     ? new Date(domain.activeDate)
@@ -132,20 +113,15 @@ export function CreateSubscriptionFromDomainDialog({
       return;
     }
 
-    if (linkType === "team" && !selectedTeamId) {
+    if (!selectedTeamId) {
       toast.error("Please select an organization");
-      return;
-    }
-    if (linkType === "user" && !selectedUserId) {
-      toast.error("Please select a user");
       return;
     }
 
     createMutation.mutate({
       productId: domainsProductId,
       name: domain.domain,
-      userId: linkType === "user" ? selectedUserId : undefined,
-      teamId: linkType === "team" ? selectedTeamId : undefined,
+      teamId: selectedTeamId,
       status: "ACTIVE",
       subscriptionDate,
       nextRenewalDate,
@@ -165,8 +141,8 @@ export function CreateSubscriptionFromDomainDialog({
     });
   };
 
-  const isLoadingOptions = linkType === "team" ? isLoadingTeams : isLoadingUsers;
-  const hasSelection = linkType === "team" ? !!selectedTeamId : !!selectedUserId;
+  const isLoadingOptions = isLoadingTeams;
+  const hasSelection = !!selectedTeamId;
   const isSubmitting = createMutation.isPending;
 
   return (
@@ -175,7 +151,7 @@ export function CreateSubscriptionFromDomainDialog({
         <DialogHeader>
           <DialogTitle>Create subscription</DialogTitle>
           <DialogDescription>
-            Create a Nisc subscription for {domain.domain} and link it to a user or organization.
+            Create a Nisc subscription for {domain.domain} and link it to an organization.
           </DialogDescription>
         </DialogHeader>
 
@@ -191,38 +167,12 @@ export function CreateSubscriptionFromDomainDialog({
           ) : (
             <>
               <div className="space-y-2">
-                <Label>Link to</Label>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant={linkType === "team" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setLinkType("team")}
-                    disabled={isSubmitting}
-                  >
-                    <Users className="mr-2 h-4 w-4" />
-                    Organization
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={linkType === "user" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setLinkType("user")}
-                    disabled={isSubmitting}
-                  >
-                    <User className="mr-2 h-4 w-4" />
-                    User
-                  </Button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>{linkType === "team" ? "Organization" : "User"} *</Label>
+                <Label>Organization *</Label>
                 {isLoadingOptions ? (
                   <div className="flex h-10 items-center justify-center rounded-md border">
                     <Spinner size={18} />
                   </div>
-                ) : linkType === "team" ? (
+                ) : (
                   <ComboboxDropdown
                     items={teamItems}
                     selectedItem={selectedTeam}
@@ -230,16 +180,6 @@ export function CreateSubscriptionFromDomainDialog({
                     placeholder="Select an organization..."
                     searchPlaceholder="Search organizations..."
                     emptyResults="No organizations found"
-                    disabled={isSubmitting}
-                  />
-                ) : (
-                  <ComboboxDropdown
-                    items={userItems}
-                    selectedItem={selectedUser}
-                    onSelect={(item) => setSelectedUserId(item.id)}
-                    placeholder="Select a user..."
-                    searchPlaceholder="Search users..."
-                    emptyResults="No users found"
                     disabled={isSubmitting}
                   />
                 )}

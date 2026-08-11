@@ -53,6 +53,50 @@ export function filterZeepoAgentAttachmentFiles(files: File[]): {
 	};
 }
 
+/** Drop oversized / non-image files. Zeepo AI attachments are images only, max 4. */
+export function filterZeepoAiImageAttachments(files: File[]): {
+	accepted: File[];
+	rejectedMessage?: string;
+} {
+	const accepted: File[] = [];
+	const oversized: string[] = [];
+	const nonImages: string[] = [];
+	const normalized = normalizeImageFilesForUpload(files);
+	for (const file of normalized) {
+		const mime = file.type?.trim().toLowerCase() ?? "";
+		const isImage =
+			mime.startsWith("image/") ||
+			Boolean(IMAGE_MIME_BY_EXT[file.name.split(".").pop()?.toLowerCase() ?? ""]);
+		if (!isImage) {
+			nonImages.push(file.name);
+			continue;
+		}
+		if (file.size > ZEEPO_AGENT_MAX_ATTACHMENT_BYTES) {
+			oversized.push(file.name);
+			continue;
+		}
+		accepted.push(file);
+	}
+	if (nonImages.length > 0) {
+		return {
+			accepted,
+			rejectedMessage:
+				nonImages.length === 1
+					? `"${nonImages[0]}" is not an image. Only images are supported.`
+					: `${nonImages.length} file(s) are not images. Only images are supported.`,
+		};
+	}
+	if (oversized.length === 0) return { accepted };
+	const label = `${Math.round(ZEEPO_AGENT_MAX_ATTACHMENT_BYTES / (1024 * 1024))}MB`;
+	return {
+		accepted,
+		rejectedMessage:
+			oversized.length === 1
+				? `"${oversized[0]}" exceeds the ${label} attachment limit.`
+				: `${oversized.length} file(s) exceed the ${label} attachment limit.`,
+	};
+}
+
 export function uploadErrorMessage(error: unknown): string {
 	if (error instanceof Error && error.message) return error.message;
 	if (typeof error === "object" && error !== null && "message" in error) {

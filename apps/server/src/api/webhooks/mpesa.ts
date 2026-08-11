@@ -66,7 +66,32 @@ export async function handleMpesaWebhook(c: Context) {
       where: eq(paymentTransaction.checkoutRequestId, checkoutRequestId),
     });
 
+    // If poll marked SUCCESS before the webhook arrived, still backfill receipt / paidAmount.
     if (transaction?.status === "SUCCESS" && isPaymentSuccessful(validatedCallback)) {
+      const receipt = paymentStatus.metadata?.mpesaReceiptNumber || null;
+      const paidFromCallback = paymentStatus.metadata?.amount;
+      const needsReceipt = receipt && !transaction.receiptNumber;
+      const needsPaidAmount =
+        paidFromCallback != null &&
+        Number.isFinite(paidFromCallback) &&
+        !transaction.paidAmount;
+      if (needsReceipt || needsPaidAmount) {
+        await db.update(paymentTransaction)
+          .set({
+            ...(needsReceipt
+              ? {
+                  receiptNumber: receipt,
+                  gatewayTransactionId: receipt,
+                }
+              : {}),
+            ...(needsPaidAmount
+              ? { paidAmount: String(Math.ceil(paidFromCallback)) }
+              : {}),
+            rawResponse: validatedCallback as any,
+            updatedAt: now,
+          })
+          .where(eq(paymentTransaction.id, transaction.id));
+      }
       return c.json({
         ResultCode: 0,
         ResultDesc: "Already processed",
@@ -84,13 +109,18 @@ export async function handleMpesaWebhook(c: Context) {
 
     if (isPaymentSuccessful(validatedCallback)) {
       if (transaction) {
+        const receipt = paymentStatus.metadata?.mpesaReceiptNumber || null;
+        const paidFromCallback = paymentStatus.metadata?.amount;
         await db.update(paymentTransaction)
           .set({
             status: "SUCCESS",
             gatewayStatus: "0",
             gatewayMessage: paymentStatus.resultDesc,
-            gatewayTransactionId: paymentStatus.metadata?.mpesaReceiptNumber || null,
-            receiptNumber: paymentStatus.metadata?.mpesaReceiptNumber || null,
+            gatewayTransactionId: receipt,
+            receiptNumber: receipt,
+            ...(paidFromCallback != null && Number.isFinite(paidFromCallback)
+              ? { paidAmount: String(Math.ceil(paidFromCallback)) }
+              : { paidAmount: transaction.amount }),
             rawResponse: validatedCallback as any,
             processedAt: now,
             updatedAt: now,

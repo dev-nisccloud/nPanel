@@ -9,7 +9,10 @@ import {
 	renderNiscOrderFailedEmail,
 } from "@npanel/api/lib/email-templates";
 import { sendEmail, sendEmailBatch } from "@npanel/api/lib/email";
-import { runPreProvisioningInvoiceForOrder } from "@npanel/api/lib/nisc-order-invoice-delivery";
+import {
+	niscOrderSkipsInvoice,
+	runPreProvisioningInvoiceForOrder,
+} from "@npanel/api/lib/nisc-order-invoice-delivery";
 import { getNormalizedPublicAppUrl, joinPublicAppPath } from "@npanel/api/lib/public-app-url";
 
 interface NiscOrderPayload {
@@ -86,7 +89,7 @@ export async function POST(request: Request) {
 		itemCount: order.orderItems.length,
 	});
 
-	if (order.status !== "PENDING") {
+	if (order.status !== "PENDING" && order.status !== "PROCESSING") {
 		await niscLog("worker_order_skip_not_pending", { niscOrderId, status: order.status });
 		return Response.json(
 			{ message: "Order already processed", status: order.status },
@@ -99,6 +102,7 @@ export async function POST(request: Request) {
 
 		await niscLog("worker_processor_start", { niscOrderId });
 		const result = await processNiscOrder(niscOrderId);
+		const skipCustomerEmails = niscOrderSkipsInvoice(order.metadata);
 		await niscLog("worker_processor_done", {
 			niscOrderId,
 			ok: result.ok,
@@ -138,7 +142,12 @@ export async function POST(request: Request) {
 			"Customer";
 
 		// On success: send order confirmation to customer (invoice was emailed before provisioning).
-		if (result.ok && result.status === "COMPLETED" && orderAfter) {
+		if (
+			!skipCustomerEmails &&
+			result.ok &&
+			result.status === "COMPLETED" &&
+			orderAfter
+		) {
 			const billingSettings = order.teamId
 				? await prisma.teamBillingSettings.findUnique({
 					where: { teamId: order.teamId },

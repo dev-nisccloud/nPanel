@@ -17,6 +17,11 @@ import {
 import { paymentTransaction } from "@npanel/db/schema/payment-transactions";
 import { team, teamMember, teamBillingSettings } from "@npanel/db/schema/teams";
 import { protectedProcedure, router } from "../trpc";
+import {
+	computeCeilVatTotals,
+	paymentTotalString,
+	reverseCeilVatToExVat,
+} from "../lib/convert-price";
 import { enqueueNiscOrderProcessing } from "../lib/qstash/nisc-order-worker";
 import { userIsAgencyStaff } from "../lib/domain-transfer-access";
 import { isKenicDomain } from "../lib/epp/kenic-tlds";
@@ -28,6 +33,7 @@ import { processNiscOrder } from "../lib/nisc-order-processor";
 import { runPreProvisioningInvoiceForOrder } from "../lib/nisc-order-invoice-delivery";
 import { isZeepoAiAgentProduct } from "../lib/zeepo-agent-order-provisioning";
 import { resolveActiveNiscProductById } from "../lib/planless-product-resolver";
+import { resolveDomainBillingCycle } from "../lib/nisc-subscription-dates";
 import {
 	createFromPaymentInputSchema,
 	createOrderInputSchema,
@@ -545,7 +551,8 @@ export const niscServiceOrdersRouter = router({
 				}),
 			);
 			const subtotal = planPrices.reduce((sum, { price }) => sum + price, 0);
-			const total = subtotal;
+			const { totalIncVat } = computeCeilVatTotals(subtotal);
+			const total = totalIncVat;
 
 			const insertedOrder = await db
 				.insert(niscOrder)
@@ -689,22 +696,84 @@ export const niscServiceOrdersRouter = router({
 				});
 			}
 
-			// Align line items with the amount actually paid (supports editable M-Pesa test amounts).
+			// Idempotency: one payment → one order (retries / card-return remounts must not double-create).
+			const existingForPayment = await db.query.niscOrder.findFirst({
+				where: eq(niscOrder.paymentTransactionId, transaction.id),
+				columns: { id: true },
+			});
+			if (existingForPayment) {
+				return db.query.niscOrder.findFirst({
+					where: eq(niscOrder.id, existingForPayment.id),
+					with: {
+						orderItems: {
+							with: {
+								product: { columns: { id: true, name: true, serviceType: true } },
+								productPlan: { columns: { id: true, name: true } },
+							},
+						},
+						user: { columns: { id: true, name: true, email: true } },
+						team: { columns: { id: true, name: true } },
+					},
+				});
+			}
+
+			// Paid STK amounts are tax-inclusive. Never allow underpayment vs checkout lines.
+			// Agency overpay may scale lines UP only; underpay is always rejected.
 			const paidAmountRaw = transaction.paidAmount ?? transaction.amount;
 			const paidAmountNum = Number.parseFloat(paidAmountRaw);
+			const clientSubtotalExVat = input.items.reduce(
+				(sum, i) => sum + (Number.parseFloat(i.itemSubtotal || i.itemPrice || "0") || 0),
+				0,
+			);
+			const { totalIncVat: expectedPaidIncVat } = computeCeilVatTotals(clientSubtotalExVat);
+			if (!Number.isFinite(paidAmountNum) || paidAmountNum <= 0) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Payment amount is missing or invalid.",
+				});
+			}
+			const paidIncVat = Math.ceil(paidAmountNum);
+			if (paidIncVat < expectedPaidIncVat) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `Paid amount (${paidIncVat}) is less than the order total (${expectedPaidIncVat}). Underpayment is not allowed.`,
+				});
+			}
 			const isBundleOrder = orderItemsIncludeDomainBundle(input.items);
 			const bundleLeadIndex = isBundleOrder
 				? input.items.findIndex((item) => isDomainBundleLeadItem(item.metadata))
 				: -1;
-			if (Number.isFinite(paidAmountNum) && paidAmountNum > 0) {
+			// Scale lines only when paid more than expected (agency overpay / tip).
+			if (paidIncVat > expectedPaidIncVat) {
+				const paidExVat = reverseCeilVatToExVat(paidIncVat);
 				if (input.items.length === 1) {
-					const paidStr = String(Math.ceil(paidAmountNum));
-					input.items[0]!.itemPrice = paidStr;
-					input.items[0]!.itemSubtotal = paidStr;
+					const exVatStr = String(paidExVat);
+					input.items[0]!.itemPrice = exVatStr;
+					input.items[0]!.itemSubtotal = exVatStr;
 				} else if (bundleLeadIndex >= 0) {
-					const paidStr = String(Math.ceil(paidAmountNum));
-					input.items[bundleLeadIndex]!.itemPrice = paidStr;
-					input.items[bundleLeadIndex]!.itemSubtotal = paidStr;
+					const exVatStr = String(paidExVat);
+					input.items[bundleLeadIndex]!.itemPrice = exVatStr;
+					input.items[bundleLeadIndex]!.itemSubtotal = exVatStr;
+				} else {
+					const currentSum = input.items.reduce(
+						(sum, i) => sum + (Number.parseFloat(i.itemSubtotal || "0") || 0),
+						0,
+					);
+					if (currentSum > 0) {
+						let allocated = 0;
+						for (let i = 0; i < input.items.length; i++) {
+							const item = input.items[i]!;
+							const raw = Number.parseFloat(item.itemSubtotal || "0") || 0;
+							const next =
+								i === input.items.length - 1
+									? Math.max(0, paidExVat - allocated)
+									: Math.round((raw / currentSum) * paidExVat);
+							allocated += next;
+							const nextStr = String(next);
+							item.itemPrice = nextStr;
+							item.itemSubtotal = nextStr;
+						}
+					}
 				}
 			}
 
@@ -718,6 +787,17 @@ export const niscServiceOrdersRouter = router({
 				}
 				if (product.id !== item.productId) {
 					item.productId = product.id;
+				}
+				const serviceType = product.serviceType;
+				if (
+					serviceType === "domain_registration" ||
+					serviceType === "domain_transfer" ||
+					serviceType === "domains"
+				) {
+					item.billingCycle = resolveDomainBillingCycle(item.billingCycle) as
+						| "YEARLY"
+						| "BIENNIALLY"
+						| "MONTHLY";
 				}
 				if (isZeepoAiAgentProduct(item.productId)) {
 					if (!input.teamId?.trim()) {
@@ -892,6 +972,7 @@ export const niscServiceOrdersRouter = router({
 
 			// For domain_transfer items: create DomainTransferRequest (PENDING) so processor can update status later
 			const transferRequestIdsByIndex: (string | null)[] = [];
+			const newlyCreatedTransferRequestIds: string[] = [];
 			const now = new Date();
 			for (let idx = 0; idx < input.items.length; idx++) {
 				const item = input.items[idx];
@@ -1018,6 +1099,7 @@ export const niscServiceOrdersRouter = router({
 						createdAt: now,
 						updatedAt: now,
 					});
+					newlyCreatedTransferRequestIds.push(requestId);
 				}
 				transferRequestIdsByIndex.push(requestId);
 			}
@@ -1035,9 +1117,13 @@ export const niscServiceOrdersRouter = router({
 			} while (existing);
 
 			const subtotalNum = input.items.reduce((sum, i) => sum + parseFloat(i.itemSubtotal || "0"), 0);
-			const totalNum = subtotalNum;
+			const { totalIncVat } = computeCeilVatTotals(subtotalNum);
+			const totalNum =
+				Number.isFinite(paidAmountNum) && paidAmountNum > 0
+					? Math.ceil(paidAmountNum)
+					: totalIncVat;
 			const subtotal = String(subtotalNum);
-			const total = String(totalNum);
+			const total = paymentTotalString(totalNum);
 			const currency = input.currency || "KES";
 
 			let orderUserId = userId;
@@ -1078,72 +1164,152 @@ export const niscServiceOrdersRouter = router({
 				}
 			}
 			const skipInvoice = skipInvoiceRequested;
-			const payOrderIns = await db
-				.insert(niscOrder)
-				.values({
-					id: randomUUID(),
-					orderNumber,
-					userId: orderUserId,
-					teamId: orderTeamId,
-					createdBy: session.user.id,
-					status: "PENDING",
-					subtotal,
-					total,
-					currency,
-					paymentTransactionId: transaction.id,
-					...(skipInvoice
-						? {
-								metadata: {
-									skipInvoice: true,
-									agencyManualCreate: true,
-								},
-							}
-						: {}),
-				})
-				.returning();
-			const order = payOrderIns[0];
-			if (!order) {
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to create Nisc order",
+			const loadOrderById = (id: string) =>
+				db.query.niscOrder.findFirst({
+					where: eq(niscOrder.id, id),
+					with: {
+						orderItems: {
+							with: {
+								product: { columns: { id: true, name: true, serviceType: true } },
+								productPlan: { columns: { id: true, name: true } },
+							},
+						},
+						user: { columns: { id: true, name: true, email: true } },
+						team: { columns: { id: true, name: true } },
+					},
 				});
-			}
 
-			for (let idx = 0; idx < input.items.length; idx++) {
-				const item = input.items[idx]!;
-				const metadata =
-					item.metadata && typeof item.metadata === "object"
-						? (item.metadata as { transferAuthCode?: string; nameServers?: Array<{ name: string; ip?: string }> })
-						: null;
-				const domainTransferRequestId = transferRequestIdsByIndex[idx] ?? undefined;
-				const mergedMetadata =
-					domainTransferRequestId != null
-						? { ...(metadata ?? {}), domainTransferRequestId }
-						: (metadata ?? undefined);
-				await db.insert(niscOrderItem).values({
-					id: randomUUID(),
-					niscOrderId: order.id,
-					productId: item.productId,
-					productPlanId: item.productPlanId ?? null,
-					billingCycle: item.billingCycle ?? null,
-					itemPrice: item.itemPrice,
-					itemSubtotal: item.itemSubtotal,
-					itemCurrency: currency,
-					primaryDomain: item.primaryDomain ?? null,
-					domainSubscriptionId: item.domainSubscriptionId ?? null,
-					description: item.description ?? null,
-					metadata: mergedMetadata ?? null,
-				});
-			}
-
-			// Link DomainTransferRequest(s) to this order for tracking
-			for (const requestId of transferRequestIdsByIndex) {
-				if (requestId) {
-					await db
-						.update(domainTransferRequest)
-						.set({ niscOrderId: order.id, updatedAt: new Date() })
-						.where(eq(domainTransferRequest.id, requestId));
+			const isUniqueViolation = (err: unknown): boolean => {
+				let current: unknown = err;
+				for (let i = 0; i < 5 && current; i++) {
+					if (
+						typeof current === "object" &&
+						current !== null &&
+						"code" in current &&
+						(current as { code?: string }).code === "23505"
+					) {
+						return true;
+					}
+					current =
+						typeof current === "object" && current !== null && "cause" in current
+							? (current as { cause?: unknown }).cause
+							: undefined;
 				}
+				return false;
+			};
+
+			let order: typeof niscOrder.$inferSelect;
+			try {
+				order = await db.transaction(async (tx) => {
+					const payOrderIns = await tx
+						.insert(niscOrder)
+						.values({
+							id: randomUUID(),
+							orderNumber,
+							userId: orderUserId,
+							teamId: orderTeamId,
+							createdBy: session.user.id,
+							status: "PENDING",
+							subtotal,
+							total,
+							currency,
+							paymentTransactionId: transaction.id,
+							...(skipInvoice
+								? {
+										metadata: {
+											skipInvoice: true,
+											agencyManualCreate: true,
+										},
+									}
+								: {}),
+						})
+						.returning();
+					const created = payOrderIns[0];
+					if (!created) {
+						throw new TRPCError({
+							code: "INTERNAL_SERVER_ERROR",
+							message: "Failed to create Nisc order",
+						});
+					}
+
+					for (let idx = 0; idx < input.items.length; idx++) {
+						const item = input.items[idx]!;
+						const metadata =
+							item.metadata && typeof item.metadata === "object"
+								? (item.metadata as {
+										transferAuthCode?: string;
+										nameServers?: Array<{ name: string; ip?: string }>;
+									})
+								: null;
+						const domainTransferRequestId = transferRequestIdsByIndex[idx] ?? undefined;
+						const mergedMetadata =
+							domainTransferRequestId != null
+								? { ...(metadata ?? {}), domainTransferRequestId }
+								: (metadata ?? undefined);
+						await tx.insert(niscOrderItem).values({
+							id: randomUUID(),
+							niscOrderId: created.id,
+							productId: item.productId,
+							productPlanId: item.productPlanId ?? null,
+							billingCycle: item.billingCycle ?? null,
+							itemPrice: item.itemPrice,
+							itemSubtotal: item.itemSubtotal,
+							itemCurrency: currency,
+							primaryDomain: item.primaryDomain ?? null,
+							domainSubscriptionId: item.domainSubscriptionId ?? null,
+							description: item.description ?? null,
+							metadata: mergedMetadata ?? null,
+						});
+					}
+
+					for (const requestId of transferRequestIdsByIndex) {
+						if (requestId) {
+							await tx
+								.update(domainTransferRequest)
+								.set({ niscOrderId: created.id, updatedAt: new Date() })
+								.where(eq(domainTransferRequest.id, requestId));
+						}
+					}
+
+					return created;
+				});
+			} catch (err) {
+				const cancelOrphanTransfers = async (reason: string) => {
+					const ids = isUniqueViolation(err)
+						? transferRequestIdsByIndex.filter((id): id is string => Boolean(id))
+						: newlyCreatedTransferRequestIds;
+					for (const requestId of ids) {
+						await db
+							.update(domainTransferRequest)
+							.set({
+								status: "CANCELLED",
+								providerResponse: {
+									reason,
+									paymentTransactionId: transaction.id,
+								},
+								updatedAt: new Date(),
+							})
+							.where(
+								and(
+									eq(domainTransferRequest.id, requestId),
+									eq(domainTransferRequest.status, "PENDING"),
+								),
+							)
+							.catch(() => undefined);
+					}
+				};
+				if (!isUniqueViolation(err)) {
+					await cancelOrphanTransfers("order_create_failed_after_transfer_request");
+					throw err;
+				}
+				// Race lost: cancel transfer requests we created that never linked to an order.
+				await cancelOrphanTransfers("superseded_by_existing_order_for_payment");
+				const raced = await db.query.niscOrder.findFirst({
+					where: eq(niscOrder.paymentTransactionId, transaction.id),
+					columns: { id: true },
+				});
+				if (!raced) throw err;
+				return loadOrderById(raced.id);
 			}
 
 			const hasExternalProvisioningItems = input.items.some((item) => {
@@ -1278,10 +1444,14 @@ export const niscServiceOrdersRouter = router({
 				});
 			}
 
-			if (order.status !== "FAILED" && order.status !== "PARTIAL") {
+			if (
+				order.status !== "FAILED" &&
+				order.status !== "PARTIAL" &&
+				order.status !== "PROCESSING"
+			) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Only failed or partial orders can be retried",
+					message: "Only failed, partial, or stuck processing orders can be retried",
 				});
 			}
 
@@ -1305,7 +1475,7 @@ export const niscServiceOrdersRouter = router({
 					.where(
 						and(
 							eq(niscOrderItem.niscOrderId, order.id),
-							inArray(niscOrderItem.status, ["FAILED", "SKIPPED"]),
+							inArray(niscOrderItem.status, ["FAILED", "SKIPPED", "PROCESSING"]),
 						),
 					);
 			});

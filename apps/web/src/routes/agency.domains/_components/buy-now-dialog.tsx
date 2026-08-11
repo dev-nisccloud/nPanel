@@ -35,6 +35,11 @@ import {
 import { Card } from "@/components/ui/card";
 import { trpc } from "@/utils/trpc";
 import { computeCeilVatTotals, paymentTotalString } from "@npanel/api/lib/convert-price";
+import {
+  canonicalMpesaPaymentAmount,
+  resolveMpesaCheckoutPayment,
+} from "@/lib/mpesa-checkout-payment";
+import { authClient } from "@/lib/auth-client";
 import { toast } from "@/components/ui/sonner";
 import type { DomainSearchResult } from "@/hooks/use-domain-search";
 import { captureEvent } from "@/lib/posthog";
@@ -101,6 +106,10 @@ const formatPrice = (price?: number, currency?: string) => {
 };
 
 export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) {
+  const { data: session } = authClient.useSession();
+  const isAgencyUser = Boolean(
+    session?.user?.role && String(session.user.role).startsWith("AGENCY_"),
+  );
   const [currentStep, setCurrentStep] = React.useState<Step>("domain");
   const [duration, setDuration] = React.useState(1);
   const [couponCode, setCouponCode] = React.useState("");
@@ -617,11 +626,20 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
     setAmountError(validateAmount(value));
   };
 
+  const customerMpesaAmount = canonicalMpesaPaymentAmount(total);
+
   const handleMpesaPayment = async () => {
-    // Validate all fields
-    const accountRefErr = validateAccountReference(accountReference);
+    // Always charge tax-inclusive checkout total (customers cannot underpay / send ex-VAT).
+    const resolved = resolveMpesaCheckoutPayment({
+      isAgencyUser,
+      formAmount: paymentAmount,
+      formAccountReference: accountReference,
+      checkoutTotalIncVat: total,
+      intendedAccountReference: accountReference,
+    });
+    const accountRefErr = validateAccountReference(resolved.accountReference);
     const phoneErr = validatePhoneNumber(mpesaPhoneNumber);
-    const amountErr = validateAmount(paymentAmount);
+    const amountErr = validateAmount(resolved.amountString);
 
     setAccountRefError(accountRefErr);
     setPhoneError(phoneErr);
@@ -632,7 +650,7 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
       return;
     }
 
-    const amount = parseFloat(paymentAmount);
+    const amount = resolved.amount;
     
     // Generate transaction description - max 13 chars
     // Format: DOM{domain} (e.g., DOMexample)
@@ -648,8 +666,9 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
       await initiateMpesaPayment.mutateAsync({
         phoneNumber: mpesaPhoneNumber.trim(),
         amount: amount,
-        accountReference: accountReference.trim(),
+        accountReference: resolved.accountReference.trim(),
         transactionDesc: transactionDesc,
+        checkoutTotalIncVat: total,
       });
     } catch (error) {
       // Error is handled by mutation onError
@@ -1331,8 +1350,9 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
                               id="payment-amount"
                               type="number"
                               placeholder="Enter amount"
-                              value={paymentAmount}
+                              value={isAgencyUser ? paymentAmount : customerMpesaAmount}
                               onChange={handleAmountChange}
+                              readOnly={!isAgencyUser}
                               className={`w-full ${amountError ? "border-destructive" : ""}`}
                               min="1"
                               step="1"
@@ -1341,7 +1361,9 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
                               <p className="text-xs text-destructive">{amountError}</p>
                             ) : (
                               <p className="text-xs text-muted-foreground">
-                                Cart total: {formatPrice(total, displayCurrency)} (editable for testing)
+                                {isAgencyUser
+                                  ? `Order total (incl. 16% VAT): ${formatPrice(total, displayCurrency)} (editable, min = total)`
+                                  : `Order total (incl. 16% VAT): ${formatPrice(total, displayCurrency)}`}
                               </p>
                             )}
                           </div>
@@ -1372,7 +1394,7 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
                             disabled={
                               initiateMpesaPayment.isPending ||
                               !mpesaPhoneNumber ||
-                              !paymentAmount ||
+                              !(isAgencyUser ? paymentAmount : customerMpesaAmount) ||
                               !accountReference ||
                               !!accountRefError ||
                               !!phoneError ||

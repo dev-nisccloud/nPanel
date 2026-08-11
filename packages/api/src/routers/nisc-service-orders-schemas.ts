@@ -14,6 +14,8 @@ export const billingCycleSchema = z.enum([
 	"MONTHLY",
 	"YEARLY",
 	"BIENNIALLY",
+	"TRIENNIALLY",
+	"QUADRENNIALLY",
 	"CUSTOM",
 ]);
 export type BillingCycle = z.infer<typeof billingCycleSchema>;
@@ -99,6 +101,10 @@ export const hivelocityItemMetadataSchema = z
 		hivelocityTargetDeviceId: z.coerce.number().int().positive().optional(),
 		hivelocityCurrentProductId: z.coerce.number().int().positive().optional(),
 		upgradeDeltaUsd: z.coerce.number().optional(),
+		/** Target plan monthly price in display currency (ex-VAT). Used for subscription agreedPrice after upgrade. */
+		targetMonthlyPriceExVat: z.coerce.number().optional(),
+		/** Target plan monthly USD (pre-margin) for providerCost after upgrade. */
+		targetMonthlyUsd: z.coerce.number().optional(),
 		hivelocityLocationName: z.string().min(1),
 		hivelocityOsName: z.string().min(1),
 		hivelocityHostname: z.string().min(1),

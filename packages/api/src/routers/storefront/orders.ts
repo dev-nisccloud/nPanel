@@ -150,10 +150,16 @@ export const storefrontOrdersRouter = router({
 
       const paidAmountRaw = tx.paidAmount ?? tx.amount;
       const paidTotal = Math.ceil(Number.parseFloat(paidAmountRaw));
-      if (paidTotal !== quote.total) {
+      if (!Number.isFinite(paidTotal) || paidTotal <= 0) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "Paid amount does not match the checkout total. Please refresh and try again.",
+          message: "Payment amount is missing or invalid.",
+        });
+      }
+      if (paidTotal < quote.total) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Paid amount (${paidTotal}) is less than the checkout total (${quote.total}). Underpayment is not allowed.`,
         });
       }
 
@@ -222,57 +228,119 @@ export const storefrontOrdersRouter = router({
         });
       }
 
+      const isUniqueViolation = (err: unknown): boolean => {
+        let current: unknown = err;
+        for (let i = 0; i < 5 && current; i++) {
+          if (
+            typeof current === "object" &&
+            current !== null &&
+            "code" in current &&
+            (current as { code?: string }).code === "23505"
+          ) {
+            return true;
+          }
+          current =
+            typeof current === "object" && current !== null && "cause" in current
+              ? (current as { cause?: unknown }).cause
+              : undefined;
+        }
+        return false;
+      };
+
       // 4. Create the order and all line items
-      await db.transaction(async (trx) => {
-        await trx.insert(niscOrder).values({
-          id: orderId,
-          orderNumber,
-          userId,
-          teamId,
-          createdBy: userId,
-          paymentTransactionId: tx.id,
-          status: "PENDING",
-          subtotal: String(quote.subtotal),
-          total: String(quote.total),
-          currency,
-          createdAt: now,
-          updatedAt: now,
-        });
-
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i]!;
-          const transferRequest = transferRequestByLineIndex.get(i);
-          const metadata =
-            transferRequest != null
-              ? {
-                  transferAuthCode: transferRequest.authCode,
-                  domainTransferRequestId: transferRequest.id,
-                }
-              : line.metadata;
-
-          await trx.insert(niscOrderItem).values({
-            id: crypto.randomUUID(),
-            niscOrderId: orderId,
-            productId: line.productId,
-            productPlanId: line.productPlanId,
-            billingCycle: line.billingCycle,
-            primaryDomain: line.primaryDomain,
-            description: line.description,
-            metadata,
-            itemPrice: String(line.itemPrice),
-            itemSubtotal: String(line.itemPrice),
+      try {
+        await db.transaction(async (trx) => {
+          await trx.insert(niscOrder).values({
+            id: orderId,
+            orderNumber,
+            userId,
+            teamId,
+            createdBy: userId,
+            paymentTransactionId: tx.id,
             status: "PENDING",
+            subtotal: String(quote.subtotal),
+            total: String(quote.total),
+            currency,
             createdAt: now,
             updatedAt: now,
           });
-        }
-      });
 
-      for (const transferRequest of transferRequestByLineIndex.values()) {
-        await db
-          .update(domainTransferRequest)
-          .set({ niscOrderId: orderId, updatedAt: new Date() })
-          .where(eq(domainTransferRequest.id, transferRequest.id));
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i]!;
+            const transferRequest = transferRequestByLineIndex.get(i);
+            const metadata =
+              transferRequest != null
+                ? {
+                    transferAuthCode: transferRequest.authCode,
+                    domainTransferRequestId: transferRequest.id,
+                  }
+                : line.metadata;
+
+            await trx.insert(niscOrderItem).values({
+              id: crypto.randomUUID(),
+              niscOrderId: orderId,
+              productId: line.productId,
+              productPlanId: line.productPlanId,
+              billingCycle: line.billingCycle,
+              primaryDomain: line.primaryDomain,
+              description: line.description,
+              metadata,
+              itemPrice: String(line.itemPrice),
+              itemSubtotal: String(line.itemPrice),
+              status: "PENDING",
+              createdAt: now,
+              updatedAt: now,
+            });
+          }
+
+          for (const transferRequest of transferRequestByLineIndex.values()) {
+            await trx
+              .update(domainTransferRequest)
+              .set({ niscOrderId: orderId, updatedAt: now })
+              .where(eq(domainTransferRequest.id, transferRequest.id));
+          }
+        });
+      } catch (err) {
+        const cancelOrphanTransfers = async (reason: string) => {
+          for (const transferRequest of transferRequestByLineIndex.values()) {
+            await db
+              .update(domainTransferRequest)
+              .set({
+                status: "CANCELLED",
+                providerResponse: {
+                  reason,
+                  paymentTransactionId: tx.id,
+                },
+                updatedAt: new Date(),
+              })
+              .where(
+                and(
+                  eq(domainTransferRequest.id, transferRequest.id),
+                  eq(domainTransferRequest.status, "PENDING"),
+                ),
+              )
+              .catch(() => undefined);
+          }
+        };
+        if (!isUniqueViolation(err)) {
+          await cancelOrphanTransfers("order_create_failed_after_transfer_request");
+          throw err;
+        }
+        // Race lost: cancel transfer requests we created that never linked to an order.
+        await cancelOrphanTransfers("superseded_by_existing_order_for_payment");
+        const raced = await db.query.niscOrder.findFirst({
+          where: and(
+            eq(niscOrder.paymentTransactionId, tx.id),
+            eq(niscOrder.userId, userId),
+          ),
+          columns: { id: true, orderNumber: true },
+        });
+        if (!raced) throw err;
+        return {
+          orderId: raced.id,
+          orderNumber: raced.orderNumber,
+          teamSlug,
+        };
       }
 
       // 6. Enqueue for processing  IDENTICAL HANDOFF to dashboard flow

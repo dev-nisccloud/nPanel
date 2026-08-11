@@ -100,7 +100,7 @@ export function HostingSubscriptionActionMenu({
                 <TooltipContent side="left" className="max-w-xs">
                   {hasLinkedSubscription
                     ? createSubscriptionTooltipLinked
-                    : "Create a Nisc subscription and link it to an organization or user."}
+                    : "Create a Nisc subscription and link it to an organization."}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>

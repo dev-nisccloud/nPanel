@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { FileText, ImageIcon, Library, Presentation } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
+import { authClient } from "@/lib/auth-client";
 import { ZeepoAiDetailPane } from "@/components/zeepo/zeepo-ai-detail-pane";
 import { cn } from "@/lib/utils";
 import {
@@ -14,6 +15,7 @@ import {
 } from "@/components/zeepo/zeepo-ai-types";
 import {
   useZeepoAiRoute,
+  zeepoAiLibraryInput,
   zeepoAiSessionPath,
 } from "@/components/zeepo/zeepo-ai-route-context";
 import { trpc } from "@/utils/trpc";
@@ -45,10 +47,17 @@ export function ZeepoAiLibraryPage() {
     setOpenMobile,
     isMobile,
   } = useSidebar();
+  const { data: authSession } = authClient.useSession();
+  const userRole = authSession?.user?.role;
+  const isAgencySuperAdmin = userRole === "AGENCY_SUPER_ADMIN";
 
+  const libraryEnabled = !route.isCustomer || Boolean(route.teamId);
   const libraryQuery = trpc.zeepoAi.sessions.listLibrary.useQuery(
-    { page: 1, limit: 100, kind: filter },
-    { refetchOnWindowFocus: false },
+    zeepoAiLibraryInput(route, { page: 1, limit: 100, kind: filter }),
+    {
+      enabled: libraryEnabled,
+      refetchOnWindowFocus: false,
+    },
   );
 
   const items = useMemo(() => {
@@ -116,7 +125,9 @@ export function ZeepoAiLibraryPage() {
               <div className="min-w-0">
                 <h1 className="text-base font-semibold tracking-tight text-foreground">Library</h1>
                 <p className="text-[12px] text-muted-foreground">
-                  All images, documents, and presentations across your chats
+                  {route.isCustomer
+                    ? "All images, documents, and presentations for this organization"
+                    : "All images, documents, and presentations across your chats"}
                 </p>
               </div>
             </div>
@@ -148,9 +159,15 @@ export function ZeepoAiLibraryPage() {
           </header>
 
           <div className="min-h-0 flex-1 overflow-y-auto pb-6">
-            {libraryQuery.isLoading ? (
+            {!libraryEnabled || libraryQuery.isLoading ? (
               <div className="flex h-40 items-center justify-center">
                 <p className="text-sm text-muted-foreground">Loading library…</p>
+              </div>
+            ) : libraryQuery.isError ? (
+              <div className="flex h-40 items-center justify-center px-4 text-center">
+                <p className="text-sm text-muted-foreground">
+                  {libraryQuery.error.message || "Could not load this library."}
+                </p>
               </div>
             ) : items.length === 0 ? (
               <div className="flex h-40 items-center justify-center">
@@ -221,7 +238,12 @@ export function ZeepoAiLibraryPage() {
             "animate-in slide-in-from-right-2 duration-200 md:animate-none",
           )}
         >
-          <ZeepoAiDetailPane panel={activePanel} onClose={() => setActivePanel(null)} viewOnly />
+          <ZeepoAiDetailPane
+            panel={activePanel}
+            onClose={() => setActivePanel(null)}
+            viewOnly
+            isAgencySuperAdmin={isAgencySuperAdmin}
+          />
         </div>
       ) : null}
     </div>

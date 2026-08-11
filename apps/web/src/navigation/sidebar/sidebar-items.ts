@@ -89,21 +89,6 @@ export const sidebarItems: NavGroup[] = [
           { title: "Dedicated Servers", url: "/dashboard/dedicated-servers", },
         ],
       },
-      // {
-      //   title: "Files",
-      //   url: "/dashboard/files",
-      //   icon: (props: any) => React.createElement(Icons.File, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-      // },
-      // {
-      //   title: "Databases",
-      //   url: "/dashboard/databases",
-      //   icon: (props: any) => React.createElement(Icons.Database, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-      // },
-      // {
-      //   title: "Security",
-      //   url: "/dashboard/security",
-      //   icon: (props: any) => React.createElement(Icons.Security, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-      // },
     ],
   },
   {
@@ -160,9 +145,9 @@ export const sidebarItems: NavGroup[] = [
     label: "Gen AI Tools",
     items: [
       {
-        title: "Zeepo AI Agent",
-        url: "/dashboard/zeepo-ai-agent",
-        icon: (props: any) => React.createElement(Icons.AIImageStudio, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        title: "Zeepo AI",
+        url: "/dashboard/zeepo-ai",
+        icon: (props: any) => React.createElement(Icons.AISupport, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
     ],
   },
@@ -252,20 +237,6 @@ export const agencysidebarItems: NavGroup[] = [
           { title: "Dedicated Servers", url: "/agency/dedicated-servers", },
         ],
       },
-      // {
-      //   title: "Dedicated Servers",
-      //   url: "/agency/dedicated-servers",
-      //   icon: (props: any) => React.createElement(Icons.DedicatedServers, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-      // },
-      // {
-      //   title: "VPS & VDS",
-      //   url: "/agency/vps",
-      //   icon: (props: any) => React.createElement(Icons.VPS, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-      //   subItems: [
-      //     { title: "VPS Hosting", url: "/agency/vps", },
-      //     { title: "VDS Hosting", url: "/agency/vds", },
-      //   ],
-      // },
       {
         title: "WordPress",
         url: "/agency/wordpress",
@@ -320,26 +291,6 @@ export const agencysidebarItems: NavGroup[] = [
           { title: "Domains", url: "/agency/nisc-email-marketing/domain-configuration", },
         ],
       },
-      // {
-      //   title: "Nisc Email Builder",
-      //   url: "/agency/nisc-email-builder",
-      //   icon: (props: any) => React.createElement(Icons.EmailMarketing, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-      // },
-      // {
-      //   title: "Email Marketing",
-      //   url: "/agency/email-marketing",
-      //   icon: (props: any) => React.createElement(Icons.EmailMarketing, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-      //   subItems: [
-      //     // { title: "Metrics", url: "/agency/email-marketing/metrics", },
-      //     { title: "Campaigns", url: "/agency/email-marketing/campaigns", },
-      //     // { title: "Emails", url: "/agency/email-marketing/emails", },
-      //     { title: "Domains", url: "/agency/email-marketing/domain-configuration", },
-      //     { title: "Audiences", url: "/agency/email-marketing/audiences", },
-      //     // { title: "Segments", url: "/agency/segments", },
-      //     // { title: "Templates", url: "/agency/email-marketing/templates", },
-      //     { title: "Email Builder", url: "/agency/email-marketing/email-builder", },
-      //   ],
-      // },
       {
         title: "SEO",
         url: "/agency/seo",
@@ -360,11 +311,6 @@ export const agencysidebarItems: NavGroup[] = [
     id: 3,
     label: "Gen AI Tools",
     items: [
-      // {
-      //   title: "Zeepo AI Canvas",
-      //   url: "/agency/zeepo-canvas",
-      //   icon: (props: any) => React.createElement(Icons.AIImageStudio, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-      // },
       {
         title: "Zeepo AI Agent",
         url: "/agency/zeepo-ai-agent",
@@ -374,27 +320,11 @@ export const agencysidebarItems: NavGroup[] = [
         title: "Zeepo AI",
         url: "/agency/zeepo-ai",
         icon: (props: any) => React.createElement(Icons.AISupport, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        subItems: [
+          { title: "Chat", url: "/agency/zeepo-ai" },
+          { title: "Activity", url: "/agency/zeepo-ai/activity" },
+        ],
       },
-      // {
-      //   title: "Visual Studio",
-      //   url: "/agency/gen-ai/image-gen-studio",
-      //   icon: (props: any) => React.createElement(Icons.AIImageStudio, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-      // },
-      // {
-      //   title: "Image Generator",
-      //   url: "/agency/gen-ai/image-generator",
-      //   icon: (props: any) => React.createElement(Icons.AIImage, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-      // },
-      // {
-      //   title: "Background Remover",
-      //   url: "/agency/gen-ai/background-remover",
-      //   icon: (props: any) => React.createElement(Icons.BackgroundRemover, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-      // },
-      // {
-      //   title: "AI Image Editor",
-      //   url: "/agency/gen-ai/ai-image-editor",
-      //   icon: (props: any) => React.createElement(Icons.BackgroundRemover, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-      // },
     ],
   },
   {

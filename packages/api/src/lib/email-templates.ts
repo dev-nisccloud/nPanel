@@ -1,5 +1,6 @@
 import { render } from '@react-email/render';
 import {
+	AccountEmailChangeEmail,
 	ResetPasswordEmail,
 	PasswordResetSuccessEmail,
 	WelcomeEmail,
@@ -20,6 +21,7 @@ import {
 	CampaignCancelledEmail,
 	ServiceRenewalReminderEmail,
 	StorefrontWelcomeEmail,
+	type AccountEmailChangePurpose,
 } from "react-email-starter/emails";
 
 export async function renderResetPasswordEmail({
@@ -59,6 +61,27 @@ export async function renderEmailVerificationEmail({
     userFirstname,
     loginLink: verificationLink,
   }));
+}
+
+export async function renderAccountEmailChangeEmail({
+  userFirstname,
+  newEmail,
+  actionLink,
+  purpose = "confirm",
+}: {
+  userFirstname: string;
+  newEmail: string;
+  actionLink: string;
+  purpose?: AccountEmailChangePurpose;
+}) {
+  return render(
+    AccountEmailChangeEmail({
+      userFirstname,
+      newEmail,
+      actionLink,
+      purpose,
+    }),
+  );
 }
 
 export async function renderTeamInviteEmail({

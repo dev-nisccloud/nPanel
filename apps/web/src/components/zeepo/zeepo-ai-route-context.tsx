@@ -58,6 +58,21 @@ export function zeepoAiCreateSessionInput(config: ZeepoAiRouteConfig) {
   return config.teamId ? { teamId: config.teamId } : {};
 }
 
+/** Library list input scoped to customer team when applicable. */
+export function zeepoAiLibraryInput(
+  config: ZeepoAiRouteConfig,
+  opts: {
+    page: number;
+    limit: number;
+    kind?: "image" | "document" | "presentation" | "all";
+  },
+) {
+  return {
+    ...opts,
+    ...(config.teamId ? { teamId: config.teamId } : {}),
+  };
+}
+
 /** Match chat/library paths for a given basePath (agency or customer). */
 export function isZeepoAiAppPath(pathname: string | undefined, basePath: string): boolean {
   if (!pathname) return false;
