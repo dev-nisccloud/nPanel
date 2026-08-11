@@ -3,7 +3,7 @@
  * Agency users bypass debits but usage is still logged elsewhere.
  */
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq } from "@npanel/db";
+import { and, desc, eq, sql } from "@npanel/db";
 import { db } from "@npanel/db";
 import {
 	niscClientSubscription,
@@ -139,63 +139,98 @@ export async function debitZeepoAiTokens(
 	const balanceRow = await getZeepoAiTokensForTeam(params.teamId);
 	if (!balanceRow) return null;
 
-	const usage = await db.query.niscClientSubscriptionUsage.findFirst({
-		where: eq(niscClientSubscriptionUsage.id, balanceRow.subscriptionUsageId),
-	});
-	if (!usage) return null;
+	return db.transaction(async (tx) => {
+		const lockedRows = await tx.execute<{ id: string; credits: string }>(
+			sql`select id, credits from nisc_client_subscription_usage where id = ${balanceRow.subscriptionUsageId} for update`,
+		);
+		const row = lockedRows.rows[0];
+		if (!row) return null;
 
-	const current = parseTokenBalance(usage.credits);
-	const debit = Math.min(amount, current);
-	if (debit <= 0) return { tokensDebited: 0, balanceAfter: current };
+		const current = parseTokenBalance(row.credits);
+		const debit = Math.min(amount, current);
+		if (debit <= 0) return { tokensDebited: 0, balanceAfter: current };
 
-	const balanceBefore = usage.credits;
-	const newValue = Math.max(0, current - debit);
-	const balanceAfter = formatTokenBalance(newValue);
+		const balanceBefore = row.credits;
+		const newValue = Math.max(0, current - debit);
+		const balanceAfter = formatTokenBalance(newValue);
 
-	await db
-		.update(niscClientSubscriptionUsage)
-		.set({ credits: balanceAfter })
-		.where(eq(niscClientSubscriptionUsage.id, usage.id));
+		await tx
+			.update(niscClientSubscriptionUsage)
+			.set({ credits: balanceAfter })
+			.where(eq(niscClientSubscriptionUsage.id, balanceRow.subscriptionUsageId));
 
-	await db.insert(niscClientSubscriptionUsageActivityLog).values({
-		id: randomUUID(),
-		subscriptionUsageId: usage.id,
-		userId: params.userId,
-		action: "CREDIT_USE",
-		description: params.description ?? `${debit} tokens used for Zeepo AI`,
-		metadata: {
-			amount: String(-debit),
-			previousCredits: balanceBefore,
-			newCredits: balanceAfter,
-			reason: params.operationType,
+		await tx.insert(niscClientSubscriptionUsageActivityLog).values({
+			id: randomUUID(),
+			subscriptionUsageId: balanceRow.subscriptionUsageId,
+			userId: params.userId,
+			action: "CREDIT_USE",
+			description: params.description ?? `${debit} tokens used for Zeepo AI`,
+			metadata: {
+				amount: String(-debit),
+				previousCredits: balanceBefore,
+				newCredits: balanceAfter,
+				reason: params.operationType,
+				modelId: params.modelId ?? null,
+				...params.metadata,
+			},
+			createdAt: new Date(),
+		});
+
+		await tx.insert(zeepoAiTokenLedger).values({
+			id: randomUUID(),
+			teamId: params.teamId,
+			userId: params.userId,
+			sessionId: params.sessionId ?? null,
+			subscriptionUsageId: balanceRow.subscriptionUsageId,
+			usageEventId: params.usageEventId ?? null,
+			direction: "DEBIT",
+			tokens: formatTokenBalance(debit),
+			balanceBefore,
+			balanceAfter,
+			operationType: params.operationType,
+			description: params.description ?? null,
+			providerCostUsdMicros: params.providerCostUsdMicros ?? null,
+			providerRequestId: params.providerRequestId ?? null,
 			modelId: params.modelId ?? null,
-			...params.metadata,
-		},
-		createdAt: new Date(),
-	});
+			provider: ZEEPO_AI_PROVIDER,
+			generationId: params.generationId ?? null,
+			metadata: params.metadata ?? null,
+		});
 
-	await db.insert(zeepoAiTokenLedger).values({
-		id: randomUUID(),
-		teamId: params.teamId,
-		userId: params.userId,
-		sessionId: params.sessionId ?? null,
-		subscriptionUsageId: usage.id,
-		usageEventId: params.usageEventId ?? null,
-		direction: "DEBIT",
-		tokens: formatTokenBalance(debit),
-		balanceBefore,
-		balanceAfter,
-		operationType: params.operationType,
-		description: params.description ?? null,
-		providerCostUsdMicros: params.providerCostUsdMicros ?? null,
-		providerRequestId: params.providerRequestId ?? null,
-		modelId: params.modelId ?? null,
-		provider: ZEEPO_AI_PROVIDER,
-		generationId: params.generationId ?? null,
-		metadata: params.metadata ?? null,
+		return { tokensDebited: debit, balanceAfter: newValue };
 	});
+}
 
-	return { tokensDebited: debit, balanceAfter: newValue };
+/** Require a successful full debit (or agency bypass). Throws if wallet cannot cover amount. */
+export async function debitZeepoAiTokensOrThrow(
+	params: DebitZeepoAiTokensParams & { userRole?: string | null },
+): Promise<{ tokensDebited: number; balanceAfter: number } | null> {
+	if (!shouldBillZeepoAiTokens({ teamId: params.teamId, userId: params.userId, userRole: params.userRole })) {
+		return null;
+	}
+	const result = await debitZeepoAiTokens(params);
+	if (!result || result.tokensDebited <= 0) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Insufficient tokens. Purchase more tokens to continue.",
+		});
+	}
+	if (result.tokensDebited < params.tokens) {
+		// Partial debit — refund and fail closed so we don't under-bill silently for paid work.
+		await creditZeepoAiTokens({
+			teamId: params.teamId,
+			userId: params.userId,
+			tokens: result.tokensDebited,
+			operationType: "debit_rollback",
+			description: "Rolled back partial debit (insufficient balance for full charge)",
+			metadata: { requested: params.tokens },
+		});
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Insufficient tokens. Purchase more tokens to continue.",
+		});
+	}
+	return result;
 }
 
 export type CreditZeepoAiTokensParams = {
@@ -216,53 +251,56 @@ export async function creditZeepoAiTokens(
 	const balanceRow = await getZeepoAiTokensForTeam(params.teamId);
 	if (!balanceRow) return null;
 
-	const usage = await db.query.niscClientSubscriptionUsage.findFirst({
-		where: eq(niscClientSubscriptionUsage.id, balanceRow.subscriptionUsageId),
+	return db.transaction(async (tx) => {
+		const lockedRows = await tx.execute<{ id: string; credits: string }>(
+			sql`select id, credits from nisc_client_subscription_usage where id = ${balanceRow.subscriptionUsageId} for update`,
+		);
+		const row = lockedRows.rows[0];
+		if (!row) return null;
+
+		const current = parseTokenBalance(row.credits);
+		const balanceBefore = row.credits;
+		const newValue = current + amount;
+		const balanceAfter = formatTokenBalance(newValue);
+
+		await tx
+			.update(niscClientSubscriptionUsage)
+			.set({ credits: balanceAfter })
+			.where(eq(niscClientSubscriptionUsage.id, balanceRow.subscriptionUsageId));
+
+		await tx.insert(niscClientSubscriptionUsageActivityLog).values({
+			id: randomUUID(),
+			subscriptionUsageId: balanceRow.subscriptionUsageId,
+			userId: params.userId,
+			action: "CREDIT_ADD",
+			description: params.description ?? `${amount} tokens added`,
+			metadata: {
+				amount: String(amount),
+				previousCredits: balanceBefore,
+				newCredits: balanceAfter,
+				reason: params.operationType,
+				...params.metadata,
+			},
+			createdAt: new Date(),
+		});
+
+		await tx.insert(zeepoAiTokenLedger).values({
+			id: randomUUID(),
+			teamId: params.teamId,
+			userId: params.userId,
+			sessionId: null,
+			subscriptionUsageId: balanceRow.subscriptionUsageId,
+			direction: "CREDIT",
+			tokens: formatTokenBalance(amount),
+			balanceBefore,
+			balanceAfter,
+			operationType: params.operationType,
+			description: params.description ?? null,
+			metadata: params.metadata ?? null,
+		});
+
+		return { balanceAfter: newValue };
 	});
-	if (!usage) return null;
-
-	const current = parseTokenBalance(usage.credits);
-	const balanceBefore = usage.credits;
-	const newValue = current + amount;
-	const balanceAfter = formatTokenBalance(newValue);
-
-	await db
-		.update(niscClientSubscriptionUsage)
-		.set({ credits: balanceAfter })
-		.where(eq(niscClientSubscriptionUsage.id, usage.id));
-
-	await db.insert(niscClientSubscriptionUsageActivityLog).values({
-		id: randomUUID(),
-		subscriptionUsageId: usage.id,
-		userId: params.userId,
-		action: "CREDIT_ADD",
-		description: params.description ?? `${amount} tokens added`,
-		metadata: {
-			amount: String(amount),
-			previousCredits: balanceBefore,
-			newCredits: balanceAfter,
-			reason: params.operationType,
-			...params.metadata,
-		},
-		createdAt: new Date(),
-	});
-
-	await db.insert(zeepoAiTokenLedger).values({
-		id: randomUUID(),
-		teamId: params.teamId,
-		userId: params.userId,
-		sessionId: null,
-		subscriptionUsageId: usage.id,
-		direction: "CREDIT",
-		tokens: formatTokenBalance(amount),
-		balanceBefore,
-		balanceAfter,
-		operationType: params.operationType,
-		description: params.description ?? null,
-		metadata: params.metadata ?? null,
-	});
-
-	return { balanceAfter: newValue };
 }
 
 /** Agency monitoring row  no balance change, tokens recorded as 0. */

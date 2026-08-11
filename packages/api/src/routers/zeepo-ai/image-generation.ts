@@ -2,7 +2,7 @@
  * In-stream Gemini image generation for Zeepo AI tools.
  * Emits generation_start / generation_progress / generation SSE events.
  */
-import { eq } from "@npanel/db";
+import { and, eq, inArray } from "@npanel/db";
 import { db } from "@npanel/db";
 import {
 	zeepoAiAttachment,
@@ -30,6 +30,7 @@ import {
 	shouldBillZeepoAiTokens,
 } from "../../lib/zeepo-ai-tokens";
 import type { CreateImagePresentationArgs, GenerateImagesArgs } from "./image-schemas";
+import { resolveGenerateImageSlotPrompts } from "./image-schemas";
 
 const IMAGE_PARALLEL_THRESHOLD = 3;
 const IMAGE_PARALLEL_CONCURRENCY = 3;
@@ -60,7 +61,33 @@ export type ZeepoAiImageStreamEvent =
 				status: string;
 				outputs: unknown;
 			};
+	  }
+	| {
+			type: "generation_drop";
+			generationIds: string[];
 	  };
+
+/** Reuse early-reserved IDs for the first `count` slots; return unused extras to drop. */
+export function takeReservedGenerationIds(
+	reserved: string[] | undefined,
+	count: number,
+): { ids: string[]; surplus: string[] } {
+	const src = reserved ?? [];
+	const ids: string[] = [];
+	for (let i = 0; i < count; i++) {
+		ids.push(src[i] ?? randomUUID());
+	}
+	const surplus = src.length > count ? src.slice(count) : [];
+	return { ids, surplus };
+}
+
+async function emitSurplusDrops(
+	emit: (event: ZeepoAiImageStreamEvent) => void | Promise<void>,
+	surplus: string[],
+): Promise<void> {
+	if (surplus.length === 0) return;
+	await emit({ type: "generation_drop", generationIds: surplus });
+}
 
 function estimateImageCostUsdMicros(modelId: string, usageTokens?: number): number {
 	if (usageTokens && usageTokens > 0) {
@@ -100,6 +127,8 @@ type RunContext = {
 	userRole: string | null | undefined;
 	emit: EmitFn;
 	signal?: AbortSignal;
+	/** Pre-reserved generation IDs emitted while the tool JSON was still streaming. */
+	reservedGenerationIds?: string[];
 };
 
 async function billImageGeneration(params: {
@@ -207,6 +236,7 @@ async function runOneImageSlot(params: {
 			aspectRatio: params.aspectRatio,
 			references: params.references,
 			intent: params.intent,
+			signal: ctx.signal,
 		});
 
 		const persisted = await persistZeepoAiImageBuffer({
@@ -320,56 +350,31 @@ export async function executeGenerateImagesTool(
 	args: GenerateImagesArgs,
 	ctx: RunContext,
 ): Promise<Record<string, unknown>> {
-	const count = args.count;
-	const titleBase = args.title?.trim() || args.prompt.slice(0, 80);
-	const references = await resolveReferenceImages(
-		args.reference_attachment_ids ?? [],
-		ctx.sessionId,
-	);
+	const { count, prompts: slotPrompts, titles: slotTitles } =
+		resolveGenerateImageSlotPrompts(args);
 	const modelId = pickZeepoAiImageModel({
 		intent: args.intent,
 		count,
-		hasReferences: references.length > 0,
+		hasReferences: (args.reference_attachment_ids?.length ?? 0) > 0,
 	});
 
+	const reserved = ctx.reservedGenerationIds;
+	const { ids: slotIds, surplus } = takeReservedGenerationIds(reserved, count);
 	const slots = Array.from({ length: count }, (_, i) => {
-		const id = randomUUID();
-		const title = count === 1 ? titleBase : `${titleBase} (${i + 1}/${count})`;
-		return { id, title, index: i };
+		return {
+			id: slotIds[i]!,
+			title: slotTitles[i] ?? `Image (${i + 1}/${count})`,
+			prompt: slotPrompts[i] ?? slotPrompts[0] ?? "",
+			index: i,
+		};
 	});
 
 	const now = new Date();
-	
-	// Batch create all generation records upfront for instant UI feedback
-	await db.insert(zeepoAiGeneration).values(
-		slots.map((slot) => ({
-			id: slot.id,
-			sessionId: ctx.sessionId,
-			messageId: ctx.assistantMessageId,
-			userId: ctx.userId,
-			teamId: ctx.teamId,
-			kind: "image" as const,
-			provider: ZEEPO_AI_IMAGE_PROVIDER,
-			modelId,
-			status: "PROCESSING" as const,
-			prompt: args.prompt,
-			inputs: {
-				aspect_ratio: args.aspect_ratio,
-				intent: args.intent,
-				count,
-				slot: slot.index + 1,
-				reference_attachment_ids: args.reference_attachment_ids ?? [],
-			},
-			outputs: {},
-			startedAt: now,
-			createdAt: now,
-			updatedAt: now,
-		}))
-	);
 
-	// Emit all events in parallel for instant loader display
-	await Promise.all(
-		slots.flatMap((slot) => [
+	// Emit loaders FIRST — before any network (reference fetch) or DB work
+	const emitPromise = Promise.all([
+		emitSurplusDrops(ctx.emit, surplus),
+		...slots.flatMap((slot) => [
 			ctx.emit({
 				type: "generation_start",
 				generationId: slot.id,
@@ -388,14 +393,49 @@ export async function executeGenerateImagesTool(
 					outputs: {},
 				},
 			}),
-		])
+		]),
+	]);
+
+	const dbPromise = db.insert(zeepoAiGeneration).values(
+		slots.map((slot) => ({
+			id: slot.id,
+			sessionId: ctx.sessionId,
+			messageId: ctx.assistantMessageId,
+			userId: ctx.userId,
+			teamId: ctx.teamId,
+			kind: "image" as const,
+			provider: ZEEPO_AI_IMAGE_PROVIDER,
+			modelId,
+			status: "PROCESSING" as const,
+			prompt: slot.prompt,
+			inputs: {
+				aspect_ratio: args.aspect_ratio,
+				intent: args.intent,
+				count,
+				slot: slot.index + 1,
+				reference_attachment_ids: args.reference_attachment_ids ?? [],
+			},
+			outputs: {},
+			startedAt: now,
+			createdAt: now,
+			updatedAt: now,
+		})),
 	);
+
+	// Kick off reference fetch in parallel with emit + DB — never block loaders on it
+	const refsPromise = resolveReferenceImages(
+		args.reference_attachment_ids ?? [],
+		ctx.sessionId,
+	);
+
+	await Promise.all([emitPromise, dbPromise]);
+	const references = await refsPromise;
 
 	const runSlot = (slot: (typeof slots)[number]) =>
 		runOneImageSlot({
 			ctx,
 			generationId: slot.id,
-			prompt: args.prompt,
+			prompt: slot.prompt,
 			title: slot.title,
 			aspectRatio: args.aspect_ratio,
 			intent: args.intent,
@@ -442,17 +482,46 @@ export async function executeCreateImagePresentationTool(
 
 	// Generate missing slide images first
 	if (slidesNeedingGen.length > 0) {
+		const { ids: slotIds, surplus } = takeReservedGenerationIds(
+			ctx.reservedGenerationIds,
+			slidesNeedingGen.length,
+		);
 		const slots = slidesNeedingGen.map((slide, i) => ({
 			slide,
-			id: randomUUID(),
+			id: slotIds[i]!,
 			index: i,
 			title: `${args.title}  slide ${i + 1}`,
 		}));
 		const modelId = pickZeepoAiImageModel({ intent: "design", count: slots.length });
 		const now = new Date();
 
-		// Batch create all generation records upfront for instant UI feedback
-		await db.insert(zeepoAiGeneration).values(
+		// Emit loaders FIRST for instant UI — don't block on DB writes
+		const emitPromise = Promise.all([
+			emitSurplusDrops(ctx.emit, surplus),
+			...slots.flatMap((slot) => [
+				ctx.emit({
+					type: "generation_start",
+					generationId: slot.id,
+					kind: "image",
+					slot: slot.index + 1,
+					total: slots.length,
+					title: slot.title,
+				}),
+				ctx.emit({
+					type: "generation",
+					generation: {
+						id: slot.id,
+						kind: "image",
+						title: slot.title,
+						status: "PROCESSING",
+						outputs: {},
+					},
+				}),
+			]),
+		]);
+
+		// Persist to DB in parallel with UI updates — instant loader appearance
+		const dbPromise = db.insert(zeepoAiGeneration).values(
 			slots.map((slot) => ({
 				id: slot.id,
 				sessionId: ctx.sessionId,
@@ -477,29 +546,8 @@ export async function executeCreateImagePresentationTool(
 			}))
 		);
 
-		// Emit all events in parallel for instant loader display
-		await Promise.all(
-			slots.flatMap((slot) => [
-				ctx.emit({
-					type: "generation_start",
-					generationId: slot.id,
-					kind: "image",
-					slot: slot.index + 1,
-					total: slots.length,
-					title: slot.title,
-				}),
-				ctx.emit({
-					type: "generation",
-					generation: {
-						id: slot.id,
-						kind: "image",
-						title: slot.title,
-						status: "PROCESSING",
-						outputs: {},
-					},
-				}),
-			])
-		);
+		// Wait for both to complete before starting actual generation
+		await Promise.all([emitPromise, dbPromise]);
 
 		const runSlot = (slot: (typeof slots)[number]) =>
 			runOneImageSlot({
@@ -562,7 +610,20 @@ export async function executeCreateImagePresentationTool(
 	};
 	const now = new Date();
 	const readyCount = orderedSlides.filter((s) => s.imageUrl).length;
-	await db.insert(zeepoAiGeneration).values({
+	const finalStatus = readyCount === orderedSlides.length ? "COMPLETED" : "FAILED";
+
+	// Emit to UI instantly — don't block on DB
+	const emitPromise = ctx.emit({
+		type: "generation",
+		generation: {
+			id: presentationId,
+			kind: "image-presentation",
+			title: args.title,
+			status: finalStatus,
+			outputs,
+		},
+	});
+	const dbPromise = db.insert(zeepoAiGeneration).values({
 		id: presentationId,
 		sessionId: ctx.sessionId,
 		messageId: ctx.assistantMessageId,
@@ -571,7 +632,7 @@ export async function executeCreateImagePresentationTool(
 		kind: "image-presentation",
 		provider: ZEEPO_AI_IMAGE_PROVIDER,
 		modelId: pickZeepoAiImageModel({ intent: "design" }),
-		status: readyCount === orderedSlides.length ? "COMPLETED" : "FAILED",
+		status: finalStatus,
 		prompt: args.title,
 		inputs: { aspect_ratio: args.aspect_ratio, slideCount: orderedSlides.length },
 		outputs,
@@ -585,16 +646,7 @@ export async function executeCreateImagePresentationTool(
 				: `${orderedSlides.length - readyCount} slide image(s) failed`,
 	});
 
-	await ctx.emit({
-		type: "generation",
-		generation: {
-			id: presentationId,
-			kind: "image-presentation",
-			title: args.title,
-			status: readyCount === orderedSlides.length ? "COMPLETED" : "FAILED",
-			outputs,
-		},
-	});
+	await Promise.all([emitPromise, dbPromise]);
 
 	return {
 		status: readyCount === orderedSlides.length ? "COMPLETED" : "PARTIAL",
@@ -606,21 +658,25 @@ export async function executeCreateImagePresentationTool(
 	};
 }
 
-/** Mark orphan PROCESSING generations older than maxAgeMs as FAILED. */
+/** Mark orphan PROCESSING/QUEUED generations older than maxAgeMs as FAILED. */
 export async function failStaleZeepoAiGenerations(
 	sessionId: string,
-	maxAgeMs = 120_000,
+	/** Align with ~30m SSE proxy budget (+ buffer). */
+	maxAgeMs = 35 * 60 * 1000,
 ): Promise<number> {
 	const rows = await db.query.zeepoAiGeneration.findMany({
-		where: eq(zeepoAiGeneration.sessionId, sessionId),
+		where: and(
+			eq(zeepoAiGeneration.sessionId, sessionId),
+			inArray(zeepoAiGeneration.status, ["PROCESSING", "QUEUED"]),
+		),
 		columns: { id: true, status: true, startedAt: true, createdAt: true },
 	});
 	const cutoff = Date.now() - maxAgeMs;
 	let n = 0;
 	for (const row of rows) {
-		if (row.status !== "PROCESSING" && row.status !== "QUEUED") continue;
 		const started = (row.startedAt ?? row.createdAt)?.getTime() ?? 0;
 		if (started > cutoff) continue;
+		// Conditional update — never overwrite COMPLETED/FAILED if status raced.
 		await db
 			.update(zeepoAiGeneration)
 			.set({
@@ -629,7 +685,12 @@ export async function failStaleZeepoAiGenerations(
 				completedAt: new Date(),
 				updatedAt: new Date(),
 			})
-			.where(eq(zeepoAiGeneration.id, row.id));
+			.where(
+				and(
+					eq(zeepoAiGeneration.id, row.id),
+					inArray(zeepoAiGeneration.status, ["PROCESSING", "QUEUED"]),
+				),
+			);
 		n += 1;
 	}
 	return n;

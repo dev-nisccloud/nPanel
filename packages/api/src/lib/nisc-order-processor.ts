@@ -20,6 +20,10 @@ import {
 	isZeepoAiAgentProduct,
 	provisionZeepoAgentOrderItem,
 } from "./zeepo-agent-order-provisioning";
+import {
+	isZeepoAiProduct,
+	provisionZeepoAiOrderItem,
+} from "./zeepo-ai-order-provisioning";
 import { isKenicDomain } from "./epp/kenic-tlds";
 import { ensureKenicIntegration, registerKenicDomain } from "./kenic-nisc";
 import { OpenProviderApiError } from "./openprovider-client";
@@ -469,16 +473,51 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 
 			// Default: DB-only (no external provider). Create subscription and provision usage from plan when configured.
 			// Covers all service types not requiring Plesk or domain provider, e.g. ai_image_generator, background_remover, creatives, consulting, custom, etc.
-			const isZeepoItem = isZeepoAiAgentProduct(item.productId);
+			const isZeepoAgentItem = isZeepoAiAgentProduct(item.productId);
+			const isZeepoAiItem = isZeepoAiProduct(item.productId);
+			const isZeepoItem = isZeepoAgentItem || isZeepoAiItem;
 			await niscLog("processor_item_branch", {
 				niscOrderId,
 				orderItemId: item.id,
-				branch: isZeepoItem ? "zeepo_ai_agent" : "no_integration",
+				branch: isZeepoAiItem
+					? "zeepo_ai"
+					: isZeepoAgentItem
+						? "zeepo_ai_agent"
+						: "no_integration",
 				serviceType,
 				...(isZeepoItem ? { teamId: order.teamId ?? null } : {}),
 			});
 			let sub: { id: string };
-			if (isZeepoItem) {
+			if (isZeepoAiItem) {
+				const zeepoResult = await provisionZeepoAiOrderItem(
+					{
+						userId: order.userId,
+						teamId: order.teamId,
+						createdBy: order.createdBy,
+						orderId: order.id,
+						currency: order.currency,
+					},
+					{
+						productId: item.productId,
+						productPlanId: item.productPlanId,
+						billingCycle: item.billingCycle,
+						itemPrice: item.itemPrice,
+						description: item.description,
+						metadata: item.metadata as Record<string, unknown> | null,
+						product: { name: item.product.name },
+						productPlan: item.productPlan
+							? {
+									name: item.productPlan.name,
+									pricingModel: item.productPlan.pricingModel,
+									price: item.productPlan.price,
+									cost: item.productPlan.cost,
+									metadata: item.productPlan.metadata,
+								}
+							: null,
+					},
+				);
+				sub = { id: zeepoResult.subscriptionId };
+			} else if (isZeepoAgentItem) {
 				const zeepoResult = await provisionZeepoAgentOrderItem(
 					{
 						userId: order.userId,
@@ -521,7 +560,11 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 			await niscLog("processor_item_success", {
 				niscOrderId,
 				orderItemId: item.id,
-				branch: isZeepoItem ? "zeepo_ai_agent" : "no_integration",
+				branch: isZeepoAiItem
+					? "zeepo_ai"
+					: isZeepoAgentItem
+						? "zeepo_ai_agent"
+						: "no_integration",
 				subscriptionId: sub.id,
 			});
 			hasSuccess = true;

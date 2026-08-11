@@ -25,11 +25,17 @@ import {
 	assertCustomerCanUseZeepoAi,
 } from "../../lib/zeepo-ai-access";
 import {
+	assertZeepoAiCanStartTurn,
+	creditZeepoAiTokens,
 	debitZeepoAiTokens,
 	isZeepoAiAgencyUser,
 	logZeepoAiAgencyUsage,
 	shouldBillZeepoAiTokens,
 } from "../../lib/zeepo-ai-tokens";
+import {
+	releaseZeepoAiSessionLock,
+	tryAcquireZeepoAiSessionLock,
+} from "../../lib/zeepo-ai-session-lock";
 import {
 	buildZeepoAiIdentityPrompt,
 	buildZeepoAiSessionAssetsBlock,
@@ -70,6 +76,10 @@ export type ZeepoAiStreamEvent =
 			result: unknown;
 	  }
 	| {
+			type: "clarifying_preparing";
+			messageId: string;
+	  }
+	| {
 			type: "clarifying_questions";
 			messageId: string;
 			questions: Array<{
@@ -77,6 +87,8 @@ export type ZeepoAiStreamEvent =
 				options: string[];
 				allow_upload?: boolean;
 			}>;
+			/** True while tool JSON is still streaming — UI should keep the turn open. */
+			partial?: boolean;
 	  }
 	| {
 			type: "generation_start";
@@ -102,6 +114,11 @@ export type ZeepoAiStreamEvent =
 				status: string;
 				outputs: unknown;
 			};
+	  }
+	| {
+			/** Drop early-reserved loaders that weren't used in the final tool run. */
+			type: "generation_drop";
+			generationIds: string[];
 	  }
 	| { type: "usage"; inputTokens: number; outputTokens: number; tokensDebited: number }
 	| { type: "error"; message: string; code?: string; recoverable?: boolean }
@@ -182,6 +199,284 @@ async function emit(
 	await onEvent(event);
 }
 
+function publicStreamError(err: unknown, userRole: string | null | undefined): string {
+	if (userRole === "AGENCY_SUPER_ADMIN") {
+		return err instanceof Error ? err.message : "Something went wrong generating a reply";
+	}
+	return "Failed to generate a reply. Please try again or contact support.";
+}
+
+function publicToolErrorMessage(
+	raw: string,
+	userRole: string | null | undefined,
+): string {
+	if (userRole === "AGENCY_SUPER_ADMIN") return raw;
+	return "Tool failed. Please try again.";
+}
+
+function parseTokensDebited(value: string | null | undefined): number {
+	if (!value) return 0;
+	const n = Number(value);
+	return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+function buildAssistantHistoryText(params: {
+	content: string | null | undefined;
+	generations: Array<{ kind: string; status: string }>;
+	tools: Array<{ toolName: string; status: string }>;
+}): string | null {
+	const content = params.content?.trim() ?? "";
+	if (content) return content;
+
+	const completed = params.generations.filter((g) => g.status === "COMPLETED");
+	const imageGens = completed.filter(
+		(g) => g.kind === "image" || g.kind === "image-presentation",
+	);
+	if (imageGens.length > 0) {
+		return `Generated ${imageGens.length} image${imageGens.length === 1 ? "" : "s"}.`;
+	}
+	const docs = completed.filter((g) => g.kind === "document");
+	if (docs.length > 0) {
+		return `Created ${docs.length} document${docs.length === 1 ? "" : "s"}.`;
+	}
+	const presentations = completed.filter((g) => g.kind === "presentation");
+	if (presentations.length > 0) {
+		return presentations.length === 1
+			? "Created a presentation."
+			: `Created ${presentations.length} presentations.`;
+	}
+
+	const askedClarifying = params.tools.some(
+		(t) => t.toolName === "ask_clarifying_questions" && t.status === "succeeded",
+	);
+	if (askedClarifying) return "Asked clarifying questions.";
+
+	const succeededTools = params.tools.filter((t) => t.status === "succeeded");
+	if (succeededTools.length > 0) {
+		return `Used tools: ${succeededTools.map((t) => t.toolName).join(", ")}.`;
+	}
+
+	return null;
+}
+
+/** Fire-and-forget DB write so the Anthropic stream loop is never blocked on Postgres. */
+function persistPartialAssistantAsync(params: {
+	messageId: string;
+	content: string;
+	reasoning: string;
+	status: "streaming" | "complete" | "error" | "cancelled";
+	inputTokens?: number | null;
+	outputTokens?: number | null;
+	metadata?: Record<string, unknown>;
+}) {
+	void persistPartialAssistant(params).catch((err) => {
+		console.error("[ZeepoAI] persistPartialAssistant failed:", err);
+	});
+}
+
+function provisionalGenerationId(toolUseId: string) {
+	return `pending-${toolUseId}`;
+}
+
+type ParsedClarifyingQuestion = {
+	question: string;
+	options: string[];
+	allow_upload?: boolean;
+};
+
+/** Best-effort parse of image slot count from partial tool JSON while it streams. */
+function tryParseImageSlotCount(partialJson: string): number | null {
+	const trimmed = partialJson.trim();
+	if (!trimmed) return null;
+	try {
+		const parsed = JSON.parse(trimmed) as {
+			count?: unknown;
+			prompts?: unknown;
+		};
+		if (Array.isArray(parsed.prompts) && parsed.prompts.length > 0) {
+			return Math.min(8, Math.max(1, parsed.prompts.length));
+		}
+		if (typeof parsed.count === "number" && Number.isFinite(parsed.count)) {
+			return Math.min(8, Math.max(1, Math.floor(parsed.count)));
+		}
+	} catch {
+		/* incomplete JSON — heuristics below */
+	}
+
+	const promptsIdx = trimmed.search(/"prompts"\s*:\s*\[/);
+	if (promptsIdx >= 0) {
+		const after = trimmed.slice(promptsIdx);
+		const bracket = after.indexOf("[");
+		if (bracket >= 0) {
+			let depth = 0;
+			let end = -1;
+			for (let i = bracket; i < after.length; i++) {
+				const ch = after[i]!;
+				if (ch === "[") depth++;
+				else if (ch === "]") {
+					depth--;
+					if (depth === 0) {
+						end = i;
+						break;
+					}
+				}
+			}
+			const slice =
+				end >= 0 ? after.slice(bracket, end + 1) : after.slice(bracket);
+			// Count top-level JSON strings in the (possibly open) array.
+			const stringMatches = slice.match(/"(?:\\.|[^"\\])*"/g) ?? [];
+			if (stringMatches.length > 0) {
+				return Math.min(8, Math.max(1, stringMatches.length));
+			}
+		}
+	}
+
+	// Prefer prompts (above) over count — count can arrive early and overshoot.
+	const countMatch = trimmed.match(/"count"\s*:\s*(\d+)/);
+	if (countMatch) {
+		const n = Number(countMatch[1]);
+		if (Number.isFinite(n) && n >= 1) return Math.min(8, Math.floor(n));
+	}
+
+	// Image presentations: count only *closed* slide objects under "slides".
+	const slidesIdx = trimmed.search(/"slides"\s*:\s*\[/);
+	if (slidesIdx >= 0) {
+		const after = trimmed.slice(slidesIdx);
+		let objectCount = 0;
+		let depth = 0;
+		let inString = false;
+		let escape = false;
+		let seenArray = false;
+		for (let i = 0; i < after.length; i++) {
+			const ch = after[i]!;
+			if (inString) {
+				if (escape) escape = false;
+				else if (ch === "\\") escape = true;
+				else if (ch === '"') inString = false;
+				continue;
+			}
+			if (ch === '"') {
+				inString = true;
+				continue;
+			}
+			if (!seenArray) {
+				if (ch === "[") seenArray = true;
+				continue;
+			}
+			if (ch === "{") {
+				depth++;
+			} else if (ch === "}") {
+				if (depth === 1) objectCount++;
+				depth = Math.max(0, depth - 1);
+			} else if (ch === "]" && depth === 0) {
+				break;
+			}
+		}
+		if (objectCount > 0) return Math.min(8, Math.max(1, objectCount));
+	}
+
+	return null;
+}
+
+/**
+ * Extract fully-closed question objects from a partial ask_clarifying_questions
+ * tool JSON payload so chips can appear before the tool block finishes.
+ */
+function tryParseClarifyingQuestionsPartial(
+	partialJson: string,
+): ParsedClarifyingQuestion[] | null {
+	const trimmed = partialJson.trim();
+	if (!trimmed) return null;
+
+	try {
+		const parsed = JSON.parse(trimmed) as {
+			questions?: Array<{
+				question?: unknown;
+				options?: unknown;
+				allow_upload?: unknown;
+			}>;
+		};
+		if (Array.isArray(parsed.questions) && parsed.questions.length > 0) {
+			const mapped = parsed.questions
+				.map((q) => {
+					if (typeof q.question !== "string" || !Array.isArray(q.options)) return null;
+					const options = q.options.filter((o): o is string => typeof o === "string");
+					if (options.length < 2) return null;
+					return {
+						question: q.question,
+						options,
+						...(q.allow_upload === true ? { allow_upload: true as const } : {}),
+					};
+				})
+				.filter((q): q is ParsedClarifyingQuestion => Boolean(q));
+			return mapped.length > 0 ? mapped : null;
+		}
+	} catch {
+		/* incomplete — scan for closed objects */
+	}
+
+	const results: ParsedClarifyingQuestion[] = [];
+	let searchFrom = 0;
+	while (searchFrom < trimmed.length) {
+		const qKey = trimmed.indexOf('"question"', searchFrom);
+		if (qKey < 0) break;
+		let start = qKey;
+		while (start > 0 && trimmed[start] !== "{") start--;
+		if (trimmed[start] !== "{") {
+			searchFrom = qKey + 1;
+			continue;
+		}
+		let depth = 0;
+		let inString = false;
+		let escape = false;
+		let end = -1;
+		for (let i = start; i < trimmed.length; i++) {
+			const ch = trimmed[i]!;
+			if (inString) {
+				if (escape) escape = false;
+				else if (ch === "\\") escape = true;
+				else if (ch === '"') inString = false;
+				continue;
+			}
+			if (ch === '"') {
+				inString = true;
+				continue;
+			}
+			if (ch === "{") depth++;
+			else if (ch === "}") {
+				depth--;
+				if (depth === 0) {
+					end = i;
+					break;
+				}
+			}
+		}
+		if (end < 0) break;
+		try {
+			const obj = JSON.parse(trimmed.slice(start, end + 1)) as {
+				question?: unknown;
+				options?: unknown;
+				allow_upload?: unknown;
+			};
+			if (typeof obj.question === "string" && Array.isArray(obj.options)) {
+				const options = obj.options.filter((o): o is string => typeof o === "string");
+				if (options.length >= 2) {
+					results.push({
+						question: obj.question,
+						options,
+						...(obj.allow_upload === true ? { allow_upload: true as const } : {}),
+					});
+				}
+			}
+		} catch {
+			/* ignore malformed slice */
+		}
+		searchFrom = end + 1;
+	}
+
+	return results.length > 0 ? results : null;
+}
+
 async function persistPartialAssistant(params: {
 	messageId: string;
 	content: string;
@@ -224,6 +519,8 @@ function buildWebTools(): ToolUnion[] {
 async function truncateSessionFromUserMessage(params: {
 	sessionId: string;
 	userMessageId: string;
+	teamId?: string | null;
+	userId: string;
 }) {
 	const anchor = await db.query.zeepoAiMessage.findFirst({
 		where: and(
@@ -245,6 +542,36 @@ async function truncateSessionFromUserMessage(params: {
 	const ids = toRemove.map((m) => m.id);
 	if (!ids.length) return;
 
+	const [gensToRefund, usageToRefund] = await Promise.all([
+		db.query.zeepoAiGeneration.findMany({
+			where: and(
+				eq(zeepoAiGeneration.sessionId, params.sessionId),
+				inArray(zeepoAiGeneration.messageId, ids),
+			),
+			columns: { id: true, status: true, tokensDebited: true },
+		}),
+		db.query.zeepoAiUsageEvent.findMany({
+			where: inArray(zeepoAiUsageEvent.messageId, ids),
+			columns: { id: true, tokensDebited: true, generationId: true },
+		}),
+	]);
+
+	let tokensToRefund = 0;
+	const genIdsCoveredByUsage = new Set(
+		usageToRefund
+			.map((e) => e.generationId)
+			.filter((id): id is string => Boolean(id)),
+	);
+
+	for (const ev of usageToRefund) {
+		tokensToRefund += parseTokensDebited(ev.tokensDebited);
+	}
+	for (const gen of gensToRefund) {
+		if (gen.status !== "COMPLETED") continue;
+		if (genIdsCoveredByUsage.has(gen.id)) continue;
+		tokensToRefund += parseTokensDebited(gen.tokensDebited);
+	}
+
 	await db
 		.delete(zeepoAiToolInvocation)
 		.where(
@@ -264,6 +591,21 @@ async function truncateSessionFromUserMessage(params: {
 	await db
 		.delete(zeepoAiMessage)
 		.where(and(eq(zeepoAiMessage.sessionId, params.sessionId), inArray(zeepoAiMessage.id, ids)));
+
+	if (params.teamId && tokensToRefund > 0) {
+		await creditZeepoAiTokens({
+			teamId: params.teamId,
+			userId: params.userId,
+			tokens: tokensToRefund,
+			operationType: "retry_refund",
+			description: "Refund for regenerated Zeepo AI turn",
+			metadata: {
+				sessionId: params.sessionId,
+				userMessageId: params.userMessageId,
+				messageIds: ids,
+			},
+		});
+	}
 }
 
 export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promise<void> {
@@ -298,6 +640,19 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 		return;
 	}
 
+	const lockOwnerId = randomUUID();
+	if (!tryAcquireZeepoAiSessionLock(sessionId, lockOwnerId)) {
+		await emit(onEvent, {
+			type: "error",
+			message: "Another reply is already in progress for this chat.",
+			code: "SESSION_BUSY",
+			recoverable: true,
+		});
+		await emit(onEvent, { type: "done", status: "error" });
+		return;
+	}
+
+	try {
 	let teamId: string | null;
 	try {
 		teamId = await assertCustomerCanUseZeepoAi({
@@ -305,6 +660,7 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 			userRole,
 			teamId: params.teamId ?? session.teamId,
 			requireTokens: true,
+			tryWelcomeGrant: true, // Auto-grant welcome tokens for first-time paying customers
 		});
 	} catch (e: unknown) {
 		const message =
@@ -338,6 +694,8 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 		await truncateSessionFromUserMessage({
 			sessionId,
 			userMessageId: replaceFromUserMessageId.trim(),
+			teamId,
+			userId,
 		});
 	}
 
@@ -371,8 +729,52 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 
 	const allSessionAttachments = await db.query.zeepoAiAttachment.findMany({
 		where: eq(zeepoAiAttachment.sessionId, sessionId),
-		columns: { url: true, name: true, mimeType: true },
+		columns: { id: true, url: true, name: true, mimeType: true, messageId: true },
 	});
+
+	const [sessionGenerations, sessionToolInvocations] = await Promise.all([
+		db.query.zeepoAiGeneration.findMany({
+			where: eq(zeepoAiGeneration.sessionId, sessionId),
+			columns: { id: true, messageId: true, kind: true, status: true },
+		}),
+		db.query.zeepoAiToolInvocation.findMany({
+			where: eq(zeepoAiToolInvocation.sessionId, sessionId),
+			columns: { messageId: true, toolName: true, status: true },
+		}),
+	]);
+
+	const attachmentsByMessageId = new Map<
+		string,
+		Array<{ id: string; url: string; name: string; mimeType: string }>
+	>();
+	for (const att of allSessionAttachments) {
+		if (!att.messageId) continue;
+		const list = attachmentsByMessageId.get(att.messageId) ?? [];
+		list.push(att);
+		attachmentsByMessageId.set(att.messageId, list);
+	}
+
+	const generationsByMessageId = new Map<
+		string,
+		Array<{ kind: string; status: string }>
+	>();
+	for (const gen of sessionGenerations) {
+		if (!gen.messageId) continue;
+		const list = generationsByMessageId.get(gen.messageId) ?? [];
+		list.push({ kind: gen.kind, status: gen.status });
+		generationsByMessageId.set(gen.messageId, list);
+	}
+
+	const toolsByMessageId = new Map<
+		string,
+		Array<{ toolName: string; status: string }>
+	>();
+	for (const tool of sessionToolInvocations) {
+		if (!tool.messageId) continue;
+		const list = toolsByMessageId.get(tool.messageId) ?? [];
+		list.push({ toolName: tool.toolName, status: tool.status });
+		toolsByMessageId.set(tool.messageId, list);
+	}
 
 	const userMessageId = randomUUID();
 	const assistantMessageId = randomUUID();
@@ -491,9 +893,47 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 
 	for (const m of priorMessages) {
 		if (m.status === "streaming" || m.status === "cancelled") continue;
-		if (m.role === "user" && m.content) {
-			anthropicMessages.push({ role: "user", content: m.content });
-		} else if (m.role === "assistant" && m.content) {
+		if (m.role === "user") {
+			const meta = (m.metadata ?? {}) as { attachmentIds?: string[] };
+			const fromMessage = attachmentsByMessageId.get(m.id) ?? [];
+			const fromMetaIds = Array.isArray(meta.attachmentIds) ? meta.attachmentIds : [];
+			const attMap = new Map(fromMessage.map((a) => [a.id, a]));
+			for (const id of fromMetaIds) {
+				if (attMap.has(id)) continue;
+				const found = allSessionAttachments.find((a) => a.id === id);
+				if (found) attMap.set(found.id, found);
+			}
+			const atts = [...attMap.values()];
+			const text = m.content?.trim() ?? "";
+			if (atts.length > 0) {
+				const blocks: ContentBlockParam[] = [];
+				for (const att of atts) {
+					if (isImageMime(att.mimeType)) {
+						blocks.push({
+							type: "image",
+							source: { type: "url", url: att.url },
+						});
+					} else if (isPdfMime(att.mimeType)) {
+						blocks.push({
+							type: "document",
+							source: { type: "url", url: att.url },
+						});
+					}
+				}
+				if (text) blocks.push({ type: "text", text });
+				if (blocks.length > 0) {
+					anthropicMessages.push({ role: "user", content: blocks });
+				}
+			} else if (text) {
+				anthropicMessages.push({ role: "user", content: text });
+			}
+		} else if (m.role === "assistant") {
+			const historyText = buildAssistantHistoryText({
+				content: m.content,
+				generations: generationsByMessageId.get(m.id) ?? [],
+				tools: toolsByMessageId.get(m.id) ?? [],
+			});
+			if (!historyText) continue;
 			const blocks: ContentBlockParam[] = [];
 			const meta = m.metadata as { thinkingSignature?: string } | null;
 			if (m.reasoning && meta?.thinkingSignature) {
@@ -503,7 +943,7 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 					signature: meta.thinkingSignature,
 				});
 			}
-			blocks.push({ type: "text", text: m.content });
+			blocks.push({ type: "text", text: historyText });
 			anthropicMessages.push({ role: "assistant", content: blocks });
 		}
 	}
@@ -546,9 +986,10 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 	let providerMessageId: string | null = null;
 	let finalStatus: "complete" | "cancelled" | "error" = "complete";
 
+	// Keep proxies / browsers from idle-closing the SSE socket during long Gemini runs.
 	const pingTimer = setInterval(() => {
 		void emit(onEvent, { type: "ping" });
-	}, 12_000);
+	}, 5_000);
 
 	try {
 		const client = getAnthropicClient();
@@ -567,6 +1008,11 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 				id: string;
 				name: string;
 				inputJson: string;
+				/** Real generation IDs reserved while tool JSON was still streaming. */
+				reservedGenerationIds?: string[];
+				earlySlotCount?: number;
+				/** How many clarifying questions we already streamed to the client. */
+				emittedClarifyingCount?: number;
 			}> = [];
 
 			const thinking = buildZeepoAiThinkingConfig(modelId);
@@ -619,6 +1065,62 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 							toolName: block.name,
 							toolUseId: block.id,
 						});
+
+						// Instant loaders / question skeleton the moment the tool block starts —
+						// do not wait for full tool JSON or finalMessage().
+						if (block.name === "ask_clarifying_questions") {
+							await emit(onEvent, {
+								type: "clarifying_preparing",
+								messageId: assistantMessageId,
+							});
+						} else if (
+							block.name === "generate_images" ||
+							block.name === "create_image_presentation"
+						) {
+							const provisionalId = provisionalGenerationId(block.id);
+							await emit(onEvent, {
+								type: "generation_start",
+								generationId: provisionalId,
+								kind: "image",
+								slot: 1,
+								total: 1,
+								title: "Generating…",
+							});
+							await emit(onEvent, {
+								type: "generation",
+								generation: {
+									id: provisionalId,
+									kind: "image",
+									title: "Generating…",
+									status: "PROCESSING",
+									outputs: {},
+								},
+							});
+						} else if (block.name === "create_document") {
+							const provisionalId = provisionalGenerationId(block.id);
+							await emit(onEvent, {
+								type: "generation",
+								generation: {
+									id: provisionalId,
+									kind: "document",
+									title: "Creating document…",
+									status: "PROCESSING",
+									outputs: {},
+								},
+							});
+						} else if (block.name === "create_presentation") {
+							const provisionalId = provisionalGenerationId(block.id);
+							await emit(onEvent, {
+								type: "generation",
+								generation: {
+									id: provisionalId,
+									kind: "presentation",
+									title: "Creating presentation…",
+									status: "PROCESSING",
+									outputs: {},
+								},
+							});
+						}
 					}
 				} else if (event.type === "content_block_delta") {
 					const delta = event.delta;
@@ -632,7 +1134,81 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 						await emit(onEvent, { type: "text_delta", text: delta.text });
 					} else if (delta.type === "input_json_delta") {
 						const current = pendingToolUses[pendingToolUses.length - 1];
-						if (current) current.inputJson += delta.partial_json;
+						if (current) {
+							current.inputJson += delta.partial_json;
+							if (
+								current.name === "generate_images" ||
+								current.name === "create_image_presentation"
+							) {
+								const slotCount = tryParseImageSlotCount(current.inputJson);
+								const already = current.reservedGenerationIds?.length ?? 0;
+								// Grow reserved slots as soon as partial JSON reveals more images.
+								if (slotCount && slotCount > already) {
+									current.earlySlotCount = slotCount;
+									const ids = current.reservedGenerationIds ?? [];
+									while (ids.length < slotCount) {
+										ids.push(randomUUID());
+									}
+									current.reservedGenerationIds = ids;
+									for (let i = already; i < slotCount; i++) {
+										const id = ids[i]!;
+										await emit(onEvent, {
+											type: "generation_start",
+											generationId: id,
+											kind: "image",
+											slot: i + 1,
+											total: slotCount,
+											title: `Image (${i + 1}/${slotCount})`,
+										});
+										await emit(onEvent, {
+											type: "generation",
+											generation: {
+												id,
+												kind: "image",
+												title: `Image (${i + 1}/${slotCount})`,
+												status: "PROCESSING",
+												outputs: {},
+											},
+										});
+									}
+								} else if (
+									slotCount &&
+									slotCount < already &&
+									current.reservedGenerationIds
+								) {
+									// Only shrink once tool JSON is fully parseable (avoids flicker).
+									try {
+										JSON.parse(current.inputJson);
+										const surplus = current.reservedGenerationIds.slice(slotCount);
+										current.reservedGenerationIds =
+											current.reservedGenerationIds.slice(0, slotCount);
+										current.earlySlotCount = slotCount;
+										if (surplus.length > 0) {
+											await emit(onEvent, {
+												type: "generation_drop",
+												generationIds: surplus,
+											});
+										}
+									} catch {
+										/* still incomplete */
+									}
+								}
+							} else if (current.name === "ask_clarifying_questions") {
+								const partialQs = tryParseClarifyingQuestionsPartial(
+									current.inputJson,
+								);
+								const already = current.emittedClarifyingCount ?? 0;
+								if (partialQs && partialQs.length > already) {
+									current.emittedClarifyingCount = partialQs.length;
+									await emit(onEvent, {
+										type: "clarifying_questions",
+										messageId: assistantMessageId,
+										questions: partialQs,
+										partial: true,
+									});
+								}
+							}
+						}
 					}
 				} else if (event.type === "message_delta") {
 					stopReason = event.delta.stop_reason ?? stopReason;
@@ -649,7 +1225,7 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 				const nowMs = Date.now();
 				if (nowMs - lastPersist > 800) {
 					lastPersist = nowMs;
-					await persistPartialAssistant({
+					persistPartialAssistantAsync({
 						messageId: assistantMessageId,
 						content: text,
 						reasoning,
@@ -697,7 +1273,8 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 			for (const block of clientToolBlocks) {
 				const toolInvocationId = randomUUID();
 				const toolStarted = Date.now();
-				await db.insert(zeepoAiToolInvocation).values({
+				const pendingMeta = pendingToolUses.find((t) => t.id === block.id);
+				const toolInsertPromise = db.insert(zeepoAiToolInvocation).values({
 					id: toolInvocationId,
 					sessionId,
 					messageId: assistantMessageId,
@@ -739,10 +1316,12 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 								message:
 									"Questions are shown to the user. Wait for their next message with answers. Do not call other tools this turn.",
 							};
+							// Final (non-partial) emit — replace any progressive chips
 							await emit(onEvent, {
 								type: "clarifying_questions",
 								messageId: assistantMessageId,
 								questions,
+								partial: false,
 							});
 							stopAfterClarifying = true;
 						}
@@ -766,7 +1345,18 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 									content: parsed.data.content,
 								},
 							};
-							await db.insert(zeepoAiGeneration).values({
+							// Emit to UI instantly — don't block on DB
+							const emitPromise = emit(onEvent, {
+								type: "generation",
+								generation: {
+									id: genId,
+									kind: "document",
+									title: parsed.data.title,
+									status: "COMPLETED",
+									outputs,
+								},
+							});
+							const dbPromise = db.insert(zeepoAiGeneration).values({
 								id: genId,
 								sessionId,
 								messageId: assistantMessageId,
@@ -784,17 +1374,8 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 								createdAt: genNow,
 								updatedAt: genNow,
 							});
+							await Promise.all([emitPromise, dbPromise]);
 							resultPayload = { status: "CREATED", generationId: genId, title: parsed.data.title };
-							await emit(onEvent, {
-								type: "generation",
-								generation: {
-									id: genId,
-									kind: "document",
-									title: parsed.data.title,
-									status: "COMPLETED",
-									outputs,
-								},
-							});
 						}
 					} else if (block.name === "create_presentation") {
 						const parsed = createPresentationArgsSchema.safeParse(block.input);
@@ -811,7 +1392,18 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 									slides: parsed.data.slides,
 								},
 							};
-							await db.insert(zeepoAiGeneration).values({
+							// Emit to UI instantly — don't block on DB
+							const emitPromise = emit(onEvent, {
+								type: "generation",
+								generation: {
+									id: genId,
+									kind: "presentation",
+									title: parsed.data.title,
+									status: "COMPLETED",
+									outputs,
+								},
+							});
+							const dbPromise = db.insert(zeepoAiGeneration).values({
 								id: genId,
 								sessionId,
 								messageId: assistantMessageId,
@@ -829,22 +1421,13 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 								createdAt: genNow,
 								updatedAt: genNow,
 							});
+							await Promise.all([emitPromise, dbPromise]);
 							resultPayload = {
 								status: "CREATED",
 								generationId: genId,
 								title: parsed.data.title,
 								slideCount: parsed.data.slides.length,
 							};
-							await emit(onEvent, {
-								type: "generation",
-								generation: {
-									id: genId,
-									kind: "presentation",
-									title: parsed.data.title,
-									status: "COMPLETED",
-									outputs,
-								},
-							});
 						}
 					} else if (block.name === "generate_images") {
 					const parsed = generateImagesArgsSchema.safeParse(block.input);
@@ -858,6 +1441,9 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 								"Image generation is temporarily unavailable. Ask the user to try again later.",
 						};
 					} else {
+							if (shouldBillZeepoAiTokens({ teamId, userId, userRole })) {
+								await assertZeepoAiCanStartTurn({ teamId, userId, userRole });
+							}
 							resultPayload = await executeGenerateImagesTool(parsed.data, {
 								sessionId,
 								assistantMessageId,
@@ -866,6 +1452,7 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 								userRole,
 								emit: onEvent,
 								signal,
+								reservedGenerationIds: pendingMeta?.reservedGenerationIds,
 							});
 							if (
 								resultPayload &&
@@ -887,6 +1474,9 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 								"Image generation is temporarily unavailable. Ask the user to try again later.",
 						};
 					} else {
+							if (shouldBillZeepoAiTokens({ teamId, userId, userRole })) {
+								await assertZeepoAiCanStartTurn({ teamId, userId, userRole });
+							}
 							resultPayload = await executeCreateImagePresentationTool(parsed.data, {
 								sessionId,
 								assistantMessageId,
@@ -895,6 +1485,7 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 								userRole,
 								emit: onEvent,
 								signal,
+								reservedGenerationIds: pendingMeta?.reservedGenerationIds,
 							});
 							if (
 								resultPayload &&
@@ -934,12 +1525,32 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 					};
 				}
 
+				const rawToolError = !ok
+					? String((resultPayload as { error?: unknown })?.error ?? "failed")
+					: null;
+				const safeToolError = rawToolError
+					? publicToolErrorMessage(rawToolError, userRole)
+					: null;
+
+				// Persist / SSE use sanitized errors; Anthropic tool_result keeps the raw payload.
+				const storedResult =
+					!ok &&
+					safeToolError &&
+					resultPayload &&
+					typeof resultPayload === "object"
+						? {
+								...(resultPayload as Record<string, unknown>),
+								error: safeToolError,
+							}
+						: (resultPayload as Record<string, unknown>);
+
+				await toolInsertPromise;
 				await db
 					.update(zeepoAiToolInvocation)
 					.set({
 						status: ok ? "succeeded" : "failed",
-						result: resultPayload as Record<string, unknown>,
-						errorMessage: ok ? null : String((resultPayload as { error?: string }).error ?? "failed"),
+						result: storedResult,
+						errorMessage: safeToolError,
 						durationMs: Date.now() - toolStarted,
 						completedAt: new Date(),
 					})
@@ -957,7 +1568,7 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 						type: "tool_result",
 						toolName: block.name,
 						toolUseId: block.id,
-						result: resultPayload,
+						result: storedResult,
 					});
 				}
 
@@ -980,19 +1591,61 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 			finalStatus = "cancelled";
 		} else {
 			finalStatus = "error";
-			const message =
-				err instanceof Error ? err.message : "Something went wrong generating a reply";
 			await emit(onEvent, {
 				type: "error",
-				message: message.includes("ANTHROPIC")
-					? "AI service is temporarily unavailable. Please try again."
-					: message,
+				message: publicStreamError(err, userRole),
 				code: "STREAM_ERROR",
 				recoverable: true,
 			});
 		}
 	} finally {
 		clearInterval(pingTimer);
+	}
+
+	// Stop: cancel in-flight media and do not soft-complete / debit chat.
+	// Soft-disconnect (error while Gemini continues): keep complete when media exists.
+	if (finalStatus === "cancelled") {
+		const cancelling = await db.query.zeepoAiGeneration.findMany({
+			where: and(
+				eq(zeepoAiGeneration.messageId, assistantMessageId),
+				inArray(zeepoAiGeneration.status, ["PROCESSING", "QUEUED"]),
+			),
+			columns: { id: true },
+		});
+		if (cancelling.length > 0) {
+			await db
+				.update(zeepoAiGeneration)
+				.set({
+					status: "CANCELLED",
+					errorMessage: "Cancelled by user",
+					completedAt: new Date(),
+					updatedAt: new Date(),
+				})
+				.where(
+					and(
+						eq(zeepoAiGeneration.messageId, assistantMessageId),
+						inArray(zeepoAiGeneration.status, ["PROCESSING", "QUEUED"]),
+					),
+				);
+			for (const row of cancelling) {
+				await emit(onEvent, {
+					type: "generation_progress",
+					generationId: row.id,
+					status: "CANCELLED",
+				});
+			}
+		}
+	} else if (finalStatus === "error") {
+		const mediaRow = await db.query.zeepoAiGeneration.findFirst({
+			where: and(
+				eq(zeepoAiGeneration.messageId, assistantMessageId),
+				inArray(zeepoAiGeneration.status, ["PROCESSING", "QUEUED", "COMPLETED"]),
+			),
+			columns: { id: true },
+		});
+		if (mediaRow) {
+			finalStatus = "complete";
+		}
 	}
 
 	const micros = estimateZeepoAiProviderCostUsdMicros(usage);
@@ -1115,4 +1768,7 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 		tokensDebited,
 	});
 	await emit(onEvent, { type: "done", status: finalStatus, stopReason });
+	} finally {
+		releaseZeepoAiSessionLock(sessionId, lockOwnerId);
+	}
 }

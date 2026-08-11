@@ -243,8 +243,9 @@ export async function executeZeepoAiOpsTool(
 	}
 
 	const role = (params.userRole ?? "CUSTOMER") as string;
+	// Agency-wide portfolio/hosting is admin+ only; AGENCY_USER stays team-scoped.
 	const isAgency =
-		role === "AGENCY_USER" || role === "AGENCY_ADMIN" || role === "AGENCY_SUPER_ADMIN";
+		role === "AGENCY_ADMIN" || role === "AGENCY_SUPER_ADMIN";
 
 	if (name === "get_domains_portfolio") {
 		getDomainsPortfolioArgsSchema.safeParse(input);

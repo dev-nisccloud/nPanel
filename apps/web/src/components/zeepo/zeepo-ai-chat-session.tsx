@@ -5,10 +5,12 @@ import { Navigate, useLocation, useNavigate, useParams } from "react-router";
 import { Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useSidebar } from "@/components/ui/sidebar";
+import { authClient } from "@/lib/auth-client";
 import { ZeepoAiComposer } from "@/components/zeepo/zeepo-ai-composer";
 import { ZeepoAiMessageList } from "@/components/zeepo/zeepo-ai-conversation";
 import { ZeepoAiClarifyingQuestions } from "@/components/zeepo/zeepo-ai-questions";
 import { ZeepoAiDetailPane } from "@/components/zeepo/zeepo-ai-detail-pane";
+import { ZeepoAiTokenWallet } from "@/components/zeepo/zeepo-ai-token-wallet";
 import { ZeepoDeleteChatDialog } from "@/components/zeepo/zeepo-delete-chat-dialog";
 import { ZeepoRenameChatDialog } from "@/components/zeepo/zeepo-rename-chat-dialog";
 import {
@@ -33,6 +35,7 @@ import {
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
+import { refreshZeepoAiTokenBalance } from "@/hooks/use-zeepo-ai-token-balance";
 import { startViewTransitionNavigate } from "@/routes/_agency.zeepo-ai-agent/nav-state";
 
 type LocationState = {
@@ -40,6 +43,7 @@ type LocationState = {
   searchEnabled?: boolean;
   skillId?: string;
   attachmentIds?: string[];
+  attachments?: Array<{ url: string; name: string; mimeType: string }>;
   fromCompose?: boolean;
 };
 
@@ -56,8 +60,115 @@ function resolveHandoff(
     searchEnabled: locationState.searchEnabled,
     skillId: locationState.skillId,
     attachmentIds: locationState.attachmentIds,
+    attachments: locationState.attachments,
     fromCompose: locationState.fromCompose ?? true,
   };
+}
+
+const WORD_COUNTS: Record<string, number> = {
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+};
+
+/** Guess media intent from the user message so loaders can appear before tool_start. */
+function inferOptimisticGenerations(
+  text: string,
+  opts?: { hasAttachments?: boolean; messageId?: string; sessionId?: string },
+): ZeepoAiGeneration[] {
+  const lower = text.toLowerCase();
+  const now = new Date().toISOString();
+  const base = {
+    provider: "google",
+    modelId: "zeepo-design",
+    messageId: opts?.messageId,
+    sessionId: opts?.sessionId,
+    createdAt: now,
+    status: "PROCESSING" as const,
+  };
+
+  const mk = (
+    kind: ZeepoAiGeneration["kind"],
+    title: string,
+    index: number,
+  ): ZeepoAiGeneration => ({
+    ...base,
+    id: `optimistic-${kind}-${index}-${crypto.randomUUID?.() ?? Math.random().toString(36).slice(2)}`,
+    kind,
+    prompt: title,
+    title,
+  });
+
+  // Presentations / documents: require an explicit create/make/write verb or file-type ask.
+  if (
+    /\b(create|make|build|generate|design)\b.+\b(presentation|slides?\b|deck|powerpoint|pptx)\b/i.test(
+      lower,
+    ) ||
+    /\b(presentation|slide deck|powerpoint|pptx)\b.+\b(create|make|build|generate|design)\b/i.test(
+      lower,
+    )
+  ) {
+    return [mk("presentation", "Creating presentation…", 0)];
+  }
+  if (
+    /\b(create|make|write|draft|generate)\b.+\b(document|report|brief|whitepaper|pdf)\b/i.test(
+      lower,
+    ) ||
+    /\b(document|report|brief|whitepaper|pdf)\b.+\b(create|make|write|draft|generate)\b/i.test(
+      lower,
+    )
+  ) {
+    return [mk("document", "Creating document…", 0)];
+  }
+
+  const mediaNoun =
+    "images?|logos?|posters?|photos?|pictures?|illustrations?|artwork|visuals?";
+  const createVerb = "generate|create|make|design|draw|render|produce";
+  const editVerb = "edit|change|modify|update|remix|variations?";
+
+  const imageIntent =
+    new RegExp(`\\b(${createVerb})\\b.+\\b(${mediaNoun})\\b`, "i").test(lower) ||
+    new RegExp(`\\b(${mediaNoun})\\b.+\\b(${createVerb})\\b`, "i").test(lower) ||
+    new RegExp(
+      `\\b(${createVerb})\\s+(?:\\d+|a|an|some|my|me\\s+)?(?:\\s+)?(${mediaNoun})\\b`,
+      "i",
+    ).test(lower) ||
+    // Attachments alone are not enough — need an edit/create cue
+    (Boolean(opts?.hasAttachments) &&
+      (new RegExp(`\\b(${editVerb}|${createVerb})\\b`, "i").test(lower) ||
+        /\b(based on|using|from)\s+(this|these|the)\b/i.test(lower) ||
+        /\b(this|these)\s+(image|photo|picture|logo|poster)s?\b/i.test(lower)));
+
+  if (!imageIntent) return [];
+
+  let count = 1;
+  const digit = lower.match(
+    /\b(\d+)\s+(images?|logos?|pictures?|photos?|variants?|versions?|renders?)\b/,
+  );
+  if (digit) {
+    count = Math.min(8, Math.max(1, Number(digit[1])));
+  } else {
+    const word = lower.match(
+      /\b(two|three|four|five|six|seven|eight)\s+(images?|logos?|pictures?|photos?|variants?|versions?|renders?)\b/,
+    );
+    if (word?.[1] && WORD_COUNTS[word[1]]) count = WORD_COUNTS[word[1]]!;
+  }
+
+  return Array.from({ length: count }, (_, i) =>
+    mk(
+      "image",
+      count > 1 ? `Image (${i + 1}/${count})` : "Generating…",
+      i,
+    ),
+  );
+}
+
+function isProvisionalGenerationId(id: string) {
+  return id.startsWith("pending-") || id.startsWith("optimistic-");
 }
 
 function messagesFromSessionData(fresh: {
@@ -70,6 +181,13 @@ function messagesFromSessionData(fresh: {
     metadata?: unknown;
     createdAt: string | Date;
   }>;
+  attachments?: Array<{
+    id: string;
+    messageId?: string | null;
+    url: string;
+    name: string;
+    mimeType: string;
+  }>;
   toolInvocations?: Array<{
     id: string;
     messageId?: string | null;
@@ -79,8 +197,18 @@ function messagesFromSessionData(fresh: {
   }>;
 }): ZeepoAiMessage[] {
   const byMessage = mapApiToolInvocations(fresh.toolInvocations ?? []);
+  const attachmentsByMessage = new Map<
+    string,
+    Array<{ url: string; name: string; mimeType: string }>
+  >();
+  for (const a of fresh.attachments ?? []) {
+    if (!a.messageId) continue;
+    const list = attachmentsByMessage.get(a.messageId) ?? [];
+    list.push({ url: a.url, name: a.name, mimeType: a.mimeType });
+    attachmentsByMessage.set(a.messageId, list);
+  }
   const mapped = fresh.messages
-    .map((m) => mapApiMessage(m, byMessage.get(m.id)))
+    .map((m) => mapApiMessage(m, byMessage.get(m.id), attachmentsByMessage.get(m.id)))
     .filter((m): m is ZeepoAiMessage => Boolean(m));
 
   // Defend against same-ms user/assistant rows (older turns) swapping order on refetch.
@@ -124,8 +252,14 @@ export function ZeepoAiChatSessionPage() {
       },
     },
   );
+  const registerAttachment = trpc.zeepoAi.messages.registerAttachment.useMutation();
   const feedbackMutation = trpc.zeepoAi.messages.feedback.useMutation();
   const utils = trpc.useUtils();
+  const { data: authSession } = authClient.useSession();
+  const userRole = authSession?.user?.role;
+  const isAgencySuperAdmin = userRole === "AGENCY_SUPER_ADMIN";
+  const isAgencyUser = ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(userRole ?? "");
+  const hideReasoning = !isAgencyUser; // Hide reasoning for customer users
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
@@ -159,6 +293,7 @@ export function ZeepoAiChatSessionPage() {
   const [dismissedQuestionIds, setDismissedQuestionIds] = useState<Set<string>>(
     () => new Set(),
   );
+  const [questionsPreparing, setQuestionsPreparing] = useState(false);
   const [connectionBanner, setConnectionBanner] = useState<string | null>(null);
   const [handoffStarting, setHandoffStarting] = useState(false);
   const isStreaming = streamingMessageId != null;
@@ -222,6 +357,7 @@ export function ZeepoAiChatSessionPage() {
             content: handoff.content,
             createdAt: nowIso,
             status: "complete",
+            attachments: handoff.attachments,
           },
         ],
         generations: prev?.generations ?? [],
@@ -282,7 +418,7 @@ export function ZeepoAiChatSessionPage() {
     }
     const m = msgs[lastIdx]!;
     if (dismissedQuestionIds.has(m.id)) return null;
-    if (m.status === "streaming") return null;
+    // Show chips as soon as we have questions — including mid-stream partials
     return { messageId: m.id, questions: m.clarifyingQuestions! };
   }, [session?.messages, dismissedQuestionIds]);
 
@@ -321,6 +457,7 @@ export function ZeepoAiChatSessionPage() {
         skillId?: string;
         searchEnabled?: boolean;
         attachmentIds?: string[];
+        attachments?: Array<{ url: string; name: string; mimeType: string }>;
         /** When retrying, drop this user message and everything after it first. */
         replaceFromUserId?: string;
       },
@@ -339,6 +476,12 @@ export function ZeepoAiChatSessionPage() {
       const assistantCreatedAt = new Date(userCreatedAt.getTime() + 1);
       const userCreatedAtIso = userCreatedAt.toISOString();
       const assistantCreatedAtIso = assistantCreatedAt.toISOString();
+
+      const optimisticGens = inferOptimisticGenerations(userText, {
+        hasAttachments: Boolean(opts?.attachments?.length || opts?.attachmentIds?.length),
+        messageId: tempAssistantId,
+        sessionId,
+      });
 
       setSession((prev) => {
         let cleanedMessages =
@@ -360,10 +503,14 @@ export function ZeepoAiChatSessionPage() {
                 messages: [],
                 generations: [],
               } satisfies ZeepoAiChatSession);
+
+        const keptGens = (base.generations ?? []).filter((g) => !isProvisionalGenerationId(g.id));
+
         return {
           ...base,
           title: base.title === "New chat" ? titleFromMessage(userText) : base.title,
           updatedAt: userCreatedAtIso,
+          generations: [...keptGens, ...optimisticGens],
           messages: [
             ...base.messages,
             {
@@ -372,6 +519,7 @@ export function ZeepoAiChatSessionPage() {
               content: userText,
               createdAt: userCreatedAtIso,
               status: "complete",
+              attachments: opts?.attachments,
             },
             {
               id: tempAssistantId,
@@ -396,6 +544,11 @@ export function ZeepoAiChatSessionPage() {
       let content = "";
       let reasoningComplete = false;
       let reasoningDurationMs: number | undefined;
+      /**
+       * True only after a *server* generation event (pending-* or real UUID).
+       * Optimistic client loaders must not trigger soft-disconnect.
+       */
+      let mediaGenerationActive = false;
       let uiRaf: number | null = null;
       let pendingUiFlush = false;
       let lastUiFlushAt = 0;
@@ -517,10 +670,48 @@ export function ZeepoAiChatSessionPage() {
               return;
             }
 
+            if (event.type === "clarifying_preparing") {
+              setQuestionsPreparing(true);
+              mediaGenerationActive = false;
+              // Clarifying takes priority over optimistic generation loaders
+              setSession((prev) => {
+                if (!prev) return prev;
+                return {
+                  ...prev,
+                  generations: prev.generations.filter(
+                    (g) => !isProvisionalGenerationId(g.id),
+                  ),
+                };
+              });
+              return;
+            }
+
             if (event.type === "clarifying_questions") {
+              setQuestionsPreparing(false);
+              mediaGenerationActive = false;
               if (uiRaf != null) {
                 clearTimeout(uiRaf);
                 flushStreamUi();
+              }
+              if (event.partial) {
+                // Keep the turn streaming; just attach whatever questions we have so far
+                setSession((prev) => {
+                  if (!prev) return prev;
+                  return {
+                    ...prev,
+                    generations: prev.generations.filter(
+                      (g) => !isProvisionalGenerationId(g.id),
+                    ),
+                    messages: prev.messages.map((m) =>
+                      m.id === tempAssistantId ||
+                      m.id === liveAssistantId ||
+                      m.id === serverAssistantId
+                        ? { ...m, clarifyingQuestions: event.questions }
+                        : m,
+                    ),
+                  };
+                });
+                return;
               }
               commitServerIds({
                 clarifyingQuestions: event.questions,
@@ -563,6 +754,7 @@ export function ZeepoAiChatSessionPage() {
             }
 
             if (event.type === "generation_start") {
+              mediaGenerationActive = true;
               const mapped = mapApiGeneration({
                 id: event.generationId,
                 kind: event.kind,
@@ -577,13 +769,19 @@ export function ZeepoAiChatSessionPage() {
               });
               setSession((prev) => {
                 if (!prev) return prev;
-                const without = prev.generations.filter((g) => g.id !== mapped.id);
-                return { ...prev, generations: [...without, mapped] };
+                // Server signal: drop client optimistic loaders. Real UUIDs also replace pending-*.
+                let gens = prev.generations.filter((g) => !g.id.startsWith("optimistic-"));
+                if (!isProvisionalGenerationId(event.generationId)) {
+                  gens = gens.filter((g) => !g.id.startsWith("pending-"));
+                }
+                gens = gens.filter((g) => g.id !== mapped.id);
+                return { ...prev, generations: [...gens, mapped] };
               });
               return;
             }
 
             if (event.type === "generation_progress") {
+              mediaGenerationActive = true;
               setSession((prev) => {
                 if (!prev) return prev;
                 return {
@@ -595,10 +793,24 @@ export function ZeepoAiChatSessionPage() {
                   ),
                 };
               });
+              // Toast on failure for immediate user feedback
+              if (event.status === "FAILED") {
+                const failedGen = session?.generations.find((g) => g.id === event.generationId);
+                const errorMsg = isAgencySuperAdmin
+                  ? failedGen?.errorMessage || "Image generation failed"
+                  : "Generation failed";
+                toast.error(errorMsg, {
+                  description: isAgencySuperAdmin
+                    ? "Click the image to see details"
+                    : "Contact support to report this issue",
+                  duration: 5000,
+                });
+              }
               return;
             }
 
             if (event.type === "generation") {
+              mediaGenerationActive = true;
               const mapped = mapApiGeneration({
                 id: event.generation.id,
                 kind: event.generation.kind,
@@ -613,36 +825,137 @@ export function ZeepoAiChatSessionPage() {
               });
               setSession((prev) => {
                 if (!prev) return prev;
-                const without = prev.generations.filter((g) => g.id !== mapped.id);
-                return { ...prev, generations: [...without, mapped] };
+                let gens = prev.generations.filter((g) => !g.id.startsWith("optimistic-"));
+                if (!isProvisionalGenerationId(event.generation.id)) {
+                  gens = gens.filter((g) => !g.id.startsWith("pending-"));
+                }
+                gens = gens.filter((g) => g.id !== mapped.id);
+                return { ...prev, generations: [...gens, mapped] };
+              });
+              // Toast on failure with error details
+              if (event.generation.status === "FAILED") {
+                const rawError =
+                  typeof event.generation.outputs === "object" &&
+                  event.generation.outputs !== null &&
+                  "error" in event.generation.outputs
+                    ? String(event.generation.outputs.error)
+                    : "Image generation failed";
+                const errorMsg = isAgencySuperAdmin ? rawError : "Generation failed";
+                toast.error(errorMsg, {
+                  description: isAgencySuperAdmin
+                    ? "Click the failed image to see details"
+                    : "Contact support to report this issue",
+                  duration: 5000,
+                });
+              }
+              return;
+            }
+
+            if (event.type === "generation_drop") {
+              const drop = new Set(event.generationIds);
+              setSession((prev) => {
+                if (!prev) return prev;
+                const next = prev.generations.filter((g) => !drop.has(g.id));
+                return next.length === prev.generations.length
+                  ? prev
+                  : { ...prev, generations: next };
               });
               return;
             }
 
             if (event.type === "error") {
+              setQuestionsPreparing(false);
               if (uiRaf != null) {
                 clearTimeout(uiRaf);
                 flushStreamUi();
               }
+              // Proxy / idle timeouts used to kill SSE while Gemini kept finishing images.
+              // Treat that as "keep waiting on loaders" — not a failed chat turn.
+              // Only when a *server* generation event was seen (not optimistic-only).
+              const softDisconnect =
+                mediaGenerationActive &&
+                (event.code === "STREAM_INCOMPLETE" ||
+                  event.code === "NETWORK_INTERRUPT" ||
+                  event.code === "NETWORK");
+              if (softDisconnect) {
+                setConnectionBanner(null);
+                commitServerIds({
+                  status: "complete",
+                  interrupted: false,
+                  reasoningStatus: reasoning ? "complete" : "idle",
+                  content: content || undefined,
+                });
+                void utils.zeepoAi.sessions.get.invalidate({ id: sessionId });
+                void utils.zeepoAi.sessions.listLibrary.invalidate();
+                refreshZeepoAiTokenBalance(utils, route.teamId);
+                return;
+              }
               setConnectionBanner(event.message);
               toast.error(event.message);
+              setSession((prev) => {
+                if (!prev) return prev;
+                const next = prev.generations.filter((g) => !isProvisionalGenerationId(g.id));
+                return next.length === prev.generations.length
+                  ? prev
+                  : { ...prev, generations: next };
+              });
               commitServerIds({
                 status: "error",
                 interrupted: true,
                 reasoningStatus: reasoning ? "complete" : "idle",
                 content: content || undefined,
               });
+              // Partial turns may still have been billed before the error.
+              refreshZeepoAiTokenBalance(utils, route.teamId);
+              return;
+            }
+
+            if (event.type === "usage") {
+              // Debit already committed server-side — update wallet immediately.
+              if (route.teamId && event.tokensDebited > 0) {
+                utils.zeepoAi.billing.getTokenBalance.setData(
+                  { teamId: route.teamId },
+                  (prev) => {
+                    if (!prev || prev.tokens == null) return prev;
+                    return {
+                      ...prev,
+                      tokens: Math.max(0, Number(prev.tokens) - event.tokensDebited),
+                    };
+                  },
+                );
+              }
+              refreshZeepoAiTokenBalance(utils, route.teamId);
               return;
             }
 
             if (event.type === "done") {
+              setQuestionsPreparing(false);
               if (uiRaf != null) {
                 clearTimeout(uiRaf);
                 uiRaf = null;
                 pendingUiFlush = false;
               }
-              const status =
-                event.status === "complete"
+              // Drop optimistic loaders if the model never started real media tools
+              setSession((prev) => {
+                if (!prev) return prev;
+                const hasRealMedia = prev.generations.some(
+                  (g) =>
+                    !isProvisionalGenerationId(g.id) &&
+                    (g.status === "PROCESSING" ||
+                      g.status === "QUEUED" ||
+                      g.status === "COMPLETED"),
+                );
+                if (hasRealMedia) return prev;
+                const next = prev.generations.filter((g) => !isProvisionalGenerationId(g.id));
+                return next.length === prev.generations.length
+                  ? prev
+                  : { ...prev, generations: next };
+              });
+              const softDisconnect =
+                mediaGenerationActive && event.status === "error";
+              const status = softDisconnect
+                ? "complete"
+                : event.status === "complete"
                   ? "complete"
                   : event.status === "cancelled"
                     ? "cancelled"
@@ -658,7 +971,7 @@ export function ZeepoAiChatSessionPage() {
                     : undefined),
                 content,
               });
-              if (status === "cancelled") {
+              if (status === "cancelled" && !softDisconnect) {
                 toast.message("Generation stopped", {
                   description:
                     "You can edit your prompt and send again, or tap Retry on your message.",
@@ -667,6 +980,8 @@ export function ZeepoAiChatSessionPage() {
               void utils.zeepoAi.sessions.list.invalidate();
               void utils.zeepoAi.sessions.get.invalidate({ id: sessionId });
               void utils.zeepoAi.sessions.listLibrary.invalidate();
+              // Safety net if the usage SSE frame was dropped.
+              refreshZeepoAiTokenBalance(utils, route.teamId);
             }
           },
         });
@@ -677,7 +992,7 @@ export function ZeepoAiChatSessionPage() {
         abortRef.current = null;
       }
     },
-    [sessionId, patchAssistant, utils],
+    [sessionId, patchAssistant, utils, route.teamId],
   );
 
   const runAssistantTurnRef = useRef(runAssistantTurn);
@@ -690,6 +1005,7 @@ export function ZeepoAiChatSessionPage() {
         skillId?: string;
         searchEnabled?: boolean;
         attachmentIds?: string[];
+        attachments?: Array<{ url: string; name: string; mimeType: string }>;
         replaceFromUserId?: string;
       },
     ) => {
@@ -717,10 +1033,29 @@ export function ZeepoAiChatSessionPage() {
       return;
     }
     if ((sessionQuery.data?.messages?.length ?? 0) > 0) {
-      clearZeepoAiHandoff(sessionId);
-      handoffRef.current = null;
-      setHandoffStarting(false);
-      return;
+      const msgs = sessionQuery.data!.messages;
+      const lastUser = [...msgs].reverse().find((m) => m.role === "user");
+      const lastAsst = [...msgs].reverse().find((m) => m.role === "assistant");
+      const handoffMatches =
+        Boolean(lastUser?.content?.trim()) &&
+        lastUser!.content.trim() === handoff.content.trim();
+      const needsResume =
+        handoffMatches &&
+        (!lastAsst ||
+          lastAsst.status === "cancelled" ||
+          lastAsst.status === "error" ||
+          lastAsst.status === "streaming" ||
+          Boolean(
+            lastAsst.metadata &&
+              typeof lastAsst.metadata === "object" &&
+              (lastAsst.metadata as { interrupted?: boolean }).interrupted,
+          ));
+      if (!needsResume) {
+        clearZeepoAiHandoff(sessionId);
+        handoffRef.current = null;
+        setHandoffStarting(false);
+        return;
+      }
     }
 
     let cancelled = false;
@@ -733,11 +1068,42 @@ export function ZeepoAiChatSessionPage() {
         const fresh = await utils.zeepoAi.sessions.get.fetch({ id: sessionId });
         if (cancelled) return;
         if ((fresh.messages?.length ?? 0) > 0) {
+          const msgs = fresh.messages;
+          const lastUser = [...msgs].reverse().find((m) => m.role === "user");
+          const lastAsst = [...msgs].reverse().find((m) => m.role === "assistant");
+          const handoffMatches =
+            Boolean(lastUser?.content?.trim()) &&
+            lastUser!.content.trim() === handoff.content.trim();
+          const needsResume =
+            handoffMatches &&
+            lastUser &&
+            (!lastAsst ||
+              lastAsst.status === "cancelled" ||
+              lastAsst.status === "error" ||
+              lastAsst.status === "streaming" ||
+              Boolean(
+                lastAsst.metadata &&
+                  typeof lastAsst.metadata === "object" &&
+                  (lastAsst.metadata as { interrupted?: boolean }).interrupted,
+              ));
+
+          if (!needsResume) {
+            applyServerSession(fresh);
+            clearZeepoAiHandoff(sessionId);
+            handoffRef.current = null;
+            setHandoffStarting(false);
+            navigate(location.pathname, { replace: true, state: {} });
+            return;
+          }
+
           applyServerSession(fresh);
-          clearZeepoAiHandoff(sessionId);
-          handoffRef.current = null;
-          setHandoffStarting(false);
-          navigate(location.pathname, { replace: true, state: {} });
+          await runAssistantTurnRef.current(handoff.content, {
+            skillId: handoff.skillId,
+            searchEnabled: handoff.searchEnabled,
+            attachmentIds: handoff.attachmentIds,
+            attachments: handoff.attachments,
+            replaceFromUserId: lastUser.id,
+          });
           return;
         }
 
@@ -745,6 +1111,7 @@ export function ZeepoAiChatSessionPage() {
           skillId: handoff.skillId,
           searchEnabled: handoff.searchEnabled,
           attachmentIds: handoff.attachmentIds,
+          attachments: handoff.attachments,
         });
       } catch (err) {
         if (!cancelled) {
@@ -827,11 +1194,13 @@ export function ZeepoAiChatSessionPage() {
       searchEnabled?: boolean;
       skillId?: string;
       attachmentIds?: string[];
+      attachments?: Array<{ url: string; name: string; mimeType: string }>;
     }) => {
       void appendUserAndStream(payload.message, {
         searchEnabled: payload.searchEnabled,
         skillId: payload.skillId,
         attachmentIds: payload.attachmentIds,
+        attachments: payload.attachments,
       });
     },
     [appendUserAndStream],
@@ -868,21 +1237,24 @@ export function ZeepoAiChatSessionPage() {
           <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border/60 py-2">
             <button
               type="button"
-              className="group inline-flex min-w-0 max-w-[min(100%,28rem)] items-center gap-1.5 rounded-md px-1.5 py-1 text-left hover:bg-muted/60"
+              className="group inline-flex min-w-0 max-w-[min(100%,20rem)] items-center gap-1.5 rounded-md px-1.5 py-1 text-left hover:bg-muted/60"
               onClick={() => setRenameOpen(true)}
               title="Rename chat"
             >
               <span className="truncate text-sm font-semibold text-foreground">{displayTitle}</span>
               <Pencil className="size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-70" />
             </button>
-            <button
-              type="button"
-              aria-label="Delete chat"
-              className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-              onClick={() => setDeleteOpen(true)}
-            >
-              <Trash2 className="size-4" />
-            </button>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <ZeepoAiTokenWallet />
+              <button
+                type="button"
+                aria-label="Delete chat"
+                className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => setDeleteOpen(true)}
+              >
+                <Trash2 className="size-4" />
+              </button>
+            </div>
           </div>
 
           {connectionBanner ? (
@@ -908,6 +1280,8 @@ export function ZeepoAiChatSessionPage() {
                   streamingMessageId={streamingMessageId}
                   scrollParentRef={scrollParentRef}
                   onOpenGeneration={setActivePanel}
+                  isAgencySuperAdmin={isAgencySuperAdmin}
+                  hideReasoning={hideReasoning}
                   onRetryUser={handleRetryUser}
                   onEditUser={handleEditUser}
                   onFeedback={handleFeedback}
@@ -925,10 +1299,28 @@ export function ZeepoAiChatSessionPage() {
 
           <div className="relative z-10 shrink-0 bg-gradient-to-t from-background via-background to-transparent pb-3 pt-2">
             <div className="mx-auto w-full max-w-3xl space-y-3">
+              {questionsPreparing && !pendingQuestions ? (
+                <div className="rounded-2xl border border-border/70 bg-card px-4 py-3 shadow-sm">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Spinner size={14} className="text-primary" />
+                    Preparing a few quick questions…
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    <div className="h-3 w-3/4 animate-pulse rounded bg-muted" />
+                    <div className="flex flex-wrap gap-2">
+                      <div className="h-7 w-20 animate-pulse rounded-full bg-muted" />
+                      <div className="h-7 w-24 animate-pulse rounded-full bg-muted" />
+                      <div className="h-7 w-16 animate-pulse rounded-full bg-muted" />
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
               {pendingQuestions ? (
                 <ZeepoAiClarifyingQuestions
                   messageId={pendingQuestions.messageId}
                   questions={pendingQuestions.questions}
+                  locked={isStreaming}
                   onDismiss={() => {
                     setDismissedQuestionIds((prev) => {
                       const next = new Set(prev);
@@ -936,13 +1328,40 @@ export function ZeepoAiChatSessionPage() {
                       return next;
                     });
                   }}
-                  onComplete={(compiled) => {
+                  onComplete={async (compiled, uploads) => {
                     setDismissedQuestionIds((prev) => {
                       const next = new Set(prev);
                       next.add(pendingQuestions.messageId);
                       return next;
                     });
-                    void appendUserAndStream(compiled);
+                    const attachmentIds: string[] = [];
+                    const attachments: Array<{
+                      url: string;
+                      name: string;
+                      mimeType: string;
+                    }> = [];
+                    for (const file of uploads) {
+                      try {
+                        const registered = await registerAttachment.mutateAsync({
+                          sessionId,
+                          url: file.url,
+                          name: file.name,
+                          mimeType: file.mimeType,
+                        });
+                        attachmentIds.push(registered.id);
+                        attachments.push({
+                          url: registered.url,
+                          name: registered.name,
+                          mimeType: registered.mimeType,
+                        });
+                      } catch {
+                        toast.error(`Could not attach ${file.name}`);
+                      }
+                    }
+                    void appendUserAndStream(compiled, {
+                      attachmentIds: attachmentIds.length ? attachmentIds : undefined,
+                      attachments: attachments.length ? attachments : undefined,
+                    });
                   }}
                 />
               ) : null}
@@ -979,6 +1398,7 @@ export function ZeepoAiChatSessionPage() {
             panel={activePanel}
             sessionId={sessionId}
             onClose={() => setActivePanel(null)}
+            isAgencySuperAdmin={isAgencySuperAdmin}
           />
         </div>
       ) : null}

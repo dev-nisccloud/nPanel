@@ -39,9 +39,17 @@ function formatChatTime(value: string | Date): string {
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-/** Session chat paths + library (not the landing). */
+/**
+ * Session chat paths + library (not the landing).
+ * Agency: `/agency/zeepo-ai/:segment`
+ * Customer: `/:slug/zeepo-ai/:segment`
+ */
 export function isZeepoAiChatSessionPath(pathname: string | undefined): boolean {
-  return Boolean(pathname && /^\/agency\/zeepo-ai\/[^/]+/.test(pathname));
+  if (!pathname) return false;
+  return (
+    /^\/agency\/zeepo-ai\/[^/]+/.test(pathname) ||
+    /^\/[^/]+\/zeepo-ai\/[^/]+/.test(pathname)
+  );
 }
 
 export function NavZeepoAiHistory() {

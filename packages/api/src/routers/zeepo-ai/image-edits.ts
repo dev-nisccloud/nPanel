@@ -24,10 +24,12 @@ import {
 } from "../../lib/zeepo-ai-gemini-image";
 import { providerMicrosToCustomerTokens } from "../../lib/zeepo-ai-billing";
 import {
-	debitZeepoAiTokens,
+	assertZeepoAiCanStartTurn,
+	debitZeepoAiTokensOrThrow,
 	logZeepoAiAgencyUsage,
 	shouldBillZeepoAiTokens,
 } from "../../lib/zeepo-ai-tokens";
+import { assertAllowedZeepoAiMediaUrl } from "../../lib/zeepo-ai-media-url";
 import {
 	editTextSchema,
 	eraseObjectSchema,
@@ -70,6 +72,58 @@ async function authSession(userId: string, sessionId: string) {
 	return session;
 }
 
+/** Ensure generation belongs to this user + session (IDOR guard). */
+async function assertOwnedGeneration(params: {
+	userId: string;
+	sessionId: string;
+	generationId: string;
+}) {
+	const gen = await db.query.zeepoAiGeneration.findFirst({
+		where: eq(zeepoAiGeneration.id, params.generationId),
+		columns: { id: true, userId: true, sessionId: true, outputs: true },
+	});
+	if (
+		!gen ||
+		gen.userId !== params.userId ||
+		gen.sessionId !== params.sessionId
+	) {
+		throw new TRPCError({ code: "NOT_FOUND", message: "Generation not found" });
+	}
+	return gen;
+}
+
+async function prepareBillableEdit(params: {
+	userId: string;
+	userRole: string | null | undefined;
+	sessionId: string;
+	generationId: string;
+	imageUrl: string;
+	maskDataUrl?: string | null;
+}) {
+	const session = await authSession(params.userId, params.sessionId);
+	await assertOwnedGeneration({
+		userId: params.userId,
+		sessionId: params.sessionId,
+		generationId: params.generationId,
+	});
+	assertAllowedZeepoAiMediaUrl(params.imageUrl, "Image");
+	if (params.maskDataUrl) {
+		assertAllowedZeepoAiMediaUrl(params.maskDataUrl, "Mask");
+	}
+	await assertZeepoAiCanStartTurn({
+		teamId: session.teamId,
+		userId: params.userId,
+		userRole: params.userRole,
+	});
+	if (!process.env.GEMINI_API_KEY?.trim() && !process.env.GOOGLE_API_KEY?.trim()) {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message: "Image editing is temporarily unavailable.",
+		});
+	}
+	return session;
+}
+
 async function saveHistory(params: {
 	sessionId: string;
 	generationId: string;
@@ -103,12 +157,16 @@ async function saveHistory(params: {
 	return { id, ...params, createdAt: new Date().toISOString() };
 }
 
-async function updateGenerationImageUrl(generationId: string, imageUrl: string) {
-	const gen = await db.query.zeepoAiGeneration.findFirst({
-		where: eq(zeepoAiGeneration.id, generationId),
-		columns: { id: true, outputs: true },
+async function updateGenerationImageUrl(
+	generationId: string,
+	imageUrl: string,
+	opts: { userId: string; sessionId: string },
+) {
+	const gen = await assertOwnedGeneration({
+		userId: opts.userId,
+		sessionId: opts.sessionId,
+		generationId,
 	});
-	if (!gen) return;
 	const prev =
 		gen.outputs && typeof gen.outputs === "object"
 			? (gen.outputs as Record<string, unknown>)
@@ -158,9 +216,10 @@ async function billEdit(params: {
 	});
 
 	if (bill && params.teamId && tokens > 0) {
-		await debitZeepoAiTokens({
+		await debitZeepoAiTokensOrThrow({
 			teamId: params.teamId,
 			userId: params.userId,
+			userRole: params.userRole,
 			sessionId: params.sessionId,
 			tokens,
 			operationType: "image_edit",
@@ -238,7 +297,12 @@ export const zeepoAiImageEditsRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.session?.user?.id;
 			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
-			await authSession(userId, input.sessionId);
+			await assertOwnedGeneration({
+				userId,
+				sessionId: input.sessionId,
+				generationId: input.generationId,
+			});
+			assertAllowedZeepoAiMediaUrl(input.imageUrl, "Image");
 
 			const record = await saveHistory({
 				sessionId: input.sessionId,
@@ -253,7 +317,10 @@ export const zeepoAiImageEditsRouter = router({
 			});
 
 			if (input.operationType !== "original") {
-				await updateGenerationImageUrl(input.generationId, input.imageUrl);
+				await updateGenerationImageUrl(input.generationId, input.imageUrl, {
+					userId,
+					sessionId: input.sessionId,
+				});
 			}
 
 			return { record, imageUrl: input.imageUrl };
@@ -262,13 +329,14 @@ export const zeepoAiImageEditsRouter = router({
 	instruct: zeepoAiProcedure.input(instructImageEditSchema).mutation(async ({ ctx, input }) => {
 		const userId = ctx.session?.user?.id;
 		if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
-		const session = await authSession(userId, input.sessionId);
-		if (!process.env.GEMINI_API_KEY?.trim() && !process.env.GOOGLE_API_KEY?.trim()) {
-			throw new TRPCError({
-				code: "PRECONDITION_FAILED",
-				message: "Image editing is temporarily unavailable.",
-			});
-		}
+		const session = await prepareBillableEdit({
+			userId,
+			userRole: ctx.session?.user?.role,
+			sessionId: input.sessionId,
+			generationId: input.generationId,
+			imageUrl: input.imageUrl,
+			maskDataUrl: input.maskDataUrl,
+		});
 
 		const prompt = input.maskDataUrl
 			? `Edit only the highlighted/selected region: ${input.prompt}`
@@ -280,32 +348,32 @@ export const zeepoAiImageEditsRouter = router({
 			maskDataUrl: input.maskDataUrl,
 		});
 
-		let record = null;
-		if (input.generationId) {
-			record = await saveHistory({
-				sessionId: input.sessionId,
-				generationId: input.generationId,
-				parentId: input.parentId,
-				userId,
-				imageUrl: edited.imageUrl,
-				operationType: "instruction",
-				label: input.maskDataUrl ? "Region Edit" : "Instruction Edit",
-				prompt: input.prompt,
-				modelId: edited.modelId,
-				providerRequestId: edited.interactionId,
-			});
-			await updateGenerationImageUrl(input.generationId, edited.imageUrl);
-			await billEdit({
-				teamId: session.teamId,
-				userId,
-				userRole: ctx.session?.user?.role,
-				sessionId: input.sessionId,
-				generationId: input.generationId,
-				modelId: edited.modelId,
-				interactionId: edited.interactionId,
-				operationType: "instruction",
-			});
-		}
+		const record = await saveHistory({
+			sessionId: input.sessionId,
+			generationId: input.generationId,
+			parentId: input.parentId,
+			userId,
+			imageUrl: edited.imageUrl,
+			operationType: "instruction",
+			label: input.maskDataUrl ? "Region Edit" : "Instruction Edit",
+			prompt: input.prompt,
+			modelId: edited.modelId,
+			providerRequestId: edited.interactionId,
+		});
+		await updateGenerationImageUrl(input.generationId, edited.imageUrl, {
+			userId,
+			sessionId: input.sessionId,
+		});
+		await billEdit({
+			teamId: session.teamId,
+			userId,
+			userRole: ctx.session?.user?.role,
+			sessionId: input.sessionId,
+			generationId: input.generationId,
+			modelId: edited.modelId,
+			interactionId: edited.interactionId,
+			operationType: "instruction",
+		});
 
 		return { imageUrl: edited.imageUrl, record };
 	}),
@@ -313,7 +381,13 @@ export const zeepoAiImageEditsRouter = router({
 	styleTransfer: zeepoAiProcedure.input(styleTransferSchema).mutation(async ({ ctx, input }) => {
 		const userId = ctx.session?.user?.id;
 		if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
-		const session = await authSession(userId, input.sessionId);
+		const session = await prepareBillableEdit({
+			userId,
+			userRole: ctx.session?.user?.role,
+			sessionId: input.sessionId,
+			generationId: input.generationId,
+			imageUrl: input.imageUrl,
+		});
 
 		const stylePrompt =
 			input.customPrompt ?? STYLE_PROMPTS[input.style] ?? STYLE_PROMPTS.watercolor!;
@@ -346,7 +420,10 @@ export const zeepoAiImageEditsRouter = router({
 			providerRequestId: edited.interactionId,
 			metadata: { style: input.style },
 		});
-		await updateGenerationImageUrl(input.generationId, edited.imageUrl);
+		await updateGenerationImageUrl(input.generationId, edited.imageUrl, {
+			userId,
+			sessionId: input.sessionId,
+		});
 		await billEdit({
 			teamId: session.teamId,
 			userId,
@@ -364,7 +441,14 @@ export const zeepoAiImageEditsRouter = router({
 	eraseObject: zeepoAiProcedure.input(eraseObjectSchema).mutation(async ({ ctx, input }) => {
 		const userId = ctx.session?.user?.id;
 		if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
-		const session = await authSession(userId, input.sessionId);
+		const session = await prepareBillableEdit({
+			userId,
+			userRole: ctx.session?.user?.role,
+			sessionId: input.sessionId,
+			generationId: input.generationId,
+			imageUrl: input.imageUrl,
+			maskDataUrl: input.maskDataUrl,
+		});
 
 		const edited = await runGeminiEdit({
 			prompt:
@@ -384,7 +468,10 @@ export const zeepoAiImageEditsRouter = router({
 			modelId: edited.modelId,
 			providerRequestId: edited.interactionId,
 		});
-		await updateGenerationImageUrl(input.generationId, edited.imageUrl);
+		await updateGenerationImageUrl(input.generationId, edited.imageUrl, {
+			userId,
+			sessionId: input.sessionId,
+		});
 		await billEdit({
 			teamId: session.teamId,
 			userId,
@@ -402,7 +489,13 @@ export const zeepoAiImageEditsRouter = router({
 	swapBackground: zeepoAiProcedure.input(swapBackgroundSchema).mutation(async ({ ctx, input }) => {
 		const userId = ctx.session?.user?.id;
 		if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
-		const session = await authSession(userId, input.sessionId);
+		const session = await prepareBillableEdit({
+			userId,
+			userRole: ctx.session?.user?.role,
+			sessionId: input.sessionId,
+			generationId: input.generationId,
+			imageUrl: input.imageUrl,
+		});
 
 		const edited = await runGeminiEdit({
 			prompt: `Replace the background of this image with: ${input.bgPrompt}. Keep the main subject(s) sharp and naturally composited into the new scene. Match lighting and colour grade.`,
@@ -433,7 +526,10 @@ export const zeepoAiImageEditsRouter = router({
 			providerRequestId: edited.interactionId,
 			metadata: { bgPreset: input.bgPreset ?? null },
 		});
-		await updateGenerationImageUrl(input.generationId, edited.imageUrl);
+		await updateGenerationImageUrl(input.generationId, edited.imageUrl, {
+			userId,
+			sessionId: input.sessionId,
+		});
 		await billEdit({
 			teamId: session.teamId,
 			userId,
@@ -451,7 +547,13 @@ export const zeepoAiImageEditsRouter = router({
 	upscaleImage: zeepoAiProcedure.input(upscaleImageSchema).mutation(async ({ ctx, input }) => {
 		const userId = ctx.session?.user?.id;
 		if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
-		const session = await authSession(userId, input.sessionId);
+		const session = await prepareBillableEdit({
+			userId,
+			userRole: ctx.session?.user?.role,
+			sessionId: input.sessionId,
+			generationId: input.generationId,
+			imageUrl: input.imageUrl,
+		});
 
 		const edited = await runGeminiEdit({
 			prompt:
@@ -470,7 +572,10 @@ export const zeepoAiImageEditsRouter = router({
 			modelId: edited.modelId,
 			providerRequestId: edited.interactionId,
 		});
-		await updateGenerationImageUrl(input.generationId, edited.imageUrl);
+		await updateGenerationImageUrl(input.generationId, edited.imageUrl, {
+			userId,
+			sessionId: input.sessionId,
+		});
 		await billEdit({
 			teamId: session.teamId,
 			userId,
@@ -488,7 +593,13 @@ export const zeepoAiImageEditsRouter = router({
 	editText: zeepoAiProcedure.input(editTextSchema).mutation(async ({ ctx, input }) => {
 		const userId = ctx.session?.user?.id;
 		if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
-		const session = await authSession(userId, input.sessionId);
+		const session = await prepareBillableEdit({
+			userId,
+			userRole: ctx.session?.user?.role,
+			sessionId: input.sessionId,
+			generationId: input.generationId,
+			imageUrl: input.imageUrl,
+		});
 
 		const edited = await runGeminiEdit({
 			prompt: `Edit the text visible in this image as follows: ${input.prompt}. Keep layout, style, and surrounding design consistent.`,
@@ -507,7 +618,10 @@ export const zeepoAiImageEditsRouter = router({
 			modelId: edited.modelId,
 			providerRequestId: edited.interactionId,
 		});
-		await updateGenerationImageUrl(input.generationId, edited.imageUrl);
+		await updateGenerationImageUrl(input.generationId, edited.imageUrl, {
+			userId,
+			sessionId: input.sessionId,
+		});
 		await billEdit({
 			teamId: session.teamId,
 			userId,
@@ -527,7 +641,13 @@ export const zeepoAiImageEditsRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.session?.user?.id;
 			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
-			const session = await authSession(userId, input.sessionId);
+			const session = await prepareBillableEdit({
+				userId,
+				userRole: ctx.session?.user?.role,
+				sessionId: input.sessionId,
+				generationId: input.generationId,
+				imageUrl: input.imageUrl,
+			});
 
 			const basePrompt =
 				input.prompt ??

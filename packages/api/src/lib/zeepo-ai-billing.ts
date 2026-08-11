@@ -52,8 +52,8 @@ export const ZEEPO_AI_PLAN_IDS = {
 /** Minimum token balance required before starting a billable turn (customers). */
 export const ZEEPO_AI_MIN_TOKENS_TO_START = 25;
 
-/** Free signup grant when customer activates PAYG (optional welcome). */
-export const ZEEPO_AI_WELCOME_TOKEN_GRANT = 50;
+/** One-time welcome grant for first-time Zeepo AI customers with an existing service. */
+export const ZEEPO_AI_WELCOME_TOKEN_GRANT = 100;
 
 export type AnthropicUsageLike = {
 	input_tokens?: number | null;

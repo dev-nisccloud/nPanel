@@ -32,11 +32,14 @@ export function ZeepoAiClarifyingQuestions({
   questions,
   onComplete,
   onDismiss,
+  locked = false,
 }: {
   messageId: string;
   questions: ZeepoAiClarifyingQuestion[];
   onComplete: (compiled: string, attachments: Attachment[]) => void;
   onDismiss: () => void;
+  /** When true (e.g. still streaming partial questions), show chips but ignore answers. */
+  locked?: boolean;
 }) {
   const [flow, setFlow] = useState<FlowState>(() => ({
     triggerMessageId: messageId,
@@ -51,22 +54,39 @@ export function ZeepoAiClarifyingQuestions({
   const { uploadZeepoAiAttachments, progressPercent } = useAppFileUpload();
 
   useEffect(() => {
-    setFlow({
-      triggerMessageId: messageId,
-      currentIndex: 0,
-      answers: [],
-      customText: "",
-      showCustom: false,
-      uploadAttachments: [],
-      isUploadingForStep: false,
+    setFlow((prev) => {
+      if (prev.triggerMessageId !== messageId) {
+        return {
+          triggerMessageId: messageId,
+          currentIndex: 0,
+          answers: [],
+          customText: "",
+          showCustom: false,
+          uploadAttachments: [],
+          isUploadingForStep: false,
+        };
+      }
+      // Questions can grow while partial JSON streams — keep progress, clamp index.
+      if (questions.length === 0) return prev;
+      let currentIndex = prev.currentIndex;
+      if (currentIndex >= questions.length) {
+        currentIndex = Math.max(0, questions.length - 1);
+      }
+      const answers =
+        prev.answers.length > questions.length
+          ? prev.answers.slice(0, questions.length)
+          : prev.answers;
+      if (currentIndex === prev.currentIndex && answers === prev.answers) return prev;
+      return { ...prev, currentIndex, answers };
     });
-  }, [messageId]);
+  }, [messageId, questions.length]);
 
   const currentQ = questions[flow.currentIndex];
   if (!currentQ) return null;
   const total = questions.length;
 
   const advance = (answer: string, uploaded?: Attachment) => {
+    if (locked) return;
     const newAnswers = [...flow.answers];
     newAnswers[flow.currentIndex] = answer;
     const newUploads = [...flow.uploadAttachments];
@@ -122,12 +142,22 @@ export function ZeepoAiClarifyingQuestions({
     currentAnswer !== undefined && !currentQ.options.includes(currentAnswer);
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-200">
+    <div
+      className={cn(
+        "overflow-hidden rounded-2xl border border-border bg-card shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-200",
+        locked && "opacity-90",
+      )}
+    >
+      {locked ? (
+        <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+          Loading the rest of the questions…
+        </div>
+      ) : null}
       <div className="flex items-center gap-2 border-b border-border bg-muted/40 px-3 py-2.5">
         <button
           type="button"
           aria-label="Previous question"
-          disabled={flow.currentIndex === 0}
+          disabled={locked || flow.currentIndex === 0}
           className="rounded-md p-1 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
           onClick={() => goTo(flow.currentIndex - 1)}
         >
@@ -167,7 +197,11 @@ export function ZeepoAiClarifyingQuestions({
         <button
           type="button"
           aria-label="Next question"
-          disabled={flow.currentIndex + 1 >= total || flow.currentIndex >= flow.answers.length}
+          disabled={
+            locked ||
+            flow.currentIndex + 1 >= total ||
+            flow.currentIndex >= flow.answers.length
+          }
           className="rounded-md p-1 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
           onClick={() => goTo(flow.currentIndex + 1)}
         >
@@ -177,7 +211,8 @@ export function ZeepoAiClarifyingQuestions({
         <button
           type="button"
           aria-label="Skip questions"
-          className="ml-1 rounded-md p-1 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
+          disabled={locked}
+          className="ml-1 rounded-md p-1 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
           onClick={onDismiss}
         >
           <X className="size-3.5" />
@@ -188,18 +223,20 @@ export function ZeepoAiClarifyingQuestions({
         <p className="text-sm font-semibold leading-relaxed text-foreground">{currentQ.question}</p>
       </div>
 
-      <div className="flex flex-wrap gap-2 px-4 pb-3 pt-1">
+      <div className={cn("flex flex-wrap gap-2 px-4 pb-3 pt-1", locked && "pointer-events-none opacity-70")}>
         {currentQ.options.map((opt) => {
           const isSelected = currentAnswer === opt;
           return (
             <button
               key={opt}
               type="button"
+              disabled={locked}
               className={cn(
                 "inline-flex items-center rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all duration-150",
                 isSelected
                   ? "border-primary bg-primary text-primary-foreground"
                   : "border-border bg-background text-foreground hover:border-primary hover:bg-primary hover:text-primary-foreground",
+                "disabled:cursor-not-allowed",
               )}
               onClick={() => selectOption(opt)}
             >
@@ -209,6 +246,7 @@ export function ZeepoAiClarifyingQuestions({
         })}
         <button
           type="button"
+          disabled={locked}
           className={cn(
             "inline-flex items-center rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all duration-150",
             flow.showCustom || isCurrentAnswerCustom

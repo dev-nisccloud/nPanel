@@ -40,7 +40,13 @@ export const registerAttachmentSchema = z.object({
 	sessionId: z.string(),
 	url: z.string().url(),
 	name: z.string().min(1).max(200),
-	mimeType: z.string().min(1).max(100),
+	mimeType: z
+		.string()
+		.min(1)
+		.max(100)
+		.refine((v) => v.toLowerCase().startsWith("image/"), {
+			message: "Only image attachments are supported",
+		}),
 	storageKey: z.string().max(512).optional(),
 	sizeBytes: z.number().int().positive().optional(),
 });
@@ -51,7 +57,7 @@ export const streamTurnBodySchema = z.object({
 	teamId: z.string().optional(),
 	skillId: z.string().optional(),
 	searchEnabled: z.boolean().optional().default(false),
-	attachmentIds: z.array(z.string()).max(8).optional().default([]),
+	attachmentIds: z.array(z.string()).max(4).optional().default([]),
 	modelId: z.string().optional(),
 	/** Retry/edit: hard-delete this user message and everything after it before the new turn. */
 	replaceFromUserMessageId: z.string().optional(),
