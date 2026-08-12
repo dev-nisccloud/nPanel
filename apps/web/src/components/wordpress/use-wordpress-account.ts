@@ -5,10 +5,10 @@ import { trpc } from "@/utils/trpc";
 
 export const wordpressAccountSchema = z.object({
   loginUrl: z.string().optional(),
-  currentLogin: z.string().optional(),
-  currentPassword: z.string().optional(),
-  currentEmail: z.string().optional(),
-  currentLanguage: z.string().optional(),
+  currentLogin: z.string().nullable().optional(),
+  currentPassword: z.string().nullable().optional(),
+  currentEmail: z.string().nullable().optional(),
+  currentLanguage: z.string().nullable().optional(),
   availableLogins: z
     .array(
       z.object({
