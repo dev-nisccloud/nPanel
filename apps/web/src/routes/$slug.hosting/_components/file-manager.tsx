@@ -45,9 +45,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { FileManagerTypeIcon } from "@/components/hosting/file-manager-icon";
-import { type FileManagerData, type FileManagerItem, sortFileManagerItems } from "./file-manager-schema";
+import type { FileManagerData, FileManagerItem } from "./file-manager-schema";
+import { sortFileManagerItems } from "./file-manager-schema";
 import { useFtpFileManager } from "@/components/hosting/use-ftp-file-manager";
-import { hostingDetailSchema } from "./hosting-detail-schema";
+import { hostingDetailSchema } from "@/components/hosting/hosting-detail-schema";
 import { z } from "zod";
 import { toast } from "@/components/ui/sonner";
 import { DeleteFileDialog } from "./delete-file-dialog";
@@ -61,6 +62,8 @@ import { ExtractZipDialog } from "./extract-zip-dialog";
 
 interface FileManagerProps {
   hostingData: z.infer<typeof hostingDetailSchema>;
+  openCreateSheet?: boolean;
+  onCreateSheetOpened?: () => void;
 }
 
 // Loading skeleton component
@@ -133,7 +136,11 @@ function FileManagerError({ error, onRetry }: { error: Error; onRetry: () => voi
   );
 }
 
-export function FileManager({ hostingData }: FileManagerProps) {
+export function FileManager({
+  hostingData,
+  openCreateSheet,
+  onCreateSheetOpened,
+}: FileManagerProps) {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -153,6 +160,12 @@ export function FileManager({ hostingData }: FileManagerProps) {
   const [extractingFile, setExtractingFile] = useState<FileManagerItem | null>(null);
   const [availableDirectories, setAvailableDirectories] = useState<FileManagerItem[]>([]);
 
+  React.useEffect(() => {
+    if (!openCreateSheet) return;
+    setUploadSheetOpen(true);
+    onCreateSheetOpened?.();
+  }, [openCreateSheet, onCreateSheetOpened]);
+
   // Extract FTP credentials from hosting data
   const ftpCredentials = React.useMemo(() => {
     const ftpLogin = hostingData.hosting?.vrt_hst?.property?.find(
@@ -167,8 +180,8 @@ export function FileManager({ hostingData }: FileManagerProps) {
     }
 
     return {
-      host: import.meta.env.VITE_PUBLIC_FTP_HOST || "orion.nisccloud.com",
-      port: parseInt(import.meta.env.VITE_PUBLIC_FTP_PORT || "21", 10),
+      host: import.meta.env.VITE_FTP_HOST || "orion.nisccloud.com",
+      port: parseInt(import.meta.env.VITE_FTP_PORT || "21", 10),
       user: String(ftpLogin),
       password: String(ftpPassword),
       secure: true,
@@ -176,6 +189,7 @@ export function FileManager({ hostingData }: FileManagerProps) {
     };
   }, [hostingData]);
 
+  // Use FTP file manager hook
   const {
     data,
     isLoading,
@@ -321,8 +335,6 @@ export function FileManager({ hostingData }: FileManagerProps) {
     if (itemsToDelete.length === 0) return;
 
     for (const item of itemsToDelete) {
-      // Errors are handled by the mutation/toast layer
-      // so we don't stop the loop on failure.
       // eslint-disable-next-line no-await-in-loop
       await deleteItem(item);
     }
@@ -690,16 +702,8 @@ export function FileManager({ hostingData }: FileManagerProps) {
             setSelectedItem(null);
           }
         }}
-        item={
-          bulkDeleteItems && bulkDeleteItems.length > 0
-            ? bulkDeleteItems[0]
-            : selectedItem
-        }
-        additionalItems={
-          bulkDeleteItems && bulkDeleteItems.length > 1
-            ? bulkDeleteItems.slice(1)
-            : undefined
-        }
+        item={bulkDeleteItems && bulkDeleteItems.length > 0 ? bulkDeleteItems[0] : selectedItem}
+        additionalItems={bulkDeleteItems && bulkDeleteItems.length > 1 ? bulkDeleteItems.slice(1) : undefined}
         onConfirm={handleDeleteConfirm}
         isDeleting={isDeleting}
       />

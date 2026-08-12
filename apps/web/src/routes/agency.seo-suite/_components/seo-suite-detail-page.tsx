@@ -19,13 +19,16 @@ import {
   MapPin,
   Cpu,
   Bell,
-  ChevronRight,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import {
+  DetailCardTabsTrigger,
+  DETAIL_TABS_LIST_CLASS,
+} from "@/components/ui/detail-card-tabs";
 
 import { useSeoProject } from "./use-seo-project";
 import { CredentialsBanner } from "./credentials-banner";
@@ -51,9 +54,6 @@ import { AdvancedKeywordsTab } from "./advanced-keywords-tab";
 import { SmartRecommendationsTab } from "./smart-recommendations-tab";
 import { ContentStrategyTab } from "./content-strategy-tab";
 import { CompetitorIntelligenceTab } from "./competitor-intelligence-tab";
-
-const TAB_TRIGGER_CLASS =
-  "group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-shrink-0 min-w-[140px] @lg/main:min-w-[160px]";
 
 const TABS = [
   { value: "overview", title: "Overview", subtitle: "Snapshot", icon: LayoutDashboard },
@@ -185,22 +185,16 @@ export function SeoSuiteDetailPage({ projectId }: SeoSuiteDetailPageProps) {
         <div className="mt-8">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <ScrollArea className="w-full -mx-4 px-4 md:mx-0 md:px-0 scrollbar-default">
-              <TabsList className="inline-flex h-auto w-max min-w-full gap-2 p-1.5 pb-2.5 mb-1.5 bg-muted/50 rounded-lg border border-border/50">
-                {TABS.map((tab) => {
-                  const Icon = tab.icon;
-                  return (
-                    <TabsTrigger key={tab.value} value={tab.value} className={TAB_TRIGGER_CLASS}>
-                      <div className="flex items-center justify-between w-full">
-                        <Icon className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      </div>
-                      <div className="flex flex-col items-start gap-1 w-full">
-                        <span className="text-sm font-semibold tracking-tight">{tab.title}</span>
-                        <span className="text-xs text-muted-foreground">{tab.subtitle}</span>
-                      </div>
-                    </TabsTrigger>
-                  );
-                })}
+              <TabsList className={DETAIL_TABS_LIST_CLASS}>
+                {TABS.map((tab) => (
+                  <DetailCardTabsTrigger
+                    key={tab.value}
+                    value={tab.value}
+                    icon={tab.icon}
+                    title={tab.title}
+                    subtitle={tab.subtitle}
+                  />
+                ))}
               </TabsList>
               <ScrollBar orientation="horizontal" className="flex mt-0.5" />
             </ScrollArea>

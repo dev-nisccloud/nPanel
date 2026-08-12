@@ -23,7 +23,7 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { trpc } from "@/utils/trpc";
 import { type FileManagerItem } from "./file-manager-schema";
-import { hostingDetailSchema } from "./hosting-detail-schema";
+import { hostingDetailSchema } from "@/components/hosting/hosting-detail-schema";
 import { captureEvent } from "@/lib/posthog";
 
 interface ExtractZipDialogProps {

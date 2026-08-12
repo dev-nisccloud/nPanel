@@ -12,13 +12,12 @@ import {
   Settings2,
   RefreshCw,
   Database,
-  ChevronRight,
 } from "lucide-react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { WpInstallationStatusBadge } from "@/components/wordpress/wp-installation-status-badge";
 import { WordPressSiteCredentials } from "@/components/wordpress/wordpress-site-credentials";
@@ -26,14 +25,13 @@ import { WordPressSecurityTab } from "@/components/wordpress/tabs/security-tab";
 import { WordPressSiteSettingsTab } from "@/components/wordpress/tabs/site-settings-tab";
 import { WordPressUpdatesTab } from "@/components/wordpress/tabs/updates-tab";
 import { WordPressBackupsTab } from "@/components/wordpress/tabs/backups-tab";
-import { wpDetailLayout, DETAIL_TAB_TRIGGER_CLASS, DETAIL_TABS_LIST_CLASS, DETAIL_TABS_SCROLL_CLASS, DETAIL_TAB_CONTENT_CLASS } from "@/components/wordpress/wp-detail-layout";
+import { wpDetailLayout, DETAIL_TABS_LIST_CLASS, DETAIL_TABS_SCROLL_CLASS, DETAIL_TAB_CONTENT_CLASS } from "@/components/wordpress/wp-detail-layout";
+import { DetailCardTabsTrigger } from "@/components/ui/detail-card-tabs";
 import { wordpressInstallationSchema } from "@/routes/$slug.wordpress/_components/schema";
 import { useWordPressDetailBatched } from "@/routes/$slug.wordpress/_components/use-wordpress-detail-batched";
 import { WordPressOverview } from "@/routes/$slug.wordpress/_components/wordpress-overview";
 import { WordPressPlugins } from "@/routes/$slug.wordpress/_components/wordpress-plugins";
 import { WordPressThemes } from "@/routes/$slug.wordpress/_components/wordpress-themes";
-
-const TAB_TRIGGER_CLASS = DETAIL_TAB_TRIGGER_CLASS;
 
 interface TabDef {
   value: string;
@@ -183,21 +181,15 @@ export function WordPressDetailPage({
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full gap-0">
             <ScrollArea className={DETAIL_TABS_SCROLL_CLASS}>
               <TabsList className={DETAIL_TABS_LIST_CLASS}>
-                {TABS.map((tab) => {
-                  const Icon = tab.icon;
-                  return (
-                    <TabsTrigger key={tab.value} value={tab.value} className={TAB_TRIGGER_CLASS}>
-                      <div className="flex items-center justify-between w-full">
-                        <Icon className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      </div>
-                      <div className="flex flex-col items-start gap-1 w-full">
-                        <span className="text-sm font-semibold tracking-tight">{tab.label}</span>
-                        <span className="text-xs text-muted-foreground">{tab.sub}</span>
-                      </div>
-                    </TabsTrigger>
-                  );
-                })}
+                {TABS.map((tab) => (
+                  <DetailCardTabsTrigger
+                    key={tab.value}
+                    value={tab.value}
+                    icon={tab.icon}
+                    title={tab.label}
+                    subtitle={tab.sub}
+                  />
+                ))}
               </TabsList>
               <ScrollBar orientation="horizontal" className="flex mt-0.5" />
             </ScrollArea>

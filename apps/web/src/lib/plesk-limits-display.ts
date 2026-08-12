@@ -44,3 +44,33 @@ export function usagePercent(used: number, cap: number | null): number | null {
   if (!Number.isFinite(used) || used < 0) return null;
   return Math.min(Math.round((used / cap) * 100), 100);
 }
+
+/**
+ * Non-negative usage count from a Plesk `stat` field.
+ * Returns `null` when the value is missing/invalid so UI can show "—" instead of a fake 0.
+ */
+export function parseStatCount(raw: unknown): number | null {
+  const n = parseLimitNumber(raw);
+  if (n === undefined) return null;
+  if (n < 0) return null;
+  return n;
+}
+
+/**
+ * Website count for `max_site`.
+ * Plesk often reports `sites: 0` while `domains` holds the real website count.
+ */
+export function siteUsageFromStat(stat?: {
+  sites?: number;
+  domains?: number;
+} | null): number | null {
+  if (!stat) return null;
+  const sites = parseStatCount(stat.sites);
+  const domains = parseStatCount(stat.domains);
+  if (sites === null && domains === null) return null;
+  return Math.max(sites ?? 0, domains ?? 0);
+}
+
+export function formatStatCount(used: number | null): string {
+  return used === null ? "—" : String(used);
+}

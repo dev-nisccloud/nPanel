@@ -21,15 +21,10 @@ export const wpDetailLayout = {
   cardFullWidth: "col-span-full @3xl/main:col-span-3",
 } as const;
 
-/** Card-style tab trigger - matches hosting detail pages. */
-export const DETAIL_TAB_TRIGGER_CLASS =
-  "group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-shrink-0 min-w-[140px] @lg/main:min-w-[160px]";
-
-export const DETAIL_TABS_LIST_CLASS =
-  "inline-flex h-auto w-max min-w-full gap-2 p-1.5 pb-2.5 mb-1.5 bg-muted/50 rounded-lg border border-border/50";
-
-/** Scroll wrapper for card-style detail tabs - leaves room for the scrollbar and content below. */
-export const DETAIL_TABS_SCROLL_CLASS =
-  "w-full -mx-4 px-4 md:mx-0 md:px-0 scrollbar-default pb-2 mb-4";
-
-export const DETAIL_TAB_CONTENT_CLASS = "mt-0";
+/** @deprecated Import from `@/components/ui/detail-card-tabs` instead. */
+export {
+  DETAIL_TAB_TRIGGER_CLASS,
+  DETAIL_TABS_LIST_CLASS,
+  DETAIL_TABS_SCROLL_CLASS,
+  DETAIL_TAB_CONTENT_CLASS,
+} from "@/components/ui/detail-card-tabs";
