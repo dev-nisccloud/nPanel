@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ArrowLeft, LayoutDashboard, Network, Mail, Folder, Layers, ChevronRight, Database, ArchiveRestore } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, Network, Mail, Folder, Layers, Database, ArchiveRestore } from "lucide-react";
 import { Icons } from "@/components/icons";
 import { Link } from "react-router";
 import { useLocation } from "react-router";
@@ -10,8 +10,9 @@ import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { DetailCardTabsTrigger, DETAIL_TABS_LIST_CLASS } from "@/components/ui/detail-card-tabs";
 
 import { HostingOverview, type HostingDetailTab } from "@/components/hosting/hosting-overview";
 import { DnsTable } from "@/components/hosting/dns";
@@ -212,111 +213,15 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
         <div className="mt-8">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <ScrollArea className="w-full -mx-4 px-4 md:mx-0 md:px-0 scrollbar-default">
-              <TabsList className="inline-flex h-auto w-max min-w-full gap-2 p-1.5 pb-2.5 mb-1.5 bg-muted/50 rounded-lg border border-border/50">
-                <TabsTrigger
-                  value="overview"
-                  className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-shrink-0 min-w-[140px] @lg/main:min-w-[160px]"
-                >
-                  <div className="flex items-center justify-between w-full">
-                    <LayoutDashboard className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  </div>
-                  <div className="flex flex-col items-start gap-1 w-full">
-                    <span className="text-sm font-semibold tracking-tight">Overview</span>
-                    <span className="text-xs text-muted-foreground">Details</span>
-                  </div>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="dns"
-                  className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-shrink-0 min-w-[140px] @lg/main:min-w-[160px]"
-                >
-                  <div className="flex items-center justify-between w-full">
-                    <Network className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  </div>
-                  <div className="flex flex-col items-start gap-1 w-full">
-                    <span className="text-sm font-semibold tracking-tight">DNS</span>
-                    <span className="text-xs text-muted-foreground">Records</span>
-                  </div>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="mail"
-                  className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-shrink-0 min-w-[140px] @lg/main:min-w-[160px]"
-                >
-                  <div className="flex items-center justify-between w-full">
-                    <Mail className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  </div>
-                  <div className="flex flex-col items-start gap-1 w-full">
-                    <span className="text-sm font-semibold tracking-tight">Mail</span>
-                    <span className="text-xs text-muted-foreground">Accounts</span>
-                  </div>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="file-manager"
-                  className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-shrink-0 min-w-[140px] @lg/main:min-w-[160px]"
-                >
-                  <div className="flex items-center justify-between w-full">
-                    <Folder className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  </div>
-                  <div className="flex flex-col items-start gap-1 w-full">
-                    <span className="text-sm font-semibold tracking-tight">File Manager</span>
-                    <span className="text-xs text-muted-foreground">Files</span>
-                  </div>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="subdomains"
-                  className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-shrink-0 min-w-[140px] @lg/main:min-w-[160px]"
-                >
-                  <div className="flex items-center justify-between w-full">
-                    <Layers className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  </div>
-                  <div className="flex flex-col items-start gap-1 w-full">
-                    <span className="text-sm font-semibold tracking-tight">Subdomains</span>
-                    <span className="text-xs text-muted-foreground">Domains</span>
-                  </div>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="databases"
-                  className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-shrink-0 min-w-[140px] @lg/main:min-w-[160px]"
-                >
-                  <div className="flex items-center justify-between w-full">
-                    <Database className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  </div>
-                  <div className="flex flex-col items-start gap-1 w-full">
-                    <span className="text-sm font-semibold tracking-tight">Databases</span>
-                    <span className="text-xs text-muted-foreground">MySQL/PostgreSQL</span>
-                  </div>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="wordpress"
-                  className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-shrink-0 min-w-[140px] @lg/main:min-w-[160px]"
-                >
-                  <div className="flex items-center justify-between w-full">
-                    <Icons.Wordpress className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  </div>
-                  <div className="flex flex-col items-start gap-1 w-full">
-                    <span className="text-sm font-semibold tracking-tight">WordPress</span>
-                    <span className="text-xs text-muted-foreground">Instances</span>
-                  </div>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="backup-restore"
-                  className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-shrink-0 min-w-[140px] @lg/main:min-w-[160px]"
-                >
-                  <div className="flex items-center justify-between w-full">
-                    <ArchiveRestore className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  </div>
-                  <div className="flex flex-col items-start gap-1 w-full">
-                    <span className="text-sm font-semibold tracking-tight">Backup & Restore</span>
-                    <span className="text-xs text-muted-foreground">Nisc Backup</span>
-                  </div>
-                </TabsTrigger>
+              <TabsList className={DETAIL_TABS_LIST_CLASS}>
+                <DetailCardTabsTrigger value="overview" icon={LayoutDashboard} title="Overview" subtitle="Details" />
+                <DetailCardTabsTrigger value="dns" icon={Network} title="DNS" subtitle="Records" />
+                <DetailCardTabsTrigger value="mail" icon={Mail} title="Mail" subtitle="Accounts" />
+                <DetailCardTabsTrigger value="file-manager" icon={Folder} title="File Manager" subtitle="Files" />
+                <DetailCardTabsTrigger value="subdomains" icon={Layers} title="Subdomains" subtitle="Domains" />
+                <DetailCardTabsTrigger value="databases" icon={Database} title="Databases" subtitle="MySQL/PostgreSQL" />
+                <DetailCardTabsTrigger value="wordpress" icon={Icons.Wordpress} title="WordPress" subtitle="Instances" />
+                <DetailCardTabsTrigger value="backup-restore" icon={ArchiveRestore} title="Backup & Restore" subtitle="Nisc Backup" />
               </TabsList>
               <ScrollBar orientation="horizontal" className="flex mt-0.5" />
             </ScrollArea>

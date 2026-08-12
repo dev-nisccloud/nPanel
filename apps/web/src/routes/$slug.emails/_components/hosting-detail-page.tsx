@@ -1,15 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { ArrowLeft, LayoutDashboard, Network, Mail, Folder, ChevronRight } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, Network, Mail, Folder } from "lucide-react";
 import { Link } from "react-router";
 import { useLocation } from "react-router";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { DetailCardTabsTrigger, DETAIL_TABS_LIST_CLASS } from "@/components/ui/detail-card-tabs";
 
 import { HostingOverview } from "@/components/hosting/hosting-overview";
 import { DnsTable } from "@/components/hosting/dns";
@@ -131,6 +132,12 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
     return <HostingDetailError error={error as Error} onRetry={() => refetch()} teamSlug={teamSlug} />;
   }
 
+  const mailboxQuotaLimitBytes = (() => {
+    const limits = hostingData.limits?.limit ?? [];
+    const mailboxQuota = limits.find((limit) => limit?.name === "mbox_quota")?.value;
+    return typeof mailboxQuota === "number" && mailboxQuota > 0 ? mailboxQuota : undefined;
+  })();
+
   const getStatusBadge = (status: number) => {
     const isActive = status === 0;
     return (
@@ -172,59 +179,11 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
         <div className="mt-8">
           <Tabs defaultValue="overview" className="w-full">
             <ScrollArea className="w-full -mx-4 px-4 md:mx-0 md:px-0 scrollbar-default">
-              <TabsList className="inline-flex h-auto w-max min-w-full gap-2 p-1.5 pb-2.5 mb-1.5 bg-muted/50 rounded-lg border border-border/50">
-                <TabsTrigger
-                  value="overview"
-                  className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-shrink-0 min-w-[140px] @lg/main:min-w-[160px]"
-                >
-                  <div className="flex items-center justify-between w-full">
-                    <LayoutDashboard className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  </div>
-                  <div className="flex flex-col items-start gap-1 w-full">
-                    <span className="text-sm font-semibold tracking-tight">Overview</span>
-                    <span className="text-xs text-muted-foreground">Details</span>
-                  </div>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="dns"
-                  className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-shrink-0 min-w-[140px] @lg/main:min-w-[160px]"
-                >
-                  <div className="flex items-center justify-between w-full">
-                    <Network className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  </div>
-                  <div className="flex flex-col items-start gap-1 w-full">
-                    <span className="text-sm font-semibold tracking-tight">DNS</span>
-                    <span className="text-xs text-muted-foreground">Records</span>
-                  </div>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="mail"
-                  className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-shrink-0 min-w-[140px] @lg/main:min-w-[160px]"
-                >
-                  <div className="flex items-center justify-between w-full">
-                    <Mail className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  </div>
-                  <div className="flex flex-col items-start gap-1 w-full">
-                    <span className="text-sm font-semibold tracking-tight">Mail</span>
-                    <span className="text-xs text-muted-foreground">Accounts</span>
-                  </div>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="file-manager"
-                  className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-shrink-0 min-w-[140px] @lg/main:min-w-[160px]"
-                >
-                  <div className="flex items-center justify-between w-full">
-                    <Folder className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  </div>
-                  <div className="flex flex-col items-start gap-1 w-full">
-                    <span className="text-sm font-semibold tracking-tight">File Manager</span>
-                    <span className="text-xs text-muted-foreground">Files</span>
-                  </div>
-                </TabsTrigger>
+              <TabsList className={DETAIL_TABS_LIST_CLASS}>
+                <DetailCardTabsTrigger value="overview" icon={LayoutDashboard} title="Overview" subtitle="Details" />
+                <DetailCardTabsTrigger value="dns" icon={Network} title="DNS" subtitle="Records" />
+                <DetailCardTabsTrigger value="mail" icon={Mail} title="Mail" subtitle="Accounts" />
+                <DetailCardTabsTrigger value="file-manager" icon={Folder} title="File Manager" subtitle="Files" />
               </TabsList>
               <ScrollBar orientation="horizontal" className="flex mt-0.5" />
             </ScrollArea>
@@ -238,7 +197,11 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
             </TabsContent>
 
             <TabsContent value="mail" className="mt-10">
-              <MailTable siteId={hostingData.id} domainName={hostingData.gen_info?.name} />
+              <MailTable
+                siteId={hostingData.id}
+                domainName={hostingData.gen_info?.name}
+                maxMailboxQuotaBytes={mailboxQuotaLimitBytes}
+              />
             </TabsContent>
 
             <TabsContent value="file-manager" className="mt-10">

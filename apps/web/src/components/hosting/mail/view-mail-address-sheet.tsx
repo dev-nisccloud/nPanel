@@ -24,6 +24,7 @@ interface ViewMailAddressSheetProps {
   onOpenChange: (open: boolean) => void;
   data: z.infer<typeof emailAccountSchema> | null;
   domainName?: string;
+  maxMailboxQuotaBytes?: number;
 }
 
 export function ViewMailAddressSheet({
@@ -31,6 +32,7 @@ export function ViewMailAddressSheet({
   onOpenChange,
   data,
   domainName,
+  maxMailboxQuotaBytes,
 }: ViewMailAddressSheetProps) {
   if (!data) return null;
 
@@ -93,7 +95,7 @@ export function ViewMailAddressSheet({
                   <p className="text-sm font-medium text-muted-foreground">Usage</p>
                   <MailboxUsageDisplay
                     usage={data.mailbox?.usage}
-                    quota={data.mailbox?.quota}
+                    quota={maxMailboxQuotaBytes}
                     size="md"
                     barClassName="max-w-xs"
                   />

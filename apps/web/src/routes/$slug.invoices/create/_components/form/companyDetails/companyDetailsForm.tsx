@@ -40,12 +40,12 @@ export const CompanyDetailsForm = () => {
 	const userDismissedIncompleteRef = useRef(false);
 	const prevTeamIdRef = useRef<string | undefined>(undefined);
 	const form = useFormContext();
-	const selectedTeamId = form.watch("teamId") as string | undefined;
+	const selectedOrganizationId = form.watch("teamId") as string | undefined;
 
 	const { data, isLoading } = trpc.teamBilling.listTeams.useQuery();
 
 	const teams = data?.teams ?? [];
-	const foundTeam = teams.find((team) => team.id === selectedTeamId);
+	const foundTeam = teams.find((team) => team.id === selectedOrganizationId);
 	const selectedOrganization: TeamBillingSummary | undefined = foundTeam ? {
 		...foundTeam,
 		billingSettings: foundTeam.billingSettings ? {
@@ -58,7 +58,7 @@ export const CompanyDetailsForm = () => {
 			additionalNotes: foundTeam.billingSettings.additionalNotes ?? null,
 		} : null,
 	} : undefined;
-	const billingSettings = selectedTeam?.billingSettings ?? null;
+	const billingSettings = selectedOrganization?.billingSettings ?? null;
 	const billingComplete = hasCompleteBilling(billingSettings);
 
 	const setBillToValue = useCallback(
@@ -96,7 +96,7 @@ export const CompanyDetailsForm = () => {
 			});
 		};
 
-		if (!selectedTeam) {
+		if (!selectedOrganization) {
 			applyBillTo(null, undefined, false);
 			setShowIncompleteDialog(false);
 			prevTeamIdRef.current = undefined;
@@ -105,10 +105,10 @@ export const CompanyDetailsForm = () => {
 		}
 
 		if (!billingComplete || !billingSettings) {
-			applyBillTo(null, selectedTeam.name, false);
+			applyBillTo(null, selectedOrganization.name, false);
 			// Reset "dismissed" when user selected a different team so we show the dialog again
-			if (prevTeamIdRef.current !== selectedTeamId) {
-				prevTeamIdRef.current = selectedTeamId;
+			if (prevTeamIdRef.current !== selectedOrganizationId) {
+				prevTeamIdRef.current = selectedOrganizationId;
 				userDismissedIncompleteRef.current = false;
 			}
 			if (!userDismissedIncompleteRef.current) {
@@ -117,10 +117,10 @@ export const CompanyDetailsForm = () => {
 			return;
 		}
 
-		applyBillTo(billingSettings, selectedTeam.name, true);
+		applyBillTo(billingSettings, selectedOrganization.name, true);
 		setShowIncompleteDialog(false);
 		userDismissedIncompleteRef.current = false;
-	}, [billingSettings, billingComplete, selectedTeam, setBillToValue]);
+	}, [billingSettings, billingComplete, selectedOrganization, setBillToValue]);
 
 	const displayLines = useMemo(() => {
 		if (!billingSettings || !billingComplete) {
@@ -159,7 +159,7 @@ export const CompanyDetailsForm = () => {
 							aria-expanded={teamPickerOpen}
 							className="w-full justify-between"
 						>
-							{selectedTeam ? selectedTeam.name : isLoading ? "Loading organizations..." : "Select organization"}
+							{selectedOrganization ? selectedOrganization.name : isLoading ? "Loading organizations..." : "Select organization"}
 							<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 						</Button>
 					</PopoverTrigger>
@@ -182,7 +182,7 @@ export const CompanyDetailsForm = () => {
 												<p className="font-medium">{team.name}</p>
 												<p className="text-xs text-muted-foreground">{team.slug}</p>
 											</div>
-											{team.id === selectedTeamId ? (
+											{team.id === selectedOrganizationId ? (
 												<Check className="h-4 w-4 opacity-100" />
 											) : (
 												<Check className="h-4 w-4 opacity-0" />
@@ -201,13 +201,13 @@ export const CompanyDetailsForm = () => {
 					<Info className="h-4 w-4" />
 					Billing details
 				</div>
-				{!selectedTeam ? (
+				{!selectedOrganization ? (
 					<div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
 						Select an organization to populate the invoice recipient.
 					</div>
 				) : billingComplete && displayLines.length > 0 ? (
 					<div className="rounded-md border bg-muted/40 p-4 text-sm">
-						<p className="font-semibold">{selectedTeam.name}</p>
+						<p className="font-semibold">{selectedOrganization.name}</p>
 						<div className="mt-2 space-y-1 text-muted-foreground">
 							{displayLines.map((line, index) => (
 								<p key={index}>{line}</p>

@@ -284,7 +284,7 @@ export function MailTable({
                   ) : null}
                   <MailboxUsageDisplay
                     usage={email.mailbox?.usage}
-                    quota={email.mailbox?.quota}
+                    quota={maxMailboxQuotaBytes}
                   />
                 </>
               }
@@ -347,6 +347,7 @@ export function MailTable({
         }}
         data={selectedMail}
         domainName={domainName}
+        maxMailboxQuotaBytes={maxMailboxQuotaBytes}
       />
 
       <AddMailAddressSheet
