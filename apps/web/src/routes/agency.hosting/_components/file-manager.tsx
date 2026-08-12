@@ -48,7 +48,7 @@ import { FileManagerTypeIcon } from "@/components/hosting/file-manager-icon";
 import type { FileManagerData, FileManagerItem } from "./file-manager-schema";
 import { sortFileManagerItems } from "./file-manager-schema";
 import { useFtpFileManager } from "@/components/hosting/use-ftp-file-manager";
-import { hostingDetailSchema } from "./hosting-detail-schema";
+import { hostingDetailSchema } from "@/components/hosting/hosting-detail-schema";
 import { z } from "zod";
 import { toast } from "@/components/ui/sonner";
 import { DeleteFileDialog } from "./delete-file-dialog";

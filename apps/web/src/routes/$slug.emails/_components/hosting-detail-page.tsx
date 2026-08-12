@@ -11,11 +11,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
-import { HostingOverview } from "./hosting-overview";
-import { DnsTable } from "./dns-table";
-import { MailTable } from "./mail-table";
+import { HostingOverview } from "@/components/hosting/hosting-overview";
+import { DnsTable } from "@/components/hosting/dns";
+import { MailTable } from "@/components/hosting/mail";
 import { FileManager } from "./file-manager";
-import { hostingDetailSchema } from "./hosting-detail-schema";
+import { hostingDetailSchema } from "@/components/hosting/hosting-detail-schema";
 import { useHostingDetailBatched } from "./use-hosting-detail-batched";
 import { getStatusDisplayText, getStatusBadgeVariant } from "./hosting-utils";
 
@@ -230,7 +230,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
             </ScrollArea>
 
             <TabsContent value="overview" className="mt-10">
-              <HostingOverview hostingData={hostingData} />
+              <HostingOverview hostingData={hostingData} showOverusePolicy={false} />
             </TabsContent>
 
             <TabsContent value="dns" className="mt-10">

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { z } from "zod";
 import { trpc } from "@/utils/trpc";
-import { pleskSubscriptionByIdResponseSchema, hostingDetailSchema } from "./hosting-detail-schema";
+import { pleskSubscriptionByIdResponseSchema, hostingDetailSchema } from "@/components/hosting/hosting-detail-schema";
 import { toast } from "@/components/ui/sonner";
 
 /**

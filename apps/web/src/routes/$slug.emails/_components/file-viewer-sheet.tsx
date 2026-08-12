@@ -6,7 +6,7 @@ import {
   isViewableHostingFile,
 } from "@/components/hosting/hosting-file-viewer-sheet";
 import type { FileManagerItem } from "./file-manager-schema";
-import { hostingDetailSchema } from "./hosting-detail-schema";
+import { hostingDetailSchema } from "@/components/hosting/hosting-detail-schema";
 
 interface FileViewerSheetProps {
   open: boolean;
