@@ -60,7 +60,12 @@ export function useWordPressCredentials(installationId: string) {
     }
   }, [error]);
 
-  let transformedData: { login: string; password: string; loginUrl: string } | null = null;
+  let transformedData: {
+    login: string;
+    password: string | null;
+    loginUrl: string;
+    hasPassword: boolean;
+  } | null = null;
   let transformationError: Error | null = null;
 
   if (credentialsData?.data) {
@@ -68,15 +73,18 @@ export function useWordPressCredentials(installationId: string) {
       const validatedData = wordpressCredentialsSchema.parse(credentialsData.data);
       const credentials = validatedData.credentials;
       const loginUrl = validatedData.loginUrl;
+      const login = credentials?.login?.trim();
 
-      if (credentials?.login && credentials?.password && loginUrl) {
+      if (login && loginUrl) {
+        const password = credentials?.password?.trim() || null;
         transformedData = {
-          login: credentials.login,
-          password: credentials.password,
-          loginUrl: loginUrl,
+          login,
+          password,
+          loginUrl,
+          hasPassword: !!password,
         };
       } else {
-        transformationError = new Error("Missing required credential fields (login, password, or loginUrl)");
+        transformationError = new Error("Missing required credential fields (login or loginUrl)");
       }
     } catch (err) {
       console.error("WordPress credentials data transformation error:", err);

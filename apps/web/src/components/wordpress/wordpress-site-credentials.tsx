@@ -295,6 +295,8 @@ export function WordPressSiteCredentials({ installationId }: WordPressSiteCreden
     },
   });
 
+  const hasPassword = credentials?.hasPassword ?? false;
+
   const copyToClipboard = async (text: string, label: string) => {
     const ok = await copyTextToClipboard(text);
     if (ok) {
@@ -305,8 +307,12 @@ export function WordPressSiteCredentials({ installationId }: WordPressSiteCreden
   };
 
   const handleLoginToWordPress = () => {
-    if (!credentials) return;
-    openWordPressAdminLogin(credentials);
+    if (!credentials?.hasPassword || !credentials.password) return;
+    openWordPressAdminLogin({
+      login: credentials.login,
+      password: credentials.password,
+      loginUrl: credentials.loginUrl,
+    });
   };
 
   const handleUpdateAccount = (values: AccountSettingsFormValues) => {
@@ -326,16 +332,21 @@ export function WordPressSiteCredentials({ installationId }: WordPressSiteCreden
       return;
     }
 
+    if (!passwordChanged && !hasPassword && (loginChanged || emailChanged || languageChanged)) {
+      toast.error("Set a new password below before saving other account changes.");
+      return;
+    }
+
     updateAccountMutation.mutate({
       installationId: installationIdNumber,
       ...(loginChanged ? { login: values.login } : {}),
-      ...(passwordChanged ? { password: trimmedPassword } : { retainPassword: credentials.password }),
+      ...(passwordChanged ? { password: trimmedPassword } : hasPassword && credentials.password ? { retainPassword: credentials.password } : {}),
       ...(emailChanged ? { email: values.email.trim() } : {}),
       ...(languageChanged ? { language: values.language } : {}),
     });
   };
 
-  if (isLoading) {
+  if (isLoading || isAccountLoading) {
     return <CredentialsSkeleton />;
   }
 
@@ -371,10 +382,21 @@ export function WordPressSiteCredentials({ installationId }: WordPressSiteCreden
                 </p>
               </div>
             </div>
-            <Button size="sm" className="shrink-0" onClick={handleLoginToWordPress}>
-              <LogIn className="mr-2 h-4 w-4" />
-              Log in to WordPress
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Button size="sm" className="shrink-0" onClick={handleLoginToWordPress} disabled={!hasPassword}>
+                    <LogIn className="mr-2 h-4 w-4" />
+                    Log in to WordPress
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {!hasPassword ? (
+                <TooltipContent>
+                  Set a password in Account settings below to enable one-click login.
+                </TooltipContent>
+              ) : null}
+            </Tooltip>
           </div>
 
           <CardContent className="grid grid-cols-1 gap-2 p-4 @md/main:grid-cols-2 @xl/main:grid-cols-3">
@@ -387,13 +409,21 @@ export function WordPressSiteCredentials({ installationId }: WordPressSiteCreden
             />
             <CredentialRow
               label="Password"
-              description="Stored securely in WP Toolkit"
-              value={credentials.password}
-              masked
-              isMasked={!showPassword}
+              description={
+                hasPassword
+                  ? "Stored securely in WP Toolkit"
+                  : "Not available from WP Toolkit — set a new password in Account settings below"
+              }
+              value={hasPassword && credentials.password ? credentials.password : "Not available"}
+              masked={hasPassword}
+              isMasked={hasPassword ? !showPassword : undefined}
               icon={KeyRound}
-              onCopy={() => copyToClipboard(credentials.password, "Password")}
-              onToggleMask={() => setShowPassword(!showPassword)}
+              onCopy={
+                hasPassword && credentials.password
+                  ? () => copyToClipboard(credentials.password!, "Password")
+                  : () => {}
+              }
+              onToggleMask={hasPassword ? () => setShowPassword(!showPassword) : undefined}
             />
             <CredentialRow
               label="Login URL"
