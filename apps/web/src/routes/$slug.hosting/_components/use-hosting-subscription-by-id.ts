@@ -50,22 +50,27 @@ function transformPleskSubscriptionToDetail(
     } : undefined,
     limits: result.data?.limits ? {
       overuse: result.data.limits.overuse || "block",
-      limit: result.data.limits.limit || [],
+      limit: Array.isArray(result.data.limits.limit)
+        ? result.data.limits.limit
+        : result.data.limits.limit
+          ? [result.data.limits.limit]
+          : [],
     } : undefined,
+    // Preserve undefined for count stats — do not invent 0 when Plesk omitted the field.
     stat: result.data?.stat ? {
       traffic: result.data.stat.traffic ?? 0,
-      subdom: result.data.stat.subdom ?? 0,
-      wu: result.data.stat.wu ?? 0,
-      box: result.data.stat.box ?? 0,
-      redir: result.data.stat.redir ?? 0,
-      mg: result.data.stat.mg ?? 0,
-      resp: result.data.stat.resp ?? 0,
-      maillists: result.data.stat.maillists ?? 0,
-      db: result.data.stat.db ?? 0,
-      mssql_db: result.data.stat.mssql_db ?? 0,
+      subdom: result.data.stat.subdom,
+      wu: result.data.stat.wu,
+      box: result.data.stat.box,
+      redir: result.data.stat.redir,
+      mg: result.data.stat.mg,
+      resp: result.data.stat.resp,
+      maillists: result.data.stat.maillists,
+      db: result.data.stat.db,
+      mssql_db: result.data.stat.mssql_db,
       traffic_prevday: result.data.stat.traffic_prevday ?? 0,
-      domains: result.data.stat.domains ?? 0,
-      sites: result.data.stat.sites ?? 0,
+      domains: result.data.stat.domains,
+      sites: result.data.stat.sites,
     } : undefined,
     prefs: result.data?.prefs ? {
       www: result.data.prefs.www ?? true,

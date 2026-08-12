@@ -53,6 +53,8 @@ interface MailTableProps {
   siteId: number;
   domainName?: string;
   maxMailboxQuotaBytes?: number;
+  openCreateSheet?: boolean;
+  onCreateSheetOpened?: () => void;
 }
 
 // Loading skeleton component
@@ -89,7 +91,7 @@ function MailTableSkeleton() {
                       <Skeleton className="h-8 w-8" />
                     </div>
                   </div>
-                  
+
                   {/* Card content skeleton */}
                   <div className="grid grid-cols-5 gap-4">
                     <div className="space-y-1">
@@ -125,7 +127,7 @@ function MailTableSkeleton() {
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Additional info skeleton */}
                   <div className="mt-4 pt-4 border-t space-y-2">
                     <div className="space-y-1">
@@ -171,7 +173,13 @@ function MailTableError({ error, onRetry }: { error: Error; onRetry: () => void 
   );
 }
 
-export function MailTable({ siteId, domainName, maxMailboxQuotaBytes }: MailTableProps) {
+export function MailTable({
+  siteId,
+  domainName,
+  maxMailboxQuotaBytes,
+  openCreateSheet,
+  onCreateSheetOpened,
+}: MailTableProps) {
   const { data: emailsData, isLoading, isError, error, refetch } = useEmailsBySiteId(siteId);
   const [searchTerm, setSearchTerm] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState("all");
@@ -181,6 +189,14 @@ export function MailTable({ siteId, domainName, maxMailboxQuotaBytes }: MailTabl
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [mailToDelete, setMailToDelete] = React.useState<{ id: number; name: string } | null>(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!openCreateSheet) return;
+    setSheetMode("create");
+    setSheetInitial(null);
+    setIsAddMailOpen(true);
+    onCreateSheetOpened?.();
+  }, [openCreateSheet, onCreateSheetOpened]);
 
   const deleteEmailAccount = trpc.plesk.emailsDelete.delete.useMutation({
     onSuccess: () => {
@@ -207,7 +223,7 @@ export function MailTable({ siteId, domainName, maxMailboxQuotaBytes }: MailTabl
 
   const filteredData = React.useMemo(() => {
     if (!emailsData) return [];
-    
+
     let filtered = emailsData;
 
     if (searchTerm.trim()) {
@@ -314,7 +330,7 @@ export function MailTable({ siteId, domainName, maxMailboxQuotaBytes }: MailTabl
             </TableRow>
           ) : (
             filteredData.map((email) => (
-              <TableRow 
+              <TableRow
                 key={email.id}
                 className="cursor-pointer"
                 onClick={() => handleEdit(email.id)}
@@ -333,13 +349,13 @@ export function MailTable({ siteId, domainName, maxMailboxQuotaBytes }: MailTabl
                   </span>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={email.mailbox?.enabled ? "default" : "secondary"}>
+                  <Badge variant={email.mailbox?.enabled ? "default" : "secondary"} className={email.mailbox?.enabled ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800" : ""}>
                     {email.mailbox?.enabled ? "Enabled" : "Disabled"}
                   </Badge>
                 </TableCell>
                 <TableCell>
                   <div className="text-sm">
-                    {email.mailbox?.usage 
+                    {email.mailbox?.usage
                       ? `${Math.round((email.mailbox.usage / 1024 / 1024) * 100) / 100} MB`
                       : "0 MB"}
                     {email.mailbox?.quota && email.mailbox.quota !== -1 && (
@@ -366,7 +382,7 @@ export function MailTable({ siteId, domainName, maxMailboxQuotaBytes }: MailTabl
                               Edit
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               variant="destructive"
                               onClick={() => handleDelete(email.id)}
                             >
@@ -425,11 +441,11 @@ export function MailTable({ siteId, domainName, maxMailboxQuotaBytes }: MailTabl
             </SelectContent>
           </Select>
         </div>
-        
+
         <div className="flex flex-wrap items-center gap-2 @sm/main:flex-nowrap">
-          
-          <Button 
-            variant="outline" 
+
+          <Button
+            variant="outline"
             size="sm"
             onClick={() => {
               setSheetMode('create');
@@ -455,10 +471,10 @@ export function MailTable({ siteId, domainName, maxMailboxQuotaBytes }: MailTabl
       <DataTablePagination table={table} /> */}
 
       {/* Add Mail Address Sheet */}
-      <AddMailAddressSheet 
+      <AddMailAddressSheet
         open={isAddMailOpen}
-        onOpenChange={(open) => { 
-          setIsAddMailOpen(open); 
+        onOpenChange={(open) => {
+          setIsAddMailOpen(open);
           if (!open) {
             // Reset all states when sheet closes
             setSheetInitial(null);

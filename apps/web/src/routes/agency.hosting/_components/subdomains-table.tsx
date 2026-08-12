@@ -52,6 +52,8 @@ import {
 
 interface SubdomainsTableProps {
   domainName: string;
+  openCreateSheet?: boolean;
+  onCreateSheetOpened?: () => void;
 }
 
 // Loading skeleton component
@@ -162,7 +164,11 @@ function SubdomainsTableError({ error, onRetry }: { error: Error; onRetry: () =>
   );
 }
 
-export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
+export function SubdomainsTable({
+  domainName,
+  openCreateSheet,
+  onCreateSheetOpened,
+}: SubdomainsTableProps) {
   const { data: subdomainsData, isLoading, isError, error, refetch } = useSubdomainsByDomain(domainName);
   const [searchTerm, setSearchTerm] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState("all");
@@ -176,6 +182,12 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
     id?: number;
     name?: string;
   } | null>(null);
+
+  React.useEffect(() => {
+    if (!openCreateSheet) return;
+    setIsAddSubdomainOpen(true);
+    onCreateSheetOpened?.();
+  }, [openCreateSheet, onCreateSheetOpened]);
 
   // tRPC mutation for deleting subdomain
   const deleteSubdomain = trpc.plesk.subdomainsDelete.delete.useMutation({

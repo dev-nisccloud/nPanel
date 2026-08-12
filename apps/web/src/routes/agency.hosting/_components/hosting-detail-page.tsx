@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
-import { HostingOverview } from "./hosting-overview";
+import { HostingOverview, type HostingDetailTab } from "./hosting-overview";
 import { DnsTable } from "./dns-table";
 import { MailTable } from "./mail-table";
 import { FileManager } from "./file-manager";
@@ -134,6 +134,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
   const [isCreateSubscriptionOpen, setIsCreateSubscriptionOpen] = React.useState(false);
   const [installWordPressOpen, setInstallWordPressOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState("overview");
+  const [createIntentTab, setCreateIntentTab] = React.useState<HostingDetailTab | null>(null);
   const suspendActions = useHostingSubscriptionSuspend({
     onSuccess: () => refetch(),
   });
@@ -145,6 +146,27 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
   const niscBackupUsername = React.useMemo(
     () => resolveHostingNiscBackupUsername(hostingData),
     [hostingData],
+  );
+
+  const clearCreateIntent = React.useCallback(() => {
+    setCreateIntentTab(null);
+  }, []);
+
+  const handleNavigateTab = React.useCallback(
+    (tab: HostingDetailTab, options?: { openCreate?: boolean }) => {
+      setActiveTab(tab);
+      if (options?.openCreate) {
+        if (tab === "wordpress") {
+          setInstallWordPressOpen(true);
+          setCreateIntentTab(null);
+          return;
+        }
+        setCreateIntentTab(tab);
+        return;
+      }
+      setCreateIntentTab(null);
+    },
+    [],
   );
 
   const utils = trpc.useUtils();
@@ -339,11 +361,19 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
             </ScrollArea>
 
             <TabsContent value="overview" className="mt-10">
-              <HostingOverview hostingData={hostingData} />
+              <HostingOverview
+                hostingData={hostingData}
+                onNavigateTab={handleNavigateTab}
+              />
             </TabsContent>
 
             <TabsContent value="dns" className="mt-10">
-              <DnsTable siteId={hostingData.id} domainName={hostingData.gen_info?.name} />
+              <DnsTable
+                siteId={hostingData.id}
+                domainName={hostingData.gen_info?.name}
+                openCreateSheet={createIntentTab === "dns"}
+                onCreateSheetOpened={clearCreateIntent}
+              />
             </TabsContent>
 
             <TabsContent value="mail" className="mt-10">
@@ -351,19 +381,34 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
                 siteId={hostingData.id}
                 domainName={hostingData.gen_info?.name}
                 maxMailboxQuotaBytes={mailboxQuotaLimitBytes}
+                openCreateSheet={createIntentTab === "mail"}
+                onCreateSheetOpened={clearCreateIntent}
               />
             </TabsContent>
 
             <TabsContent value="file-manager" className="mt-10">
-              <FileManager hostingData={hostingData} />
+              <FileManager
+                hostingData={hostingData}
+                openCreateSheet={createIntentTab === "file-manager"}
+                onCreateSheetOpened={clearCreateIntent}
+              />
             </TabsContent>
 
             <TabsContent value="subdomains" className="mt-10">
-              <SubdomainsTable domainName={hostingData.gen_info?.name || ""} />
+              <SubdomainsTable
+                domainName={hostingData.gen_info?.name || ""}
+                openCreateSheet={createIntentTab === "subdomains"}
+                onCreateSheetOpened={clearCreateIntent}
+              />
             </TabsContent>
 
             <TabsContent value="databases" className="mt-10">
-              <DatabasesTable siteId={hostingData.id} domainName={hostingData.gen_info?.name} />
+              <DatabasesTable
+                siteId={hostingData.id}
+                domainName={hostingData.gen_info?.name}
+                openCreateSheet={createIntentTab === "databases"}
+                onCreateSheetOpened={clearCreateIntent}
+              />
             </TabsContent>
 
             <TabsContent value="wordpress" className="mt-10">

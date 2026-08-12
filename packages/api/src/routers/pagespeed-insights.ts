@@ -6,6 +6,33 @@ import { protectedProcedure, router } from '../trpc';
 const cache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
 
+/**
+ * Google raised the PSI API max analysis window to 120s (2021-03-02 release notes).
+ * @see https://developers.google.com/speed/docs/insights/release_notes
+ */
+const PSI_FETCH_TIMEOUT_MS = 120_000;
+
+/**
+ * Hard wall-clock budget for the whole call (including retries). Must stay under
+ * the web proxy PAGESPEED_PROXY_TIMEOUT_MS (150s).
+ */
+const PSI_TOTAL_DEADLINE_MS = 140_000;
+
+/** Transient statuses Google / edge proxies return for PSI overload or throttling. */
+const PSI_RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
+
+/**
+ * Truncated exponential backoff with jitter (Google API client guidance).
+ * Fast 503s are retried; a full 120s timeout is not retried (no budget left).
+ */
+const PSI_MAX_ATTEMPTS = 4;
+const PSI_BACKOFF_BASE_MS = 1_000;
+const PSI_BACKOFF_MAX_MS = 8_000;
+
+/** Official service endpoint per Google REST docs. */
+const PSI_API_ENDPOINT =
+  "https://pagespeedonline.googleapis.com/pagespeedonline/v5/runPagespeed";
+
 function getCacheKey(url: string, strategy: 'mobile' | 'desktop'): string {
   return `pagespeed:${url}:${strategy}`;
 }
@@ -27,19 +54,106 @@ function setCachedData(key: string, data: any): void {
   cache.set(key, { data, timestamp: Date.now() });
 }
 
-/** Best-effort parse of Google common JSON error shape `{ error: { message } }`. */
-async function readGoogleApiErrorMessage(response: Response): Promise<string | undefined> {
-  try {
-    const body = (await response.json()) as { error?: { message?: string } };
-    const msg = body?.error?.message;
-    return typeof msg === "string" && msg.trim() ? msg.trim() : undefined;
-  } catch {
-    return undefined;
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function backoffDelayMs(attempt: number, retryAfterHeader: string | null): number {
+  if (retryAfterHeader) {
+    const seconds = Number.parseInt(retryAfterHeader, 10);
+    if (Number.isFinite(seconds) && seconds > 0) {
+      return Math.min(seconds * 1000, PSI_BACKOFF_MAX_MS);
+    }
   }
+  const exp = PSI_BACKOFF_BASE_MS * 2 ** attempt;
+  const jitter = Math.floor(Math.random() * 500);
+  return Math.min(exp + jitter, PSI_BACKOFF_MAX_MS);
 }
 
 /**
- * Call Google PageSpeed Insights API
+ * Always read as text first. Google (and edge proxies) sometimes return plain text
+ * bodies like "Service Unavailable" instead of JSON on 5xx — calling response.json()
+ * produces: Unexpected token 'S', "Service Unavailable" is not valid JSON.
+ */
+async function readPsiBody(response: Response): Promise<{
+  text: string;
+  json: unknown | undefined;
+}> {
+  const text = await response.text();
+  if (!text) {
+    return { text: "", json: undefined };
+  }
+  try {
+    return { text, json: JSON.parse(text) as unknown };
+  } catch {
+    return { text, json: undefined };
+  }
+}
+
+function googleErrorMessage(json: unknown, text: string): string | undefined {
+  if (json && typeof json === "object") {
+    const msg = (json as { error?: { message?: unknown } }).error?.message;
+    if (typeof msg === "string" && msg.trim()) return msg.trim();
+  }
+  const trimmed = text.trim();
+  if (trimmed && trimmed.length <= 200 && !trimmed.startsWith("{") && !trimmed.startsWith("[")) {
+    return trimmed;
+  }
+  return undefined;
+}
+
+function isRetryableTransportError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const name = error.name.toLowerCase();
+  const message = error.message.toLowerCase();
+  return (
+    name === "timeouterror" ||
+    name === "aborterror" ||
+    message.includes("timeout") ||
+    message.includes("aborted") ||
+    message.includes("network") ||
+    message.includes("fetch failed") ||
+    message.includes("econnreset") ||
+    message.includes("socket")
+  );
+}
+
+function throwForPsiHttpStatus(
+  status: number,
+  googleMessage: string | undefined,
+): never {
+  if (status === 400) {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message:
+        googleMessage ??
+        'PageSpeed Insights returned 400. Check GOOGLE_PAGESPEED_API_KEY (valid, unrestricted or server/IP allowed), URL reachability, and API parameters.',
+    });
+  }
+  if (status === 401 || status === 403) {
+    throw new TRPCError({
+      code: 'UNAUTHORIZED',
+      message: googleMessage ?? 'Invalid API key or authentication failed',
+    });
+  }
+  if (status === 429) {
+    throw new TRPCError({
+      code: 'TOO_MANY_REQUESTS',
+      message: googleMessage ?? 'Rate limit exceeded. Please try again later.',
+    });
+  }
+  throw new TRPCError({
+    code: 'INTERNAL_SERVER_ERROR',
+    message:
+      googleMessage ??
+      `PageSpeed Insights API error: ${status}`,
+  });
+}
+
+/**
+ * Call Google PageSpeed Insights API with retries for transient failures.
+ * @see https://developers.google.com/speed/docs/insights/v5/get-started
+ * @see https://developers.google.com/speed/docs/insights/rest/v5/pagespeedapi/runpagespeed
  */
 async function callPageSpeedAPI(url: string, strategy: 'mobile' | 'desktop'): Promise<any> {
   const apiKey = process.env.GOOGLE_PAGESPEED_API_KEY;
@@ -52,59 +166,124 @@ async function callPageSpeedAPI(url: string, strategy: 'mobile' | 'desktop'): Pr
   }
 
   // Request all categories explicitly - API v5 only returns Performance by default
-  // Categories are case-insensitive: performance, accessibility, best-practices, seo
-  const apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&strategy=${strategy}&category=performance&category=accessibility&category=best-practices&category=seo&key=${apiKey}`;
+  const apiUrl = new URL(PSI_API_ENDPOINT);
+  apiUrl.searchParams.set("url", url);
+  apiUrl.searchParams.set("strategy", strategy);
+  for (const category of ["performance", "accessibility", "best-practices", "seo"]) {
+    apiUrl.searchParams.append("category", category);
+  }
+  apiUrl.searchParams.set("key", apiKey);
 
-  try {
-    const response = await fetch(apiUrl, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
+  let lastFailureMessage = "PageSpeed Insights API request failed";
+  const startedAt = Date.now();
 
-    if (!response.ok) {
-      const googleMessage = await readGoogleApiErrorMessage(response);
-      if (response.status === 400) {
+  for (let attempt = 0; attempt < PSI_MAX_ATTEMPTS; attempt++) {
+    const remainingMs = PSI_TOTAL_DEADLINE_MS - (Date.now() - startedAt);
+    if (remainingMs < 5_000) {
+      break;
+    }
+
+    const attemptTimeoutMs = Math.min(PSI_FETCH_TIMEOUT_MS, remainingMs - 1_000);
+
+    try {
+      const response = await fetch(apiUrl.toString(), {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+        signal: AbortSignal.timeout(attemptTimeoutMs),
+      });
+
+      const { text, json } = await readPsiBody(response);
+      const googleMessage = googleErrorMessage(json, text);
+
+      if (!response.ok) {
+        lastFailureMessage =
+          googleMessage ??
+          `PageSpeed Insights API error: ${response.status} ${response.statusText || ""}`.trim();
+
+        const delay = backoffDelayMs(attempt, response.headers.get("Retry-After"));
+        const canRetry =
+          PSI_RETRYABLE_STATUS.has(response.status) &&
+          attempt < PSI_MAX_ATTEMPTS - 1 &&
+          Date.now() - startedAt + delay + 5_000 < PSI_TOTAL_DEADLINE_MS;
+
+        if (canRetry) {
+          console.warn(
+            `[pagespeed] HTTP ${response.status} attempt ${attempt + 1}/${PSI_MAX_ATTEMPTS}; retry in ${delay}ms`,
+          );
+          await sleep(delay);
+          continue;
+        }
+
+        throwForPsiHttpStatus(response.status, googleMessage);
+      }
+
+      // HTTP 2xx but body is plain text (e.g. edge "Service Unavailable") — retry.
+      if (json === undefined) {
+        lastFailureMessage =
+          googleMessage ??
+          `PageSpeed Insights returned a non-JSON response (${response.status})`;
+
+        const delay = backoffDelayMs(attempt, null);
+        const canRetry =
+          attempt < PSI_MAX_ATTEMPTS - 1 &&
+          Date.now() - startedAt + delay + 5_000 < PSI_TOTAL_DEADLINE_MS;
+
+        if (canRetry) {
+          console.warn(
+            `[pagespeed] non-JSON body attempt ${attempt + 1}/${PSI_MAX_ATTEMPTS}; retry in ${delay}ms`,
+          );
+          await sleep(delay);
+          continue;
+        }
+
         throw new TRPCError({
-          code: 'BAD_REQUEST',
+          code: 'INTERNAL_SERVER_ERROR',
           message:
-            googleMessage ??
-            'PageSpeed Insights returned 400. Check GOOGLE_PAGESPEED_API_KEY (valid, unrestricted or server/IP allowed), URL reachability, and API parameters.',
+            'PageSpeed Insights is temporarily unavailable. Please try again in a moment.',
         });
       }
-      if (response.status === 401 || response.status === 403) {
-        throw new TRPCError({
-          code: 'UNAUTHORIZED',
-          message: googleMessage ?? 'Invalid API key or authentication failed',
-        });
+
+      return json;
+    } catch (error) {
+      if (error instanceof TRPCError) {
+        throw error;
       }
-      if (response.status === 429) {
-        throw new TRPCError({
-          code: 'TOO_MANY_REQUESTS',
-          message: googleMessage ?? 'Rate limit exceeded. Please try again later.',
-        });
+
+      lastFailureMessage =
+        error instanceof Error ? error.message : "Unknown error";
+
+      const delay = backoffDelayMs(attempt, null);
+      const canRetry =
+        isRetryableTransportError(error) &&
+        attempt < PSI_MAX_ATTEMPTS - 1 &&
+        Date.now() - startedAt + delay + 5_000 < PSI_TOTAL_DEADLINE_MS;
+
+      if (canRetry) {
+        console.warn(
+          `[pagespeed] transport error attempt ${attempt + 1}/${PSI_MAX_ATTEMPTS}; retry in ${delay}ms: ${lastFailureMessage}`,
+        );
+        await sleep(delay);
+        continue;
       }
+
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
-        message:
-          googleMessage ??
-          `PageSpeed Insights API error: ${response.status} ${response.statusText}`,
+        message: `Failed to fetch PageSpeed Insights data: ${lastFailureMessage}`,
+        cause: error,
       });
     }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    if (error instanceof TRPCError) {
-      throw error;
-    }
-    throw new TRPCError({
-      code: 'INTERNAL_SERVER_ERROR',
-      message: `Failed to fetch PageSpeed Insights data: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      cause: error,
-    });
   }
+
+  throw new TRPCError({
+    code: 'INTERNAL_SERVER_ERROR',
+    message:
+      lastFailureMessage.includes("Service Unavailable") ||
+      lastFailureMessage.includes("not valid JSON")
+        ? "PageSpeed Insights is temporarily unavailable. Please try again in a moment."
+        : lastFailureMessage,
+  });
 }
 
 /**
@@ -149,7 +328,7 @@ function formatPageSpeedData(apiResponse: any) {
       lcp: loadingExperience.metrics.LARGEST_CONTENTFUL_PAINT_MS,
       fid: loadingExperience.metrics.FIRST_INPUT_DELAY_MS,
       cls: loadingExperience.metrics.CUMULATIVE_LAYOUT_SHIFT_SCORE,
-      inp: loadingExperience.metrics.INTERACTION_TO_VITE_PAINT,
+      inp: loadingExperience.metrics.INTERACTION_TO_NEXT_PAINT,
     } : null,
   } : null;
 

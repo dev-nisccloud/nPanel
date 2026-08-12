@@ -129,18 +129,30 @@ export default function TldsPage() {
       error.message?.includes("rate limit") ||
       error.message?.includes("OpenProvider API Error 299"));
 
+  const isServiceUnavailableError =
+    error &&
+    (/service unavailable/i.test(error.message) ||
+      /not valid JSON/i.test(error.message) ||
+      /unexpected token/i.test(error.message) ||
+      /took too long/i.test(error.message));
+
   // Show error state
   if (error) {
     return (
       <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
         <div className="w-full max-w-7xl mx-auto">
-          <Alert variant={isRateLimitError ? "default" : "destructive"}>
+          <Alert variant={isRateLimitError || isServiceUnavailableError ? "default" : "destructive"}>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               {isRateLimitError ? (
                 <>
                   Rate limit exceeded. You've made too many requests in a short
                   time. Please wait a moment before refreshing again.
+                </>
+              ) : isServiceUnavailableError ? (
+                <>
+                  Domain pricing is temporarily unavailable. Please try again in
+                  a moment.
                 </>
               ) : (
                 error.message || "Failed to load TLDs"

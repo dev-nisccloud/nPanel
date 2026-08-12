@@ -17,6 +17,13 @@ const BACKEND_ORIGIN = new URL(API_TARGET);
 /** Default API proxy budget (non-streaming). */
 const PROXY_TIMEOUT_MS = 55_000;
 /**
+ * PageSpeed Insights analysis can take up to 120s (Google release notes, 2021-03-02).
+ * OpenProvider full TLD list (limit 2500 + prices) regularly exceeds 55s.
+ * Cutting these off early produced plain-text upstream 503 "Service Unavailable"
+ * that the tRPC client could not JSON-parse.
+ */
+const EXTENDED_API_PROXY_TIMEOUT_MS = 150_000;
+/**
  * SSE / long tool turns (Zeepo AI image batches) need far longer than 55s.
  * Aborting the upstream mid-stream caused "reply ended unexpectedly" while
  * image jobs kept finishing in the background.
@@ -116,6 +123,33 @@ function isLongLivedApiProxy(pathname: string, request: Request): boolean {
   return accept.includes("text/event-stream");
 }
 
+/** Procedures that legitimately need longer than the default 55s proxy budget. */
+function isExtendedTimeoutApiProxy(pathname: string): boolean {
+  return (
+    pathname.includes("pagespeedInsights") ||
+    pathname.includes("openProvider.tlds")
+  );
+}
+
+/** tRPC httpBatchLink expects a JSON array envelope even for a single procedure. */
+function trpcProxyErrorResponse(status: number, message: string): Response {
+  return Response.json(
+    [
+      {
+        error: {
+          message,
+          code: -32603,
+          data: {
+            code: "INTERNAL_SERVER_ERROR",
+            httpStatus: status,
+          },
+        },
+      },
+    ],
+    { status },
+  );
+}
+
 async function proxyToBackend(request: Request): Promise<Response> {
   const incoming = new URL(request.url);
   const target = `${API_TARGET}${incoming.pathname}${incoming.search}`;
@@ -128,7 +162,9 @@ async function proxyToBackend(request: Request): Promise<Response> {
 
   const timeoutMs = isLongLivedApiProxy(incoming.pathname, request)
     ? STREAM_PROXY_TIMEOUT_MS
-    : PROXY_TIMEOUT_MS;
+    : isExtendedTimeoutApiProxy(incoming.pathname)
+      ? EXTENDED_API_PROXY_TIMEOUT_MS
+      : PROXY_TIMEOUT_MS;
 
   const backendResponse = await fetch(target, {
     method: request.method,
@@ -138,6 +174,18 @@ async function proxyToBackend(request: Request): Promise<Response> {
     signal: AbortSignal.timeout(timeoutMs),
     ...(hasBody ? { duplex: "half" as const } : {}),
   });
+
+  const contentType = backendResponse.headers.get("content-type") ?? "";
+  // Cloud Run / edge 5xx often returns plain text ("Service Unavailable"). Forwarding
+  // that body makes the tRPC client throw JSON.parse errors in the UI.
+  if (backendResponse.status >= 500 && !contentType.includes("json")) {
+    const text = (await backendResponse.text()).trim();
+    const friendly =
+      /service unavailable/i.test(text) || text.length === 0
+        ? "Service temporarily unavailable. Please try again."
+        : text.slice(0, 300);
+    return trpcProxyErrorResponse(backendResponse.status, friendly);
+  }
 
   // Browser still sees this response as same-origin (web URL). Set-Cookie without Domain
   // attaches to the SPA host, which is what Better Auth OAuth needs.
@@ -169,7 +217,15 @@ Bun.serve({
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         console.error("[web-server] API proxy error:", message);
-        return new Response("Bad Gateway", { status: 502 });
+        const isTimeout =
+          (error instanceof Error && error.name === "TimeoutError") ||
+          /timeout|aborted/i.test(message);
+        return trpcProxyErrorResponse(
+          isTimeout ? 504 : 502,
+          isTimeout
+            ? "The request took too long. Please try again."
+            : "Bad Gateway",
+        );
       }
     }
 

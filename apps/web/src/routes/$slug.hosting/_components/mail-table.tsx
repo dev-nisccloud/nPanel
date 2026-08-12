@@ -53,6 +53,8 @@ interface MailTableProps {
   siteId: number;
   domainName?: string;
   maxMailboxQuotaBytes?: number;
+  openCreateSheet?: boolean;
+  onCreateSheetOpened?: () => void;
 }
 
 // Loading skeleton component
@@ -171,7 +173,13 @@ function MailTableError({ error, onRetry }: { error: Error; onRetry: () => void 
   );
 }
 
-export function MailTable({ siteId, domainName, maxMailboxQuotaBytes }: MailTableProps) {
+export function MailTable({
+  siteId,
+  domainName,
+  maxMailboxQuotaBytes,
+  openCreateSheet,
+  onCreateSheetOpened,
+}: MailTableProps) {
   const { data: emailsData, isLoading, isError, error, refetch } = useEmailsBySiteId(siteId);
   const [searchTerm, setSearchTerm] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState("all");
@@ -181,6 +189,14 @@ export function MailTable({ siteId, domainName, maxMailboxQuotaBytes }: MailTabl
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [mailToDelete, setMailToDelete] = React.useState<{ id: number; name: string } | null>(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!openCreateSheet) return;
+    setSheetMode("create");
+    setSheetInitial(null);
+    setIsAddMailOpen(true);
+    onCreateSheetOpened?.();
+  }, [openCreateSheet, onCreateSheetOpened]);
 
   const deleteEmailAccount = trpc.plesk.emailsDelete.delete.useMutation({
     onSuccess: () => {

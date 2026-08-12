@@ -64,6 +64,8 @@ import { ViewDnsRecordSheet } from "./view-dns-record-sheet";
 interface DnsTableProps {
   siteId: number;
   domainName?: string;
+  openCreateSheet?: boolean;
+  onCreateSheetOpened?: () => void;
 }
 
 // Loading skeleton component
@@ -142,7 +144,12 @@ function DnsTableError({ error, onRetry }: { error: Error; onRetry: () => void }
   );
 }
 
-export function DnsTable({ siteId, domainName }: DnsTableProps) {
+export function DnsTable({
+  siteId,
+  domainName,
+  openCreateSheet,
+  onCreateSheetOpened,
+}: DnsTableProps) {
   const { data: dnsData, isLoading, isError, error, refetch } = useDnsBySiteId(siteId);
 
   const [searchTerm, setSearchTerm] = React.useState("");
@@ -155,6 +162,12 @@ export function DnsTable({ siteId, domainName }: DnsTableProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [recordToDelete, setRecordToDelete] = React.useState<{ id: number; host: string; type: string } | null>(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!openCreateSheet) return;
+    setIsAddRecordOpen(true);
+    onCreateSheetOpened?.();
+  }, [openCreateSheet, onCreateSheetOpened]);
 
   // tRPC mutation for deleting DNS record
   const deleteDnsRecord = trpc.plesk.dnsDelete.delete.useMutation({

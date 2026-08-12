@@ -45,6 +45,8 @@ import { captureEvent } from "@/lib/posthog";
 interface DatabasesTableProps {
   siteId: number;
   domainName?: string;
+  openCreateSheet?: boolean;
+  onCreateSheetOpened?: () => void;
 }
 
 // Loading skeleton component
@@ -113,7 +115,12 @@ function DatabasesTableError({ error, onRetry }: { error: Error; onRetry: () => 
   );
 }
 
-export function DatabasesTable({ siteId, domainName }: DatabasesTableProps) {
+export function DatabasesTable({
+  siteId,
+  domainName,
+  openCreateSheet,
+  onCreateSheetOpened,
+}: DatabasesTableProps) {
   const { data: databasesData, isLoading, isError, error, refetch } = useDatabasesBySiteId(siteId);
   const [searchTerm, setSearchTerm] = React.useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
@@ -125,6 +132,12 @@ export function DatabasesTable({ siteId, domainName }: DatabasesTableProps) {
   const [createDatabaseOpen, setCreateDatabaseOpen] = React.useState(false);
   const [assignDatabaseOpen, setAssignDatabaseOpen] = React.useState(false);
   const [selectedDatabase, setSelectedDatabase] = React.useState<z.infer<typeof databaseSchema> | null>(null);
+
+  React.useEffect(() => {
+    if (!openCreateSheet) return;
+    setCreateDatabaseOpen(true);
+    onCreateSheetOpened?.();
+  }, [openCreateSheet, onCreateSheetOpened]);
 
   // Delete database mutation
   const deleteDatabase = trpc.plesk.databasesDelete.delete.useMutation({
@@ -180,7 +193,7 @@ export function DatabasesTable({ siteId, domainName }: DatabasesTableProps) {
       return;
     }
     // Construct phpMyAdmin URL - format: https://orion.nisccloud.com/phpMyAdmin/index.php?db={database_name}
-    const pleskHost = process.env.VITE_PUBLIC_PLESK_HOST || 'orion.nisccloud.com';
+    const pleskHost = import.meta.env.VITE_PUBLIC_PLESK_HOST || 'orion.nisccloud.com';
     const phpMyAdminUrl = `https://${pleskHost}/phpMyAdmin/index.php?db=${encodeURIComponent(db.name)}`;
     window.open(phpMyAdminUrl, '_blank', 'noopener,noreferrer');
   };

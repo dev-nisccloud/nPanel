@@ -1,93 +1,286 @@
 "use client";
 
 import * as React from "react";
-import { Gauge, RefreshCw, ExternalLink, Smartphone, Monitor, TrendingUp, AlertCircle, ChevronRight } from "lucide-react";
+import { RefreshCw, ExternalLink, AlertCircle } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { trpc } from "@/utils/trpc";
 import { captureEvent } from "@/lib/posthog";
+import { cn } from "@/lib/utils";
 
 interface PageSpeedInsightsCardProps {
   domainName: string;
 }
 
-function formatMetricValue(value: number | null | undefined): string {
-  if (value === null || value === undefined) return "N/A";
-  if (value < 1000) return `${Math.round(value)} ms`;
-  return `${(value / 1000).toFixed(2)} s`;
+type Strategy = "mobile" | "desktop";
+
+type MetricCell = {
+  value: number | null;
+  displayValue?: string | null;
+  score: number | null;
+} | null;
+
+type PageSpeedData = {
+  performance?: {
+    score: number | null;
+    accessibility: number | null;
+    bestPractices: number | null;
+    seo: number | null;
+  };
+  metrics?: {
+    lcp: MetricCell;
+    fid: MetricCell;
+    cls: MetricCell;
+    fcp: MetricCell;
+    tbt: MetricCell;
+    si: MetricCell;
+    tti: MetricCell;
+  };
+  timestamp?: string;
+  cached?: boolean;
+};
+
+function formatPageSpeedErrorMessage(message: string | undefined): string {
+  if (!message) return "Failed to load PageSpeed Insights data";
+  if (
+    /service unavailable/i.test(message) ||
+    /not valid JSON/i.test(message) ||
+    /unexpected token/i.test(message)
+  ) {
+    return "PageSpeed Insights is temporarily unavailable. Please try again.";
+  }
+  return message;
 }
 
-function getScoreColor(score: number | null): string {
+function scoreStroke(score: number | null): string {
+  if (score === null) return "stroke-muted-foreground/40";
+  if (score >= 70) return "stroke-emerald-500";
+  if (score >= 50) return "stroke-amber-500";
+  return "stroke-red-500";
+}
+
+function scoreText(score: number | null): string {
   if (score === null) return "text-muted-foreground";
-  if (score >= 90) return "text-green-600 dark:text-green-400";
-  if (score >= 50) return "text-yellow-600 dark:text-yellow-400";
+  if (score >= 70) return "text-emerald-600 dark:text-emerald-400";
+  if (score >= 50) return "text-amber-600 dark:text-amber-400";
   return "text-red-600 dark:text-red-400";
 }
 
-function getScoreBadgeVariant(score: number | null): "default" | "secondary" | "destructive" {
-  if (score === null) return "secondary";
-  if (score >= 90) return "default";
-  if (score >= 50) return "secondary";
-  return "destructive";
+function metricTone(score: number | null | undefined): string {
+  if (score == null) return "text-primary";
+  if (score >= 70) return "text-emerald-600 dark:text-emerald-400";
+  if (score >= 50) return "text-amber-600 dark:text-amber-400";
+  return "text-red-600 dark:text-red-400";
 }
 
-function MetricItem({ label, value, score, displayValue }: { 
-  label: string; 
-  value: number | null; 
+function ScoreRing({
+  score,
+  loading,
+  size = "md",
+}: {
   score: number | null;
-  displayValue?: string | null;
+  loading?: boolean;
+  size?: "sm" | "md";
 }) {
-  const scoreColor = getScoreColor(score);
-  
+  const dim = size === "sm" ? 44 : 52;
+  const radius = size === "sm" ? 17 : 21;
+  const stroke = size === "sm" ? 4.5 : 5.5;
+  const view = size === "sm" ? 44 : 56;
+  const center = view / 2;
+  const circumference = 2 * Math.PI * radius;
+  const pct = score ?? 0;
+  const offset = circumference - (pct / 100) * circumference;
+
+  if (loading) {
+    return (
+      <Skeleton
+        className="rounded-full"
+        style={{ width: dim, height: dim }}
+      />
+    );
+  }
+
   return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-medium text-muted-foreground">{label}</p>
-        {score !== null && (
-          <Badge variant={getScoreBadgeVariant(score)} className="text-xs">
-            {score}
-          </Badge>
-        )}
+    <div className="relative shrink-0" style={{ width: dim, height: dim }}>
+      <svg
+        className="-rotate-90"
+        width={dim}
+        height={dim}
+        viewBox={`0 0 ${view} ${view}`}
+        aria-hidden
+      >
+        <circle
+          cx={center}
+          cy={center}
+          r={radius}
+          fill="none"
+          className="stroke-muted"
+          strokeWidth={stroke}
+        />
+        <circle
+          cx={center}
+          cy={center}
+          r={radius}
+          fill="none"
+          className={scoreStroke(score)}
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={score === null ? circumference : offset}
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span
+          className={cn(
+            "font-semibold tabular-nums",
+            size === "sm" ? "text-xs" : "text-base",
+            scoreText(score),
+          )}
+        >
+          {score === null ? "—" : score}
+        </span>
       </div>
-      <p className={`text-sm font-semibold ${scoreColor}`}>
-        {displayValue || formatMetricValue(value)}
+    </div>
+  );
+}
+
+function formatScannedAt(timestamp: string | undefined): string {
+  if (!timestamp) return "—";
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return "—";
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  const hh = String(date.getHours()).padStart(2, "0");
+  const min = String(date.getMinutes()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+}
+
+function metricDisplay(metric: MetricCell): string {
+  if (!metric) return "—";
+  if (metric.displayValue) return metric.displayValue;
+  if (metric.value == null) return "—";
+  if (metric.value < 1000) return `${Math.round(metric.value)} ms`;
+  return `${(metric.value / 1000).toFixed(2)} s`;
+}
+
+function categoryDisplay(score: number | null | undefined): string {
+  return score == null ? "—" : String(score);
+}
+
+function StrategySummary({
+  label,
+  data,
+  loading,
+  error,
+  selected,
+  onSelect,
+}: {
+  label: string;
+  data: PageSpeedData | undefined;
+  loading: boolean;
+  error: boolean;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const score = data?.performance?.score ?? null;
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={cn(
+        "flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors",
+        selected ? "bg-primary/5" : "hover:bg-muted/40",
+      )}
+    >
+      <ScoreRing score={error ? null : score} loading={loading} />
+      <div className="min-w-0 space-y-0.5">
+        <p className="text-sm font-semibold text-foreground">{label}</p>
+        <p className="text-xs text-muted-foreground">
+          Last scanned:{" "}
+          <span className="text-muted-foreground">
+            {loading
+              ? "Running…"
+              : error
+                ? "Failed"
+                : formatScannedAt(data?.timestamp)}
+          </span>
+        </p>
+      </div>
+    </button>
+  );
+}
+
+function CategoryPie({
+  label,
+  score,
+  loading,
+}: {
+  label: string;
+  score: number | null;
+  loading?: boolean;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-1 px-1 py-1.5">
+      <ScoreRing score={score} loading={loading} size="sm" />
+      <p className="text-center text-[11px] leading-tight text-muted-foreground">
+        {label}
       </p>
     </div>
   );
 }
 
-function PageSpeedSkeleton() {
+function MetricRow({
+  label,
+  desktop,
+  mobile,
+  desktopScore,
+  mobileScore,
+}: {
+  label: string;
+  desktop: string;
+  mobile: string;
+  desktopScore?: number | null;
+  mobileScore?: number | null;
+}) {
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Gauge className="h-5 w-5" />
-              PageSpeed Insights
-            </CardTitle>
-            <CardDescription>Website performance metrics</CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-20 w-full" />
-      </CardContent>
-    </Card>
+    <div className="grid grid-cols-[minmax(7rem,1.1fr)_1fr_1fr] items-center gap-2 px-4 py-2.5">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span
+        className={cn(
+          "truncate text-sm font-medium tabular-nums",
+          metricTone(desktopScore),
+        )}
+      >
+        {desktop}
+      </span>
+      <span
+        className={cn(
+          "truncate text-sm font-medium tabular-nums",
+          metricTone(mobileScore),
+        )}
+      >
+        {mobile}
+      </span>
+    </div>
   );
 }
 
 export function PageSpeedInsightsCard({ domainName }: PageSpeedInsightsCardProps) {
-  const [strategy, setStrategy] = React.useState<'mobile' | 'desktop'>('mobile');
   const [forceRefreshMobile, setForceRefreshMobile] = React.useState(false);
   const [forceRefreshDesktop, setForceRefreshDesktop] = React.useState(false);
+  const [selectedStrategy, setSelectedStrategy] =
+    React.useState<Strategy>("mobile");
 
   const domainUrl = React.useMemo(() => {
     if (!domainName) return null;
@@ -107,633 +300,326 @@ export function PageSpeedInsightsCard({ domainName }: PageSpeedInsightsCardProps
     }
   }, [domainName]);
 
-  // Separate queries for mobile and desktop - React Query will cache them separately
   const mobileQuery = trpc.pagespeedInsights.getPageSpeed.useQuery(
     {
-      url: domainUrl || '',
-      strategy: 'mobile',
+      url: domainUrl || "",
+      strategy: "mobile",
       forceRefresh: forceRefreshMobile,
     },
     {
-      enabled: !!domainUrl && strategy === 'mobile',
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 30 * 60 * 1000, // 30 minutes
-      retry: 1,
-    }
+      enabled: !!domainUrl,
+      staleTime: 5 * 60 * 1000,
+      gcTime: 30 * 60 * 1000,
+      retry: 3,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 8000),
+    },
   );
 
   const desktopQuery = trpc.pagespeedInsights.getPageSpeed.useQuery(
     {
-      url: domainUrl || '',
-      strategy: 'desktop',
+      url: domainUrl || "",
+      strategy: "desktop",
       forceRefresh: forceRefreshDesktop,
     },
     {
-      enabled: !!domainUrl && strategy === 'desktop',
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 30 * 60 * 1000, // 30 minutes
-      retry: 1,
-    }
+      enabled: !!domainUrl,
+      staleTime: 5 * 60 * 1000,
+      gcTime: 30 * 60 * 1000,
+      retry: 3,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 8000),
+    },
   );
 
-  // Get the active query based on current strategy
-  const activeQuery = strategy === 'mobile' ? mobileQuery : desktopQuery;
-  const { data, isLoading, error, refetch } = activeQuery;
-
-  // Handle errors using useEffect - check both queries for errors
   React.useEffect(() => {
     const currentError = mobileQuery.error || desktopQuery.error;
-    if (currentError) {
-      if (currentError.data?.code === 'TOO_MANY_REQUESTS') {
-        toast.error("Rate limit exceeded. Please try again later.");
-      } else if (currentError.data?.code === 'UNAUTHORIZED') {
-        toast.error("PageSpeed Insights API authentication failed.");
-      } else {
-        toast.error("Failed to fetch PageSpeed Insights data.");
-      }
+    if (!currentError) return;
+    if (currentError.data?.code === "TOO_MANY_REQUESTS") {
+      toast.error("Rate limit exceeded. Please try again later.");
+    } else if (currentError.data?.code === "UNAUTHORIZED") {
+      toast.error("PageSpeed Insights API authentication failed.");
+    } else {
+      toast.error(formatPageSpeedErrorMessage(currentError.message));
     }
   }, [mobileQuery.error, desktopQuery.error]);
 
-  const handleRefresh = React.useCallback(() => {
-    captureEvent("pagespeed_test_run", {
-      url: domainUrl || "",
-      device: strategy,
-    });
-    if (strategy === 'mobile') {
-      setForceRefreshMobile(true);
-      mobileQuery.refetch().finally(() => {
-        setForceRefreshMobile(false);
+  const runStrategy = React.useCallback(
+    (strategy: Strategy) => {
+      captureEvent("pagespeed_test_run", {
+        url: domainUrl || "",
+        device: strategy,
       });
-    } else {
-      setForceRefreshDesktop(true);
-      desktopQuery.refetch().finally(() => {
-        setForceRefreshDesktop(false);
-      });
-    }
-  }, [strategy, mobileQuery, desktopQuery]);
+      if (strategy === "mobile") {
+        setForceRefreshMobile(true);
+        void mobileQuery.refetch().finally(() => setForceRefreshMobile(false));
+      } else {
+        setForceRefreshDesktop(true);
+        void desktopQuery.refetch().finally(() => setForceRefreshDesktop(false));
+      }
+    },
+    [domainUrl, mobileQuery, desktopQuery],
+  );
 
-  const getGooglePageSpeedUrl = React.useCallback(() => {
-    if (!domainUrl) return '';
-    return `https://pagespeed.web.dev/report?url=${encodeURIComponent(domainUrl)}`;
-  }, [domainUrl]);
+  const handleRunBoth = React.useCallback(() => {
+    runStrategy("desktop");
+    runStrategy("mobile");
+  }, [runStrategy]);
 
-  if (!domainUrl) {
-    return null;
-  }
+  const isRefreshing =
+    mobileQuery.isFetching ||
+    desktopQuery.isFetching ||
+    forceRefreshMobile ||
+    forceRefreshDesktop;
 
-  // Show full skeleton only on initial load (no data for either strategy)
-  const hasAnyData = mobileQuery.data || desktopQuery.data;
-  if (isLoading && !hasAnyData) {
-    return <PageSpeedSkeleton />;
-  }
+  const hasAnyData = !!(mobileQuery.data || desktopQuery.data);
+  const bothFailed =
+    !!mobileQuery.error &&
+    !!desktopQuery.error &&
+    !hasAnyData &&
+    !isRefreshing;
 
-  // Show error only if we have no data at all
-  if (error && !hasAnyData) {
+  if (!domainUrl) return null;
+
+  if (!hasAnyData && (mobileQuery.isLoading || desktopQuery.isLoading)) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Gauge className="h-5 w-5" />
-            PageSpeed Insights
-          </CardTitle>
-          <CardDescription>Website performance metrics</CardDescription>
+      <Card className="overflow-hidden py-0 gap-0">
+        <CardHeader className="flex flex-row items-center justify-between border-b bg-muted/30 px-4 py-3">
+          <CardTitle className="text-sm font-semibold">Performance</CardTitle>
+          <Skeleton className="h-8 w-28" />
         </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center justify-center p-6 text-center">
-            <AlertCircle className="h-8 w-8 text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground mb-4">
-              {error.message || "Failed to load PageSpeed Insights data"}
-            </p>
-            <Button onClick={handleRefresh} variant="outline" size="sm">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Try Again
-            </Button>
+        <CardContent className="p-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
+            <div className="flex items-center gap-4 px-4 py-4">
+              <Skeleton className="h-16 w-16 rounded-full" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-3 w-32" />
+              </div>
+            </div>
+            <div className="flex items-center gap-4 px-4 py-4">
+              <Skeleton className="h-16 w-16 rounded-full" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-3 w-32" />
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
     );
   }
 
-  const performanceScore = data?.performance?.score ?? null;
-  const metrics = data?.metrics;
-  const isCached = data?.cached ?? false;
+  if (bothFailed) {
+    return (
+      <Card className="overflow-hidden py-0 gap-0">
+        <CardHeader className="flex flex-row items-center justify-between border-b bg-muted/30 px-4 py-3">
+          <CardTitle className="text-sm font-semibold">Performance</CardTitle>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleRunBoth}
+            disabled={isRefreshing}
+          >
+            <RefreshCw
+              className={cn("mr-2 h-3.5 w-3.5", isRefreshing && "animate-spin")}
+            />
+            Run speed test
+          </Button>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center justify-center gap-3 px-4 py-10 text-center">
+          <AlertCircle className="h-7 w-7 text-muted-foreground" />
+          <p className="max-w-sm text-sm text-muted-foreground">
+            {formatPageSpeedErrorMessage(
+              mobileQuery.error?.message || desktopQuery.error?.message,
+            )}
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const desktop = desktopQuery.data as PageSpeedData | undefined;
+  const mobile = mobileQuery.data as PageSpeedData | undefined;
+  const active = selectedStrategy === "mobile" ? mobile : desktop;
+  const activeLoading =
+    selectedStrategy === "mobile"
+      ? mobileQuery.isLoading || mobileQuery.isFetching
+      : desktopQuery.isLoading || desktopQuery.isFetching;
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Gauge className="h-5 w-5" />
-              PageSpeed Insights
-            </CardTitle>
-            <CardDescription>
-              Discover what your real users are experiencing
-            </CardDescription>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={handleRefresh}
-              disabled={isLoading || forceRefreshMobile || forceRefreshDesktop}
-              title="Refresh PageSpeed data"
-            >
-              <RefreshCw className={`h-4 w-4 ${(isLoading || forceRefreshMobile || forceRefreshDesktop) ? "animate-spin" : ""}`} />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => window.open(getGooglePageSpeedUrl(), '_blank', 'noopener,noreferrer')}
-              title="View full report on Google PageSpeed Insights"
-            >
-              <ExternalLink className="h-4 w-4" />
-            </Button>
-          </div>
+    <Card className="overflow-hidden py-0 gap-0">
+      <CardHeader className="flex flex-row items-center justify-between gap-3 border-b bg-muted/30 px-4 py-3">
+        <CardTitle className="text-sm font-semibold">Performance</CardTitle>
+        <div className="flex items-center gap-1.5">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleRunBoth}
+            disabled={isRefreshing}
+          >
+            <RefreshCw
+              className={cn("mr-2 h-3.5 w-3.5", isRefreshing && "animate-spin")}
+            />
+            Run speed test
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            title="Open Google PageSpeed Insights"
+            aria-label="Open Google PageSpeed Insights"
+            onClick={() =>
+              window.open(
+                `https://pagespeed.web.dev/report?url=${encodeURIComponent(domainUrl)}`,
+                "_blank",
+                "noopener,noreferrer",
+              )
+            }
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+          </Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Device Strategy Toggle - same design as hosting Overview/DNS/Mail tabs */}
-        <Tabs value={strategy} onValueChange={(value) => setStrategy(value as 'mobile' | 'desktop')}>
-          <TabsList className="flex w-full flex-wrap gap-3 @sm/main:flex-nowrap @sm/main:grid @sm/main:grid-cols-2 h-auto p-0 bg-transparent">
-            <TabsTrigger
-              value="mobile"
-              className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-            >
-              <div className="flex items-center justify-between w-full">
-                <Smartphone className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                {mobileQuery.isLoading && mobileQuery.isFetching ? (
-                  <RefreshCw className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
-                ) : (
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                )}
-              </div>
-              <div className="flex flex-col items-start gap-1 w-full">
-                <span className="font-semibold text-sm">Mobile</span>
-                <span className="text-xs text-muted-foreground">Performance</span>
-              </div>
-            </TabsTrigger>
-            <TabsTrigger
-              value="desktop"
-              className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-            >
-              <div className="flex items-center justify-between w-full">
-                <Monitor className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                {desktopQuery.isLoading && desktopQuery.isFetching ? (
-                  <RefreshCw className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
-                ) : (
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                )}
-              </div>
-              <div className="flex flex-col items-start gap-1 w-full">
-                <span className="font-semibold text-sm">Desktop</span>
-                <span className="text-xs text-muted-foreground">Performance</span>
-              </div>
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
 
-        {/* Loading state for content when switching tabs */}
-        {isLoading && !data && (
-          <div className="space-y-4">
-            <Skeleton className="h-8 w-full" />
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-20 w-full" />
-          </div>
-        )}
+      <CardContent className="p-0">
+        {/* Overall Desktop / Mobile pies — click to focus category scores */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
+          <StrategySummary
+            label="Desktop"
+            data={desktop}
+            loading={desktopQuery.isLoading || desktopQuery.isFetching}
+            error={!!desktopQuery.error && !desktop}
+            selected={selectedStrategy === "desktop"}
+            onSelect={() => setSelectedStrategy("desktop")}
+          />
+          <StrategySummary
+            label="Mobile"
+            data={mobile}
+            loading={mobileQuery.isLoading || mobileQuery.isFetching}
+            error={!!mobileQuery.error && !mobile}
+            selected={selectedStrategy === "mobile"}
+            onSelect={() => setSelectedStrategy("mobile")}
+          />
+        </div>
 
-        {/* Performance Score - Only show when data is loaded */}
-        {!isLoading && performanceScore !== null && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium">Performance Score</p>
-              <Badge variant={getScoreBadgeVariant(performanceScore)} className="text-base px-3 py-1">
-                {performanceScore}
-              </Badge>
-            </div>
-            <Progress 
-              value={performanceScore} 
-              className="h-3"
-            />
-            <p className="text-xs text-muted-foreground">
-              {performanceScore >= 90 ? "Excellent" : 
-               performanceScore >= 50 ? "Needs Improvement" : 
-               "Poor"}
-            </p>
-          </div>
-        )}
-
-        {/* Core Web Vitals - Only show when data is loaded */}
-        {!isLoading && metrics && (
-          <div className="space-y-4">
-            <p className="text-sm font-semibold flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
-              Core Web Vitals
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {metrics.lcp && (
-                <MetricItem
-                  label="LCP (Largest Contentful Paint)"
-                  value={metrics.lcp.value}
-                  score={metrics.lcp.score}
-                  displayValue={metrics.lcp.displayValue}
-                />
-              )}
-              {metrics.fid && (
-                <MetricItem
-                  label="FID (First Input Delay)"
-                  value={metrics.fid.value}
-                  score={metrics.fid.score}
-                  displayValue={metrics.fid.displayValue}
-                />
-              )}
-              {metrics.cls && (
-                <MetricItem
-                  label="CLS (Cumulative Layout Shift)"
-                  value={metrics.cls.value}
-                  score={metrics.cls.score}
-                  displayValue={metrics.cls.displayValue}
-                />
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Additional Metrics - Only show when data is loaded */}
-        {!isLoading && (metrics?.fcp || metrics?.tbt || metrics?.si || metrics?.tti) && (
-          <div className="space-y-4">
-            <p className="text-sm font-semibold">Additional Metrics</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {metrics.fcp && (
-                <MetricItem
-                  label="FCP (First Contentful Paint)"
-                  value={metrics.fcp.value}
-                  score={metrics.fcp.score}
-                  displayValue={metrics.fcp.displayValue}
-                />
-              )}
-              {metrics.tbt && (
-                <MetricItem
-                  label="TBT (Total Blocking Time)"
-                  value={metrics.tbt.value}
-                  score={metrics.tbt.score}
-                  displayValue={metrics.tbt.displayValue}
-                />
-              )}
-              {metrics.si && (
-                <MetricItem
-                  label="Speed Index"
-                  value={metrics.si.value}
-                  score={metrics.si.score}
-                  displayValue={metrics.si.displayValue}
-                />
-              )}
-              {metrics.tti && (
-                <MetricItem
-                  label="TTI (Time to Interactive)"
-                  value={metrics.tti.value}
-                  score={metrics.tti.score}
-                  displayValue={metrics.tti.displayValue}
-                />
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Category Scores - Circular Progress Indicators */}
-        {!isLoading && data?.performance && (
-          <div className="space-y-4">
-            <p className="text-sm font-semibold">Category Scores</p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {/* Performance Score */}
-              <div className="flex flex-col items-center space-y-2">
-                {(() => {
-                  const score = data.performance.score ?? null;
-                  if (score === null || score === undefined) {
-                    return (
-                      <>
-                        <div className="relative flex-shrink-0">
-                          <svg className="w-20 h-20 transform -rotate-90" viewBox="0 0 100 100">
-                            <circle
-                              cx="50"
-                              cy="50"
-                              r="35"
-                              fill="none"
-                              stroke="rgb(229 231 235)"
-                              strokeWidth="8"
-                            />
-                          </svg>
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-lg font-bold text-muted-foreground">N/A</span>
-                          </div>
-                        </div>
-                        <p className="text-xs font-medium text-muted-foreground">Performance</p>
-                      </>
-                    );
-                  }
-                    const percentage = score;
-                    const radius = 35;
-                    const circumference = 2 * Math.PI * radius;
-                    const offset = circumference - (percentage / 100) * circumference;
-                    
-                    // Color based on score
-                    let circleColor = "rgb(34 197 94)"; // Green
-                    let bgColor = "rgb(220 252 231)"; // Light green
-                    let textColor = "text-green-600";
-                    
-                    if (score < 50) {
-                      circleColor = "rgb(239 68 68)"; // Red
-                      bgColor = "rgb(254 226 226)"; // Light red
-                      textColor = "text-red-600";
-                    } else if (score < 90) {
-                      circleColor = "rgb(234 179 8)"; // Yellow/Orange
-                      bgColor = "rgb(254 249 195)"; // Light yellow
-                      textColor = "text-yellow-600";
-                    }
-                    
-                    return (
-                      <>
-                        <div className="relative flex-shrink-0">
-                          <svg className="w-20 h-20 transform -rotate-90" viewBox="0 0 100 100">
-                            <circle
-                              cx="50"
-                              cy="50"
-                              r={radius}
-                              fill="none"
-                              stroke={bgColor}
-                              strokeWidth="8"
-                            />
-                            <circle
-                              cx="50"
-                              cy="50"
-                              r={radius}
-                              fill="none"
-                              stroke={circleColor}
-                              strokeWidth="8"
-                              strokeLinecap="round"
-                              strokeDasharray={circumference}
-                              strokeDashoffset={offset}
-                            />
-                          </svg>
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <span className={`text-lg font-bold ${textColor}`}>{score}</span>
-                          </div>
-                        </div>
-                        <p className="text-xs font-medium text-muted-foreground">Performance</p>
-                      </>
-                    );
-                  })()}
-                </div>
-
-              {/* Accessibility Score */}
-              <div className="flex flex-col items-center space-y-2">
-                {(() => {
-                  const score = data.performance.accessibility ?? null;
-                  if (score === null || score === undefined) {
-                    return (
-                      <>
-                        <div className="relative flex-shrink-0">
-                          <svg className="w-20 h-20 transform -rotate-90" viewBox="0 0 100 100">
-                            <circle
-                              cx="50"
-                              cy="50"
-                              r="35"
-                              fill="none"
-                              stroke="rgb(229 231 235)"
-                              strokeWidth="8"
-                            />
-                          </svg>
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-lg font-bold text-muted-foreground">N/A</span>
-                          </div>
-                        </div>
-                        <p className="text-xs font-medium text-muted-foreground">Accessibility</p>
-                      </>
-                    );
-                  }
-                    const percentage = score;
-                    const radius = 35;
-                    const circumference = 2 * Math.PI * radius;
-                    const offset = circumference - (percentage / 100) * circumference;
-                    
-                    // Color based on score
-                    let circleColor = "rgb(34 197 94)"; // Green
-                    let bgColor = "rgb(220 252 231)"; // Light green
-                    let textColor = "text-green-600";
-                    
-                    if (score < 50) {
-                      circleColor = "rgb(239 68 68)"; // Red
-                      bgColor = "rgb(254 226 226)"; // Light red
-                      textColor = "text-red-600";
-                    } else if (score < 90) {
-                      circleColor = "rgb(234 179 8)"; // Yellow/Orange
-                      bgColor = "rgb(254 249 195)"; // Light yellow
-                      textColor = "text-yellow-600";
-                    }
-                    
-                    return (
-                      <>
-                        <div className="relative flex-shrink-0">
-                          <svg className="w-20 h-20 transform -rotate-90" viewBox="0 0 100 100">
-                            <circle
-                              cx="50"
-                              cy="50"
-                              r={radius}
-                              fill="none"
-                              stroke={bgColor}
-                              strokeWidth="8"
-                            />
-                            <circle
-                              cx="50"
-                              cy="50"
-                              r={radius}
-                              fill="none"
-                              stroke={circleColor}
-                              strokeWidth="8"
-                              strokeLinecap="round"
-                              strokeDasharray={circumference}
-                              strokeDashoffset={offset}
-                            />
-                          </svg>
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <span className={`text-lg font-bold ${textColor}`}>{score}</span>
-                          </div>
-                        </div>
-                        <p className="text-xs font-medium text-muted-foreground">Accessibility</p>
-                      </>
-                    );
-                  })()}
-                </div>
-
-              {/* Best Practices Score */}
-              <div className="flex flex-col items-center space-y-2">
-                {(() => {
-                  const score = data.performance.bestPractices ?? null;
-                  if (score === null || score === undefined) {
-                    return (
-                      <>
-                        <div className="relative flex-shrink-0">
-                          <svg className="w-20 h-20 transform -rotate-90" viewBox="0 0 100 100">
-                            <circle
-                              cx="50"
-                              cy="50"
-                              r="35"
-                              fill="none"
-                              stroke="rgb(229 231 235)"
-                              strokeWidth="8"
-                            />
-                          </svg>
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-lg font-bold text-muted-foreground">N/A</span>
-                          </div>
-                        </div>
-                        <p className="text-xs font-medium text-muted-foreground">Best Practices</p>
-                      </>
-                    );
-                  }
-                    const percentage = score;
-                    const radius = 35;
-                    const circumference = 2 * Math.PI * radius;
-                    const offset = circumference - (percentage / 100) * circumference;
-                    
-                    // Color based on score
-                    let circleColor = "rgb(34 197 94)"; // Green
-                    let bgColor = "rgb(220 252 231)"; // Light green
-                    let textColor = "text-green-600";
-                    
-                    if (score < 50) {
-                      circleColor = "rgb(239 68 68)"; // Red
-                      bgColor = "rgb(254 226 226)"; // Light red
-                      textColor = "text-red-600";
-                    } else if (score < 90) {
-                      circleColor = "rgb(234 179 8)"; // Yellow/Orange
-                      bgColor = "rgb(254 249 195)"; // Light yellow
-                      textColor = "text-yellow-600";
-                    }
-                    
-                    return (
-                      <>
-                        <div className="relative flex-shrink-0">
-                          <svg className="w-20 h-20 transform -rotate-90" viewBox="0 0 100 100">
-                            <circle
-                              cx="50"
-                              cy="50"
-                              r={radius}
-                              fill="none"
-                              stroke={bgColor}
-                              strokeWidth="8"
-                            />
-                            <circle
-                              cx="50"
-                              cy="50"
-                              r={radius}
-                              fill="none"
-                              stroke={circleColor}
-                              strokeWidth="8"
-                              strokeLinecap="round"
-                              strokeDasharray={circumference}
-                              strokeDashoffset={offset}
-                            />
-                          </svg>
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <span className={`text-lg font-bold ${textColor}`}>{score}</span>
-                          </div>
-                        </div>
-                        <p className="text-xs font-medium text-muted-foreground">Best Practices</p>
-                      </>
-                    );
-                  })()}
-                </div>
-
-              {/* SEO Score */}
-              <div className="flex flex-col items-center space-y-2">
-                {(() => {
-                  const score = data.performance.seo ?? null;
-                  if (score === null || score === undefined) {
-                    return (
-                      <>
-                        <div className="relative flex-shrink-0">
-                          <svg className="w-20 h-20 transform -rotate-90" viewBox="0 0 100 100">
-                            <circle
-                              cx="50"
-                              cy="50"
-                              r="35"
-                              fill="none"
-                              stroke="rgb(229 231 235)"
-                              strokeWidth="8"
-                            />
-                          </svg>
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-lg font-bold text-muted-foreground">N/A</span>
-                          </div>
-                        </div>
-                        <p className="text-xs font-medium text-muted-foreground">SEO</p>
-                      </>
-                    );
-                  }
-                    const percentage = score;
-                    const radius = 35;
-                    const circumference = 2 * Math.PI * radius;
-                    const offset = circumference - (percentage / 100) * circumference;
-                    
-                    // Color based on score
-                    let circleColor = "rgb(34 197 94)"; // Green
-                    let bgColor = "rgb(220 252 231)"; // Light green
-                    let textColor = "text-green-600";
-                    
-                    if (score < 50) {
-                      circleColor = "rgb(239 68 68)"; // Red
-                      bgColor = "rgb(254 226 226)"; // Light red
-                      textColor = "text-red-600";
-                    } else if (score < 90) {
-                      circleColor = "rgb(234 179 8)"; // Yellow/Orange
-                      bgColor = "rgb(254 249 195)"; // Light yellow
-                      textColor = "text-yellow-600";
-                    }
-                    
-                    return (
-                      <>
-                        <div className="relative flex-shrink-0">
-                          <svg className="w-20 h-20 transform -rotate-90" viewBox="0 0 100 100">
-                            <circle
-                              cx="50"
-                              cy="50"
-                              r={radius}
-                              fill="none"
-                              stroke={bgColor}
-                              strokeWidth="8"
-                            />
-                            <circle
-                              cx="50"
-                              cy="50"
-                              r={radius}
-                              fill="none"
-                              stroke={circleColor}
-                              strokeWidth="8"
-                              strokeLinecap="round"
-                              strokeDasharray={circumference}
-                              strokeDashoffset={offset}
-                            />
-                          </svg>
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <span className={`text-lg font-bold ${textColor}`}>{score}</span>
-                          </div>
-                        </div>
-                        <p className="text-xs font-medium text-muted-foreground">SEO</p>
-                      </>
-                    );
-                  })()}
-                </div>
-            </div>
-          </div>
-        )}
-
-        {/* Timestamp - Only show when data is loaded */}
-        {!isLoading && data?.timestamp && (
-          <p className="text-xs text-muted-foreground text-center">
-            Last tested: {new Date(data.timestamp).toLocaleString()}
+        {/* Category scores as pies (replaces old progress bar) */}
+        <div className="border-t px-2 py-1">
+          <p className="px-2 pt-3 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            Category scores · {selectedStrategy === "mobile" ? "Mobile" : "Desktop"}
           </p>
-        )}
+          <div className="grid grid-cols-2 gap-1 sm:grid-cols-4">
+            <CategoryPie
+              label="Performance"
+              score={active?.performance?.score ?? null}
+              loading={activeLoading && !active}
+            />
+            <CategoryPie
+              label="Accessibility"
+              score={active?.performance?.accessibility ?? null}
+              loading={activeLoading && !active}
+            />
+            <CategoryPie
+              label="Best Practices"
+              score={active?.performance?.bestPractices ?? null}
+              loading={activeLoading && !active}
+            />
+            <CategoryPie
+              label="SEO"
+              score={active?.performance?.seo ?? null}
+              loading={activeLoading && !active}
+            />
+          </div>
+        </div>
+
+        {/* Detailed metrics behind Show more */}
+        <Accordion type="single" collapsible className="border-t">
+          <AccordionItem value="metrics" className="border-0">
+            <AccordionTrigger className="px-4 py-3 text-sm font-medium text-muted-foreground hover:no-underline">
+              Show more
+            </AccordionTrigger>
+            <AccordionContent className="pb-0">
+              <div className="divide-y divide-border border-t">
+                <div className="grid grid-cols-[minmax(7rem,1.1fr)_1fr_1fr] gap-2 bg-muted/20 px-4 py-2">
+                  <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    Metric
+                  </span>
+                  <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    Desktop
+                  </span>
+                  <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    Mobile
+                  </span>
+                </div>
+
+                <MetricRow
+                  label="Performance"
+                  desktop={categoryDisplay(desktop?.performance?.score)}
+                  mobile={categoryDisplay(mobile?.performance?.score)}
+                  desktopScore={desktop?.performance?.score}
+                  mobileScore={mobile?.performance?.score}
+                />
+                <MetricRow
+                  label="LCP"
+                  desktop={metricDisplay(desktop?.metrics?.lcp ?? null)}
+                  mobile={metricDisplay(mobile?.metrics?.lcp ?? null)}
+                  desktopScore={desktop?.metrics?.lcp?.score}
+                  mobileScore={mobile?.metrics?.lcp?.score}
+                />
+                <MetricRow
+                  label="CLS"
+                  desktop={metricDisplay(desktop?.metrics?.cls ?? null)}
+                  mobile={metricDisplay(mobile?.metrics?.cls ?? null)}
+                  desktopScore={desktop?.metrics?.cls?.score}
+                  mobileScore={mobile?.metrics?.cls?.score}
+                />
+                <MetricRow
+                  label="TBT"
+                  desktop={metricDisplay(desktop?.metrics?.tbt ?? null)}
+                  mobile={metricDisplay(mobile?.metrics?.tbt ?? null)}
+                  desktopScore={desktop?.metrics?.tbt?.score}
+                  mobileScore={mobile?.metrics?.tbt?.score}
+                />
+                <MetricRow
+                  label="FCP"
+                  desktop={metricDisplay(desktop?.metrics?.fcp ?? null)}
+                  mobile={metricDisplay(mobile?.metrics?.fcp ?? null)}
+                  desktopScore={desktop?.metrics?.fcp?.score}
+                  mobileScore={mobile?.metrics?.fcp?.score}
+                />
+                <MetricRow
+                  label="Speed Index"
+                  desktop={metricDisplay(desktop?.metrics?.si ?? null)}
+                  mobile={metricDisplay(mobile?.metrics?.si ?? null)}
+                  desktopScore={desktop?.metrics?.si?.score}
+                  mobileScore={mobile?.metrics?.si?.score}
+                />
+                <MetricRow
+                  label="Accessibility"
+                  desktop={categoryDisplay(desktop?.performance?.accessibility)}
+                  mobile={categoryDisplay(mobile?.performance?.accessibility)}
+                  desktopScore={desktop?.performance?.accessibility}
+                  mobileScore={mobile?.performance?.accessibility}
+                />
+                <MetricRow
+                  label="Best Practices"
+                  desktop={categoryDisplay(desktop?.performance?.bestPractices)}
+                  mobile={categoryDisplay(mobile?.performance?.bestPractices)}
+                  desktopScore={desktop?.performance?.bestPractices}
+                  mobileScore={mobile?.performance?.bestPractices}
+                />
+                <MetricRow
+                  label="SEO"
+                  desktop={categoryDisplay(desktop?.performance?.seo)}
+                  mobile={categoryDisplay(mobile?.performance?.seo)}
+                  desktopScore={desktop?.performance?.seo}
+                  mobileScore={mobile?.performance?.seo}
+                />
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </CardContent>
     </Card>
   );
