@@ -32,12 +32,44 @@ function asRecord(data: unknown): Record<string, unknown> | null {
 function parseAccountData(data: unknown): WpAccountRecord | null {
   const record = asRecord(data);
   if (!record) return null;
+
+  const availableLogins = Array.isArray(record.availableLogins)
+    ? record.availableLogins.flatMap((item) => {
+        const loginRecord = asRecord(item);
+        if (!loginRecord || typeof loginRecord.login !== "string") return [];
+        return [
+          {
+            login: loginRecord.login,
+            title: typeof loginRecord.title === "string" ? loginRecord.title : loginRecord.login,
+          },
+        ];
+      })
+    : undefined;
+
   return {
     loginUrl: typeof record.loginUrl === "string" ? record.loginUrl : undefined,
     currentLogin: typeof record.currentLogin === "string" ? record.currentLogin : undefined,
     currentPassword: typeof record.currentPassword === "string" ? record.currentPassword : undefined,
     currentEmail: typeof record.currentEmail === "string" ? record.currentEmail : undefined,
     currentLanguage: typeof record.currentLanguage === "string" ? record.currentLanguage : undefined,
+    availableLogins,
+  };
+}
+
+function buildCredentialsFromAccount(accountRaw: unknown): WpCredentialsRecord {
+  const account = parseAccountData(accountRaw);
+  if (!account) return {};
+
+  const login = extractNonEmptyPassword(
+    account.currentLogin,
+    account.availableLogins?.[0]?.login,
+  );
+
+  const password = extractNonEmptyPassword(account.currentPassword);
+
+  return {
+    loginUrl: account.loginUrl,
+    credentials: login || password ? { login, password } : undefined,
   };
 }
 
@@ -71,7 +103,10 @@ async function getWpCredentials(installationId: number) {
   const { data, isAuthError, isHostUnreachable, statusCode } = await sendPleskRestRequest(endpoint, 'GET');
   if (isHostUnreachable) throw new TRPCError({ code: 'SERVICE_UNAVAILABLE', message: 'Plesk host is unreachable' });
   if (isAuthError) throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid Plesk credentials' });
-  if (statusCode === 404) throw new TRPCError({ code: 'NOT_FOUND', message: `WordPress installation ${installationId} not found` });
+  if (statusCode === 404) {
+    const accountRaw = await getWpAccountSettings(installationId);
+    return buildCredentialsFromAccount(accountRaw);
+  }
   if (statusCode < 200 || statusCode >= 300 || !data) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: `WP Toolkit returned ${statusCode}` });
   return data;
 }
