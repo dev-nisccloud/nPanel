@@ -160,8 +160,12 @@ export class OpenProviderClient {
     }
 
     // FIX: Add timeout to prevent 504 Gateway Timeout errors
-    // Use longer timeout for domain checks and TLD retrieval (60 seconds) as they can take longer
-    const timeoutDuration = (endpoint.includes('/domains/check') || endpoint.includes('/tlds')) ? 60000 : 30000;
+    // TLD list (up to 2500 + prices) and domain checks need a longer budget than
+    // the default; keep aligned with apps/web server EXTENDED_API_PROXY_TIMEOUT_MS.
+    const timeoutDuration =
+      endpoint.includes('/domains/check') || endpoint.includes('/tlds')
+        ? 90_000
+        : 30_000;
     const controller = new AbortController();
     let timeoutId: NodeJS.Timeout | undefined = setTimeout(() => controller.abort(), timeoutDuration);
 
@@ -237,7 +241,7 @@ export class OpenProviderClient {
       // Handle timeout/abort errors
       if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('aborted'))) {
         const timeoutMsg = (endpoint.includes('/domains/check') || endpoint.includes('/tlds'))
-          ? 'Request timeout: OpenProvider API did not respond within 60 seconds. This may be due to high load or network issues.'
+          ? 'Request timeout: OpenProvider API did not respond within 90 seconds. This may be due to high load or network issues.'
           : 'Request timeout: OpenProvider API did not respond within 30 seconds. This may be due to high load or network issues.';
         throw new OpenProviderApiError(
           504,

@@ -48,7 +48,7 @@ import { FileManagerTypeIcon } from "@/components/hosting/file-manager-icon";
 import type { FileManagerData, FileManagerItem } from "./file-manager-schema";
 import { sortFileManagerItems } from "./file-manager-schema";
 import { useFtpFileManager } from "@/components/hosting/use-ftp-file-manager";
-import { hostingDetailSchema } from "./hosting-detail-schema";
+import { hostingDetailSchema } from "@/components/hosting/hosting-detail-schema";
 import { z } from "zod";
 import { toast } from "@/components/ui/sonner";
 import { DeleteFileDialog } from "./delete-file-dialog";
@@ -62,6 +62,8 @@ import { ExtractZipDialog } from "./extract-zip-dialog";
 
 interface FileManagerProps {
   hostingData: z.infer<typeof hostingDetailSchema>;
+  openCreateSheet?: boolean;
+  onCreateSheetOpened?: () => void;
 }
 
 // Loading skeleton component
@@ -134,7 +136,11 @@ function FileManagerError({ error, onRetry }: { error: Error; onRetry: () => voi
   );
 }
 
-export function FileManager({ hostingData }: FileManagerProps) {
+export function FileManager({
+  hostingData,
+  openCreateSheet,
+  onCreateSheetOpened,
+}: FileManagerProps) {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -153,6 +159,12 @@ export function FileManager({ hostingData }: FileManagerProps) {
   const [viewingFile, setViewingFile] = useState<FileManagerItem | null>(null);
   const [extractingFile, setExtractingFile] = useState<FileManagerItem | null>(null);
   const [availableDirectories, setAvailableDirectories] = useState<FileManagerItem[]>([]);
+
+  React.useEffect(() => {
+    if (!openCreateSheet) return;
+    setUploadSheetOpen(true);
+    onCreateSheetOpened?.();
+  }, [openCreateSheet, onCreateSheetOpened]);
 
   // Extract FTP credentials from hosting data
   const ftpCredentials = React.useMemo(() => {

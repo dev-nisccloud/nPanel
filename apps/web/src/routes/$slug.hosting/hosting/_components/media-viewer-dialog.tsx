@@ -15,7 +15,7 @@ import {
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import { type FileManagerItem } from "./file-manager-schema";
-import { hostingDetailSchema } from "./hosting-detail-schema";
+import { hostingDetailSchema } from "@/components/hosting/hosting-detail-schema";
 import { captureEvent } from "@/lib/posthog";
 
 const MAX_PREVIEW_BYTES = 100 * 1024 * 1024;

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ArrowLeft, ExternalLink, Info, QrCode, Monitor, LayoutDashboard, Network, Server, Globe, ChevronRight, Code2, AlertCircle, Calendar, MoreVertical, RefreshCw, FilePlus2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, Info, QrCode, Monitor, LayoutDashboard, Network, Server, Globe, Code2, AlertCircle, Calendar, MoreVertical, RefreshCw, FilePlus2 } from "lucide-react";
 import { Link } from "react-router";
 import { useNavigate, useLocation } from "react-router";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
+import { DetailCardTabsTrigger } from "@/components/ui/detail-card-tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
@@ -463,58 +464,10 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
         <div className="mt-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="flex w-full flex-wrap gap-3 @sm/main:flex-nowrap @sm/main:grid @sm/main:grid-cols-4 h-auto p-0 bg-transparent">
-              <TabsTrigger
-                value="overview"
-                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-              >
-                <div className="flex items-center justify-between w-full">
-                  <LayoutDashboard className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                </div>
-                <div className="flex flex-col items-start gap-1 w-full">
-                  <span className="font-semibold text-sm">Overview</span>
-                  <span className="text-xs text-muted-foreground">Details</span>
-                </div>
-              </TabsTrigger>
-              <TabsTrigger
-                value="dns"
-                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-              >
-                <div className="flex items-center justify-between w-full">
-                  <Network className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                </div>
-                <div className="flex flex-col items-start gap-1 w-full">
-                  <span className="font-semibold text-sm">DNS</span>
-                  <span className="text-xs text-muted-foreground">Records</span>
-                </div>
-              </TabsTrigger>
-              <TabsTrigger
-                value="nameservers"
-                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-              >
-                <div className="flex items-center justify-between w-full">
-                  <Server className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                </div>
-                <div className="flex flex-col items-start gap-1 w-full">
-                  <span className="font-semibold text-sm">Nameservers</span>
-                  <span className="text-xs text-muted-foreground">Configuration</span>
-                </div>
-              </TabsTrigger>
-              <TabsTrigger
-                value="protect-brand"
-                className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
-              >
-                <div className="flex items-center justify-between w-full">
-                  <Globe className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                </div>
-                <div className="flex flex-col items-start gap-1 w-full">
-                  <span className="font-semibold text-sm">Protect Brand</span>
-                  <span className="text-xs text-muted-foreground">Extensions</span>
-                </div>
-              </TabsTrigger>
+              <DetailCardTabsTrigger layout="fluid" value="overview" icon={LayoutDashboard} title="Overview" subtitle="Details" />
+              <DetailCardTabsTrigger layout="fluid" value="dns" icon={Network} title="DNS" subtitle="Records" />
+              <DetailCardTabsTrigger layout="fluid" value="nameservers" icon={Server} title="Nameservers" subtitle="Configuration" />
+              <DetailCardTabsTrigger layout="fluid" value="protect-brand" icon={Globe} title="Protect Brand" subtitle="Extensions" />
             </TabsList>
 
             <TabsContent value="overview" className="mt-6">

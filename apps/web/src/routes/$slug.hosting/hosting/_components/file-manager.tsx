@@ -45,9 +45,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { FileManagerTypeIcon } from "@/components/hosting/file-manager-icon";
-import { type FileManagerData, type FileManagerItem } from "./file-manager-schema";
+import type { FileManagerData, FileManagerItem } from "./file-manager-schema";
+import { sortFileManagerItems } from "./file-manager-schema";
 import { useFtpFileManager } from "@/components/hosting/use-ftp-file-manager";
-import { hostingDetailSchema } from "./hosting-detail-schema";
+import { hostingDetailSchema } from "@/components/hosting/hosting-detail-schema";
 import { z } from "zod";
 import { toast } from "@/components/ui/sonner";
 import { DeleteFileDialog } from "./delete-file-dialog";
@@ -61,6 +62,8 @@ import { ExtractZipDialog } from "./extract-zip-dialog";
 
 interface FileManagerProps {
   hostingData: z.infer<typeof hostingDetailSchema>;
+  openCreateSheet?: boolean;
+  onCreateSheetOpened?: () => void;
 }
 
 // Loading skeleton component
@@ -87,7 +90,7 @@ function FileManagerSkeleton() {
       </div>
 
       {/* Content skeleton */}
-      <div className="overflow-hidden rounded-lg border">
+      <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 p-4">
           {Array.from({ length: 8 }).map((_, i) => (
             <Card key={i}>
@@ -133,7 +136,11 @@ function FileManagerError({ error, onRetry }: { error: Error; onRetry: () => voi
   );
 }
 
-export function FileManager({ hostingData }: FileManagerProps) {
+export function FileManager({
+  hostingData,
+  openCreateSheet,
+  onCreateSheetOpened,
+}: FileManagerProps) {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -153,6 +160,12 @@ export function FileManager({ hostingData }: FileManagerProps) {
   const [extractingFile, setExtractingFile] = useState<FileManagerItem | null>(null);
   const [availableDirectories, setAvailableDirectories] = useState<FileManagerItem[]>([]);
 
+  React.useEffect(() => {
+    if (!openCreateSheet) return;
+    setUploadSheetOpen(true);
+    onCreateSheetOpened?.();
+  }, [openCreateSheet, onCreateSheetOpened]);
+
   // Extract FTP credentials from hosting data
   const ftpCredentials = React.useMemo(() => {
     const ftpLogin = hostingData.hosting?.vrt_hst?.property?.find(
@@ -167,8 +180,8 @@ export function FileManager({ hostingData }: FileManagerProps) {
     }
 
     return {
-      host: import.meta.env.VITE_PUBLIC_FTP_HOST || "orion.nisccloud.com",
-      port: parseInt(import.meta.env.VITE_PUBLIC_FTP_PORT || "21", 10),
+      host: import.meta.env.VITE_FTP_HOST || "orion.nisccloud.com",
+      port: parseInt(import.meta.env.VITE_FTP_PORT || "21", 10),
       user: String(ftpLogin),
       password: String(ftpPassword),
       secure: true,
@@ -176,6 +189,7 @@ export function FileManager({ hostingData }: FileManagerProps) {
     };
   }, [hostingData]);
 
+  // Use FTP file manager hook
   const {
     data,
     isLoading,
@@ -201,8 +215,10 @@ export function FileManager({ hostingData }: FileManagerProps) {
     isDownloading,
   } = useFtpFileManager(ftpCredentials, "/");
 
-  const filteredItems = (data?.items || []).filter(item =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredItems = sortFileManagerItems(
+    (data?.items || []).filter(item =>
+      item.name.toLowerCase().includes(searchTerm.toLowerCase())
+    )
   );
 
   const formatFileSize = (bytes?: number) => {
@@ -262,6 +278,26 @@ export function FileManager({ hostingData }: FileManagerProps) {
     return item.type === "file" &&
       (item.extension?.toLowerCase() === "zip" ||
         item.name.toLowerCase().endsWith(".zip"));
+  };
+
+  const handleItemActivate = (item: FileManagerItem) => {
+    if (item.type === "folder") {
+      navigateToPath(item.path);
+      return;
+    }
+    if (isViewableMediaFile(item)) {
+      setViewingMediaFile(item);
+      setMediaViewerOpen(true);
+      return;
+    }
+    if (isViewableFile(item)) {
+      setViewingFile(item);
+      setFileViewerOpen(true);
+      return;
+    }
+    if (isZipFile(item)) {
+      handleExtractClick(item);
+    }
   };
 
   // Check if selected items include a zip file
@@ -381,21 +417,9 @@ export function FileManager({ hostingData }: FileManagerProps) {
               key={item.id}
               className={`cursor-pointer ${selectedItems.includes(item.id) ? "bg-muted/50" : ""
                 }`}
-              onClick={() => {
-                if (item.type === "folder") {
-                  navigateToPath(item.path);
-                } else if (isViewableMediaFile(item)) {
-                  setViewingMediaFile(item);
-                  setMediaViewerOpen(true);
-                } else if (isViewableFile(item)) {
-                  setViewingFile(item);
-                  setFileViewerOpen(true);
-                } else {
-                  handleSelectItem(item.id, !selectedItems.includes(item.id));
-                }
-              }}
+              onClick={() => handleItemActivate(item)}
             >
-              <TableCell>
+              <TableCell onClick={(e) => e.stopPropagation()}>
                 <Checkbox
                   checked={selectedItems.includes(item.id)}
                   onCheckedChange={(checked) => {
@@ -421,7 +445,7 @@ export function FileManager({ hostingData }: FileManagerProps) {
               </TableCell>
               <TableCell>{formatFileSize(item.size)}</TableCell>
               <TableCell>{format(new Date(item.modified), "MMM dd, yyyy HH:mm")}</TableCell>
-              <TableCell>
+              <TableCell onClick={(e) => e.stopPropagation()}>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
@@ -678,16 +702,8 @@ export function FileManager({ hostingData }: FileManagerProps) {
             setSelectedItem(null);
           }
         }}
-        item={
-          bulkDeleteItems && bulkDeleteItems.length > 0
-            ? bulkDeleteItems[0]
-            : selectedItem
-        }
-        additionalItems={
-          bulkDeleteItems && bulkDeleteItems.length > 1
-            ? bulkDeleteItems.slice(1)
-            : undefined
-        }
+        item={bulkDeleteItems && bulkDeleteItems.length > 0 ? bulkDeleteItems[0] : selectedItem}
+        additionalItems={bulkDeleteItems && bulkDeleteItems.length > 1 ? bulkDeleteItems.slice(1) : undefined}
         onConfirm={handleDeleteConfirm}
         isDeleting={isDeleting}
       />
