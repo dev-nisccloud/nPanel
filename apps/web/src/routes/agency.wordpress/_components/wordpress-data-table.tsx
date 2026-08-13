@@ -5,6 +5,7 @@ import { Link, useLocation, useNavigate } from "react-router";
 import { z } from "zod";
 
 import { Badge } from "@/components/ui/badge";
+import { ViewDetailsButton, VisitSiteButton } from "@/components/ui/list-row-actions";
 import { WordPressList } from "@/components/wordpress/wordpress-list";
 import {
   WP_INSTALLATION_STATUS_BADGE_CLASS,
@@ -59,6 +60,7 @@ export function WordPressDataTable() {
   const items = filteredData.map((item) => {
     const title = item.displayTitle || item.title || `Installation ${item.id}`;
     const href = `/${teamSlug}/wordpress/${item.id}`;
+    const siteUrl = item.url || item.domain?.name;
 
     return {
       key: String(item.id),
@@ -81,6 +83,12 @@ export function WordPressDataTable() {
           {item.domain?.name ? <span>· {item.domain.name}</span> : null}
           <span className="inline-flex items-center gap-1">· {getSecurityBadge(item)}</span>
         </div>
+      ),
+      actions: (
+        <>
+          <VisitSiteButton url={siteUrl} />
+          <ViewDetailsButton onClick={() => navigate(href)} />
+        </>
       ),
       onClick: () => navigate(href),
     };

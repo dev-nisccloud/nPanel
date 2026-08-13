@@ -9,6 +9,7 @@ import {
   HostingStatusBadge,
   HostingSubscriptionsList,
 } from "@/components/hosting/hosting-subscriptions-list";
+import { ViewDetailsButton, VisitSiteButton } from "@/components/ui/list-row-actions";
 import {
   Tooltip,
   TooltipContent,
@@ -85,6 +86,10 @@ export function HostingDataTable() {
       ),
       actions: (
         <>
+          <VisitSiteButton url={subscription.subscriptionName} />
+          <ViewDetailsButton
+            onClick={() => navigate(`/agency/hosting/${subscription.id}`)}
+          />
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>

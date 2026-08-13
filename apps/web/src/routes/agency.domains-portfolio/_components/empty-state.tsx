@@ -1,6 +1,6 @@
 "use client";
 
-import { Globe, Plus } from "lucide-react";
+import { ArrowRightLeft, Globe, Plus } from "lucide-react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -15,10 +15,16 @@ export function EmptyState() {
       <p className="text-muted-foreground mb-4">
         You haven&apos;t registered any domains yet. Start building your domains portfolio by registering your first domain.
       </p>
-      <Button onClick={() => navigate("/agency/domains")}>
-        <Plus className="mr-2 h-4 w-4" />
-        Register Your First Domain
-      </Button>
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        <Button variant="outline" onClick={() => navigate("/agency/domain-transfer")}>
+          <ArrowRightLeft className="mr-2 h-4 w-4" />
+          Transfer Domain
+        </Button>
+        <Button onClick={() => navigate("/agency/domains")}>
+          <Plus className="mr-2 h-4 w-4" />
+          Register Your First Domain
+        </Button>
+      </div>
     </Card>
   );
 }
