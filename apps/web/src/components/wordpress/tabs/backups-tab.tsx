@@ -7,9 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
-import { WpSection } from "@/components/wordpress/wp-detail-primitives";
-import { wpDetailLayout } from "@/components/wordpress/wp-detail-layout";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CleanListRow } from "@/components/ui/clean-list";
 import { WpTaskProgress, extractTaskUrl } from "@/components/wordpress/wp-task-progress";
 import { RestoreBackupDialog } from "@/components/wordpress/restore-backup-dialog";
 import { useWpInstallationSummary } from "@/components/wordpress/use-wp-installation-summary";
@@ -71,7 +70,7 @@ export function WordPressBackupsTab({ installationId }: { installationId: string
   };
 
   return (
-    <div className={wpDetailLayout.sectionStack}>
+    <div className="space-y-6">
       <DeleteBackupDialog />
       {taskUrl ? (
         <WpTaskProgress
@@ -84,15 +83,20 @@ export function WordPressBackupsTab({ installationId }: { installationId: string
         />
       ) : null}
 
-      <WpSection
-        title="Backups"
-        description="WP Toolkit backups include files and database"
-        icon={Database}
-      >
-        <div className="space-y-4">
+      <Card className="overflow-hidden py-0 gap-0">
+        <CardHeader className="border-b bg-muted/30 px-4 py-3">
+          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+            <Database className="h-4 w-4 text-muted-foreground" />
+            Create backup
+          </CardTitle>
+          <CardDescription className="text-xs">
+            WP Toolkit backups include files and database
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="px-4 py-3">
           <div className="flex flex-col gap-3 @md/main:flex-row @md/main:items-end">
             <div className="min-w-0 flex-1 space-y-1.5">
-              <Label htmlFor="backup-desc" className="text-sm">
+              <Label htmlFor="backup-desc" className="text-xs text-muted-foreground">
                 Description (optional)
               </Label>
               <Input
@@ -105,7 +109,7 @@ export function WordPressBackupsTab({ installationId }: { installationId: string
             <Button
               type="button"
               size="sm"
-              className="shrink-0"
+              className="h-9 shrink-0"
               disabled={createBackup.isPending}
               onClick={() =>
                 createBackup.mutate({
@@ -119,15 +123,20 @@ export function WordPressBackupsTab({ installationId }: { installationId: string
               Create backup
             </Button>
           </div>
+        </CardContent>
+      </Card>
 
-          <Separator />
-
-          <div className="flex items-center justify-between gap-3">
+      <Card className="overflow-hidden py-0 gap-0">
+        <CardHeader className="border-b bg-muted/30 px-4 py-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-sm font-medium">Backup history</p>
-              <p className="text-xs text-muted-foreground">
+              <CardTitle className="text-sm font-semibold">Backup history</CardTitle>
+              <CardDescription className="text-xs">
                 Restore or remove WP Toolkit backup archives
-              </p>
+                {list.length > 0 && data?.dirName
+                  ? ` · ${list.length} in ${data.dirName}`
+                  : ""}
+              </CardDescription>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <Label htmlFor="show-all" className="text-xs font-normal text-muted-foreground">
@@ -136,59 +145,55 @@ export function WordPressBackupsTab({ installationId }: { installationId: string
               <Switch id="show-all" checked={showAll} onCheckedChange={setShowAll} />
             </div>
           </div>
-
-          {list.length > 0 && data?.dirName ? (
-            <p className="text-xs text-muted-foreground">
-              {list.length} backup{list.length === 1 ? "" : "s"}
-              {data.dirName ? ` in ${data.dirName}` : ""}.
-            </p>
-          ) : null}
-
+        </CardHeader>
+        <CardContent className="p-0">
           {isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading backups…</p>
+            <p className="px-4 py-8 text-center text-sm text-muted-foreground">Loading backups…</p>
           ) : list.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No backups found.</p>
+            <p className="px-4 py-8 text-center text-sm text-muted-foreground">No backups found.</p>
           ) : (
-            <ul className="divide-y divide-border/60 rounded-md border border-border/60 text-sm">
+            <div className="divide-y divide-border">
               {list.map((b) => (
-                <li
+                <CleanListRow
                   key={b.fileName}
-                  className="flex flex-wrap items-center justify-between gap-2 px-3 py-2"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{b.fileName}</p>
-                    <p className="text-xs text-muted-foreground">
+                  title={b.fileName}
+                  description={
+                    <p>
                       {formatSize(b.fileSize)}
                       {b.createdAt ? ` · ${new Date(b.createdAt).toLocaleString()}` : ""}
                     </p>
-                  </div>
-                  <div className="flex shrink-0 gap-1">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setRestoreFile(b.fileName)}
-                    >
-                      <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-                      Restore
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="text-destructive hover:text-destructive"
-                      disabled={deleteBackup.isPending}
-                      onClick={() => handleDeleteBackup(b.fileName)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </li>
+                  }
+                  actions={
+                    <>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-7 px-2.5 text-xs"
+                        onClick={() => setRestoreFile(b.fileName)}
+                      >
+                        <RotateCcw className="mr-1 h-3.5 w-3.5" />
+                        Restore
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-7 px-2.5 text-xs text-destructive hover:text-destructive"
+                        disabled={deleteBackup.isPending}
+                        onClick={() => handleDeleteBackup(b.fileName)}
+                      >
+                        <Trash2 className="mr-1 h-3.5 w-3.5" />
+                        Delete
+                      </Button>
+                    </>
+                  }
+                />
               ))}
-            </ul>
+            </div>
           )}
-        </div>
-      </WpSection>
+        </CardContent>
+      </Card>
 
       {restoreFile ? (
         <RestoreBackupDialog

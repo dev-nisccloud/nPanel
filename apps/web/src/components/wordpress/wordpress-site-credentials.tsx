@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {
+  AlertTriangle,
   ChevronDown,
   Copy,
   Eye,
@@ -23,9 +24,8 @@ import {
   User,
 } from "lucide-react";
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Collapsible,
   CollapsibleContent,
@@ -48,7 +48,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import {
@@ -182,27 +181,28 @@ function CredentialRow({
 
 function CredentialsSkeleton() {
   return (
-    <div className="space-y-6">
-      <Card className="overflow-hidden">
-        <div className="border-b bg-muted/30 p-6 md:p-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex gap-4">
-              <Skeleton className="h-12 w-12 rounded-xl" />
-              <div className="space-y-2">
-                <Skeleton className="h-5 w-48" />
-                <Skeleton className="h-4 w-64" />
-              </div>
-            </div>
-            <Skeleton className="h-10 w-40" />
-          </div>
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <Card className="overflow-hidden py-0 gap-0">
+        <div className="border-b bg-muted/30 px-4 py-3 space-y-2">
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-3 w-56" />
         </div>
-        <CardContent className="space-y-3 p-6 md:p-8">
-          <Skeleton className="h-20 w-full rounded-lg" />
-          <Skeleton className="h-20 w-full rounded-lg" />
-          <Skeleton className="h-20 w-full rounded-lg" />
+        <CardContent className="space-y-2 p-4">
+          <Skeleton className="h-16 w-full rounded-lg" />
+          <Skeleton className="h-16 w-full rounded-lg" />
+          <Skeleton className="h-16 w-full rounded-lg" />
         </CardContent>
       </Card>
-      <Skeleton className="h-14 w-full rounded-lg" />
+      <Card className="overflow-hidden py-0 gap-0">
+        <div className="border-b bg-muted/30 px-4 py-3 space-y-2">
+          <Skeleton className="h-4 w-36" />
+          <Skeleton className="h-3 w-48" />
+        </div>
+        <CardContent className="space-y-2 p-4">
+          <Skeleton className="h-16 w-full rounded-lg" />
+          <Skeleton className="h-16 w-full rounded-lg" />
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -241,7 +241,7 @@ export function WordPressSiteCredentials({ installationId }: WordPressSiteCreden
 
   const [showPassword, setShowPassword] = React.useState(false);
   const [showNewPassword, setShowNewPassword] = React.useState(false);
-  const [settingsOpen, setSettingsOpen] = React.useState(false);
+  const [settingsOpen, setSettingsOpen] = React.useState(true);
 
   const accountFormKey = account
     ? [
@@ -368,38 +368,52 @@ export function WordPressSiteCredentials({ installationId }: WordPressSiteCreden
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="space-y-4">
-        <Card className="overflow-hidden shadow-sm">
-          <div className="flex flex-col gap-3 border-b bg-muted/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex min-w-0 items-center gap-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card className="overflow-hidden py-0 gap-0 shadow-sm">
+          <div className="flex flex-col gap-3 border-b bg-muted/30 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex min-w-0 items-start gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/10">
                 <Shield className="h-4 w-4 text-primary" aria-hidden />
               </div>
-              <div className="min-w-0">
-                <h2 className="text-sm font-semibold">WordPress admin access</h2>
-                <p className="text-xs text-muted-foreground">
-                  Log in directly or copy credentials below.
+              <div className="min-w-0 space-y-1.5">
+                <div>
+                  <h2 className="text-sm font-semibold">WordPress admin access</h2>
+                  <p className="text-xs text-muted-foreground">
+                    Log in directly or copy credentials below.
+                  </p>
+                </div>
+                <p className="flex items-start gap-1.5 text-xs text-amber-700 dark:text-amber-400">
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+                  <span>
+                    Keep private — anyone with this login can manage your site. Use a strong unique
+                    password.
+                  </span>
                 </p>
               </div>
             </div>
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="inline-flex">
-                  <Button size="sm" className="shrink-0" onClick={handleLoginToWordPress} disabled={!hasPassword}>
-                    <LogIn className="mr-2 h-4 w-4" />
-                    Log in to WordPress
+                  <Button
+                    size="sm"
+                    className="h-7 shrink-0 px-2.5 text-xs"
+                    onClick={handleLoginToWordPress}
+                    disabled={!hasPassword}
+                  >
+                    <LogIn className="mr-1 h-3.5 w-3.5" />
+                    Log in
                   </Button>
                 </span>
               </TooltipTrigger>
               {!hasPassword ? (
                 <TooltipContent>
-                  Set a password in Account settings below to enable one-click login.
+                  Set a password in Account settings to enable one-click login.
                 </TooltipContent>
               ) : null}
             </Tooltip>
           </div>
 
-          <CardContent className="grid grid-cols-1 gap-2 p-4 @md/main:grid-cols-2 @xl/main:grid-cols-3">
+          <CardContent className="grid grid-cols-1 gap-2 p-4">
             <CredentialRow
               label="Administrator login"
               description="Username for wp-admin"
@@ -412,7 +426,7 @@ export function WordPressSiteCredentials({ installationId }: WordPressSiteCreden
               description={
                 hasPassword
                   ? "Stored securely in WP Toolkit"
-                  : "Not available from WP Toolkit — set a new password in Account settings below"
+                  : "Not available — set a new password in Account settings"
               }
               value={hasPassword && credentials.password ? credentials.password : "Not available"}
               masked={hasPassword}
@@ -454,21 +468,21 @@ export function WordPressSiteCredentials({ installationId }: WordPressSiteCreden
           </CardContent>
         </Card>
 
-        <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen}>
-          <Card className="overflow-hidden">
+        <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen} className="min-w-0">
+          <Card className="overflow-hidden py-0 gap-0 h-full">
             <CollapsibleTrigger asChild>
               <button
                 type="button"
-                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40"
+                className="flex w-full items-center justify-between gap-3 border-b bg-muted/30 px-4 py-3 text-left transition-colors hover:bg-muted/40"
               >
                 <div className="flex items-start gap-2.5">
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border/60 bg-muted/30">
                     <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium">Account settings</p>
+                    <p className="text-sm font-semibold">Account settings</p>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      Update login, password, email, or site language
+                      Update login, password, email, or language
                       {currentLanguageLabel ? ` · ${currentLanguageLabel}` : ""}
                     </p>
                   </div>
@@ -476,17 +490,16 @@ export function WordPressSiteCredentials({ installationId }: WordPressSiteCreden
                 <ChevronDown
                   className={cn(
                     "h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200",
-                    settingsOpen && "rotate-180"
+                    settingsOpen && "rotate-180",
                   )}
                 />
               </button>
             </CollapsibleTrigger>
 
             <CollapsibleContent>
-              <Separator />
               <CardContent className="p-4">
                 {isAccountLoading ? (
-                  <div className="grid gap-3 md:grid-cols-2">
+                  <div className="grid gap-3">
                     <Skeleton className="h-16 w-full" />
                     <Skeleton className="h-16 w-full" />
                     <Skeleton className="h-16 w-full" />
@@ -505,166 +518,165 @@ export function WordPressSiteCredentials({ installationId }: WordPressSiteCreden
                 ) : !account ? null : (
                   <Form {...form}>
                     <form onSubmit={form.handleSubmit(handleUpdateAccount)} className="space-y-4">
-                      <div className="rounded-md border border-border/60 bg-muted/20 p-3 md:p-4">
-                        <div className="grid gap-4 md:grid-cols-2">
-                          <FormField
-                            control={form.control}
-                            name="login"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="flex items-center gap-2">
-                                  <User className="h-3.5 w-3.5 text-muted-foreground" />
-                                  Administrator login
-                                </FormLabel>
-                                {loginOptions.length > 0 ? (
-                                  <Select
-                                    onValueChange={field.onChange}
-                                    value={field.value || undefined}
-                                  >
-                                    <FormControl>
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Select login" />
-                                      </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      {loginOptions.map((option) => (
-                                        <SelectItem key={option.login} value={option.login}>
-                                          {option.title} ({option.login})
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                ) : (
+                      <div className="grid gap-4">
+                        <FormField
+                          control={form.control}
+                          name="login"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="flex items-center gap-2">
+                                <User className="h-3.5 w-3.5 text-muted-foreground" />
+                                Administrator login
+                              </FormLabel>
+                              {loginOptions.length > 0 ? (
+                                <Select
+                                  onValueChange={field.onChange}
+                                  value={field.value || undefined}
+                                >
                                   <FormControl>
-                                    <Input {...field} />
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select login" />
+                                    </SelectTrigger>
                                   </FormControl>
-                                )}
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="password"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="flex items-center gap-2">
-                                  <KeyRound className="h-3.5 w-3.5 text-muted-foreground" />
-                                  New password
-                                </FormLabel>
+                                  <SelectContent>
+                                    {loginOptions.map((option) => (
+                                      <SelectItem key={option.login} value={option.login}>
+                                        {option.title} ({option.login})
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              ) : (
                                 <FormControl>
-                                  <div className="flex gap-2">
-                                    <div className="relative min-w-0 flex-1">
-                                      <Input
-                                        {...field}
-                                        type={showNewPassword ? "text" : "password"}
-                                        placeholder="Leave blank to keep current"
-                                        autoComplete="new-password"
-                                        className="pr-10"
-                                      />
+                                  <Input {...field} />
+                                </FormControl>
+                              )}
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="password"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="flex items-center gap-2">
+                                <KeyRound className="h-3.5 w-3.5 text-muted-foreground" />
+                                New password
+                              </FormLabel>
+                              <FormControl>
+                                <div className="flex gap-2">
+                                  <div className="relative min-w-0 flex-1">
+                                    <Input
+                                      {...field}
+                                      type={showNewPassword ? "text" : "password"}
+                                      placeholder="Leave blank to keep current"
+                                      autoComplete="new-password"
+                                      className="pr-10"
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                                      onClick={() => setShowNewPassword(!showNewPassword)}
+                                    >
+                                      {showNewPassword ? (
+                                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                      ) : (
+                                        <Eye className="h-4 w-4 text-muted-foreground" />
+                                      )}
+                                      <span className="sr-only">Toggle password visibility</span>
+                                    </Button>
+                                  </div>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
                                       <Button
                                         type="button"
-                                        variant="ghost"
+                                        variant="outline"
                                         size="icon"
-                                        className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                                        onClick={() => setShowNewPassword(!showNewPassword)}
+                                        className="shrink-0"
+                                        onClick={() => {
+                                          const generated = generateSecurePassword();
+                                          form.setValue("password", generated, {
+                                            shouldDirty: true,
+                                            shouldValidate: true,
+                                          });
+                                          setShowNewPassword(true);
+                                          toast.success("Password generated");
+                                        }}
+                                        aria-label="Generate secure password"
                                       >
-                                        {showNewPassword ? (
-                                          <EyeOff className="h-4 w-4 text-muted-foreground" />
-                                        ) : (
-                                          <Eye className="h-4 w-4 text-muted-foreground" />
-                                        )}
-                                        <span className="sr-only">Toggle password visibility</span>
+                                        <RefreshCw className="h-4 w-4" />
                                       </Button>
-                                    </div>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          type="button"
-                                          variant="outline"
-                                          size="icon"
-                                          className="shrink-0"
-                                          onClick={() => {
-                                            const generated = generateSecurePassword();
-                                            form.setValue("password", generated, {
-                                              shouldDirty: true,
-                                              shouldValidate: true,
-                                            });
-                                            setShowNewPassword(true);
-                                            toast.success("Password generated");
-                                          }}
-                                          aria-label="Generate secure password"
-                                        >
-                                          <RefreshCw className="h-4 w-4" />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>Generate secure password</TooltipContent>
-                                    </Tooltip>
-                                  </div>
-                                </FormControl>
-                                <FormDescription>
-                                  Leave blank to keep your current password when updating other fields.
-                                </FormDescription>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                                    </TooltipTrigger>
+                                    <TooltipContent>Generate secure password</TooltipContent>
+                                  </Tooltip>
+                                </div>
+                              </FormControl>
+                              <FormDescription>
+                                Leave blank to keep your current password when updating other
+                                fields.
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                          <FormField
-                            control={form.control}
-                            name="email"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="flex items-center gap-2">
-                                  <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                                  Email
-                                </FormLabel>
-                                <FormControl>
-                                  <Input {...field} type="email" autoComplete="email" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                        <FormField
+                          control={form.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="flex items-center gap-2">
+                                <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                                Email
+                              </FormLabel>
+                              <FormControl>
+                                <Input {...field} type="email" autoComplete="email" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                          <FormField
-                            control={form.control}
-                            name="language"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="flex items-center gap-2">
-                                  <Languages className="h-3.5 w-3.5 text-muted-foreground" />
-                                  Language
-                                </FormLabel>
-                                {languageOptions.length > 0 ? (
-                                  <Select
-                                    onValueChange={field.onChange}
-                                    value={field.value || undefined}
-                                  >
-                                    <FormControl>
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Select language" />
-                                      </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      {languageOptions.map((option) => (
-                                        <SelectItem key={option.code} value={option.code}>
-                                          {option.title}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                ) : (
+                        <FormField
+                          control={form.control}
+                          name="language"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="flex items-center gap-2">
+                                <Languages className="h-3.5 w-3.5 text-muted-foreground" />
+                                Language
+                              </FormLabel>
+                              {languageOptions.length > 0 ? (
+                                <Select
+                                  onValueChange={field.onChange}
+                                  value={field.value || undefined}
+                                >
                                   <FormControl>
-                                    <Input {...field} />
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select language" />
+                                    </SelectTrigger>
                                   </FormControl>
-                                )}
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
+                                  <SelectContent>
+                                    {languageOptions.map((option) => (
+                                      <SelectItem key={option.code} value={option.code}>
+                                        {option.title}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              ) : (
+                                <FormControl>
+                                  <Input {...field} />
+                                </FormControl>
+                              )}
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                       </div>
 
                       <div className="flex justify-end">
@@ -684,15 +696,6 @@ export function WordPressSiteCredentials({ installationId }: WordPressSiteCreden
             </CollapsibleContent>
           </Card>
         </Collapsible>
-
-        <Alert>
-          <Lock className="h-4 w-4" />
-          <AlertTitle>Keep these credentials private</AlertTitle>
-          <AlertDescription>
-            Anyone with this login can manage your WordPress site. Use a strong, unique password and
-            update it periodically from account settings above.
-          </AlertDescription>
-        </Alert>
       </div>
     </TooltipProvider>
   );
