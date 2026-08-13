@@ -4,14 +4,14 @@ import * as React from "react";
 import { AlertTriangle, Scan } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { WpStatusBadge } from "@/components/wordpress/wp-status-badge";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Badge } from "@/components/ui/badge";
-import { WpFeatureCard } from "@/components/wordpress/wp-feature-card";
 import { WpPanel } from "@/components/wordpress/wp-detail-primitives";
 import { WpTaskProgress, extractTaskUrl } from "@/components/wordpress/wp-task-progress";
 import { trpc } from "@/utils/trpc";
@@ -55,6 +55,10 @@ export function VulnerabilitiesCard({
   );
 
   const total = coreVulns.length + pluginVulns.length;
+  const allVulns = [
+    ...coreVulns.map((v) => ({ ...v, _source: "WordPress core" })),
+    ...pluginVulns,
+  ];
 
   const badge = (
     <Badge variant={row?.vulnerable ? "destructive" : "outline"} className="text-xs">
@@ -63,8 +67,9 @@ export function VulnerabilitiesCard({
   );
 
   const content = (
-    <div className="space-y-3">
-        {taskUrl ? (
+    <div className="divide-y divide-border">
+      {taskUrl ? (
+        <div className="px-4 py-3">
           <WpTaskProgress
             taskUrl={taskUrl}
             onComplete={() => {
@@ -73,32 +78,42 @@ export function VulnerabilitiesCard({
             }}
             onDismiss={() => setTaskUrl(null)}
           />
-        ) : null}
+        </div>
+      ) : null}
 
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={startScan.isPending}
-          onClick={() => startScan.mutate({ installationId })}
-        >
-          <Scan className="mr-2 h-4 w-4" />
-          Scan for vulnerabilities
-        </Button>
-
-        {total === 0 ? (
-          <p className="text-sm text-muted-foreground">No vulnerabilities reported in the last scan.</p>
-        ) : (
-          <div className="space-y-2 max-h-64 overflow-y-auto">
-            {coreVulns.map((v, i) => (
-              <VulnRow key={`core-${i}`} vuln={v} source="WordPress core" />
-            ))}
-            {pluginVulns.map((v: Vuln & { _source?: string }, i: number) => (
-              <VulnRow key={`plugin-${i}`} vuln={v} source={v._source ?? "Plugin"} />
-            ))}
-          </div>
-        )}
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <div className="min-w-0 space-y-0.5">
+          <p className="text-sm font-medium text-primary">Last scan status</p>
+          <p className="text-xs text-muted-foreground">
+            {row?.vulnerable
+              ? `${total} vulnerability${total === 1 ? "" : "ies"} need attention`
+              : "No vulnerabilities reported in the last scan"}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {badge}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 px-2.5 text-xs"
+            disabled={startScan.isPending}
+            onClick={() => startScan.mutate({ installationId })}
+          >
+            <Scan className="mr-1 h-3.5 w-3.5" />
+            Scan now
+          </Button>
+        </div>
       </div>
+
+      {total > 0 ? (
+        <div className="max-h-72 divide-y divide-border overflow-y-auto">
+          {allVulns.map((v: Vuln & { _source?: string }, i: number) => (
+            <VulnRow key={`${v.id ?? v.title ?? i}-${i}`} vuln={v} source={v._source ?? "Unknown"} />
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 
   if (shell === "none") return content;
@@ -111,33 +126,44 @@ export function VulnerabilitiesCard({
   }
 
   return (
-    <WpFeatureCard
-      title="Vulnerability scan"
-      description="Scan core, plugins, and themes for known security issues."
-      icon={AlertTriangle}
-      badge={{
-        label: row?.vulnerable ? `${total} found` : "None",
-        variant: row?.vulnerable ? "destructive" : "outline",
-      }}
-    >
-      {content}
-    </WpFeatureCard>
+    <Card className="overflow-hidden py-0 gap-0">
+      <CardHeader className="border-b bg-muted/30 px-4 py-3">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+              Vulnerability scan
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Scan core, plugins, and themes for known security issues
+            </CardDescription>
+          </div>
+          {badge}
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">{content}</CardContent>
+    </Card>
   );
 }
 
 function VulnRow({ vuln, source }: { vuln: Vuln; source: string }) {
   return (
-    <Collapsible className="rounded-md border border-border/60">
+    <Collapsible>
       <CollapsibleTrigger asChild>
         <button
           type="button"
-          className="flex w-full items-start justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-muted/30"
+          className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/30"
         >
-          <span className="font-medium line-clamp-1">{vuln.title ?? vuln.id}</span>
+          <div className="min-w-0 space-y-0.5">
+            <p className="truncate text-sm font-medium text-primary">
+              {vuln.title ?? vuln.id ?? "Vulnerability"}
+            </p>
+            <p className="text-xs text-muted-foreground">{source}</p>
+          </div>
           <WpStatusBadge label={vuln.riskRank ?? "unknown"} />
         </button>
       </CollapsibleTrigger>
-      <CollapsibleContent className="px-3 pb-2 text-xs text-muted-foreground space-y-1">
+      <CollapsibleContent className="border-t bg-muted/10 px-4 py-2.5 text-xs text-muted-foreground space-y-1">
         <p>Source: {source}</p>
         {vuln.fixedIn ? <p>Fixed in: {vuln.fixedIn}</p> : null}
       </CollapsibleContent>

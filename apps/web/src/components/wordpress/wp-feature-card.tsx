@@ -1,9 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { cn } from "@/lib/utils";
-import { wpDetailLayout } from "@/components/wordpress/wp-detail-layout";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface WpFeatureCardProps {
   title: string;
@@ -29,42 +29,32 @@ export function WpFeatureCard({
   children,
   className,
   footer,
-  span,
 }: WpFeatureCardProps) {
   return (
-    <article
-      className={cn(
-        "rounded-lg border border-border/60 bg-card text-card-foreground shadow-sm",
-        unavailable && "opacity-75",
-        span === "full" && wpDetailLayout.cardFullWidth,
-        className,
-      )}
-    >
-      <header className="flex items-start justify-between gap-2 border-b border-border/60 px-3 py-2.5">
-        <div className="flex min-w-0 gap-2">
-          {Icon ? (
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border/60 bg-muted/30">
-              <Icon className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
-            </div>
-          ) : null}
-          <div className="min-w-0 space-y-0.5">
-            <h3 className="text-sm font-medium leading-none">{title}</h3>
+    <Card className={cn("overflow-hidden py-0 gap-0", unavailable && "opacity-75", className)}>
+      <CardHeader className="border-b bg-muted/30 px-4 py-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              {Icon ? <Icon className="h-4 w-4 text-muted-foreground" aria-hidden /> : null}
+              {title}
+            </CardTitle>
             {description ? (
-              <p className="text-xs text-muted-foreground leading-snug line-clamp-2">{description}</p>
+              <CardDescription className="text-xs">{description}</CardDescription>
             ) : null}
             {unavailable && unavailableReason ? (
-              <p className="text-xs text-muted-foreground">{unavailableReason}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{unavailableReason}</p>
             ) : null}
           </div>
+          {badge ? (
+            <Badge variant={badge.variant ?? "secondary"} className="shrink-0 text-xs">
+              {badge.label}
+            </Badge>
+          ) : null}
         </div>
-        {badge ? (
-          <Badge variant={badge.variant ?? "secondary"} className="shrink-0 text-xs">
-            {badge.label}
-          </Badge>
-        ) : null}
-      </header>
-      <div className={cn("p-3", unavailable && "pointer-events-none")}>{children}</div>
-      {footer ? <div className="border-t border-border/60 px-3 py-2.5">{footer}</div> : null}
-    </article>
+      </CardHeader>
+      <CardContent className={cn("p-4", unavailable && "pointer-events-none")}>{children}</CardContent>
+      {footer ? <div className="border-t px-4 py-3">{footer}</div> : null}
+    </Card>
   );
 }
