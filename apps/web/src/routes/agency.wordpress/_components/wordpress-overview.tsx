@@ -1,1 +1,1 @@
-export { WordPressOverview } from "@/routes/$slug.wordpress/_components/wordpress-overview";
+export { WordPressOverview } from "@/components/wordpress/wordpress-overview";

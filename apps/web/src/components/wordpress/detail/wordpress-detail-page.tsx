@@ -5,7 +5,6 @@ import { Link } from "react-router";
 import {
   ArrowLeft,
   LayoutDashboard,
-  Lock,
   Code,
   FileText,
   Shield,
@@ -20,7 +19,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { WpInstallationStatusBadge } from "@/components/wordpress/wp-installation-status-badge";
-import { WordPressSiteCredentials } from "@/components/wordpress/wordpress-site-credentials";
 import { WordPressSecurityTab } from "@/components/wordpress/tabs/security-tab";
 import { WordPressSiteSettingsTab } from "@/components/wordpress/tabs/site-settings-tab";
 import { WordPressUpdatesTab } from "@/components/wordpress/tabs/updates-tab";
@@ -29,7 +27,7 @@ import { wpDetailLayout, DETAIL_TABS_LIST_CLASS, DETAIL_TABS_SCROLL_CLASS, DETAI
 import { DetailCardTabsTrigger } from "@/components/ui/detail-card-tabs";
 import { wordpressInstallationSchema } from "@/routes/$slug.wordpress/_components/schema";
 import { useWordPressDetailBatched } from "@/routes/$slug.wordpress/_components/use-wordpress-detail-batched";
-import { WordPressOverview } from "@/routes/$slug.wordpress/_components/wordpress-overview";
+import { WordPressOverview } from "@/components/wordpress/wordpress-overview";
 import { WordPressPlugins } from "@/routes/$slug.wordpress/_components/wordpress-plugins";
 import { WordPressThemes } from "@/routes/$slug.wordpress/_components/wordpress-themes";
 
@@ -42,7 +40,6 @@ interface TabDef {
 
 const TABS: TabDef[] = [
   { value: "overview", label: "Overview", sub: "Summary", icon: LayoutDashboard },
-  { value: "site-credentials", label: "Credentials", sub: "Access", icon: Lock },
   { value: "plugins", label: "Plugins", sub: "Extensions", icon: Code },
   { value: "themes", label: "Themes", sub: "Design", icon: FileText },
   { value: "security", label: "Security", sub: "Protection", icon: Shield },
@@ -196,9 +193,6 @@ export function WordPressDetailPage({
 
             <TabsContent value="overview" className={DETAIL_TAB_CONTENT_CLASS}>
               <WordPressOverview wpData={wp} onNavigateToTab={setActiveTab} />
-            </TabsContent>
-            <TabsContent value="site-credentials" className={DETAIL_TAB_CONTENT_CLASS}>
-              <WordPressSiteCredentials installationId={String(wp.id)} />
             </TabsContent>
             <TabsContent value="plugins" className={DETAIL_TAB_CONTENT_CLASS}>
               <WordPressPlugins installationId={String(wp.id)} />

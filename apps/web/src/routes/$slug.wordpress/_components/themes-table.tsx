@@ -2,44 +2,19 @@
 
 import * as React from "react";
 import {
-  Palette,
-  Shield,
-  ShieldAlert,
-  Settings,
-  ExternalLink,
-  RefreshCw,
   AlertTriangle,
-  MoreHorizontal,
-  Info,
+  ExternalLink,
   Plus,
+  RefreshCw,
+  ShieldAlert,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  SearchableCleanList,
+  type SearchableCleanListItem,
+} from "@/components/ui/searchable-clean-list";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
@@ -53,6 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { WORDPRESS_STATUS_ACTIVE_BADGE_CLASS } from "@/components/wordpress/wordpress-list";
 
 import { useWordPressThemes, type WordPressTheme } from "./use-wordpress-themes";
 import { ThemeMarketplaceSheet } from "./theme-marketplace-sheet";
@@ -62,292 +38,44 @@ interface ThemesTableProps {
   installationId: string;
 }
 
-// Loading skeleton component
-function ThemesTableSkeleton() {
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <Skeleton className="h-10 w-64" />
-        <Skeleton className="h-10 w-32" />
-      </div>
-      <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-12"><Skeleton className="h-4 w-4" /></TableHead>
-              <TableHead><Skeleton className="h-4 w-32" /></TableHead>
-              <TableHead><Skeleton className="h-4 w-24" /></TableHead>
-              <TableHead><Skeleton className="h-4 w-24" /></TableHead>
-              <TableHead><Skeleton className="h-4 w-24" /></TableHead>
-              <TableHead className="w-12"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {Array.from({ length: 5 }).map((_, i) => (
-              <TableRow key={i}>
-                <TableCell><Skeleton className="h-4 w-4" /></TableCell>
-                <TableCell><Skeleton className="h-4 w-48" /></TableCell>
-                <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                <TableCell><Skeleton className="h-4 w-8" /></TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
-  );
+function truncateText(text: string, max = 90) {
+  const trimmed = text.trim();
+  if (trimmed.length <= max) return trimmed;
+  return `${trimmed.slice(0, max).trimEnd()}…`;
 }
 
-// Error component
-function ThemesTableError({ error, onRetry }: { error: Error; onRetry: () => void }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
-      <div className="mb-4">
-        <Palette className="h-12 w-12 text-muted-foreground mx-auto" />
-      </div>
-      <h3 className="mb-2 text-lg font-semibold">Failed to load themes</h3>
-      <p className="mb-4 text-sm text-muted-foreground">
-        {error.message || "An error occurred while fetching WordPress themes."}
-      </p>
-      <Button onClick={onRetry} variant="outline">
-        <RefreshCw className="mr-2 h-4 w-4" />
-        Try Again
-      </Button>
-    </div>
+function themeVersionLine(theme: WordPressTheme) {
+  const version = theme.version ? `v${theme.version}` : "vN/A";
+  const hasUpdate = !!(
+    theme.availableVersion &&
+    theme.availableVersion !== theme.version
   );
-}
-
-// Theme Table Row Component
-function ThemeTableRow({
-  theme,
-  isSelected,
-  onSelect,
-  hasUpdate,
-  isActive,
-  installationId,
-  onAction,
-  onRefetch,
-  updateThemeStatus,
-  deleteThemes,
-  bulkAutoUpdateThemes,
-  isProcessing,
-}: {
-  theme: WordPressTheme;
-  isSelected: boolean;
-  onSelect: (checked: boolean) => void;
-  hasUpdate: boolean;
-  isActive: boolean;
-  installationId: string;
-  onAction: (action: string, theme: WordPressTheme) => void;
-  onRefetch: () => void;
-  updateThemeStatus: any;
-  deleteThemes: any;
-  bulkAutoUpdateThemes: any;
-  isProcessing: boolean;
-}) {
-  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
-
-  return (
-    <>
-      <TableRow>
-        <TableCell>
-          <Checkbox
-            checked={isSelected}
-            onCheckedChange={onSelect}
-          />
-        </TableCell>
-        <TableCell>
-          <div className="flex items-center gap-2">
-            <span className="font-medium">{theme.title || theme.slug}</span>
-            {theme.description && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-md">
-                    <p className="text-sm">{theme.description}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-          </div>
-        </TableCell>
-        <TableCell>
-          {isActive ? (
-            <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800">
-              Active
-            </Badge>
-          ) : (
-            <Badge variant="secondary">Inactive</Badge>
-          )}
-        </TableCell>
-        <TableCell>
-          <span className="text-sm">{theme.version || "N/A"}</span>
-        </TableCell>
-        <TableCell>
-          {hasUpdate ? (
-            <div className="flex flex-col gap-1">
-              <Badge variant="outline">Update Available</Badge>
-              <span className="text-xs text-muted-foreground">
-                v{theme.availableVersion}
-              </span>
-            </div>
-          ) : (
-            <span className="text-sm text-muted-foreground">Up to date</span>
-          )}
-        </TableCell>
-        <TableCell>
-          {theme.vulnerable ? (
-            <Badge variant="destructive">
-              <ShieldAlert className="h-3 w-3 mr-1" />
-              Vulnerable
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="text-muted-foreground">
-              <Shield className="h-3 w-3 mr-1" />
-              Secure
-            </Badge>
-          )}
-        </TableCell>
-        <TableCell>
-          {isProcessing ? (
-            <div className="flex items-center justify-center p-2">
-              <Spinner className="h-4 w-4" />
-            </div>
-          ) : (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {theme.status ? (
-                  <DropdownMenuItem
-                    onClick={() => onAction('deactivate', theme)}
-                  >
-                    <Settings className="mr-2 h-4 w-4" />
-                    Deactivate
-                  </DropdownMenuItem>
-                ) : (
-                  <DropdownMenuItem
-                    onClick={() => onAction('activate', theme)}
-                  >
-                    <Palette className="mr-2 h-4 w-4" />
-                    Activate
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={async () => {
-                    try {
-                      await bulkAutoUpdateThemes.mutateAsync({
-                        installationId: parseInt(installationId),
-                        themes: [{
-                          slug: theme.slug!,
-                          autoUpdates: !theme.autoUpdates,
-                          status: theme.status || false
-                        }]
-                      });
-                      onRefetch();
-                    } catch (error) {
-                      console.error("Error updating auto-update:", error);
-                    }
-                  }}
-                >
-                  {theme.autoUpdates ? (
-                    <>
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      Disable Auto-Update
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      Enable Auto-Update
-                    </>
-                  )}
-                </DropdownMenuItem>
-                {theme.changeLogUrl && (
-                  <DropdownMenuItem onClick={() => window.open(theme.changeLogUrl!, '_blank', 'noopener,noreferrer')}>
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    View Changelog
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => setDeleteDialogOpen(true)}
-                  className="text-red-600 focus:text-red-600"
-                >
-                  <AlertTriangle className="mr-2 h-4 w-4" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </TableCell>
-      </TableRow>
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Theme</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete the theme{" "}
-              <span className="font-semibold text-foreground">
-                {theme.title}
-              </span>
-              ? This action cannot be undone and will permanently remove the theme
-              and all its associated data from your WordPress installation.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              disabled={deleteThemes.isPending}
-              onClick={() => setDeleteDialogOpen(false)}
-            >
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={async () => {
-                setDeleteDialogOpen(false);
-                try {
-                  await deleteThemes.mutateAsync({
-                    installationId: parseInt(installationId),
-                    themes: [theme.slug!]
-                  });
-                } catch (error) {
-                  console.error("Error deleting theme:", error);
-                }
-              }}
-              disabled={deleteThemes.isPending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete Theme
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
-  );
+  if (hasUpdate) {
+    return `${version} → v${theme.availableVersion}`;
+  }
+  return version;
 }
 
 export function ThemesTable({ installationId }: ThemesTableProps) {
-  const { data: themes, isLoading, isError, error, refetch } = useWordPressThemes(installationId);
+  const { data: themes, isLoading, isError, error, refetch } =
+    useWordPressThemes(installationId);
   const [searchTerm, setSearchTerm] = React.useState("");
-  const [selectedThemes, setSelectedThemes] = React.useState<Set<string>>(new Set());
   const [marketplaceOpen, setMarketplaceOpen] = React.useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [themeToDelete, setThemeToDelete] = React.useState<WordPressTheme | null>(
+    null,
+  );
   const [activateDialogOpen, setActivateDialogOpen] = React.useState(false);
-  const [themeToActivate, setThemeToActivate] = React.useState<WordPressTheme | null>(null);
+  const [themeToActivate, setThemeToActivate] =
+    React.useState<WordPressTheme | null>(null);
 
-  // tRPC mutation for updating theme status
   const updateThemeStatus = trpc.plesk.wpThemesStatus.setStatus.useMutation({
-    onSuccess: (_data, variables) => {    if (variables.status) {
-      captureEvent("wordpress_theme_activated", { theme_name: variables.slug || "unknown" });
-    }
+    onSuccess: (_data, variables) => {
+      if (variables.status) {
+        captureEvent("wordpress_theme_activated", {
+          theme_name: variables.slug || "unknown",
+        });
+      }
 
       toast.success("Theme status updated successfully!");
       refetch();
@@ -357,15 +85,24 @@ export function ThemesTable({ installationId }: ThemesTableProps) {
     },
   });
 
-  // tRPC mutation for deleting themes
   const deleteThemes = trpc.plesk.wpThemesDelete.delete.useMutation({
-    onSuccess: (_data, variables) => {    const slugs = (variables as { themes?: Array<string | { slug?: string }>; slugs?: string[] })?.themes
-      || (variables as { slugs?: string[] })?.slugs
-      || [];
-    const names = Array.isArray(slugs) ? slugs.map((s) => (typeof s === "string" ? s : s?.slug)).filter(Boolean) : [];
-    captureEvent("wordpress_theme_deleted", { theme_name: names.join(",") || "unknown" });
+    onSuccess: (_data, variables) => {
+      const slugs =
+        (variables as { themes?: Array<string | { slug?: string }>; slugs?: string[] })
+          ?.themes ||
+        (variables as { slugs?: string[] })?.slugs ||
+        [];
+      const names = Array.isArray(slugs)
+        ? slugs
+            .map((s) => (typeof s === "string" ? s : s?.slug))
+            .filter(Boolean)
+        : [];
+      captureEvent("wordpress_theme_deleted", {
+        theme_name: names.join(",") || "unknown",
+      });
 
       toast.success("Theme deleted successfully!");
+      setThemeToDelete(null);
       refetch();
     },
     onError: (error: any) => {
@@ -373,270 +110,240 @@ export function ThemesTable({ installationId }: ThemesTableProps) {
     },
   });
 
-  // tRPC mutation for bulk auto-updating themes
-  const bulkAutoUpdateThemes = trpc.plesk.wpThemesAutoupdate.update.useMutation({
-    onSuccess: () => {
-      toast.success("Auto-update settings updated successfully!");
-      refetch();
-    },
-    onError: (error: any) => {
-      toast.error(error.message || "Failed to update auto-update settings");
-    },
-  });
+  const bulkAutoUpdateThemes =
+    trpc.plesk.wpThemesAutoupdate.update.useMutation({
+      onSuccess: () => {
+        toast.success("Auto-update settings updated successfully!");
+        refetch();
+      },
+      onError: (error: any) => {
+        toast.error(error.message || "Failed to update auto-update settings");
+      },
+    });
 
   const filteredThemes = React.useMemo(() => {
     if (!themes) return [];
 
     if (searchTerm.trim()) {
-      return themes.filter(theme =>
-        theme.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        theme.slug?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        theme.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      const q = searchTerm.toLowerCase();
+      return themes.filter(
+        (theme) =>
+          theme.title?.toLowerCase().includes(q) ||
+          theme.slug?.toLowerCase().includes(q) ||
+          theme.description?.toLowerCase().includes(q),
       );
     }
 
     return themes;
   }, [themes, searchTerm]);
 
-  const handleSelectTheme = (themeSlug: string, selected: boolean) => {
-    setSelectedThemes(prev => {
-      const newSet = new Set(prev);
-      if (selected) {
-        newSet.add(themeSlug);
-      } else {
-        newSet.delete(themeSlug);
-      }
-      return newSet;
-    });
-  };
-
-  const handleSelectAll = (selected: boolean) => {
-    if (selected) {
-      setSelectedThemes(new Set(filteredThemes.map(theme => theme.slug!).filter(Boolean)));
-    } else {
-      setSelectedThemes(new Set());
-    }
-  };
-
-  const handleBulkAutoUpdate = async () => {
-    const selectedThemeSlugs = Array.from(selectedThemes);
-    if (selectedThemeSlugs.length === 0) {
-      toast.error("No themes selected");
-      return;
-    }
-
-    try {
-      await bulkAutoUpdateThemes.mutateAsync({
-        installationId: parseInt(installationId),
-        themes: selectedThemeSlugs.map(slug => {
-          const theme = themes?.find(t => t.slug === slug);
-          return {
-            slug,
-            autoUpdates: true,
-            status: theme?.status || false
-          };
-        })
-      });
-      setSelectedThemes(new Set());
-    } catch (error) {
-      console.error("Error in bulk auto-update:", error);
-    }
-  };
-
-  const handleAction = async (action: string, theme: WordPressTheme) => {
-    switch (action) {
-      case 'activate':
-        // Check if there's already an active theme
-        const activeTheme = themes?.find(t => t.status && t.slug !== theme.slug);
-        if (activeTheme) {
-          setThemeToActivate(theme);
-          setActivateDialogOpen(true);
-        } else {
-          await confirmActivate(theme);
-        }
-        break;
-      case 'deactivate':
-        try {
-          await updateThemeStatus.mutateAsync({
-            installationId: parseInt(installationId),
-            slug: theme.slug!,
-            status: false
-          });
-        } catch (error) {
-          console.error("Error deactivating theme:", error);
-        }
-        break;
-      case 'delete':
-        // Will be handled by delete dialog
-        break;
-    }
-  };
-
   const confirmActivate = async (theme: WordPressTheme) => {
     try {
       await updateThemeStatus.mutateAsync({
         installationId: parseInt(installationId),
         slug: theme.slug!,
-        status: true
+        status: true,
       });
       setActivateDialogOpen(false);
-    } catch (error) {
-      console.error("Error activating theme:", error);
+      setThemeToActivate(null);
+    } catch (err) {
+      console.error("Error activating theme:", err);
     }
   };
 
-  const selectedCount = selectedThemes.size;
-  const hasSelection = selectedCount > 0;
-  const isAllSelected = filteredThemes.length > 0 && selectedThemes.size === filteredThemes.length;
+  const handleActivateToggle = async (theme: WordPressTheme) => {
+    if (theme.status) {
+      try {
+        await updateThemeStatus.mutateAsync({
+          installationId: parseInt(installationId),
+          slug: theme.slug!,
+          status: false,
+        });
+      } catch (err) {
+        console.error("Error deactivating theme:", err);
+      }
+      return;
+    }
 
-  if (isLoading) {
-    return <ThemesTableSkeleton />;
-  }
+    const activeTheme = themes?.find((t) => t.status && t.slug !== theme.slug);
+    if (activeTheme) {
+      setThemeToActivate(theme);
+      setActivateDialogOpen(true);
+    } else {
+      await confirmActivate(theme);
+    }
+  };
 
-  if (isError) {
-    return <ThemesTableError error={error as Error} onRetry={() => refetch()} />;
-  }
+  const handleAutoUpdateToggle = async (theme: WordPressTheme) => {
+    try {
+      await bulkAutoUpdateThemes.mutateAsync({
+        installationId: parseInt(installationId),
+        themes: [
+          {
+            slug: theme.slug!,
+            autoUpdates: !theme.autoUpdates,
+            status: theme.status || false,
+          },
+        ],
+      });
+    } catch (err) {
+      console.error("Error updating auto-update:", err);
+    }
+  };
 
-  if (!themes || themes.length === 0) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <Input
-                placeholder="Search themes..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-64"
-              />
-            </div>
-          </div>
-          <Button onClick={() => setMarketplaceOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Theme
-          </Button>
-        </div>
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <Palette className="h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="mb-2 text-lg font-semibold">No themes installed</h3>
-          <p className="mb-4 text-sm text-muted-foreground">
-            This WordPress installation doesn't have any themes installed yet.
-          </p>
-        </div>
-        <ThemeMarketplaceSheet
-          open={marketplaceOpen}
-          onOpenChange={setMarketplaceOpen}
-          installationId={installationId}
-          onInstallSuccess={() => refetch()}
-        />
-      </div>
+  const confirmDelete = async () => {
+    if (!themeToDelete?.slug) return;
+    setDeleteDialogOpen(false);
+    try {
+      await deleteThemes.mutateAsync({
+        installationId: parseInt(installationId),
+        themes: [themeToDelete.slug],
+      });
+    } catch (err) {
+      console.error("Error deleting theme:", err);
+    }
+  };
+
+  const items: SearchableCleanListItem[] = filteredThemes.map((theme, index) => {
+    const hasUpdate = !!(
+      theme.availableVersion &&
+      theme.availableVersion !== theme.version
     );
-  }
+    const isActive = theme.status === true;
+    const isProcessing =
+      (updateThemeStatus.isPending &&
+        updateThemeStatus.variables?.slug === theme.slug) ||
+      (deleteThemes.isPending &&
+        deleteThemes.variables?.themes?.includes(theme.slug!)) ||
+      (bulkAutoUpdateThemes.isPending &&
+        bulkAutoUpdateThemes.variables?.themes?.some(
+          (t) => t.slug === theme.slug,
+        ));
 
-  return (
-    <div className="space-y-4">
-      {/* Search and Actions */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <Input
-              placeholder="Search themes..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-64"
-            />
-          </div>
-          {hasSelection && (
+    const descriptionParts = [
+      theme.description ? truncateText(theme.description) : null,
+      themeVersionLine(theme),
+      theme.autoUpdates ? "Auto-update on" : "Auto-update off",
+    ].filter(Boolean);
+
+    return {
+      key: theme.slug || theme.title || `theme-${index}`,
+      title: theme.title || theme.slug || "Unknown theme",
+      description: (
+        <span className="block truncate">{descriptionParts.join(" · ")}</span>
+      ),
+      trailing: (
+        <div className="flex flex-wrap items-center justify-end gap-1.5">
+          <Badge
+            variant={isActive ? "default" : "secondary"}
+            className={isActive ? WORDPRESS_STATUS_ACTIVE_BADGE_CLASS : undefined}
+          >
+            {isActive ? "Active" : "Inactive"}
+          </Badge>
+          {hasUpdate ? <Badge variant="outline">Update</Badge> : null}
+          {theme.vulnerable ? (
+            <Badge variant="destructive">
+              <ShieldAlert className="mr-1 h-3 w-3" />
+              Vulnerable
+            </Badge>
+          ) : null}
+        </div>
+      ),
+      actions: isProcessing ? (
+        <div className="flex items-center justify-center p-2">
+          <Spinner className="h-4 w-4" />
+        </div>
+      ) : (
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 px-2.5 text-xs"
+            onClick={() => handleActivateToggle(theme)}
+          >
+            {isActive ? "Deactivate" : "Activate"}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 px-2.5 text-xs"
+            onClick={() => handleAutoUpdateToggle(theme)}
+          >
+            {theme.autoUpdates ? "Disable auto-update" : "Enable auto-update"}
+          </Button>
+          {theme.changeLogUrl ? (
             <Button
+              type="button"
               variant="outline"
               size="sm"
-              onClick={handleBulkAutoUpdate}
-              disabled={bulkAutoUpdateThemes.isPending}
+              className="h-7 px-2.5 text-xs"
+              onClick={() =>
+                window.open(
+                  theme.changeLogUrl!,
+                  "_blank",
+                  "noopener,noreferrer",
+                )
+              }
             >
-              {bulkAutoUpdateThemes.isPending ? (
-                <>
-                  <Spinner className="mr-2 h-4 w-4" />
-                  Enabling...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Enable Auto-Update ({selectedCount})
-                </>
-              )}
+              <ExternalLink className="mr-1 h-3.5 w-3.5" />
+              Changelog
             </Button>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => refetch()}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh
+          ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 px-2.5 text-xs text-destructive hover:text-destructive"
+            onClick={() => {
+              setThemeToDelete(theme);
+              setDeleteDialogOpen(true);
+            }}
+          >
+            Delete
           </Button>
-          <Button onClick={() => setMarketplaceOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Theme
-          </Button>
-        </div>
-      </div>
+        </>
+      ),
+    };
+  });
 
-      {/* Themes Table */}
-      <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-12">
-                <Checkbox
-                  checked={isAllSelected}
-                  onCheckedChange={handleSelectAll}
-                />
-              </TableHead>
-              <TableHead>Theme Name</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Version</TableHead>
-              <TableHead>Updates</TableHead>
-              <TableHead>Vulnerability</TableHead>
-              <TableHead className="w-12"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredThemes.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                  No themes found
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredThemes.map((theme) => {
-                const hasUpdate = !!(theme.availableVersion && theme.availableVersion !== theme.version);
-                const isActive = theme.status === true;
-
-                const isProcessing =
-                  (updateThemeStatus.isPending && updateThemeStatus.variables?.slug === theme.slug) ||
-                  (deleteThemes.isPending && deleteThemes.variables?.themes?.includes(theme.slug!)) ||
-                  (bulkAutoUpdateThemes.isPending && bulkAutoUpdateThemes.variables?.themes?.some(t => t.slug === theme.slug));
-
-                return (
-                  <ThemeTableRow
-                    key={theme.slug}
-                    theme={theme}
-                    isSelected={selectedThemes.has(theme.slug!)}
-                    onSelect={(checked) => handleSelectTheme(theme.slug!, checked)}
-                    hasUpdate={hasUpdate}
-                    isActive={isActive}
-                    installationId={installationId}
-                    onAction={handleAction}
-                    onRefetch={refetch}
-                    updateThemeStatus={updateThemeStatus}
-                    deleteThemes={deleteThemes}
-                    bulkAutoUpdateThemes={bulkAutoUpdateThemes}
-                    isProcessing={isProcessing}
-                  />
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
+  return (
+    <>
+      <SearchableCleanList
+        items={items}
+        searchQuery={searchTerm}
+        onSearchChange={setSearchTerm}
+        totalCount={themes?.length ?? 0}
+        isLoading={isLoading}
+        isError={isError}
+        error={error as Error | null}
+        onRetry={() => refetch()}
+        searchPlaceholder="Search themes..."
+        errorTitle="Failed to load themes"
+        emptyMessage={
+          searchTerm.trim()
+            ? "No themes match your search."
+            : "No themes installed on this WordPress site."
+        }
+        toolbarActions={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh
+            </Button>
+            <Button type="button" size="sm" onClick={() => setMarketplaceOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Theme
+            </Button>
+          </>
+        }
+      />
 
       <ThemeMarketplaceSheet
         open={marketplaceOpen}
@@ -645,7 +352,41 @@ export function ThemesTable({ installationId }: ThemesTableProps) {
         onInstallSuccess={() => refetch()}
       />
 
-      {/* Activation Confirmation Dialog */}
+      <AlertDialog
+        open={deleteDialogOpen}
+        onOpenChange={(open) => {
+          setDeleteDialogOpen(open);
+          if (!open) setThemeToDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Theme</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the theme{" "}
+              <span className="font-semibold text-foreground">
+                {themeToDelete?.title}
+              </span>
+              ? This action cannot be undone and will permanently remove the
+              theme and all its associated data from your WordPress
+              installation.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteThemes.isPending}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              disabled={deleteThemes.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Theme
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AlertDialog open={activateDialogOpen} onOpenChange={setActivateDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -655,16 +396,30 @@ export function ThemesTable({ installationId }: ThemesTableProps) {
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-2">
               <p>
-                You are about to activate <strong>"{themeToActivate?.title}"</strong> which will replace your currently active theme{" "}
-                <strong>"{themes?.find(t => t.status && t.slug !== themeToActivate?.slug)?.title}"</strong>.
+                You are about to activate{" "}
+                <strong>&quot;{themeToActivate?.title}&quot;</strong> which will
+                replace your currently active theme{" "}
+                <strong>
+                  &quot;
+                  {
+                    themes?.find(
+                      (t) => t.status && t.slug !== themeToActivate?.slug,
+                    )?.title
+                  }
+                  &quot;
+                </strong>
+                .
               </p>
               <p className="text-amber-600 dark:text-amber-400">
-                This will change your website's appearance immediately. Make sure you have a backup before proceeding.
+                This will change your website&apos;s appearance immediately. Make
+                sure you have a backup before proceeding.
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={updateThemeStatus.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={updateThemeStatus.isPending}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => themeToActivate && confirmActivate(themeToActivate)}
               disabled={updateThemeStatus.isPending}
@@ -682,6 +437,6 @@ export function ThemesTable({ installationId }: ThemesTableProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }

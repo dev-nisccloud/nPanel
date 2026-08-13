@@ -1,17 +1,69 @@
 "use client";
 
 import * as React from "react";
-import { Shield } from "lucide-react";
+import { Loader2, Save, Shield } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Loader2, Save } from "lucide-react";
-import { WpFeatureCard } from "@/components/wordpress/wp-feature-card";
+import { Switch } from "@/components/ui/switch";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { WpPanel } from "@/components/wordpress/wp-detail-primitives";
-import { wpDetailLayout } from "@/components/wordpress/wp-detail-layout";
 import { useConfirm } from "@/hooks/use-confirm";
 import { trpc } from "@/utils/trpc";
+
+type PolicyState = {
+  core: { updateVulnerable: boolean; applyVirtualPatches: boolean };
+  plugins: {
+    updateVulnerable: boolean;
+    deactivateVulnerable: boolean;
+    applyVirtualPatches: boolean;
+  };
+  themes: { updateVulnerable: boolean; applyVirtualPatches: boolean };
+};
+
+function PolicyRow({
+  label,
+  hint,
+  checked,
+  onChange,
+}: {
+  label: string;
+  hint?: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 px-4 py-3">
+      <div className="min-w-0 space-y-0.5">
+        <p className="text-sm font-medium text-primary">{label}</p>
+        {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
+      </div>
+      <Switch checked={checked} onCheckedChange={onChange} className="shrink-0" />
+    </div>
+  );
+}
+
+function PolicySection({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div className="border-b bg-muted/20 px-4 py-2.5">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          {title}
+        </p>
+        <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+      </div>
+      <div className="divide-y divide-border">{children}</div>
+    </div>
+  );
+}
 
 export function SecurityPoliciesCard({
   installationId,
@@ -26,7 +78,7 @@ export function SecurityPoliciesCard({
   });
 
   const policies = data?.data ?? data;
-  const [local, setLocal] = React.useState({
+  const [local, setLocal] = React.useState<PolicyState>({
     core: { updateVulnerable: false, applyVirtualPatches: false },
     plugins: {
       updateVulnerable: false,
@@ -38,7 +90,7 @@ export function SecurityPoliciesCard({
 
   React.useEffect(() => {
     if (!policies || typeof policies !== "object") return;
-    const p = policies as typeof local;
+    const p = policies as PolicyState;
     setLocal({
       core: {
         updateVulnerable: p.core?.updateVulnerable ?? false,
@@ -78,92 +130,115 @@ export function SecurityPoliciesCard({
     "Virtual patches will be applied to vulnerable core, plugins, and themes. This modifies how WordPress handles known vulnerabilities and may affect site behavior.",
   );
 
-  const setCore = (key: keyof typeof local.core, v: boolean) =>
+  const setCore = (key: keyof PolicyState["core"], v: boolean) =>
     setLocal((s) => ({ ...s, core: { ...s.core, [key]: v } }));
-  const setPlugins = (key: keyof typeof local.plugins, v: boolean) =>
+  const setPlugins = (key: keyof PolicyState["plugins"], v: boolean) =>
     setLocal((s) => ({ ...s, plugins: { ...s.plugins, [key]: v } }));
-  const setThemes = (key: keyof typeof local.themes, v: boolean) =>
+  const setThemes = (key: keyof PolicyState["themes"], v: boolean) =>
     setLocal((s) => ({ ...s, themes: { ...s.themes, [key]: v } }));
 
-  const content = isLoading ? (
-    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-  ) : (
-    <div className="space-y-4">
+  const content = (
+    <>
       <EnablePatchingDialog />
-      <div className={wpDetailLayout.innerGridThree}>
-        <PolicyGroup title="Core">
-            <PolicySwitch
-              label="Update vulnerable core"
+      {isLoading ? (
+        <div className="space-y-3 p-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+      ) : (
+        <div className="divide-y divide-border">
+          <PolicySection title="Core" description="WordPress core vulnerability response">
+            <PolicyRow
+              label="Auto-update vulnerable core"
+              hint="Install a safe core update when a vulnerability is detected"
               checked={local.core.updateVulnerable}
               onChange={(v) => setCore("updateVulnerable", v)}
             />
-            <PolicySwitch
-              label="Apply virtual patches (core)"
+            <PolicyRow
+              label="Virtual patches for core"
+              hint="Apply temporary protection until an update is available"
               checked={local.core.applyVirtualPatches}
               onChange={(v) => setCore("applyVirtualPatches", v)}
             />
-          </PolicyGroup>
-          <PolicyGroup title="Plugins">
-            <PolicySwitch
-              label="Update vulnerable plugins"
+          </PolicySection>
+
+          <PolicySection title="Plugins" description="Installed plugin vulnerability response">
+            <PolicyRow
+              label="Auto-update vulnerable plugins"
+              hint="Update plugins that have a known security fix"
               checked={local.plugins.updateVulnerable}
               onChange={(v) => setPlugins("updateVulnerable", v)}
             />
-            <PolicySwitch
+            <PolicyRow
               label="Deactivate vulnerable plugins"
+              hint="Turn off plugins that cannot be safely updated yet"
               checked={local.plugins.deactivateVulnerable}
               onChange={(v) => setPlugins("deactivateVulnerable", v)}
             />
-            <PolicySwitch
-              label="Apply virtual patches (plugins)"
+            <PolicyRow
+              label="Virtual patches for plugins"
+              hint="Mitigate known plugin issues without removing them"
               checked={local.plugins.applyVirtualPatches}
               onChange={(v) => setPlugins("applyVirtualPatches", v)}
             />
-          </PolicyGroup>
-          <PolicyGroup title="Themes">
-            <PolicySwitch
-              label="Update vulnerable themes"
+          </PolicySection>
+
+          <PolicySection title="Themes" description="Active and installed theme vulnerability response">
+            <PolicyRow
+              label="Auto-update vulnerable themes"
+              hint="Update themes that have a known security fix"
               checked={local.themes.updateVulnerable}
               onChange={(v) => setThemes("updateVulnerable", v)}
             />
-            <PolicySwitch
-              label="Apply virtual patches (themes)"
+            <PolicyRow
+              label="Virtual patches for themes"
+              hint="Mitigate known theme issues until an update is applied"
               checked={local.themes.applyVirtualPatches}
               onChange={(v) => setThemes("applyVirtualPatches", v)}
             />
-          </PolicyGroup>
-      </div>
+          </PolicySection>
 
-      <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          disabled={updateMutation.isPending}
-          onClick={() => updateMutation.mutate({ installationId, ...local })}
-        >
-          {updateMutation.isPending ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <Save className="mr-2 h-4 w-4" />
-          )}
-          Save policies
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={patchMutation.isPending}
-          onClick={async () => {
-            const ok = await confirmEnablePatching();
-            if (!ok) return;
-            patchMutation.mutate({ installationId, status: true });
-          }}
-        >
-          Enable virtual patching
-        </Button>
-      </div>
-    </div>
+          <div className="flex flex-wrap items-center justify-end gap-2 px-4 py-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8"
+              disabled={patchMutation.isPending}
+              onClick={async () => {
+                const ok = await confirmEnablePatching();
+                if (!ok) return;
+                patchMutation.mutate({ installationId, status: true });
+              }}
+            >
+              {patchMutation.isPending ? (
+                <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+              ) : null}
+              Enable virtual patching
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              className="h-8"
+              disabled={updateMutation.isPending}
+              onClick={() => updateMutation.mutate({ installationId, ...local })}
+            >
+              {updateMutation.isPending ? (
+                <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Save className="mr-2 h-3.5 w-3.5" />
+              )}
+              Save policies
+            </Button>
+          </div>
+        </div>
+      )}
+    </>
   );
 
   if (shell === "none") return content;
+
   if (shell === "panel") {
     return (
       <WpPanel title="Automated policies" description="Responses when issues are detected">
@@ -173,38 +248,17 @@ export function SecurityPoliciesCard({
   }
 
   return (
-    <WpFeatureCard
-      title="Vulnerability policies"
-      description="Automated responses when vulnerabilities are detected on this site."
-      icon={Shield}
-    >
-      {content}
-    </WpFeatureCard>
-  );
-}
-
-function PolicyGroup({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-2">
-      <p className="text-sm font-medium">{title}</p>
-      <div className="space-y-2 rounded-lg border border-border/60 p-3">{children}</div>
-    </div>
-  );
-}
-
-function PolicySwitch({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-4">
-      <Label className="text-sm font-normal text-muted-foreground">{label}</Label>
-      <Switch checked={checked} onCheckedChange={onChange} />
-    </div>
+    <Card className="overflow-hidden py-0 gap-0">
+      <CardHeader className="border-b bg-muted/30 px-4 py-3">
+        <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+          <Shield className="h-4 w-4 text-muted-foreground" />
+          Security policies
+        </CardTitle>
+        <CardDescription className="text-xs">
+          Automated responses when vulnerabilities are detected
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="p-0">{content}</CardContent>
+    </Card>
   );
 }

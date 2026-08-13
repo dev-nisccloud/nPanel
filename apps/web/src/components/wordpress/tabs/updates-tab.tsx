@@ -7,12 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import {
-  WpInnerGrid,
-  WpPanel,
-  WpSection,
-} from "@/components/wordpress/wp-detail-primitives";
-import { wpDetailLayout } from "@/components/wordpress/wp-detail-layout";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { WpTaskProgress, extractTaskUrl } from "@/components/wordpress/wp-task-progress";
 import { AutoUpdateSettingsCard } from "@/components/wordpress/auto-update-settings-card";
 import { UpdatesCheckerCard } from "@/components/wordpress/updates-checker-card";
@@ -62,7 +57,7 @@ export function WordPressUpdatesTab({
   );
 
   return (
-    <div className={wpDetailLayout.sectionStack}>
+    <div className="space-y-6">
       <RunSmartUpdateDialog />
       {taskUrl ? (
         <WpTaskProgress
@@ -76,74 +71,104 @@ export function WordPressUpdatesTab({
         />
       ) : null}
 
-      <WpSection
-        title="Available updates"
-        description="Scan for WordPress core, plugin, and theme updates"
-        icon={Search}
-      >
-        <UpdatesCheckerCard installationId={id} shell="none" />
-      </WpSection>
+      <Card className="overflow-hidden py-0 gap-0">
+        <CardHeader className="border-b bg-muted/30 px-4 py-3">
+          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            Available updates
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Scan for WordPress core, plugin, and theme updates
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-4">
+          <UpdatesCheckerCard installationId={id} shell="none" />
+        </CardContent>
+      </Card>
 
-      <WpSection
-        title="Smart updates"
-        description="Test updates on a clone before applying to your live site"
-        icon={Sparkles}
-      >
-        <WpInnerGrid columns={3}>
-          <WpPanel
-            title="Smart Update"
-            description="Enable and run clone tests"
-            badge={
-              <Badge
-                variant={smart?.status ? "default" : "secondary"}
-                className="text-xs"
-              >
-                {smart?.status ? "Enabled" : "Disabled"}
-              </Badge>
-            }
-          >
-            <div className="space-y-3">
-              <div className="flex items-center justify-between gap-3">
-                <Label className="text-sm">Enable Smart Update</Label>
-                <Switch
-                  checked={smart?.status ?? false}
-                  disabled={toggleSmart.isPending || smart?.available === false}
-                  onCheckedChange={(val) => toggleSmart.mutate({ installationId: id, status: val })}
+      <Card className="overflow-hidden py-0 gap-0">
+        <CardHeader className="border-b bg-muted/30 px-4 py-3">
+          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+            <Sparkles className="h-4 w-4 text-muted-foreground" />
+            Smart updates
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Test updates on a clone before applying to your live site
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="divide-y divide-border">
+            <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-primary">Smart Update</p>
+                  <p className="text-xs text-muted-foreground">Enable and run clone tests</p>
+                </div>
+                <Badge variant={smart?.status ? "default" : "secondary"} className="text-xs">
+                  {smart?.status ? "Enabled" : "Disabled"}
+                </Badge>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs text-muted-foreground">Enable</Label>
+                  <Switch
+                    checked={smart?.status ?? false}
+                    disabled={toggleSmart.isPending || smart?.available === false}
+                    onCheckedChange={(val) =>
+                      toggleSmart.mutate({ installationId: id, status: val })
+                    }
+                  />
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-7 px-2.5 text-xs"
+                  disabled={runSmartUpdate.isPending || smart?.available === false}
+                  onClick={async () => {
+                    const ok = await confirmRunSmartUpdate();
+                    if (!ok) return;
+                    runSmartUpdate.mutate({ installationId: id });
+                  }}
+                >
+                  <RefreshCw className="mr-1 h-3.5 w-3.5" />
+                  Run test
+                </Button>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 divide-y divide-border lg:grid-cols-2 lg:divide-x lg:divide-y-0">
+              <div className="p-4">
+                <SmartUpdateResultCard
+                  installationId={id}
+                  enabled={Boolean(smart?.applicable ?? smart?.available)}
+                  shell="none"
                 />
               </div>
-              <Button
-                type="button"
-                variant="default"
-                size="sm"
-                disabled={runSmartUpdate.isPending || smart?.available === false}
-                onClick={async () => {
-                  const ok = await confirmRunSmartUpdate();
-                  if (!ok) return;
-                  runSmartUpdate.mutate({ installationId: id });
-                }}
-              >
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Run Smart Update test
-              </Button>
+              <div className="p-4">
+                <SmartPhpUpdateCard
+                  installationId={id}
+                  available={smartPhp?.available}
+                  shell="none"
+                />
+              </div>
             </div>
-          </WpPanel>
+          </div>
+        </CardContent>
+      </Card>
 
-          <SmartUpdateResultCard
-            installationId={id}
-            enabled={Boolean(smart?.applicable ?? smart?.available)}
-            shell="panel"
-          />
-          <SmartPhpUpdateCard installationId={id} available={smartPhp?.available} shell="panel" />
-        </WpInnerGrid>
-      </WpSection>
-
-      <WpSection
-        title="Automatic updates"
-        description="How core, plugins, and themes update automatically"
-        icon={RefreshCw}
-      >
-        <AutoUpdateSettingsCard installationId={id} shell="none" />
-      </WpSection>
+      <Card className="overflow-hidden py-0 gap-0">
+        <CardHeader className="border-b bg-muted/30 px-4 py-3">
+          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+            <RefreshCw className="h-4 w-4 text-muted-foreground" />
+            Automatic updates
+          </CardTitle>
+          <CardDescription className="text-xs">
+            How core, plugins, and themes update automatically
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-4">
+          <AutoUpdateSettingsCard installationId={id} shell="none" />
+        </CardContent>
+      </Card>
     </div>
   );
 }
