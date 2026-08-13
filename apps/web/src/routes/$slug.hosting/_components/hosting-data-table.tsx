@@ -7,6 +7,7 @@ import {
   HostingStatusBadge,
   HostingSubscriptionsList,
 } from "@/components/hosting/hosting-subscriptions-list";
+import { ViewDetailsButton, VisitSiteButton } from "@/components/ui/list-row-actions";
 import { HostingPricing } from "./hosting-pricing";
 import { getStatusBadgeVariant, getStatusDisplayText } from "./hosting-utils";
 import { useTeamHostingSubscriptions } from "./use-team-hosting-subscriptions";
@@ -50,15 +51,17 @@ export function HostingDataTable() {
     const detailId = getDetailRouteId(subscription);
     const titleText =
       subscription.primaryDomain ?? subscription.subscriptionName ?? subscription.id;
+    const siteUrl = subscription.primaryDomain ?? subscription.subscriptionName;
+    const detailHref = detailId ? `/${teamSlug}/hosting/${detailId}` : null;
     const subscribed = formatListDate(subscription.subscriptionDate);
     const expires = formatListDate(subscription.expiryDate);
     const statusUpper = String(subscription.status).toUpperCase();
 
     return {
       key: subscription.id,
-      title: detailId ? (
+      title: detailHref ? (
         <Link
-          to={`/${teamSlug}/hosting/${detailId}`}
+          to={detailHref}
           className="text-primary hover:underline"
           onClick={(e) => e.stopPropagation()}
         >
@@ -82,9 +85,15 @@ export function HostingDataTable() {
             {expires ? `Expires ${expires}` : null}
           </p>
         ) : undefined,
-      onClick: detailId
-        ? () => navigate(`/${teamSlug}/hosting/${detailId}`)
-        : undefined,
+      actions: (
+        <>
+          <VisitSiteButton url={siteUrl} />
+          {detailHref ? (
+            <ViewDetailsButton onClick={() => navigate(detailHref)} />
+          ) : null}
+        </>
+      ),
+      onClick: detailHref ? () => navigate(detailHref) : undefined,
     };
   });
 

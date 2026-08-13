@@ -26,7 +26,7 @@ export interface AgentDomainCheckResult {
   checkedAt: string;
 }
 
-/** Shape of a single plan returned by get_web_hosting_plans / get_email_hosting_plans. */
+/** Shape of a single plan returned by web / email / WordPress hosting plan tools. */
 export interface AgentHostingPlanEntry {
   id: string;
   name: string;
@@ -45,12 +45,104 @@ export interface AgentHostingPlanFeatureRow {
   label: string;
 }
 
-/** Result returned by the get_web_hosting_plans / get_email_hosting_plans agent tools. */
+/** Result returned by the get_web_hosting_plans / get_email_hosting_plans / get_wordpress_hosting_plans agent tools. */
 export interface AgentHostingPlansResult {
-  _tool: "get_web_hosting_plans" | "get_email_hosting_plans";
+  _tool: "get_web_hosting_plans" | "get_email_hosting_plans" | "get_wordpress_hosting_plans";
   productFeatures: AgentHostingPlanFeatureRow[];
   plans: AgentHostingPlanEntry[];
   checkedAt: string;
+}
+
+export type AgentCloudPlanKind = "vps" | "vds" | "dedicated";
+
+export type AgentCloudPlansToolName =
+  | "get_vps_plans"
+  | "get_vds_plans"
+  | "get_dedicated_server_plans";
+
+export interface AgentCloudPlanCheckout {
+  productType: "VPS" | "VDS" | "DEDICATED_SERVERS";
+  inventoryProductId: number;
+  locationName: string;
+  disabledBillingPeriods: string[];
+  usdMonthly: number;
+  usdHourly: number;
+  usdByPeriod: {
+    hourly: number;
+    monthly: number;
+    quarterly: number;
+    "semi-annually": number;
+    annually: number;
+    biennial: number;
+    triennial: number;
+  };
+}
+
+export interface AgentCloudPlanEntry {
+  product_id: number;
+  product_name: string;
+  data_center: string;
+  locationDisplayName: string;
+  location_option_id: number;
+  stock: "available" | "limited" | "unavailable";
+  is_vps: boolean;
+  is_vds: boolean;
+  product_cpu?: string;
+  product_cpu_cores?: string;
+  processor_info?: unknown;
+  product_memory?: string;
+  product_drive?: string;
+  product_drive_info?: unknown;
+  product_bandwidth?: string;
+  product_new?: boolean;
+  product_on_sale?: boolean;
+  product_hourly_price: number;
+  product_monthly_price: number;
+  product_original_price?: number;
+  checkout?: AgentCloudPlanCheckout;
+}
+
+export interface AgentCloudPlansResult {
+  _tool: AgentCloudPlansToolName;
+  kind: AgentCloudPlanKind;
+  displayCurrency: "KES" | "USD";
+  niscProductId: string;
+  search?: string;
+  filterSummary?: string | null;
+  matchMode?: "browse" | "best";
+  plans: AgentCloudPlanEntry[];
+  totalCount: number;
+  hasMore: boolean;
+  nextCursor?: number | null;
+  checkedAt: string;
+}
+
+export interface AgentCloudServerEntry {
+  name: string;
+  status: "Active" | "Suspended" | "Pending" | "Unknown";
+  kind: AgentCloudPlanKind;
+  hostname: string | null;
+  location: string | null;
+  billingCycle: string | null;
+  expiryDate: string | null;
+  nextRenewalDate: string | null;
+  autoRenew: boolean | null;
+  price: string | null;
+  currency: string | null;
+  teamName: string | null;
+}
+
+export interface AgentCloudServersResult {
+  _tool: "get_cloud_servers";
+  kind: AgentCloudPlanKind | "all";
+  isAgency: boolean;
+  teamName: string | null;
+  servers: AgentCloudServerEntry[];
+  totalCount: number;
+  activeCount: number;
+  suspendedCount: number;
+  checkedAt: string;
+  error?: string;
 }
 
 // ── Domains portfolio ───────────────────────────────────────────────────────
@@ -119,6 +211,8 @@ export interface AgentHostingResourcesResult {
   suspendedCount: number;
   pleskUnavailable?: boolean;
   checkedAt: string;
+  /** WordPress on these hosts (including subdomains), attached when looking up websites. */
+  wordpressSites?: AgentWordPressSitesResult;
 }
 
 export interface AgentHostingMailAccount {
@@ -166,6 +260,48 @@ export interface AgentHostingDetailResult {
   pleskUnavailable?: boolean;
   error?: string;
   checkedAt: string;
+  /** WordPress on this domain and its subdomains, attached when looking up a website. */
+  wordpressSites?: AgentWordPressSitesResult;
+}
+
+// ── WordPress sites ──────────────────────────────────────────────────────────
+
+export type AgentWordPressSiteKind = "wordpress_hosting" | "on_hosting";
+
+export interface AgentWordPressSiteEntry {
+  title: string;
+  domain: string | null;
+  url: string | null;
+  version: string | null;
+  phpVersion: string | null;
+  sslEnabled: boolean | null;
+  status: "Online" | "Offline" | "Unknown";
+  infected: boolean | null;
+  unsupported: boolean | null;
+  multisite: boolean | null;
+  security: "Secure" | "Needs attention" | "Unknown";
+  pluginUpdates: number | null;
+  themeUpdates: number | null;
+  availableWpVersion: string | null;
+  kind: AgentWordPressSiteKind;
+  isSubdomain: boolean;
+  planName: string | null;
+  billingStatus: "Active" | "Suspended" | "Pending" | "Unknown" | null;
+  expiryDate: string | null;
+  teamName: string | null;
+}
+
+export interface AgentWordPressSitesResult {
+  _tool: "get_wordpress_sites";
+  isAgency: boolean;
+  teamName: string | null;
+  domainFilter: string | null;
+  sites: AgentWordPressSiteEntry[];
+  totalCount: number;
+  onlineCount: number;
+  needsAttentionCount: number;
+  checkedAt: string;
+  error?: string;
 }
 
 // ── Domain detail ────────────────────────────────────────────────────────────

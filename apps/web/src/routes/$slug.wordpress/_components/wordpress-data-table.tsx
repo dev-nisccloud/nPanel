@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 
+import { ViewDetailsButton, VisitSiteButton } from "@/components/ui/list-row-actions";
 import {
   WordPressList,
   WordPressListStatusBadge,
@@ -67,15 +68,17 @@ export function WordPressDataTable() {
     const detailId = getDetailRouteId(subscription);
     const titleText =
       subscription.primaryDomain ?? subscription.subscriptionName ?? subscription.id;
+    const siteUrl = subscription.primaryDomain ?? subscription.subscriptionName;
+    const detailHref = detailId ? `/${teamSlug}/wordpress/${detailId}` : null;
     const subscribed = formatListDate(subscription.subscriptionDate);
     const expires = formatListDate(subscription.expiryDate);
     const statusUpper = String(subscription.status).toUpperCase();
 
     return {
       key: subscription.id,
-      title: detailId ? (
+      title: detailHref ? (
         <Link
-          to={`/${teamSlug}/wordpress/${detailId}`}
+          to={detailHref}
           className="text-primary hover:underline"
           onClick={(e) => e.stopPropagation()}
         >
@@ -99,9 +102,15 @@ export function WordPressDataTable() {
             {expires ? `Expires ${expires}` : null}
           </p>
         ) : undefined,
-      onClick: detailId
-        ? () => navigate(`/${teamSlug}/wordpress/${detailId}`)
-        : undefined,
+      actions: (
+        <>
+          <VisitSiteButton url={siteUrl} />
+          {detailHref ? (
+            <ViewDetailsButton onClick={() => navigate(detailHref)} />
+          ) : null}
+        </>
+      ),
+      onClick: detailHref ? () => navigate(detailHref) : undefined,
     };
   });
 

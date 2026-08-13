@@ -1,10 +1,8 @@
 "use client";
 
-import type React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { Clock, History, Paperclip, Search, Send, Trash2, X } from "lucide-react";
-import { motion } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -24,15 +22,8 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { GradientOrb } from "@/components/ui/gradient-orb";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { UploadProgressRing } from "@/components/upload-progress-ring";
 import { useAppFileUpload } from "@/hooks/use-app-file-upload";
 import { startViewTransitionNavigate } from "@/routes/_agency.zeepo-ai-agent/nav-state";
@@ -50,6 +41,7 @@ import {
   type ZeepoPromptCategory,
 } from "@/components/zeepo/zeepo-sample-prompts";
 import { ZeepoAiTokenWallet, ZeepoAiFreeCreditsNudge } from "@/components/zeepo/zeepo-ai-token-wallet";
+import { ZeepoAiAutosizeTextarea } from "@/components/zeepo/zeepo-ai-autosize-textarea";
 import { refreshZeepoAiTokenBalance } from "@/hooks/use-zeepo-ai-token-balance";
 
 type PendingFile = {
@@ -137,7 +129,7 @@ export function ZeepoAiAssistantInterface() {
   );
   const sessions = listQuery.data?.sessions ?? [];
 
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const {
     uploadZeepoAiAttachments,
@@ -295,138 +287,123 @@ export function ZeepoAiAssistantInterface() {
     ? ZEEPO_PROMPT_CATEGORY_META[selectedPromptCategory]
     : null;
   const SelectedCategoryIcon = selectedCategoryMeta?.icon;
+  const activePrompts = useMemo(
+    () => ZEEPO_SAMPLE_PROMPTS.filter((p) => p.category === activePromptTab),
+    [activePromptTab],
+  );
 
   return (
-    <div className="zeepo-ai-root relative flex h-[calc(100svh-theme(spacing.12)-theme(spacing.8))] min-h-0 w-full flex-col overflow-hidden md:h-[calc(100svh-theme(spacing.12)-theme(spacing.12))]">
-      {/* Scrollable landing content */}
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
-        {/* Top bar: recent chats popover (Agent-parity) */}
-        <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-2 px-3 pt-4 sm:px-4 md:px-6">
-          <ZeepoAiTokenWallet />
-          <Popover open={historyOpen} onOpenChange={setHistoryOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-2 text-muted-foreground hover:text-foreground"
-                aria-label="View recent chats"
-              >
-                <Clock className="size-4" />
-                <span className="text-sm">View recent chats</span>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent
-              className="w-[min(calc(100vw-2rem),22rem)] p-0"
-              align="end"
-              side="bottom"
-              sideOffset={8}
-              collisionPadding={16}
+    <div className="zeepo-ai-root relative flex h-full min-h-0 w-full flex-col overflow-hidden px-2 pb-2 sm:px-3">
+      <header className="mx-auto flex w-full max-w-3xl shrink-0 items-center justify-between gap-2 px-1 pt-1 sm:px-2">
+        <ZeepoAiTokenWallet />
+        <Popover open={historyOpen} onOpenChange={setHistoryOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2 text-muted-foreground hover:text-foreground"
+              aria-label="View recent chats"
             >
-              <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
-                <div className="flex items-center gap-2">
-                  <History className="size-4 text-muted-foreground" />
-                  <p className="text-sm font-semibold text-foreground">Recent chats</p>
-                </div>
+              <Clock className="size-4" />
+              <span className="hidden text-sm sm:inline">Recent chats</span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent
+            className="w-[min(calc(100vw-2rem),22rem)] p-0"
+            align="end"
+            side="bottom"
+            sideOffset={8}
+            collisionPadding={16}
+          >
+            <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
+              <div className="flex items-center gap-2">
+                <History className="size-4 text-muted-foreground" />
+                <p className="text-sm font-semibold text-foreground">Recent chats</p>
               </div>
-              <Command shouldFilter>
-                <CommandInput placeholder="Search chats…" className="h-9" />
-                <CommandList className="max-h-72">
-                  {listQuery.isPending ? (
-                    <div className="flex justify-center py-8">
-                      <Spinner size={20} className="text-muted-foreground" />
-                    </div>
-                  ) : (
-                    <>
-                      <CommandEmpty className="py-6 text-center text-sm text-muted-foreground">
-                        {sessions.length === 0 ? "No chats yet" : "No matching chats"}
-                      </CommandEmpty>
-                      <CommandGroup>
-                        {sessions.map((s) => (
-                          <CommandItem
-                            key={s.id}
-                            value={`${s.title ?? "New chat"} ${s.id}`}
-                            onSelect={() => {
-                              setHistoryOpen(false);
-                              startViewTransitionNavigate(() => {
-                                navigate(zeepoAiSessionPath(route.basePath, s.id));
-                              });
-                            }}
-                            className="group/item flex cursor-pointer items-center gap-2 px-3 py-2"
-                          >
-                            <div className="min-w-0 flex-1 overflow-hidden">
-                              <p className="truncate text-sm font-medium leading-tight">
-                                {s.title || "New chat"}
-                              </p>
-                            </div>
-                            <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground group-hover/item:hidden">
-                              {formatDistanceToNow(new Date(s.updatedAt), { addSuffix: true })}
-                            </span>
-                            <button
-                              type="button"
-                              aria-label={`Delete ${s.title || "chat"}`}
-                              disabled={deleteSession.isPending && deleteTarget?.id === s.id}
-                              className="hidden size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive group-hover/item:flex disabled:pointer-events-none"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setDeleteTarget({ id: s.id, title: s.title });
-                              }}
-                            >
-                              {deleteSession.isPending && deleteTarget?.id === s.id ? (
-                                <Spinner size={12} className="text-current" />
-                              ) : (
-                                <Trash2 className="size-3.5" />
-                              )}
-                            </button>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </>
-                  )}
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-        </div>
-
-        <div
-          className={cn(
-            "zeepo-ai-hero-surface mx-auto flex w-full max-w-2xl flex-col items-center px-1 py-5 sm:px-2 md:px-4 pb-72",
-            "transition-all duration-300 ease-out",
-            isHandingOff && "pointer-events-none opacity-60",
-          )}
-        >
-          <div className="mb-6 flex w-full flex-col items-center gap-5 pt-2 pb-2 text-center sm:mb-8 sm:pt-4">
-            <div className="relative h-40 w-40 sm:h-52 sm:w-52" aria-hidden>
-              <GradientOrb />
             </div>
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-2"
-            >
-              <h1 className="text-[2rem] font-bold leading-[1.15] tracking-tight text-foreground sm:text-[2.6rem]">
-                {greeting}
-              </h1>
-              <p className="mx-auto max-w-sm text-sm leading-relaxed text-muted-foreground sm:text-base">
-                Ask me anything or try one of the suggestions below
-              </p>
-            </motion.div>
-            <ZeepoAiFreeCreditsNudge className="w-full max-w-lg text-left" />
-          </div>
-        </div>
-      </div>
+            <Command shouldFilter>
+              <CommandInput placeholder="Search chats…" className="h-9" />
+              <CommandList className="max-h-72">
+                {listQuery.isPending ? (
+                  <div className="flex justify-center py-8">
+                    <Spinner size={20} className="text-muted-foreground" />
+                  </div>
+                ) : (
+                  <>
+                    <CommandEmpty className="py-6 text-center text-sm text-muted-foreground">
+                      {sessions.length === 0 ? "No chats yet" : "No matching chats"}
+                    </CommandEmpty>
+                    <CommandGroup>
+                      {sessions.map((s) => (
+                        <CommandItem
+                          key={s.id}
+                          value={`${s.title ?? "New chat"} ${s.id}`}
+                          onSelect={() => {
+                            setHistoryOpen(false);
+                            startViewTransitionNavigate(() => {
+                              navigate(zeepoAiSessionPath(route.basePath, s.id));
+                            });
+                          }}
+                          className="group/item flex cursor-pointer items-center gap-2 px-3 py-2"
+                        >
+                          <div className="min-w-0 flex-1 overflow-hidden">
+                            <p className="truncate text-sm font-medium leading-tight">
+                              {s.title || "New chat"}
+                            </p>
+                          </div>
+                          <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground group-hover/item:hidden">
+                            {formatDistanceToNow(new Date(s.updatedAt), { addSuffix: true })}
+                          </span>
+                          <button
+                            type="button"
+                            aria-label={`Delete ${s.title || "chat"}`}
+                            disabled={deleteSession.isPending && deleteTarget?.id === s.id}
+                            className="hidden size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive group-hover/item:flex disabled:pointer-events-none"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setDeleteTarget({ id: s.id, title: s.title });
+                            }}
+                          >
+                            {deleteSession.isPending && deleteTarget?.id === s.id ? (
+                              <Spinner size={12} className="text-current" />
+                            ) : (
+                              <Trash2 className="size-3.5" />
+                            )}
+                          </button>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </>
+                )}
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+      </header>
 
-      {/* Floating chat input + Agent sample prompts  always visible */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-1 pb-1 pt-10 sm:px-2 sm:pb-2 md:px-4">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-t from-[var(--agency-content-bg,#f8fafb)] via-[var(--agency-content-bg,#f8fafb)]/85 to-transparent" />
-        <div
-          className={cn(
-            "zeepo-ai-compose-surface pointer-events-auto relative mx-auto flex w-full max-w-3xl flex-col gap-3",
-            "transition-all duration-300 ease-out",
-          )}
-        >
+      <div
+        className={cn(
+          "mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col justify-center px-1 pt-2 sm:px-2",
+          isHandingOff && "pointer-events-none opacity-60",
+        )}
+      >
+        <div className="zeepo-ai-hero flex shrink-0 flex-col items-center text-center">
+          <div className="zeepo-ai-orb relative" aria-hidden>
+            <GradientOrb />
+          </div>
+          <div className="zeepo-ai-hero-copy mt-2 space-y-1 sm:mt-3">
+            <h1 className="zeepo-ai-greeting font-bold leading-[1.15] tracking-tight text-foreground">
+              {greeting}
+            </h1>
+            <p className="zeepo-ai-subhead mx-auto max-w-sm text-sm leading-snug text-muted-foreground">
+              Ask anything, or pick a suggestion to start
+            </p>
+          </div>
+          <ZeepoAiFreeCreditsNudge compact className="zeepo-ai-nudge mt-2 w-full max-w-xl text-left sm:mt-3" />
+        </div>
+
+        <div className="zeepo-ai-compose-surface mt-3 w-full shrink-0 sm:mt-4">
           <input
             ref={fileInputRef}
             type="file"
@@ -453,7 +430,7 @@ export function ZeepoAiAssistantInterface() {
                     <img
                       src={file.previewUrl}
                       alt={file.name}
-                      className="size-14 rounded-lg border border-border object-cover"
+                      className="size-12 rounded-lg border border-border object-cover sm:size-14"
                     />
                     <button
                       type="button"
@@ -469,10 +446,10 @@ export function ZeepoAiAssistantInterface() {
             ) : null}
 
             {selectedCategoryMeta ? (
-              <div className="flex flex-wrap items-center gap-2 border-b border-border/60 px-3 py-2">
+              <div className="flex min-w-0 items-center gap-2 border-b border-border/60 px-3 py-2">
                 <span
                   className={cn(
-                    "inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium",
+                    "inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium",
                     selectedCategoryMeta.pillClass,
                   )}
                 >
@@ -494,20 +471,21 @@ export function ZeepoAiAssistantInterface() {
                   </button>
                 </span>
                 {selectedPromptTitle ? (
-                  <span className="truncate text-[11px] text-muted-foreground">
+                  <span className="min-w-0 truncate text-[11px] text-muted-foreground">
                     {selectedPromptTitle}
                   </span>
                 ) : null}
               </div>
             ) : null}
 
-            <div className="px-4 pt-3.5 pb-2">
-              <input
+            <div className="px-4 pt-3 pb-1.5">
+              <ZeepoAiAutosizeTextarea
                 ref={inputRef}
-                type="text"
                 placeholder={isHandingOff ? "Starting chat…" : "Ask me anything..."}
                 value={inputValue}
                 disabled={isHandingOff}
+                maxLines={5}
+                aria-label="Message Zeepo"
                 onChange={(e) => {
                   setInputValue(e.target.value);
                   if (!e.target.value.trim()) {
@@ -521,12 +499,11 @@ export function ZeepoAiAssistantInterface() {
                     void handleSendMessage();
                   }
                 }}
-                className="w-full bg-transparent text-[15px] leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/60 disabled:cursor-not-allowed disabled:opacity-70"
               />
             </div>
 
             <div className="flex items-center justify-between gap-2 px-3 pb-3 pt-0.5">
-              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+              <div className="flex min-w-0 items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => setSearchEnabled((v) => !v)}
@@ -569,140 +546,77 @@ export function ZeepoAiAssistantInterface() {
                 onClick={() => void handleSendMessage()}
                 disabled={!canSend}
                 className={cn(
-                  "flex size-11 items-center justify-center rounded-full transition-colors",
+                  "flex size-9 items-center justify-center rounded-full transition-colors sm:size-10",
                   canSend || isHandingOff
                     ? "bg-primary text-primary-foreground hover:bg-primary/90"
                     : "cursor-not-allowed bg-muted text-muted-foreground",
                 )}
               >
                 {isHandingOff ? (
-                  <Spinner size={18} className="text-current" />
+                  <Spinner size={16} className="text-current" />
                 ) : (
-                  <Send className="size-5" />
+                  <Send className="size-4" />
                 )}
               </button>
             </div>
           </div>
+        </div>
 
-          {/* Sample prompts: dropdown menus on mobile, tabs + chips on md+ */}
-          <div
-            className={cn(
-              "w-full",
-              isHandingOff && "pointer-events-none opacity-60",
-            )}
-          >
-            {/* Mobile: category tabs open a menu of suggestions */}
-            <div className="flex flex-wrap gap-2 md:hidden">
-              {ZEEPO_PROMPT_CATEGORY_ORDER.map((category) => {
-                const meta = ZEEPO_PROMPT_CATEGORY_META[category];
-                const TabIcon = meta.icon;
-                const isActive = activePromptTab === category;
-                const items = ZEEPO_SAMPLE_PROMPTS.filter((p) => p.category === category);
-                return (
-                  <DropdownMenu key={category}>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        type="button"
-                        disabled={createSession.isPending || isHandingOff}
-                        onClick={() => setActivePromptTab(category)}
-                        className={cn(
-                          "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                          "disabled:pointer-events-none disabled:opacity-50",
-                          isActive
-                            ? "bg-primary text-primary-foreground"
-                            : "border border-border bg-background text-foreground hover:bg-muted/50",
-                        )}
-                      >
-                        <TabIcon className="size-3.5 shrink-0" aria-hidden />
-                        {meta.label}
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="start"
-                      side="top"
-                      className="max-h-72 w-[min(calc(100vw-2rem),18rem)] overflow-y-auto"
-                    >
-                      {items.map((item) => {
-                        const Icon = item.icon;
-                        return (
-                          <DropdownMenuItem
-                            key={item.title}
-                            className="gap-2"
-                            onSelect={() =>
-                              selectSamplePrompt(item.title, item.category, item.prompt)
-                            }
-                          >
-                            <Icon className="size-3.5 shrink-0 opacity-70" aria-hidden />
-                            <span className="truncate">{item.title}</span>
-                          </DropdownMenuItem>
-                        );
-                      })}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                );
-              })}
-            </div>
+        <div
+          className={cn(
+            "mt-3 w-full shrink-0 sm:mt-4",
+            isHandingOff && "pointer-events-none opacity-60",
+          )}
+        >
+          <div className="grid grid-cols-2 gap-1 sm:grid-cols-4">
+            {ZEEPO_PROMPT_CATEGORY_ORDER.map((category) => {
+              const isActive = activePromptTab === category;
+              const meta = ZEEPO_PROMPT_CATEGORY_META[category];
+              const TabIcon = meta.icon;
+              return (
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() => setActivePromptTab(category)}
+                  className={cn(
+                    "inline-flex min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors sm:text-sm",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
+                  )}
+                >
+                  <TabIcon className="size-3.5 shrink-0" aria-hidden />
+                  <span className="truncate">{meta.label}</span>
+                </button>
+              );
+            })}
+          </div>
 
-            {/* Desktop: category tabs + suggestion chips */}
-            <div className="hidden space-y-3 md:block">
-              <ScrollArea className="w-full">
-                <div className="flex w-max flex-nowrap gap-2 pb-1 pr-2">
-                  {ZEEPO_PROMPT_CATEGORY_ORDER.map((category) => {
-                    const isActive = activePromptTab === category;
-                    const meta = ZEEPO_PROMPT_CATEGORY_META[category];
-                    const TabIcon = meta.icon;
-                    return (
-                      <button
-                        key={category}
-                        type="button"
-                        onClick={() => setActivePromptTab(category)}
-                        className={cn(
-                          "inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                          isActive
-                            ? "bg-primary text-primary-foreground"
-                            : "border border-border bg-background text-foreground hover:bg-muted/50",
-                        )}
-                      >
-                        <TabIcon className="size-3.5 shrink-0" aria-hidden />
-                        {meta.label}
-                      </button>
-                    );
-                  })}
-                </div>
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
-
-              <div className="flex flex-wrap gap-2">
-                {ZEEPO_SAMPLE_PROMPTS.filter((p) => p.category === activePromptTab).map((item) => {
-                  const Icon = item.icon;
-                  const isSelected = selectedPromptTitle === item.title;
-                  const meta = ZEEPO_PROMPT_CATEGORY_META[item.category];
-                  return (
-                    <button
-                      key={item.title}
-                      type="button"
-                      disabled={createSession.isPending || isHandingOff}
-                      onClick={() => selectSamplePrompt(item.title, item.category, item.prompt)}
-                      className={cn(
-                        "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium",
-                        "border transition-all duration-150",
-                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                        "disabled:pointer-events-none disabled:opacity-50",
-                        "hover:-translate-y-px hover:shadow-sm",
-                        isSelected
-                          ? cn("border-transparent shadow-sm", meta.pillClass)
-                          : "border-border bg-card text-foreground hover:bg-muted/60",
-                      )}
-                    >
-                      <Icon className="size-3.5 shrink-0 opacity-70" aria-hidden />
-                      {item.title}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+          <div className="mt-1.5 grid grid-cols-1 gap-0.5 sm:grid-cols-2">
+            {activePrompts.map((item) => {
+              const Icon = item.icon;
+              const isSelected = selectedPromptTitle === item.title;
+              return (
+                <button
+                  key={item.title}
+                  type="button"
+                  disabled={createSession.isPending || isHandingOff}
+                  onClick={() => selectSamplePrompt(item.title, item.category, item.prompt)}
+                  className={cn(
+                    "flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] leading-snug transition-colors",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    "disabled:pointer-events-none disabled:opacity-50",
+                    isSelected
+                      ? "bg-muted text-foreground"
+                      : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                  )}
+                >
+                  <Icon className={cn("size-3.5 shrink-0", item.color)} aria-hidden />
+                  <span className="min-w-0 truncate">{item.title}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>

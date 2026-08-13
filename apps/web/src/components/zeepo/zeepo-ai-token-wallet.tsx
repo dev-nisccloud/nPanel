@@ -193,7 +193,13 @@ export function ZeepoAiTokenWallet({ className }: Props) {
 }
 
 /** Inline banner for home / empty states when the team has no qualifying service. */
-export function ZeepoAiFreeCreditsNudge({ className }: { className?: string }) {
+export function ZeepoAiFreeCreditsNudge({
+	className,
+	compact = false,
+}: {
+	className?: string;
+	compact?: boolean;
+}) {
 	const { teamId, teamSlug, isCustomer } = useZeepoAiRoute();
 	const { data: session } = authClient.useSession();
 	const userRole = (session?.user as { role?: string } | undefined)?.role;
@@ -205,6 +211,27 @@ export function ZeepoAiFreeCreditsNudge({ className }: { className?: string }) {
 	if (!isCustomer || isAgency || !teamId || isLoading || hasQualifyingService) return null;
 
 	const hostingPath = hostingHref(teamSlug);
+
+	if (compact) {
+		return (
+			<div
+				className={cn(
+					"flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-foreground",
+					className,
+				)}
+			>
+				<p className="min-w-0 flex-1 truncate">
+					Unlock {welcomeTokenGrant} free tokens with hosting
+				</p>
+				<Button type="button" size="sm" className="h-7 shrink-0 gap-1 px-2.5 text-xs" asChild>
+					<Link to={hostingPath as never}>
+						<Server className="size-3.5" />
+						Get hosting
+					</Link>
+				</Button>
+			</div>
+		);
+	}
 
 	return (
 		<div

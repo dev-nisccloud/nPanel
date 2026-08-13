@@ -22,10 +22,30 @@ export { DEFAULT_DISPLAY_CURRENCY } from "./pricing";
 export {
 	agentGetWebHostingPlans,
 	agentGetEmailHostingPlans,
+	agentGetWordPressHostingPlans,
 	type HostingPlansResult,
 	type HostingPlanEntry,
 	type HostingPlanFeatureRow,
+	type HostingPlansToolName,
 } from "./hosting-plans";
+
+export {
+	agentGetVpsPlans,
+	agentGetVdsPlans,
+	agentGetDedicatedServerPlans,
+	agentGetCloudPlans,
+	type CloudPlansResult,
+	type CloudPlanEntry,
+	type CloudPlanKind,
+	type CloudPlansToolName,
+} from "./cloud-plans";
+
+export {
+	agentGetCloudServers,
+	type CloudServersResult,
+	type CloudServerEntry,
+	type CloudServerKind,
+} from "./cloud-servers";
 
 export {
 	agentGetDomainsPortfolio,
@@ -47,3 +67,10 @@ export {
 	type HostingResourcesResult,
 	type HostingDetailResult,
 } from "./hosting-resources";
+
+export {
+	agentGetWordPressSites,
+	type WordPressSitesResult,
+	type WordPressSiteEntry,
+	type WordPressSiteKind,
+} from "./wordpress-sites";

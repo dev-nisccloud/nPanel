@@ -97,12 +97,7 @@ export function ZeepoAiLibraryPage() {
   };
 
   return (
-    <div
-      className={cn(
-        "zeepo-ai-root relative flex h-[calc(100svh-theme(spacing.12)-theme(spacing.8))] min-h-0 w-full overflow-hidden",
-        "md:h-[calc(100svh-theme(spacing.12)-theme(spacing.12))]",
-      )}
-    >
+    <div className="zeepo-ai-root relative flex h-full min-h-0 w-full overflow-hidden">
       <div
         className={cn(
           "relative flex min-h-0 min-w-0 flex-col overflow-hidden transition-all duration-300 ease-in-out",
