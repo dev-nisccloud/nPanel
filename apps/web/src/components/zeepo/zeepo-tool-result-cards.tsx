@@ -2,6 +2,8 @@
 
 import { ZeepoDomainPurchaseCard } from "@/components/zeepo/domain-purchase-card";
 import { ZeepoHostingPlansCard } from "@/components/zeepo/hosting-plans-card";
+import { ZeepoCloudPlansCard } from "@/components/zeepo/cloud-plans-card";
+import { ZeepoCloudServersCard } from "@/components/zeepo/cloud-servers-card";
 import { ZeepoDomainsPortfolioCard } from "@/components/zeepo/domains-portfolio-card";
 import { ZeepoDomainDetailCard } from "@/components/zeepo/domain-detail-card";
 import { ZeepoHostingResourcesCard } from "@/components/zeepo/hosting-resources-card";
@@ -9,6 +11,8 @@ import { ZeepoHostingDetailCard } from "@/components/zeepo/hosting-detail-card";
 import type {
   AgentDomainCheckResult,
   AgentHostingPlansResult,
+  AgentCloudPlansResult,
+  AgentCloudServersResult,
   AgentDomainsPortfolioResult,
   AgentDomainDetailResult,
   AgentHostingResourcesResult,
@@ -53,6 +57,30 @@ export function parseHostingPlansResult(
     o?._tool === "get_email_hosting_plans"
   ) {
     return o as unknown as AgentHostingPlansResult;
+  }
+  return null;
+}
+
+export function parseCloudPlansResult(
+  payload: unknown,
+): AgentCloudPlansResult | null {
+  const o = asObject(payload);
+  if (
+    o?._tool === "get_vps_plans" ||
+    o?._tool === "get_vds_plans" ||
+    o?._tool === "get_dedicated_server_plans"
+  ) {
+    return o as unknown as AgentCloudPlansResult;
+  }
+  return null;
+}
+
+export function parseCloudServersResult(
+  payload: unknown,
+): AgentCloudServersResult | null {
+  const o = asObject(payload);
+  if (o?._tool === "get_cloud_servers") {
+    return o as unknown as AgentCloudServersResult;
   }
   return null;
 }
@@ -102,6 +130,8 @@ export function hasRenderableZeepoToolCard(payload: unknown): boolean {
   return Boolean(
     parseDomainCheckResult(payload) ||
       parseHostingPlansResult(payload) ||
+      parseCloudPlansResult(payload) ||
+      parseCloudServersResult(payload) ||
       parseDomainsPortfolioResult(payload) ||
       parseDomainDetailResult(payload) ||
       parseHostingResourcesResult(payload) ||
@@ -119,6 +149,12 @@ export function ZeepoToolResultCard({ result }: { result: unknown }) {
 
   const hostingResult = parseHostingPlansResult(result);
   if (hostingResult) return <ZeepoHostingPlansCard result={hostingResult} />;
+
+  const cloudPlansResult = parseCloudPlansResult(result);
+  if (cloudPlansResult) return <ZeepoCloudPlansCard result={cloudPlansResult} />;
+
+  const cloudServersResult = parseCloudServersResult(result);
+  if (cloudServersResult) return <ZeepoCloudServersCard result={cloudServersResult} />;
 
   const portfolioResult = parseDomainsPortfolioResult(result);
   if (portfolioResult) return <ZeepoDomainsPortfolioCard result={portfolioResult} />;

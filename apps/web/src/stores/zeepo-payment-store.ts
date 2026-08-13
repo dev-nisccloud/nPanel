@@ -53,6 +53,98 @@ export interface AgentHostingPlansResult {
   checkedAt: string;
 }
 
+export type AgentCloudPlanKind = "vps" | "vds" | "dedicated";
+
+export type AgentCloudPlansToolName =
+  | "get_vps_plans"
+  | "get_vds_plans"
+  | "get_dedicated_server_plans";
+
+export interface AgentCloudPlanCheckout {
+  productType: "VPS" | "VDS" | "DEDICATED_SERVERS";
+  inventoryProductId: number;
+  locationName: string;
+  disabledBillingPeriods: string[];
+  usdMonthly: number;
+  usdHourly: number;
+  usdByPeriod: {
+    hourly: number;
+    monthly: number;
+    quarterly: number;
+    "semi-annually": number;
+    annually: number;
+    biennial: number;
+    triennial: number;
+  };
+}
+
+export interface AgentCloudPlanEntry {
+  product_id: number;
+  product_name: string;
+  data_center: string;
+  locationDisplayName: string;
+  location_option_id: number;
+  stock: "available" | "limited" | "unavailable";
+  is_vps: boolean;
+  is_vds: boolean;
+  product_cpu?: string;
+  product_cpu_cores?: string;
+  processor_info?: unknown;
+  product_memory?: string;
+  product_drive?: string;
+  product_drive_info?: unknown;
+  product_bandwidth?: string;
+  product_new?: boolean;
+  product_on_sale?: boolean;
+  product_hourly_price: number;
+  product_monthly_price: number;
+  product_original_price?: number;
+  checkout?: AgentCloudPlanCheckout;
+}
+
+export interface AgentCloudPlansResult {
+  _tool: AgentCloudPlansToolName;
+  kind: AgentCloudPlanKind;
+  displayCurrency: "KES" | "USD";
+  niscProductId: string;
+  search?: string;
+  filterSummary?: string | null;
+  matchMode?: "browse" | "best";
+  plans: AgentCloudPlanEntry[];
+  totalCount: number;
+  hasMore: boolean;
+  nextCursor?: number | null;
+  checkedAt: string;
+}
+
+export interface AgentCloudServerEntry {
+  name: string;
+  status: "Active" | "Suspended" | "Pending" | "Unknown";
+  kind: AgentCloudPlanKind;
+  hostname: string | null;
+  location: string | null;
+  billingCycle: string | null;
+  expiryDate: string | null;
+  nextRenewalDate: string | null;
+  autoRenew: boolean | null;
+  price: string | null;
+  currency: string | null;
+  teamName: string | null;
+}
+
+export interface AgentCloudServersResult {
+  _tool: "get_cloud_servers";
+  kind: AgentCloudPlanKind | "all";
+  isAgency: boolean;
+  teamName: string | null;
+  servers: AgentCloudServerEntry[];
+  totalCount: number;
+  activeCount: number;
+  suspendedCount: number;
+  checkedAt: string;
+  error?: string;
+}
+
 // ── Domains portfolio ───────────────────────────────────────────────────────
 
 export type AgentPortfolioDomainStatus =

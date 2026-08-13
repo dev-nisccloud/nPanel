@@ -9,17 +9,24 @@ import { userProfile as userProfileTable } from "@npanel/db/schema/auth-extras";
 import type { ToolUnion } from "@anthropic-ai/sdk/resources/messages";
 import {
 	agentCheckDomainAvailability,
+	agentGetCloudServers,
+	agentGetDedicatedServerPlans,
 	agentGetDomainDetail,
 	agentGetDomainsPortfolio,
 	agentGetEmailHostingPlans,
 	agentGetHostingDetail,
 	agentGetHostingResources,
+	agentGetVdsPlans,
+	agentGetVpsPlans,
 	agentGetWebHostingPlans,
 	DEFAULT_DISPLAY_CURRENCY,
 	DEFAULT_DOMAIN_EXTENSIONS,
 } from "../../lib/agent-internal-tools";
+import { resolveHivelocityPublicMessageFromError } from "../../lib/hivelocity-errors";
 import {
 	checkDomainAvailabilityArgsSchema,
+	getCloudPlansArgsSchema,
+	getCloudServersArgsSchema,
 	getDomainDetailArgsSchema,
 	getDomainsPortfolioArgsSchema,
 	getEmailHostingPlansArgsSchema,
@@ -36,6 +43,10 @@ export const ZEEPO_AI_OPS_TOOL_NAMES = [
 	"get_domain_detail",
 	"get_web_hosting_plans",
 	"get_email_hosting_plans",
+	"get_vps_plans",
+	"get_vds_plans",
+	"get_dedicated_server_plans",
+	"get_cloud_servers",
 	"get_hosting_resources",
 	"get_hosting_detail",
 ] as const;
@@ -105,6 +116,76 @@ export const ZEEPO_AI_OPS_CLIENT_TOOLS = [
 		input_schema: { type: "object" as const, properties: {}, additionalProperties: false },
 	},
 	{
+		name: "get_vps_plans",
+		description:
+			"List or match Nisc Cloud VPS plans. Browse with no filters (paginated). When the user names a config (RAM, cores, CPU, disk, location), pass those fields and this returns the single best matching plan they can buy.",
+		input_schema: {
+			type: "object" as const,
+			properties: {
+				search: { type: "string", description: "Free-text fallback, e.g. 8GB 4 cores AMD London" },
+				limit: { type: "integer", description: "Browse page size (1-24). Ignored for a specific config." },
+				ram_gb: { type: "number", description: "Requested RAM in GB, e.g. 8" },
+				cores: { type: "integer", description: "Requested vCPU / core count, e.g. 4" },
+				cpu: { type: "string", enum: ["intel", "amd"], description: "CPU brand if the user specified one" },
+				disk_gb: { type: "number", description: "Requested disk in GB" },
+				location: { type: "string", description: "City or region, e.g. London, Frankfurt" },
+			},
+			additionalProperties: false,
+		},
+	},
+	{
+		name: "get_vds_plans",
+		description:
+			"List or match Nisc Cloud VDS plans. Browse with no filters (paginated). When the user names a config (RAM, cores, CPU, disk, location), pass those fields and this returns the single best matching plan they can buy.",
+		input_schema: {
+			type: "object" as const,
+			properties: {
+				search: { type: "string", description: "Free-text fallback, e.g. 16GB 8 cores Intel Frankfurt" },
+				limit: { type: "integer", description: "Browse page size (1-24). Ignored for a specific config." },
+				ram_gb: { type: "number", description: "Requested RAM in GB, e.g. 16" },
+				cores: { type: "integer", description: "Requested vCPU / core count, e.g. 8" },
+				cpu: { type: "string", enum: ["intel", "amd"], description: "CPU brand if the user specified one" },
+				disk_gb: { type: "number", description: "Requested disk in GB" },
+				location: { type: "string", description: "City or region, e.g. London, Frankfurt" },
+			},
+			additionalProperties: false,
+		},
+	},
+	{
+		name: "get_dedicated_server_plans",
+		description:
+			"List or match Nisc Cloud dedicated server plans. Browse with no filters (paginated). When the user names a config (RAM, cores, CPU, disk, location), pass those fields and this returns the single best matching plan they can buy.",
+		input_schema: {
+			type: "object" as const,
+			properties: {
+				search: { type: "string", description: "Free-text fallback, e.g. 64GB 16 cores Xeon Dallas" },
+				limit: { type: "integer", description: "Browse page size (1-24). Ignored for a specific config." },
+				ram_gb: { type: "number", description: "Requested RAM in GB, e.g. 64" },
+				cores: { type: "integer", description: "Requested CPU core count, e.g. 16" },
+				cpu: { type: "string", enum: ["intel", "amd"], description: "CPU brand if the user specified one" },
+				disk_gb: { type: "number", description: "Requested disk in GB" },
+				location: { type: "string", description: "City or region, e.g. Dallas, London" },
+			},
+			additionalProperties: false,
+		},
+	},
+	{
+		name: "get_cloud_servers",
+		description:
+			"List VPS, VDS, or dedicated servers already purchased through Nisc Cloud. Agency admin sees all teams; customers only the active team. Pass type vps, vds, dedicated, or all.",
+		input_schema: {
+			type: "object" as const,
+			properties: {
+				type: {
+					type: "string",
+					enum: ["vps", "vds", "dedicated", "all"],
+					description: "Which servers to list. Default all.",
+				},
+			},
+			additionalProperties: false,
+		},
+	},
+	{
 		name: "get_hosting_resources",
 		description:
 			"List hosting subscriptions managed through Nisc Cloud for this user (agency-wide or team-scoped).",
@@ -137,8 +218,33 @@ export function getZeepoAiOpsTools(): ToolUnion[] {
 }
 
 function toolError(prefix: string, e: unknown): { error: string } {
-	const msg = e instanceof Error ? e.message : String(e);
-	return { error: `${prefix}: ${msg}` };
+	const raw = e instanceof Error ? e.message : String(e);
+	const combined = `${prefix}: ${raw}`;
+	if (/hivelocity|core\.hivelocity/i.test(combined)) {
+		return {
+			error: resolveHivelocityPublicMessageFromError(
+				e,
+				"Couldn't complete that lookup right now. Please try again.",
+			),
+		};
+	}
+	return { error: combined };
+}
+
+/** Drop checkout internals / wholesale fields before the model sees a tool result. */
+export function stripZeepoAiOpsToolResultForModel(payload: unknown): unknown {
+	if (!payload || typeof payload !== "object" || Array.isArray(payload)) return payload;
+	const rec = payload as Record<string, unknown>;
+	if (!Array.isArray(rec.plans)) return payload;
+	return {
+		...rec,
+		plans: rec.plans.map((plan) => {
+			if (!plan || typeof plan !== "object" || Array.isArray(plan)) return plan;
+			const { checkout: _checkout, __baseUsd: _baseUsd, location_option_id: _loc, ...rest } =
+				plan as Record<string, unknown>;
+			return rest;
+		}),
+	};
 }
 
 export type ExecuteZeepoAiOpsToolParams = {
@@ -242,6 +348,22 @@ export async function executeZeepoAiOpsTool(
 		}
 	}
 
+	if (name === "get_vps_plans" || name === "get_vds_plans" || name === "get_dedicated_server_plans") {
+		const parsed = getCloudPlansArgsSchema.safeParse(input ?? {});
+		if (!parsed.success) return { error: parsed.error.message };
+		try {
+			if (name === "get_vps_plans") {
+				return await agentGetVpsPlans(parsed.data);
+			}
+			if (name === "get_vds_plans") {
+				return await agentGetVdsPlans(parsed.data);
+			}
+			return await agentGetDedicatedServerPlans(parsed.data);
+		} catch (e) {
+			return toolError("Server plans fetch failed", e);
+		}
+	}
+
 	const role = (params.userRole ?? "CUSTOMER") as string;
 	// Agency-wide portfolio/hosting is admin+ only; AGENCY_USER stays team-scoped.
 	const isAgency =
@@ -273,6 +395,21 @@ export async function executeZeepoAiOpsTool(
 			});
 		} catch (e) {
 			return toolError("Domain detail fetch failed", e);
+		}
+	}
+
+	if (name === "get_cloud_servers") {
+		const parsed = getCloudServersArgsSchema.safeParse(input ?? {});
+		if (!parsed.success) return { error: parsed.error.message };
+		try {
+			return await agentGetCloudServers({
+				kind: parsed.data.type ?? "all",
+				isAgency,
+				teamId,
+				teamName,
+			});
+		} catch (e) {
+			return toolError("Cloud servers fetch failed", e);
 		}
 	}
 

@@ -4,7 +4,7 @@ import * as React from "react";
 import { Server, Mail } from "lucide-react";
 import { BuyNowDialog, type ServicePlanDetails } from "@/components/buy-now-dialog";
 import { PricingTableWrapper } from "@/components/pricing-table-wrapper";
-import { useZeepoAgentRoute } from "@/components/zeepo/zeepo-agent-route-context";
+import { useZeepoCheckoutTeam } from "@/components/zeepo/use-zeepo-checkout-team";
 import type { AgentHostingPlansResult } from "@/stores/zeepo-payment-store";
 
 interface ZeepoHostingPlansCardProps {
@@ -12,7 +12,7 @@ interface ZeepoHostingPlansCardProps {
 }
 
 export function ZeepoHostingPlansCard({ result }: ZeepoHostingPlansCardProps) {
-  const { teamId, teamSlug } = useZeepoAgentRoute();
+  const { teamId, teamSlug } = useZeepoCheckoutTeam();
   const [buyNowOpen, setBuyNowOpen] = React.useState(false);
   const [selectedPlan, setSelectedPlan] = React.useState<ServicePlanDetails | null>(null);
 

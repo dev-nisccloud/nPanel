@@ -254,6 +254,22 @@ export const getSessionInfoArgsSchema = z.object({});
 export const getWebHostingPlansArgsSchema = z.object({});
 export const getEmailHostingPlansArgsSchema = z.object({});
 
+export const getCloudPlansArgsSchema = z.object({
+	search: z.string().max(80).optional(),
+	limit: z.number().int().min(1).max(24).optional(),
+	ram_gb: z.number().positive().max(2048).optional(),
+	cores: z.number().int().positive().max(256).optional(),
+	cpu: z.enum(["intel", "amd"]).optional(),
+	disk_gb: z.number().positive().max(65536).optional(),
+	location: z.string().max(80).optional(),
+});
+export type GetCloudPlansArgs = z.infer<typeof getCloudPlansArgsSchema>;
+
+export const getCloudServersArgsSchema = z.object({
+	type: z.enum(["vps", "vds", "dedicated", "all"]).optional(),
+});
+export type GetCloudServersArgs = z.infer<typeof getCloudServersArgsSchema>;
+
 /**
  * No arguments - the tool uses the session context (role + teamId) to
  * automatically return agency-wide or team-scoped portfolio data.

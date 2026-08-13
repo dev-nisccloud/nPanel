@@ -10,6 +10,10 @@ const KNOWN_TOOL_NAMES = [
   "get_domain_detail",
   "get_web_hosting_plans",
   "get_email_hosting_plans",
+  "get_vps_plans",
+  "get_vds_plans",
+  "get_dedicated_server_plans",
+  "get_cloud_servers",
   "get_hosting_resources",
   "get_hosting_detail",
   "ask_clarifying_questions",
@@ -47,6 +51,10 @@ export function sanitizeZeepoAiReasoning(raw: string | null | undefined): string
     .replace(/\bsystem\s+prompt\b/gi, "instructions")
     .replace(/\b(?:developer|hidden)\s+prompt\b/gi, "instructions")
     .replace(/\bprompt\s+injection\b/gi, "unsafe instruction")
+    .replace(/\bHivelocity\b/gi, "Nisc Cloud")
+    .replace(/\bour provider\b/gi, "Nisc Cloud")
+    .replace(/\bthe provider\b/gi, "Nisc Cloud")
+    .replace(/\bupstream vendor\b/gi, "Nisc Cloud")
     .replace(/```[\s\S]*?```/g, "[redacted]")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
