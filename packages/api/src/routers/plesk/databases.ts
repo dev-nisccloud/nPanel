@@ -1,12 +1,12 @@
-import { XMLParser } from 'fast-xml-parser';
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { sendPleskXmlRequest } from '../../lib/plesk/xml-client';
-import { protectedProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from "../../trpc";
+import { assertCanAccessPleskSite } from "../../lib/plesk/hosting-access";
+import { getPleskDatabaseConnectionInfo } from "../../lib/plesk/database-ops";
+import { enrichPleskDatabasesWithRelatedSites } from "../../lib/plesk/database-related-site";
+import { createPhpMyAdminSsoRedirect } from "../../lib/plesk/phpmyadmin-sso";
+import { sendPleskXmlOrThrow } from "../../lib/plesk/xml-utils";
 
-/**
- * Build XML request to fetch all databases for a specific domain/webspace
- */
 function buildDatabaseGetXml(siteId: number): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <packet>
@@ -21,66 +21,30 @@ function buildDatabaseGetXml(siteId: number): string {
 }
 
 export const databasesRouter = router({
-  // Get databases for a site
   getBySiteId: protectedProcedure
     .input(z.object({ siteId: z.number() }))
-    .query(async ({ input }: { input: { siteId: number } }) => {
+    .query(async ({ input, ctx }) => {
       const { siteId } = input;
-      
+
       try {
-        // Check if required environment variables are set
-        if (!process.env.PLESK_XML_ENDPOINT) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Server configuration error: PLESK_XML_ENDPOINT environment variable is not set",
-          });
-        }
+        await assertCanAccessPleskSite({
+          siteId,
+          userId: ctx.session.user.id,
+          role: ctx.session.user.role,
+        });
 
-        const xmlRequest = buildDatabaseGetXml(siteId);
-        const { xml, isAuthError, isHostUnreachable } = await sendPleskXmlRequest(xmlRequest);
-
-        if (isHostUnreachable) {
-          throw new TRPCError({
-            code: "SERVICE_UNAVAILABLE",
-            message: "Plesk host is unreachable",
-          });
-        }
-
-        if (isAuthError) {
-          throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "Invalid Plesk credentials",
-          });
-        }
-
-        // Check if we have valid XML response
-        if (!xml || xml.trim() === '') {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Empty response from Plesk server",
-          });
-        }
-
-        const parser = new XMLParser({ ignoreAttributes: false });
-        let parsed: unknown;
-
+        const { xml, parsed } = await sendPleskXmlOrThrow(buildDatabaseGetXml(siteId));
         try {
-          parsed = parser.parse(xml);
-        } catch (parseError) {
-          console.error('Failed to parse XML response:', parseError);
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to parse Plesk response",
-            cause: parseError,
-          });
+          await enrichPleskDatabasesWithRelatedSites(parsed);
+        } catch (error) {
+          console.error("[Plesk related site] enrichment failed:", error);
         }
-
         return {
           raw: xml,
           parsed,
         };
       } catch (error) {
-        console.error('Plesk Databases API Error:', error);
+        console.error("Plesk Databases API Error:", error);
         if (error instanceof TRPCError) {
           throw error;
         }
@@ -90,5 +54,56 @@ export const databasesRouter = router({
           cause: error,
         });
       }
+    }),
+
+  getConnectionInfo: protectedProcedure
+    .input(
+      z.object({
+        siteId: z.number().int().positive(),
+        databaseId: z.number().int().positive(),
+        teamId: z.string().optional(),
+      }),
+    )
+    .query(async ({ input, ctx }) => {
+      await assertCanAccessPleskSite({
+        siteId: input.siteId,
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+        teamId: input.teamId,
+      });
+
+      try {
+        return await getPleskDatabaseConnectionInfo({
+          siteId: input.siteId,
+          databaseId: input.databaseId,
+        });
+      } catch (error) {
+        if (error instanceof TRPCError) throw error;
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch database connection info",
+          cause: error,
+        });
+      }
+    }),
+
+  getPhpMyAdminUrl: protectedProcedure
+    .input(
+      z.object({
+        siteId: z.number().int().positive(),
+        databaseId: z.number().int().positive(),
+        teamId: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const url = await createPhpMyAdminSsoRedirect({
+        siteId: input.siteId,
+        databaseId: input.databaseId,
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+        teamId: input.teamId,
+        userIp: ctx.ipAddress,
+      });
+      return { url };
     }),
 });

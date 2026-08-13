@@ -47,7 +47,7 @@ export function usagePercent(used: number, cap: number | null): number | null {
 
 /**
  * Non-negative usage count from a Plesk `stat` field.
- * Returns `null` when the value is missing/invalid so UI can show "—" instead of a fake 0.
+ * Returns `null` when the value is missing/invalid so UI can show "" instead of a fake 0.
  */
 export function parseStatCount(raw: unknown): number | null {
   const n = parseLimitNumber(raw);
@@ -72,5 +72,5 @@ export function siteUsageFromStat(stat?: {
 }
 
 export function formatStatCount(used: number | null): string {
-  return used === null ? "—" : String(used);
+  return used === null ? "" : String(used);
 }

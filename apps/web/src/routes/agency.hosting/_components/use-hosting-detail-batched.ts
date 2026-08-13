@@ -57,7 +57,7 @@ function transformPleskSubscriptionToDetail(
           ? [result.data.limits.limit]
           : [],
     } : undefined,
-    // Preserve undefined for count stats — do not invent 0 when Plesk omitted the field.
+    // Preserve undefined for count stats  do not invent 0 when Plesk omitted the field.
     stat: result.data?.stat ? {
       traffic: result.data.stat.traffic ?? 0,
       subdom: result.data.stat.subdom,

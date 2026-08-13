@@ -39,7 +39,7 @@ RUN if [ -z "$VITE_SERVER_URL" ]; then \
     esac
 
 # Public marketing site URL for sidebar "Back to website" (Vite build-time only).
-# Runtime Cloud Run env vars are NOT available to import.meta.env — must be a build arg.
+# Runtime Cloud Run env vars are NOT available to import.meta.env  must be a build arg.
 ARG VITE_LANDING_PAGE_URL="https://www.nisccloud.com"
 ENV VITE_LANDING_PAGE_URL=$VITE_LANDING_PAGE_URL
 RUN if [ -z "$VITE_LANDING_PAGE_URL" ]; then \

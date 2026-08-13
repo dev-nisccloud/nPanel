@@ -31,6 +31,7 @@ const FormSchema = z.object({
 interface ChangeDatabasePermissionsSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  siteId: number;
   database: z.infer<typeof databaseSchema>;
   userId: number; // Database user ID
   currentRole?: 'readWrite' | 'readOnly' | 'writeOnly';
@@ -40,6 +41,7 @@ interface ChangeDatabasePermissionsSheetProps {
 export function ChangeDatabasePermissionsSheet({ 
   open, 
   onOpenChange, 
+  siteId,
   database,
   userId,
   currentRole,
@@ -76,14 +78,16 @@ export function ChangeDatabasePermissionsSheet({
   });
 
   const onSubmit = async (data: z.infer<typeof FormSchema>) => {
-    try {
-      await changePermissions.mutateAsync({
-        userId,
-        role: data.role,
-      });
-    } catch (e) {
-      console.error("[ChangeDatabasePermissionsSheet] Error in onSubmit:", e);
+    if (!database.id || userId <= 0) {
+      toast.error("Database user is missing");
+      return;
     }
+    await changePermissions.mutateAsync({
+      siteId,
+      databaseId: database.id,
+      userId,
+      role: data.role,
+    });
   };
 
   return (

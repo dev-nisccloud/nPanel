@@ -5,7 +5,7 @@ import { createOpenProviderClient, OpenProviderApiError } from '../../lib/openpr
 import { getRedisClient } from '../../lib/redis';
 import type { OpenProviderTldRequest } from '../../types/openprovider';
 
-/** 1 hour — matches openprovider README; avoids repeated 2500-TLD fetches that trip proxies. */
+/** 1 hour  matches openprovider README; avoids repeated 2500-TLD fetches that trip proxies. */
 const TLD_CACHE_TTL_SEC = 3600;
 const TLD_CACHE_TTL_MS = TLD_CACHE_TTL_SEC * 1000;
 

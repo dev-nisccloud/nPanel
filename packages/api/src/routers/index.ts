@@ -9,6 +9,7 @@ import { databasesCreateRouter } from "./plesk/databases-create";
 import { databasesDeleteRouter } from "./plesk/databases-delete";
 import { databasesSetUserRouter } from "./plesk/databases-set-user";
 import { databasesAssignRouter } from "./plesk/databases-assign";
+import { databasesCreateUserRouter } from "./plesk/databases-create-user";
 import { emailsRouter } from "./plesk/emails";
 import { subdomainsRouter } from "./plesk/subdomains";
 import { subscriptionsRouter } from "./plesk/subscriptions";
@@ -159,6 +160,7 @@ export const appRouter = router({
 		databasesDelete: databasesDeleteRouter,
 		databasesSetUser: databasesSetUserRouter,
 		databasesAssign: databasesAssignRouter,
+		databasesCreateUser: databasesCreateUserRouter,
 		emails: emailsRouter,
 		subdomains: subdomainsRouter,
 		subscriptions: subscriptionsRouter,

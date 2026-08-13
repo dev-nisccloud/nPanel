@@ -146,7 +146,7 @@ function ScoreRing({
             scoreText(score),
           )}
         >
-          {score === null ? "—" : score}
+          {score === null ? "" : score}
         </span>
       </div>
     </div>
@@ -154,9 +154,9 @@ function ScoreRing({
 }
 
 function formatScannedAt(timestamp: string | undefined): string {
-  if (!timestamp) return "—";
+  if (!timestamp) return "";
   const date = new Date(timestamp);
-  if (Number.isNaN(date.getTime())) return "—";
+  if (Number.isNaN(date.getTime())) return "";
   const yyyy = date.getFullYear();
   const mm = String(date.getMonth() + 1).padStart(2, "0");
   const dd = String(date.getDate()).padStart(2, "0");
@@ -166,15 +166,15 @@ function formatScannedAt(timestamp: string | undefined): string {
 }
 
 function metricDisplay(metric: MetricCell): string {
-  if (!metric) return "—";
+  if (!metric) return "";
   if (metric.displayValue) return metric.displayValue;
-  if (metric.value == null) return "—";
+  if (metric.value == null) return "";
   if (metric.value < 1000) return `${Math.round(metric.value)} ms`;
   return `${(metric.value / 1000).toFixed(2)} s`;
 }
 
 function categoryDisplay(score: number | null | undefined): string {
-  return score == null ? "—" : String(score);
+  return score == null ? "" : String(score);
 }
 
 function StrategySummary({
@@ -484,7 +484,7 @@ export function PageSpeedInsightsCard({ domainName }: PageSpeedInsightsCardProps
       </CardHeader>
 
       <CardContent className="p-0">
-        {/* Overall Desktop / Mobile pies — click to focus category scores */}
+        {/* Overall Desktop / Mobile pies  click to focus category scores */}
         <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
           <StrategySummary
             label="Desktop"

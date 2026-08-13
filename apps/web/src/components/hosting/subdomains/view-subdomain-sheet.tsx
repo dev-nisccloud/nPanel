@@ -89,15 +89,6 @@ export function ViewSubdomainSheet({ open, onOpenChange, data }: ViewSubdomainSh
                     {data.status === "ok" ? "Active" : "Inactive"}
                   </Badge>
                 </div>
-
-                {data.properties?.www_root && (
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-muted-foreground">Document Root</p>
-                    <p className="text-base font-bold text-primary break-all">
-                      {data.properties.www_root}
-                    </p>
-                  </div>
-                )}
               </CardContent>
             </Card>
 
