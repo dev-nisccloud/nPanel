@@ -19,7 +19,7 @@ import { DnsTable } from "@/components/hosting/dns";
 import { MailTable } from "@/components/hosting/mail";
 import { FileManager } from "./file-manager";
 import { SubdomainsTable } from "@/components/hosting/subdomains";
-import { DatabasesTable } from "@/components/hosting/databases";
+import { DatabasesTable, usePrefetchDatabasesBySiteId } from "@/components/hosting/databases";
 import { WordPressInstancesTable, InstallWordPressSheet } from "@/components/hosting/wordpress";
 import { hostingDetailSchema } from "@/components/hosting/hosting-detail-schema";
 import { useHostingDetailBatched } from "./use-hosting-detail-batched";
@@ -140,6 +140,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
     () => resolveHostingNiscBackupUsername(hostingData),
     [hostingData],
   );
+  usePrefetchDatabasesBySiteId(hostingData?.id);
 
   const clearCreateIntent = React.useCallback(() => {
     setCreateIntentTab(null);

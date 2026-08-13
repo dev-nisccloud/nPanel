@@ -37,8 +37,10 @@ import { ChangeDatabasePasswordSheet } from "./change-database-password-sheet";
 import { ChangeDatabasePermissionsSheet } from "./change-database-permissions-sheet";
 import { DatabaseConnectionInfoDialog } from "./database-connection-info-dialog";
 import { CreateDatabaseSheet } from "./create-database-sheet";
+import { CreateDatabaseUserSheet } from "./create-database-user-sheet";
 import { AssignDatabaseSheet } from "./assign-database-sheet";
 import { captureEvent } from "@/lib/posthog";
+import { isMysqlFamily } from "./connection-string";
 
 interface DatabasesTableProps {
   siteId: number;
@@ -108,13 +110,23 @@ export function DatabasesTable({
   const [connectionInfoOpen, setConnectionInfoOpen] = React.useState(false);
   const [createDatabaseOpen, setCreateDatabaseOpen] = React.useState(false);
   const [assignDatabaseOpen, setAssignDatabaseOpen] = React.useState(false);
+  const [createUserOpen, setCreateUserOpen] = React.useState(false);
   const [selectedDatabase, setSelectedDatabase] = React.useState<z.infer<typeof databaseSchema> | null>(null);
+  const [selectedUserId, setSelectedUserId] = React.useState(0);
 
   React.useEffect(() => {
     if (!openCreateSheet) return;
     setCreateDatabaseOpen(true);
     onCreateSheetOpened?.();
   }, [openCreateSheet, onCreateSheetOpened]);
+
+  const openPhpMyAdmin = trpc.plesk.databases.getPhpMyAdminUrl.useMutation({
+    onError: (error) => {
+      toast.error("Could not open phpMyAdmin", {
+        description: error.message || "Please try again.",
+      });
+    },
+  });
 
   const deleteDatabase = trpc.plesk.databasesDelete.delete.useMutation({
     onSuccess: () => {
@@ -163,14 +175,29 @@ export function DatabasesTable({
     }
   };
 
-  const handleOpenPhpMyAdmin = (db: z.infer<typeof databaseSchema>) => {
-    if (!db.name) {
-      toast.error("Database name not available");
+  const handleOpenPhpMyAdmin = async (db: z.infer<typeof databaseSchema>) => {
+    if (!db.id) {
+      toast.error("Database id not available");
       return;
     }
-    const pleskHost = import.meta.env.VITE_PUBLIC_PLESK_HOST || "orion.nisccloud.com";
-    const phpMyAdminUrl = `https://${pleskHost}/phpMyAdmin/index.php?db=${encodeURIComponent(db.name)}`;
-    window.open(phpMyAdminUrl, "_blank", "noopener,noreferrer");
+    if (!isMysqlFamily(db.type)) {
+      toast.error("phpMyAdmin is only available for MySQL and MariaDB");
+      return;
+    }
+    const toastId = toast.loading("Opening phpMyAdmin…");
+    try {
+      const { url } = await openPhpMyAdmin.mutateAsync({
+        siteId,
+        databaseId: db.id,
+      });
+      toast.dismiss(toastId);
+      const opened = window.open(url, "_blank", "noopener,noreferrer");
+      if (!opened) {
+        toast.error("Allow pop-ups to open phpMyAdmin");
+      }
+    } catch {
+      toast.dismiss(toastId);
+    }
   };
 
   const handleConnectionInfo = (db: z.infer<typeof databaseSchema>) => {
@@ -268,6 +295,8 @@ export function DatabasesTable({
                     variant="outline"
                     size="sm"
                     className="h-7 px-2.5 text-xs"
+                    disabled={!isMysqlFamily(db.type) || !db.id || openPhpMyAdmin.isPending}
+                    title={!isMysqlFamily(db.type) ? "phpMyAdmin is only available for MySQL and MariaDB" : undefined}
                     onClick={() => handleOpenPhpMyAdmin(db)}
                   >
                     <ExternalLink className="mr-1 h-3.5 w-3.5" />
@@ -334,8 +363,9 @@ export function DatabasesTable({
         <ChangeDatabasePasswordSheet
           open={changePasswordOpen}
           onOpenChange={setChangePasswordOpen}
+          siteId={siteId}
           database={selectedDatabase}
-          userId={0}
+          userId={selectedUserId}
           onSuccess={() => refetch()}
         />
       )}
@@ -344,8 +374,9 @@ export function DatabasesTable({
         <ChangeDatabasePermissionsSheet
           open={changePermissionsOpen}
           onOpenChange={setChangePermissionsOpen}
+          siteId={siteId}
           database={selectedDatabase}
-          userId={0}
+          userId={selectedUserId}
           onSuccess={() => refetch()}
         />
       )}
@@ -354,7 +385,27 @@ export function DatabasesTable({
         <DatabaseConnectionInfoDialog
           open={connectionInfoOpen}
           onOpenChange={setConnectionInfoOpen}
+          siteId={siteId}
           database={selectedDatabase}
+          onCreateUser={() => {
+            setConnectionInfoOpen(false);
+            setCreateUserOpen(true);
+          }}
+          onChangePassword={(userId) => {
+            setSelectedUserId(userId);
+            setConnectionInfoOpen(false);
+            setChangePasswordOpen(true);
+          }}
+        />
+      )}
+
+      {selectedDatabase && (
+        <CreateDatabaseUserSheet
+          open={createUserOpen}
+          onOpenChange={setCreateUserOpen}
+          siteId={siteId}
+          database={selectedDatabase}
+          onSuccess={() => refetch()}
         />
       )}
 

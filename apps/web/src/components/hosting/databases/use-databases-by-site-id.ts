@@ -44,7 +44,6 @@ export function useDatabasesBySiteId(siteId: number) {
     isError,
     error,
     refetch,
-    isRefetching,
   } = trpc.plesk.databases.getBySiteId.useQuery(
     { siteId },
     {
@@ -117,10 +116,22 @@ export function useDatabasesBySiteId(siteId: number) {
 
   return {
     data: transformedData,
-    isLoading: isLoading || isRefetching,
+    isLoading,
     isError: isError || !!transformationError,
     error: error || transformationError,
     refetch,
     rawData: pleskData,
   };
+}
+
+export function usePrefetchDatabasesBySiteId(siteId: number | undefined) {
+  trpc.plesk.databases.getBySiteId.useQuery(
+    { siteId: siteId ?? 0 },
+    {
+      enabled: (siteId ?? 0) > 0,
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    },
+  );
 }

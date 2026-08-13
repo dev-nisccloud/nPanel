@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Copy, ExternalLink, Database as DatabaseIcon } from "lucide-react";
+import { Copy, Database as DatabaseIcon, Key, UserPlus } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 
 import { Button } from "@/components/ui/button";
@@ -13,49 +13,70 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Skeleton } from "@/components/ui/skeleton";
+import { trpc } from "@/utils/trpc";
+import { copyTextToClipboard } from "@/lib/copy-to-clipboard";
 import { databaseSchema } from "./databases-schema";
 import { z } from "zod";
 
 interface DatabaseConnectionInfoDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  siteId: number;
   database: z.infer<typeof databaseSchema>;
-  // Connection info - these would come from database user data
-  host?: string;
-  port?: number;
-  username?: string;
-  databaseName?: string;
+  onCreateUser?: () => void;
+  onChangePassword?: (userId: number) => void;
 }
 
-export function DatabaseConnectionInfoDialog({ 
-  open, 
-  onOpenChange, 
-  database,
-  host,
-  port,
-  username,
-  databaseName,
-}: DatabaseConnectionInfoDialogProps) {
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      toast.success(`${label} copied to clipboard`);
-    }).catch(() => {
-      toast.error(`Failed to copy ${label}`);
-    });
+function CopyRow({
+  label,
+  value,
+  mono,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
+  const copy = async () => {
+    const ok = await copyTextToClipboard(value);
+    if (ok) toast.success(`${label} copied`);
+    else toast.error(`Could not copy ${label.toLowerCase()}`);
   };
 
-  // Default values if not provided
-  const dbHost = host || "localhost";
-  const dbPort = port || (database.type === "postgresql" ? 5432 : 3306);
-  const dbUsername = username || "Not available";
-  const dbName = databaseName || database.name || "Not available";
-  const dbType = database.type || "mysql";
+  return (
+    <div className="space-y-1">
+      <p className="text-sm font-medium text-muted-foreground">{label}</p>
+      <div className="flex items-center gap-2">
+        <p className={`flex-1 break-all ${mono ? "text-xs font-mono bg-muted p-2 rounded" : "text-base font-bold text-primary"}`}>
+          {value}
+        </p>
+        <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={copy}>
+          <Copy className="h-4 w-4" />
+          <span className="sr-only">Copy {label}</span>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export function DatabaseConnectionInfoDialog({
+  open,
+  onOpenChange,
+  siteId,
+  database,
+  onCreateUser,
+  onChangePassword,
+}: DatabaseConnectionInfoDialogProps) {
+  const databaseId = database.id ?? 0;
+  const { data, isLoading, isError, error, refetch } = trpc.plesk.databases.getConnectionInfo.useQuery(
+    { siteId, databaseId },
+    { enabled: open && siteId > 0 && databaseId > 0 },
+  );
+
+  const username = data?.defaultUserLogin || data?.users[0]?.login;
+  const userId = data?.defaultUserId || data?.users[0]?.id;
+  const dbType = data?.type || database.type || "mysql";
+  const dbName = data?.name || database.name || "";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -66,132 +87,70 @@ export function DatabaseConnectionInfoDialog({
             Database Connection Info
           </DialogTitle>
           <DialogDescription>
-            Connection details for "{database.name || "Unknown Database"}".
+            Connection details for &quot;{database.name || "Unknown Database"}&quot;. Use localhost in site config files on this server.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 mt-4">
-          {/* Database Type */}
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">Database Type</p>
-            <Badge variant="outline" className="text-sm">
-              {(dbType || "mysql").toUpperCase()}
-            </Badge>
+        {isLoading ? (
+          <div className="space-y-3 mt-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
           </div>
-
-          {/* Database Name */}
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">Database Name</p>
-            <div className="flex items-center gap-2">
-              <p className="text-base font-bold text-primary flex-1">{dbName}</p>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => copyToClipboard(dbName, "Database name")}
-                    >
-                      <Copy className="h-4 w-4" />
-                      <span className="sr-only">Copy database name</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Copy database name</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+        ) : isError ? (
+          <div className="mt-4 space-y-3">
+            <p className="text-sm text-destructive">
+              {error?.message || "Failed to load connection details."}
+            </p>
+            <Button type="button" variant="outline" size="sm" onClick={() => refetch()}>
+              Try again
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4 mt-4">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Database Type</p>
+              <Badge variant="outline" className="text-sm">
+                {dbType.toUpperCase()}
+              </Badge>
             </div>
-          </div>
 
-          {/* Host */}
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">Host</p>
-            <div className="flex items-center gap-2">
-              <p className="text-base font-bold text-primary flex-1">{dbHost}</p>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => copyToClipboard(dbHost, "Host")}
-                    >
-                      <Copy className="h-4 w-4" />
-                      <span className="sr-only">Copy host</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Copy host</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+            <CopyRow label="Database Name" value={dbName || "Not available"} />
+            <CopyRow label="Host (this server)" value={data?.localHost || "localhost"} />
+            <CopyRow label="Remote host" value={data?.remoteHost || ""} />
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Port</p>
+              <p className="text-base font-bold text-primary">{data?.port ?? 3306}</p>
             </div>
-          </div>
 
-          {/* Port */}
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">Port</p>
-            <p className="text-base font-bold text-primary">{dbPort}</p>
-          </div>
+            {username ? (
+              <CopyRow label="Username" value={username} />
+            ) : (
+              <div className="space-y-2 rounded-md border border-dashed p-3">
+                <p className="text-sm text-muted-foreground">
+                  No database user exists yet. Create one to connect from your site and to open phpMyAdmin.
+                </p>
+                {onCreateUser ? (
+                  <Button type="button" size="sm" variant="outline" onClick={onCreateUser}>
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Create database user
+                  </Button>
+                ) : null}
+              </div>
+            )}
 
-          {/* Username */}
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">Username</p>
-            <div className="flex items-center gap-2">
-              <p className="text-base font-bold text-primary flex-1">{dbUsername}</p>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => copyToClipboard(dbUsername, "Username")}
-                    >
-                      <Copy className="h-4 w-4" />
-                      <span className="sr-only">Copy username</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Copy username</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          </div>
+            <p className="text-xs text-muted-foreground pt-2 border-t">
+              Passwords cannot be retrieved after creation. Reset the password if you no longer have it.
+            </p>
 
-          {/* Connection String Example */}
-          <div className="space-y-1 pt-2 border-t">
-            <p className="text-sm font-medium text-muted-foreground">Connection String</p>
-            <div className="flex items-center gap-2">
-              <p className="text-xs font-mono bg-muted p-2 rounded flex-1 break-all">
-                {dbType}://{dbUsername}@{dbHost}:{dbPort}/{dbName}
-              </p>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => copyToClipboard(
-                        `${dbType}://${dbUsername}@${dbHost}:${dbPort}/${dbName}`,
-                        "Connection string"
-                      )}
-                    >
-                      <Copy className="h-4 w-4" />
-                      <span className="sr-only">Copy connection string</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Copy connection string</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
+            {userId && onChangePassword ? (
+              <Button type="button" variant="outline" size="sm" onClick={() => onChangePassword(userId)}>
+                <Key className="mr-2 h-4 w-4" />
+                Change password
+              </Button>
+            ) : null}
           </div>
-
-          {!username && (
-            <div className="text-xs text-muted-foreground pt-2 border-t">
-              <p>Note: User information is not available. Database users need to be fetched separately.</p>
-            </div>
-          )}
-        </div>
+        )}
       </DialogContent>
     </Dialog>
   );
