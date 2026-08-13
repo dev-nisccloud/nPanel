@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/utils/trpc";
 import { copyTextToClipboard } from "@/lib/copy-to-clipboard";
-import { databaseSchema } from "./databases-schema";
+import { databaseSchema, relatedSiteLabel } from "./databases-schema";
 import { z } from "zod";
 
 interface DatabaseConnectionInfoDialogProps {
@@ -116,6 +116,12 @@ export function DatabaseConnectionInfoDialog({
             </div>
 
             <CopyRow label="Database Name" value={dbName || "Not available"} />
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Related site</p>
+              <p className="text-base font-bold text-primary">
+                {relatedSiteLabel(database)}
+              </p>
+            </div>
             <CopyRow label="Host (this server)" value={data?.localHost || "localhost"} />
             <CopyRow label="Remote host" value={data?.remoteHost || ""} />
             <div className="space-y-1">

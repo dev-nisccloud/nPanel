@@ -18,6 +18,7 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { captureEvent } from "@/lib/posthog";
+import { VisitSiteButton } from "@/components/ui/list-row-actions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,6 +42,14 @@ function phpVersionFromHandler(phpHandler: string) {
   if (phpHandler.includes("php80")) return "8.0";
   if (phpHandler.includes("php74")) return "7.4";
   return "Unknown";
+}
+
+function subdomainSiteUrl(subdomain: z.infer<typeof subdomainSchema>) {
+  const name = subdomain.name?.trim() || "";
+  if (!name) return "";
+  if (name.includes(".")) return name;
+  const parent = subdomain.parent?.trim();
+  return parent ? `${name}.${parent}` : name;
 }
 
 function SubdomainsTableSkeleton() {
@@ -279,6 +288,7 @@ export function SubdomainsTable({
               onClick={() => handleView(subdomain)}
               actions={
                 <>
+                  <VisitSiteButton url={subdomainSiteUrl(subdomain)} />
                   <Button
                     type="button"
                     variant="outline"

@@ -9,7 +9,6 @@ import {
   ExternalLink,
   Trash2,
   Eye,
-  Link2,
 } from "lucide-react";
 import { z } from "zod";
 import { toast } from "@/components/ui/sonner";
@@ -31,20 +30,18 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
-import { databaseSchema } from "./databases-schema";
+import { databaseSchema, relatedSiteLabel } from "./databases-schema";
 import { useDatabasesBySiteId } from "./use-databases-by-site-id";
 import { ChangeDatabasePasswordSheet } from "./change-database-password-sheet";
 import { ChangeDatabasePermissionsSheet } from "./change-database-permissions-sheet";
 import { DatabaseConnectionInfoDialog } from "./database-connection-info-dialog";
 import { CreateDatabaseSheet } from "./create-database-sheet";
 import { CreateDatabaseUserSheet } from "./create-database-user-sheet";
-import { AssignDatabaseSheet } from "./assign-database-sheet";
 import { captureEvent } from "@/lib/posthog";
 import { isMysqlFamily } from "./connection-string";
 
 interface DatabasesTableProps {
   siteId: number;
-  domainName?: string;
   openCreateSheet?: boolean;
   onCreateSheetOpened?: () => void;
 }
@@ -96,7 +93,6 @@ function DatabasesTableError({ error, onRetry }: { error: Error; onRetry: () => 
 
 export function DatabasesTable({
   siteId,
-  domainName,
   openCreateSheet,
   onCreateSheetOpened,
 }: DatabasesTableProps) {
@@ -109,7 +105,6 @@ export function DatabasesTable({
   const [changePermissionsOpen, setChangePermissionsOpen] = React.useState(false);
   const [connectionInfoOpen, setConnectionInfoOpen] = React.useState(false);
   const [createDatabaseOpen, setCreateDatabaseOpen] = React.useState(false);
-  const [assignDatabaseOpen, setAssignDatabaseOpen] = React.useState(false);
   const [createUserOpen, setCreateUserOpen] = React.useState(false);
   const [selectedDatabase, setSelectedDatabase] = React.useState<z.infer<typeof databaseSchema> | null>(null);
   const [selectedUserId, setSelectedUserId] = React.useState(0);
@@ -151,7 +146,8 @@ export function DatabasesTable({
     if (searchTerm.trim()) {
       return databasesData.filter((db) =>
         (db.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (db.type || "").toLowerCase().includes(searchTerm.toLowerCase())
+        (db.type || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (db["related-site-name"] || "").toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -205,15 +201,6 @@ export function DatabasesTable({
     setConnectionInfoOpen(true);
   };
 
-  const handleAssignToWebsite = (db: z.infer<typeof databaseSchema>) => {
-    setSelectedDatabase(db);
-    setAssignDatabaseOpen(true);
-  };
-
-  const isAssignedToCurrentWebsite = (db: z.infer<typeof databaseSchema>) => {
-    return db["webspace-id"] === siteId;
-  };
-
   const getStatusBadge = (status: string | undefined) => {
     if (status === "ok") {
       return (
@@ -264,11 +251,8 @@ export function DatabasesTable({
 
       <CleanList emptyMessage="No databases found">
         {filteredData.map((db, index) => {
-          const isAssigned = isAssignedToCurrentWebsite(db);
           const typeUpper = (db.type || "mysql").toUpperCase();
-          const related = isAssigned
-            ? domainName || "Current Website"
-            : "Not assigned";
+          const related = relatedSiteLabel(db);
 
           return (
             <CleanListRow
@@ -302,18 +286,6 @@ export function DatabasesTable({
                     <ExternalLink className="mr-1 h-3.5 w-3.5" />
                     phpMyAdmin
                   </Button>
-                  {!isAssigned ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-7 px-2.5 text-xs"
-                      onClick={() => handleAssignToWebsite(db)}
-                    >
-                      <Link2 className="mr-1 h-3.5 w-3.5" />
-                      Assign
-                    </Button>
-                  ) : null}
                   <Button
                     type="button"
                     variant="outline"
@@ -415,17 +387,6 @@ export function DatabasesTable({
         siteId={siteId}
         onSuccess={() => refetch()}
       />
-
-      {selectedDatabase && (
-        <AssignDatabaseSheet
-          open={assignDatabaseOpen}
-          onOpenChange={setAssignDatabaseOpen}
-          database={selectedDatabase}
-          targetWebspaceId={siteId}
-          targetDomainName={domainName || "Website"}
-          onSuccess={() => refetch()}
-        />
-      )}
     </div>
   );
 }

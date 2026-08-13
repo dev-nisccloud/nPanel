@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../../trpc";
 import { assertCanAccessPleskSite } from "../../lib/plesk/hosting-access";
 import { getPleskDatabaseConnectionInfo } from "../../lib/plesk/database-ops";
+import { enrichPleskDatabasesWithRelatedSites } from "../../lib/plesk/database-related-site";
 import { createPhpMyAdminSsoRedirect } from "../../lib/plesk/phpmyadmin-sso";
 import { sendPleskXmlOrThrow } from "../../lib/plesk/xml-utils";
 
@@ -33,6 +34,11 @@ export const databasesRouter = router({
         });
 
         const { xml, parsed } = await sendPleskXmlOrThrow(buildDatabaseGetXml(siteId));
+        try {
+          await enrichPleskDatabasesWithRelatedSites(parsed);
+        } catch (error) {
+          console.error("[Plesk related site] enrichment failed:", error);
+        }
         return {
           raw: xml,
           parsed,

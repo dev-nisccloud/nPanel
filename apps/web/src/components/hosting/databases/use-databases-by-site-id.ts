@@ -31,6 +31,8 @@ function transformPleskDatabasesToComponent(
     "filter-id": db["filter-id"] ?? 0,
     "webspace-id": db["webspace-id"] ?? 0,
     "db-server-id": db["db-server-id"] ?? 0,
+    "related-site-id": db["related-site-id"] ?? null,
+    "related-site-name": db["related-site-name"] ?? null,
   }));
 }
 

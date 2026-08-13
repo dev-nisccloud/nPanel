@@ -310,7 +310,6 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
             <TabsContent value="databases" className="mt-10">
               <DatabasesTable
                 siteId={hostingData.id}
-                domainName={hostingData.gen_info?.name}
                 openCreateSheet={createIntentTab === "databases"}
                 onCreateSheetOpened={clearCreateIntent}
               />

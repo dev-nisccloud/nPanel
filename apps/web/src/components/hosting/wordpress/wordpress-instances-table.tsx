@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { CleanList, CleanListRow } from "@/components/ui/clean-list";
+import { VisitSiteButton } from "@/components/ui/list-row-actions";
 
 import { wordpressInstallationSchema } from "@/routes/$slug.wordpress/_components/schema";
 import { useWordPressInstances } from "@/routes/$slug.wordpress/_components/use-wordpress-instances";
@@ -196,12 +197,15 @@ export function WordPressInstancesTable({ domainName, onInstallClick }: WordPres
                 }
               }}
               actions={
-                <Button type="button" variant="outline" size="sm" className="h-7 px-2.5 text-xs" asChild>
-                  <Link to={href}>
-                    <Eye className="mr-1 h-3.5 w-3.5" />
-                    View
-                  </Link>
-                </Button>
+                <>
+                  <VisitSiteButton url={item.url || item.domain?.name} />
+                  <Button type="button" variant="outline" size="sm" className="h-7 px-2.5 text-xs" asChild>
+                    <Link to={href}>
+                      <Eye className="mr-1 h-3.5 w-3.5" />
+                      View
+                    </Link>
+                  </Button>
+                </>
               }
             />
           );
