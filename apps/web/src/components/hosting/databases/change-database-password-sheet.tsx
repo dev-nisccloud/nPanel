@@ -17,8 +17,9 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/npanel-ui/sheet";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import { databaseSchema } from "./databases-schema";
@@ -29,7 +30,7 @@ const FormSchema = z.object({
     .min(5, { message: "Password must be at least 5 characters." })
     .max(64, { message: "Password must be at most 64 characters." }),
   confirmPassword: z.string(),
-  passwordType: z.enum(['plain', 'crypt']).default('plain'),
+  passwordType: z.enum(["plain", "crypt"]).default("plain"),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -38,17 +39,19 @@ const FormSchema = z.object({
 interface ChangeDatabasePasswordSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  siteId: number;
   database: z.infer<typeof databaseSchema>;
-  userId: number; // Database user ID
+  userId: number;
   onSuccess?: () => void;
 }
 
-export function ChangeDatabasePasswordSheet({ 
-  open, 
-  onOpenChange, 
+export function ChangeDatabasePasswordSheet({
+  open,
+  onOpenChange,
+  siteId,
   database,
   userId,
-  onSuccess 
+  onSuccess,
 }: ChangeDatabasePasswordSheetProps) {
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
@@ -58,14 +61,24 @@ export function ChangeDatabasePasswordSheet({
     defaultValues: {
       password: "",
       confirmPassword: "",
-      passwordType: 'plain',
+      passwordType: "plain",
     },
   });
+
+  React.useEffect(() => {
+    if (!open) return;
+    form.reset({
+      password: "",
+      confirmPassword: "",
+      passwordType: "plain",
+    });
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+  }, [open, form]);
 
   const changePassword = trpc.plesk.databasesSetUser.update.useMutation({
     onSuccess: () => {
       captureEvent("database_password_changed");
-
       toast.success("Database password changed successfully!");
       form.reset();
       onOpenChange(false);
@@ -73,22 +86,26 @@ export function ChangeDatabasePasswordSheet({
     },
     onError: (error) => {
       console.error("[ChangeDatabasePasswordSheet] Change password error:", error);
-      toast.error("Failed to change password", { 
-        description: error.message || "Please try again." 
+      toast.error("Failed to change password", {
+        description: error.message || "Please try again.",
       });
     },
   });
 
   const onSubmit = async (data: z.infer<typeof FormSchema>) => {
-    try {
-      await changePassword.mutateAsync({
-        userId,
-        password: data.password,
-        passwordType: data.passwordType,
+    if (!database.id || userId <= 0) {
+      toast.error("Database user is missing", {
+        description: "Open the database details and try Change password again.",
       });
-    } catch (e) {
-      console.error("[ChangeDatabasePasswordSheet] Error in onSubmit:", e);
+      return;
     }
+    await changePassword.mutateAsync({
+      siteId,
+      databaseId: database.id,
+      userId,
+      password: data.password,
+      passwordType: data.passwordType,
+    });
   };
 
   return (
@@ -97,7 +114,7 @@ export function ChangeDatabasePasswordSheet({
         <SheetHeader>
           <SheetTitle>Change Database Password</SheetTitle>
           <SheetDescription>
-            Change the password for database user of "{database.name || "Unknown Database"}".
+            Change the password for the database user of &quot;{database.name || "Unknown Database"}&quot;.
           </SheetDescription>
         </SheetHeader>
 
@@ -114,6 +131,7 @@ export function ChangeDatabasePasswordSheet({
                       <Input
                         type={showPassword ? "text" : "password"}
                         placeholder="Enter new password"
+                        autoComplete="new-password"
                         {...field}
                         className="pr-10"
                       />
@@ -149,6 +167,7 @@ export function ChangeDatabasePasswordSheet({
                       <Input
                         type={showConfirmPassword ? "text" : "password"}
                         placeholder="Confirm new password"
+                        autoComplete="new-password"
                         {...field}
                         className="pr-10"
                       />
@@ -179,15 +198,30 @@ export function ChangeDatabasePasswordSheet({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Password Type</FormLabel>
-                  <FormControl>
-                    <select
-                      {...field}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <option value="plain">Plain Text</option>
-                      <option value="crypt">Encrypted</option>
-                    </select>
-                  </FormControl>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select password type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="plain">
+                        <div className="flex flex-col">
+                          <span className="font-medium">Plain text</span>
+                          <span className="text-xs text-muted-foreground">Use the password you typed</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="crypt">
+                        <div className="flex flex-col">
+                          <span className="font-medium">Encrypted</span>
+                          <span className="text-xs text-muted-foreground">Already hashed; Plesk stores it as-is</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    Keep Plain text unless you are pasting a password that is already hashed.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -199,7 +233,7 @@ export function ChangeDatabasePasswordSheet({
                   Cancel
                 </Button>
               </SheetClose>
-              <Button type="submit" disabled={changePassword.isPending}>
+              <Button type="submit" disabled={changePassword.isPending || userId <= 0 || !database.id}>
                 {changePassword.isPending ? (
                   <>
                     <Spinner size={16} className="mr-2" />

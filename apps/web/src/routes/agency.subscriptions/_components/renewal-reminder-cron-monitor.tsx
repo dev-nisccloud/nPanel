@@ -18,9 +18,9 @@ import { trpc } from "@/utils/trpc";
 import { cn } from "@/lib/utils";
 
 function formatWhen(value: Date | string | null | undefined): string {
-	if (!value) return "—";
+	if (!value) return "";
 	const d = typeof value === "string" ? new Date(value) : value;
-	if (Number.isNaN(d.getTime())) return "—";
+	if (Number.isNaN(d.getTime())) return "";
 	return d.toLocaleString(undefined, {
 		dateStyle: "medium",
 		timeStyle: "short",

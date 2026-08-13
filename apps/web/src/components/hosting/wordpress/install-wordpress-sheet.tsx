@@ -27,7 +27,6 @@ import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/utils/trpc";
 import { hostingDetailSchema } from "@/components/hosting/hosting-detail-schema";
 import { useSubdomainsByDomain } from "@/components/hosting/subdomains/use-subdomains-by-domain";
-import { useDatabasesBySiteId } from "@/components/hosting/databases/use-databases-by-site-id";
 import { captureEvent } from "@/lib/posthog";
 
 const FormSchema = z.object({
@@ -47,7 +46,6 @@ const FormSchema = z.object({
   siteTitle: z.string().optional(),
   language: z.string().optional().default("en_US"),
   protocol: z.enum(["http", "https"]).optional().default("https"),
-  databaseName: z.string().optional(), // Optional: if empty, auto-create
 });
 
 interface InstallWordPressSheetProps {
@@ -116,19 +114,9 @@ export function InstallWordPressSheet({
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const domainName = hostingData.gen_info?.name || "";
-  const siteId = hostingData.id;
 
-  // Fetch subdomains for domain selection
   const { data: subdomainsData, isLoading: isLoadingSubdomains } = useSubdomainsByDomain(domainName);
 
-  // Fetch databases for database selection (we'll get all databases, not just for this site)
-  // This allows users to see databases from other sites
-  const { data: databasesData, isLoading: isLoadingDatabases } = useDatabasesBySiteId(siteId);
-  
-  // Also fetch all databases if we want to show databases from other sites
-  // For now, we'll just use the current site's databases and show if they're related
-
-  // Build domain options (main domain + subdomains)
   const domainOptions = React.useMemo(() => {
     const options: Array<{ value: string; label: string; type: "domain" | "subdomain" }> = [
       { value: domainName, label: domainName, type: "domain" },
@@ -150,18 +138,6 @@ export function InstallWordPressSheet({
     return options;
   }, [domainName, subdomainsData]);
 
-  // Build database options
-  const databaseOptions = React.useMemo(() => {
-    if (!databasesData || !Array.isArray(databasesData)) return [];
-
-    return databasesData.map((db) => ({
-      value: db.name || "",
-      label: db.name || "",
-      relatedSite: db["webspace-id"] !== siteId ? undefined : undefined, // We don't have domainName in database schema, will need to check
-      isRelated: db["webspace-id"] === siteId,
-    }));
-  }, [databasesData, siteId]);
-
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
@@ -173,7 +149,6 @@ export function InstallWordPressSheet({
       siteTitle: "",
       language: "en_US",
       protocol: "https",
-      databaseName: undefined, // Empty = auto-create
     },
   });
 
@@ -214,7 +189,6 @@ export function InstallWordPressSheet({
         siteTitle: "",
         language: "en_US",
         protocol: "https",
-        databaseName: undefined,
       });
       setIsSubmitting(false);
       setShowPassword(false);
@@ -237,8 +211,6 @@ export function InstallWordPressSheet({
         siteTitle: data.siteTitle || undefined,
         language: data.language || "en_US",
         protocol: data.protocol || "https",
-        databaseName: data.databaseName || undefined,
-        dbUser: data.databaseName ? undefined : undefined, // If database name provided, might need user
       });
     } catch (error) {
       // Error is handled in mutation onError
@@ -508,72 +480,6 @@ export function InstallWordPressSheet({
                         </SelectContent>
                       </Select>
                       <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Database Selection */}
-                <FormField
-                  control={form.control}
-                  name="databaseName"
-                  render={({ field }) => (
-                    <FormItem className="w-full">
-                      <FormLabel>Database (Optional)</FormLabel>
-                      <Select
-                        onValueChange={(value) => {
-                          if (value === "auto-create") {
-                            field.onChange(undefined);
-                          } else {
-                            field.onChange(value);
-                          }
-                        }}
-                        value={field.value || "auto-create"}
-                        disabled={isSubmitting || isLoadingDatabases}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select database or auto-create" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="auto-create">
-                            <div className="flex items-center gap-2">
-                              <span>Auto-create database</span>
-                              <Badge variant="outline" className="text-xs">
-                                Recommended
-                              </Badge>
-                            </div>
-                          </SelectItem>
-                          {databaseOptions.length > 0 && (
-                            <>
-                              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                                Existing Databases
-                              </div>
-                              {databaseOptions.map((db) => (
-                                <SelectItem key={db.value} value={db.value}>
-                                  <div className="flex items-center gap-2">
-                                    <span>{db.label}</span>
-                                    {db.isRelated ? (
-                                      <Badge variant="default" className="text-xs">
-                                        This site
-                                      </Badge>
-                                    ) : (
-                                      <Badge variant="secondary" className="text-xs">
-                                        Other site
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </>
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                      <p className="text-xs text-muted-foreground">
-                        Leave as "Auto-create" to let WordPress Toolkit automatically create a new database. 
-                        Or select an existing database to use.
-                      </p>
                     </FormItem>
                   )}
                 />

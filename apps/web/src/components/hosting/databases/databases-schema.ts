@@ -9,6 +9,8 @@ const dbItemSchema = z.object({
   type: z.string().optional(),
   "webspace-id": z.number().optional(),
   "db-server-id": z.number().optional(),
+  "related-site-id": z.number().optional().nullable(),
+  "related-site-name": z.string().optional().nullable(),
 });
 
 /**
@@ -42,7 +44,19 @@ export const databaseSchema = z.object({
   "filter-id": z.number().optional(),
   "webspace-id": z.number().optional(),
   "db-server-id": z.number().optional(),
+  "related-site-id": z.number().optional().nullable(),
+  "related-site-name": z.string().optional().nullable(),
 });
 
 export type PleskDatabasesResponse = z.infer<typeof pleskDatabasesResponseSchema>;
 export type Database = z.infer<typeof databaseSchema>;
+
+export function relatedSiteLabel(db: {
+  "related-site-id"?: number | null;
+  "related-site-name"?: string | null;
+}): string {
+  const name = db["related-site-name"]?.trim();
+  if (name) return name;
+  if (db["related-site-id"] === 0) return "Not connected to any site";
+  return "Related site unavailable";
+}
