@@ -385,7 +385,7 @@ export function WordPressSiteCredentials({ installationId }: WordPressSiteCreden
                 <p className="flex items-start gap-1.5 text-xs text-amber-700 dark:text-amber-400">
                   <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
                   <span>
-                    Keep private — anyone with this login can manage your site. Use a strong unique
+                    Keep private  anyone with this login can manage your site. Use a strong unique
                     password.
                   </span>
                 </p>
@@ -426,7 +426,7 @@ export function WordPressSiteCredentials({ installationId }: WordPressSiteCreden
               description={
                 hasPassword
                   ? "Stored securely in WP Toolkit"
-                  : "Not available — set a new password in Account settings"
+                  : "Not available  set a new password in Account settings"
               }
               value={hasPassword && credentials.password ? credentials.password : "Not available"}
               masked={hasPassword}

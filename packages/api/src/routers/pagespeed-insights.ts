@@ -72,7 +72,7 @@ function backoffDelayMs(attempt: number, retryAfterHeader: string | null): numbe
 
 /**
  * Always read as text first. Google (and edge proxies) sometimes return plain text
- * bodies like "Service Unavailable" instead of JSON on 5xx — calling response.json()
+ * bodies like "Service Unavailable" instead of JSON on 5xx  calling response.json()
  * produces: Unexpected token 'S', "Service Unavailable" is not valid JSON.
  */
 async function readPsiBody(response: Response): Promise<{
@@ -219,7 +219,7 @@ async function callPageSpeedAPI(url: string, strategy: 'mobile' | 'desktop'): Pr
         throwForPsiHttpStatus(response.status, googleMessage);
       }
 
-      // HTTP 2xx but body is plain text (e.g. edge "Service Unavailable") — retry.
+      // HTTP 2xx but body is plain text (e.g. edge "Service Unavailable")  retry.
       if (json === undefined) {
         lastFailureMessage =
           googleMessage ??

@@ -130,7 +130,7 @@ export function WordPressSecurityTab({ installationId }: { installationId: strin
           </CardContent>
         </Card>
 
-        {/* 2. Integrity — full width */}
+        {/* 2. Integrity  full width */}
         <Card className="overflow-hidden py-0 gap-0">
           <CardHeader className="border-b bg-muted/30 px-4 py-3">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
@@ -194,7 +194,7 @@ export function WordPressSecurityTab({ installationId }: { installationId: strin
           </CardContent>
         </Card>
 
-        {/* 3. Vulnerabilities — own section */}
+        {/* 3. Vulnerabilities  own section */}
         <Card className="overflow-hidden py-0 gap-0">
           <CardHeader className="border-b bg-muted/30 px-4 py-3">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
@@ -210,7 +210,7 @@ export function WordPressSecurityTab({ installationId }: { installationId: strin
           </CardContent>
         </Card>
 
-        {/* 4. Policies — separate section */}
+        {/* 4. Policies  separate section */}
         <Card className="overflow-hidden py-0 gap-0">
           <CardHeader className="border-b bg-muted/30 px-4 py-3">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">

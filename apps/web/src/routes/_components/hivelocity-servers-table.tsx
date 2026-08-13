@@ -290,7 +290,7 @@ export function HivelocityServersTable({ type, resourceBasePath, teamSlug }: Hiv
 						Suspended
 					</Badge>
 				),
-				description: <p>Service suspended — open details to review or reactivate.</p>,
+				description: <p>Service suspended  open details to review or reactivate.</p>,
 				actions: <ViewDetailsButton onClick={() => navigate(detailHref)} />,
 				onClick: () => navigate(detailHref),
 			};

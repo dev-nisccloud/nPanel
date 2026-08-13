@@ -261,7 +261,7 @@ export function SubdomainsTable({
               title={subdomain.name || "Unknown subdomain"}
               description={
                 <span className="block truncate">
-                  {`Parent: ${subdomain.parent || "—"} · PHP ${phpVersion}`}
+                  {`Parent: ${subdomain.parent || ""} · PHP ${phpVersion}`}
                 </span>
               }
               trailing={
