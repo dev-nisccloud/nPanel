@@ -1,10 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { Server, Mail } from "lucide-react";
+import { Server, Mail, Zap } from "lucide-react";
 import { BuyNowDialog, type ServicePlanDetails } from "@/components/buy-now-dialog";
 import { PricingTableWrapper } from "@/components/pricing-table-wrapper";
-import { useZeepoAgentRoute } from "@/components/zeepo/zeepo-agent-route-context";
+import { useZeepoCheckoutTeam } from "@/components/zeepo/use-zeepo-checkout-team";
 import type { AgentHostingPlansResult } from "@/stores/zeepo-payment-store";
 
 interface ZeepoHostingPlansCardProps {
@@ -12,13 +12,23 @@ interface ZeepoHostingPlansCardProps {
 }
 
 export function ZeepoHostingPlansCard({ result }: ZeepoHostingPlansCardProps) {
-  const { teamId, teamSlug } = useZeepoAgentRoute();
+  const { teamId, teamSlug } = useZeepoCheckoutTeam();
   const [buyNowOpen, setBuyNowOpen] = React.useState(false);
   const [selectedPlan, setSelectedPlan] = React.useState<ServicePlanDetails | null>(null);
 
   const isEmail = result._tool === "get_email_hosting_plans";
-  const Icon = isEmail ? Mail : Server;
-  const label = isEmail ? "Email Hosting Plans" : "Web Hosting Plans";
+  const isWordpress = result._tool === "get_wordpress_hosting_plans";
+  const Icon = isEmail ? Mail : isWordpress ? Zap : Server;
+  const label = isEmail
+    ? "Email Hosting Plans"
+    : isWordpress
+      ? "WordPress Hosting Plans"
+      : "Web Hosting Plans";
+  const subType: ServicePlanDetails["subType"] = isEmail
+    ? "EMAIL_HOSTING"
+    : isWordpress
+      ? "WORDPRESS_HOSTING"
+      : "WEB_HOSTING";
 
   const handleBuyNow = React.useCallback(
     (plan: any & { selectedBillingCycle?: "MONTHLY" | "YEARLY"; selectedPrice?: number }) => {
@@ -29,7 +39,7 @@ export function ZeepoHostingPlansCard({ result }: ZeepoHostingPlansCardProps) {
         planId: plan.id,
         planName: plan.name,
         planType: "HOSTING",
-        subType: isEmail ? "EMAIL_HOSTING" : "WEB_HOSTING",
+        subType,
         price,
         currency: plan.niscCurrency ?? "KES",
         billingCycle: (billingCycle ?? "MONTHLY") as "MONTHLY" | "YEARLY" | "BIENNIALLY",
@@ -39,7 +49,7 @@ export function ZeepoHostingPlansCard({ result }: ZeepoHostingPlansCardProps) {
       setSelectedPlan(planDetails);
       setBuyNowOpen(true);
     },
-    [isEmail],
+    [subType],
   );
 
   return (

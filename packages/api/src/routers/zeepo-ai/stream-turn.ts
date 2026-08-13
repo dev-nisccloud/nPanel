@@ -61,6 +61,7 @@ import {
 	executeZeepoAiOpsTool,
 	getZeepoAiOpsTools,
 	isZeepoAiOpsToolName,
+	stripZeepoAiOpsToolResultForModel,
 } from "./ops-tools";
 import { maybeAutoTitleZeepoAiSession } from "./title";
 
@@ -1584,7 +1585,11 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 				toolResults.push({
 					type: "tool_result",
 					tool_use_id: block.id,
-					content: JSON.stringify(resultPayload),
+					content: JSON.stringify(
+						isZeepoAiOpsToolName(block.name)
+							? stripZeepoAiOpsToolResultForModel(resultPayload)
+							: resultPayload,
+					),
 					is_error: !ok,
 				});
 			}

@@ -11,6 +11,11 @@ type HivelocityInventoryPlan = {
 	product_disabled_billing_periods?: string[];
 	product_monthly_price?: number;
 	product_hourly_price?: number;
+	product_quarterly_price?: number;
+	product_semi_annually_price?: number;
+	product_annually_price?: number;
+	product_biennial_price?: number;
+	product_triennial_price?: number;
 	__baseUsd?: { monthly: number; hourly: number };
 };
 

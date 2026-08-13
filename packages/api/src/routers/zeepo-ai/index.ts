@@ -3,6 +3,7 @@ import { zeepoAiSessionsRouter } from "./sessions";
 import { zeepoAiMessagesRouter, zeepoAiSkillsRouter } from "./messages";
 import { zeepoAiBillingRouter } from "./billing";
 import { zeepoAiImageEditsRouter } from "./image-edits";
+import { zeepoAiCloudPlansRouter } from "./cloud-plans";
 
 export const zeepoAiRouter = router({
 	sessions: zeepoAiSessionsRouter,
@@ -10,6 +11,7 @@ export const zeepoAiRouter = router({
 	skills: zeepoAiSkillsRouter,
 	billing: zeepoAiBillingRouter,
 	imageEdits: zeepoAiImageEditsRouter,
+	cloudPlans: zeepoAiCloudPlansRouter,
 });
 
 export { streamZeepoAiTurn } from "./stream-turn";

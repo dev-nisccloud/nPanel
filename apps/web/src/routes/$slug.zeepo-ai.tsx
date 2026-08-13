@@ -47,7 +47,7 @@ export default function CustomerZeepoAiLayout() {
 
 	return (
 		<ZeepoAiRouteProvider config={config}>
-			<div className="@container/main flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
+			<div className="@container/main flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden px-3 py-2 sm:px-4 sm:py-3">
 				<Outlet />
 			</div>
 		</ZeepoAiRouteProvider>

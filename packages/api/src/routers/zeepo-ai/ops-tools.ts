@@ -9,17 +9,26 @@ import { userProfile as userProfileTable } from "@npanel/db/schema/auth-extras";
 import type { ToolUnion } from "@anthropic-ai/sdk/resources/messages";
 import {
 	agentCheckDomainAvailability,
+	agentGetCloudServers,
+	agentGetDedicatedServerPlans,
 	agentGetDomainDetail,
 	agentGetDomainsPortfolio,
 	agentGetEmailHostingPlans,
 	agentGetHostingDetail,
 	agentGetHostingResources,
+	agentGetVdsPlans,
+	agentGetVpsPlans,
 	agentGetWebHostingPlans,
+	agentGetWordPressHostingPlans,
+	agentGetWordPressSites,
 	DEFAULT_DISPLAY_CURRENCY,
 	DEFAULT_DOMAIN_EXTENSIONS,
 } from "../../lib/agent-internal-tools";
+import { resolveHivelocityPublicMessageFromError } from "../../lib/hivelocity-errors";
 import {
 	checkDomainAvailabilityArgsSchema,
+	getCloudPlansArgsSchema,
+	getCloudServersArgsSchema,
 	getDomainDetailArgsSchema,
 	getDomainsPortfolioArgsSchema,
 	getEmailHostingPlansArgsSchema,
@@ -27,6 +36,8 @@ import {
 	getHostingResourcesArgsSchema,
 	getSessionInfoArgsSchema,
 	getWebHostingPlansArgsSchema,
+	getWordPressHostingPlansArgsSchema,
+	getWordPressSitesArgsSchema,
 } from "../zeepo-agent/agent-tools";
 
 export const ZEEPO_AI_OPS_TOOL_NAMES = [
@@ -36,8 +47,14 @@ export const ZEEPO_AI_OPS_TOOL_NAMES = [
 	"get_domain_detail",
 	"get_web_hosting_plans",
 	"get_email_hosting_plans",
+	"get_wordpress_hosting_plans",
+	"get_vps_plans",
+	"get_vds_plans",
+	"get_dedicated_server_plans",
+	"get_cloud_servers",
 	"get_hosting_resources",
 	"get_hosting_detail",
+	"get_wordpress_sites",
 ] as const;
 
 export type ZeepoAiOpsToolName = (typeof ZEEPO_AI_OPS_TOOL_NAMES)[number];
@@ -105,15 +122,91 @@ export const ZEEPO_AI_OPS_CLIENT_TOOLS = [
 		input_schema: { type: "object" as const, properties: {}, additionalProperties: false },
 	},
 	{
+		name: "get_wordpress_hosting_plans",
+		description:
+			"List current Nisc Cloud WordPress hosting plans with retail prices. Use this to browse or purchase WordPress hosting. Do not use this for WordPress sites they already have.",
+		input_schema: { type: "object" as const, properties: {}, additionalProperties: false },
+	},
+	{
+		name: "get_vps_plans",
+		description:
+			"List or match Nisc Cloud VPS plans. Browse with no filters (paginated). When the user names a config (RAM, cores, CPU, disk, location), pass those fields and this returns the single best matching plan they can buy.",
+		input_schema: {
+			type: "object" as const,
+			properties: {
+				search: { type: "string", description: "Free-text fallback, e.g. 8GB 4 cores AMD London" },
+				limit: { type: "integer", description: "Browse page size (1-24). Ignored for a specific config." },
+				ram_gb: { type: "number", description: "Requested RAM in GB, e.g. 8" },
+				cores: { type: "integer", description: "Requested vCPU / core count, e.g. 4" },
+				cpu: { type: "string", enum: ["intel", "amd"], description: "CPU brand if the user specified one" },
+				disk_gb: { type: "number", description: "Requested disk in GB" },
+				location: { type: "string", description: "City or region, e.g. London, Frankfurt" },
+			},
+			additionalProperties: false,
+		},
+	},
+	{
+		name: "get_vds_plans",
+		description:
+			"List or match Nisc Cloud VDS plans. Browse with no filters (paginated). When the user names a config (RAM, cores, CPU, disk, location), pass those fields and this returns the single best matching plan they can buy.",
+		input_schema: {
+			type: "object" as const,
+			properties: {
+				search: { type: "string", description: "Free-text fallback, e.g. 16GB 8 cores Intel Frankfurt" },
+				limit: { type: "integer", description: "Browse page size (1-24). Ignored for a specific config." },
+				ram_gb: { type: "number", description: "Requested RAM in GB, e.g. 16" },
+				cores: { type: "integer", description: "Requested vCPU / core count, e.g. 8" },
+				cpu: { type: "string", enum: ["intel", "amd"], description: "CPU brand if the user specified one" },
+				disk_gb: { type: "number", description: "Requested disk in GB" },
+				location: { type: "string", description: "City or region, e.g. London, Frankfurt" },
+			},
+			additionalProperties: false,
+		},
+	},
+	{
+		name: "get_dedicated_server_plans",
+		description:
+			"List or match Nisc Cloud dedicated server plans. Browse with no filters (paginated). When the user names a config (RAM, cores, CPU, disk, location), pass those fields and this returns the single best matching plan they can buy.",
+		input_schema: {
+			type: "object" as const,
+			properties: {
+				search: { type: "string", description: "Free-text fallback, e.g. 64GB 16 cores Xeon Dallas" },
+				limit: { type: "integer", description: "Browse page size (1-24). Ignored for a specific config." },
+				ram_gb: { type: "number", description: "Requested RAM in GB, e.g. 64" },
+				cores: { type: "integer", description: "Requested CPU core count, e.g. 16" },
+				cpu: { type: "string", enum: ["intel", "amd"], description: "CPU brand if the user specified one" },
+				disk_gb: { type: "number", description: "Requested disk in GB" },
+				location: { type: "string", description: "City or region, e.g. Dallas, London" },
+			},
+			additionalProperties: false,
+		},
+	},
+	{
+		name: "get_cloud_servers",
+		description:
+			"List VPS, VDS, or dedicated servers already purchased through Nisc Cloud. Agency admin sees all teams; customers only the active team. Pass type vps, vds, dedicated, or all.",
+		input_schema: {
+			type: "object" as const,
+			properties: {
+				type: {
+					type: "string",
+					enum: ["vps", "vds", "dedicated", "all"],
+					description: "Which servers to list. Default all.",
+				},
+			},
+			additionalProperties: false,
+		},
+	},
+	{
 		name: "get_hosting_resources",
 		description:
-			"List hosting subscriptions managed through Nisc Cloud for this user (agency-wide or team-scoped).",
+			"List hosting subscriptions managed through Nisc Cloud for this user (agency-wide or team-scoped). When the user asks about their websites or what sites they have, also call get_wordpress_sites in the same turn: WordPress may exist on that hosting, including subdomains.",
 		input_schema: { type: "object" as const, properties: {}, additionalProperties: false },
 	},
 	{
 		name: "get_hosting_detail",
 		description:
-			"Fetch live detail for one hosting subscription by primary domain. Optional DNS/mail/subdomains/databases sections.",
+			"Fetch live detail for one hosting subscription by primary domain. Optional DNS/mail/subdomains/databases sections. When looking up a website they already have, also call get_wordpress_sites with the same domain in the same turn.",
 		input_schema: {
 			type: "object" as const,
 			properties: {
@@ -124,6 +217,21 @@ export const ZEEPO_AI_OPS_CLIENT_TOOLS = [
 				include_databases: { type: "boolean" },
 			},
 			required: ["domain"],
+		},
+	},
+	{
+		name: "get_wordpress_sites",
+		description:
+			"List WordPress sites already hosted with Nisc Cloud. Agency admin sees all teams; customers only sites they own or WordPress on hosting they own (including subdomains, e.g. blog.ashut.com if they own ashut.com). Optional domain filters to that host plus its subdomains. Call this together with get_hosting_resources or get_hosting_detail whenever the user asks about their websites, even if they did not say WordPress. Use this for sites they already have, not for buying plans.",
+		input_schema: {
+			type: "object" as const,
+			properties: {
+				domain: {
+					type: "string",
+					description: "Optional domain or parent domain, e.g. ashut.com or blog.ashut.com",
+				},
+			},
+			additionalProperties: false,
 		},
 	},
 ] as const satisfies ReadonlyArray<{
@@ -137,8 +245,33 @@ export function getZeepoAiOpsTools(): ToolUnion[] {
 }
 
 function toolError(prefix: string, e: unknown): { error: string } {
-	const msg = e instanceof Error ? e.message : String(e);
-	return { error: `${prefix}: ${msg}` };
+	const raw = e instanceof Error ? e.message : String(e);
+	const combined = `${prefix}: ${raw}`;
+	if (/hivelocity|core\.hivelocity|plesk|wp toolkit/i.test(combined)) {
+		return {
+			error: resolveHivelocityPublicMessageFromError(
+				e,
+				"Couldn't complete that lookup right now. Please try again.",
+			),
+		};
+	}
+	return { error: combined };
+}
+
+/** Drop checkout internals / wholesale fields before the model sees a tool result. */
+export function stripZeepoAiOpsToolResultForModel(payload: unknown): unknown {
+	if (!payload || typeof payload !== "object" || Array.isArray(payload)) return payload;
+	const rec = payload as Record<string, unknown>;
+	if (!Array.isArray(rec.plans)) return payload;
+	return {
+		...rec,
+		plans: rec.plans.map((plan) => {
+			if (!plan || typeof plan !== "object" || Array.isArray(plan)) return plan;
+			const { checkout: _checkout, __baseUsd: _baseUsd, location_option_id: _loc, ...rest } =
+				plan as Record<string, unknown>;
+			return rest;
+		}),
+	};
 }
 
 export type ExecuteZeepoAiOpsToolParams = {
@@ -242,6 +375,31 @@ export async function executeZeepoAiOpsTool(
 		}
 	}
 
+	if (name === "get_wordpress_hosting_plans") {
+		getWordPressHostingPlansArgsSchema.safeParse(input);
+		try {
+			return await agentGetWordPressHostingPlans();
+		} catch (e) {
+			return toolError("WordPress hosting plans fetch failed", e);
+		}
+	}
+
+	if (name === "get_vps_plans" || name === "get_vds_plans" || name === "get_dedicated_server_plans") {
+		const parsed = getCloudPlansArgsSchema.safeParse(input ?? {});
+		if (!parsed.success) return { error: parsed.error.message };
+		try {
+			if (name === "get_vps_plans") {
+				return await agentGetVpsPlans(parsed.data);
+			}
+			if (name === "get_vds_plans") {
+				return await agentGetVdsPlans(parsed.data);
+			}
+			return await agentGetDedicatedServerPlans(parsed.data);
+		} catch (e) {
+			return toolError("Server plans fetch failed", e);
+		}
+	}
+
 	const role = (params.userRole ?? "CUSTOMER") as string;
 	// Agency-wide portfolio/hosting is admin+ only; AGENCY_USER stays team-scoped.
 	const isAgency =
@@ -276,14 +434,39 @@ export async function executeZeepoAiOpsTool(
 		}
 	}
 
-	if (name === "get_hosting_resources") {
-		getHostingResourcesArgsSchema.safeParse(input);
+	if (name === "get_cloud_servers") {
+		const parsed = getCloudServersArgsSchema.safeParse(input ?? {});
+		if (!parsed.success) return { error: parsed.error.message };
 		try {
-			return await agentGetHostingResources({
+			return await agentGetCloudServers({
+				kind: parsed.data.type ?? "all",
 				isAgency,
 				teamId,
 				teamName,
 			});
+		} catch (e) {
+			return toolError("Cloud servers fetch failed", e);
+		}
+	}
+
+	if (name === "get_hosting_resources") {
+		getHostingResourcesArgsSchema.safeParse(input);
+		try {
+			const hosting = await agentGetHostingResources({
+				isAgency,
+				teamId,
+				teamName,
+			});
+			try {
+				const wordpressSites = await agentGetWordPressSites({
+					isAgency,
+					teamId,
+					teamName,
+				});
+				return { ...hosting, wordpressSites };
+			} catch {
+				return hosting;
+			}
 		} catch (e) {
 			return toolError("Hosting resources fetch failed", e);
 		}
@@ -293,7 +476,7 @@ export async function executeZeepoAiOpsTool(
 		const parsed = getHostingDetailArgsSchema.safeParse(input);
 		if (!parsed.success) return { error: parsed.error.message };
 		try {
-			return await agentGetHostingDetail({
+			const hosting = await agentGetHostingDetail({
 				domain: parsed.data.domain,
 				includeDns: parsed.data.include_dns,
 				includeMail: parsed.data.include_mail,
@@ -302,8 +485,34 @@ export async function executeZeepoAiOpsTool(
 				isAgency,
 				teamId,
 			});
+			try {
+				const wordpressSites = await agentGetWordPressSites({
+					isAgency,
+					teamId,
+					teamName,
+					domain: parsed.data.domain,
+				});
+				return { ...hosting, wordpressSites };
+			} catch {
+				return hosting;
+			}
 		} catch (e) {
 			return toolError("Hosting detail fetch failed", e);
+		}
+	}
+
+	if (name === "get_wordpress_sites") {
+		const parsed = getWordPressSitesArgsSchema.safeParse(input ?? {});
+		if (!parsed.success) return { error: parsed.error.message };
+		try {
+			return await agentGetWordPressSites({
+				isAgency,
+				teamId,
+				teamName,
+				domain: parsed.data.domain,
+			});
+		} catch (e) {
+			return toolError("WordPress sites fetch failed", e);
 		}
 	}
 

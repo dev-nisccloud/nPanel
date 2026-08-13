@@ -12,6 +12,7 @@ import { UploadProgressRing } from "@/components/upload-progress-ring";
 import { useAppFileUpload } from "@/hooks/use-app-file-upload";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ZEEPO_AI_SKILLS, type ZeepoAiSkill } from "@/components/zeepo/zeepo-ai-types";
+import { ZeepoAiAutosizeTextarea } from "@/components/zeepo/zeepo-ai-autosize-textarea";
 import { trpc } from "@/utils/trpc";
 
 type PendingFile = {
@@ -61,7 +62,7 @@ export function ZeepoAiComposer({
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [skillsOpen, setSkillsOpen] = useState(false);
   const [activeSkillId, setActiveSkillId] = useState<string | undefined>();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const {
     uploadZeepoAiAttachments,
@@ -256,12 +257,13 @@ export function ZeepoAiComposer({
         ) : null}
 
         <div className="px-4 pt-3.5 pb-2">
-          <input
+          <ZeepoAiAutosizeTextarea
             ref={inputRef}
-            type="text"
             placeholder={placeholder}
             value={inputValue}
             disabled={disabled || showStop}
+            maxLines={5}
+            aria-label="Message Zeepo"
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
@@ -269,7 +271,6 @@ export function ZeepoAiComposer({
                 void handleSend();
               }
             }}
-            className="w-full bg-transparent text-[15px] leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/60 disabled:cursor-not-allowed disabled:opacity-60"
           />
         </div>
 
