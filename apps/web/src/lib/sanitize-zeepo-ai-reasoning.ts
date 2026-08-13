@@ -10,12 +10,14 @@ const KNOWN_TOOL_NAMES = [
   "get_domain_detail",
   "get_web_hosting_plans",
   "get_email_hosting_plans",
+  "get_wordpress_hosting_plans",
   "get_vps_plans",
   "get_vds_plans",
   "get_dedicated_server_plans",
   "get_cloud_servers",
   "get_hosting_resources",
   "get_hosting_detail",
+  "get_wordpress_sites",
   "ask_clarifying_questions",
   "create_document",
   "create_presentation",
@@ -52,6 +54,8 @@ export function sanitizeZeepoAiReasoning(raw: string | null | undefined): string
     .replace(/\b(?:developer|hidden)\s+prompt\b/gi, "instructions")
     .replace(/\bprompt\s+injection\b/gi, "unsafe instruction")
     .replace(/\bHivelocity\b/gi, "Nisc Cloud")
+    .replace(/\bPlesk\b/gi, "Nisc Cloud")
+    .replace(/\bWP Toolkit\b/gi, "WordPress")
     .replace(/\bour provider\b/gi, "Nisc Cloud")
     .replace(/\bthe provider\b/gi, "Nisc Cloud")
     .replace(/\bupstream vendor\b/gi, "Nisc Cloud")

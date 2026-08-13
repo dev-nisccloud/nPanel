@@ -10,7 +10,7 @@ import {
 export default function ZeepoAiLayout() {
   return (
     <ZeepoAiRouteProvider config={DEFAULT_ZEEPO_AI_ROUTE}>
-      <div className="@container/main flex min-h-0 w-full flex-1 flex-col">
+      <div className="@container/main flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
         <Outlet />
       </div>
     </ZeepoAiRouteProvider>

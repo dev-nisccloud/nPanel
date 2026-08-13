@@ -253,6 +253,13 @@ export const getSessionInfoArgsSchema = z.object({});
  */
 export const getWebHostingPlansArgsSchema = z.object({});
 export const getEmailHostingPlansArgsSchema = z.object({});
+export const getWordPressHostingPlansArgsSchema = z.object({});
+
+export const getWordPressSitesArgsSchema = z.object({
+	/** Optional domain or parent domain (e.g. ashut.com). Returns that site plus WordPress on its subdomains. */
+	domain: z.string().min(3).max(253).optional(),
+});
+export type GetWordPressSitesArgs = z.infer<typeof getWordPressSitesArgsSchema>;
 
 export const getCloudPlansArgsSchema = z.object({
 	search: z.string().max(80).optional(),
@@ -306,6 +313,7 @@ export type GetDomainDetailArgs = z.infer<typeof getDomainDetailArgsSchema>;
 
 export type GetWebHostingPlansArgs = z.infer<typeof getWebHostingPlansArgsSchema>;
 export type GetEmailHostingPlansArgs = z.infer<typeof getEmailHostingPlansArgsSchema>;
+export type GetWordPressHostingPlansArgs = z.infer<typeof getWordPressHostingPlansArgsSchema>;
 
 export const checkDomainAvailabilityArgsSchema = z.object({
 	name: z

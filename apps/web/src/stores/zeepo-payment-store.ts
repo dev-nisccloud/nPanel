@@ -26,7 +26,7 @@ export interface AgentDomainCheckResult {
   checkedAt: string;
 }
 
-/** Shape of a single plan returned by get_web_hosting_plans / get_email_hosting_plans. */
+/** Shape of a single plan returned by web / email / WordPress hosting plan tools. */
 export interface AgentHostingPlanEntry {
   id: string;
   name: string;
@@ -45,9 +45,9 @@ export interface AgentHostingPlanFeatureRow {
   label: string;
 }
 
-/** Result returned by the get_web_hosting_plans / get_email_hosting_plans agent tools. */
+/** Result returned by the get_web_hosting_plans / get_email_hosting_plans / get_wordpress_hosting_plans agent tools. */
 export interface AgentHostingPlansResult {
-  _tool: "get_web_hosting_plans" | "get_email_hosting_plans";
+  _tool: "get_web_hosting_plans" | "get_email_hosting_plans" | "get_wordpress_hosting_plans";
   productFeatures: AgentHostingPlanFeatureRow[];
   plans: AgentHostingPlanEntry[];
   checkedAt: string;
@@ -211,6 +211,8 @@ export interface AgentHostingResourcesResult {
   suspendedCount: number;
   pleskUnavailable?: boolean;
   checkedAt: string;
+  /** WordPress on these hosts (including subdomains), attached when looking up websites. */
+  wordpressSites?: AgentWordPressSitesResult;
 }
 
 export interface AgentHostingMailAccount {
@@ -258,6 +260,48 @@ export interface AgentHostingDetailResult {
   pleskUnavailable?: boolean;
   error?: string;
   checkedAt: string;
+  /** WordPress on this domain and its subdomains, attached when looking up a website. */
+  wordpressSites?: AgentWordPressSitesResult;
+}
+
+// ── WordPress sites ──────────────────────────────────────────────────────────
+
+export type AgentWordPressSiteKind = "wordpress_hosting" | "on_hosting";
+
+export interface AgentWordPressSiteEntry {
+  title: string;
+  domain: string | null;
+  url: string | null;
+  version: string | null;
+  phpVersion: string | null;
+  sslEnabled: boolean | null;
+  status: "Online" | "Offline" | "Unknown";
+  infected: boolean | null;
+  unsupported: boolean | null;
+  multisite: boolean | null;
+  security: "Secure" | "Needs attention" | "Unknown";
+  pluginUpdates: number | null;
+  themeUpdates: number | null;
+  availableWpVersion: string | null;
+  kind: AgentWordPressSiteKind;
+  isSubdomain: boolean;
+  planName: string | null;
+  billingStatus: "Active" | "Suspended" | "Pending" | "Unknown" | null;
+  expiryDate: string | null;
+  teamName: string | null;
+}
+
+export interface AgentWordPressSitesResult {
+  _tool: "get_wordpress_sites";
+  isAgency: boolean;
+  teamName: string | null;
+  domainFilter: string | null;
+  sites: AgentWordPressSiteEntry[];
+  totalCount: number;
+  onlineCount: number;
+  needsAttentionCount: number;
+  checkedAt: string;
+  error?: string;
 }
 
 // ── Domain detail ────────────────────────────────────────────────────────────

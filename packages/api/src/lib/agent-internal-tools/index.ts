@@ -22,9 +22,11 @@ export { DEFAULT_DISPLAY_CURRENCY } from "./pricing";
 export {
 	agentGetWebHostingPlans,
 	agentGetEmailHostingPlans,
+	agentGetWordPressHostingPlans,
 	type HostingPlansResult,
 	type HostingPlanEntry,
 	type HostingPlanFeatureRow,
+	type HostingPlansToolName,
 } from "./hosting-plans";
 
 export {
@@ -65,3 +67,10 @@ export {
 	type HostingResourcesResult,
 	type HostingDetailResult,
 } from "./hosting-resources";
+
+export {
+	agentGetWordPressSites,
+	type WordPressSitesResult,
+	type WordPressSiteEntry,
+	type WordPressSiteKind,
+} from "./wordpress-sites";

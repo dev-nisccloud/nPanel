@@ -1222,7 +1222,7 @@ export function ZeepoAiChatSessionPage() {
   return (
     <div
       className={cn(
-        "zeepo-ai-root relative flex h-[calc(100svh-theme(spacing.12)-theme(spacing.8))] min-h-0 w-full overflow-hidden transition-all duration-300",
+        "zeepo-ai-root relative flex h-full min-h-0 w-full overflow-hidden transition-all duration-300",
       )}
     >
       <div
@@ -1265,7 +1265,7 @@ export function ZeepoAiChatSessionPage() {
 
           <div
             ref={scrollParentRef}
-            className="zeepo-ai-chat-surface min-h-0 flex-1 overflow-y-auto overscroll-y-contain pb-40"
+            className="zeepo-ai-chat-surface min-h-0 flex-1 overflow-y-auto overscroll-y-contain pb-4"
           >
             {sessionQuery.isLoading && !session ? (
               <div className="flex h-full flex-col items-center justify-center gap-3 px-4 text-sm text-muted-foreground">

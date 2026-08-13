@@ -1,10 +1,9 @@
 /**
- * Hosting plan fetching for the Zeepo AI Agent.
+ * Hosting plan fetching for Zeepo AI.
  *
- * Fetches web hosting and email hosting plans from the Nisc Cloud product
- * catalogue - the same data powering the customer-facing pricing tables on
- * the /$slug/hosting and /$slug/emails routes.  Results are returned in a
- * shape that the session-page can detect and render as a pricing card.
+ * Fetches web, email, and WordPress hosting plans from the Nisc Cloud product
+ * catalogue - the same data powering the customer-facing pricing tables.
+ * Results are returned in a shape that chat can render as a pricing card.
  */
 
 import { and, eq, ilike, or } from "@npanel/db";
@@ -29,24 +28,33 @@ export interface HostingPlanEntry {
 	featureValues: Array<{ available: boolean; valueOverride: string | null }>;
 }
 
+export type HostingPlansToolName =
+	| "get_web_hosting_plans"
+	| "get_email_hosting_plans"
+	| "get_wordpress_hosting_plans";
+
 export interface HostingPlansResult {
-	_tool: "get_web_hosting_plans" | "get_email_hosting_plans";
+	_tool: HostingPlansToolName;
 	productFeatures: HostingPlanFeatureRow[];
 	plans: HostingPlanEntry[];
 	checkedAt: string;
 }
 
 async function fetchHostingPlans(
-	toolName: "get_web_hosting_plans" | "get_email_hosting_plans",
+	toolName: HostingPlansToolName,
 	nameFilters: string[],
+	serviceType?: string,
 ): Promise<HostingPlansResult> {
-	const whereCondition =
+	const nameOr =
 		nameFilters.length === 1
-			? and(eq(niscProduct.isActive, true), ilike(niscProduct.name, nameFilters[0]!))
-			: and(
-					eq(niscProduct.isActive, true),
-					or(...nameFilters.map((f) => ilike(niscProduct.name, f))),
-				);
+			? ilike(niscProduct.name, nameFilters[0]!)
+			: or(...nameFilters.map((f) => ilike(niscProduct.name, f)));
+	const whereCondition = serviceType
+		? and(
+				eq(niscProduct.isActive, true),
+				or(nameOr, eq(niscProduct.serviceType, serviceType)),
+			)
+		: and(eq(niscProduct.isActive, true), nameOr);
 
 	const products = await db.query.niscProduct.findMany({
 		where: whereCondition,
@@ -131,4 +139,12 @@ export async function agentGetWebHostingPlans(): Promise<HostingPlansResult> {
 /** Fetch email hosting plans from the Nisc Cloud catalogue. */
 export async function agentGetEmailHostingPlans(): Promise<HostingPlansResult> {
 	return fetchHostingPlans("get_email_hosting_plans", ["%email hosting%"]);
+}
+
+/** Fetch WordPress hosting plans from the Nisc Cloud catalogue. */
+export async function agentGetWordPressHostingPlans(): Promise<HostingPlansResult> {
+	return fetchHostingPlans("get_wordpress_hosting_plans", [
+		"%wordpress hosting%",
+		"%wordpress managed%",
+	], "wordpress_hosting");
 }
