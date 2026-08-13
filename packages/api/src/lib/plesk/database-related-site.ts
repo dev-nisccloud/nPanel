@@ -3,47 +3,45 @@ import { asArray, pleskXmlInt, pleskXmlScalar, sendPleskXmlOrThrow } from "./xml
 import { getPleskPanelBase } from "./session";
 
 /**
- * Plesk XML get-db only returns subscription id (`webspace-id`), not related site.
- * Related site is REST `parent_domain` (domain/site id). 0 / missing means none.
+ * Plesk "Related to" is domain_pref --show-assigned-database per site on the
+ * subscription. There is no bulk XML/REST field for it, so we:
+ *   1. list sites in one XML packet (webspace + child sites)
+ *   2. call CLI for every site in parallel
  *
- * @see https://docs.plesk.com/en-US/obsidian/api-rpc/about-xml-api/reference/managing-databases/retrieving-information-about-databases.34431/
- * @see https://talk.plesk.com/threads/plesk-restful-api-database-site.360270/
+ * Do not use GET /api/v2/domains (whole server) or XML get-db webspace-id.
  */
 const restAgent = new Agent({
-  connections: 4,
-  pipelining: 1,
+  connections: 8,
+  pipelining: 0,
   keepAliveTimeout: 60000,
   keepAliveMaxTimeout: 60000,
 });
 
-type RestDatabase = {
-  id?: unknown;
-  parent_domain?: unknown;
-};
-
-type RestDomain = {
-  id?: unknown;
-  name?: unknown;
-  ascii_name?: unknown;
-};
+export type RelatedSite = { id: number; name: string };
 
 function secretKey(): string | null {
   const key = process.env.PLESK_SECRET_KEY;
   return key?.trim() || null;
 }
 
-async function pleskRestGetJson(path: string): Promise<{ status: number; body: unknown } | null> {
+async function pleskRestJson(
+  method: "GET" | "POST",
+  path: string,
+  body?: unknown,
+): Promise<{ status: number; body: unknown } | null> {
   const key = secretKey();
   if (!key) return null;
   try {
     const response = await request(`${getPleskPanelBase()}/api/v2${path}`, {
-      method: "GET",
+      method,
       headers: {
         Accept: "application/json",
+        "Content-Type": "application/json",
         "X-API-Key": key,
       },
+      body: body === undefined ? undefined : JSON.stringify(body),
       dispatcher: restAgent,
-      signal: AbortSignal.timeout(20000),
+      signal: AbortSignal.timeout(15000),
     });
     const text = await response.body.text();
     if (!text.trim()) return { status: response.statusCode, body: null };
@@ -53,7 +51,7 @@ async function pleskRestGetJson(path: string): Promise<{ status: number; body: u
       return { status: response.statusCode, body: null };
     }
   } catch (error) {
-    console.error("[Plesk related site] REST GET failed:", path, error);
+    console.error("[Plesk related site] REST failed:", method, path, error);
     return null;
   }
 }
@@ -67,174 +65,97 @@ function parsePositiveId(value: unknown): number | null {
   return null;
 }
 
-function parseDomainName(value: unknown): string | null {
-  if (typeof value === "string" && value.trim()) return value.trim();
-  return null;
+function xmlGenInfoName(row: Record<string, unknown>): string | null {
+  const data = row.data as Record<string, unknown> | undefined;
+  const genInfo = data?.gen_info as Record<string, unknown> | undefined;
+  return pleskXmlScalar(genInfo?.name) || pleskXmlScalar(genInfo?.["ascii-name"]) || null;
 }
 
-/** REST GET may return parent_domain as a number or `{ id, name }`. */
-function parseParentDomain(value: unknown): { id: number | null; name: string | null } {
-  if (value == null) return { id: null, name: null };
-  if (typeof value === "number" || typeof value === "string") {
-    const n =
-      typeof value === "number"
-        ? value
-        : parseInt(String(value).trim(), 10);
-    if (!Number.isFinite(n) || n <= 0) return { id: null, name: null };
-    return { id: n, name: null };
-  }
-  if (typeof value === "object") {
-    const obj = value as { id?: unknown; name?: unknown; ascii_name?: unknown };
-    const id = parsePositiveId(obj.id);
-    const name = parseDomainName(obj.name) || parseDomainName(obj.ascii_name);
-    return { id, name };
-  }
-  return { id: null, name: null };
-}
-
-function xmlDbRows(parsed: Record<string, unknown>): Record<string, unknown>[] {
-  const packet = parsed.packet as Record<string, unknown> | undefined;
-  const database = packet?.database as Record<string, unknown> | undefined;
-  const getDb = database?.["get-db"] as Record<string, unknown> | undefined;
-  return asArray(getDb?.result).filter((row): row is Record<string, unknown> => {
-    if (!row || typeof row !== "object") return false;
-    return (pleskXmlInt((row as Record<string, unknown>).id) ?? 0) > 0;
-  }) as Record<string, unknown>[];
-}
-
-function asRestDatabaseList(body: unknown): RestDatabase[] | null {
-  if (!Array.isArray(body)) return null;
-  return body.filter((row): row is RestDatabase => !!row && typeof row === "object");
-}
-
-function asRestDatabase(body: unknown): RestDatabase | null {
-  if (!body || typeof body !== "object" || Array.isArray(body)) return null;
-  const row = body as RestDatabase;
-  if (parsePositiveId(row.id) == null && row.parent_domain === undefined) return null;
-  return row;
-}
-
-async function fetchRestDatabasesById(ids: number[]): Promise<Map<number, RestDatabase>> {
-  const map = new Map<number, RestDatabase>();
-  if (ids.length === 0) return map;
-
-  const listed = await pleskRestGetJson("/databases");
-  const list = listed?.status === 200 ? asRestDatabaseList(listed.body) : null;
-  if (list) {
-    const wanted = new Set(ids);
-    for (const row of list) {
-      const id = parsePositiveId(row.id);
-      if (id && wanted.has(id)) map.set(id, row);
-    }
-  }
-
-  const missing = ids.filter((id) => !map.has(id));
-  const results = await Promise.all(
-    missing.map(async (id) => {
-      const res = await pleskRestGetJson(`/databases/${id}`);
-      if (res?.status !== 200) return null;
-      const row = asRestDatabase(res.body);
-      return row ? ([id, row] as const) : null;
-    }),
-  );
-  for (const item of results) {
-    if (item) map.set(item[0], item[1]);
-  }
-  return map;
-}
-
-async function fetchRestDomainName(domainId: number): Promise<string | null> {
-  const res = await pleskRestGetJson(`/domains/${domainId}`);
-  if (res?.status !== 200) return null;
-  const body = res.body as RestDomain | null;
-  if (!body || typeof body !== "object") return null;
-  return parseDomainName(body.name) || parseDomainName(body.ascii_name);
-}
-
-async function fetchXmlDomainName(domainId: number): Promise<string | null> {
-  const fromSite = await fetchXmlNameByOperator("site", domainId);
-  if (fromSite) return fromSite;
-  return fetchXmlNameByOperator("webspace", domainId);
-}
-
-async function fetchXmlNameByOperator(
+function parseXmlGetResults(
+  packet: Record<string, unknown> | undefined,
   operator: "site" | "webspace",
-  id: number,
-): Promise<string | null> {
-  try {
-    const { parsed } = await sendPleskXmlOrThrow(`<?xml version="1.0" encoding="UTF-8"?>
+): Array<{ id: number; name: string }> {
+  const node = packet?.[operator] as Record<string, unknown> | undefined;
+  const getNode = node?.get as Record<string, unknown> | undefined;
+  const sites: Array<{ id: number; name: string }> = [];
+  for (const result of asArray(getNode?.result)) {
+    if (!result || typeof result !== "object") continue;
+    const row = result as Record<string, unknown>;
+    if (pleskXmlScalar(row.status)?.toLowerCase() === "error") continue;
+    const id = pleskXmlInt(row.id);
+    const name = xmlGenInfoName(row);
+    if (id && name) sites.push({ id, name });
+  }
+  return sites;
+}
+
+async function fetchSitesOnWebspace(
+  webspaceId: number,
+): Promise<Array<{ id: number; name: string }>> {
+  const { parsed } = await sendPleskXmlOrThrow(`<?xml version="1.0" encoding="UTF-8"?>
 <packet>
-  <${operator}>
+  <webspace>
     <get>
       <filter>
-        <id>${id}</id>
+        <id>${webspaceId}</id>
       </filter>
       <dataset>
         <gen_info/>
       </dataset>
     </get>
-  </${operator}>
+  </webspace>
+  <site>
+    <get>
+      <filter>
+        <parent-id>${webspaceId}</parent-id>
+      </filter>
+      <dataset>
+        <gen_info/>
+      </dataset>
+    </get>
+  </site>
 </packet>`);
-    const packet = parsed.packet as Record<string, unknown> | undefined;
-    const node = packet?.[operator] as Record<string, unknown> | undefined;
-    const getNode = node?.get as Record<string, unknown> | undefined;
-    const result = asArray(getNode?.result)[0] as Record<string, unknown> | undefined;
-    if (!result || pleskXmlScalar(result.status)?.toLowerCase() === "error") return null;
-    const data = result.data as Record<string, unknown> | undefined;
-    const genInfo = data?.gen_info as Record<string, unknown> | undefined;
-    return pleskXmlScalar(genInfo?.name) || pleskXmlScalar(genInfo?.["ascii-name"]) || null;
-  } catch {
-    return null;
+  const packet = parsed.packet as Record<string, unknown> | undefined;
+  const byId = new Map<number, { id: number; name: string }>();
+  for (const site of [
+    ...parseXmlGetResults(packet, "webspace"),
+    ...parseXmlGetResults(packet, "site"),
+  ]) {
+    byId.set(site.id, site);
   }
+  return [...byId.values()];
+}
+
+async function fetchAssignedDatabaseId(domainName: string): Promise<number | null> {
+  const res = await pleskRestJson("POST", "/cli/domain_pref/call", {
+    params: ["--show-assigned-database", domainName],
+  });
+  if (res?.status !== 200 || !res.body || typeof res.body !== "object") return null;
+  const payload = res.body as { code?: unknown; stdout?: unknown };
+  if (payload.code !== 0 && payload.code !== "0") return null;
+  const firstLine = String(payload.stdout ?? "").trim().split(/\r?\n/)[0] ?? "";
+  return parsePositiveId(firstLine);
 }
 
 /**
- * Mutates parsed get-db results with `related-site-id` and `related-site-name`.
- * `related-site-id` is 0 when Plesk has no related site.
+ * Database id → Plesk "Related to" site. Missing key means unconnected.
  */
-export async function enrichPleskDatabasesWithRelatedSites(
-  parsed: Record<string, unknown>,
-): Promise<void> {
-  const rows = xmlDbRows(parsed);
-  if (rows.length === 0) return;
-
-  const ids = rows
-    .map((row) => pleskXmlInt(row.id))
-    .filter((id): id is number => id != null && id > 0);
-
-  const restById = await fetchRestDatabasesById(ids);
-  const nameByDomainId = new Map<number, string>();
-
-  const uniqueDomainIds = new Set<number>();
-  for (const rest of restById.values()) {
-    const parent = parseParentDomain(rest.parent_domain);
-    if (parent.id) uniqueDomainIds.add(parent.id);
-  }
-
-  await Promise.all(
-    [...uniqueDomainIds].map(async (domainId) => {
-      const fromRest = await fetchRestDomainName(domainId);
-      if (fromRest) {
-        nameByDomainId.set(domainId, fromRest);
-        return;
-      }
-      const fromXml = await fetchXmlDomainName(domainId);
-      if (fromXml) nameByDomainId.set(domainId, fromXml);
+export async function getRelatedSitesByDatabaseId(
+  webspaceId: number,
+): Promise<Record<string, RelatedSite>> {
+  const sites = await fetchSitesOnWebspace(webspaceId);
+  const assigned = await Promise.all(
+    sites.map(async (site) => {
+      const databaseId = await fetchAssignedDatabaseId(site.name);
+      return databaseId ? { databaseId, site } : null;
     }),
   );
-
-  for (const row of rows) {
-    const dbId = pleskXmlInt(row.id);
-    if (!dbId) continue;
-    const rest = restById.get(dbId);
-    if (!rest) continue;
-
-    const parent = parseParentDomain(rest.parent_domain);
-    const relatedId = parent.id ?? 0;
-    const relatedName =
-      parent.name || (relatedId > 0 ? nameByDomainId.get(relatedId) ?? null : null);
-
-    row["related-site-id"] = relatedId;
-    if (relatedName) row["related-site-name"] = relatedName;
+  const relatedByDbId: Record<string, RelatedSite> = {};
+  for (const item of assigned) {
+    if (item) relatedByDbId[String(item.databaseId)] = item.site;
   }
+  console.log(
+    `[Plesk related site] webspace=${webspaceId} sites=${sites.length} assigned=${Object.keys(relatedByDbId).length}`,
+  );
+  return relatedByDbId;
 }

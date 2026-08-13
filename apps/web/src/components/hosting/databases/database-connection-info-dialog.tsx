@@ -18,12 +18,14 @@ import { trpc } from "@/utils/trpc";
 import { copyTextToClipboard } from "@/lib/copy-to-clipboard";
 import { databaseSchema, relatedSiteLabel } from "./databases-schema";
 import { z } from "zod";
+import type { RelatedSitesStatus } from "./use-databases-by-site-id";
 
 interface DatabaseConnectionInfoDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   siteId: number;
   database: z.infer<typeof databaseSchema>;
+  relatedSitesStatus?: RelatedSitesStatus;
   onCreateUser?: () => void;
   onChangePassword?: (userId: number) => void;
 }
@@ -64,6 +66,7 @@ export function DatabaseConnectionInfoDialog({
   onOpenChange,
   siteId,
   database,
+  relatedSitesStatus = "ready",
   onCreateUser,
   onChangePassword,
 }: DatabaseConnectionInfoDialogProps) {
@@ -119,7 +122,7 @@ export function DatabaseConnectionInfoDialog({
             <div className="space-y-1">
               <p className="text-sm font-medium text-muted-foreground">Related site</p>
               <p className="text-base font-bold text-primary">
-                {relatedSiteLabel(database)}
+                {relatedSiteLabel(database, relatedSitesStatus)}
               </p>
             </div>
             <CopyRow label="Host (this server)" value={data?.localHost || "localhost"} />
