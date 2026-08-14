@@ -7,7 +7,7 @@ export declare const ordersRouter: import("@trpc/server").TRPCBuiltRouter<{
     getAll: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             teamId?: string | undefined;
-            status?: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | "CANCELLED" | "REFUNDED" | "PARTIAL" | undefined;
+            status?: "PENDING" | "PROCESSING" | "CANCELLED" | "FAILED" | "REFUNDED" | "COMPLETED" | "PARTIAL" | undefined;
             type?: "CUSTOM_SERVICE" | "EMAIL_HOSTING" | "DOMAIN_REGISTRATION" | "DOMAIN_RENEWAL" | "DOMAIN_TRANSFER" | "HOSTING_SUBSCRIPTION" | "HOSTING_RENEWAL" | "HOSTING_UPGRADE" | "SSL_CERTIFICATE" | "BACKUP_SERVICE" | undefined;
             limit?: number | undefined;
             offset?: number | undefined;
@@ -19,7 +19,7 @@ export declare const ordersRouter: import("@trpc/server").TRPCBuiltRouter<{
                 teamId: string | null;
                 createdBy: string | null;
                 type: "CUSTOM_SERVICE" | "EMAIL_HOSTING" | "DOMAIN_REGISTRATION" | "DOMAIN_RENEWAL" | "DOMAIN_TRANSFER" | "HOSTING_SUBSCRIPTION" | "HOSTING_RENEWAL" | "HOSTING_UPGRADE" | "SSL_CERTIFICATE" | "BACKUP_SERVICE";
-                status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | "CANCELLED" | "REFUNDED" | "PARTIAL";
+                status: "PENDING" | "PROCESSING" | "CANCELLED" | "FAILED" | "REFUNDED" | "COMPLETED" | "PARTIAL";
                 description: string | null;
                 domainId: string | null;
                 hostingSubscriptionId: string | null;
@@ -63,7 +63,7 @@ export declare const ordersRouter: import("@trpc/server").TRPCBuiltRouter<{
                     description: string | null;
                     adminDescription: string | null;
                     notes: string | null;
-                    status: "PENDING" | "FAILED" | "PROVISIONING" | "PROVISIONED" | "SKIPPED";
+                    status: "PENDING" | "FAILED" | "PROVISIONED" | "SKIPPED" | "PROVISIONING";
                     isProvisioned: boolean;
                     provisioningError: string | null;
                     hostingSubscriptionId: string | null;
@@ -120,7 +120,7 @@ export declare const ordersRouter: import("@trpc/server").TRPCBuiltRouter<{
             teamId: string | null;
             createdBy: string | null;
             type: "CUSTOM_SERVICE" | "EMAIL_HOSTING" | "DOMAIN_REGISTRATION" | "DOMAIN_RENEWAL" | "DOMAIN_TRANSFER" | "HOSTING_SUBSCRIPTION" | "HOSTING_RENEWAL" | "HOSTING_UPGRADE" | "SSL_CERTIFICATE" | "BACKUP_SERVICE";
-            status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | "CANCELLED" | "REFUNDED" | "PARTIAL";
+            status: "PENDING" | "PROCESSING" | "CANCELLED" | "FAILED" | "REFUNDED" | "COMPLETED" | "PARTIAL";
             description: string | null;
             domainId: string | null;
             hostingSubscriptionId: string | null;
@@ -164,7 +164,7 @@ export declare const ordersRouter: import("@trpc/server").TRPCBuiltRouter<{
                 description: string | null;
                 adminDescription: string | null;
                 notes: string | null;
-                status: "PENDING" | "FAILED" | "PROVISIONING" | "PROVISIONED" | "SKIPPED";
+                status: "PENDING" | "FAILED" | "PROVISIONED" | "SKIPPED" | "PROVISIONING";
                 isProvisioned: boolean;
                 provisioningError: string | null;
                 hostingSubscriptionId: string | null;
@@ -215,7 +215,7 @@ export declare const ordersRouter: import("@trpc/server").TRPCBuiltRouter<{
                 teamId: string | null;
                 createdBy: string | null;
                 type: "CUSTOM_SERVICE" | "EMAIL_HOSTING" | "DOMAIN_REGISTRATION" | "DOMAIN_RENEWAL" | "DOMAIN_TRANSFER" | "HOSTING_SUBSCRIPTION" | "HOSTING_RENEWAL" | "HOSTING_UPGRADE" | "SSL_CERTIFICATE" | "BACKUP_SERVICE";
-                status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | "CANCELLED" | "REFUNDED" | "PARTIAL";
+                status: "PENDING" | "PROCESSING" | "CANCELLED" | "FAILED" | "REFUNDED" | "COMPLETED" | "PARTIAL";
                 description: string | null;
                 domainId: string | null;
                 hostingSubscriptionId: string | null;
@@ -259,7 +259,7 @@ export declare const ordersRouter: import("@trpc/server").TRPCBuiltRouter<{
                     description: string | null;
                     adminDescription: string | null;
                     notes: string | null;
-                    status: "PENDING" | "FAILED" | "PROVISIONING" | "PROVISIONED" | "SKIPPED";
+                    status: "PENDING" | "FAILED" | "PROVISIONED" | "SKIPPED" | "PROVISIONING";
                     isProvisioned: boolean;
                     provisioningError: string | null;
                     hostingSubscriptionId: string | null;
@@ -339,7 +339,7 @@ export declare const ordersRouter: import("@trpc/server").TRPCBuiltRouter<{
                 teamId: string | null;
                 createdBy: string | null;
                 type: "CUSTOM_SERVICE" | "EMAIL_HOSTING" | "DOMAIN_REGISTRATION" | "DOMAIN_RENEWAL" | "DOMAIN_TRANSFER" | "HOSTING_SUBSCRIPTION" | "HOSTING_RENEWAL" | "HOSTING_UPGRADE" | "SSL_CERTIFICATE" | "BACKUP_SERVICE";
-                status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | "CANCELLED" | "REFUNDED" | "PARTIAL";
+                status: "PENDING" | "PROCESSING" | "CANCELLED" | "FAILED" | "REFUNDED" | "COMPLETED" | "PARTIAL";
                 description: string | null;
                 domainId: string | null;
                 hostingSubscriptionId: string | null;
@@ -383,7 +383,7 @@ export declare const ordersRouter: import("@trpc/server").TRPCBuiltRouter<{
                     description: string | null;
                     adminDescription: string | null;
                     notes: string | null;
-                    status: "PENDING" | "FAILED" | "PROVISIONING" | "PROVISIONED" | "SKIPPED";
+                    status: "PENDING" | "FAILED" | "PROVISIONED" | "SKIPPED" | "PROVISIONING";
                     isProvisioned: boolean;
                     provisioningError: string | null;
                     hostingSubscriptionId: string | null;
@@ -409,7 +409,7 @@ export declare const ordersRouter: import("@trpc/server").TRPCBuiltRouter<{
                 niscServicePlanId: string;
                 planName: string;
                 planType: string;
-                status: "PENDING" | "FAILED" | "PROVISIONING" | "PROVISIONED" | "SKIPPED";
+                status: "PENDING" | "FAILED" | "PROVISIONED" | "SKIPPED" | "PROVISIONING";
                 isProvisioned: boolean;
                 provisioningError: string | null;
                 hostingSubscription?: {
@@ -430,7 +430,7 @@ export declare const ordersRouter: import("@trpc/server").TRPCBuiltRouter<{
             orderItemStatuses?: {
                 planName: string;
                 planType: string;
-                status: "PENDING" | "FAILED" | "PROVISIONING" | "PROVISIONED" | "SKIPPED";
+                status: "PENDING" | "FAILED" | "PROVISIONED" | "SKIPPED" | "PROVISIONING";
                 provisioningError: string | null;
                 domainName: string | null;
             }[] | undefined;

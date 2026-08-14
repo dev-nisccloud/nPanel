@@ -17,20 +17,7 @@ export declare const openProviderTldRouter: import("@trpc/server").TRPCBuiltRout
             with_description?: unknown;
             with_restrictions?: unknown;
         } | undefined;
-        output: {
-            success: boolean;
-            data: {
-                results: import("../../types/openprovider").OpenProviderTld[];
-                total: number;
-            };
-            meta: {
-                cached: boolean;
-                fetched_at: string;
-                total: number;
-                limit: number | undefined;
-                offset: number | undefined;
-            };
-        };
+        output: any;
         meta: object;
     }>;
     /**

@@ -70,6 +70,9 @@ export type StreamZeepoAiChatParams = {
   replaceFromUserMessageId?: string;
   signal?: AbortSignal;
   onEvent: (event: ZeepoAiSseEvent) => void;
+  /** Override stream URL (guest FAB uses /api/zeepo-ai/support/guest/stream). */
+  url?: string;
+  extraHeaders?: Record<string, string>;
 };
 
 /**
@@ -77,15 +80,16 @@ export type StreamZeepoAiChatParams = {
  * Network drops surface as recoverable errors; partial content stays on the server.
  */
 export async function streamZeepoAiChat(params: StreamZeepoAiChatParams): Promise<void> {
-  const { onEvent, signal, ...body } = params;
+  const { onEvent, signal, url, extraHeaders, ...body } = params;
 
   let response: Response;
   try {
-    response = await fetch("/api/zeepo-ai/chat/stream", {
+    response = await fetch(url ?? "/api/zeepo-ai/chat/stream", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "text/event-stream",
+        ...extraHeaders,
       },
       credentials: "include",
       body: JSON.stringify(body),

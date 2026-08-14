@@ -35,6 +35,7 @@ export declare const mpesaRouter: import("@trpc/server").TRPCBuiltRouter<{
             transactionDesc?: string | undefined;
             callbackUrl?: string | undefined;
             teamId?: string | undefined;
+            checkoutTotalIncVat?: number | undefined;
         };
         output: {
             success: boolean;

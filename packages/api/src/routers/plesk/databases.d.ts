@@ -10,7 +10,49 @@ export declare const databasesRouter: import("@trpc/server").TRPCBuiltRouter<{
         };
         output: {
             raw: string;
-            parsed: unknown;
+            parsed: Record<string, unknown>;
+        };
+        meta: object;
+    }>;
+    getRelatedSites: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            siteId: number;
+        };
+        output: {
+            relatedSites: Record<string, import("../../lib/plesk/database-related-site").RelatedSite>;
+        };
+        meta: object;
+    }>;
+    getConnectionInfo: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            siteId: number;
+            databaseId: number;
+            teamId?: string | undefined;
+        };
+        output: {
+            databaseId: number;
+            name: string;
+            type: string;
+            localHost: string;
+            remoteHost: string;
+            port: number;
+            users: {
+                id: number;
+                login: string;
+            }[];
+            defaultUserId: number | null;
+            defaultUserLogin: string | null;
+        };
+        meta: object;
+    }>;
+    getPhpMyAdminUrl: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            siteId: number;
+            databaseId: number;
+            teamId?: string | undefined;
+        };
+        output: {
+            url: string;
         };
         meta: object;
     }>;

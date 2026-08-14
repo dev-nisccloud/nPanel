@@ -6,6 +6,8 @@ export declare const databasesSetUserRouter: import("@trpc/server").TRPCBuiltRou
 }, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
     update: import("@trpc/server").TRPCMutationProcedure<{
         input: {
+            siteId: number;
+            databaseId: number;
             userId: number;
             password?: string | undefined;
             passwordType?: "plain" | "crypt" | undefined;
@@ -15,7 +17,7 @@ export declare const databasesSetUserRouter: import("@trpc/server").TRPCBuiltRou
         };
         output: {
             raw: string;
-            parsed: any;
+            parsed: Record<string, unknown>;
         };
         meta: object;
     }>;

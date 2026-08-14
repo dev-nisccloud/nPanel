@@ -29,6 +29,11 @@ export function resolveZeepoAiModelId(requested?: string | null): string {
 	return candidate;
 }
 
+/** Live AI Support never accepts a client-supplied model id. */
+export function resolveZeepoAiSupportModelId(): string {
+	return resolveZeepoAiModelId(null);
+}
+
 /** Approximate Anthropic Sonnet 4.5 list prices (USD per million tokens).
  * @see https://platform.claude.com/docs/en/about-claude/pricing
  */

@@ -9,13 +9,15 @@ export declare const billingCycleSchema: z.ZodEnum<{
     YEARLY: "YEARLY";
     BIENNIALLY: "BIENNIALLY";
     CUSTOM: "CUSTOM";
+    TRIENNIALLY: "TRIENNIALLY";
+    QUADRENNIALLY: "QUADRENNIALLY";
 }>;
 export type BillingCycle = z.infer<typeof billingCycleSchema>;
 export declare const niscOrderStatusSchema: z.ZodEnum<{
     PENDING: "PENDING";
     PROCESSING: "PROCESSING";
-    COMPLETED: "COMPLETED";
     FAILED: "FAILED";
+    COMPLETED: "COMPLETED";
     PARTIAL: "PARTIAL";
 }>;
 export type NiscOrderStatus = z.infer<typeof niscOrderStatusSchema>;
@@ -85,6 +87,8 @@ export declare const hivelocityItemMetadataSchema: z.ZodObject<{
     hivelocityTargetDeviceId: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
     hivelocityCurrentProductId: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
     upgradeDeltaUsd: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
+    targetMonthlyPriceExVat: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
+    targetMonthlyUsd: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
     hivelocityLocationName: z.ZodString;
     hivelocityOsName: z.ZodString;
     hivelocityHostname: z.ZodString;
@@ -140,6 +144,8 @@ export declare const orderItemMetadataSchema: z.ZodPipe<z.ZodTransform<{} | null
     hivelocityTargetDeviceId: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
     hivelocityCurrentProductId: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
     upgradeDeltaUsd: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
+    targetMonthlyPriceExVat: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
+    targetMonthlyUsd: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
     hivelocityLocationName: z.ZodString;
     hivelocityOsName: z.ZodString;
     hivelocityHostname: z.ZodString;
@@ -208,6 +214,8 @@ export declare const createOrderItemSchema: z.ZodObject<{
         YEARLY: "YEARLY";
         BIENNIALLY: "BIENNIALLY";
         CUSTOM: "CUSTOM";
+        TRIENNIALLY: "TRIENNIALLY";
+        QUADRENNIALLY: "QUADRENNIALLY";
     }>>;
     primaryDomain: z.ZodOptional<z.ZodString>;
     domainSubscriptionId: z.ZodOptional<z.ZodString>;
@@ -223,6 +231,8 @@ export declare const createOrderItemSchema: z.ZodObject<{
         hivelocityTargetDeviceId: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
         hivelocityCurrentProductId: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
         upgradeDeltaUsd: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
+        targetMonthlyPriceExVat: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
+        targetMonthlyUsd: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
         hivelocityLocationName: z.ZodString;
         hivelocityOsName: z.ZodString;
         hivelocityHostname: z.ZodString;
@@ -295,6 +305,8 @@ export declare const createOrderInputSchema: z.ZodObject<{
             YEARLY: "YEARLY";
             BIENNIALLY: "BIENNIALLY";
             CUSTOM: "CUSTOM";
+            TRIENNIALLY: "TRIENNIALLY";
+            QUADRENNIALLY: "QUADRENNIALLY";
         }>>;
         primaryDomain: z.ZodOptional<z.ZodString>;
         domainSubscriptionId: z.ZodOptional<z.ZodString>;
@@ -310,6 +322,8 @@ export declare const createOrderInputSchema: z.ZodObject<{
             hivelocityTargetDeviceId: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
             hivelocityCurrentProductId: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
             upgradeDeltaUsd: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
+            targetMonthlyPriceExVat: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
+            targetMonthlyUsd: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
             hivelocityLocationName: z.ZodString;
             hivelocityOsName: z.ZodString;
             hivelocityHostname: z.ZodString;
@@ -382,8 +396,8 @@ export declare const getAllNiscOrdersInputSchema: z.ZodObject<{
     status: z.ZodOptional<z.ZodEnum<{
         PENDING: "PENDING";
         PROCESSING: "PROCESSING";
-        COMPLETED: "COMPLETED";
         FAILED: "FAILED";
+        COMPLETED: "COMPLETED";
         PARTIAL: "PARTIAL";
     }>>;
     limit: z.ZodDefault<z.ZodNumber>;
@@ -407,6 +421,8 @@ export declare const createFromPaymentItemSchema: z.ZodObject<{
         YEARLY: "YEARLY";
         BIENNIALLY: "BIENNIALLY";
         CUSTOM: "CUSTOM";
+        TRIENNIALLY: "TRIENNIALLY";
+        QUADRENNIALLY: "QUADRENNIALLY";
     }>>;
     primaryDomain: z.ZodOptional<z.ZodString>;
     description: z.ZodOptional<z.ZodString>;
@@ -426,6 +442,8 @@ export declare const createFromPaymentInputSchema: z.ZodObject<{
             YEARLY: "YEARLY";
             BIENNIALLY: "BIENNIALLY";
             CUSTOM: "CUSTOM";
+            TRIENNIALLY: "TRIENNIALLY";
+            QUADRENNIALLY: "QUADRENNIALLY";
         }>>;
         primaryDomain: z.ZodOptional<z.ZodString>;
         description: z.ZodOptional<z.ZodString>;

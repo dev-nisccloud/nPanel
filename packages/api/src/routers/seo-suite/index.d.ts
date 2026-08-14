@@ -21,6 +21,8 @@ export declare const seoSuiteRouter: import("@trpc/server").TRPCBuiltRouter<{
             name: string;
             createdAt: Date;
             updatedAt: Date;
+            createdById: string;
+            teamId: string | null;
             primaryDomain: string;
             locationCode: number;
             locationName: string;
@@ -29,8 +31,6 @@ export declare const seoSuiteRouter: import("@trpc/server").TRPCBuiltRouter<{
             competitorDomains: string[];
             gscSiteId: string | null;
             ga4PropertyId: string | null;
-            createdById: string;
-            teamId: string | null;
             archivedAt: Date | null;
         }[];
         meta: object;
@@ -44,6 +44,8 @@ export declare const seoSuiteRouter: import("@trpc/server").TRPCBuiltRouter<{
             name: string;
             createdAt: Date;
             updatedAt: Date;
+            createdById: string;
+            teamId: string | null;
             primaryDomain: string;
             locationCode: number;
             locationName: string;
@@ -52,8 +54,6 @@ export declare const seoSuiteRouter: import("@trpc/server").TRPCBuiltRouter<{
             competitorDomains: string[];
             gscSiteId: string | null;
             ga4PropertyId: string | null;
-            createdById: string;
-            teamId: string | null;
             archivedAt: Date | null;
         };
         meta: object;
@@ -76,6 +76,8 @@ export declare const seoSuiteRouter: import("@trpc/server").TRPCBuiltRouter<{
             name: string;
             createdAt: Date;
             updatedAt: Date;
+            createdById: string;
+            teamId: string | null;
             primaryDomain: string;
             locationCode: number;
             locationName: string;
@@ -84,8 +86,6 @@ export declare const seoSuiteRouter: import("@trpc/server").TRPCBuiltRouter<{
             competitorDomains: string[];
             gscSiteId: string | null;
             ga4PropertyId: string | null;
-            createdById: string;
-            teamId: string | null;
             archivedAt: Date | null;
         };
         meta: object;
@@ -109,6 +109,8 @@ export declare const seoSuiteRouter: import("@trpc/server").TRPCBuiltRouter<{
             name: string;
             createdAt: Date;
             updatedAt: Date;
+            createdById: string;
+            teamId: string | null;
             primaryDomain: string;
             locationCode: number;
             locationName: string;
@@ -117,8 +119,6 @@ export declare const seoSuiteRouter: import("@trpc/server").TRPCBuiltRouter<{
             competitorDomains: string[];
             gscSiteId: string | null;
             ga4PropertyId: string | null;
-            createdById: string;
-            teamId: string | null;
             archivedAt: Date | null;
         };
         meta: object;
@@ -187,10 +187,10 @@ export declare const seoSuiteRouter: import("@trpc/server").TRPCBuiltRouter<{
                 traffic: number | null;
             }[];
             id: string;
-            projectId: string;
-            target: string;
-            capturedAt: Date;
             payload: unknown;
+            target: string;
+            projectId: string;
+            capturedAt: Date;
             organicTraffic: number | null;
             organicKeywords: number | null;
             pos1Count: number | null;
@@ -261,9 +261,9 @@ export declare const seoSuiteRouter: import("@trpc/server").TRPCBuiltRouter<{
         };
         output: {
             id: string;
-            projectId: string;
             summary: unknown;
             target: string;
+            projectId: string;
             capturedAt: Date;
         } | null;
         meta: object;
@@ -317,14 +317,14 @@ export declare const seoSuiteRouter: import("@trpc/server").TRPCBuiltRouter<{
             status: string;
             createdAt: Date;
             updatedAt: Date;
+            notes: string | null;
+            source: string;
+            tags: string[];
             locationCode: number | null;
             languageCode: string | null;
             projectId: string;
             listId: string | null;
             keyword: string;
-            tags: string[];
-            notes: string | null;
-            source: string;
             metricsCache: unknown;
         }[];
         meta: object;
@@ -375,9 +375,9 @@ export declare const seoSuiteRouter: import("@trpc/server").TRPCBuiltRouter<{
             keywords: {
                 id: string;
                 createdAt: Date;
+                tags: string[];
                 projectId: string;
                 keyword: string;
-                tags: string[];
                 trackerId: string;
             }[];
         } | null;
@@ -422,8 +422,8 @@ export declare const seoSuiteRouter: import("@trpc/server").TRPCBuiltRouter<{
             limit?: number | undefined;
         };
         output: {
-            url: string | null;
             id: string;
+            url: string | null;
             projectId: string;
             rankKeywordId: string;
             checkedAt: Date;
@@ -443,15 +443,15 @@ export declare const seoSuiteRouter: import("@trpc/server").TRPCBuiltRouter<{
             id: string;
             status: string;
             createdAt: Date;
+            completedAt: Date | null;
+            summary: unknown;
+            startedAt: Date | null;
+            errorMessage: string | null;
             projectId: string;
             targetUrl: string;
             maxPages: number;
             vendorTaskId: string | null;
             score: number | null;
-            summary: unknown;
-            errorMessage: string | null;
-            startedAt: Date | null;
-            completedAt: Date | null;
         }[];
         meta: object;
     }>;
@@ -477,30 +477,30 @@ export declare const seoSuiteRouter: import("@trpc/server").TRPCBuiltRouter<{
                 id: string;
                 status: string;
                 createdAt: Date;
+                completedAt: Date | null;
+                summary: unknown;
+                startedAt: Date | null;
+                errorMessage: string | null;
                 projectId: string;
                 targetUrl: string;
                 maxPages: number;
                 vendorTaskId: string | null;
                 score: number | null;
-                summary: unknown;
-                errorMessage: string | null;
-                startedAt: Date | null;
-                completedAt: Date | null;
             };
             issues: {
-                url: string | null;
                 id: string;
                 description: string | null;
+                category: string;
+                title: string;
+                url: string | null;
                 projectId: string;
                 auditRunId: string;
-                category: string;
                 severity: string;
-                title: string;
                 evidence: unknown;
             }[];
             pages: {
-                url: string;
                 id: string;
+                url: string;
                 projectId: string;
                 score: number | null;
                 auditRunId: string;
@@ -523,9 +523,9 @@ export declare const seoSuiteRouter: import("@trpc/server").TRPCBuiltRouter<{
             projectId: string;
         };
         output: {
-            value: string;
             id: string;
             createdAt: Date;
+            value: string;
             projectId: string;
             entityType: string;
         }[];
@@ -560,10 +560,10 @@ export declare const seoSuiteRouter: import("@trpc/server").TRPCBuiltRouter<{
         };
         output: {
             id: string;
+            payload: unknown;
+            platform: string | null;
             projectId: string;
             capturedAt: Date;
-            platform: string | null;
-            payload: unknown;
         } | null;
         meta: object;
     }>;
@@ -571,7 +571,7 @@ export declare const seoSuiteRouter: import("@trpc/server").TRPCBuiltRouter<{
         input: {
             projectId: string;
             prompt: string;
-            models: ("chatgpt" | "claude" | "gemini" | "perplexity")[];
+            models: ("gemini" | "chatgpt" | "claude" | "perplexity")[];
             confirmCost: true;
         };
         output: {
@@ -587,8 +587,8 @@ export declare const seoSuiteRouter: import("@trpc/server").TRPCBuiltRouter<{
         output: {
             id: string;
             createdAt: Date;
-            projectId: string;
             prompt: string;
+            projectId: string;
             models: string[];
             results: unknown;
         }[];
@@ -601,9 +601,9 @@ export declare const seoSuiteRouter: import("@trpc/server").TRPCBuiltRouter<{
         output: {
             id: string;
             createdAt: Date;
-            projectId: string;
-            tags: string[];
             prompt: string;
+            tags: string[];
+            projectId: string;
         }[];
         meta: object;
     }>;
@@ -698,13 +698,13 @@ export declare const seoSuiteRouter: import("@trpc/server").TRPCBuiltRouter<{
             projectId: string;
         };
         output: {
-            message: string | null;
             id: string;
             createdAt: Date;
+            payload: unknown;
+            title: string;
+            message: string | null;
             projectId: string;
             severity: string;
-            title: string;
-            payload: unknown;
             ruleId: string | null;
         }[];
         meta: object;
@@ -743,9 +743,9 @@ export declare const seoSuiteRouter: import("@trpc/server").TRPCBuiltRouter<{
         output: {
             id: string;
             createdAt: Date;
-            projectId: string;
-            title: string;
             payload: unknown;
+            title: string;
+            projectId: string;
             reportType: string;
         }[];
         meta: object;
@@ -783,8 +783,8 @@ export declare const seoSuiteRouter: import("@trpc/server").TRPCBuiltRouter<{
         };
         output: {
             id: string;
-            projectId: string;
             target: string;
+            projectId: string;
             capturedAt: Date;
             organicTraffic: number | null;
             organicKeywords: number | null;
@@ -799,8 +799,8 @@ export declare const seoSuiteRouter: import("@trpc/server").TRPCBuiltRouter<{
         };
         output: {
             id: string;
-            projectId: string;
             target: string;
+            projectId: string;
             capturedAt: Date;
             totalBacklinks: number | null;
             referringDomains: number | null;
@@ -919,10 +919,10 @@ export declare const seoSuiteRouter: import("@trpc/server").TRPCBuiltRouter<{
         output: {
             id: string;
             createdAt: Date;
+            payload: unknown;
             projectId: string;
             keyword: string;
             targetUrl: string | null;
-            payload: unknown;
             wordCount: number | null;
             headings: string[];
             relatedKeywords: string[];
@@ -949,9 +949,9 @@ export declare const seoSuiteRouter: import("@trpc/server").TRPCBuiltRouter<{
             projectId: string;
         };
         output: {
-            url: string;
             id: string;
             createdAt: Date;
+            url: string;
             projectId: string;
             traffic: number | null;
             keywords: {
@@ -1009,18 +1009,18 @@ export declare const seoSuiteRouter: import("@trpc/server").TRPCBuiltRouter<{
             projectId: string;
         };
         output: {
-            type: string;
             id: string;
             createdAt: Date;
+            metadata: unknown;
             description: string;
-            projectId: string;
             category: string;
             title: string;
+            type: string;
+            priority: number | null;
+            projectId: string;
             impact: string | null;
             effort: string | null;
-            priority: number | null;
             actionUrl: string | null;
-            metadata: unknown;
             dismissed: number;
             completed: number;
         }[];

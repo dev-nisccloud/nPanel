@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../../trpc";
 import { assertCanAccessPleskSite } from "../../lib/plesk/hosting-access";
 import { getPleskDatabaseConnectionInfo } from "../../lib/plesk/database-ops";
-import { enrichPleskDatabasesWithRelatedSites } from "../../lib/plesk/database-related-site";
+import { getRelatedSitesByDatabaseId } from "../../lib/plesk/database-related-site";
 import { createPhpMyAdminSsoRedirect } from "../../lib/plesk/phpmyadmin-sso";
 import { sendPleskXmlOrThrow } from "../../lib/plesk/xml-utils";
 
@@ -34,11 +34,6 @@ export const databasesRouter = router({
         });
 
         const { xml, parsed } = await sendPleskXmlOrThrow(buildDatabaseGetXml(siteId));
-        try {
-          await enrichPleskDatabasesWithRelatedSites(parsed);
-        } catch (error) {
-          console.error("[Plesk related site] enrichment failed:", error);
-        }
         return {
           raw: xml,
           parsed,
@@ -51,6 +46,30 @@ export const databasesRouter = router({
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to fetch databases",
+          cause: error,
+        });
+      }
+    }),
+
+  getRelatedSites: protectedProcedure
+    .input(z.object({ siteId: z.number().int().positive() }))
+    .query(async ({ input, ctx }) => {
+      await assertCanAccessPleskSite({
+        siteId: input.siteId,
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+      });
+
+      try {
+        return {
+          relatedSites: await getRelatedSitesByDatabaseId(input.siteId),
+        };
+      } catch (error) {
+        console.error("[Plesk related site] lookup failed:", error);
+        if (error instanceof TRPCError) throw error;
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch related sites",
           cause: error,
         });
       }

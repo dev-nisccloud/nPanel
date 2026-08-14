@@ -30,8 +30,8 @@ export declare const zeepoAgentBillingMiddleware: import("@trpc/server").TRPCMid
         teamId: string | null;
         sessionId: string | null;
     } | null;
-    session: import("..").Session;
     ipAddress: string | null | undefined;
+    session: import("..").Session;
     apiKey: {
         id: string;
         permissions: string[];

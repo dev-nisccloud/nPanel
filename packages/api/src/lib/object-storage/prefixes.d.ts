@@ -5,6 +5,7 @@ export declare const STORAGE_PREFIXES: {
     readonly CREATIVE_ASSETS: "creative-assets";
     readonly EMAIL_BUILDER: "email-builder";
     readonly ZEEPO_AGENT: "zeepo-agent";
+    readonly ZEEPO_AI: "zeepo-ai";
     readonly REPLICATE: "replicate";
     readonly EXTERNAL_MIRROR: "external-mirror";
 };

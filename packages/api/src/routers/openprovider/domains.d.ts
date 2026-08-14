@@ -383,7 +383,7 @@ export declare const openProviderDomainsRouter: import("@trpc/server").TRPCBuilt
                 name: string;
                 extension: string;
             };
-            operation: "create" | "transfer" | "renew" | "restore";
+            operation: "create" | "renew" | "transfer" | "restore";
             period?: number | undefined;
             additional_data?: {
                 idn_script?: string | undefined;
@@ -421,7 +421,7 @@ export declare const openProviderDomainsRouter: import("@trpc/server").TRPCBuilt
             meta: {
                 priced_at: string;
                 domain: string;
-                operation: "create" | "transfer" | "renew" | "restore";
+                operation: "create" | "renew" | "transfer" | "restore";
                 period: number;
             };
         };

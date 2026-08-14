@@ -1,9 +1,13 @@
+import { computeCeilVatTotals } from "./convert-price";
 /** VAT rate applied to Nisc orders and auto-invoices (must match checkout / invoice). */
 export const NISC_ORDER_VAT_PERCENTAGE = 16;
+/**
+ * Order/invoice totals with ceil VAT  same formula as checkout M-Pesa amounts
+ * (`computeCeilVatTotals`) so paid total, order.total, and invoice.total stay aligned.
+ */
 export function computeNiscOrderTotalsWithTax(subtotalNum) {
-    const tax = Math.round(subtotalNum * (NISC_ORDER_VAT_PERCENTAGE / 100) * 100) / 100;
-    const total = Math.round((subtotalNum + tax) * 100) / 100;
-    return { subtotal: subtotalNum, tax, total };
+    const { subtotalExVat, vatAmount, totalIncVat } = computeCeilVatTotals(subtotalNum, NISC_ORDER_VAT_PERCENTAGE / 100);
+    return { subtotal: subtotalExVat, tax: vatAmount, total: totalIncVat };
 }
 /** Allocate order total (incl. VAT) across line subtotals proportionally. */
 export function allocateLineTotalWithTax(itemSubtotal, orderSubtotal, orderTotalWithTax) {

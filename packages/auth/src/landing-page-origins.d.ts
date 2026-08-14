@@ -38,3 +38,9 @@ export declare function parseSafeLandingPageRedirect(raw: string | null | undefi
  * them). A non-landing forwarded host alone does not cause a reject.
  */
 export declare function isAllowedStorefrontBrowserRequest(headers: Headers | undefined): boolean;
+/**
+ * Same signals as {@link isAllowedStorefrontBrowserRequest}, but POST/mutations
+ * must present a landing Origin, Referer, or forwarded host. Missing all three
+ * is a reject (scripts must not mint guest LLM sessions by omitting headers).
+ */
+export declare function isAllowedStorefrontBrowserMutation(headers: Headers | undefined): boolean;

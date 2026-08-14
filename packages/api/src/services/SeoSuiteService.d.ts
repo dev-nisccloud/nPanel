@@ -52,14 +52,14 @@ export declare function getSavedKeywords(projectId: string): Promise<{
     status: string;
     createdAt: Date;
     updatedAt: Date;
+    notes: string | null;
+    source: string;
+    tags: string[];
     locationCode: number | null;
     languageCode: string | null;
     projectId: string;
     listId: string | null;
     keyword: string;
-    tags: string[];
-    notes: string | null;
-    source: string;
     metricsCache: unknown;
 }[]>;
 export declare function saveKeyword(input: {
@@ -79,14 +79,14 @@ export declare function saveKeyword(input: {
     status: string;
     createdAt: Date;
     updatedAt: Date;
+    notes: string | null;
+    source: string;
+    tags: string[];
     locationCode: number | null;
     languageCode: string | null;
     projectId: string;
     listId: string | null;
     keyword: string;
-    tags: string[];
-    notes: string | null;
-    source: string;
     metricsCache: unknown;
 } | undefined>;
 export declare function deleteKeyword(id: string): Promise<void>;
@@ -127,8 +127,8 @@ export declare function createRankTracker(input: {
     nextRunAt: Date | null;
 } | undefined>;
 export declare function getRankHistory(trackerId: string, days?: number): Promise<{
-    url: string | null;
     id: string;
+    url: string | null;
     projectId: string;
     rankKeywordId: string;
     checkedAt: Date;

@@ -18,7 +18,17 @@ export declare function computeCeilVatTotals(subtotalExVat: number, vatRate?: nu
  * Used when a paid STK amount (inc VAT) must be stored as an ex-VAT order line.
  */
 export declare function reverseCeilVatToExVat(totalIncVat: number, vatRate?: number): number;
+/** Prefer itemSubtotal, fall back to itemPrice  both are ex-VAT on order lines. */
+export declare function orderLineExVatAmount(item: {
+    itemSubtotal?: string | number | null;
+    itemPrice?: string | number | null;
+}): number;
 /** Subscription agreed price = line ex-VAT + ceil VAT (what the customer pays for that line). */
 export declare function agreedPriceIncVatFromExVat(exVatAmount: string | number | null | undefined, vatRate?: number): string;
+/** agreedPrice from an order line (ex-VAT subtotal preferred). */
+export declare function agreedPriceIncVatFromOrderLine(item: {
+    itemSubtotal?: string | number | null;
+    itemPrice?: string | number | null;
+}, vatRate?: number): string;
 /** Whole-number string for M-Pesa / payment inputs. */
 export declare function paymentTotalString(total: number): string;

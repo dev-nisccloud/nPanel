@@ -1,10 +1,9 @@
 /**
- * Hosting plan fetching for the Zeepo AI Agent.
+ * Hosting plan fetching for Zeepo AI.
  *
- * Fetches web hosting and email hosting plans from the Nisc Cloud product
- * catalogue - the same data powering the customer-facing pricing tables on
- * the /$slug/hosting and /$slug/emails routes.  Results are returned in a
- * shape that the session-page can detect and render as a pricing card.
+ * Fetches web, email, and WordPress hosting plans from the Nisc Cloud product
+ * catalogue - the same data powering the customer-facing pricing tables.
+ * Results are returned in a shape that chat can render as a pricing card.
  */
 export interface HostingPlanFeatureRow {
     key: string;
@@ -25,8 +24,9 @@ export interface HostingPlanEntry {
         valueOverride: string | null;
     }>;
 }
+export type HostingPlansToolName = "get_web_hosting_plans" | "get_email_hosting_plans" | "get_wordpress_hosting_plans";
 export interface HostingPlansResult {
-    _tool: "get_web_hosting_plans" | "get_email_hosting_plans";
+    _tool: HostingPlansToolName;
     productFeatures: HostingPlanFeatureRow[];
     plans: HostingPlanEntry[];
     checkedAt: string;
@@ -35,3 +35,5 @@ export interface HostingPlansResult {
 export declare function agentGetWebHostingPlans(): Promise<HostingPlansResult>;
 /** Fetch email hosting plans from the Nisc Cloud catalogue. */
 export declare function agentGetEmailHostingPlans(): Promise<HostingPlansResult>;
+/** Fetch WordPress hosting plans from the Nisc Cloud catalogue. */
+export declare function agentGetWordPressHostingPlans(): Promise<HostingPlansResult>;

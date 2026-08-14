@@ -21,10 +21,10 @@ export declare const emailBuilderRouter: import("@trpc/server").TRPCBuiltRouter<
                 createdAt: Date;
                 updatedAt: Date;
                 userId: string;
-                description: string | null;
                 teamId: string | null;
-                thumbnailUrl: string | null;
+                description: string | null;
                 isPublic: boolean;
+                thumbnailUrl: string | null;
                 saveStatus: string;
                 lastSaveError: string | null;
                 isAiGenerated: boolean;
@@ -48,10 +48,10 @@ export declare const emailBuilderRouter: import("@trpc/server").TRPCBuiltRouter<
                 createdAt: Date;
                 updatedAt: Date;
                 userId: string;
-                description: string | null;
                 teamId: string | null;
-                thumbnailUrl: string | null;
+                description: string | null;
                 isPublic: boolean;
+                thumbnailUrl: string | null;
                 saveStatus: string;
                 lastSaveError: string | null;
                 isAiGenerated: boolean;
@@ -152,7 +152,7 @@ export declare const emailBuilderRouter: import("@trpc/server").TRPCBuiltRouter<
     getOperations: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             designId: string;
-            status?: "QUEUED" | "PROCESSING" | "COMPLETED" | "FAILED" | undefined;
+            status?: "QUEUED" | "PROCESSING" | "FAILED" | "COMPLETED" | undefined;
             limit?: number | undefined;
         };
         output: {
@@ -163,15 +163,15 @@ export declare const emailBuilderRouter: import("@trpc/server").TRPCBuiltRouter<
                 updatedAt: Date;
                 userId: string;
                 teamId: string | null;
-                errorMessage: string | null;
-                startedAt: Date | null;
                 completedAt: Date | null;
+                qstashMessageId: string | null;
                 payload: unknown;
+                startedAt: Date | null;
+                result: unknown;
+                errorMessage: string | null;
+                operationType: string;
                 clientVersion: number | null;
                 designId: string;
-                operationType: string;
-                qstashMessageId: string | null;
-                result: unknown;
             }[];
         };
         meta: object;
@@ -181,7 +181,7 @@ export declare const emailBuilderRouter: import("@trpc/server").TRPCBuiltRouter<
             designId: string;
             operationType: "AUTO_SAVE" | "AI_GENERATION" | "IMAGE_UPLOAD";
             payload?: any;
-            status?: "QUEUED" | "PROCESSING" | "COMPLETED" | "FAILED" | undefined;
+            status?: "QUEUED" | "PROCESSING" | "FAILED" | "COMPLETED" | undefined;
         };
         output: {
             data: {
@@ -191,15 +191,15 @@ export declare const emailBuilderRouter: import("@trpc/server").TRPCBuiltRouter<
                 updatedAt: Date;
                 userId: string;
                 teamId: string | null;
-                errorMessage: string | null;
-                startedAt: Date | null;
                 completedAt: Date | null;
+                qstashMessageId: string | null;
                 payload: unknown;
+                startedAt: Date | null;
+                result: unknown;
+                errorMessage: string | null;
+                operationType: string;
                 clientVersion: number | null;
                 designId: string;
-                operationType: string;
-                qstashMessageId: string | null;
-                result: unknown;
             } | undefined;
         };
         meta: object;
@@ -240,10 +240,10 @@ export declare const emailBuilderRouter: import("@trpc/server").TRPCBuiltRouter<
                 createdAt: Date;
                 updatedAt: Date;
                 userId: string;
-                description: string | null;
                 teamId: string | null;
-                thumbnailUrl: string | null;
+                description: string | null;
                 isPublic: boolean;
+                thumbnailUrl: string | null;
                 saveStatus: string;
                 lastSaveError: string | null;
                 isAiGenerated: boolean;

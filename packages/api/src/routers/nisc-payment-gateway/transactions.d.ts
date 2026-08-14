@@ -15,7 +15,7 @@ export declare const transactionsRouter: import("@trpc/server").TRPCBuiltRouter<
     list: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             merchantId: string;
-            status?: "PENDING" | "PROCESSING" | "FAILED" | "CANCELLED" | "SUCCESS" | undefined;
+            status?: "PENDING" | "PROCESSING" | "CANCELLED" | "SUCCESS" | "FAILED" | undefined;
             provider?: string | undefined;
             limit?: number | undefined;
             offset?: number | undefined;

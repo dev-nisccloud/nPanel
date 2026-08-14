@@ -159,7 +159,7 @@ export declare const storefrontPaymentRouter: import("@trpc/server").TRPCBuiltRo
                 customerPostalCodeZip: string;
                 countryCode: string;
             };
-            returnOrigin?: string | undefined;
+            returnOrigin: string;
             returnPath?: string | undefined;
         };
         output: {

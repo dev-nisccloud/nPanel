@@ -69,8 +69,8 @@ export declare const zeepoCanvasRouter: import("@trpc/server").TRPCBuiltRouter<{
                     userId: string;
                     teamId: string | null;
                     thumbnailUrl: string | null;
-                    width: number;
                     height: number;
+                    width: number;
                 }[];
                 nextPage: number | null;
             };

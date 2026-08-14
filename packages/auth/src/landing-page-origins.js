@@ -185,3 +185,34 @@ export function isAllowedStorefrontBrowserRequest(headers) {
         return true;
     return false;
 }
+/**
+ * Same signals as {@link isAllowedStorefrontBrowserRequest}, but POST/mutations
+ * must present a landing Origin, Referer, or forwarded host. Missing all three
+ * is a reject (scripts must not mint guest LLM sessions by omitting headers).
+ */
+export function isAllowedStorefrontBrowserMutation(headers) {
+    if (!headers)
+        return false;
+    const browserOrigins = [];
+    const origin = headers.get("origin")?.trim();
+    if (origin && origin.toLowerCase() !== "null") {
+        browserOrigins.push(normalizeOrigin(origin));
+    }
+    const referer = headers.get("referer")?.trim();
+    if (referer) {
+        try {
+            browserOrigins.push(normalizeOrigin(new URL(referer).origin));
+        }
+        catch {
+            // ignore invalid referer
+        }
+    }
+    for (const candidate of browserOrigins) {
+        if (isLandingPageOrigin(candidate))
+            return true;
+    }
+    const forwarded = originFromForwardedHost(headers);
+    if (forwarded && isLandingPageOrigin(forwarded))
+        return true;
+    return false;
+}

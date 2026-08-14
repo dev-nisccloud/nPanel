@@ -24,6 +24,8 @@ const userOutputSchema = z.object({
     lastLoginAt: z.date().nullable(),
     createdAt: z.date(),
     updatedAt: z.date(),
+    /** Null/empty = full (default) sidebar access for agency users. */
+    agencyRoleId: z.string().nullable(),
 });
 const getAllUsersOutputSchema = z.array(userOutputSchema);
 const createUserInputSchema = z.object({
@@ -153,6 +155,7 @@ export const manageUsersRouter = router({
             lastLoginAt: row.lastLoginAt,
             createdAt: row.createdAt,
             updatedAt: row.updatedAt,
+            agencyRoleId: row.agencyRoleId ?? null,
         }));
     }),
     // Get user by ID
@@ -205,6 +208,7 @@ export const manageUsersRouter = router({
             lastLoginAt: userRow.lastLoginAt,
             createdAt: userRow.createdAt,
             updatedAt: userRow.updatedAt,
+            agencyRoleId: userRow.agencyRoleId ?? null,
         };
     }),
     // Create a new agency user
@@ -341,6 +345,7 @@ export const manageUsersRouter = router({
             lastLoginAt: updatedUser.lastLoginAt,
             createdAt: updatedUser.createdAt,
             updatedAt: updatedUser.updatedAt,
+            agencyRoleId: updatedUser.agencyRoleId ?? null,
         };
     }),
     // Update user
@@ -469,6 +474,7 @@ export const manageUsersRouter = router({
             lastLoginAt: updatedUser.lastLoginAt,
             createdAt: updatedUser.createdAt,
             updatedAt: updatedUser.updatedAt,
+            agencyRoleId: updatedUser.agencyRoleId ?? null,
         };
     }),
     // Change user status

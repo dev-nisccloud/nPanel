@@ -152,7 +152,7 @@ async function assertHivelocitySubscriptionActiveForCustomer(params) {
     if (row?.status === "SUSPENDED") {
         throw new TRPCError({
             code: "FORBIDDEN",
-            message: "This server has been suspended and is temporarily unavailable. Contact your provider to restore access.",
+            message: "This server has been suspended and is temporarily unavailable. Contact Nisc Cloud support to restore access.",
         });
     }
 }

@@ -48,7 +48,7 @@ export declare const storefrontRouter: import("@trpc/server").TRPCBuiltRouter<{
                 };
                 profile: {
                     complete: boolean;
-                    missing: ("phone" | "country" | "city" | "postalCode" | "firstName" | "lastName" | "address")[];
+                    missing: ("city" | "country" | "postalCode" | "phone" | "firstName" | "lastName" | "address")[];
                     prefill: {
                         firstName: string;
                         lastName: string;
@@ -82,7 +82,7 @@ export declare const storefrontRouter: import("@trpc/server").TRPCBuiltRouter<{
             };
             output: {
                 complete: boolean;
-                missing: ("phone" | "country" | "city" | "postalCode" | "firstName" | "lastName" | "address")[];
+                missing: ("city" | "country" | "postalCode" | "phone" | "firstName" | "lastName" | "address")[];
                 displayName: string;
                 prefill: {
                     firstName: string;
@@ -148,16 +148,16 @@ export declare const storefrontRouter: import("@trpc/server").TRPCBuiltRouter<{
         createHandoff: import("@trpc/server").TRPCMutationProcedure<{
             input: {
                 serviceType: string;
-                locationName?: string | undefined;
                 productId?: string | undefined;
-                productName?: string | undefined;
                 billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "TRIENNIALLY" | "QUADRENNIALLY" | undefined;
+                productName?: string | undefined;
+                locationName?: string | undefined;
                 providerPriceAmount?: number | undefined;
                 providerPriceCurrency?: string | undefined;
                 customerPriceAmount?: number | undefined;
                 customerPriceCurrency?: string | undefined;
-                planName?: string | undefined;
                 planId?: string | undefined;
+                planName?: string | undefined;
                 bundleDomains?: string[] | undefined;
                 transferProvider?: "kenic" | "openprovider" | undefined;
             };
@@ -337,7 +337,7 @@ export declare const storefrontRouter: import("@trpc/server").TRPCBuiltRouter<{
                     customerPostalCodeZip: string;
                     countryCode: string;
                 };
-                returnOrigin?: string | undefined;
+                returnOrigin: string;
                 returnPath?: string | undefined;
             };
             output: {

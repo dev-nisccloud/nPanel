@@ -9,7 +9,7 @@ import { niscProductPlan } from "@npanel/db/schema/products";
 import { hivelocityPricingSettings } from "@npanel/db/schema/hivelocity-pricing-settings";
 import { agentCheckDomainAvailability } from "./agent-internal-tools/domains";
 import { applyHivelocityMarginUsd, getDefaultHivelocityMarginSettings, resolveUsdToKesExchangeRate, } from "./hivelocity-display-pricing";
-import { ceilConvertedPrice } from "./convert-price";
+import { ceilConvertedPrice, computeCeilVatTotals } from "./convert-price";
 import { checkDomainTransferEligibility } from "./domain-transfer-check";
 import { toRetailPrice } from "./agent-internal-tools/pricing";
 import { hivelocityRequest } from "./hivelocity-client";
@@ -480,8 +480,7 @@ export async function computeStorefrontCartQuote(input) {
             message: "Unable to calculate a valid checkout total.",
         });
     }
-    const taxAmount = Math.round(subtotal * 0.16);
-    const total = subtotal + taxAmount;
+    const { vatAmount: taxAmount, totalIncVat: total } = computeCeilVatTotals(subtotal);
     return {
         currency: mainQuote.currency,
         monthlyPrice: mainQuote.monthly,

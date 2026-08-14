@@ -56,6 +56,7 @@ export const ticketListItemSchema = z.object({
   isGuest: z.boolean().optional(),
   status: ticketStatusSchema,
   priority: ticketPrioritySchema,
+  metadata: z.unknown().nullable().optional(),
 });
 
 export type TicketListItem = z.infer<typeof ticketListItemSchema>;

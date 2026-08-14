@@ -17,6 +17,7 @@ export type ZeepoOrderItem = {
     productPlanId: string | null;
     billingCycle: string | null;
     itemPrice: string;
+    itemSubtotal?: string | null;
     description: string | null;
     metadata?: Record<string, unknown> | null;
     product: {
