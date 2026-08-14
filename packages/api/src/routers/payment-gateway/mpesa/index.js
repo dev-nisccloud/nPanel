@@ -90,12 +90,33 @@ export const mpesaRouter = router({
                     });
                 }
             }
+            const requestedAmount = Math.ceil(input.amount);
+            const checkoutTotalIncVat = input.checkoutTotalIncVat != null
+                ? Math.ceil(input.checkoutTotalIncVat)
+                : null;
+            const agencyUser = isAgencyUserRole(userRole);
+            // Customers must send the tax-inclusive checkout total; agency may overpay but never underpay.
+            if (!agencyUser && checkoutTotalIncVat == null) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "checkoutTotalIncVat is required for customer M-Pesa checkout.",
+                });
+            }
+            if (checkoutTotalIncVat != null && requestedAmount < checkoutTotalIncVat) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: `Payment amount (${requestedAmount}) is less than the checkout total (${checkoutTotalIncVat}). Underpayment is not allowed.`,
+                });
+            }
+            const amount = !agencyUser && checkoutTotalIncVat != null
+                ? checkoutTotalIncVat
+                : requestedAmount;
             // Create M-Pesa client
             const mpesaClient = createMpesaClientFromEnv();
             // Initiate STK Push
             const response = await mpesaClient.initiateStkPush({
                 phoneNumber: input.phoneNumber,
-                amount: input.amount,
+                amount,
                 accountReference: input.accountReference,
                 transactionDesc: input.transactionDesc,
                 callbackUrl: input.callbackUrl,
@@ -111,7 +132,7 @@ export const mpesaRouter = router({
                 gatewayMessage: response.ResponseDescription,
                 merchantRequestId: response.MerchantRequestID,
                 checkoutRequestId: response.CheckoutRequestID,
-                amount: input.amount.toString(),
+                amount: amount.toString(),
                 currency: "KES",
                 accountReference: input.accountReference || null,
                 transactionDesc: input.transactionDesc || null,
@@ -132,7 +153,8 @@ export const mpesaRouter = router({
                 description: `M-Pesa STK Push initiated. Response: ${response.ResponseDescription}`,
                 metadata: {
                     phoneNumber: input.phoneNumber,
-                    amount: input.amount,
+                    amount,
+                    checkoutTotalIncVat,
                     merchantRequestId: response.MerchantRequestID,
                     checkoutRequestId: response.CheckoutRequestID,
                 },
@@ -420,7 +442,20 @@ export const mpesaRouter = router({
                         gatewayMessage: response.ResultDesc || response.ResponseDescription,
                         ...(isTerminal && {
                             status: resultCodeStr === "0" ? "SUCCESS" : resultCodeNum === 1032 ? "CANCELLED" : "FAILED",
-                            ...(resultCodeStr === "0" ? { processedAt: now } : resultCodeNum === 1032 ? {} : { failedAt: now }),
+                            ...(resultCodeStr === "0"
+                                ? {
+                                    processedAt: now,
+                                    // Query API has no receipt; set paidAmount so createFromPayment never under-reads.
+                                    // Webhook will backfill receiptNumber when it arrives.
+                                    ...(dbTransaction.paidAmount
+                                        ? {}
+                                        : {
+                                            paidAmount: String(Math.ceil(Number.parseFloat(dbTransaction.amount) || 0)),
+                                        }),
+                                }
+                                : resultCodeNum === 1032
+                                    ? {}
+                                    : { failedAt: now }),
                         }),
                         updatedAt: now,
                     })

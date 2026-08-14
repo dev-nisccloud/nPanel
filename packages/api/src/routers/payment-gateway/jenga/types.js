@@ -23,8 +23,10 @@ export const jengaOrderReferenceSchema = z
     .regex(/^[a-zA-Z0-9]+$/, "Order reference must be alphanumeric");
 export const jengaOrderIntentSchema = z.object({
     source: z.enum(["buy_now", "global_buy_now", "storefront"]),
+    /** Where to send the browser after Jenga (path on returnOrigin). */
     returnPath: z.string().optional(),
-    returnOrigin: z.string().url().optional(),
+    /** Origin of the app that started checkout (window.location.origin). */
+    returnOrigin: z.string().url(),
     items: z.array(z.unknown()).optional(),
     currency: z.string().optional(),
     teamId: z.string().optional(),
@@ -60,6 +62,10 @@ export const jengaCallbackQuerySchema = z.object({
     hash: z.string().optional(),
     extraData: z.string().optional(),
 });
+/**
+ * Real Jenga IPN shape (from JengaHQ sample)  currency fields are often omitted;
+ * bank.account may be the string "null".
+ */
 export const jengaIpnPayloadSchema = z.object({
     callbackType: z.literal("IPN"),
     customer: z.object({
@@ -71,20 +77,21 @@ export const jengaIpnPayloadSchema = z.object({
         date: z.string(),
         reference: z.string(),
         paymentMode: z.string(),
-        amount: z.number(),
-        currency: z.string(),
+        amount: z.union([z.number(), z.string()]),
+        currency: z.string().optional(),
         billNumber: z.string(),
         servedBy: z.string().optional(),
         additionalInfo: z.string().optional(),
-        orderAmount: z.number(),
-        serviceCharge: z.number(),
-        orderCurrency: z.string(),
+        orderAmount: z.union([z.number(), z.string()]).optional(),
+        serviceCharge: z.union([z.number(), z.string()]).optional(),
+        orderCurrency: z.string().optional(),
         status: z.enum(["SUCCESS", "FAILED"]),
         remarks: z.string().optional(),
     }),
     bank: z.object({
         reference: z.string(),
         transactionType: z.string(),
-        account: z.string().nullable().optional(),
+        /** Jenga sometimes sends the literal string "null" */
+        account: z.union([z.string(), z.null()]).optional(),
     }),
 });

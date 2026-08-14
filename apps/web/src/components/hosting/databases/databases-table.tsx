@@ -96,7 +96,7 @@ export function DatabasesTable({
   openCreateSheet,
   onCreateSheetOpened,
 }: DatabasesTableProps) {
-  const { data: databasesData, isLoading, isError, error, refetch } = useDatabasesBySiteId(siteId);
+  const { data: databasesData, isLoading, isError, error, refetch, relatedSitesStatus } = useDatabasesBySiteId(siteId);
   const [searchTerm, setSearchTerm] = React.useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [databaseToDelete, setDatabaseToDelete] = React.useState<{ id?: number; name?: string } | null>(null);
@@ -252,7 +252,7 @@ export function DatabasesTable({
       <CleanList emptyMessage="No databases found">
         {filteredData.map((db, index) => {
           const typeUpper = (db.type || "mysql").toUpperCase();
-          const related = relatedSiteLabel(db);
+          const related = relatedSiteLabel(db, relatedSitesStatus);
 
           return (
             <CleanListRow
@@ -359,6 +359,7 @@ export function DatabasesTable({
           onOpenChange={setConnectionInfoOpen}
           siteId={siteId}
           database={selectedDatabase}
+          relatedSitesStatus={relatedSitesStatus}
           onCreateUser={() => {
             setConnectionInfoOpen(false);
             setCreateUserOpen(true);

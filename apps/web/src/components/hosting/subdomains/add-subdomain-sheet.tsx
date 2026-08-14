@@ -33,18 +33,13 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import { captureEvent } from "@/lib/posthog";
 
+const DEFAULT_PHP_HANDLER = "plesk-php82-fpm";
+
 const FormSchema = z.object({
   subdomainName: z.string().min(1, "Subdomain name is required"),
-  parentDomain: z.string(), // Fixed value, no validation needed
+  parentDomain: z.string(),
   phpEnabled: z.boolean().default(true),
   phpHandler: z.string().min(1, "PHP handler is required"),
-  sslEnabled: z.boolean().default(true),
-  fastcgiEnabled: z.boolean().default(true),
-  ssiEnabled: z.boolean().default(true),
-  cgiEnabled: z.boolean().default(false),
-  perlEnabled: z.boolean().default(false),
-  pythonEnabled: z.boolean().default(false),
-  webstat: z.enum(['none', 'awstats', 'webalizer', 'analog', 'custom']).default("none"),
 });
 
 type FormData = z.infer<typeof FormSchema>;
@@ -56,15 +51,39 @@ interface AddSubdomainSheetProps {
   onSuccess?: () => void;
 }
 
+function localSubdomainName(value: string, parentDomain?: string): string {
+  let next = value.trim();
+  const parent = parentDomain?.trim().replace(/^\./, "");
+  if (parent) {
+    const suffix = `.${parent}`;
+    if (next.toLowerCase().endsWith(suffix.toLowerCase())) {
+      next = next.slice(0, -suffix.length);
+    }
+  }
+  if (next.includes(".")) {
+    next = next.split(".")[0] ?? next;
+  }
+  return next.replace(/^\.+|\.+$/g, "");
+}
+
 export function AddSubdomainSheet({ open, onOpenChange, domainName, onSuccess }: AddSubdomainSheetProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  // tRPC mutation for creating subdomain
+  const form = useForm<FormData>({
+    resolver: zodResolver(FormSchema),
+    defaultValues: {
+      subdomainName: "",
+      parentDomain: domainName || "",
+      phpEnabled: true,
+      phpHandler: DEFAULT_PHP_HANDLER,
+    },
+  });
+
   const createSubdomain = trpc.plesk.subdomainsCreate.create.useMutation({
     onSuccess: () => {
       captureEvent("subdomain_created", {
-      parent_domain: form.getValues("parentDomain") || domainName || "unknown",
-    });
+        parent_domain: form.getValues("parentDomain") || domainName || "unknown",
+      });
 
       toast.success("Subdomain created successfully!");
       form.reset();
@@ -73,10 +92,9 @@ export function AddSubdomainSheet({ open, onOpenChange, domainName, onSuccess }:
     },
     onError: (error) => {
       console.error("Error creating subdomain:", error);
-      
-      // Handle different types of errors
+
       let errorMessage = "Please check your information and try again.";
-      
+
       if (error?.data?.code === "BAD_REQUEST") {
         errorMessage = error.message || "Invalid subdomain data.";
       } else if (error?.data?.code === "UNAUTHORIZED") {
@@ -88,65 +106,34 @@ export function AddSubdomainSheet({ open, onOpenChange, domainName, onSuccess }:
       } else if (error?.message) {
         errorMessage = error.message;
       }
-      
+
       toast.error("Failed to create subdomain", {
         description: errorMessage,
       });
     },
   });
 
-  const form = useForm<FormData>({
-    resolver: zodResolver(FormSchema),
-    defaultValues: {
-      subdomainName: "",
-      parentDomain: domainName || "nisccloud.com",
-      phpEnabled: true,
-      phpHandler: "plesk-php82-fpm",
-      sslEnabled: true,
-      fastcgiEnabled: true,
-      ssiEnabled: true,
-      cgiEnabled: false,
-      perlEnabled: false,
-      pythonEnabled: false,
-      webstat: "none",
-    },
-  });
-
-  // Update parent domain when domainName prop changes
   React.useEffect(() => {
     if (domainName) {
       form.setValue("parentDomain", domainName);
     }
   }, [domainName, form]);
 
+  const parentDomain = form.watch("parentDomain") || domainName || "";
+
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
-    
-    try {
-      // Prepare the data for the API call
-      const apiData: {
-        parent: string;
-        name: string;
-        php?: string;
-        cgi?: boolean;
-        perl?: boolean;
-        python?: boolean;
-        webstat?: 'none' | 'awstats' | 'webalizer' | 'analog' | 'custom';
-      } = {
-        parent: data.parentDomain,
-        name: data.subdomainName,
-        php: data.phpEnabled ? data.phpHandler : undefined,
-        cgi: data.cgiEnabled,
-        perl: data.perlEnabled,
-        python: data.pythonEnabled,
-        webstat: data.webstat === 'none' ? undefined : data.webstat,
-        // Note: SSL, FastCGI, SSI are not supported by the current API
-        // These would need to be added to the API if required
-      };
 
-      await createSubdomain.mutateAsync(apiData);
+    try {
+      await createSubdomain.mutateAsync({
+        parent: data.parentDomain,
+        name: localSubdomainName(data.subdomainName, data.parentDomain),
+        php: data.phpEnabled ? data.phpHandler : undefined,
+        cgi: false,
+        perl: false,
+        python: false,
+      });
     } catch (error) {
-      // Error handling is done in the mutation's onError callback
       console.error("Error in onSubmit:", error);
     } finally {
       setIsSubmitting(false);
@@ -183,251 +170,137 @@ export function AddSubdomainSheet({ open, onOpenChange, domainName, onSuccess }:
           <div className="px-1 pb-6">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* General Settings */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">General Settings</CardTitle>
-                  <CardDescription>Configure the subdomain details</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="subdomainName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Subdomain Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., blog" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="parentDomain"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Parent Domain</FormLabel>
-                        <FormControl>
-                          <Input 
-                            value={field.value}
-                            disabled
-                            className="bg-muted"
-                          />
-                        </FormControl>
-                        <div className="text-xs text-muted-foreground">
-                          Subdomain will be created under this domain
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </CardContent>
-              </Card>
-
-              {/* PHP Settings */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">PHP Settings</CardTitle>
-                  <CardDescription>Configure PHP support and handler</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="phpEnabled"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base">PHP Support</FormLabel>
-                          <p className="text-sm text-muted-foreground">
-                            Enable PHP support for this subdomain
-                          </p>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="phpHandler"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>PHP Handler</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">General Settings</CardTitle>
+                    <CardDescription>Configure the subdomain details</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <FormField
+                      control={form.control}
+                      name="subdomainName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Subdomain Name</FormLabel>
                           <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select PHP handler" />
-                            </SelectTrigger>
+                            <div className="relative">
+                              <Input
+                                placeholder="blog"
+                                autoCapitalize="none"
+                                autoCorrect="off"
+                                spellCheck={false}
+                                className={parentDomain ? "pr-40" : undefined}
+                                value={field.value}
+                                onChange={(e) => {
+                                  field.onChange(localSubdomainName(e.target.value, parentDomain));
+                                }}
+                                onBlur={(e) => {
+                                  field.onChange(localSubdomainName(e.target.value, parentDomain));
+                                  field.onBlur();
+                                }}
+                              />
+                              {parentDomain ? (
+                                <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                                  <span className="max-w-[10rem] truncate text-sm font-semibold text-foreground/90">
+                                    .{parentDomain}
+                                  </span>
+                                </div>
+                              ) : null}
+                            </div>
                           </FormControl>
-                          <SelectContent>
-                            <SelectItem value="plesk-php82-fpm">PHP 8.2 (FPM)</SelectItem>
-                            <SelectItem value="plesk-php81-fpm">PHP 8.1 (FPM)</SelectItem>
-                            <SelectItem value="plesk-php80-fpm">PHP 8.0 (FPM)</SelectItem>
-                            <SelectItem value="plesk-php74-fpm">PHP 7.4 (FPM)</SelectItem>
-                            <SelectItem value="alt-php81-cgi">PHP 8.1 (CGI)</SelectItem>
-                            <SelectItem value="alt-php80-cgi">PHP 8.0 (CGI)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </CardContent>
-              </Card>
+                          {parentDomain ? (
+                            <div className="text-xs text-muted-foreground">
+                              Enter only the subdomain name. We’ll add{" "}
+                              <span className="font-mono">.{parentDomain}</span> automatically.
+                            </div>
+                          ) : null}
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </CardContent>
+                </Card>
 
-              {/* Security Settings */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Security Settings</CardTitle>
-                  <CardDescription>Configure SSL and security options</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="sslEnabled"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base">SSL Certificate</FormLabel>
-                          <p className="text-sm text-muted-foreground">
-                            Enable SSL certificate for this subdomain
-                          </p>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            disabled
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <div className="p-3 bg-muted/50 rounded-lg">
-                    <p className="text-sm text-muted-foreground">
-                      SSL configuration is not available in the current API implementation.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Advanced Settings */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Advanced Settings</CardTitle>
-                  <CardDescription>Configure additional server features</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="fastcgiEnabled"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base">FastCGI</FormLabel>
-                          <p className="text-sm text-muted-foreground">
-                            Enable FastCGI support
-                          </p>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            disabled
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="ssiEnabled"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base">Server-Side Includes (SSI)</FormLabel>
-                          <p className="text-sm text-muted-foreground">
-                            Enable SSI support
-                          </p>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            disabled
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="webstat"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Web Statistics</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">PHP Settings</CardTitle>
+                    <CardDescription>Configure PHP support and handler</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="phpEnabled"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base">PHP Support</FormLabel>
+                            <p className="text-sm text-muted-foreground">
+                              Enable PHP support for this subdomain
+                            </p>
+                          </div>
                           <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select web statistics" />
-                            </SelectTrigger>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
                           </FormControl>
-                          <SelectContent>
-                            <SelectItem value="none">None</SelectItem>
-                            <SelectItem value="awstats">AWStats</SelectItem>
-                            <SelectItem value="webalizer">Webalizer</SelectItem>
-                            <SelectItem value="analog">Analog</SelectItem>
-                            <SelectItem value="custom">Custom</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="phpHandler"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>PHP Handler</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!form.watch("phpEnabled")}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select PHP handler" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="plesk-php82-fpm">PHP 8.2 (FPM)</SelectItem>
+                              <SelectItem value="plesk-php81-fpm">PHP 8.1 (FPM)</SelectItem>
+                              <SelectItem value="plesk-php80-fpm">PHP 8.0 (FPM)</SelectItem>
+                              <SelectItem value="plesk-php74-fpm">PHP 7.4 (FPM)</SelectItem>
+                              <SelectItem value="alt-php81-cgi">PHP 8.1 (CGI)</SelectItem>
+                              <SelectItem value="alt-php80-cgi">PHP 8.0 (CGI)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </CardContent>
+                </Card>
+
+                <SheetFooter className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => onOpenChange(false)}
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                      <div className="flex items-center gap-2">
+                        <Spinner variant="ellipsis" className="text-primary-foreground" size="sm" />
+                        <span>Creating...</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Plus className="h-4 w-4" />
+                        <span>Create Subdomain</span>
+                      </div>
                     )}
-                  />
-
-                  <div className="p-3 bg-muted/50 rounded-lg">
-                    <p className="text-sm text-muted-foreground">
-                      FastCGI and SSI configuration are not available in the current API implementation.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-            <SheetFooter className="flex gap-2">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => onOpenChange(false)}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <div className="flex items-center gap-2">
-                    <Spinner variant="ellipsis" className="text-primary-foreground" size="sm" />
-                    <span>Creating...</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <Plus className="h-4 w-4" />
-                    <span>Create Subdomain</span>
-                  </div>
-                )}
-              </Button>
-            </SheetFooter>
-          </form>
-        </Form>
+                  </Button>
+                </SheetFooter>
+              </form>
+            </Form>
           </div>
         </ScrollArea>
       </SheetContent>

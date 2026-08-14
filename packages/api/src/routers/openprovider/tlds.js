@@ -2,6 +2,35 @@ import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '../../trpc';
 import { createOpenProviderClient, OpenProviderApiError } from '../../lib/openprovider-client';
+import { getRedisClient } from '../../lib/redis';
+/** 1 hour  matches openprovider README; avoids repeated 2500-TLD fetches that trip proxies. */
+const TLD_CACHE_TTL_SEC = 3600;
+const TLD_CACHE_TTL_MS = TLD_CACHE_TTL_SEC * 1000;
+const tldMemoryCache = new Map();
+function buildTldCacheKey(req) {
+    return `op:tlds:${JSON.stringify({
+        limit: req.limit ?? null,
+        offset: req.offset ?? null,
+        extensions: req.extensions ?? null,
+        status: req.status ?? null,
+        with_price: req.with_price ?? null,
+        with_description: req.with_description ?? null,
+        with_restrictions: req.with_restrictions ?? null,
+    })}`;
+}
+function getMemoryCachedTlds(key) {
+    const cached = tldMemoryCache.get(key);
+    if (!cached)
+        return null;
+    if (Date.now() - cached.timestamp > TLD_CACHE_TTL_MS) {
+        tldMemoryCache.delete(key);
+        return null;
+    }
+    return cached.data;
+}
+function setMemoryCachedTlds(key, data) {
+    tldMemoryCache.set(key, { data, timestamp: Date.now() });
+}
 // Helper function to ensure client is authenticated
 async function ensureAuthenticated(client) {
     // Only authenticate if not already authenticated
@@ -48,10 +77,6 @@ export const openProviderTldRouter = router({
         .input(TldQuerySchema)
         .query(async ({ input }) => {
         try {
-            // Get cached client instance
-            const client = createOpenProviderClient();
-            // Ensure client is authenticated (only if needed)
-            await ensureAuthenticated(client);
             // Prepare TLD request with default values if no input provided
             const tldRequest = {
                 limit: input?.limit || 100,
@@ -62,6 +87,41 @@ export const openProviderTldRouter = router({
                 with_description: input?.with_description ?? true,
                 with_restrictions: input?.with_restrictions ?? true,
             };
+            const cacheKey = buildTldCacheKey(tldRequest);
+            const memoryHit = getMemoryCachedTlds(cacheKey);
+            if (memoryHit) {
+                return {
+                    ...memoryHit,
+                    meta: {
+                        ...(memoryHit.meta ?? {}),
+                        cached: true,
+                    },
+                };
+            }
+            const redis = getRedisClient();
+            if (redis) {
+                try {
+                    const cached = await redis.get(cacheKey);
+                    if (cached) {
+                        const cachedResponse = typeof cached === 'string' ? JSON.parse(cached) : cached;
+                        setMemoryCachedTlds(cacheKey, cachedResponse);
+                        return {
+                            ...cachedResponse,
+                            meta: {
+                                ...cachedResponse.meta,
+                                cached: true,
+                            },
+                        };
+                    }
+                }
+                catch (cacheError) {
+                    console.error('Failed to read TLD cache:', cacheError);
+                }
+            }
+            // Get cached client instance
+            const client = createOpenProviderClient();
+            // Ensure client is authenticated (only if needed)
+            await ensureAuthenticated(client);
             // Fetch TLDs from OpenProvider
             const tldResponse = await client.getTlds(tldRequest);
             // Check if request was successful
@@ -72,7 +132,7 @@ export const openProviderTldRouter = router({
                 });
             }
             // Return successful response
-            return {
+            const response = {
                 success: true,
                 data: tldResponse.data,
                 meta: {
@@ -83,6 +143,16 @@ export const openProviderTldRouter = router({
                     offset: tldRequest.offset,
                 },
             };
+            setMemoryCachedTlds(cacheKey, response);
+            if (redis) {
+                try {
+                    await redis.setex(cacheKey, TLD_CACHE_TTL_SEC, JSON.stringify(response));
+                }
+                catch (cacheError) {
+                    console.error('Failed to write TLD cache:', cacheError);
+                }
+            }
+            return response;
         }
         catch (error) {
             console.error('OpenProvider TLD retrieval error:', error);

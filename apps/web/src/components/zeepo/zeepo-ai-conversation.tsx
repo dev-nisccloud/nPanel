@@ -11,6 +11,7 @@ import {
   ThumbsUp,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router";
 import { cn } from "@/lib/utils";
 import { copyTextToClipboard } from "@/lib/copy-to-clipboard";
 import { AiMarkdownRenderer } from "@/components/ai/ai-markdown-renderer";
@@ -21,6 +22,7 @@ import {
 } from "@/components/ui/collapsible";
 import { ZeepoAiInlineGenerations } from "@/components/zeepo/zeepo-ai-inline-generations";
 import { ZeepoToolResultCards } from "@/components/zeepo/zeepo-tool-result-cards";
+import { useZeepoAiRoute } from "@/components/zeepo/zeepo-ai-route-context";
 import { AiStreamingText } from "@/components/ui/streaming-text";
 import { sanitizeZeepoAiReasoning } from "@/lib/sanitize-zeepo-ai-reasoning";
 import type {
@@ -369,6 +371,8 @@ export const ZeepoAiAssistantBubble = memo(function ZeepoAiAssistantBubble({
   /** Hide reasoning details for customer users */
   hideReasoning?: boolean;
 }) {
+  const route = useZeepoAiRoute();
+  const navigate = useNavigate();
   const isStreaming = message.status === "streaming";
   const isReasoning = message.reasoningStatus === "streaming";
   const showAnswerCaret = isStreaming && !isReasoning;
@@ -448,7 +452,15 @@ export const ZeepoAiAssistantBubble = memo(function ZeepoAiAssistantBubble({
         ) : null}
 
         {message.toolResults && message.toolResults.length > 0 ? (
-          <ZeepoToolResultCards results={message.toolResults} />
+          <ZeepoToolResultCards
+            results={message.toolResults}
+            onViewTicket={
+              route.isCustomer
+                ? undefined
+                : (ticketId) =>
+                    navigate(`/agency/support?ticket=${encodeURIComponent(ticketId)}`)
+            }
+          />
         ) : null}
 
         {showActions ? (

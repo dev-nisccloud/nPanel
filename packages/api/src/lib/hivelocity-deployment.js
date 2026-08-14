@@ -99,51 +99,94 @@ async function waitForDeviceId(orderId, expectedHostname, maxAttempts = 12, dela
     }
     return null;
 }
+async function findDeploymentByName(deploymentName) {
+    const raw = await hivelocityRequest("/deploy/", { requireApiKey: true });
+    const rows = Array.isArray(raw) ? raw : [];
+    const needle = deploymentName.trim().toLowerCase();
+    for (const row of rows) {
+        const parsed = parseDeployment(row);
+        const name = parsed.deploymentName?.trim().toLowerCase();
+        if (name && name === needle && parsed.deploymentId != null && parsed.deploymentId > 0) {
+            return parsed;
+        }
+    }
+    return null;
+}
 export async function provisionHivelocityViaDeployment(input) {
     const { deploymentName, meta, script } = input;
     const billingInfo = await resolveHivelocityBillingInfoId();
-    const createRaw = await hivelocityRequest("/deploy/", {
-        method: "POST",
-        requireApiKey: true,
-        query: { deploymentName },
-    });
-    const created = parseDeployment(createRaw);
-    const deploymentId = created.deploymentId;
+    // Idempotent retry: reuse an existing deployment with this deterministic name
+    // (crash after provider start / before nPanel subscription write).
+    let createRaw = null;
+    let configureRaw = null;
+    let startRaw = null;
+    let created = (await findDeploymentByName(deploymentName)) ?? {};
+    let deploymentId = created.deploymentId;
     if (!deploymentId || deploymentId <= 0) {
-        throw new Error("Hivelocity deployment create response missing deploymentId.");
+        createRaw = await hivelocityRequest("/deploy/", {
+            method: "POST",
+            requireApiKey: true,
+            query: { deploymentName },
+        });
+        created = parseDeployment(createRaw);
+        deploymentId = created.deploymentId;
+        if (!deploymentId || deploymentId <= 0) {
+            // Race: another worker created it  adopt that deployment.
+            const raced = await findDeploymentByName(deploymentName);
+            deploymentId = raced?.deploymentId;
+            created = raced ?? created;
+            if (!deploymentId || deploymentId <= 0) {
+                throw new Error("Hivelocity deployment create response missing deploymentId.");
+            }
+        }
     }
+    else {
+        createRaw = { reused: true, deployment: created };
+        await niscLog("hivelocity_deployment_reused", {
+            deploymentId,
+            deploymentName,
+            startedProvisioning: Boolean(created.startedProvisioning),
+        });
+    }
+    const alreadyStarted = Boolean(created.startedProvisioning) || Boolean(created.orderNumber?.trim());
     // OS is set via `operatingSystem`; `options` is add-ons only (including control panels).
     const optionIds = [...meta.hivelocityOptionIds];
-    const configureBody = {
-        productId: meta.hivelocityProductId,
-        locationCode: meta.hivelocityLocationName,
-        operatingSystem: meta.hivelocityOsName,
-        hostnames: [meta.hivelocityHostname],
-        billingPeriod: meta.hivelocityPeriod,
-        quantity: 1,
-        ...(optionIds.length > 0 ? { options: optionIds } : {}),
-    };
-    const configureRaw = await hivelocityRequest(`/deploy/${deploymentId}`, {
-        method: "PUT",
-        requireApiKey: true,
-        body: configureBody,
-    });
-    const startBody = { billingInfo };
-    if (script?.trim()) {
-        startBody.script = script.trim();
+    if (!alreadyStarted) {
+        const configureBody = {
+            productId: meta.hivelocityProductId,
+            locationCode: meta.hivelocityLocationName,
+            operatingSystem: meta.hivelocityOsName,
+            hostnames: [meta.hivelocityHostname],
+            billingPeriod: meta.hivelocityPeriod,
+            quantity: 1,
+            ...(optionIds.length > 0 ? { options: optionIds } : {}),
+        };
+        configureRaw = await hivelocityRequest(`/deploy/${deploymentId}`, {
+            method: "PUT",
+            requireApiKey: true,
+            body: configureBody,
+        });
+        const startBody = { billingInfo };
+        if (script?.trim()) {
+            startBody.script = script.trim();
+        }
+        startRaw = await hivelocityRequest(`/deploy/${deploymentId}`, {
+            method: "POST",
+            requireApiKey: true,
+            body: startBody,
+        });
+        await niscLog("hivelocity_deployment_started", {
+            deploymentId,
+            deploymentName,
+            billingInfo,
+            hasScript: Boolean(script?.trim()),
+            optionCount: optionIds.length,
+        });
     }
-    const startRaw = await hivelocityRequest(`/deploy/${deploymentId}`, {
-        method: "POST",
-        requireApiKey: true,
-        body: startBody,
-    });
-    await niscLog("hivelocity_deployment_started", {
-        deploymentId,
-        deploymentName,
-        billingInfo,
-        hasScript: Boolean(script?.trim()),
-        optionCount: optionIds.length,
-    });
+    else {
+        configureRaw = { skipped: true, reason: "deployment_already_started" };
+        startRaw = { skipped: true, reason: "deployment_already_started" };
+    }
     const deploymentStatus = await waitForDeploymentStart(deploymentId);
     const orderNumber = deploymentStatus.orderNumber?.trim() || created.orderNumber?.trim() || null;
     const orderId = parseOrderIdFromOrderNumber(orderNumber);

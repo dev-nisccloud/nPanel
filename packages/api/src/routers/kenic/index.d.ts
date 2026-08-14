@@ -177,7 +177,7 @@ export declare const kenicRouter: import("@trpc/server").TRPCBuiltRouter<{
                 authInfo?: string | undefined;
                 disclose?: {
                     flag: 0 | 1;
-                    elements?: ("name" | "email" | "org" | "voice" | "fax" | "addr")[] | undefined;
+                    elements?: ("name" | "email" | "fax" | "org" | "voice" | "addr")[] | undefined;
                 } | undefined;
             };
             output: {

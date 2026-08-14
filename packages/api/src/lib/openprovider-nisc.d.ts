@@ -12,6 +12,8 @@ export type ManualRegistrantDetails = {
 export type EnsureOpenProviderResult = {
     subscriptionId?: string;
     pendingVerification: boolean;
+    /** Non-fatal post-provision issues (e.g. transfer lock failed). */
+    warnings?: string[];
 };
 export declare function ensureOpenProviderAndRegisterDomain(params: {
     ownerId: string | null;
@@ -32,6 +34,9 @@ export declare function ensureOpenProviderAndRegisterDomain(params: {
         ip?: string;
     }>;
     manualDetails?: ManualRegistrantDetails;
+    /** Explicit registration years from checkout (takes precedence over billingCycle). */
+    period?: number;
+    metadata?: unknown;
 }): Promise<EnsureOpenProviderResult>;
 /** Result of ensureOpenProviderAndTransferDomain. */
 export type EnsureOpenProviderTransferResult = {
@@ -39,6 +44,8 @@ export type EnsureOpenProviderTransferResult = {
     pendingVerification: boolean;
     /** Raw API response from transferDomain (for processor_api_raw_response logging). */
     rawResponse?: unknown;
+    /** Non-fatal post-provision issues (e.g. transfer lock failed). */
+    warnings?: string[];
 };
 /**
  * Ensure OpenProvider customer + verification, then initiate domain transfer.
@@ -64,6 +71,7 @@ export declare function ensureOpenProviderAndTransferDomain(params: {
         ip?: string;
     }>;
     period?: number;
+    metadata?: unknown;
     manualDetails?: ManualRegistrantDetails;
     domainTransferRequestId?: string | null;
     orderCreatedAt?: Date | null;

@@ -19,6 +19,10 @@ export declare function applyJengaCallbackUpdate(query: JengaCallbackQuery): Pro
  */
 export declare function applyJengaIpnUpdate(payload: JengaIpnPayload): Promise<ApplyResult>;
 export declare function parseJengaMetadata(raw: unknown): JengaPaymentMetadata | null;
+/**
+ * Redirect the browser back to where checkout started (returnOrigin + returnPath
+ * stored on the payment). No WEB_APP_URL / STOREFRONT_APP_URL required.
+ */
 export declare function getJengaReturnRedirect(params: {
     metadata: JengaPaymentMetadata | null;
     orderReference: string;

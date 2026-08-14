@@ -110,7 +110,14 @@ export async function queryStkPushForUser(checkoutRequestId, userId) {
                             ? "CANCELLED"
                             : "FAILED",
                     ...(resultCodeStr === "0"
-                        ? { processedAt: now }
+                        ? {
+                            processedAt: now,
+                            ...(dbTransaction.paidAmount
+                                ? {}
+                                : {
+                                    paidAmount: String(Math.ceil(Number.parseFloat(dbTransaction.amount) || 0)),
+                                }),
+                        }
                         : resultCodeNum === 1032
                             ? {}
                             : { failedAt: now }),

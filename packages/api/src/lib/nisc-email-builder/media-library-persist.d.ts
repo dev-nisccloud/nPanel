@@ -21,12 +21,12 @@ export declare function saveToNebMediaLibrary(params: SaveNebMediaLibraryParams)
     id: string;
     createdAt: Date;
     userId: string;
-    description: string | null;
     teamId: string | null;
     metadata: unknown;
+    description: string | null;
+    storageKey: string | null;
+    mimeType: string;
     fileName: string;
     fileSize: number;
-    mimeType: string;
     fileUrl: string;
-    storageKey: string | null;
 } | null>;

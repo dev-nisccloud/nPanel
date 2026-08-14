@@ -225,13 +225,13 @@ export declare const zeepoAgentRouter: import("@trpc/server").TRPCBuiltRouter<{
                     id: string;
                     createdAt: Date;
                     userId: string;
-                    prompt: string | null;
                     metadata: unknown;
-                    operationType: string;
                     sessionId: string;
-                    imageUrl: string;
+                    prompt: string | null;
                     generationId: string;
                     parentId: string | null;
+                    imageUrl: string;
+                    operationType: string;
                     label: string | null;
                 }[];
             };
@@ -243,7 +243,7 @@ export declare const zeepoAgentRouter: import("@trpc/server").TRPCBuiltRouter<{
                 generationId: string;
                 imageUrl: string;
                 parentId?: string | undefined;
-                operationType?: "style" | "instruction" | "original" | "erase" | "background_swap" | "upscale" | "text_edit" | "variation" | undefined;
+                operationType?: "instruction" | "style" | "original" | "erase" | "background_swap" | "upscale" | "text_edit" | "variation" | undefined;
                 label?: string | undefined;
                 prompt?: string | undefined;
                 metadata?: Record<PropertyKey, unknown> | undefined;
@@ -451,9 +451,9 @@ export declare const zeepoAgentRouter: import("@trpc/server").TRPCBuiltRouter<{
                     createdAt: Date;
                     description: string | null;
                     operationType: string;
-                    balanceAfter: string;
                     direction: string;
                     tokens: string;
+                    balanceAfter: string;
                 }[];
             };
             meta: object;

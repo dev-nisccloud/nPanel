@@ -7,7 +7,7 @@ export declare const niscEmailMarketingCampaignsRouter: import("@trpc/server").T
     list: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             teamId?: string | null | undefined;
-            status?: "DRAFT" | "SCHEDULED" | "COMPLETED" | "FAILED" | "CANCELLED" | undefined;
+            status?: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "COMPLETED" | undefined;
             search?: string | undefined;
             limit?: number | undefined;
             offset?: number | undefined;
@@ -18,7 +18,7 @@ export declare const niscEmailMarketingCampaignsRouter: import("@trpc/server").T
                 name: string;
                 subject: string;
                 fromEmail: string;
-                status: "DRAFT" | "SCHEDULED" | "COMPLETED" | "FAILED" | "CANCELLED";
+                status: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "COMPLETED";
                 recipientCount: number;
                 userId: string;
                 teamId: string | null;
@@ -40,7 +40,7 @@ export declare const niscEmailMarketingCampaignsRouter: import("@trpc/server").T
             name: string;
             subject: string;
             fromEmail: string;
-            status: "DRAFT" | "SCHEDULED" | "COMPLETED" | "FAILED" | "CANCELLED";
+            status: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "COMPLETED";
             recipientCount: number;
             userId: string;
             teamId: string | null;

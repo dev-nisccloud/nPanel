@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { and, eq } from "@npanel/db";
+import { isLocalDevOrigin, resolveLandingPageOrigins, } from "@npanel/auth/landing-page-origins";
+import { and, eq, or } from "@npanel/db";
 import { db } from "@npanel/db";
 import { paymentTransaction, paymentTransactionActivityLog, } from "@npanel/db/schema/payment-transactions";
 /**
@@ -74,17 +75,26 @@ export async function applyJengaCallbackUpdate(query) {
  * Matches by billNumber (order reference) or customer.reference when present.
  */
 export async function applyJengaIpnUpdate(payload) {
-    const orderReference = payload.transaction.billNumber?.trim() ||
-        payload.customer.reference?.trim();
-    if (!orderReference) {
+    const billNumber = payload.transaction.billNumber?.trim() || "";
+    const customerRef = payload.customer.reference?.trim() || "";
+    const candidates = [...new Set([billNumber, customerRef].filter(Boolean))];
+    if (candidates.length === 0) {
         return { ok: false, reason: "Missing billNumber/order reference in IPN" };
     }
+    // Jenga sample IPN: billNumber + customer.reference  match either against our orderReference
     const transaction = await db.query.paymentTransaction.findFirst({
-        where: and(eq(paymentTransaction.checkoutRequestId, orderReference), eq(paymentTransaction.gateway, "JENGA")),
+        where: and(eq(paymentTransaction.gateway, "JENGA"), or(...candidates.flatMap((ref) => [
+            eq(paymentTransaction.checkoutRequestId, ref),
+            eq(paymentTransaction.accountReference, ref),
+        ]))),
     });
     if (!transaction) {
-        return { ok: false, reason: "Transaction not found" };
+        return {
+            ok: false,
+            reason: `Transaction not found for refs: ${candidates.join(", ")}`,
+        };
     }
+    const orderReference = transaction.checkoutRequestId || transaction.accountReference || candidates[0];
     if (transaction.status === "SUCCESS" || transaction.status === "FAILED") {
         // Allow IPN to upgrade FAILED→SUCCESS if callback raced incorrectly
         if (transaction.status === "FAILED" &&
@@ -103,6 +113,7 @@ export async function applyJengaIpnUpdate(payload) {
     const now = new Date();
     const isSuccess = payload.transaction.status === "SUCCESS";
     const nextStatus = isSuccess ? "SUCCESS" : "FAILED";
+    const paidAmountNum = Number(payload.transaction.amount);
     await db
         .update(paymentTransaction)
         .set({
@@ -111,8 +122,8 @@ export async function applyJengaIpnUpdate(payload) {
         gatewayMessage: payload.transaction.remarks ?? payload.transaction.paymentMode,
         gatewayTransactionId: payload.transaction.reference,
         receiptNumber: payload.bank.reference || payload.transaction.reference,
-        paidAmount: isSuccess
-            ? String(payload.transaction.amount)
+        paidAmount: isSuccess && Number.isFinite(paidAmountNum)
+            ? String(paidAmountNum)
             : transaction.paidAmount,
         rawResponse: payload,
         processedAt: isSuccess ? now : transaction.processedAt,
@@ -155,29 +166,84 @@ export function parseJengaMetadata(raw) {
         return null;
     return meta;
 }
-export function getJengaReturnRedirect(params) {
-    const webOrigin = process.env.WEB_APP_URL ||
-        process.env.NEXT_PUBLIC_APP_URL ||
-        "http://localhost:3000";
-    const wwwOrigin = process.env.STOREFRONT_APP_URL ||
-        process.env.WWW_APP_URL ||
-        process.env.LANDING_APP_URL ||
-        "http://localhost:3001";
-    const source = params.metadata?.source;
-    const returnOrigin = params.metadata?.returnOrigin;
-    const returnPath = params.metadata?.returnPath;
-    if (source === "storefront") {
-        const origin = returnOrigin || wwwOrigin;
-        const path = returnPath || "/cart";
-        const url = new URL(path, origin);
-        url.searchParams.set("jengaRef", params.orderReference);
-        url.searchParams.set("jengaStatus", params.status);
-        return url.toString();
+function normalizeOrigin(url) {
+    return url.trim().replace(/\/+$/, "");
+}
+/** Origins allowed for post-Jenga browser redirects (open-redirect guard). */
+function isAllowedJengaReturnOrigin(origin) {
+    const normalized = normalizeOrigin(origin);
+    try {
+        const { protocol } = new URL(normalized);
+        if (protocol !== "http:" && protocol !== "https:")
+            return false;
     }
-    const origin = returnOrigin || webOrigin;
-    const path = returnPath || "/payment/jenga/return";
-    const url = new URL(path, origin);
-    url.searchParams.set("orderReference", params.orderReference);
-    url.searchParams.set("status", params.status);
+    catch {
+        return false;
+    }
+    const allowed = new Set();
+    const add = (raw) => {
+        if (!raw?.trim())
+            return;
+        try {
+            allowed.add(normalizeOrigin(new URL(raw.trim()).origin));
+        }
+        catch {
+            // ignore invalid
+        }
+    };
+    add(process.env.CORS_ORIGIN);
+    add(process.env.VITE_PUBLIC_APP_URL);
+    for (const o of resolveLandingPageOrigins()) {
+        add(o);
+    }
+    const extra = process.env.CORS_EXTRA_ORIGINS;
+    if (extra) {
+        for (const part of extra.split(","))
+            add(part);
+    }
+    if (allowed.has(normalized))
+        return true;
+    if (process.env.NODE_ENV !== "production" && isLocalDevOrigin(normalized)) {
+        return true;
+    }
+    return false;
+}
+function resolveFallbackOrigin(source) {
+    if (source === "storefront") {
+        return (resolveLandingPageOrigins()[0] ||
+            "http://localhost:5173");
+    }
+    return (process.env.VITE_PUBLIC_APP_URL?.trim().replace(/\/+$/, "") ||
+        process.env.CORS_ORIGIN?.trim().replace(/\/+$/, "") ||
+        "http://localhost:3002");
+}
+/**
+ * Redirect the browser back to where checkout started (returnOrigin + returnPath
+ * stored on the payment). No WEB_APP_URL / STOREFRONT_APP_URL required.
+ */
+export function getJengaReturnRedirect(params) {
+    const source = params.metadata?.source;
+    const isStorefront = source === "storefront";
+    const fallbackPath = isStorefront ? "/cart" : "/payment/card/return";
+    const returnPath = params.metadata?.returnPath?.startsWith("/") &&
+        !params.metadata.returnPath.startsWith("//")
+        ? params.metadata.returnPath
+        : fallbackPath;
+    let origin = params.metadata?.returnOrigin?.trim() || "";
+    if (!origin || !isAllowedJengaReturnOrigin(origin)) {
+        origin = resolveFallbackOrigin(source);
+    }
+    else {
+        origin = normalizeOrigin(origin);
+    }
+    const url = new URL(returnPath, origin.endsWith("/") ? origin : `${origin}/`);
+    if (isStorefront) {
+        url.searchParams.set("cardRef", params.orderReference);
+        url.searchParams.set("cardStatus", params.status);
+    }
+    else {
+        url.searchParams.set("orderReference", params.orderReference);
+        url.searchParams.set("status", params.status);
+    }
     return url.toString();
 }

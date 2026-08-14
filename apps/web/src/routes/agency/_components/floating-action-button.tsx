@@ -56,6 +56,8 @@ import { useNewMessageDetector } from "@/hooks/use-new-message-detector";
 import { useGlobalNotificationDetector } from "@/hooks/use-global-notification-detector";
 import { useAiHistory, useAiChat, useAiMutations } from "@/hooks/use-ai";
 import { AiMarkdownRenderer } from "@/components/ai/ai-markdown-renderer";
+import { LiveAiSupportPanel } from "@/components/fab/live-ai-support-panel";
+import { trpc } from "@/utils/trpc";
 
 interface FloatingActionButtonProps {
   className?: string;
@@ -227,7 +229,7 @@ const initialGreetingMessage: ChatMessage = {
   timestamp: new Date(),
 };
 
-type ActiveTab = "home" | "messages";
+type ActiveTab = "home" | "messages" | "ai";
 type MessagesSubView = "list" | "chat" | "zepo-history" | "zepo";
 
 export function FloatingActionButton({ className }: FloatingActionButtonProps) {
@@ -273,6 +275,13 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
     userRole === "AGENCY_USER" ||
     userRole === "AGENCY_ADMIN" ||
     userRole === "AGENCY_SUPER_ADMIN";
+
+  const teamSlug = params.slug ?? null;
+  const { data: teamBySlug } = trpc.teams.getTeamIdBySlug.useQuery(
+    { slug: teamSlug ?? "" },
+    { enabled: Boolean(teamSlug) && !isAgency },
+  );
+  const supportTeamId = teamBySlug?.id ?? null;
 
   // Data hooks
   const {
@@ -828,6 +837,18 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                       <ChevronRight className="h-4 w-4 text-primary" />
                     </button>
                   </div>
+
+                  {!isAgency ? (
+                    <div className="bg-white dark:bg-card rounded-2xl overflow-hidden shadow-md border border-border/60">
+                      <button
+                        className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-muted/40 transition-colors"
+                        onClick={() => setActiveTab("ai")}
+                      >
+                        <span className="text-sm font-medium text-foreground">Live AI Support</span>
+                        <ChevronRight className="h-4 w-4 text-primary" />
+                      </button>
+                    </div>
+                  ) : null}
 
                   {/* External links */}
                   <div className="bg-white dark:bg-card rounded-2xl overflow-hidden shadow-md border border-border/60">
@@ -1653,6 +1674,30 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
             </div>
           )}
 
+          {activeTab === "ai" && !isAgency && (
+            teamSlug && !supportTeamId ? (
+              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                Loading…
+              </div>
+            ) : (
+              <LiveAiSupportPanel
+                teamId={supportTeamId}
+                teamSlug={teamSlug}
+                onBack={() => setActiveTab("home")}
+                onContactUs={() => {
+                  setActiveTab("messages");
+                  handleChatWithHuman("new");
+                }}
+                onViewTicket={(ticketId) => {
+                  setActiveTab("messages");
+                  void refetchTickets().finally(() => {
+                    handleChatWithHuman(ticketId);
+                  });
+                }}
+              />
+            )
+          )}
+
         </div>
 
         {/* ── Tab Bar ── */}
@@ -1662,6 +1707,9 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
               [
                 { id: "home", label: "Home", Icon: Icons.Home },
                 { id: "messages", label: "Messages", Icon: Icons.LiveChat },
+                ...(!isAgency
+                  ? [{ id: "ai" as const, label: "Live AI", Icon: Icons.AISupport }]
+                  : []),
               ] as { id: ActiveTab; label: string; Icon: React.ComponentType<{ className?: string; size?: number }> }[]
             ).map(({ id, label, Icon }) => {
               const isActive = activeTab === id;

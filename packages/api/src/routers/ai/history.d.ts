@@ -15,7 +15,7 @@ export declare const aiHistoryRouter: import("@trpc/server").TRPCBuiltRouter<{
             title: string | null;
             lastMessage: string | null;
             timestamp: Date;
-            status: "ACTIVE" | "CLOSED" | "ESCALATED";
+            status: "ACTIVE" | "ESCALATED" | "CLOSED";
         }[];
         meta: object;
     }>;
@@ -28,7 +28,7 @@ export declare const aiHistoryRouter: import("@trpc/server").TRPCBuiltRouter<{
             userId: string;
             teamId: string | null;
             title: string | null;
-            status: "ACTIVE" | "CLOSED" | "ESCALATED";
+            status: "ACTIVE" | "ESCALATED" | "CLOSED";
             createdAt: Date;
             updatedAt: Date;
             closedAt: Date | null;

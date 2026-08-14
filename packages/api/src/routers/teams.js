@@ -10,7 +10,7 @@ import { hostingSubscription } from "@npanel/db/schema/hosting";
 import { team, teamInvite, teamMember } from "@npanel/db/schema/teams";
 import { renderTeamInviteEmail } from "../lib/email-templates";
 import { getSesClient, sendSesRawEmail } from "../lib/ses-client";
-import { provisionZeepoCustomerSignupWelcome } from "../lib/zeepo-agent-signup-provisioning";
+// Zeepo AI Agent signup welcome grants removed  Zeepo AI uses gated first-use credits.
 const isAgencyRole = (role) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
 const isAgencySuperAdmin = (role) => role === "AGENCY_SUPER_ADMIN";
 async function assertTeamMutationAccess(teamId, actorUserId, actorRole) {
@@ -349,23 +349,12 @@ export const teamsRouter = router({
                 });
             }
         }
-        // Sign-up welcome tokens (email/password or Google): granted when a customer creates their
-        // first organization on /create-team - signup method does not matter, only teams.create.
-        const customerRole = inviter?.role ?? "CUSTOMER";
+        // First-team flag for UI; Zeepo AI Agent signup token grants removed.
         const [ownedTeamCountRow] = await db
             .select({ count: count() })
             .from(team)
             .where(eq(team.createdById, userId));
         const isFirstTeam = (ownedTeamCountRow?.count ?? 0) === 1;
-        if (customerRole === "CUSTOMER" && createdTeam.createdById === userId && isFirstTeam) {
-            void provisionZeepoCustomerSignupWelcome({
-                userId,
-                teamId: createdTeam.id,
-                userRole: customerRole,
-            }).catch((err) => {
-                console.error("[teams.create] Zeepo signup welcome provisioning failed:", err);
-            });
-        }
         return {
             success: true,
             isFirstTeam,

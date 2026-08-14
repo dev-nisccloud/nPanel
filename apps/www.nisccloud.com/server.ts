@@ -17,6 +17,7 @@ if (!API_TARGET) {
 
 const BACKEND_ORIGIN = new URL(API_TARGET);
 const PROXY_TIMEOUT_MS = 55_000;
+const STREAM_PROXY_TIMEOUT_MS = 1_800_000;
 
 const HOP_BY_HOP_HEADERS = new Set([
   "connection",
@@ -113,13 +114,17 @@ async function proxyToBackend(request: Request): Promise<Response> {
   const target = `${API_TARGET}${incoming.pathname}${incoming.search}`;
   const headers = buildProxyHeaders(request, incoming);
   const hasBody = request.method !== "GET" && request.method !== "HEAD";
+  const isStream =
+    incoming.pathname === "/api/zeepo-ai/support/guest/stream" ||
+    incoming.pathname === "/api/zeepo-ai/chat/stream" ||
+    (request.headers.get("accept") ?? "").includes("text/event-stream");
 
   const backendResponse = await fetch(target, {
     method: request.method,
     headers,
     body: hasBody ? request.body : undefined,
     redirect: "manual",
-    signal: AbortSignal.timeout(PROXY_TIMEOUT_MS),
+    signal: AbortSignal.timeout(isStream ? STREAM_PROXY_TIMEOUT_MS : PROXY_TIMEOUT_MS),
     ...(hasBody ? { duplex: "half" as const } : {}),
   });
 

@@ -12,6 +12,7 @@ import {
   MessageCircle,
   MessageSquare,
   Send,
+  Sparkles,
   X,
 } from "lucide-react";
 import {
@@ -38,8 +39,9 @@ import {
   type SupportTicketListItem,
   type SupportTicketMessage,
 } from "@/lib/support-tickets-api.ts";
+import { LiveAiSupportPanel } from "@/components/live-ai-support-panel.tsx";
 
-type ActiveTab = "home" | "messages";
+type ActiveTab = "home" | "messages" | "ai";
 type MessagesView = "list" | "chat" | "guest-form";
 
 function formatTime(value: string | Date | null | undefined): string {
@@ -184,6 +186,12 @@ export function FloatingActionButton({ className }: { className?: string }) {
     }
   }, [isSignedIn, auth]);
 
+  const openAiTab = () => {
+    setActiveTab("ai");
+    if (isSignedIn || guestReady) return;
+    setMessagesView("guest-form");
+  };
+
   const openMessagesTab = () => {
     setActiveTab("messages");
     if (isSignedIn) {
@@ -214,8 +222,10 @@ export function FloatingActionButton({ className }: { className?: string }) {
         phone: guestPhone.trim() || null,
       });
       setGuestReady(true);
-      setMessagesView("list");
-      await loadTickets();
+      if (activeTab !== "ai") {
+        setMessagesView("list");
+        await loadTickets();
+      }
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Could not start support session");
     } finally {
@@ -412,6 +422,17 @@ export function FloatingActionButton({ className }: { className?: string }) {
                       onClick={openMessagesTab}
                     >
                       <span className="text-sm font-medium text-foreground">Contact us</span>
+                      <ChevronRight className="h-4 w-4 text-primary" />
+                    </button>
+                  </div>
+
+                  <div className="overflow-hidden rounded-2xl border border-border/60 bg-white shadow-md dark:bg-card">
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between px-4 py-3.5 transition-colors hover:bg-muted/40"
+                      onClick={openAiTab}
+                    >
+                      <span className="text-sm font-medium text-foreground">Live AI Support</span>
                       <ChevronRight className="h-4 w-4 text-primary" />
                     </button>
                   </div>
@@ -707,15 +728,87 @@ export function FloatingActionButton({ className }: { className?: string }) {
               )}
             </div>
           )}
+
+          {activeTab === "ai" && (
+            <div className="flex h-full min-h-0 flex-col">
+              {!isSignedIn && !guestReady ? (
+                <>
+                  <div className="flex flex-shrink-0 items-center justify-between border-b px-4 pb-3 pt-4">
+                    <h2 className="text-base font-semibold text-foreground">Live AI Support</h2>
+                    <button
+                      type="button"
+                      className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-accent"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <form
+                    onSubmit={handleStartGuest}
+                    className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-4"
+                  >
+                    <p className="text-sm text-muted-foreground">
+                      Tell us how to reach you so Zeepo can help in this browser without signing in.
+                    </p>
+                    <label className="space-y-1.5">
+                      <span className="text-xs font-medium text-foreground">Name</span>
+                      <input
+                        required
+                        value={guestName}
+                        onChange={(e) => setGuestName(e.target.value)}
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/40"
+                        placeholder="Your name"
+                        autoComplete="name"
+                      />
+                    </label>
+                    <label className="space-y-1.5">
+                      <span className="text-xs font-medium text-foreground">Email</span>
+                      <input
+                        required
+                        type="email"
+                        value={guestEmail}
+                        onChange={(e) => setGuestEmail(e.target.value)}
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/40"
+                        placeholder="you@example.com"
+                        autoComplete="email"
+                      />
+                    </label>
+                    {formError ? <p className="text-xs text-red-600">{formError}</p> : null}
+                    <button
+                      type="submit"
+                      disabled={startingGuest}
+                      className="mt-2 rounded-full bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+                    >
+                      {startingGuest ? "Starting..." : "Continue"}
+                    </button>
+                  </form>
+                </>
+              ) : (
+                <LiveAiSupportPanel
+                  isSignedIn={isSignedIn}
+                  onBack={() => setActiveTab("home")}
+                  onContactUs={openMessagesTab}
+                  onViewTicket={(ticketId) => {
+                    setActiveTab("messages");
+                    void (async () => {
+                      await loadTickets();
+                      await openTicket(ticketId);
+                    })();
+                  }}
+                />
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex-shrink-0 border-t bg-background">
           <div className="flex">
             {(
               [
-                { id: "home", label: "Home", Icon: Home },
-                { id: "messages", label: "Messages", Icon: MessageSquare },
-              ] as const
+                { id: "home" as const, label: "Home", Icon: Home },
+                { id: "messages" as const, label: "Messages", Icon: MessageSquare },
+                { id: "ai" as const, label: "Live AI", Icon: Sparkles },
+              ]
             ).map(({ id, label, Icon }) => {
               const isActive = activeTab === id;
               return (
@@ -724,6 +817,7 @@ export function FloatingActionButton({ className }: { className?: string }) {
                   type="button"
                   onClick={() => {
                     if (id === "messages") openMessagesTab();
+                    else if (id === "ai") openAiTab();
                     else setActiveTab("home");
                   }}
                   className={cn(

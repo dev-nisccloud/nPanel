@@ -53,7 +53,7 @@ export declare const storefrontAuthRouter: import("@trpc/server").TRPCBuiltRoute
             };
             profile: {
                 complete: boolean;
-                missing: ("phone" | "country" | "city" | "postalCode" | "firstName" | "lastName" | "address")[];
+                missing: ("city" | "country" | "postalCode" | "phone" | "firstName" | "lastName" | "address")[];
                 prefill: {
                     firstName: string;
                     lastName: string;
@@ -91,7 +91,7 @@ export declare const storefrontAuthRouter: import("@trpc/server").TRPCBuiltRoute
         };
         output: {
             complete: boolean;
-            missing: ("phone" | "country" | "city" | "postalCode" | "firstName" | "lastName" | "address")[];
+            missing: ("city" | "country" | "postalCode" | "phone" | "firstName" | "lastName" | "address")[];
             displayName: string;
             prefill: {
                 firstName: string;

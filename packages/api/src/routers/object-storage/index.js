@@ -9,6 +9,7 @@ const AGENCY_MAX_FILE_SIZE = 1024 * 1024 * 1024; // 1GB
 /** Prefixes customers may upload to, with per-prefix byte caps. */
 const CUSTOMER_UPLOAD_LIMITS = {
     [STORAGE_PREFIXES.ZEEPO_AGENT]: 16 * 1024 * 1024, // 16MB (chat attachments)
+    [STORAGE_PREFIXES.ZEEPO_AI]: 16 * 1024 * 1024, // 16MB (Zeepo AI chat attachments)
     [STORAGE_PREFIXES.FILES]: 50 * 1024 * 1024, // 50MB (support ticket attachments)
 };
 /** Customer uploads per user per hour (presigned URL grants). */

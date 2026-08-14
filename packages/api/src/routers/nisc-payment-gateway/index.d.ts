@@ -65,14 +65,8 @@ export declare const niscPaymentGatewayRouter: import("@trpc/server").TRPCBuiltR
                     createdById: string;
                     teamId: string | null;
                     notes: string | null;
-                    businessName: string | null;
                     metadata: unknown;
-                    merchantName: string;
-                    merchantEmail: string;
-                    merchantPhone: string | null;
-                    merchantWebsite: string | null;
-                    businessType: string;
-                    businessRegistration: string | null;
+                    closedAt: Date | null;
                     settings: {
                         webhookUrl?: string;
                         webhookSecret?: string;
@@ -80,8 +74,14 @@ export declare const niscPaymentGatewayRouter: import("@trpc/server").TRPCBuiltR
                         notificationEmails?: string[];
                         ipWhitelist?: string[];
                     };
+                    businessName: string | null;
+                    merchantName: string;
+                    merchantEmail: string;
+                    merchantPhone: string | null;
+                    merchantWebsite: string | null;
+                    businessType: string;
+                    businessRegistration: string | null;
                     suspendedAt: Date | null;
-                    closedAt: Date | null;
                 } | undefined;
             };
             meta: object;
@@ -374,18 +374,18 @@ export declare const niscPaymentGatewayRouter: import("@trpc/server").TRPCBuiltR
                     id: string;
                     name: string;
                     createdAt: Date;
-                    expiresAt: Date | null;
                     isActive: boolean;
                     createdById: string;
                     metadata: unknown;
+                    expiresAt: Date | null;
+                    permissions: string[];
+                    keyHash: string;
+                    lastUsedAt: Date | null;
                     merchantId: string;
                     environment: string;
                     keyPrefix: string;
-                    keyHash: string;
-                    permissions: string[];
                     rateLimit: number;
                     allowedIps: string[] | null;
-                    lastUsedAt: Date | null;
                     revokedAt: Date | null;
                     revokedById: string | null;
                 } | undefined;
@@ -435,7 +435,7 @@ export declare const niscPaymentGatewayRouter: import("@trpc/server").TRPCBuiltR
         list: import("@trpc/server").TRPCQueryProcedure<{
             input: {
                 merchantId: string;
-                status?: "PENDING" | "PROCESSING" | "FAILED" | "CANCELLED" | "SUCCESS" | undefined;
+                status?: "PENDING" | "PROCESSING" | "CANCELLED" | "SUCCESS" | "FAILED" | undefined;
                 provider?: string | undefined;
                 limit?: number | undefined;
                 offset?: number | undefined;

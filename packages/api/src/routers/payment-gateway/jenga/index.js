@@ -97,6 +97,8 @@ export const jengaRouter = router({
                 customerPostalCodeZip: input.customerPostalCodeZip,
                 countryCode: input.countryCode,
                 extraData,
+                // Echoed on IPN as customer.reference in some Jenga payloads
+                secondaryReference: orderReference,
             });
             const transactionId = crypto.randomUUID();
             await db.insert(paymentTransaction).values({

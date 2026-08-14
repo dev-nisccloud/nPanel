@@ -11,7 +11,10 @@
  */
 export { agentCheckDomainAvailability, DEFAULT_DOMAIN_EXTENSIONS, } from "./domains";
 export { DEFAULT_DISPLAY_CURRENCY } from "./pricing";
-export { agentGetWebHostingPlans, agentGetEmailHostingPlans, } from "./hosting-plans";
+export { agentGetWebHostingPlans, agentGetEmailHostingPlans, agentGetWordPressHostingPlans, } from "./hosting-plans";
+export { agentGetVpsPlans, agentGetVdsPlans, agentGetDedicatedServerPlans, agentGetCloudPlans, } from "./cloud-plans";
+export { agentGetCloudServers, } from "./cloud-servers";
 export { agentGetDomainsPortfolio, } from "./domains-portfolio";
 export { agentGetDomainDetail, } from "./domain-detail";
 export { agentGetHostingResources, agentGetHostingDetail, } from "./hosting-resources";
+export { agentGetWordPressSites, } from "./wordpress-sites";

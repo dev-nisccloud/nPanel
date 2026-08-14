@@ -13,27 +13,43 @@ function isNonEmptyDbItem(db: { id?: number; name?: string; status?: string }): 
   return false;
 }
 
+type RelatedSitesMap = Record<string, { id: number; name: string }>;
+export type RelatedSitesStatus = "loading" | "ready" | "error";
+
+const queryOptions = {
+  staleTime: 30 * 1000,
+  gcTime: 10 * 60 * 1000,
+  refetchOnWindowFocus: false,
+} as const;
+
 /**
  * Transform Plesk databases API response to component format.
  * Result is normalized to an array (schema handles single object vs array); we filter empty placeholders.
  */
 function transformPleskDatabasesToComponent(
-  pleskResponse: z.infer<typeof pleskDatabasesResponseSchema>
+  pleskResponse: z.infer<typeof pleskDatabasesResponseSchema>,
+  relatedSites: RelatedSitesMap | undefined,
+  relatedStatus: RelatedSitesStatus,
 ): z.infer<typeof databaseSchema>[] {
   const raw = pleskResponse.parsed.packet.database["get-db"].result;
   const databases = raw.filter(isNonEmptyDbItem);
 
-  return databases.map((db) => ({
-    id: db.id ?? 0,
-    name: db.name ?? "Unknown Database",
-    type: (db.type as "mysql" | "postgresql" | "mssql") ?? "mysql",
-    status: db.status ?? "unknown",
-    "filter-id": db["filter-id"] ?? 0,
-    "webspace-id": db["webspace-id"] ?? 0,
-    "db-server-id": db["db-server-id"] ?? 0,
-    "related-site-id": db["related-site-id"] ?? null,
-    "related-site-name": db["related-site-name"] ?? null,
-  }));
+  return databases.map((db) => {
+    const related = relatedStatus === "ready" && db.id != null
+      ? relatedSites?.[String(db.id)]
+      : undefined;
+    return {
+      id: db.id ?? 0,
+      name: db.name ?? "Unknown Database",
+      type: (db.type as "mysql" | "postgresql" | "mssql") ?? "mysql",
+      status: db.status ?? "unknown",
+      "filter-id": db["filter-id"] ?? 0,
+      "webspace-id": db["webspace-id"] ?? 0,
+      "db-server-id": db["db-server-id"] ?? 0,
+      "related-site-id": relatedStatus === "ready" ? (related?.id ?? 0) : null,
+      "related-site-name": related?.name ?? null,
+    };
+  });
 }
 
 /**
@@ -50,30 +66,36 @@ export function useDatabasesBySiteId(siteId: number) {
     { siteId },
     {
       enabled: siteId > 0,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes
+      ...queryOptions,
       retry: (failureCount, error: any) => {
-        // Don't retry on authentication errors
         if (error?.data?.code === "UNAUTHORIZED") return false;
-        // Don't retry on service unavailable errors
         if (error?.data?.code === "SERVICE_UNAVAILABLE") return false;
-        // Don't retry on not found errors
         if (error?.data?.code === "NOT_FOUND") return false;
-        // Retry up to 3 times for other errors
         return failureCount < 3;
       },
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-      refetchOnWindowFocus: false,
       refetchOnReconnect: true,
     }
   );
 
-  // Handle API errors
+  const relatedQuery = trpc.plesk.databases.getRelatedSites.useQuery(
+    { siteId },
+    {
+      enabled: siteId > 0,
+      ...queryOptions,
+    },
+  );
+
+  const relatedStatus: RelatedSitesStatus = relatedQuery.isError
+    ? "error"
+    : relatedQuery.isSuccess
+      ? "ready"
+      : "loading";
+
   useEffect(() => {
     if (error) {
       console.error("Databases fetch error:", error);
-      
-      // Show user-friendly error messages
+
       if (error?.data?.code === "UNAUTHORIZED") {
         toast.error("Authentication failed. Please check your Plesk credentials.");
       } else if (error?.data?.code === "SERVICE_UNAVAILABLE") {
@@ -88,19 +110,21 @@ export function useDatabasesBySiteId(siteId: number) {
     }
   }, [error]);
 
-  // Transform the data
   let transformedData: z.infer<typeof databaseSchema>[] = [];
   let transformationError: Error | null = null;
 
   if (pleskData) {
     const getDb = (pleskData as any)?.parsed?.packet?.database?.["get-db"];
     if (getDb == null) {
-      // Malformed or empty API response (e.g. {}); treat as no databases, no toast
       transformedData = [];
     } else {
       try {
         const validatedData = pleskDatabasesResponseSchema.parse(pleskData);
-        transformedData = transformPleskDatabasesToComponent(validatedData);
+        transformedData = transformPleskDatabasesToComponent(
+          validatedData,
+          relatedQuery.data?.relatedSites,
+          relatedStatus,
+        );
       } catch (error) {
         console.error("Data transformation error:", error);
         console.error("Raw API response:", pleskData);
@@ -121,19 +145,28 @@ export function useDatabasesBySiteId(siteId: number) {
     isLoading,
     isError: isError || !!transformationError,
     error: error || transformationError,
-    refetch,
+    relatedSitesStatus: relatedStatus,
+    refetch: async () => {
+      await Promise.all([refetch(), relatedQuery.refetch()]);
+    },
     rawData: pleskData,
   };
 }
 
 export function usePrefetchDatabasesBySiteId(siteId: number | undefined) {
+  const enabled = (siteId ?? 0) > 0;
   trpc.plesk.databases.getBySiteId.useQuery(
     { siteId: siteId ?? 0 },
     {
-      enabled: (siteId ?? 0) > 0,
-      staleTime: 5 * 60 * 1000,
-      gcTime: 10 * 60 * 1000,
-      refetchOnWindowFocus: false,
+      enabled,
+      ...queryOptions,
+    },
+  );
+  trpc.plesk.databases.getRelatedSites.useQuery(
+    { siteId: siteId ?? 0 },
+    {
+      enabled,
+      ...queryOptions,
     },
   );
 }

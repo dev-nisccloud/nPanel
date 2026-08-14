@@ -14,7 +14,7 @@ export declare const aiChatRouter: import("@trpc/server").TRPCBuiltRouter<{
             userId: string;
             teamId: string | null;
             title: string | null;
-            status: "ACTIVE" | "CLOSED" | "ESCALATED";
+            status: "ACTIVE" | "ESCALATED" | "CLOSED";
             createdAt: Date;
             updatedAt: Date;
             closedAt: Date | null;

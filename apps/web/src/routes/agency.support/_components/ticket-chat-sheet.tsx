@@ -4,7 +4,7 @@ import { captureEvent } from "@/lib/posthog";
 
 import * as React from "react";
 import { format } from "date-fns";
-import { CheckCircle, CircleDot, Send } from "lucide-react";
+import { Bot, CheckCircle, CircleDot, Mail, Phone, Send } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 
 import { Button } from "@/components/ui/button";
@@ -364,6 +364,57 @@ export function TicketChatSheet({
               </div>
             )}
           </SheetHeader>
+
+          {ticket?.metadata &&
+            typeof ticket.metadata === "object" &&
+            !Array.isArray(ticket.metadata) &&
+            (ticket.metadata as Record<string, unknown>).openedBy === "zeepo_ai" && (
+              <div className="shrink-0 border-b bg-blue-50 px-4 py-3 dark:bg-blue-950/30 sm:px-6">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                    <Bot className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+                        AI-Generated Ticket
+                      </p>
+                      <Badge variant="outline" className="border-blue-300 bg-blue-100 text-[10px] text-blue-700 dark:border-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                        {(ticket.metadata as Record<string, unknown>).sourceSurface === "support_fab"
+                          ? "From Live AI Support"
+                          : "From Zeepo AI"}
+                      </Badge>
+                    </div>
+                    <p className="text-xs leading-relaxed text-blue-800 dark:text-blue-200">
+                      This ticket was created automatically by AI based on the customer's chat conversation. 
+                      It's informational only — reply directly to the customer using their contact details below.
+                    </p>
+                    {guestContact || (ticket.metadata as Record<string, unknown>).callbackPhone ? (
+                      <div className="flex flex-wrap items-center gap-3 pt-1">
+                        {guestContact?.email && (
+                          <a
+                            href={`mailto:${guestContact.email}`}
+                            className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-700 hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100"
+                          >
+                            <Mail className="h-3.5 w-3.5" />
+                            {guestContact.email}
+                          </a>
+                        )}
+                        {(guestContact?.phone || (ticket.metadata as Record<string, unknown>).callbackPhone) && (
+                          <a
+                            href={`tel:${guestContact?.phone || (ticket.metadata as Record<string, unknown>).callbackPhone}`}
+                            className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-700 hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100"
+                          >
+                            <Phone className="h-3.5 w-3.5" />
+                            {guestContact?.phone || (ticket.metadata as Record<string, unknown>).callbackPhone}
+                          </a>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            )}
 
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6">
             {isMessagesLoading && bubbles.length === 0 ? (

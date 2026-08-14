@@ -57,7 +57,8 @@ const initiateJengaCheckoutInputSchema = z.object({
     storefrontToken: z.string().min(1),
     cart: storefrontCartQuoteRequestSchema,
     customer: jengaCustomerFieldsSchema,
-    returnOrigin: z.string().url().optional(),
+    /** Origin of the storefront tab that started checkout (window.location.origin). */
+    returnOrigin: z.string().url(),
     returnPath: z.string().optional(),
 });
 const getJengaPaymentStatusInputSchema = z.object({
@@ -353,6 +354,8 @@ export const storefrontPaymentRouter = router({
                 customerPostalCodeZip: input.customer.customerPostalCodeZip,
                 countryCode: input.customer.countryCode,
                 extraData,
+                // Echoed on IPN as customer.reference in some Jenga payloads
+                secondaryReference: orderReference,
             });
             const transactionId = crypto.randomUUID();
             await db.insert(paymentTransaction).values({

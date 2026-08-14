@@ -6,7 +6,13 @@ export interface JengaConfig {
     apiKey: string;
     merchantCode: string;
     consumerSecret: string;
-    privateKeyPath: string;
+    /**
+     * Local/dev: filesystem path to RSA private key PEM.
+     * Prefer `privateKeyPem` on Cloud Run (Secret Manager → env).
+     */
+    privateKeyPath?: string;
+    /** Production-friendly: full PEM string (supports `\n` escaped newlines). */
+    privateKeyPem?: string;
     environment: JengaEnvironment;
     defaultCallbackUrl: string;
     ipnUsername?: string;
@@ -39,7 +45,7 @@ export declare const jengaOrderIntentSchema: z.ZodObject<{
         storefront: "storefront";
     }>;
     returnPath: z.ZodOptional<z.ZodString>;
-    returnOrigin: z.ZodOptional<z.ZodString>;
+    returnOrigin: z.ZodString;
     items: z.ZodOptional<z.ZodArray<z.ZodUnknown>>;
     currency: z.ZodOptional<z.ZodString>;
     teamId: z.ZodOptional<z.ZodString>;
@@ -61,10 +67,10 @@ export declare const initiateCardPaymentInputSchema: z.ZodObject<{
     countryCode: z.ZodString;
     amount: z.ZodNumber;
     currency: z.ZodDefault<z.ZodEnum<{
+        KES: "KES";
         USD: "USD";
         EUR: "EUR";
         GBP: "GBP";
-        KES: "KES";
         TZS: "TZS";
         UGX: "UGX";
     }>>;
@@ -82,7 +88,7 @@ export declare const initiateCardPaymentInputSchema: z.ZodObject<{
             storefront: "storefront";
         }>;
         returnPath: z.ZodOptional<z.ZodString>;
-        returnOrigin: z.ZodOptional<z.ZodString>;
+        returnOrigin: z.ZodString;
         items: z.ZodOptional<z.ZodArray<z.ZodUnknown>>;
         currency: z.ZodOptional<z.ZodString>;
         teamId: z.ZodOptional<z.ZodString>;
@@ -132,6 +138,10 @@ export declare const jengaCallbackQuerySchema: z.ZodObject<{
     extraData: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
 export type JengaCallbackQuery = z.infer<typeof jengaCallbackQuerySchema>;
+/**
+ * Real Jenga IPN shape (from JengaHQ sample)  currency fields are often omitted;
+ * bank.account may be the string "null".
+ */
 export declare const jengaIpnPayloadSchema: z.ZodObject<{
     callbackType: z.ZodLiteral<"IPN">;
     customer: z.ZodObject<{
@@ -143,30 +153,31 @@ export declare const jengaIpnPayloadSchema: z.ZodObject<{
         date: z.ZodString;
         reference: z.ZodString;
         paymentMode: z.ZodString;
-        amount: z.ZodNumber;
-        currency: z.ZodString;
+        amount: z.ZodUnion<readonly [z.ZodNumber, z.ZodString]>;
+        currency: z.ZodOptional<z.ZodString>;
         billNumber: z.ZodString;
         servedBy: z.ZodOptional<z.ZodString>;
         additionalInfo: z.ZodOptional<z.ZodString>;
-        orderAmount: z.ZodNumber;
-        serviceCharge: z.ZodNumber;
-        orderCurrency: z.ZodString;
+        orderAmount: z.ZodOptional<z.ZodUnion<readonly [z.ZodNumber, z.ZodString]>>;
+        serviceCharge: z.ZodOptional<z.ZodUnion<readonly [z.ZodNumber, z.ZodString]>>;
+        orderCurrency: z.ZodOptional<z.ZodString>;
         status: z.ZodEnum<{
-            FAILED: "FAILED";
             SUCCESS: "SUCCESS";
+            FAILED: "FAILED";
         }>;
         remarks: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>;
     bank: z.ZodObject<{
         reference: z.ZodString;
         transactionType: z.ZodString;
-        account: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+        account: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>>;
     }, z.core.$strip>;
 }, z.core.$strip>;
 export type JengaIpnPayload = z.infer<typeof jengaIpnPayloadSchema>;
 export type JengaPaymentMetadata = {
     source?: "buy_now" | "global_buy_now" | "storefront";
     returnPath?: string;
+    /** Origin of the app that started checkout  used for post-Jenga redirect */
     returnOrigin?: string;
     orderReference: string;
     customer?: {

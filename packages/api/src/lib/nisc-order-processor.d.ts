@@ -1,6 +1,6 @@
 export type ProcessNiscOrderResult = {
     ok: true;
-    status: "COMPLETED" | "PARTIAL";
+    status: "COMPLETED" | "PARTIAL" | "PROCESSING";
     failureReason?: string;
 } | {
     ok: false;

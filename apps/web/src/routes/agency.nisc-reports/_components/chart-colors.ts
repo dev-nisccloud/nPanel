@@ -31,7 +31,7 @@ export const CHART_SEMANTIC_COLORS: Record<string, string> = {
   EXPIRED: "#78716c",
   // Subscriptions
   ACTIVE: "#10b981",
-  PENDING: "#3b82f6",
+  PENDING_SUB: "#3b82f6",
   SUSPENDED: "#f59e0b",
   CANCELLED_SUB: "#94a3b8",
   EXPIRED_SUB: "#78716c",

@@ -9,16 +9,16 @@ export declare const storefrontCartRouter: import("@trpc/server").TRPCBuiltRoute
     createHandoff: import("@trpc/server").TRPCMutationProcedure<{
         input: {
             serviceType: string;
-            locationName?: string | undefined;
             productId?: string | undefined;
-            productName?: string | undefined;
             billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "TRIENNIALLY" | "QUADRENNIALLY" | undefined;
+            productName?: string | undefined;
+            locationName?: string | undefined;
             providerPriceAmount?: number | undefined;
             providerPriceCurrency?: string | undefined;
             customerPriceAmount?: number | undefined;
             customerPriceCurrency?: string | undefined;
-            planName?: string | undefined;
             planId?: string | undefined;
+            planName?: string | undefined;
             bundleDomains?: string[] | undefined;
             transferProvider?: "kenic" | "openprovider" | undefined;
         };

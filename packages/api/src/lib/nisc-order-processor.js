@@ -6,7 +6,7 @@
  * OpenProvider (domain_transfer) → ensure integration, verify email, transfer domain (auth code in item.metadata);
  * Hivelocity (dedicated_server_hosting, vps_hosting, vds_hosting) → Deployment API, create subscription with device refs.
  */
-import { eq } from "@npanel/db";
+import { and, eq, lt, or, sql } from "@npanel/db";
 import { randomUUID } from "node:crypto";
 import { db } from "@npanel/db";
 import { niscOrder, niscOrderItem } from "@npanel/db/schema/nisc-orders";
@@ -16,10 +16,12 @@ import { team } from "@npanel/db/schema/teams";
 import { niscLog } from "./nisc-order-logger";
 import { provisionInitialUsageCreditsForSubscription } from "./subscription-usage-provisioning";
 import { isZeepoAiAgentProduct, provisionZeepoAgentOrderItem, } from "./zeepo-agent-order-provisioning";
+import { isZeepoAiProduct, provisionZeepoAiOrderItem, } from "./zeepo-ai-order-provisioning";
 import { isKenicDomain } from "./epp/kenic-tlds";
-import { ensureKenicIntegration, registerKenicDomain } from "./kenic-nisc";
+import { agreedPriceIncVatFromOrderLine } from "./convert-price";
+import { ensureKenicIntegration, registerKenicDomain, setKenicTransferLock, } from "./kenic-nisc";
 import { OpenProviderApiError } from "./openprovider-client";
-import { computeSubscriptionExpiryFromBillingCycle, resolveDomainTransferSubscriptionStartDate, resolveSubscriptionPeriodDates, } from "./nisc-subscription-dates";
+import { resolveDomainBillingCycle, resolveDomainRegistrationPeriodYears, resolveDomainTransferSubscriptionStartDate, resolveSubscriptionPeriodDates, } from "./nisc-subscription-dates";
 import { processHivelocityOrderItem } from "./hivelocity-nisc-processor";
 import { HIVELOCITY_SERVICE_TYPES } from "../routers/nisc-service-orders-schemas";
 /** Build a serializable error-details object for provisioningErrorDetails (exact provider response for debugging). */
@@ -72,6 +74,8 @@ function getDomainProvider(domain) {
         return "openprovider";
     return isKenicDomain(domain) ? "kenic" : "openprovider";
 }
+/** Stale PROCESSING claims older than this may be reclaimed by another worker. */
+const STALE_PROCESSING_MS = 15 * 60 * 1000;
 export async function processNiscOrder(niscOrderId) {
     const order = await db.query.niscOrder.findFirst({
         where: eq(niscOrder.id, niscOrderId),
@@ -98,13 +102,58 @@ export async function processNiscOrder(niscOrderId) {
         itemIds: order.orderItems.map((i) => i.id),
     });
     const now = new Date();
-    await db
+    const staleBefore = new Date(now.getTime() - STALE_PROCESSING_MS);
+    // Atomic claim: PENDING → PROCESSING, or reclaim stale PROCESSING (crash recovery).
+    const claimed = await db
         .update(niscOrder)
         .set({ status: "PROCESSING", processedAt: now, updatedAt: now })
-        .where(eq(niscOrder.id, niscOrderId));
+        .where(and(eq(niscOrder.id, niscOrderId), or(eq(niscOrder.status, "PENDING"), and(eq(niscOrder.status, "PROCESSING"), lt(niscOrder.processedAt, staleBefore)))))
+        .returning({ id: niscOrder.id, status: niscOrder.status });
+    if (!claimed[0]) {
+        const [current] = await db
+            .select({ status: niscOrder.status, failureReason: niscOrder.failureReason })
+            .from(niscOrder)
+            .where(eq(niscOrder.id, niscOrderId))
+            .limit(1);
+        await niscLog("processor_order_claim_skipped", {
+            niscOrderId,
+            status: current?.status ?? null,
+        });
+        if (current?.status === "FAILED") {
+            return {
+                ok: false,
+                status: "FAILED",
+                failureReason: current.failureReason ?? "Order already failed",
+            };
+        }
+        if (current?.status === "PARTIAL") {
+            return {
+                ok: true,
+                status: "PARTIAL",
+                failureReason: current.failureReason ?? undefined,
+            };
+        }
+        if (current?.status === "PROCESSING") {
+            // Fresh claim held by another worker  do not pretend COMPLETED (avoids early emails).
+            return {
+                ok: true,
+                status: "PROCESSING",
+                failureReason: "Order is already being processed",
+            };
+        }
+        if (current?.status === "COMPLETED") {
+            return { ok: true, status: "COMPLETED" };
+        }
+        return {
+            ok: false,
+            status: "FAILED",
+            failureReason: `Order is not claimable (status: ${current?.status ?? "unknown"})`,
+        };
+    }
     await niscLog("processor_order_status_updated", { niscOrderId, status: "PROCESSING" });
     let hasFailure = false;
     let hasSuccess = false;
+    let hasPendingVerification = false;
     const failureReasons = [];
     for (const item of order.orderItems) {
         const rawServiceType = item.product.serviceType;
@@ -127,6 +176,36 @@ export async function processNiscOrder(niscOrderId) {
             hasSuccess = true;
             continue;
         }
+        // Already linked to a subscription (e.g. crash after provision, before status write).
+        if (item.niscClientSubscriptionId) {
+            // PENDING + linked = awaiting provider verification (e.g. domain transfer); do not force PROVISIONED.
+            if (item.status === "PENDING") {
+                await niscLog("processor_item_skip_pending_verification", {
+                    niscOrderId,
+                    orderItemId: item.id,
+                    subscriptionId: item.niscClientSubscriptionId,
+                });
+                hasPendingVerification = true;
+                continue;
+            }
+            await db
+                .update(niscOrderItem)
+                .set({ status: "PROVISIONED", provisioningError: null, updatedAt: now })
+                .where(eq(niscOrderItem.id, item.id));
+            await niscLog("processor_item_skip_already_linked", {
+                niscOrderId,
+                orderItemId: item.id,
+                subscriptionId: item.niscClientSubscriptionId,
+            });
+            hasSuccess = true;
+            continue;
+        }
+        // Heartbeat so stale-claim reclaim does not steal a long multi-item run.
+        const heartbeat = new Date();
+        await db
+            .update(niscOrder)
+            .set({ processedAt: heartbeat, updatedAt: heartbeat })
+            .where(eq(niscOrder.id, niscOrderId));
         await db
             .update(niscOrderItem)
             .set({ status: "PROCESSING", updatedAt: now })
@@ -345,24 +424,33 @@ export async function processNiscOrder(niscOrderId) {
                             });
                         }
                     }
+                    const warnings = "warnings" in result && Array.isArray(result.warnings)
+                        ? result.warnings.filter(Boolean)
+                        : [];
                     await db
                         .update(niscOrderItem)
                         .set({
                         status: result.status,
                         niscClientSubscriptionId: result.subscriptionId ?? undefined,
-                        provisioningError: result.pendingVerification ? "Pending email verification" : undefined,
+                        provisioningError: result.pendingVerification
+                            ? "Pending email verification"
+                            : warnings.length
+                                ? warnings.join("; ")
+                                : undefined,
                         updatedAt: now,
                     })
                         .where(eq(niscOrderItem.id, item.id));
+                    const isPendingVerification = Boolean(result.pendingVerification) || result.status === "PENDING";
                     if (domainTransferRequestId) {
                         await db
                             .update(domainTransferRequest)
                             .set({
-                            status: "COMPLETED",
+                            status: isPendingVerification ? "SUBMITTED_TO_PROVIDER" : "COMPLETED",
                             providerResponse: {
                                 subscriptionId: result.subscriptionId ?? null,
                                 status: result.status,
                                 pendingVerification: result.pendingVerification ?? false,
+                                warnings: warnings.length ? warnings : undefined,
                             },
                             updatedAt: now,
                         })
@@ -375,8 +463,15 @@ export async function processNiscOrder(niscOrderId) {
                         subscriptionId: result.subscriptionId ?? null,
                         status: result.status,
                         pendingVerification: result.pendingVerification ?? false,
+                        warnings: warnings.length ? warnings : undefined,
                     });
-                    hasSuccess = true;
+                    if (isPendingVerification) {
+                        hasPendingVerification = true;
+                    }
+                    else {
+                        hasSuccess = true;
+                    }
+                    // Transfer-lock warnings stay on item.provisioningError for visibility but are not failures.
                 }
                 else {
                     const errDetails = "errorDetails" in result ? result.errorDetails : undefined;
@@ -434,16 +529,50 @@ export async function processNiscOrder(niscOrderId) {
             }
             // Default: DB-only (no external provider). Create subscription and provision usage from plan when configured.
             // Covers all service types not requiring Plesk or domain provider, e.g. ai_image_generator, background_remover, creatives, consulting, custom, etc.
-            const isZeepoItem = isZeepoAiAgentProduct(item.productId);
+            const isZeepoAgentItem = isZeepoAiAgentProduct(item.productId);
+            const isZeepoAiItem = isZeepoAiProduct(item.productId);
+            const isZeepoItem = isZeepoAgentItem || isZeepoAiItem;
             await niscLog("processor_item_branch", {
                 niscOrderId,
                 orderItemId: item.id,
-                branch: isZeepoItem ? "zeepo_ai_agent" : "no_integration",
+                branch: isZeepoAiItem
+                    ? "zeepo_ai"
+                    : isZeepoAgentItem
+                        ? "zeepo_ai_agent"
+                        : "no_integration",
                 serviceType,
                 ...(isZeepoItem ? { teamId: order.teamId ?? null } : {}),
             });
             let sub;
-            if (isZeepoItem) {
+            if (isZeepoAiItem) {
+                const zeepoResult = await provisionZeepoAiOrderItem({
+                    userId: order.userId,
+                    teamId: order.teamId,
+                    createdBy: order.createdBy,
+                    orderId: order.id,
+                    currency: order.currency,
+                }, {
+                    productId: item.productId,
+                    productPlanId: item.productPlanId,
+                    billingCycle: item.billingCycle,
+                    itemPrice: item.itemPrice,
+                    itemSubtotal: item.itemSubtotal,
+                    description: item.description,
+                    metadata: item.metadata,
+                    product: { name: item.product.name },
+                    productPlan: item.productPlan
+                        ? {
+                            name: item.productPlan.name,
+                            pricingModel: item.productPlan.pricingModel,
+                            price: item.productPlan.price,
+                            cost: item.productPlan.cost,
+                            metadata: item.productPlan.metadata,
+                        }
+                        : null,
+                });
+                sub = { id: zeepoResult.subscriptionId };
+            }
+            else if (isZeepoAgentItem) {
                 const zeepoResult = await provisionZeepoAgentOrderItem({
                     userId: order.userId,
                     teamId: order.teamId,
@@ -455,6 +584,7 @@ export async function processNiscOrder(niscOrderId) {
                     productPlanId: item.productPlanId,
                     billingCycle: item.billingCycle,
                     itemPrice: item.itemPrice,
+                    itemSubtotal: item.itemSubtotal,
                     description: item.description,
                     metadata: item.metadata,
                     product: { name: item.product.name },
@@ -484,7 +614,11 @@ export async function processNiscOrder(niscOrderId) {
             await niscLog("processor_item_success", {
                 niscOrderId,
                 orderItemId: item.id,
-                branch: isZeepoItem ? "zeepo_ai_agent" : "no_integration",
+                branch: isZeepoAiItem
+                    ? "zeepo_ai"
+                    : isZeepoAgentItem
+                        ? "zeepo_ai_agent"
+                        : "no_integration",
                 subscriptionId: sub.id,
             });
             hasSuccess = true;
@@ -532,10 +666,11 @@ export async function processNiscOrder(niscOrderId) {
     }
     const failureReason = failureReasons.length > 0 ? failureReasons.join("; ") : null;
     let orderStatus;
-    if (hasFailure && !hasSuccess) {
+    // Pending verification is not terminal failure  keep PARTIAL so reclaim/retry can finish later.
+    if (hasFailure && !hasSuccess && !hasPendingVerification) {
         orderStatus = "FAILED";
     }
-    else if (hasFailure && hasSuccess) {
+    else if (hasFailure || hasPendingVerification) {
         orderStatus = "PARTIAL";
     }
     else {
@@ -546,6 +681,7 @@ export async function processNiscOrder(niscOrderId) {
         orderStatus,
         hasFailure,
         hasSuccess,
+        hasPendingVerification,
         failureReason: failureReason ?? null,
         failureReasons,
     });
@@ -573,6 +709,14 @@ async function createSubscriptionForOrderItem(order, item) {
     const pricingModel = plan?.pricingModel ?? "FIXED";
     const now = new Date();
     const periodDates = resolveSubscriptionPeriodDates(now, item.billingCycle);
+    // Idempotent: reuse subscription already created for this order item (crash recovery).
+    const existingForItem = await db.query.niscClientSubscription.findFirst({
+        where: and(eq(niscClientSubscription.niscOrderId, order.id), sql `${niscClientSubscription.metadata}->>'niscOrderItemId' = ${item.id}`),
+        columns: { id: true },
+    });
+    if (existingForItem) {
+        return existingForItem;
+    }
     const subId = randomUUID();
     const inserted = await db
         .insert(niscClientSubscription)
@@ -591,7 +735,7 @@ async function createSubscriptionForOrderItem(order, item) {
         subscriptionDate: now,
         billingCycle: item.billingCycle ?? null,
         pricingModel,
-        agreedPrice: item.itemPrice,
+        agreedPrice: agreedPriceIncVatFromOrderLine(item),
         agreedCurrency: order.currency,
         agreedCost: plan?.cost ?? null,
         agreedCostCurrency: "KES",
@@ -601,7 +745,7 @@ async function createSubscriptionForOrderItem(order, item) {
         agreedCommissionBase: null,
         expiryDate: periodDates.expiryDate,
         nextRenewalDate: periodDates.nextRenewalDate,
-        metadata: null,
+        metadata: { niscOrderItemId: item.id },
     })
         .returning();
     const sub = inserted[0];
@@ -629,6 +773,18 @@ async function processPleskOrderItem(order, item) {
     if (!domainName) {
         return { ok: false, error: "Domain is required for hosting. Enter a domain name for Plesk." };
     }
+    // Crash/retry: reuse subscription already created for this order item.
+    const existingForItem = await db.query.niscClientSubscription.findFirst({
+        where: and(eq(niscClientSubscription.niscOrderId, order.id), sql `${niscClientSubscription.metadata}->>'niscOrderItemId' = ${item.id}`),
+        columns: { id: true },
+    });
+    if (existingForItem) {
+        return {
+            ok: true,
+            subscriptionId: existingForItem.id,
+            rawResponse: { skipped: true, reason: "subscription_already_exists_for_order_item" },
+        };
+    }
     const meta = item.metadata;
     const provisionUserIdFromMeta = meta?.provisionUserId?.trim() || null;
     const teamOwnerId = provisionUserIdFromMeta
@@ -650,12 +806,39 @@ async function processPleskOrderItem(order, item) {
     try {
         const { ensurePleskIntegration, provisionToPlesk } = await import("@npanel/api/lib/plesk-integration");
         const pleskOwnerId = await ensurePleskIntegration(teamOwnerId, order.createdBy);
-        const result = await provisionToPlesk({
-            domainName,
-            pleskOwnerId,
-            pleskServicePlanId: planId,
-            ipAddress: item.productPlan.pleskIpAddress ?? undefined,
-        });
+        let result;
+        try {
+            result = await provisionToPlesk({
+                domainName,
+                pleskOwnerId,
+                pleskServicePlanId: planId,
+                ipAddress: item.productPlan.pleskIpAddress ?? undefined,
+            });
+        }
+        catch (provisionErr) {
+            const provisionMessage = provisionErr instanceof Error ? provisionErr.message : String(provisionErr);
+            const looksLikeDuplicate = /already exists|duplicate|object already exists|exists already/i.test(provisionMessage);
+            if (looksLikeDuplicate) {
+                const existingSub = await db.query.niscClientSubscription.findFirst({
+                    where: and(eq(niscClientSubscription.primaryDomain, domainName), eq(niscClientSubscription.productId, item.productId), order.teamId
+                        ? eq(niscClientSubscription.teamId, order.teamId)
+                        : sql `${niscClientSubscription.teamId} is null`, eq(niscClientSubscription.niscOrderId, order.id)),
+                    columns: { id: true },
+                });
+                if (existingSub) {
+                    return {
+                        ok: true,
+                        subscriptionId: existingSub.id,
+                        rawResponse: {
+                            skipped: true,
+                            reason: "plesk_domain_already_exists_reused_subscription",
+                            message: provisionMessage,
+                        },
+                    };
+                }
+            }
+            throw provisionErr;
+        }
         const name = `${item.product.name} - ${item.productPlan.name}`;
         const subId = randomUUID();
         const subscriptionDate = new Date();
@@ -676,7 +859,7 @@ async function processPleskOrderItem(order, item) {
             subscriptionDate,
             billingCycle: item.billingCycle ?? null,
             pricingModel: item.productPlan.pricingModel,
-            agreedPrice: item.itemPrice,
+            agreedPrice: agreedPriceIncVatFromOrderLine(item),
             agreedCurrency: order.currency,
             agreedCost: item.productPlan.cost ?? null,
             agreedCostCurrency: "KES",
@@ -690,7 +873,7 @@ async function processPleskOrderItem(order, item) {
             agreedCommissionBase: null,
             expiryDate: periodDates.expiryDate,
             nextRenewalDate: periodDates.nextRenewalDate,
-            metadata: null,
+            metadata: { niscOrderItemId: item.id },
         })
             .returning();
         const sub = inserted[0];
@@ -720,19 +903,8 @@ async function processPleskOrderItem(order, item) {
         };
     }
 }
-function billingCycleToYears(billingCycle) {
-    if (!billingCycle)
-        return 1;
-    const cycle = billingCycle.trim().toUpperCase();
-    if (cycle === "BIENNIALLY")
-        return 2;
-    if (cycle === "TRIENNIALLY")
-        return 3;
-    if (cycle === "QUADRENNIALLY")
-        return 4;
-    if (cycle === "YEARLY")
-        return 1;
-    return 1;
+function billingCycleToYears(billingCycle, metadata) {
+    return resolveDomainRegistrationPeriodYears(billingCycle, metadata);
 }
 async function resolveOwnerId(order, item) {
     const metadata = item.metadata;
@@ -781,7 +953,7 @@ async function processKenicOrderItem(order, item) {
             logContext: { niscOrderId: order.id, orderItemId: item.id },
             manualDetails: metadata?.manualRegistrantDetails,
         });
-        const period = billingCycleToYears(item.billingCycle);
+        const period = billingCycleToYears(item.billingCycle, item.metadata);
         let nameServers = metadata?.nameServers;
         if (!nameServers || nameServers.length === 0) {
             try {
@@ -805,11 +977,21 @@ async function processKenicOrderItem(order, item) {
             orderItemId: item.id,
             nameServers,
         });
+        const warnings = [];
+        try {
+            await setKenicTransferLock(domain, true);
+        }
+        catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.error("[KENIC] Failed to enable transfer lock after registration:", err);
+            warnings.push(`Domain provisioned but transfer lock could not be enabled (${msg})  enable lock manually.`);
+        }
         const subId = randomUUID();
         const subscriptionDate = new Date();
+        const billingCycle = resolveDomainBillingCycle(item.billingCycle);
         const registryExpiry = regResult.exDate ? new Date(regResult.exDate) : null;
-        const periodDates = resolveSubscriptionPeriodDates(subscriptionDate, item.billingCycle, {
-            expiryOverride: registryExpiry,
+        const periodDates = resolveSubscriptionPeriodDates(subscriptionDate, billingCycle, {
+            expiryOverride: registryExpiry && !Number.isNaN(registryExpiry.getTime()) ? registryExpiry : null,
         });
         const inserted = await db
             .insert(niscClientSubscription)
@@ -826,9 +1008,9 @@ async function processKenicOrderItem(order, item) {
             subscribedBy: order.createdBy,
             status: "ACTIVE",
             subscriptionDate,
-            billingCycle: item.billingCycle ?? null,
+            billingCycle: billingCycle,
             pricingModel: "FIXED",
-            agreedPrice: item.itemPrice,
+            agreedPrice: agreedPriceIncVatFromOrderLine(item),
             agreedCurrency: order.currency,
             agreedCost: item.productPlan?.cost ?? null,
             agreedCostCurrency: "KES",
@@ -839,7 +1021,7 @@ async function processKenicOrderItem(order, item) {
             nextRenewalDate: periodDates.nextRenewalDate,
             agreedCommissionRate: null,
             agreedCommissionBase: null,
-            metadata: null,
+            metadata: warnings.length ? { transferLockWarning: warnings[0] } : null,
         })
             .returning();
         const sub = inserted[0];
@@ -858,6 +1040,7 @@ async function processKenicOrderItem(order, item) {
             ok: true,
             subscriptionId: sub.id,
             status: "PROVISIONED",
+            ...(warnings.length ? { warnings } : {}),
         };
     }
     catch (err) {
@@ -901,10 +1084,11 @@ async function processKenicTransferOrderItem(order, item) {
             }
         }
         const { executeKenicTransferRequest } = await import("./kenic-transfer-request");
+        const transferPeriod = resolveDomainRegistrationPeriodYears(item.billingCycle, item.metadata);
         const transferResult = await executeKenicTransferRequest({
             name: domain,
             authCode,
-            period: 1,
+            period: transferPeriod,
             nameServers,
         });
         // CoCCA never returns plaintext auth codes later. Set a fresh outbound code when
@@ -919,11 +1103,26 @@ async function processKenicTransferOrderItem(order, item) {
                 console.error("[KENIC] Failed to set outbound auth code after transfer:", err);
             }
         }
+        const warnings = [];
+        if (!transferResult.pending) {
+            try {
+                await setKenicTransferLock(domain, true);
+            }
+            catch (err) {
+                const msg = err instanceof Error ? err.message : String(err);
+                console.error("[KENIC] Failed to enable transfer lock after transfer:", err);
+                warnings.push(`Domain transferred but transfer lock could not be enabled (${msg})  enable lock manually.`);
+            }
+        }
         const subscriptionDate = await resolveDomainTransferSubscriptionStartDate({
             domainTransferRequestId: metadata?.domainTransferRequestId,
             orderCreatedAt: order.createdAt,
         });
-        const expiryDate = computeSubscriptionExpiryFromBillingCycle(subscriptionDate, item.billingCycle);
+        const billingCycle = resolveDomainBillingCycle(item.billingCycle);
+        const registryExpiry = transferResult.exDate ? new Date(transferResult.exDate) : null;
+        const periodDates = resolveSubscriptionPeriodDates(subscriptionDate, billingCycle, {
+            expiryOverride: registryExpiry && !Number.isNaN(registryExpiry.getTime()) ? registryExpiry : null,
+        });
         const subId = randomUUID();
         const inserted = await db
             .insert(niscClientSubscription)
@@ -940,20 +1139,20 @@ async function processKenicTransferOrderItem(order, item) {
             subscribedBy: order.createdBy,
             status: "ACTIVE",
             subscriptionDate,
-            billingCycle: item.billingCycle ?? null,
-            nextRenewalDate: expiryDate,
+            billingCycle: billingCycle,
+            nextRenewalDate: periodDates.nextRenewalDate,
             pricingModel: "FIXED",
-            agreedPrice: item.itemPrice,
+            agreedPrice: agreedPriceIncVatFromOrderLine(item),
             agreedCurrency: order.currency,
             agreedCost: item.productPlan?.cost ?? null,
             agreedCostCurrency: "KES",
             primaryDomain: domain,
             openProviderId: null,
             domainAuthCode: outboundAuthCode,
-            expiryDate,
+            expiryDate: periodDates.expiryDate,
             agreedCommissionRate: null,
             agreedCommissionBase: null,
-            metadata: null,
+            metadata: warnings.length ? { transferLockWarning: warnings[0] } : null,
         })
             .returning();
         const sub = inserted[0];
@@ -974,6 +1173,7 @@ async function processKenicTransferOrderItem(order, item) {
             status: transferResult.pending ? "PENDING" : "PROVISIONED",
             pendingVerification: transferResult.pending,
             rawResponse: transferResult.raw,
+            ...(warnings.length ? { warnings } : {}),
         };
     }
     catch (err) {
@@ -1025,10 +1225,12 @@ async function processOpenProviderTransferOrderItem(order, item) {
             description: item.description ?? undefined,
             userId: order.userId,
             teamId: order.teamId,
-            billingCycle: item.billingCycle,
-            itemPrice: item.itemPrice,
+            billingCycle: resolveDomainBillingCycle(item.billingCycle),
+            itemPrice: item.itemSubtotal || item.itemPrice,
             currency: order.currency,
             nameServers,
+            period: resolveDomainRegistrationPeriodYears(item.billingCycle, item.metadata),
+            metadata: item.metadata,
             manualDetails: metadata?.manualRegistrantDetails,
             domainTransferRequestId: metadata?.domainTransferRequestId,
             orderCreatedAt: order.createdAt,
@@ -1039,6 +1241,7 @@ async function processOpenProviderTransferOrderItem(order, item) {
             status: result.pendingVerification ? "PENDING" : "PROVISIONED",
             pendingVerification: result.pendingVerification,
             rawResponse: result.rawResponse,
+            ...(result.warnings?.length ? { warnings: result.warnings } : {}),
         };
     }
     catch (err) {
@@ -1083,10 +1286,12 @@ async function processOpenProviderOrderItem(order, item) {
             description: item.description ?? undefined,
             userId: order.userId,
             teamId: order.teamId,
-            billingCycle: item.billingCycle,
-            itemPrice: item.itemPrice,
+            billingCycle: resolveDomainBillingCycle(item.billingCycle),
+            itemPrice: item.itemSubtotal || item.itemPrice,
             currency: order.currency,
             nameServers,
+            period: resolveDomainRegistrationPeriodYears(item.billingCycle, item.metadata),
+            metadata: item.metadata,
             manualDetails: metadata?.manualRegistrantDetails,
         });
         if (result.subscriptionId) {
@@ -1095,6 +1300,7 @@ async function processOpenProviderOrderItem(order, item) {
                 subscriptionId: result.subscriptionId,
                 status: result.pendingVerification ? "PENDING" : "PROVISIONED",
                 pendingVerification: result.pendingVerification,
+                ...(result.warnings?.length ? { warnings: result.warnings } : {}),
             };
         }
         return {

@@ -18,7 +18,9 @@ import {
   Calendar as CalendarIcon,
   Coins,
   Cpu,
+  Headphones,
   RefreshCw,
+  Sparkles,
   Timer,
   TriangleAlert,
   Users,
@@ -50,6 +52,7 @@ type ProviderFilter = "all" | "anthropic" | "google";
 type EventTypeFilter = "all" | "chat_turn" | "generation" | "image_edit" | "other";
 type StatusFilter = "all" | "succeeded" | "failed" | "cancelled" | "partial";
 type GroupBy = "user" | "team";
+type SurfaceFilter = "all" | "zeepo_ai" | "support_fab";
 
 type Preset = "24h" | "7d" | "30d" | "month" | "custom";
 
@@ -146,6 +149,7 @@ export function ZeepoAiActivityPage() {
   const [eventType, setEventType] = React.useState<EventTypeFilter>("all");
   const [status, setStatus] = React.useState<StatusFilter>("all");
   const [groupBy, setGroupBy] = React.useState<GroupBy>("user");
+  const [surface, setSurface] = React.useState<SurfaceFilter>("all");
   const [page, setPage] = React.useState(1);
   const [calendarOpen, setCalendarOpen] = React.useState(false);
   const limit = 50;
@@ -163,6 +167,7 @@ export function ZeepoAiActivityPage() {
       eventType,
       status,
       groupBy,
+      surface,
     },
     { staleTime: 30_000, placeholderData: (prev) => prev },
   );
@@ -183,8 +188,8 @@ export function ZeepoAiActivityPage() {
           <div className="flex min-w-0 flex-col gap-2">
             <h1 className="text-base font-semibold tracking-tight">Activity usage</h1>
             <p className="text-xs text-muted-foreground">
-              Usage, cost, and token activity across all Zeepo AI model providers  grouped by user or
-              team.
+              Usage, cost, and token activity across Zeepo AI and Live AI Support. Live AI Support
+              is Nisc-paid and never billed to customer wallets.
             </p>
           </div>
           <Button
@@ -268,6 +273,34 @@ export function ZeepoAiActivityPage() {
         </div>
 
         <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
+            {(
+              [
+                ["all", "All surfaces", Zap],
+                ["zeepo_ai", "Zeepo AI", Sparkles],
+                ["support_fab", "Live AI Support", Headphones],
+              ] as const
+            ).map(([id, label, Icon]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => {
+                  setSurface(id);
+                  setPage(1);
+                }}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                  surface === id
+                    ? "border-primary/40 bg-primary/10 text-primary"
+                    : "border-transparent bg-muted/70 text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Icon className="size-3.5" />
+                {label}
+              </button>
+            ))}
+          </div>
+
           <div className="flex flex-wrap gap-1.5">
             {(
               [
@@ -381,7 +414,13 @@ export function ZeepoAiActivityPage() {
           <KpiCard
             label="Provider cost"
             value={formatUsd(summary.providerCostUsd)}
-            hint="Estimated provider cost"
+            hint={
+              surface === "support_fab"
+                ? "Nisc-paid Live AI Support"
+                : surface === "zeepo_ai"
+                  ? "Zeepo AI provider cost"
+                  : "Estimated provider cost"
+            }
             icon={Coins}
           />
           <KpiCard
@@ -399,7 +438,11 @@ export function ZeepoAiActivityPage() {
           <KpiCard
             label="Customer tokens"
             value={formatInt(summary.tokensDebited)}
-            hint="Debited from wallets"
+            hint={
+              surface === "support_fab"
+                ? "Never billed — Live AI is Nisc-paid"
+                : "Debited from wallets"
+            }
             icon={Coins}
           />
           <KpiCard
@@ -408,6 +451,24 @@ export function ZeepoAiActivityPage() {
             hint={`Avg latency ${formatInt(summary.avgLatencyMs)} ms`}
             icon={summary.failed > 0 ? TriangleAlert : Timer}
             tone={summary.failed > 0 ? "warn" : "default"}
+          />
+        </div>
+      ) : null}
+
+      {summary && surface === "all" ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <KpiCard
+            label="Live AI Support"
+            value={formatUsd(summary.liveAiSupport?.providerCostUsd ?? 0)}
+            hint={`${formatInt(summary.liveAiSupport?.events ?? 0)} sessions · Nisc-paid, not billed`}
+            icon={Headphones}
+            tone="accent"
+          />
+          <KpiCard
+            label="Zeepo AI"
+            value={formatUsd(summary.zeepoAi?.providerCostUsd ?? 0)}
+            hint={`${formatInt(summary.zeepoAi?.events ?? 0)} sessions · wallet / agency usage`}
+            icon={Sparkles}
           />
         </div>
       ) : null}

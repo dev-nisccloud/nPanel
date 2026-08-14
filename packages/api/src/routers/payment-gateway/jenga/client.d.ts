@@ -14,6 +14,7 @@ export declare class JengaCardPaymentClient {
     private tokenExpiry;
     constructor(config: JengaConfig);
     private validateConfig;
+    private getPrivateKeyPem;
     private getBaseUrl;
     getCheckoutUrl(): string;
     getDefaultCallbackUrl(): string;

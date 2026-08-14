@@ -18,6 +18,7 @@ import {
 	assertCustomerCanUseZeepoAi,
 	assertZeepoAiTeamAccess,
 } from "../../lib/zeepo-ai-access";
+import { createAiSupportTicket, buildSessionTranscriptSummary } from "../../lib/create-ai-support-ticket";
 import { checkWelcomeTokenEligibility, tryGrantWelcomeTokens } from "../../lib/zeepo-ai-free-token-grant";
 import { failStaleZeepoAiGenerations } from "./image-generation";
 import {
@@ -91,6 +92,7 @@ export const zeepoAiSessionsRouter = router({
 		const conditions = [
 			eq(zeepoAiSession.userId, userId),
 			eq(zeepoAiSession.status, "ACTIVE"),
+			sql`coalesce(${zeepoAiSession.metadata}->>'surface','') <> ${ZEEPO_AI_SUPPORT_FAB_SURFACE}`,
 		];
 		if (teamId) conditions.push(eq(zeepoAiSession.teamId, teamId));
 		const where = and(...conditions);
@@ -283,6 +285,33 @@ export const zeepoAiSessionsRouter = router({
 		};
 	}),
 
+	openSupportTicket: zeepoAiProcedure
+		.input(
+			z.object({
+				sessionId: z.string(),
+				phone: z.string().trim().max(40).optional().nullable(),
+				intent: z.enum(["support", "sales"]).optional().default("support"),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const userId = ctx.session?.user?.id;
+			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+			const summary = await buildSessionTranscriptSummary(input.sessionId);
+			return createAiSupportTicket({
+				userId,
+				userRole: ctx.session?.user?.role,
+				teamId: null,
+				sessionId: input.sessionId,
+				surface: "zeepo_ai",
+				subject: input.intent === "sales" ? "Sales enquiry" : "Support request",
+				summary,
+				intent: input.intent,
+				phone: input.phone,
+				ipAddress: ctx.ipAddress ?? null,
+				userAgent: ctx.req.header("user-agent") ?? null,
+			});
+		}),
+
 	get: zeepoAiProcedure.input(getSessionSchema).query(async ({ ctx, input }) => {
 		const userId = ctx.session?.user?.id;
 		if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
@@ -290,7 +319,7 @@ export const zeepoAiSessionsRouter = router({
 		const session = await db.query.zeepoAiSession.findFirst({
 			where: and(eq(zeepoAiSession.id, input.id), eq(zeepoAiSession.userId, userId)),
 		});
-		if (!session || session.status === "DELETED") {
+		if (!session || session.status === "DELETED" || isZeepoAiSupportFabSession(session.metadata)) {
 			throw new TRPCError({ code: "NOT_FOUND", message: "Session not found" });
 		}
 
