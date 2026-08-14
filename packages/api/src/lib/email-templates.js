@@ -1,5 +1,5 @@
 import { render } from '@react-email/render';
-import { ResetPasswordEmail, PasswordResetSuccessEmail, WelcomeEmail, TeamInviteEmail, AccountCreatedEmail, AgencyUserCreatedEmail, InvoiceDeliveryEmail, InvoiceSuccessEmail, QuotationDeliveryEmail, OrderConfirmationEmail, OrderReceivedEmail, OrderFailedEmail, NiscAdminOrderConfirmedEmail, PaymentReceiptEmail, CampaignCreatedEmail, CampaignCompletedEmail, CampaignScheduledEmail, CampaignCancelledEmail, ServiceRenewalReminderEmail, StorefrontWelcomeEmail, } from "react-email-starter/emails";
+import { AccountEmailChangeEmail, ResetPasswordEmail, PasswordResetSuccessEmail, WelcomeEmail, TeamInviteEmail, AccountCreatedEmail, AgencyUserCreatedEmail, InvoiceDeliveryEmail, InvoiceSuccessEmail, QuotationDeliveryEmail, OrderConfirmationEmail, OrderReceivedEmail, OrderFailedEmail, NiscAdminOrderConfirmedEmail, PaymentReceiptEmail, CampaignCreatedEmail, CampaignCompletedEmail, CampaignScheduledEmail, CampaignCancelledEmail, ServiceRenewalReminderEmail, StorefrontWelcomeEmail, } from "react-email-starter/emails";
 export async function renderResetPasswordEmail({ userFirstname, resetPasswordLink, }) {
     return render(ResetPasswordEmail({
         userFirstname,
@@ -16,6 +16,14 @@ export async function renderEmailVerificationEmail({ userFirstname, verification
     return render(WelcomeEmail({
         userFirstname,
         loginLink: verificationLink,
+    }));
+}
+export async function renderAccountEmailChangeEmail({ userFirstname, newEmail, actionLink, purpose = "confirm", }) {
+    return render(AccountEmailChangeEmail({
+        userFirstname,
+        newEmail,
+        actionLink,
+        purpose,
     }));
 }
 export async function renderTeamInviteEmail({ invitedUserEmail, inviterName, teamName, teamRole, acceptInviteLink, expiresInDays, }) {

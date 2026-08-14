@@ -87,6 +87,7 @@ export type ZeepoAiBillingContext = {
 
 export function shouldBillZeepoAiTokens(ctx: ZeepoAiBillingContext): boolean {
 	if (isZeepoAiAgencyUser(ctx.userRole)) return false;
+	if ((ctx.userRole ?? "").toUpperCase() === "GUEST") return false;
 	return Boolean(ctx.teamId);
 }
 

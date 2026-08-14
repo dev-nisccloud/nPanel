@@ -5,6 +5,11 @@ import {
 	streamZeepoAiTurn,
 	type ZeepoAiStreamEvent,
 } from "@npanel/api/routers/zeepo-ai";
+import { checkRateLimit } from "@npanel/api/lib/rate-limit";
+import { db } from "@npanel/db";
+import { and, eq } from "@npanel/db";
+import { zeepoAiSession } from "@npanel/db/schema/zeepo-ai";
+import { isZeepoAiSupportFabSession } from "@npanel/api/lib/zeepo-ai-support";
 
 function sseEncode(event: ZeepoAiStreamEvent): string {
 	return `data: ${JSON.stringify(event)}\n\n`;
@@ -36,6 +41,34 @@ export async function handleZeepoAiChatStream(c: Context) {
 		return c.json({ error: parsed.error.message }, 400);
 	}
 
+	const [sessionRow] = await db
+		.select({
+			id: zeepoAiSession.id,
+			userId: zeepoAiSession.userId,
+			metadata: zeepoAiSession.metadata,
+			status: zeepoAiSession.status,
+		})
+		.from(zeepoAiSession)
+		.where(and(eq(zeepoAiSession.id, parsed.data.sessionId), eq(zeepoAiSession.userId, session.user.id)))
+		.limit(1);
+
+	const isSupportFab = Boolean(
+		sessionRow &&
+			sessionRow.status !== "DELETED" &&
+			isZeepoAiSupportFabSession(sessionRow.metadata),
+	);
+	if (isSupportFab) {
+		const limit = await checkRateLimit({
+			key: `zeepo-support-auth:${session.user.id}`,
+			limit: 40,
+			windowSec: 60 * 60,
+			failClosed: true,
+		});
+		if (!limit.allowed) {
+			return c.json({ error: "Too many Live AI Support messages. Try again later." }, 429);
+		}
+	}
+
 	const abortController = new AbortController();
 	c.req.raw.signal.addEventListener("abort", () => {
 		abortController.abort();
@@ -59,13 +92,13 @@ export async function handleZeepoAiChatStream(c: Context) {
 					userId: session.user.id,
 					userRole: session.user.role,
 					teamId: parsed.data.teamId,
-					skillId: parsed.data.skillId,
-					searchEnabled: parsed.data.searchEnabled,
-					attachmentIds: parsed.data.attachmentIds,
-					modelId: parsed.data.modelId,
+					skillId: isSupportFab ? undefined : parsed.data.skillId,
+					searchEnabled: isSupportFab ? false : parsed.data.searchEnabled,
+					attachmentIds: isSupportFab ? [] : parsed.data.attachmentIds,
+					modelId: isSupportFab ? undefined : parsed.data.modelId,
 					replaceFromUserMessageId: parsed.data.replaceFromUserMessageId,
 					ipAddress:
-						c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ??
+						c.req.header("x-forwarded-for")?.split(",").pop()?.trim() ??
 						c.req.header("x-real-ip") ??
 						null,
 					userAgent: c.req.header("user-agent") ?? null,

@@ -20,11 +20,13 @@ import {
 	mergeAnthropicUsage,
 	providerMicrosToCustomerTokens,
 	resolveZeepoAiModelId,
+	resolveZeepoAiSupportModelId,
 	ZEEPO_AI_PROVIDER,
 	type AnthropicUsageLike,
 } from "../../lib/zeepo-ai-billing";
 import {
 	assertCustomerCanUseZeepoAi,
+	assertZeepoAiTeamAccess,
 } from "../../lib/zeepo-ai-access";
 import {
 	assertZeepoAiCanStartTurn,
@@ -43,7 +45,17 @@ import {
 	buildZeepoAiSessionAssetsBlock,
 	buildZeepoAiSessionContextBlock,
 	buildZeepoAiSkillBlock,
+	buildZeepoAiSupportOverlayPrompt,
 } from "./prompts";
+import {
+	ZEEPO_AI_SUPPORT_CATALOG_TOOL_NAMES,
+	ZEEPO_AI_SUPPORT_FAB_SURFACE,
+	ZEEPO_AI_SUPPORT_INVENTORY_TOOL_NAMES,
+	isZeepoAiSupportFabSession,
+	isZeepoAiSupportGenerationTool,
+	isZeepoAiSupportGuestRole,
+	isZeepoAiSupportInventoryTool,
+} from "../../lib/zeepo-ai-support";
 import {
 	askClarifyingQuestionsArgsSchema,
 	createDocumentArgsSchema,
@@ -60,6 +72,7 @@ import {
 import {
 	executeZeepoAiOpsTool,
 	getZeepoAiOpsTools,
+	getZeepoAiSupportOpsTools,
 	isZeepoAiOpsToolName,
 	stripZeepoAiOpsToolResultForModel,
 } from "./ops-tools";
@@ -619,13 +632,12 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 		userRole,
 		skillId,
 		searchEnabled = false,
-		attachmentIds = [],
 		replaceFromUserMessageId,
 		signal,
 		onEvent,
 	} = params;
 
-	const modelId = resolveZeepoAiModelId(params.modelId);
+	let modelId = resolveZeepoAiModelId(params.modelId);
 	const startedAt = Date.now();
 
 	const session = await db.query.zeepoAiSession.findFirst({
@@ -656,15 +668,49 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 	}
 
 	try {
+	const isSupportFab = isZeepoAiSupportFabSession(session.metadata);
+	const isGuestSupport = isSupportFab && isZeepoAiSupportGuestRole(userRole);
+	if (isSupportFab) {
+		modelId = resolveZeepoAiSupportModelId();
+	}
+	const attachmentIds = isSupportFab ? [] : (params.attachmentIds ?? []);
+	if (isZeepoAiSupportGuestRole(userRole) && !isSupportFab) {
+		await emit(onEvent, {
+			type: "error",
+			message: "Session not found",
+			code: "FORBIDDEN",
+			recoverable: false,
+		});
+		await emit(onEvent, { type: "done", status: "error" });
+		return;
+	}
+	const supportSearchEnabled = isSupportFab ? false : searchEnabled;
+
 	let teamId: string | null;
 	try {
-		teamId = await assertCustomerCanUseZeepoAi({
-			userId,
-			userRole,
-			teamId: params.teamId ?? session.teamId,
-			requireTokens: true,
-			tryWelcomeGrant: true, // Auto-grant welcome tokens for first-time paying customers
-		});
+		if (isSupportFab) {
+			if (isGuestSupport) {
+				teamId = null;
+			} else {
+				try {
+					teamId = await assertZeepoAiTeamAccess({
+						userId,
+						userRole,
+						teamId: params.teamId ?? session.teamId,
+					});
+				} catch {
+					teamId = null;
+				}
+			}
+		} else {
+			teamId = await assertCustomerCanUseZeepoAi({
+				userId,
+				userRole,
+				teamId: params.teamId ?? session.teamId,
+				requireTokens: true,
+				tryWelcomeGrant: true, // Auto-grant welcome tokens for first-time paying customers
+			});
+		}
 	} catch (e: unknown) {
 		const message =
 			e && typeof e === "object" && "message" in e
@@ -785,7 +831,7 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 	// Assistant must sort after user when ordered by createdAt (same-ms ties reorder in UI).
 	const assistantCreatedAt = new Date(userCreatedAt.getTime() + 1);
 
-	const skill = skillId ? getZeepoAiSkillById(skillId) : undefined;
+	const skill = !isSupportFab && skillId ? getZeepoAiSkillById(skillId) : undefined;
 	const skillOk = skill?.available && skill.agentDirectives ? skill : undefined;
 
 	await db.insert(zeepoAiMessage).values({
@@ -882,9 +928,14 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 			sessionTitle: session.title,
 			sessionCreatedAtIso: session.createdAt.toISOString(),
 			turnCount: priorMessages.filter((m) => m.role === "user").length + 1,
-			searchEnabled,
+			searchEnabled: supportSearchEnabled,
 		}),
 	];
+	if (isSupportFab) {
+		systemParts.push(
+			buildZeepoAiSupportOverlayPrompt(isGuestSupport || !teamId ? "guest" : "customer"),
+		);
+	}
 
 	const assetsBlock = buildZeepoAiSessionAssetsBlock(allSessionAttachments);
 	if (assetsBlock) systemParts.push(assetsBlock);
@@ -971,11 +1022,13 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 	});
 	anthropicMessages.push({ role: "user", content: userContent });
 
-	const tools: ToolUnion[] = [
-		...(ZEEPO_AI_CLIENT_TOOLS as unknown as ToolUnion[]),
-		...getZeepoAiOpsTools(),
-		...(searchEnabled ? buildWebTools() : []),
-	];
+	const tools: ToolUnion[] = isSupportFab
+		? getZeepoAiSupportOpsTools({ includeInventory: Boolean(teamId) && !isGuestSupport })
+		: [
+				...(ZEEPO_AI_CLIENT_TOOLS as unknown as ToolUnion[]),
+				...getZeepoAiOpsTools(),
+				...(supportSearchEnabled ? buildWebTools() : []),
+			];
 
 	let reasoning = "";
 	let text = "";
@@ -1021,12 +1074,15 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 			const thinking = buildZeepoAiThinkingConfig(modelId);
 			const stream = client.messages.stream({
 				model: modelId,
-				max_tokens: 16000,
+				max_tokens: isSupportFab ? 4096 : 16000,
 				system: systemParts.map((t) => ({ type: "text" as const, text: t })),
 				messages: loopMessages,
 				tools,
-				// Cast: SDK typings lag adaptive/display fields documented by Anthropic.
-				thinking: thinking as Anthropic.Messages.ThinkingConfigParam,
+				...(isSupportFab
+					? {}
+					: {
+							thinking: thinking as Anthropic.Messages.ThinkingConfigParam,
+						}),
 			});
 
 			if (signal) {
@@ -1300,7 +1356,23 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 				let ok = true;
 
 				try {
-					if (block.name === "ask_clarifying_questions") {
+					if (isSupportFab && isZeepoAiSupportGenerationTool(block.name)) {
+						ok = false;
+						resultPayload = {
+							error:
+								"Not available in Live AI Support. Ask the user to open Zeepo AI after signing in for documents, images, or decks.",
+						};
+					} else if (
+						isSupportFab &&
+						isZeepoAiSupportInventoryTool(block.name) &&
+						(isGuestSupport || !teamId)
+					) {
+						ok = false;
+						resultPayload = {
+							error:
+								"Account details need a logged-in dashboard session. Ask the user to log in or use Contact us.",
+						};
+					} else if (block.name === "ask_clarifying_questions") {
 						const parsed = askClarifyingQuestionsArgsSchema.safeParse(block.input);
 						if (!parsed.success) {
 							ok = false;
@@ -1506,6 +1578,16 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 							}
 						}
 					} else if (isZeepoAiOpsToolName(block.name)) {
+						const supportAllowed = new Set<string>([
+							...ZEEPO_AI_SUPPORT_CATALOG_TOOL_NAMES,
+							...ZEEPO_AI_SUPPORT_INVENTORY_TOOL_NAMES,
+						]);
+						if (isSupportFab && !supportAllowed.has(block.name)) {
+							ok = false;
+							resultPayload = {
+								error: "Not available in Live AI Support.",
+							};
+						} else {
 						resultPayload = await executeZeepoAiOpsTool({
 							name: block.name,
 							input: block.input,
@@ -1514,6 +1596,10 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 							teamId,
 							teamName: dbTeam?.name ?? null,
 							baseCurrency: dbTeam?.baseCurrency ?? null,
+							sessionId,
+							surface: isSupportFab ? "support_fab" : "zeepo_ai",
+							ipAddress: params.ipAddress ?? null,
+							userAgent: params.userAgent ?? null,
 						});
 						if (
 							resultPayload &&
@@ -1521,6 +1607,7 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 							"error" in (resultPayload as object)
 						) {
 							ok = false;
+						}
 						}
 					} else {
 						ok = false;
@@ -1683,7 +1770,9 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 				: finalStatus === "cancelled"
 					? "cancelled"
 					: "failed",
-		tokensDebited: String(shouldBillZeepoAiTokens({ teamId, userId, userRole }) ? tokensToDebit : 0),
+		tokensDebited: String(
+			!isSupportFab && shouldBillZeepoAiTokens({ teamId, userId, userRole }) ? tokensToDebit : 0,
+		),
 		inputTokens: usage.input_tokens ?? null,
 		outputTokens: usage.output_tokens ?? null,
 		providerCostUsdMicros: micros,
@@ -1692,15 +1781,17 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 			stopReason,
 			providerMessageId,
 			searchEnabled,
+			...(isSupportFab ? { surface: ZEEPO_AI_SUPPORT_FAB_SURFACE } : {}),
 			...anthropicUsageBillingMeta(usage),
 		},
 	});
 
-	if (
-		finalStatus === "complete" &&
-		shouldBillZeepoAiTokens({ teamId, userId, userRole }) &&
-		teamId
-	) {
+		if (
+			finalStatus === "complete" &&
+			!isSupportFab &&
+			shouldBillZeepoAiTokens({ teamId, userId, userRole }) &&
+			teamId
+		) {
 		const debit = await debitZeepoAiTokens({
 			teamId,
 			userId,

@@ -28,12 +28,13 @@ const subscriptionStatusSchema = z.enum([
     "UPGRADED",
     "DOWNGRADED",
 ]);
-const pricingModelSchema = z.enum(["FIXED", "COMMISSION"]);
+const pricingModelSchema = z.enum(["FIXED", "COMMISSION", "USAGE"]);
 const billingCycleSchema = z.enum([
     "YEARLY",
     "MONTHLY",
     "BIENNIALLY",
     "CUSTOM",
+    "ONE_TIME",
 ]);
 const hostingTypeSchema = z.enum([
     "WEB_HOSTING",
@@ -108,10 +109,10 @@ const createSubscriptionInputSchema = z
     metadata: z.record(z.string(), z.unknown()).optional(),
 })
     .superRefine((data, ctx) => {
-    if (data.pricingModel === "FIXED" && !data.billingCycle) {
+    if ((data.pricingModel === "FIXED" || data.pricingModel === "USAGE") && !data.billingCycle) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: "billingCycle is required for FIXED pricing subscriptions",
+            message: "billingCycle is required for FIXED/USAGE pricing subscriptions",
             path: ["billingCycle"],
         });
     }
@@ -379,7 +380,16 @@ const commissionEntryOutputSchema = z.object({
 // ============================================================================
 // HELPERS
 // ============================================================================
+function coerceEnumOrNull(value, allowed) {
+    if (value == null || value === "")
+        return null;
+    return allowed.includes(String(value))
+        ? String(value)
+        : null;
+}
 function mapSubscription(sub) {
+    const statusParsed = subscriptionStatusSchema.safeParse(sub.status);
+    const pricingParsed = pricingModelSchema.safeParse(sub.pricingModel);
     return {
         id: sub.id,
         name: sub.name ?? null,
@@ -390,13 +400,13 @@ function mapSubscription(sub) {
         orderId: sub.orderId ?? null,
         subscribedBy: sub.subscribedBy ?? null,
         recordedBy: sub.recordedBy ?? null,
-        status: sub.status,
+        status: statusParsed.success ? statusParsed.data : "PENDING",
         subscriptionDate: sub.subscriptionDate ?? null,
-        billingCycle: sub.billingCycle ?? null,
+        billingCycle: coerceEnumOrNull(sub.billingCycle, billingCycleSchema.options),
         nextRenewalDate: sub.nextRenewalDate ?? null,
         expiryDate: sub.expiryDate ?? null,
-        autoRenew: sub.autoRenew,
-        pricingModel: sub.pricingModel,
+        autoRenew: Boolean(sub.autoRenew),
+        pricingModel: pricingParsed.success ? pricingParsed.data : "FIXED",
         agreedPrice: sub.agreedPrice ?? null,
         agreedCurrency: sub.agreedCurrency ?? "KES",
         agreedCommissionRate: sub.agreedCommissionRate ?? null,
@@ -405,7 +415,7 @@ function mapSubscription(sub) {
         pleskFilterId: sub.pleskFilterId ?? null,
         pleskOwnerId: sub.pleskOwnerId ?? null,
         pleskFtpLogin: sub.pleskFtpLogin ?? null,
-        hostingType: sub.hostingType ?? null,
+        hostingType: coerceEnumOrNull(sub.hostingType, hostingTypeSchema.options),
         openProviderId: sub.openProviderId ?? null,
         domainAuthCode: sub.domainAuthCode ?? null,
         nameserverGroupId: sub.nameserverGroupId ?? null,
@@ -2823,5 +2833,316 @@ export const clientSubscriptionsRouter = router({
             name: s.name ?? null,
             primaryDomain: s.primaryDomain ?? null,
         }));
+    }),
+    /**
+     * Agency-only: enqueue (or run inline) the subscription renewal reminder job.
+     * Same work as the daily 00:00 UTC QStash schedule.
+     */
+    runRenewalReminderCron: protectedProcedure
+        .input(z
+        .object({
+        /** When false, fail instead of running in-process if QStash is unavailable. Default true. */
+        allowInline: z.boolean().optional(),
+        /** Allow starting even if another run is active (stale runs are always overridable). */
+        force: z.boolean().optional(),
+    })
+        .optional())
+        .output(z.object({
+        queued: z.boolean(),
+        runId: z.string(),
+        messageId: z.string().optional(),
+        scheduleId: z.string().optional(),
+        inline: z
+            .object({
+            scanned: z.number(),
+            sent: z.number(),
+            skipped: z.number(),
+            failed: z.number(),
+            hasMore: z.boolean(),
+            status: z.string(),
+        })
+            .optional(),
+    }))
+        .mutation(async ({ ctx, input }) => {
+        const session = ctx.session;
+        if (!session?.user?.id) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You must be logged in",
+            });
+        }
+        if (!isAgencyUserRole(session.user.role)) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Only agency users can run the renewal reminder cron",
+            });
+        }
+        const { attachQstashMessageId, createRenewalReminderRun, findActiveRenewalReminderRun, processSubscriptionRenewalReminders, } = await import("../lib/subscription-renewal-reminders");
+        const active = await findActiveRenewalReminderRun();
+        if (active && !active.isStale && !input?.force) {
+            throw new TRPCError({
+                code: "CONFLICT",
+                message: `A renewal reminder run is already ${active.status} (id ${active.id}). Wait for it to finish or pass force.`,
+            });
+        }
+        const { ensureSubscriptionRenewalRemindersSchedule, enqueueSubscriptionRenewalReminders, getSubscriptionRenewalRemindersWorkerEndpoint, } = await import("../lib/qstash/subscription-renewal-reminders");
+        let scheduleId;
+        try {
+            const ensured = await ensureSubscriptionRenewalRemindersSchedule();
+            scheduleId = ensured?.scheduleId;
+        }
+        catch (err) {
+            console.warn("[subscription-renewal-reminders] ensure schedule failed:", err);
+        }
+        const runId = await createRenewalReminderRun({
+            source: "manual",
+            triggeredByUserId: session.user.id,
+        });
+        const workerUrl = getSubscriptionRenewalRemindersWorkerEndpoint();
+        const canQueue = !!process.env.QSTASH_TOKEN &&
+            !!workerUrl &&
+            !workerUrl.includes("localhost") &&
+            !workerUrl.includes("127.0.0.1");
+        if (canQueue) {
+            try {
+                const { messageId } = await enqueueSubscriptionRenewalReminders({
+                    source: "manual",
+                    triggeredByUserId: session.user.id,
+                    offset: 0,
+                    runId,
+                });
+                await attachQstashMessageId(runId, messageId);
+                return { queued: true, runId, messageId, scheduleId };
+            }
+            catch (err) {
+                if (input?.allowInline === false) {
+                    throw new TRPCError({
+                        code: "INTERNAL_SERVER_ERROR",
+                        message: err instanceof Error
+                            ? err.message
+                            : "Failed to enqueue renewal reminder job",
+                    });
+                }
+                console.warn("[subscription-renewal-reminders] enqueue failed, running inline:", err);
+            }
+        }
+        if (input?.allowInline === false) {
+            throw new TRPCError({
+                code: "PRECONDITION_FAILED",
+                message: "QStash worker endpoint is not configured; cannot queue the job",
+            });
+        }
+        const inline = await processSubscriptionRenewalReminders({
+            source: "manual",
+            triggeredByUserId: session.user.id,
+            offset: 0,
+            runId,
+        });
+        let scanned = inline.scanned;
+        let sent = inline.sent;
+        let skipped = inline.skipped;
+        let failed = inline.failed;
+        let offset = inline.nextOffset;
+        let hasMore = inline.hasMore;
+        let status = inline.status;
+        while (hasMore) {
+            const next = await processSubscriptionRenewalReminders({
+                source: "continuation",
+                triggeredByUserId: session.user.id,
+                offset,
+                runId,
+            });
+            scanned += next.scanned;
+            sent += next.sent;
+            skipped += next.skipped;
+            failed += next.failed;
+            offset = next.nextOffset;
+            hasMore = next.hasMore;
+            status = next.status;
+        }
+        return {
+            queued: false,
+            runId,
+            scheduleId,
+            inline: { scanned, sent, skipped, failed, hasMore: false, status },
+        };
+    }),
+    /** Agency-only: live status of the renewal reminder cron + latest run. */
+    getRenewalReminderCronStatus: protectedProcedure
+        .output(z.object({
+        isRunning: z.boolean(),
+        isStale: z.boolean(),
+        activeRunId: z.string().nullable(),
+        schedule: z.object({
+            configured: z.boolean(),
+            scheduleId: z.string(),
+            cron: z.string(),
+            destination: z.string().nullable(),
+            isPaused: z.boolean().nullable(),
+            scheduleExists: z.boolean(),
+            error: z.string().nullable(),
+        }),
+        latestRun: z
+            .object({
+            id: z.string(),
+            source: z.string(),
+            status: z.string(),
+            scanned: z.number(),
+            sent: z.number(),
+            skipped: z.number(),
+            failed: z.number(),
+            summary: z.string().nullable(),
+            lastError: z.string().nullable(),
+            startedAt: z.date().nullable(),
+            finishedAt: z.date().nullable(),
+            heartbeatAt: z.date().nullable(),
+            createdAt: z.date(),
+            triggeredByUserId: z.string().nullable(),
+        })
+            .nullable(),
+    }))
+        .query(async ({ ctx }) => {
+        if (!ctx.session?.user?.id) {
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
+        }
+        if (!isAgencyUserRole(ctx.session.user.role)) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Only agency users can view renewal reminder cron status",
+            });
+        }
+        const { findActiveRenewalReminderRun, SUBSCRIPTION_RENEWAL_REMINDERS_JOB_KEY, } = await import("../lib/subscription-renewal-reminders");
+        const { getSubscriptionRenewalRemindersScheduleStatus } = await import("../lib/qstash/subscription-renewal-reminders");
+        const { agencyCronJobRun } = await import("@npanel/db/schema/agency-cron-jobs");
+        const [active, schedule, latest] = await Promise.all([
+            findActiveRenewalReminderRun(),
+            getSubscriptionRenewalRemindersScheduleStatus(),
+            db.query.agencyCronJobRun.findFirst({
+                where: eq(agencyCronJobRun.jobKey, SUBSCRIPTION_RENEWAL_REMINDERS_JOB_KEY),
+                orderBy: [desc(agencyCronJobRun.createdAt)],
+                columns: {
+                    id: true,
+                    source: true,
+                    status: true,
+                    scanned: true,
+                    sent: true,
+                    skipped: true,
+                    failed: true,
+                    summary: true,
+                    lastError: true,
+                    startedAt: true,
+                    finishedAt: true,
+                    heartbeatAt: true,
+                    createdAt: true,
+                    triggeredByUserId: true,
+                },
+            }),
+        ]);
+        const isRunning = Boolean(active && !active.isStale);
+        return {
+            isRunning,
+            isStale: Boolean(active?.isStale),
+            activeRunId: active?.id ?? null,
+            schedule,
+            latestRun: latest
+                ? {
+                    ...latest,
+                    summary: latest.summary ?? null,
+                    lastError: latest.lastError ?? null,
+                    startedAt: latest.startedAt ?? null,
+                    finishedAt: latest.finishedAt ?? null,
+                    heartbeatAt: latest.heartbeatAt ?? null,
+                    triggeredByUserId: latest.triggeredByUserId ?? null,
+                }
+                : null,
+        };
+    }),
+    /** Agency-only: paginated history of renewal reminder cron runs. */
+    listRenewalReminderCronRuns: protectedProcedure
+        .input(z
+        .object({
+        limit: z.number().int().min(1).max(100).optional().default(30),
+        cursor: z.string().optional(),
+    })
+        .optional())
+        .query(async ({ ctx, input }) => {
+        if (!ctx.session?.user?.id) {
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
+        }
+        if (!isAgencyUserRole(ctx.session.user.role)) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Only agency users can list renewal reminder cron runs",
+            });
+        }
+        const { SUBSCRIPTION_RENEWAL_REMINDERS_JOB_KEY } = await import("../lib/subscription-renewal-reminders");
+        const { agencyCronJobRun } = await import("@npanel/db/schema/agency-cron-jobs");
+        const limit = input?.limit ?? 30;
+        const clauses = [
+            eq(agencyCronJobRun.jobKey, SUBSCRIPTION_RENEWAL_REMINDERS_JOB_KEY),
+        ];
+        if (input?.cursor) {
+            clauses.push(sql `${agencyCronJobRun.createdAt} < (
+            select created_at from agency_cron_job_run where id = ${input.cursor}
+          )`);
+        }
+        const rows = await db
+            .select({
+            id: agencyCronJobRun.id,
+            source: agencyCronJobRun.source,
+            status: agencyCronJobRun.status,
+            scanned: agencyCronJobRun.scanned,
+            sent: agencyCronJobRun.sent,
+            skipped: agencyCronJobRun.skipped,
+            failed: agencyCronJobRun.failed,
+            batchCount: agencyCronJobRun.batchCount,
+            summary: agencyCronJobRun.summary,
+            lastError: agencyCronJobRun.lastError,
+            startedAt: agencyCronJobRun.startedAt,
+            finishedAt: agencyCronJobRun.finishedAt,
+            heartbeatAt: agencyCronJobRun.heartbeatAt,
+            createdAt: agencyCronJobRun.createdAt,
+            triggeredByUserId: agencyCronJobRun.triggeredByUserId,
+            qstashMessageId: agencyCronJobRun.qstashMessageId,
+        })
+            .from(agencyCronJobRun)
+            .where(and(...clauses))
+            .orderBy(desc(agencyCronJobRun.createdAt))
+            .limit(limit + 1);
+        const hasMore = rows.length > limit;
+        const page = hasMore ? rows.slice(0, limit) : rows;
+        return {
+            runs: page,
+            nextCursor: hasMore ? page[page.length - 1]?.id ?? null : null,
+        };
+    }),
+    /** Agency-only: one cron run with per-subscription item logs. */
+    getRenewalReminderCronRun: protectedProcedure
+        .input(z.object({ runId: z.string().min(1) }))
+        .query(async ({ ctx, input }) => {
+        if (!ctx.session?.user?.id) {
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
+        }
+        if (!isAgencyUserRole(ctx.session.user.role)) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Only agency users can view renewal reminder cron runs",
+            });
+        }
+        const { SUBSCRIPTION_RENEWAL_REMINDERS_JOB_KEY } = await import("../lib/subscription-renewal-reminders");
+        const { agencyCronJobRun, agencyCronJobRunItem } = await import("@npanel/db/schema/agency-cron-jobs");
+        const run = await db.query.agencyCronJobRun.findFirst({
+            where: and(eq(agencyCronJobRun.id, input.runId), eq(agencyCronJobRun.jobKey, SUBSCRIPTION_RENEWAL_REMINDERS_JOB_KEY)),
+        });
+        if (!run) {
+            throw new TRPCError({ code: "NOT_FOUND", message: "Cron run not found" });
+        }
+        const items = await db
+            .select()
+            .from(agencyCronJobRunItem)
+            .where(eq(agencyCronJobRunItem.runId, input.runId))
+            .orderBy(desc(agencyCronJobRunItem.createdAt))
+            .limit(500);
+        return { run, items };
     }),
 });

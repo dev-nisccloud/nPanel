@@ -281,7 +281,7 @@ export declare const clientsRouter: import("@trpc/server").TRPCBuiltRouter<{
             totalInvoices: number;
             totalAmount: number;
             buckets: {
-                key: "cancelled" | "paid" | "draft" | "unpaid" | "refunded";
+                key: "draft" | "cancelled" | "paid" | "unpaid" | "refunded";
                 label: string;
                 count: number;
                 amount: number;

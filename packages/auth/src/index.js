@@ -4,7 +4,7 @@ import { userActivityLog } from "@npanel/db/schema/auth-extras";
 import { notification, notificationActivityLog, } from "@npanel/db/schema/notifications";
 import { session, user } from "@npanel/db/schema/auth";
 import { env } from "@npanel/env/server";
-import { renderEmailVerificationEmail, renderPasswordResetSuccessEmail, renderResetPasswordEmail, } from "react-email-starter/src/email-templates";
+import { renderAccountEmailChangeEmail, renderEmailVerificationEmail, renderPasswordResetSuccessEmail, renderResetPasswordEmail, } from "react-email-starter/src/email-templates";
 import { sendAuthEmail } from "./transactional-email";
 import { completeSignupSideEffects, isGoogleOAuthCallbackPath, isNewGoogleRegistration, sendGoogleSignupWelcomeEmail, } from "./signup-side-effects";
 import { applyStandardSessionExpiryByToken, validateAndRefreshIdleSessionById, } from "./session-enforcement";
@@ -24,7 +24,7 @@ import { isImpersonatedSession } from "./impersonation";
 function resolveRequestIp(headers) {
     if (!headers)
         return null;
-    return (headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    return (headers.get("x-forwarded-for")?.split(",").pop()?.trim() ||
         headers.get("x-real-ip")?.trim() ||
         headers.get("cf-connecting-ip")?.trim() ||
         null);
@@ -93,6 +93,20 @@ const frontendBaseUrl = () => {
     // Avoid `//auth/...` when env has a trailing slash (e.g. http://host:5173/)
     return raw.replace(/\/+$/, "");
 };
+/** Peek JWT payload without verifying (used only to pick the right email template). */
+function peekEmailVerificationToken(token) {
+    try {
+        const payload = token.split(".")[1];
+        if (!payload)
+            return null;
+        const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+        const json = Buffer.from(normalized, "base64").toString("utf8");
+        return JSON.parse(json);
+    }
+    catch {
+        return null;
+    }
+}
 /** User-facing origin for OAuth callbacks and redirects (must match the SPA / proxy origin). */
 const authBaseUrl = () => {
     const raw = process.env.CORS_ORIGIN ||
@@ -746,6 +760,88 @@ export const auth = betterAuth({
             }
         }),
     },
+    user: {
+        changeEmail: {
+            enabled: true,
+            // Always require verification before the email is updated (never updateEmailWithoutVerification).
+            sendChangeEmailConfirmation: async ({ user: u, newEmail, token }) => {
+                void (async () => {
+                    try {
+                        await db.insert(userActivityLog).values({
+                            id: crypto.randomUUID(),
+                            userId: u.id,
+                            action: "EMAIL_CHANGE_CONFIRMATION_SENT",
+                            description: "Email change confirmation link sent to current email",
+                            metadata: {
+                                currentEmail: u.email,
+                                newEmail,
+                                token: token.substring(0, 8) + "...",
+                            },
+                            ipAddress: "unknown",
+                            userAgent: "unknown",
+                            createdAt: new Date(),
+                        });
+                    }
+                    catch (error) {
+                        console.error("Failed to log email change confirmation activity:", error);
+                    }
+                    try {
+                        const nid = crypto.randomUUID();
+                        await db.insert(notification).values({
+                            id: nid,
+                            userId: u.id,
+                            teamId: null,
+                            type: "SYSTEM",
+                            priority: "HIGH",
+                            title: "Approve Email Change",
+                            message: `A request was made to change your account email to ${newEmail}. Check your current inbox to approve it.`,
+                            link: null,
+                            metadata: {
+                                currentEmail: u.email,
+                                newEmail,
+                            },
+                            seen: false,
+                            readAt: null,
+                            createdAt: new Date(),
+                            updatedAt: new Date(),
+                        });
+                        await db.insert(notificationActivityLog).values({
+                            id: crypto.randomUUID(),
+                            notificationId: nid,
+                            userId: u.id,
+                            action: "CREATE",
+                            description: "Email change confirmation notification created",
+                            metadata: { newEmail },
+                            ipAddress: null,
+                            userAgent: null,
+                            createdAt: new Date(),
+                        });
+                    }
+                    catch (error) {
+                        console.error("Failed to create email change confirmation notification:", error);
+                    }
+                    try {
+                        const base = frontendBaseUrl();
+                        const confirmUrl = `${base}/auth/verify-email?token=${token}`;
+                        const html = await renderAccountEmailChangeEmail({
+                            userFirstname: u.name || "User",
+                            newEmail,
+                            actionLink: confirmUrl,
+                            purpose: "confirm",
+                        });
+                        await sendAuthEmail({
+                            to: u.email,
+                            subject: "Approve your email change - npanel",
+                            html,
+                        });
+                    }
+                    catch (error) {
+                        console.error("Failed to send email change confirmation:", error);
+                    }
+                })();
+            },
+        },
+    },
     emailAndPassword: {
         enabled: true,
         sendResetPassword: async ({ user: u, url, token }) => {
@@ -876,16 +972,25 @@ export const auth = betterAuth({
     emailVerification: {
         sendVerificationEmail: async ({ user: u, url, token }) => {
             void (async () => {
+                const tokenPayload = peekEmailVerificationToken(token);
+                const isEmailChangeVerification = tokenPayload?.requestType === "change-email-verification";
                 try {
                     await db.insert(userActivityLog).values({
                         id: crypto.randomUUID(),
                         userId: u.id,
-                        action: "EMAIL_VERIFICATION_SENT",
-                        description: "Email verification link sent to user",
+                        action: isEmailChangeVerification
+                            ? "EMAIL_CHANGE_VERIFICATION_SENT"
+                            : "EMAIL_VERIFICATION_SENT",
+                        description: isEmailChangeVerification
+                            ? "Email change verification link sent to new email"
+                            : "Email verification link sent to user",
                         metadata: {
                             email: u.email,
                             token: token.substring(0, 8) + "...",
                             verificationMethod: "email_link",
+                            ...(isEmailChangeVerification
+                                ? { requestType: "change-email-verification" }
+                                : {}),
                         },
                         ipAddress: "unknown",
                         userAgent: "unknown",
@@ -896,7 +1001,9 @@ export const auth = betterAuth({
                     console.error("Failed to log email verification request activity:", error);
                 }
                 try {
-                    const message = "Please check your email to verify your account. Click the verification link in the email to activate your account.";
+                    const message = isEmailChangeVerification
+                        ? `Please check ${u.email} and click the verification link to finish changing your account email.`
+                        : "Please check your email to verify your account. Click the verification link in the email to activate your account.";
                     const nid = crypto.randomUUID();
                     await db.insert(notification).values({
                         id: nid,
@@ -904,12 +1011,15 @@ export const auth = betterAuth({
                         teamId: null,
                         type: "SYSTEM",
                         priority: "NORMAL",
-                        title: "Verify Your Email",
+                        title: isEmailChangeVerification ? "Verify Your New Email" : "Verify Your Email",
                         message,
                         link: null,
                         metadata: {
                             verificationMethod: "email_link",
                             email: u.email,
+                            ...(isEmailChangeVerification
+                                ? { requestType: "change-email-verification" }
+                                : {}),
                         },
                         seen: false,
                         readAt: null,
@@ -921,7 +1031,9 @@ export const auth = betterAuth({
                         notificationId: nid,
                         userId: u.id,
                         action: "CREATE",
-                        description: "Email verification sent notification created",
+                        description: isEmailChangeVerification
+                            ? "Email change verification sent notification created"
+                            : "Email verification sent notification created",
                         metadata: {
                             verificationMethod: "email_link",
                         },
@@ -936,15 +1048,30 @@ export const auth = betterAuth({
                 try {
                     const base = frontendBaseUrl();
                     const verificationUrl = `${base}/auth/verify-email?token=${token}`;
-                    const html = await renderEmailVerificationEmail({
-                        userFirstname: u.name || "User",
-                        verificationLink: verificationUrl,
-                    });
-                    await sendAuthEmail({
-                        to: u.email,
-                        subject: "Welcome to npanel - Verify your email",
-                        html,
-                    });
+                    if (isEmailChangeVerification) {
+                        const html = await renderAccountEmailChangeEmail({
+                            userFirstname: u.name || "User",
+                            newEmail: u.email,
+                            actionLink: verificationUrl,
+                            purpose: "verify",
+                        });
+                        await sendAuthEmail({
+                            to: u.email,
+                            subject: "Verify your new email - npanel",
+                            html,
+                        });
+                    }
+                    else {
+                        const html = await renderEmailVerificationEmail({
+                            userFirstname: u.name || "User",
+                            verificationLink: verificationUrl,
+                        });
+                        await sendAuthEmail({
+                            to: u.email,
+                            subject: "Welcome to npanel - Verify your email",
+                            html,
+                        });
+                    }
                 }
                 catch (error) {
                     console.error("Failed to send verification email:", error);

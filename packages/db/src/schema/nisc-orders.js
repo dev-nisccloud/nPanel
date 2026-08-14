@@ -1,5 +1,5 @@
-import { relations } from "drizzle-orm";
-import { index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { relations, sql } from "drizzle-orm";
+import { index, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import { user } from "./auth";
 import { team } from "./teams";
 import { invoice } from "./invoicing";
@@ -40,6 +40,10 @@ export const niscOrder = pgTable("nisc_order", {
     index("nisc_order_createdAt_idx").on(table.createdAt),
     index("nisc_order_qstashMessageId_idx").on(table.qstashMessageId),
     index("nisc_order_paymentTransactionId_idx").on(table.paymentTransactionId),
+    // One paid checkout → one order (nulls allowed for unpaid/manual agency creates).
+    uniqueIndex("nisc_order_paymentTransactionId_uidx")
+        .on(table.paymentTransactionId)
+        .where(sql `${table.paymentTransactionId} IS NOT NULL`),
 ]);
 // --- NiscOrderProcessingLog -------------------------------------------------
 export const niscOrderProcessingLog = pgTable("nisc_order_processing_log", {

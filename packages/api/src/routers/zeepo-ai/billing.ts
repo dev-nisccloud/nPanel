@@ -21,11 +21,7 @@ import {
 	isZeepoAiAgencyUser,
 	listZeepoAiTokenLedger,
 } from "../../lib/zeepo-ai-tokens";
-import {
-	ZEEPO_AI_PLAN_IDS,
-	ZEEPO_AI_PRODUCT_ID,
-	ZEEPO_AI_WELCOME_TOKEN_GRANT,
-} from "../../lib/zeepo-ai-billing";
+import { ZEEPO_AI_SUPPORT_FAB_SURFACE } from "../../lib/zeepo-ai-support";
 import { convertPriceWithCeil } from "../../lib/convert-price";
 import {
 	checkWelcomeTokenEligibility,
@@ -56,7 +52,10 @@ function startOfDay(d: Date): Date {
 	return out;
 }
 
-function buildUsageWhere(input: z.infer<typeof listUsageActivitySchema>) {
+function buildUsageWhere(
+	input: z.infer<typeof listUsageActivitySchema>,
+	surface: z.infer<typeof listUsageActivitySchema>["surface"] = input.surface,
+) {
 	const from = startOfDay(input.from);
 	const to = endOfDay(input.to);
 	const conditions = [
@@ -84,6 +83,16 @@ function buildUsageWhere(input: z.infer<typeof listUsageActivitySchema>) {
 
 	if (input.teamId) {
 		conditions.push(eq(zeepoAiUsageEvent.teamId, input.teamId));
+	}
+
+	if (surface === "support_fab") {
+		conditions.push(
+			sql`coalesce(${zeepoAiUsageEvent.metadata}->>'surface','') = ${ZEEPO_AI_SUPPORT_FAB_SURFACE}`,
+		);
+	} else if (surface === "zeepo_ai") {
+		conditions.push(
+			sql`coalesce(${zeepoAiUsageEvent.metadata}->>'surface','') <> ${ZEEPO_AI_SUPPORT_FAB_SURFACE}`,
+		);
 	}
 
 	return and(...conditions);
@@ -203,6 +212,8 @@ export const zeepoAiBillingRouter = router({
 				byProviderRows,
 				byEventTypeRows,
 				byModelRows,
+				supportFabSummaryRow,
+				zeepoSummaryRow,
 			] = await Promise.all([
 				groupBy === "user"
 					? db
@@ -299,6 +310,14 @@ export const zeepoAiBillingRouter = router({
 						sql`coalesce(sum(${zeepoAiUsageEvent.providerCostUsdMicros}), 0) desc`,
 					)
 					.limit(8),
+				db
+					.select(summarySelect)
+					.from(zeepoAiUsageEvent)
+					.where(buildUsageWhere(input, "support_fab")),
+				db
+					.select(summarySelect)
+					.from(zeepoAiUsageEvent)
+					.where(buildUsageWhere(input, "zeepo_ai")),
 			]);
 
 			const summaryRaw = summaryRow[0];
@@ -385,6 +404,20 @@ export const zeepoAiBillingRouter = router({
 					tokensDebited: Number(summaryRaw?.tokensDebited ?? 0),
 					failed: Number(summaryRaw?.failed ?? 0),
 					avgLatencyMs: Math.round(Number(summaryRaw?.avgLatencyMs ?? 0)),
+					liveAiSupport: {
+						events: Number(supportFabSummaryRow[0]?.events ?? 0),
+						providerCostUsd:
+							Number(supportFabSummaryRow[0]?.providerCostUsdMicros ?? 0) / 1_000_000,
+						inputTokens: Number(supportFabSummaryRow[0]?.inputTokens ?? 0),
+						outputTokens: Number(supportFabSummaryRow[0]?.outputTokens ?? 0),
+					},
+					zeepoAi: {
+						events: Number(zeepoSummaryRow[0]?.events ?? 0),
+						providerCostUsd:
+							Number(zeepoSummaryRow[0]?.providerCostUsdMicros ?? 0) / 1_000_000,
+						inputTokens: Number(zeepoSummaryRow[0]?.inputTokens ?? 0),
+						outputTokens: Number(zeepoSummaryRow[0]?.outputTokens ?? 0),
+					},
 				},
 				byProvider: byProviderRows.map((r) => ({
 					provider: r.provider ?? "unknown",

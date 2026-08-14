@@ -1,3 +1,4 @@
+import { type AccountEmailChangePurpose } from "react-email-starter/emails";
 export declare function renderResetPasswordEmail({ userFirstname, resetPasswordLink, }: {
     userFirstname: string;
     resetPasswordLink: string;
@@ -9,6 +10,12 @@ export declare function renderPasswordResetSuccessEmail({ userFirstname, loginLi
 export declare function renderEmailVerificationEmail({ userFirstname, verificationLink, }: {
     userFirstname: string;
     verificationLink: string;
+}): Promise<string>;
+export declare function renderAccountEmailChangeEmail({ userFirstname, newEmail, actionLink, purpose, }: {
+    userFirstname: string;
+    newEmail: string;
+    actionLink: string;
+    purpose?: AccountEmailChangePurpose;
 }): Promise<string>;
 export declare function renderTeamInviteEmail({ invitedUserEmail, inviterName, teamName, teamRole, acceptInviteLink, expiresInDays, }: {
     invitedUserEmail: string;

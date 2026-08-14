@@ -11,8 +11,8 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             teamId?: string | undefined;
             productId?: string | undefined;
             productPlanId?: string | undefined;
-            pricingModel?: "FIXED" | "COMMISSION" | undefined;
-            status?: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED" | undefined;
+            pricingModel?: "FIXED" | "COMMISSION" | "USAGE" | undefined;
+            status?: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "FAILED" | "UPGRADED" | "DOWNGRADED" | undefined;
             fromDate?: unknown;
             toDate?: unknown;
             limit?: number | undefined;
@@ -28,13 +28,13 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             orderId: string | null;
             subscribedBy: string | null;
             recordedBy: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
             subscriptionDate: Date | null;
-            billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
+            billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | "ONE_TIME" | null;
             nextRenewalDate: Date | null;
             expiryDate: Date | null;
             autoRenew: boolean;
-            pricingModel: "FIXED" | "COMMISSION";
+            pricingModel: "FIXED" | "COMMISSION" | "USAGE";
             agreedPrice: string | null;
             agreedCurrency: string | null;
             agreedCommissionRate: unknown;
@@ -75,13 +75,13 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             orderId: string | null;
             subscribedBy: string | null;
             recordedBy: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
             subscriptionDate: Date | null;
-            billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
+            billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | "ONE_TIME" | null;
             nextRenewalDate: Date | null;
             expiryDate: Date | null;
             autoRenew: boolean;
-            pricingModel: "FIXED" | "COMMISSION";
+            pricingModel: "FIXED" | "COMMISSION" | "USAGE";
             agreedPrice: string | null;
             agreedCurrency: string | null;
             agreedCommissionRate: unknown;
@@ -118,7 +118,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             id: string;
             pleskSubscriptionId: string | null;
             subscriptionName: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
             productName: string;
             productPlanName: string | null;
             subscriptionDate: Date | null;
@@ -136,7 +136,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             id: string;
             pleskSubscriptionId: string | null;
             subscriptionName: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
             productName: string;
             productPlanName: string | null;
             subscriptionDate: Date | null;
@@ -155,7 +155,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             wordpressInstallationId: string | null;
             pleskSubscriptionId: string | null;
             subscriptionName: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
             productName: string;
             productPlanName: string | null;
             subscriptionDate: Date | null;
@@ -177,7 +177,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             id: string;
             pleskSubscriptionId: string | null;
             subscriptionName: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
             productName: string;
             productPlanName: string | null;
             subscriptionDate: Date | null;
@@ -195,7 +195,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             id: string;
             pleskSubscriptionId: string | null;
             subscriptionName: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
             productName: string;
             productPlanName: string | null;
             subscriptionDate: Date | null;
@@ -213,7 +213,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             id: string;
             pleskSubscriptionId: string | null;
             subscriptionName: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
             productName: string;
             productPlanName: string | null;
             subscriptionDate: Date | null;
@@ -231,7 +231,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             id: string;
             pleskSubscriptionId: string | null;
             subscriptionName: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
             productName: string;
             productPlanName: string | null;
             subscriptionDate: Date | null;
@@ -253,7 +253,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             subscriptionDate: Date | null;
             nextRenewalDate: Date | null;
             expiryDate: Date | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
         }[];
         meta: object;
     }>;
@@ -313,7 +313,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
                 commissionRate: unknown;
                 commissionAmount: unknown;
                 currency: string;
-                status: "DRAFT" | "PAID" | "INVOICED" | "WAIVED";
+                status: "DRAFT" | "INVOICED" | "PAID" | "WAIVED";
                 invoiceId: string | null;
                 notes: string | null;
                 createdBy: string;
@@ -344,10 +344,10 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
                 name: string;
                 createdAt: Date;
                 updatedAt: Date;
-                description: string | null;
                 isActive: boolean;
-                category: string;
                 metadata: unknown;
+                description: string | null;
+                category: string;
                 serviceType: string;
                 sortOrder: number;
                 features: unknown;
@@ -365,16 +365,16 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
                 name: string;
                 createdAt: Date;
                 updatedAt: Date;
-                description: string | null;
                 isActive: boolean;
-                metadata: unknown;
-                productId: string;
-                price: string | null;
                 currency: string | null;
+                metadata: unknown;
+                description: string | null;
                 sortOrder: number;
                 highlights: unknown;
+                productId: string;
                 pricingModel: string;
                 billingCycle: string | null;
+                price: string | null;
                 setupFee: string | null;
                 cost: string | null;
                 costCurrency: string | null;
@@ -411,13 +411,13 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             orderId: string | null;
             subscribedBy: string | null;
             recordedBy: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
             subscriptionDate: Date | null;
-            billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
+            billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | "ONE_TIME" | null;
             nextRenewalDate: Date | null;
             expiryDate: Date | null;
             autoRenew: boolean;
-            pricingModel: "FIXED" | "COMMISSION";
+            pricingModel: "FIXED" | "COMMISSION" | "USAGE";
             agreedPrice: string | null;
             agreedCurrency: string | null;
             agreedCommissionRate: unknown;
@@ -470,13 +470,13 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             orderId: string | null;
             subscribedBy: string | null;
             recordedBy: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
             subscriptionDate: Date | null;
-            billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
+            billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | "ONE_TIME" | null;
             nextRenewalDate: Date | null;
             expiryDate: Date | null;
             autoRenew: boolean;
-            pricingModel: "FIXED" | "COMMISSION";
+            pricingModel: "FIXED" | "COMMISSION" | "USAGE";
             agreedPrice: string | null;
             agreedCurrency: string | null;
             agreedCommissionRate: unknown;
@@ -533,7 +533,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
         output: {
             hasLinked: boolean;
             subscriptionId: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED" | null;
+            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "FAILED" | "UPGRADED" | "DOWNGRADED" | null;
         };
         meta: object;
     }>;
@@ -554,8 +554,8 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             plans: {
                 id: string;
                 name: string;
-                pricingModel: "FIXED" | "COMMISSION";
-                billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
+                pricingModel: "FIXED" | "COMMISSION" | "USAGE";
+                billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | "ONE_TIME" | null;
                 price: string | null;
                 currency: string | null;
                 agreedCommissionRate: number | null;
@@ -586,7 +586,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             platform: "META_ADS" | "GOOGLE_ADS" | "LINKEDIN_ADS" | "INSTAGRAM_ADS";
             accountId: string;
             adServingFee: string;
-            adServingFeeCurrency: "USD" | "EUR" | "KES";
+            adServingFeeCurrency: "KES" | "USD" | "EUR";
             accountName?: string | undefined;
         };
         output: {
@@ -599,13 +599,13 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             orderId: string | null;
             subscribedBy: string | null;
             recordedBy: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
             subscriptionDate: Date | null;
-            billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
+            billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | "ONE_TIME" | null;
             nextRenewalDate: Date | null;
             expiryDate: Date | null;
             autoRenew: boolean;
-            pricingModel: "FIXED" | "COMMISSION";
+            pricingModel: "FIXED" | "COMMISSION" | "USAGE";
             agreedPrice: string | null;
             agreedCurrency: string | null;
             agreedCommissionRate: unknown;
@@ -637,8 +637,8 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             plans: {
                 id: string;
                 name: string;
-                pricingModel: "FIXED" | "COMMISSION";
-                billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
+                pricingModel: "FIXED" | "COMMISSION" | "USAGE";
+                billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | "ONE_TIME" | null;
                 price: string | null;
                 currency: string | null;
                 agreedCommissionRate: number | null;
@@ -672,14 +672,14 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             productPlanId: string;
             searchConsoleSiteUrl: string;
             managementFee: string;
-            managementFeeCurrency: "USD" | "EUR" | "KES";
+            managementFeeCurrency: "KES" | "USD" | "EUR";
         } | {
             scope: "GA4";
             teamId: string;
             productPlanId: string;
             ga4PropertyId: string;
             managementFee: string;
-            managementFeeCurrency: "USD" | "EUR" | "KES";
+            managementFeeCurrency: "KES" | "USD" | "EUR";
             ga4DisplayName?: string | undefined;
         };
         output: {
@@ -692,13 +692,13 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             orderId: string | null;
             subscribedBy: string | null;
             recordedBy: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
             subscriptionDate: Date | null;
-            billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
+            billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | "ONE_TIME" | null;
             nextRenewalDate: Date | null;
             expiryDate: Date | null;
             autoRenew: boolean;
-            pricingModel: "FIXED" | "COMMISSION";
+            pricingModel: "FIXED" | "COMMISSION" | "USAGE";
             agreedPrice: string | null;
             agreedCurrency: string | null;
             agreedCommissionRate: unknown;
@@ -746,7 +746,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
     create: import("@trpc/server").TRPCMutationProcedure<{
         input: {
             productId: string;
-            pricingModel: "FIXED" | "COMMISSION";
+            pricingModel: "FIXED" | "COMMISSION" | "USAGE";
             name?: string | undefined;
             userId?: string | undefined;
             teamId?: string | undefined;
@@ -754,9 +754,9 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             orderId?: string | undefined;
             subscribedBy?: string | undefined;
             recordedBy?: string | undefined;
-            status?: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED" | undefined;
+            status?: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "FAILED" | "UPGRADED" | "DOWNGRADED" | undefined;
             subscriptionDate?: unknown;
-            billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | undefined;
+            billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | "ONE_TIME" | undefined;
             nextRenewalDate?: unknown;
             expiryDate?: unknown;
             autoRenew?: boolean | undefined;
@@ -793,13 +793,13 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             orderId: string | null;
             subscribedBy: string | null;
             recordedBy: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
             subscriptionDate: Date | null;
-            billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
+            billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | "ONE_TIME" | null;
             nextRenewalDate: Date | null;
             expiryDate: Date | null;
             autoRenew: boolean;
-            pricingModel: "FIXED" | "COMMISSION";
+            pricingModel: "FIXED" | "COMMISSION" | "USAGE";
             agreedPrice: string | null;
             agreedCurrency: string | null;
             agreedCommissionRate: unknown;
@@ -830,9 +830,9 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             userId?: string | null | undefined;
             teamId?: string | null | undefined;
             productPlanId?: string | null | undefined;
-            status?: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED" | undefined;
+            status?: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "FAILED" | "UPGRADED" | "DOWNGRADED" | undefined;
             subscriptionDate?: unknown;
-            billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | undefined;
+            billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | "ONE_TIME" | undefined;
             nextRenewalDate?: unknown;
             expiryDate?: unknown;
             autoRenew?: boolean | undefined;
@@ -864,13 +864,13 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             orderId: string | null;
             subscribedBy: string | null;
             recordedBy: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
             subscriptionDate: Date | null;
-            billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
+            billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | "ONE_TIME" | null;
             nextRenewalDate: Date | null;
             expiryDate: Date | null;
             autoRenew: boolean;
-            pricingModel: "FIXED" | "COMMISSION";
+            pricingModel: "FIXED" | "COMMISSION" | "USAGE";
             agreedPrice: string | null;
             agreedCurrency: string | null;
             agreedCommissionRate: unknown;
@@ -909,13 +909,13 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             orderId: string | null;
             subscribedBy: string | null;
             recordedBy: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
             subscriptionDate: Date | null;
-            billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
+            billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | "ONE_TIME" | null;
             nextRenewalDate: Date | null;
             expiryDate: Date | null;
             autoRenew: boolean;
-            pricingModel: "FIXED" | "COMMISSION";
+            pricingModel: "FIXED" | "COMMISSION" | "USAGE";
             agreedPrice: string | null;
             agreedCurrency: string | null;
             agreedCommissionRate: unknown;
@@ -967,13 +967,13 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
     renew: import("@trpc/server").TRPCMutationProcedure<{
         input: {
             subscriptionId: string;
-            renewalType: "HOSTING" | "DOMAIN" | "FIXED_BILLING";
+            renewalType: "FIXED_BILLING" | "DOMAIN" | "HOSTING";
             renewalDate: unknown;
             renewedBy?: string | undefined;
             newExpiryDate?: unknown;
             newNextRenewalDate?: unknown;
-            billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | undefined;
-            status?: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED" | undefined;
+            billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | "ONE_TIME" | undefined;
+            status?: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "FAILED" | "UPGRADED" | "DOWNGRADED" | undefined;
             renewalPrice?: string | undefined;
             renewalCurrency?: string | undefined;
             externalRenewalId?: string | undefined;
@@ -993,13 +993,13 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
                 orderId: string | null;
                 subscribedBy: string | null;
                 recordedBy: string | null;
-                status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+                status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "FAILED" | "UPGRADED" | "DOWNGRADED";
                 subscriptionDate: Date | null;
-                billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
+                billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | "ONE_TIME" | null;
                 nextRenewalDate: Date | null;
                 expiryDate: Date | null;
                 autoRenew: boolean;
-                pricingModel: "FIXED" | "COMMISSION";
+                pricingModel: "FIXED" | "COMMISSION" | "USAGE";
                 agreedPrice: string | null;
                 agreedCurrency: string | null;
                 agreedCommissionRate: unknown;
@@ -1044,7 +1044,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             commissionRate: unknown;
             commissionAmount: unknown;
             currency: string;
-            status: "DRAFT" | "PAID" | "INVOICED" | "WAIVED";
+            status: "DRAFT" | "INVOICED" | "PAID" | "WAIVED";
             invoiceId: string | null;
             notes: string | null;
             createdBy: string;
@@ -1058,7 +1058,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
         input: {
             subscriptionId?: string | undefined;
             teamId?: string | undefined;
-            status?: "DRAFT" | "PAID" | "INVOICED" | "WAIVED" | undefined;
+            status?: "DRAFT" | "INVOICED" | "PAID" | "WAIVED" | undefined;
             periodFrom?: string | undefined;
             periodTo?: string | undefined;
         } | undefined;
@@ -1073,7 +1073,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             commissionRate: unknown;
             commissionAmount: unknown;
             currency: string;
-            status: "DRAFT" | "PAID" | "INVOICED" | "WAIVED";
+            status: "DRAFT" | "INVOICED" | "PAID" | "WAIVED";
             invoiceId: string | null;
             notes: string | null;
             createdBy: string;
@@ -1086,7 +1086,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
     updateCommissionEntry: import("@trpc/server").TRPCMutationProcedure<{
         input: {
             id: string;
-            status: "DRAFT" | "PAID" | "INVOICED" | "WAIVED";
+            status: "DRAFT" | "INVOICED" | "PAID" | "WAIVED";
             invoiceId?: string | undefined;
             notes?: string | undefined;
         };
@@ -1101,7 +1101,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             commissionRate: unknown;
             commissionAmount: unknown;
             currency: string;
-            status: "DRAFT" | "PAID" | "INVOICED" | "WAIVED";
+            status: "DRAFT" | "INVOICED" | "PAID" | "WAIVED";
             invoiceId: string | null;
             notes: string | null;
             createdBy: string;
@@ -1121,6 +1121,141 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             name: string | null;
             primaryDomain: string | null;
         }[];
+        meta: object;
+    }>;
+    /**
+     * Agency-only: enqueue (or run inline) the subscription renewal reminder job.
+     * Same work as the daily 00:00 UTC QStash schedule.
+     */
+    runRenewalReminderCron: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            allowInline?: boolean | undefined;
+            force?: boolean | undefined;
+        } | undefined;
+        output: {
+            queued: boolean;
+            runId: string;
+            messageId?: string | undefined;
+            scheduleId?: string | undefined;
+            inline?: {
+                scanned: number;
+                sent: number;
+                skipped: number;
+                failed: number;
+                hasMore: boolean;
+                status: string;
+            } | undefined;
+        };
+        meta: object;
+    }>;
+    /** Agency-only: live status of the renewal reminder cron + latest run. */
+    getRenewalReminderCronStatus: import("@trpc/server").TRPCQueryProcedure<{
+        input: void;
+        output: {
+            isRunning: boolean;
+            isStale: boolean;
+            activeRunId: string | null;
+            schedule: {
+                configured: boolean;
+                scheduleId: string;
+                cron: string;
+                destination: string | null;
+                isPaused: boolean | null;
+                scheduleExists: boolean;
+                error: string | null;
+            };
+            latestRun: {
+                id: string;
+                source: string;
+                status: string;
+                scanned: number;
+                sent: number;
+                skipped: number;
+                failed: number;
+                summary: string | null;
+                lastError: string | null;
+                startedAt: Date | null;
+                finishedAt: Date | null;
+                heartbeatAt: Date | null;
+                createdAt: Date;
+                triggeredByUserId: string | null;
+            } | null;
+        };
+        meta: object;
+    }>;
+    /** Agency-only: paginated history of renewal reminder cron runs. */
+    listRenewalReminderCronRuns: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            limit?: number | undefined;
+            cursor?: string | undefined;
+        } | undefined;
+        output: {
+            runs: {
+                id: string;
+                source: string;
+                status: string;
+                scanned: number;
+                sent: number;
+                skipped: number;
+                failed: number;
+                batchCount: number;
+                summary: string | null;
+                lastError: string | null;
+                startedAt: Date | null;
+                finishedAt: Date | null;
+                heartbeatAt: Date | null;
+                createdAt: Date;
+                triggeredByUserId: string | null;
+                qstashMessageId: string | null;
+            }[];
+            nextCursor: string | null;
+        };
+        meta: object;
+    }>;
+    /** Agency-only: one cron run with per-subscription item logs. */
+    getRenewalReminderCronRun: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            runId: string;
+        };
+        output: {
+            run: {
+                id: string;
+                status: string;
+                createdAt: Date;
+                updatedAt: Date;
+                metadata: Record<string, unknown> | null;
+                qstashMessageId: string | null;
+                jobKey: string;
+                source: string;
+                triggeredByUserId: string | null;
+                scanned: number;
+                sent: number;
+                skipped: number;
+                failed: number;
+                currentOffset: number;
+                batchCount: number;
+                lastError: string | null;
+                summary: string | null;
+                startedAt: Date | null;
+                finishedAt: Date | null;
+                heartbeatAt: Date | null;
+            };
+            items: {
+                id: string;
+                runId: string;
+                subscriptionId: string | null;
+                outcome: string;
+                skipReason: string | null;
+                emailTo: string | null;
+                subject: string | null;
+                error: string | null;
+                subscriptionName: string | null;
+                productName: string | null;
+                expiryDate: Date | null;
+                metadata: Record<string, unknown> | null;
+                createdAt: Date;
+            }[];
+        };
         meta: object;
     }>;
 }>>;

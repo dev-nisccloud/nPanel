@@ -32,7 +32,7 @@ export type CookieOptions = {
 
 function resolveIpAddress(headers: Headers): string | null {
   return (
-    headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    headers.get("x-forwarded-for")?.split(",").pop()?.trim() ||
     headers.get("x-real-ip")?.trim() ||
     headers.get("cf-connecting-ip")?.trim() ||
     null

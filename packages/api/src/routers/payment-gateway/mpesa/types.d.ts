@@ -27,6 +27,7 @@ export declare const StkPushRequestSchema: z.ZodObject<{
     transactionDesc: z.ZodOptional<z.ZodString>;
     callbackUrl: z.ZodOptional<z.ZodString>;
     teamId: z.ZodOptional<z.ZodString>;
+    checkoutTotalIncVat: z.ZodOptional<z.ZodNumber>;
 }, z.core.$strip>;
 export type StkPushRequest = z.infer<typeof StkPushRequestSchema>;
 /**

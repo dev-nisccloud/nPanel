@@ -26,6 +26,7 @@ import { handleZeepoCanvasWebhook } from "./api/webhooks/zeepo-canvas";
 import { handleZeepoAgent } from "./api/workers/zeepo-agent";
 import { handleZeepoAgentWebhook } from "./api/webhooks/zeepo-agent";
 import { handleZeepoAiChatStream } from "./api/zeepo-ai-chat-stream";
+import { handleZeepoAiSupportGuestStream } from "./api/zeepo-ai-support-guest-stream";
 import { handleEmailBuilderAi } from "./api/workers/email-builder-ai";
 import { handleNiscEmailBuilder } from "./api/workers/nisc-email-builder";
 import { handleEmailBuilderAiWebhook } from "./api/webhooks/replicate-email-builder-ai";
@@ -254,6 +255,7 @@ export function createApp(options: CreateAppOptions = {}) {
     app.on(["POST"], "/api/webhooks/zeepo-canvas", handleZeepoCanvasWebhook);
     app.on(["POST"], "/api/webhooks/zeepo-agent", handleZeepoAgentWebhook);
     app.on(["POST"], "/api/zeepo-ai/chat/stream", handleZeepoAiChatStream);
+    app.on(["POST"], "/api/zeepo-ai/support/guest/stream", handleZeepoAiSupportGuestStream);
     app.on(["POST"], "/api/webhooks/resend", handleResendWebhook);
     app.on(["POST"], "/api/webhooks/sns", handleSnsWebhook);
     app.on(["POST"], "/api/webhooks/replicate/email-builder-ai", handleEmailBuilderAiWebhook);

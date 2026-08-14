@@ -8,7 +8,7 @@ export declare const tldSettingsRouter: import("@trpc/server").TRPCBuiltRouter<{
         input: {
             name: string;
             nameserverGroupId?: string | undefined;
-            marginType?: "PERCENTAGE" | "FIXED" | undefined;
+            marginType?: "FIXED" | "PERCENTAGE" | undefined;
             percentageMargin?: string | undefined;
             fixedMargin?: string | undefined;
             roundOff?: string | undefined;
@@ -198,7 +198,7 @@ export declare const tldSettingsRouter: import("@trpc/server").TRPCBuiltRouter<{
     upsertExtensionMargin: import("@trpc/server").TRPCMutationProcedure<{
         input: {
             extension: string;
-            marginType: "PERCENTAGE" | "FIXED";
+            marginType: "FIXED" | "PERCENTAGE";
             percentageMargin?: string | undefined;
             fixedMargin?: string | undefined;
             roundOff?: string | undefined;
@@ -254,7 +254,7 @@ export declare const tldSettingsRouter: import("@trpc/server").TRPCBuiltRouter<{
             limit?: number | undefined;
             offset?: number | undefined;
             search?: string | undefined;
-            marginType?: "PERCENTAGE" | "FIXED" | undefined;
+            marginType?: "FIXED" | "PERCENTAGE" | undefined;
             nameserverGroupId?: string | undefined;
         };
         output: {
@@ -301,7 +301,7 @@ export declare const tldSettingsRouter: import("@trpc/server").TRPCBuiltRouter<{
             id: string;
             name?: string | undefined;
             nameserverGroupId?: string | undefined;
-            marginType?: "PERCENTAGE" | "FIXED" | undefined;
+            marginType?: "FIXED" | "PERCENTAGE" | undefined;
             percentageMargin?: string | undefined;
             fixedMargin?: string | undefined;
             roundOff?: string | undefined;

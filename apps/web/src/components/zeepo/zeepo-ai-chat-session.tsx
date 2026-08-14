@@ -37,6 +37,7 @@ import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 import { refreshZeepoAiTokenBalance } from "@/hooks/use-zeepo-ai-token-balance";
 import { startViewTransitionNavigate } from "@/routes/_agency.zeepo-ai-agent/nav-state";
+import { OpenSupportTicketDialog } from "@/components/support/open-support-ticket-dialog";
 
 type LocationState = {
   initialMessage?: string;
@@ -276,6 +277,18 @@ export function ZeepoAiChatSessionPage() {
     onError: (e) => toast.error(e.message || "Could not delete chat"),
   });
 
+  const openSupportTicket = trpc.zeepoAi.sessions.openSupportTicket.useMutation({
+    onSuccess: (result) => {
+      setTicketDialogOpen(false);
+      toast.success(
+        result.alreadyOpen
+          ? `Ticket ${result.ticketNumber} is already open`
+          : `Ticket ${result.ticketNumber} opened`,
+      );
+    },
+    onError: (e) => toast.error(e.message || "Could not open a ticket"),
+  });
+
   const renameSession = trpc.zeepoAi.sessions.updateTitle.useMutation({
     onSuccess: async (result) => {
       toast.success("Chat renamed");
@@ -296,6 +309,7 @@ export function ZeepoAiChatSessionPage() {
   const [questionsPreparing, setQuestionsPreparing] = useState(false);
   const [connectionBanner, setConnectionBanner] = useState<string | null>(null);
   const [handoffStarting, setHandoffStarting] = useState(false);
+  const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
   const isStreaming = streamingMessageId != null;
   const abortRef = useRef<AbortController | null>(null);
   const scrollParentRef = useRef<HTMLDivElement>(null);
@@ -1402,6 +1416,20 @@ export function ZeepoAiChatSessionPage() {
           />
         </div>
       ) : null}
+
+      <OpenSupportTicketDialog
+        open={ticketDialogOpen}
+        onOpenChange={setTicketDialogOpen}
+        showPhone
+        submitting={openSupportTicket.isPending}
+        onSubmit={async ({ phone, intent }) => {
+          await openSupportTicket.mutateAsync({
+            sessionId,
+            phone,
+            intent,
+          });
+        }}
+      />
 
       <ZeepoRenameChatDialog
         target={sessionId ? { id: sessionId, title: displayTitle } : null}

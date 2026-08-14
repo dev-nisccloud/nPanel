@@ -31,7 +31,6 @@ export class JengaCardPaymentClient {
             "apiKey",
             "merchantCode",
             "consumerSecret",
-            "privateKeyPath",
             "environment",
             "defaultCallbackUrl",
         ];
@@ -40,9 +39,23 @@ export class JengaCardPaymentClient {
                 throw new Error(`Missing required Jenga config: ${key}`);
             }
         }
-        if (!fs.existsSync(this.config.privateKeyPath)) {
+        if (!this.config.privateKeyPem && !this.config.privateKeyPath) {
+            throw new Error("Missing Jenga private key: set JENGA_PRIVATE_KEY (PEM) or JENGA_PRIVATE_KEY_PATH");
+        }
+        if (!this.config.privateKeyPem &&
+            this.config.privateKeyPath &&
+            !fs.existsSync(this.config.privateKeyPath)) {
             throw new Error(`Jenga private key not found at: ${this.config.privateKeyPath}`);
         }
+    }
+    getPrivateKeyPem() {
+        if (this.config.privateKeyPem?.trim()) {
+            return this.config.privateKeyPem.replace(/\\n/g, "\n").trim();
+        }
+        if (this.config.privateKeyPath) {
+            return fs.readFileSync(this.config.privateKeyPath, "utf8");
+        }
+        throw new Error("Jenga private key not configured");
     }
     getBaseUrl() {
         return this.config.environment === "live"
@@ -84,6 +97,15 @@ export class JengaCardPaymentClient {
             });
             const data = (await response.body.json());
             if (response.statusCode !== 200 || data.status === false) {
+                console.error("[Jenga] Authentication failed", {
+                    httpStatus: response.statusCode,
+                    code: data.code,
+                    message: data.message,
+                    environment: this.config.environment,
+                    baseUrl: this.getBaseUrl(),
+                    merchantCodeLength: this.config.merchantCode.length,
+                    apiKeyLength: this.config.apiKey.length,
+                });
                 throw new JengaApiError(data.code || response.statusCode, data.message || "Authentication failed");
             }
             if (!data.accessToken) {
@@ -109,7 +131,7 @@ export class JengaCardPaymentClient {
             currency +
             orderAmount.toString() +
             callbackUrl;
-        const privateKey = fs.readFileSync(this.config.privateKeyPath, "utf8");
+        const privateKey = this.getPrivateKeyPem();
         const sign = crypto.createSign("RSA-SHA256");
         sign.update(plainText);
         sign.end();
@@ -177,20 +199,25 @@ export function createJengaClientFromEnv() {
         "JENGA_API_KEY",
         "JENGA_MERCHANT_CODE",
         "JENGA_CONSUMER_SECRET",
-        "JENGA_PRIVATE_KEY_PATH",
         "JENGA_CALLBACK_URL",
     ];
     const missingVars = requiredEnvVars.filter((varName) => !process.env[varName]);
     if (missingVars.length > 0) {
         throw new Error(`Missing required Jenga environment variables: ${missingVars.join(", ")}`);
     }
+    const privateKeyPem = process.env.JENGA_PRIVATE_KEY?.trim();
+    const privateKeyPath = process.env.JENGA_PRIVATE_KEY_PATH?.trim();
+    if (!privateKeyPem && !privateKeyPath) {
+        throw new Error("Missing Jenga private key: set JENGA_PRIVATE_KEY (PEM string, preferred on Cloud Run) or JENGA_PRIVATE_KEY_PATH (local file)");
+    }
     return new JengaCardPaymentClient({
-        apiKey: process.env.JENGA_API_KEY,
-        merchantCode: process.env.JENGA_MERCHANT_CODE,
-        consumerSecret: process.env.JENGA_CONSUMER_SECRET,
-        privateKeyPath: process.env.JENGA_PRIVATE_KEY_PATH,
+        apiKey: process.env.JENGA_API_KEY.trim(),
+        merchantCode: process.env.JENGA_MERCHANT_CODE.trim(),
+        consumerSecret: process.env.JENGA_CONSUMER_SECRET.trim(),
+        privateKeyPem: privateKeyPem || undefined,
+        privateKeyPath: privateKeyPath || undefined,
         environment,
-        defaultCallbackUrl: process.env.JENGA_CALLBACK_URL,
+        defaultCallbackUrl: process.env.JENGA_CALLBACK_URL.trim(),
         ipnUsername: process.env.JENGA_IPN_USERNAME,
         ipnPassword: process.env.JENGA_IPN_PASSWORD,
         paymentTimeLimit: process.env.JENGA_PAYMENT_TIME_LIMIT || "15mins",

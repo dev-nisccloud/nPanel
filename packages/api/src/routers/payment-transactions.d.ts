@@ -14,6 +14,7 @@ export declare const paymentTransactionsRouter: import("@trpc/server").TRPCBuilt
             transactionReference: string;
             amount: number;
             currency?: string | undefined;
+            gateway?: "MPESA" | "JENGA" | "OTHER" | undefined;
             accountReference?: string | undefined;
             transactionDesc?: string | undefined;
             teamId?: string | undefined;
@@ -29,8 +30,8 @@ export declare const paymentTransactionsRouter: import("@trpc/server").TRPCBuilt
         input: {
             limit?: number | undefined;
             offset?: number | undefined;
-            status?: "PENDING" | "PROCESSING" | "FAILED" | "CANCELLED" | "REFUNDED" | "SUCCESS" | "PARTIALLY_REFUNDED" | undefined;
-            gateway?: "MPESA" | "OTHER" | "STRIPE" | "PAYPAL" | "FLUTTERWAVE" | undefined;
+            status?: "PENDING" | "PROCESSING" | "CANCELLED" | "SUCCESS" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED" | undefined;
+            gateway?: "MPESA" | "JENGA" | "OTHER" | "STRIPE" | "PAYPAL" | "FLUTTERWAVE" | undefined;
         };
         output: {
             transactions: {
@@ -38,8 +39,8 @@ export declare const paymentTransactionsRouter: import("@trpc/server").TRPCBuilt
                 userId: string;
                 teamId: string | null;
                 userName: string | null;
-                gateway: "MPESA" | "OTHER" | "STRIPE" | "PAYPAL" | "FLUTTERWAVE";
-                status: "PENDING" | "PROCESSING" | "FAILED" | "CANCELLED" | "REFUNDED" | "SUCCESS" | "PARTIALLY_REFUNDED";
+                gateway: "MPESA" | "JENGA" | "OTHER" | "STRIPE" | "PAYPAL" | "FLUTTERWAVE";
+                status: "PENDING" | "PROCESSING" | "CANCELLED" | "SUCCESS" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED";
                 amount: string;
                 currency: string;
                 accountReference: string | null;
@@ -65,7 +66,7 @@ export declare const paymentTransactionsRouter: import("@trpc/server").TRPCBuilt
             teamId: string | null;
             userName: string | null;
             teamName: string | null;
-            gateway: "MPESA" | "OTHER" | "STRIPE" | "PAYPAL" | "FLUTTERWAVE";
+            gateway: "MPESA" | "JENGA" | "OTHER" | "STRIPE" | "PAYPAL" | "FLUTTERWAVE";
             gatewayStatus: string | null;
             gatewayMessage: string | null;
             gatewayTransactionId: string | null;
@@ -78,7 +79,7 @@ export declare const paymentTransactionsRouter: import("@trpc/server").TRPCBuilt
             accountReference: string | null;
             transactionDesc: string | null;
             phoneNumber: string | null;
-            status: "PENDING" | "PROCESSING" | "FAILED" | "CANCELLED" | "REFUNDED" | "SUCCESS" | "PARTIALLY_REFUNDED";
+            status: "PENDING" | "PROCESSING" | "CANCELLED" | "SUCCESS" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED";
             rawResponse: unknown;
             rawError: unknown;
             initiatedAt: Date;

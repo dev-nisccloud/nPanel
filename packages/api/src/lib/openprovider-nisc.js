@@ -9,7 +9,9 @@ import { user as userTable } from "@npanel/db/schema/auth";
 import { customerIntegration, userProfile } from "@npanel/db/schema/auth-extras";
 import { niscClientSubscription } from "@npanel/db/schema/products";
 import { createOpenProviderClient, OpenProviderApiError, buildOpenProviderApiError, } from "./openprovider-client";
+import { agreedPriceIncVatFromExVat } from "./convert-price";
 import { niscLog } from "./nisc-order-logger";
+import { resolveDomainBillingCycle, resolveDomainRegistrationPeriodYears, } from "./nisc-subscription-dates";
 /**
  * Strip IP addresses from nameservers that are not in-bailiwick for the domain being registered.
  * Glue records (IP on the nameserver entry) are only valid when the nameserver hostname is itself
@@ -241,7 +243,8 @@ export async function ensureOpenProviderAndRegisterDomain(params) {
     }
     const name = params.domainName.slice(0, lastDot);
     const extension = params.domainName.slice(lastDot + 1); // e.g. "com" (no leading dot)
-    const period = billingCycleToYears(params.billingCycle);
+    const period = params.period ??
+        resolveDomainRegistrationPeriodYears(params.billingCycle, params.metadata);
     // Verify the TLD is contracted/enabled for registration in this reseller account.
     // Availability checks (checkDomains) work even without a TLD contract, but registration will
     // fail with code 199 if the TLD hasn't been signed up for. Log the result for debugging.
@@ -314,8 +317,16 @@ export async function ensureOpenProviderAndRegisterDomain(params) {
                     openProviderId: existingDomain.id,
                     status: existingDomain.status,
                 });
-                const sub = await createDomainSubscription(params, integration.id, params.domainName, existingDomain.id, "ACTIVE");
-                return { subscriptionId: sub.id, pendingVerification: false };
+                const sub = await createDomainSubscription(params, integration.id, params.domainName, existingDomain.id, "ACTIVE", { expiryOverride: existingDomain.expirationDate });
+                const locked = await lockOpenProviderDomain(client, existingDomain.id, {
+                    orderId: params.orderId,
+                    orderItemId: params.orderItemId,
+                });
+                return {
+                    subscriptionId: sub.id,
+                    pendingVerification: false,
+                    ...(locked ? {} : { warnings: [TRANSFER_LOCK_WARNING] }),
+                };
             }
             throw new Error(`Domain ${params.domainName} is not available for registration (status: ${checkResult.status}). ` +
                 `If you believe this is an error, contact support.`);
@@ -399,14 +410,42 @@ export async function ensureOpenProviderAndRegisterDomain(params) {
                 openProviderId: existingAfter.id,
                 originalCode: regResponse.code,
             });
-            const sub = await createDomainSubscription(params, integration.id, params.domainName, existingAfter.id, "ACTIVE");
-            return { subscriptionId: sub.id, pendingVerification: false };
+            const sub = await createDomainSubscription(params, integration.id, params.domainName, existingAfter.id, "ACTIVE", { expiryOverride: existingAfter.expirationDate });
+            const lockedPartial = await lockOpenProviderDomain(client, existingAfter.id, {
+                orderId: params.orderId,
+                orderItemId: params.orderItemId,
+            });
+            return {
+                subscriptionId: sub.id,
+                pendingVerification: false,
+                ...(lockedPartial ? {} : { warnings: [TRANSFER_LOCK_WARNING] }),
+            };
         }
         throw buildOpenProviderApiError(regResponse, "Domain registration failed");
     }
-    const domainId = regResponse.data?.id;
-    const sub = await createDomainSubscription(params, integration.id, params.domainName, domainId ?? undefined, "ACTIVE");
-    return { subscriptionId: sub.id, pendingVerification: false };
+    const domainId = regResponse.data?.id ?? null;
+    const registeredDomain = domainId != null
+        ? await findDomainInAccount(client, name, extension)
+        : null;
+    const sub = await createDomainSubscription(params, integration.id, params.domainName, domainId ?? registeredDomain?.id ?? undefined, "ACTIVE", { expiryOverride: registeredDomain?.expirationDate ?? null });
+    const lockId = domainId ?? registeredDomain?.id;
+    const warnings = [];
+    if (lockId != null) {
+        const locked = await lockOpenProviderDomain(client, lockId, {
+            orderId: params.orderId,
+            orderItemId: params.orderItemId,
+        });
+        if (!locked)
+            warnings.push(TRANSFER_LOCK_WARNING);
+    }
+    else {
+        warnings.push(TRANSFER_LOCK_WARNING);
+    }
+    return {
+        subscriptionId: sub.id,
+        pendingVerification: false,
+        ...(warnings.length ? { warnings } : {}),
+    };
 }
 /**
  * Ensure OpenProvider customer + verification, then initiate domain transfer.
@@ -597,7 +636,8 @@ export async function ensureOpenProviderAndTransferDomain(params) {
     }
     const name = params.domainName.slice(0, lastDot);
     const extension = params.domainName.slice(lastDot + 1); // e.g. "com" (no leading dot)
-    const period = params.period ?? billingCycleToYears(params.billingCycle);
+    const period = params.period ??
+        resolveDomainRegistrationPeriodYears(params.billingCycle, params.metadata);
     // Check TLD capabilities so we only send handle fields the registry supports.
     const tldRespTransfer = await client.getTlds({
         extensions: [extension],
@@ -649,8 +689,31 @@ export async function ensureOpenProviderAndTransferDomain(params) {
         domainTransferRequestId: params.domainTransferRequestId,
         orderCreatedAt: params.orderCreatedAt,
     });
-    const sub = await createDomainSubscription(params, integration.id, params.domainName, domainId ?? undefined, "ACTIVE", { subscriptionDate, applyBillingCycleExpiry: true });
-    return { subscriptionId: sub.id, pendingVerification: false, rawResponse: transferResponse };
+    const transferredDomain = await findDomainInAccount(client, name, extension);
+    const resolvedDomainId = domainId ?? transferredDomain?.id ?? null;
+    const sub = await createDomainSubscription(params, integration.id, params.domainName, resolvedDomainId ?? undefined, "ACTIVE", {
+        subscriptionDate,
+        applyBillingCycleExpiry: true,
+        expiryOverride: transferredDomain?.expirationDate ?? null,
+    });
+    const warnings = [];
+    if (resolvedDomainId != null) {
+        const locked = await lockOpenProviderDomain(client, resolvedDomainId, {
+            orderId: params.orderId,
+            orderItemId: params.orderItemId,
+        });
+        if (!locked)
+            warnings.push(TRANSFER_LOCK_WARNING);
+    }
+    else {
+        warnings.push(TRANSFER_LOCK_WARNING);
+    }
+    return {
+        subscriptionId: sub.id,
+        pendingVerification: false,
+        rawResponse: transferResponse,
+        ...(warnings.length ? { warnings } : {}),
+    };
 }
 /**
  * Search OpenProvider for an existing customer handle by email address.
@@ -685,19 +748,58 @@ async function findDomainInAccount(client, name, extension) {
         });
         if (searchResp.code !== 0 || !searchResp.data?.results?.length)
             return null;
-        const fullDomain = `${name}.${extension}`;
+        const fullDomain = `${name}.${extension}`.toLowerCase();
         const match = searchResp.data.results.find((d) => {
             const dName = (d.domain ?? "").toLowerCase();
-            return dName === fullDomain || dName === `${name}${extension}`;
+            return dName === fullDomain || dName === `${name}${extension}`.toLowerCase();
         });
         if (!match || typeof match.id !== "number")
             return null;
-        return { id: match.id, status: match.status ?? "unknown" };
+        const expirationRaw = match.expiration_date?.trim();
+        const expirationDate = expirationRaw && !Number.isNaN(new Date(expirationRaw).getTime())
+            ? new Date(expirationRaw)
+            : null;
+        return {
+            id: match.id,
+            status: match.status ?? "unknown",
+            expirationDate,
+        };
     }
     catch {
         return null;
     }
 }
+/**
+ * Enable transfer lock after successful OpenProvider register/transfer.
+ * Returns false (with logged response) when the lock call fails  callers should surface a warning.
+ */
+async function lockOpenProviderDomain(client, domainId, logContext) {
+    try {
+        const resp = await client.updateDomain(domainId, { is_locked: true });
+        logOpenProviderResponse({
+            orderId: logContext.orderId,
+            orderItemId: logContext.orderItemId,
+            call: "updateDomain_lock",
+            rawResponse: resp,
+        });
+        if (resp.code !== 0) {
+            return false;
+        }
+        return true;
+    }
+    catch (err) {
+        logOpenProviderResponse({
+            orderId: logContext.orderId,
+            orderItemId: logContext.orderItemId,
+            call: "updateDomain_lock",
+            rawResponse: {
+                error: err instanceof Error ? err.message : String(err),
+            },
+        });
+        return false;
+    }
+}
+const TRANSFER_LOCK_WARNING = "Domain provisioned but transfer lock could not be enabled  enable lock manually.";
 function buildOpenProviderCustomerRequest(profile, email) {
     // --- Phone normalisation ---
     // Strip everything except digits, then normalise to international format.
@@ -770,20 +872,6 @@ function buildOpenProviderCustomerRequest(profile, email) {
         email,
     };
 }
-function billingCycleToYears(billingCycle) {
-    if (!billingCycle)
-        return 1;
-    switch (billingCycle) {
-        case "BIENNIALLY":
-            return 2;
-        case "YEARLY":
-            return 1;
-        case "MONTHLY":
-            return 1; // OpenProvider typically min 1 year for registration
-        default:
-            return 1;
-    }
-}
 /** Order item description "transfer" → subscription description "domain-transfer". */
 function domainSubscriptionDescription(orderDescription) {
     if (orderDescription === "transfer")
@@ -792,12 +880,15 @@ function domainSubscriptionDescription(orderDescription) {
 }
 async function createDomainSubscription(params, _integrationId, primaryDomain, openProviderId, status, options) {
     const subscriptionDate = options?.subscriptionDate ?? new Date();
+    const billingCycle = resolveDomainBillingCycle(params.billingCycle);
     const applyExpiry = options?.applyBillingCycleExpiry !== false;
     let expiryDate = null;
     let nextRenewalDate = null;
     if (applyExpiry) {
         const { resolveSubscriptionPeriodDates } = await import("./nisc-subscription-dates");
-        const period = resolveSubscriptionPeriodDates(subscriptionDate, params.billingCycle);
+        const period = resolveSubscriptionPeriodDates(subscriptionDate, billingCycle, {
+            expiryOverride: options?.expiryOverride ?? null,
+        });
         expiryDate = period.expiryDate;
         nextRenewalDate = period.nextRenewalDate;
     }
@@ -818,9 +909,9 @@ async function createDomainSubscription(params, _integrationId, primaryDomain, o
         subscriptionDate,
         expiryDate,
         nextRenewalDate,
-        billingCycle: params.billingCycle ?? null,
+        billingCycle: billingCycle,
         pricingModel: "FIXED",
-        agreedPrice: params.itemPrice,
+        agreedPrice: agreedPriceIncVatFromExVat(params.itemPrice),
         agreedCurrency: params.currency,
         primaryDomain,
         openProviderId,

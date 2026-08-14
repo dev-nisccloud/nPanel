@@ -9,6 +9,7 @@ import { ZeepoDomainDetailCard } from "@/components/zeepo/domain-detail-card";
 import { ZeepoHostingResourcesCard } from "@/components/zeepo/hosting-resources-card";
 import { ZeepoHostingDetailCard } from "@/components/zeepo/hosting-detail-card";
 import { ZeepoWordPressSitesCard } from "@/components/zeepo/wordpress-sites-card";
+import { ZeepoSupportTicketCard, parseSupportTicketResult } from "@/components/zeepo/zeepo-support-ticket-card";
 import type {
   AgentDomainCheckResult,
   AgentHostingPlansResult,
@@ -160,10 +161,14 @@ export function hasRenderableZeepoToolCard(payload: unknown): boolean {
 export function ZeepoToolResultCard({
   result,
   hideNestedWordpress = false,
+  onViewTicket,
 }: {
   result: unknown;
   hideNestedWordpress?: boolean;
+  onViewTicket?: (ticketId: string) => void;
 }) {
+  const ticketResult = parseSupportTicketResult(result);
+  if (ticketResult) return <ZeepoSupportTicketCard result={result} onViewTicket={onViewTicket} />;
   const domainResult = parseDomainCheckResult(result);
   if (domainResult) return <ZeepoDomainPurchaseCard result={domainResult} />;
 
@@ -228,8 +233,10 @@ export function ZeepoToolResultCard({
 
 export function ZeepoToolResultCards({
   results,
+  onViewTicket,
 }: {
   results: Array<{ toolUseId?: string; toolName?: string; result: unknown }>;
+  onViewTicket?: (ticketId: string) => void;
 }) {
   const hasStandaloneWordpress = results.some((r) => parseWordPressSitesResult(r.result));
   const cards = results
@@ -238,6 +245,7 @@ export function ZeepoToolResultCards({
         <ZeepoToolResultCard
           result={r.result}
           hideNestedWordpress={hasStandaloneWordpress}
+          onViewTicket={onViewTicket}
         />
       );
       if (!card) return null;

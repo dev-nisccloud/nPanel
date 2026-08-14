@@ -81,6 +81,8 @@ export const listUsageActivitySchema = z.object({
 	teamId: z.string().optional(),
 	/** Agency ops: roll up request log by user. Customer-facing: roll up by team. */
 	groupBy: z.enum(["user", "team"]).default("user"),
+	/** Split Nisc-paid Live AI Support spend from billed Zeepo AI. */
+	surface: z.enum(["all", "zeepo_ai", "support_fab"]).default("all"),
 });
 
 export const getBalanceSchema = z.object({

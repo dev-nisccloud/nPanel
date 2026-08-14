@@ -3,7 +3,7 @@
  * Used by the process-nisc-order worker via nisc-order-invoice-delivery.
  */
 import * as crypto from "crypto";
-import { eq, sql } from "@npanel/db";
+import { and, eq, sql } from "@npanel/db";
 import { isTeamBillingComplete } from "../schemas/team-billing";
 import { db } from "@npanel/db";
 import { invoice, invoiceActivityLog, invoiceCounter, invoiceLineItem, } from "@npanel/db/schema/invoicing";
@@ -15,6 +15,7 @@ import { NISC_ORDER_VAT_PERCENTAGE, computeNiscOrderTotalsWithTax } from "./nisc
 import { buildDomainBundleInvoiceLineDescription, buildDomainBundleInvoiceLineName, buildDomainBundleKraItemName, groupDomainBundleItemsForInvoice, } from "./domain-bundle-order";
 import { buildNiscInvoiceLineMetadata } from "./invoice-kra-mapper";
 import { COMPANY_LOGO_URL } from "./company-branding";
+import { invoicePaymentMethodFromGateway } from "./invoice-payment-method";
 const FROM_DETAILS = {
     name: "Nisc Cloud Limited",
     email: "accounts@nisccloud.com",
@@ -34,12 +35,26 @@ const BANK_PAYMENT_DETAILS = {
     accountName: "Nisc Cloud Limited",
     swiftCode: "BARCKENX",
 };
+function paymentDetailsForPaidOrder(gateway) {
+    const method = invoicePaymentMethodFromGateway(gateway);
+    if (method === "MPESA") {
+        return { paymentMethod: "MPESA", method: "MPESA" };
+    }
+    if (method === "CARD") {
+        return { paymentMethod: "CARD", method: "CARD" };
+    }
+    if (method === "OTHER") {
+        return { paymentMethod: "OTHER", method: "OTHER" };
+    }
+    // Unpaid / unknown: keep bank instructions for settlement.
+    return { ...BANK_PAYMENT_DETAILS };
+}
 const TAX_PERCENTAGE = NISC_ORDER_VAT_PERCENTAGE;
 export { isTeamBillingComplete };
 function resolveOrderItemProductId(item) {
     return item.productId?.trim() || item.product.id?.trim() || null;
 }
-export async function createInvoiceForNiscOrder(_prisma, order, billing, createdBy) {
+export async function createInvoiceForNiscOrder(_prisma, order, billing, createdBy, options) {
     const now = new Date();
     const issueDate = now;
     const dueDate = null; // Already paid; schema allows null
@@ -61,7 +76,7 @@ export async function createInvoiceForNiscOrder(_prisma, order, billing, created
         country: billing.country,
         taxId: billing.taxId ?? null,
     };
-    const paymentDetails = { ...BANK_PAYMENT_DETAILS };
+    const paymentDetails = paymentDetailsForPaidOrder(options?.paymentGateway);
     const newInvoiceId = crypto.randomUUID();
     const token = crypto.randomUUID();
     const generatedInvoiceNumber = await db.transaction(async (tx) => {
@@ -213,9 +228,31 @@ export async function createInvoiceForNiscOrder(_prisma, order, billing, created
         metadata: { niscOrderId: order.id, orderNumber: order.orderNumber },
         createdAt: now,
     });
-    await db
+    const claimed = await db
         .update(niscOrder)
-        .set({ invoiceId: newInvoiceId, invoiceNumber: generatedInvoiceNumber, updatedAt: now })
-        .where(eq(niscOrder.id, order.id));
+        .set({
+        invoiceId: newInvoiceId,
+        invoiceNumber: generatedInvoiceNumber,
+        updatedAt: now,
+    })
+        .where(and(eq(niscOrder.id, order.id), sql `${niscOrder.invoiceId} IS NULL`))
+        .returning({ id: niscOrder.id });
+    if (!claimed[0]) {
+        // Another worker linked an invoice  delete the orphan we created, return the existing one.
+        await db.delete(invoiceActivityLog).where(eq(invoiceActivityLog.invoiceId, newInvoiceId));
+        await db.delete(invoiceLineItem).where(eq(invoiceLineItem.invoiceId, newInvoiceId));
+        await db.delete(invoice).where(eq(invoice.id, newInvoiceId));
+        const [current] = await db
+            .select({
+            invoiceId: niscOrder.invoiceId,
+            invoiceNumber: niscOrder.invoiceNumber,
+        })
+            .from(niscOrder)
+            .where(eq(niscOrder.id, order.id))
+            .limit(1);
+        if (current?.invoiceId && current.invoiceNumber) {
+            return { invoiceId: current.invoiceId, invoiceNumber: current.invoiceNumber };
+        }
+    }
     return { invoiceId: newInvoiceId, invoiceNumber: generatedInvoiceNumber };
 }

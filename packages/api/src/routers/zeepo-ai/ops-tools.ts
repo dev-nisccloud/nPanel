@@ -4,6 +4,8 @@
  */
 import { eq } from "@npanel/db";
 import { db } from "@npanel/db";
+import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { user as userTable } from "@npanel/db/schema/auth";
 import { userProfile as userProfileTable } from "@npanel/db/schema/auth-extras";
 import type { ToolUnion } from "@anthropic-ai/sdk/resources/messages";
@@ -24,7 +26,7 @@ import {
 	DEFAULT_DISPLAY_CURRENCY,
 	DEFAULT_DOMAIN_EXTENSIONS,
 } from "../../lib/agent-internal-tools";
-import { resolveHivelocityPublicMessageFromError } from "../../lib/hivelocity-errors";
+import { createAiSupportTicket } from "../../lib/create-ai-support-ticket";
 import {
 	checkDomainAvailabilityArgsSchema,
 	getCloudPlansArgsSchema,
@@ -55,6 +57,7 @@ export const ZEEPO_AI_OPS_TOOL_NAMES = [
 	"get_hosting_resources",
 	"get_hosting_detail",
 	"get_wordpress_sites",
+	"create_support_ticket",
 ] as const;
 
 export type ZeepoAiOpsToolName = (typeof ZEEPO_AI_OPS_TOOL_NAMES)[number];
@@ -234,6 +237,50 @@ export const ZEEPO_AI_OPS_CLIENT_TOOLS = [
 			additionalProperties: false,
 		},
 	},
+	{
+		name: "create_support_ticket",
+		description:
+			"Open a Nisc Cloud support or sales ticket for a human. Summarise what the user needs in subject + summary. Use for billing disputes, lockouts, outages, custom quotes, sales follow-up, or anything you cannot finish in chat. Do not invent that a ticket was opened without calling this.",
+		input_schema: {
+			type: "object" as const,
+			properties: {
+				subject: {
+					type: "string",
+					description: "Short ticket subject, e.g. VPS not booting or Quote for 8GB VPS in London",
+				},
+				summary: {
+					type: "string",
+					description: "What the user wants, in 2–8 sentences, for the support/sales team. Include service names, domains, and error details they gave.",
+				},
+				intent: {
+					type: "string",
+					enum: ["support", "sales"],
+					description: "support for help/issues; sales for quotes, buying help, or talking to sales",
+				},
+				category: {
+					type: "string",
+					enum: [
+						"TECHNICAL",
+						"BILLING",
+						"FEATURE",
+						"BUG",
+						"ACCOUNT",
+						"GENERAL",
+						"HOSTING",
+						"DOMAIN",
+						"EMAIL",
+						"WORDPRESS",
+					],
+					description: "Best matching ticket category. Sales enquiries use GENERAL.",
+				},
+				phone: {
+					type: "string",
+					description: "Optional callback number if the user provided one.",
+				},
+			},
+			required: ["subject", "summary", "intent"],
+		},
+	},
 ] as const satisfies ReadonlyArray<{
 	name: string;
 	description: string;
@@ -242,6 +289,35 @@ export const ZEEPO_AI_OPS_CLIENT_TOOLS = [
 
 export function getZeepoAiOpsTools(): ToolUnion[] {
 	return ZEEPO_AI_OPS_CLIENT_TOOLS as unknown as ToolUnion[];
+}
+
+/** FAB Live AI Support: catalog always; inventory only for logged-in team members. */
+export function getZeepoAiSupportOpsTools(opts: { includeInventory: boolean }): ToolUnion[] {
+	const allowed = new Set<string>([
+		"check_domain_availability",
+		"get_web_hosting_plans",
+		"get_email_hosting_plans",
+		"get_wordpress_hosting_plans",
+		"get_vps_plans",
+		"get_vds_plans",
+		"get_dedicated_server_plans",
+		"create_support_ticket",
+		...(opts.includeInventory
+			? [
+					"get_user_session",
+					"get_domains_portfolio",
+					"get_domain_detail",
+					"get_cloud_servers",
+					"get_hosting_resources",
+					"get_hosting_detail",
+					"get_wordpress_sites",
+				]
+			: []),
+	]);
+	return (ZEEPO_AI_OPS_CLIENT_TOOLS as unknown as ToolUnion[]).filter((tool) => {
+		const name = "name" in tool ? String((tool as { name?: string }).name ?? "") : "";
+		return allowed.has(name);
+	});
 }
 
 function toolError(prefix: string, e: unknown): { error: string } {
@@ -282,6 +358,10 @@ export type ExecuteZeepoAiOpsToolParams = {
 	teamId: string | null;
 	teamName: string | null;
 	baseCurrency: string | null;
+	sessionId?: string;
+	surface?: "support_fab" | "zeepo_ai";
+	ipAddress?: string | null;
+	userAgent?: string | null;
 };
 
 export async function executeZeepoAiOpsTool(
@@ -513,6 +593,56 @@ export async function executeZeepoAiOpsTool(
 			});
 		} catch (e) {
 			return toolError("WordPress sites fetch failed", e);
+		}
+	}
+
+	if (name === "create_support_ticket") {
+		if (!params.sessionId) {
+			return { error: "Chat session is required to open a ticket." };
+		}
+		const parsed = z
+			.object({
+				subject: z.string().trim().min(1).max(120),
+				summary: z.string().trim().min(1).max(4000),
+				intent: z.enum(["support", "sales"]),
+				category: z
+					.enum([
+						"TECHNICAL",
+						"BILLING",
+						"FEATURE",
+						"BUG",
+						"ACCOUNT",
+						"GENERAL",
+						"HOSTING",
+						"DOMAIN",
+						"EMAIL",
+						"WORDPRESS",
+					])
+					.optional(),
+				phone: z.string().trim().max(40).optional().nullable(),
+			})
+			.safeParse(input);
+		if (!parsed.success) return { error: parsed.error.message };
+		try {
+			return await createAiSupportTicket({
+				userId,
+				userRole: params.userRole,
+				teamId,
+				sessionId: params.sessionId,
+				surface: params.surface ?? "zeepo_ai",
+				subject: parsed.data.subject,
+				summary: parsed.data.summary,
+				intent: parsed.data.intent,
+				category: parsed.data.category,
+				phone: parsed.data.phone,
+				ipAddress: params.ipAddress,
+				userAgent: params.userAgent,
+			});
+		} catch (e) {
+			if (e instanceof TRPCError) {
+				return { error: e.message };
+			}
+			return toolError("Could not open a ticket", e);
 		}
 	}
 

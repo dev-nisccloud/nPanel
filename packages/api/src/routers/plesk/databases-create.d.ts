@@ -8,13 +8,21 @@ export declare const databasesCreateRouter: import("@trpc/server").TRPCBuiltRout
         input: {
             siteId: number;
             name: string;
-            type: "mysql" | "postgresql" | "mssql";
+            username: string;
+            type?: "mysql" | "postgresql" | "mssql" | undefined;
             dbServerId?: number | undefined;
+            password?: string | undefined;
         };
         output: {
-            raw: string;
-            parsed: any;
-            databaseId: any;
+            databaseId: number;
+            userId: number;
+            name: string;
+            username: string;
+            password: string;
+            type: string;
+            localHost: string;
+            remoteHost: string;
+            port: number;
         };
         meta: object;
     }>;

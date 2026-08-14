@@ -3,8 +3,9 @@
 import { captureEvent } from "@/lib/posthog";
 
 import * as React from "react";
+import { useSearchParams } from "react-router";
 import { formatDistanceToNow } from "date-fns";
-import { Search, RefreshCw } from "lucide-react";
+import { Bot, Search, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -165,6 +166,17 @@ function TicketRow({
               Guest
             </Badge>
           ) : null}
+          {(ticket as any).metadata &&
+            typeof (ticket as any).metadata === "object" &&
+            (ticket as any).metadata.openedBy === "zeepo_ai" ? (
+            <Badge
+              variant="outline"
+              className="h-5 shrink-0 gap-1 border-blue-300 bg-blue-50 px-1.5 text-[10px] font-normal text-blue-700 dark:border-blue-700 dark:bg-blue-950/30 dark:text-blue-300"
+            >
+              <Bot className="h-2.5 w-2.5" />
+              AI
+            </Badge>
+          ) : null}
           <span className="hidden shrink-0 text-[11px] text-muted-foreground sm:inline">
             {ticket.ticketNumber}
           </span>
@@ -207,6 +219,7 @@ function TicketRow({
 }
 
 export function SupportPage() {
+  const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<TicketStatus | "ALL">(
     "ALL",
@@ -245,6 +258,13 @@ export function SupportPage() {
     setSheetOpen(true);
     captureEvent("support_ticket_viewed", { ticket_id: id });
   };
+
+  React.useEffect(() => {
+    const fromQuery = searchParams.get("ticket");
+    if (fromQuery) openTicket(fromQuery);
+    // Open once from the inbound link; do not re-open on later filter changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   return (
     <div className="@container/main flex flex-col gap-3 px-4 md:px-6 lg:px-8 py-4 md:py-5">

@@ -72,7 +72,7 @@ export declare function listZeepoAgentTokenLedger(params: {
     createdAt: Date;
     description: string | null;
     operationType: string;
-    balanceAfter: string;
     direction: string;
     tokens: string;
+    balanceAfter: string;
 }[]>;

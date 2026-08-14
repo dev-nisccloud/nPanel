@@ -206,6 +206,33 @@ export declare const getSessionInfoArgsSchema: z.ZodObject<{}, z.core.$strip>;
  */
 export declare const getWebHostingPlansArgsSchema: z.ZodObject<{}, z.core.$strip>;
 export declare const getEmailHostingPlansArgsSchema: z.ZodObject<{}, z.core.$strip>;
+export declare const getWordPressHostingPlansArgsSchema: z.ZodObject<{}, z.core.$strip>;
+export declare const getWordPressSitesArgsSchema: z.ZodObject<{
+    domain: z.ZodOptional<z.ZodString>;
+}, z.core.$strip>;
+export type GetWordPressSitesArgs = z.infer<typeof getWordPressSitesArgsSchema>;
+export declare const getCloudPlansArgsSchema: z.ZodObject<{
+    search: z.ZodOptional<z.ZodString>;
+    limit: z.ZodOptional<z.ZodNumber>;
+    ram_gb: z.ZodOptional<z.ZodNumber>;
+    cores: z.ZodOptional<z.ZodNumber>;
+    cpu: z.ZodOptional<z.ZodEnum<{
+        intel: "intel";
+        amd: "amd";
+    }>>;
+    disk_gb: z.ZodOptional<z.ZodNumber>;
+    location: z.ZodOptional<z.ZodString>;
+}, z.core.$strip>;
+export type GetCloudPlansArgs = z.infer<typeof getCloudPlansArgsSchema>;
+export declare const getCloudServersArgsSchema: z.ZodObject<{
+    type: z.ZodOptional<z.ZodEnum<{
+        vps: "vps";
+        vds: "vds";
+        dedicated: "dedicated";
+        all: "all";
+    }>>;
+}, z.core.$strip>;
+export type GetCloudServersArgs = z.infer<typeof getCloudServersArgsSchema>;
 /**
  * No arguments - the tool uses the session context (role + teamId) to
  * automatically return agency-wide or team-scoped portfolio data.
@@ -230,6 +257,7 @@ export declare const getDomainDetailArgsSchema: z.ZodObject<{
 export type GetDomainDetailArgs = z.infer<typeof getDomainDetailArgsSchema>;
 export type GetWebHostingPlansArgs = z.infer<typeof getWebHostingPlansArgsSchema>;
 export type GetEmailHostingPlansArgs = z.infer<typeof getEmailHostingPlansArgsSchema>;
+export type GetWordPressHostingPlansArgs = z.infer<typeof getWordPressHostingPlansArgsSchema>;
 export declare const checkDomainAvailabilityArgsSchema: z.ZodObject<{
     name: z.ZodString;
     extensions: z.ZodOptional<z.ZodArray<z.ZodString>>;

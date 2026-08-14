@@ -21,14 +21,14 @@ export declare const jengaRouter: import("@trpc/server").TRPCBuiltRouter<{
             countryCode: string;
             amount: number;
             productDescription: string;
-            currency?: "USD" | "EUR" | "GBP" | "KES" | "TZS" | "UGX" | undefined;
+            currency?: "KES" | "USD" | "EUR" | "GBP" | "TZS" | "UGX" | undefined;
             productType?: "Product" | "Service" | undefined;
             paymentTimeLimit?: string | undefined;
             teamId?: string | undefined;
             orderIntent?: {
                 source: "buy_now" | "global_buy_now" | "storefront";
+                returnOrigin: string;
                 returnPath?: string | undefined;
-                returnOrigin?: string | undefined;
                 items?: unknown[] | undefined;
                 currency?: string | undefined;
                 teamId?: string | undefined;

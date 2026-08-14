@@ -26,7 +26,7 @@ export declare const webDesignQuotesRouter: import("@trpc/server").TRPCBuiltRout
         input: {
             limit?: number | undefined;
             offset?: number | undefined;
-            status?: "PENDING" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CONTACTED" | "QUOTED" | undefined;
+            status?: "PENDING" | "ACCEPTED" | "DECLINED" | "EXPIRED" | "CONTACTED" | "QUOTED" | undefined;
         };
         output: {
             items: {
@@ -40,7 +40,7 @@ export declare const webDesignQuotesRouter: import("@trpc/server").TRPCBuiltRout
                 projectDescription: string;
                 budget: string;
                 targetLaunchDate: Date | null;
-                status: "PENDING" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CONTACTED" | "QUOTED";
+                status: "PENDING" | "ACCEPTED" | "DECLINED" | "EXPIRED" | "CONTACTED" | "QUOTED";
                 submittedById: string | null;
                 createdAt: Date;
                 updatedAt: Date;

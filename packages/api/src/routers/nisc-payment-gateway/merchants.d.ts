@@ -42,14 +42,8 @@ export declare const merchantsRouter: import("@trpc/server").TRPCBuiltRouter<{
                 createdById: string;
                 teamId: string | null;
                 notes: string | null;
-                businessName: string | null;
                 metadata: unknown;
-                merchantName: string;
-                merchantEmail: string;
-                merchantPhone: string | null;
-                merchantWebsite: string | null;
-                businessType: string;
-                businessRegistration: string | null;
+                closedAt: Date | null;
                 settings: {
                     webhookUrl?: string;
                     webhookSecret?: string;
@@ -57,8 +51,14 @@ export declare const merchantsRouter: import("@trpc/server").TRPCBuiltRouter<{
                     notificationEmails?: string[];
                     ipWhitelist?: string[];
                 };
+                businessName: string | null;
+                merchantName: string;
+                merchantEmail: string;
+                merchantPhone: string | null;
+                merchantWebsite: string | null;
+                businessType: string;
+                businessRegistration: string | null;
                 suspendedAt: Date | null;
-                closedAt: Date | null;
             } | undefined;
         };
         meta: object;

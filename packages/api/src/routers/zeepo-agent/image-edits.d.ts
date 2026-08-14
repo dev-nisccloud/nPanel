@@ -16,13 +16,13 @@ export declare const zeepoAgentImageEditsRouter: import("@trpc/server").TRPCBuil
                 id: string;
                 createdAt: Date;
                 userId: string;
-                prompt: string | null;
                 metadata: unknown;
-                operationType: string;
                 sessionId: string;
-                imageUrl: string;
+                prompt: string | null;
                 generationId: string;
                 parentId: string | null;
+                imageUrl: string;
+                operationType: string;
                 label: string | null;
             }[];
         };
@@ -39,7 +39,7 @@ export declare const zeepoAgentImageEditsRouter: import("@trpc/server").TRPCBuil
             generationId: string;
             imageUrl: string;
             parentId?: string | undefined;
-            operationType?: "style" | "instruction" | "original" | "erase" | "background_swap" | "upscale" | "text_edit" | "variation" | undefined;
+            operationType?: "instruction" | "style" | "original" | "erase" | "background_swap" | "upscale" | "text_edit" | "variation" | undefined;
             label?: string | undefined;
             prompt?: string | undefined;
             metadata?: Record<PropertyKey, unknown> | undefined;

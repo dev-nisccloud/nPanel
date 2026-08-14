@@ -537,8 +537,8 @@ export declare const metaAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
                 createdAt: Date;
                 updatedAt: Date;
                 userId: string;
-                errorMessage: string | null;
                 metadata: unknown;
+                errorMessage: string | null;
                 campaignId: string;
                 internalCampaignId: string | null;
                 analysis: string | null;
@@ -555,8 +555,8 @@ export declare const metaAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
                 createdAt: Date;
                 updatedAt: Date;
                 userId: string;
-                errorMessage: string | null;
                 metadata: unknown;
+                errorMessage: string | null;
                 campaignId: string;
                 internalCampaignId: string | null;
                 analysis: string | null;

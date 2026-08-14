@@ -70,20 +70,7 @@ export declare const openProviderRouter: import("@trpc/server").TRPCBuiltRouter<
                 with_description?: unknown;
                 with_restrictions?: unknown;
             } | undefined;
-            output: {
-                success: boolean;
-                data: {
-                    results: import("../../types/openprovider").OpenProviderTld[];
-                    total: number;
-                };
-                meta: {
-                    cached: boolean;
-                    fetched_at: string;
-                    total: number;
-                    limit: number | undefined;
-                    offset: number | undefined;
-                };
-            };
+            output: any;
             meta: object;
         }>;
         getTldsPost: import("@trpc/server").TRPCMutationProcedure<{
@@ -516,7 +503,7 @@ export declare const openProviderRouter: import("@trpc/server").TRPCBuiltRouter<
                     name: string;
                     extension: string;
                 };
-                operation: "create" | "transfer" | "renew" | "restore";
+                operation: "create" | "renew" | "transfer" | "restore";
                 period?: number | undefined;
                 additional_data?: {
                     idn_script?: string | undefined;
@@ -554,7 +541,7 @@ export declare const openProviderRouter: import("@trpc/server").TRPCBuiltRouter<
                 meta: {
                     priced_at: string;
                     domain: string;
-                    operation: "create" | "transfer" | "renew" | "restore";
+                    operation: "create" | "renew" | "transfer" | "restore";
                     period: number;
                 };
             };

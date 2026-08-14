@@ -1,18 +1,11 @@
-import { XMLParser } from 'fast-xml-parser';
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { sendPleskXmlRequest } from '../../lib/plesk/xml-client';
-import { protectedProcedure, router } from '../../trpc';
-/**
- * Build XML to create a database
- * Based on Plesk XML-RPC API: add-db operation
- * Reference: https://docs.plesk.com/en-US/obsidian/api-rpc/about-xml-api/reference/managing-databases/creating-databases.34407/
- */
+import { protectedProcedure, router } from "../../trpc";
+import { assertCanAccessPleskSite } from "../../lib/plesk/hosting-access";
+import { addPleskDatabaseUser, fetchPleskDatabaseById, fetchPleskDatabaseUsers, generateDatabasePassword, getSharedHostingDbHost, portForDatabaseType, setPleskDefaultDatabaseUser, } from "../../lib/plesk/database-ops";
+import { escapeXml, pleskOperationError, pleskXmlInt, sendPleskXmlOrThrow, asArray, } from "../../lib/plesk/xml-utils";
 function buildDatabaseCreateXml(siteId, data) {
-    // Escape XML characters
-    const escapeXml = (str) => str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
-    // According to Plesk docs, nodes must be in exact order: webspace-id, name, type, then optional nodes
-    let dbServerIdXml = '';
+    let dbServerIdXml = "";
     if (data.dbServerId !== undefined) {
         dbServerIdXml = `<db-server-id>${data.dbServerId}</db-server-id>`;
     }
@@ -28,119 +21,103 @@ function buildDatabaseCreateXml(siteId, data) {
   </database>
 </packet>`;
 }
-/**
- * Parse XML error response for better error messages
- */
-function parseXmlError(xml) {
-    try {
-        const parser = new XMLParser({ ignoreAttributes: false });
-        const parsed = parser.parse(xml);
-        // Check for system-level errors
-        if (parsed?.packet?.system?.status === 'error') {
-            return {
-                error: parsed.packet.system.errtext || 'System error occurred',
-                code: parsed.packet.system.errcode,
-            };
-        }
-        // Check for database operation errors
-        const result = parsed?.packet?.database?.['add-db']?.result;
-        if (result?.status === 'error') {
-            return {
-                error: result.errtext || 'Database creation failed',
-                code: result.errcode,
-            };
-        }
-        return { error: 'Unknown error format', code: 'UNKNOWN' };
-    }
-    catch (parseError) {
-        console.error('Error parsing XML error response:', parseError);
-        return { error: 'Failed to parse error response', code: 'PARSE_ERROR' };
-    }
-}
+const usernameSchema = z
+    .string()
+    .min(1, { message: "Database username is required" })
+    .max(32, { message: "Database username must be at most 32 characters" })
+    .regex(/^[a-zA-Z0-9_]+$/, {
+    message: "Username can only contain letters, numbers, and underscores",
+});
+const passwordSchema = z
+    .string()
+    .min(8, { message: "Password must be at least 8 characters" })
+    .max(64, { message: "Password must be at most 64 characters" });
 export const databasesCreateRouter = router({
-    // Create a database
     create: protectedProcedure
         .input(z.object({
         siteId: z.number(),
-        name: z.string().min(1, { message: "Database name is required" }).max(64, { message: "Database name must be at most 64 characters" }),
-        type: z.enum(['mysql', 'postgresql', 'mssql']),
+        name: z
+            .string()
+            .min(1, { message: "Database name is required" })
+            .max(64, { message: "Database name must be at most 64 characters" }),
+        type: z.enum(["mysql", "postgresql", "mssql"]).optional().default("mysql"),
         dbServerId: z.number().optional(),
+        username: usernameSchema,
+        password: passwordSchema.optional(),
     }))
-        .mutation(async ({ input }) => {
+        .mutation(async ({ input, ctx }) => {
         try {
-            // Check if required environment variables are set
-            if (!process.env.PLESK_XML_ENDPOINT) {
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: "Server configuration error: PLESK_XML_ENDPOINT environment variable is not set",
-                });
-            }
-            // Validate database name (Plesk typically has restrictions)
-            // Database names usually can't contain spaces or special characters
+            await assertCanAccessPleskSite({
+                siteId: input.siteId,
+                userId: ctx.session.user.id,
+                role: ctx.session.user.role,
+            });
             if (!/^[a-zA-Z0-9_]+$/.test(input.name)) {
                 throw new TRPCError({
                     code: "BAD_REQUEST",
                     message: "Database name can only contain letters, numbers, and underscores",
                 });
             }
-            const xmlRequest = buildDatabaseCreateXml(input.siteId, {
+            const { xml, parsed } = await sendPleskXmlOrThrow(buildDatabaseCreateXml(input.siteId, {
                 name: input.name,
-                type: input.type,
+                type: input.type ?? "mysql",
                 dbServerId: input.dbServerId,
-            });
-            const { xml, isAuthError, isHostUnreachable } = await sendPleskXmlRequest(xmlRequest);
-            if (isHostUnreachable) {
-                throw new TRPCError({
-                    code: "SERVICE_UNAVAILABLE",
-                    message: "Plesk host is unreachable",
-                });
-            }
-            if (isAuthError) {
-                throw new TRPCError({
-                    code: "UNAUTHORIZED",
-                    message: "Invalid Plesk credentials",
-                });
-            }
-            // Check if we have valid XML response
-            if (!xml || xml.trim() === '') {
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: "Empty response from Plesk server",
-                });
-            }
-            const parser = new XMLParser({ ignoreAttributes: false });
-            let parsed;
-            try {
-                parsed = parser.parse(xml);
-            }
-            catch (parseError) {
-                console.error('Failed to parse XML response:', parseError);
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: "Failed to parse Plesk response",
-                    cause: parseError,
-                });
-            }
-            // Check for errors in the response
-            const result = parsed?.packet?.database?.['add-db']?.result;
-            if (result?.status === 'error') {
-                const errorInfo = parseXmlError(xml);
+            }));
+            const addDb = parsed.packet?.database;
+            const result = asArray(addDb?.["add-db"]?.result)[0];
+            const err = pleskOperationError(result, "Database creation failed");
+            if (err) {
                 throw new TRPCError({
                     code: "BAD_REQUEST",
-                    message: errorInfo.error,
-                    cause: errorInfo.code,
+                    message: err.error,
+                    cause: err.code,
                 });
             }
-            // Extract the database ID from successful response
-            const databaseId = result?.id;
+            const databaseId = pleskXmlInt(result?.id);
+            if (!databaseId) {
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: "Plesk did not return a database id",
+                    cause: xml,
+                });
+            }
+            const password = input.password || generateDatabasePassword();
+            let userId;
+            try {
+                userId = await addPleskDatabaseUser({
+                    databaseId,
+                    login: input.username,
+                    password,
+                });
+                await setPleskDefaultDatabaseUser(databaseId, userId);
+            }
+            catch (userError) {
+                const detail = userError instanceof TRPCError
+                    ? userError.message
+                    : "Please create a database user from the connection dialog.";
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: `Database was created, but the user could not be created: ${detail}`,
+                    cause: userError,
+                });
+            }
+            const created = await fetchPleskDatabaseById(input.siteId, databaseId);
+            const users = await fetchPleskDatabaseUsers(databaseId);
+            const createdUser = users.find((user) => user.id === userId);
             return {
-                raw: xml,
-                parsed,
                 databaseId,
+                userId,
+                name: created.name,
+                username: createdUser?.login ?? input.username,
+                password,
+                type: created.type,
+                localHost: "localhost",
+                remoteHost: getSharedHostingDbHost(),
+                port: portForDatabaseType(created.type),
             };
         }
         catch (error) {
-            console.error('Plesk Database Create API Error:', error);
+            console.error("Plesk Database Create API Error:", error);
             if (error instanceof TRPCError) {
                 throw error;
             }

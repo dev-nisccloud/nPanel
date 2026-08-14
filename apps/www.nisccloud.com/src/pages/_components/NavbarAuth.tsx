@@ -37,6 +37,7 @@ export type NavbarAuthState =
       name: string;
       email: string;
       teamSlug?: string;
+      teamId?: string;
     };
 
 function initialsFromName(name: string): string {
@@ -68,6 +69,7 @@ export function useNavbarAuth(): NavbarAuthState {
           name: identity.user.name,
           email: identity.user.email,
           teamSlug: identity.teams[0]?.slug,
+      teamId: identity.teams[0]?.id,
         });
       })
       .catch(() => {

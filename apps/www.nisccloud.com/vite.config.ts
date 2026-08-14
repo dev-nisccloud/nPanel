@@ -25,8 +25,8 @@ export default defineConfig(({ mode }) => {
         "/api": {
           target: apiTarget,
           changeOrigin: false,
-          timeout: 120_000,
-          proxyTimeout: 120_000,
+          timeout: 1_800_000,
+          proxyTimeout: 1_800_000,
           configure: (proxy) => {
             proxy.on("proxyReq", (proxyReq, req) => {
               const host = req.headers.host;

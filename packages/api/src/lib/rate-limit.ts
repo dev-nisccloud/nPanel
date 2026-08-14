@@ -13,9 +13,14 @@ export async function checkRateLimit(params: {
   key: string;
   limit: number;
   windowSec: number;
+  /** When Redis is down, deny instead of allowing (use on paid LLM / abuse-sensitive routes). */
+  failClosed?: boolean;
 }): Promise<RateLimitResult> {
   const redis = getRedisClient();
   if (!redis) {
+    if (params.failClosed) {
+      return { allowed: false, remaining: 0 };
+    }
     return { allowed: true, remaining: params.limit };
   }
 
@@ -33,6 +38,9 @@ export async function checkRateLimit(params: {
     return { allowed: used <= limit, remaining };
   } catch (error) {
     console.error("[rate-limit] check failed:", error);
+    if (params.failClosed) {
+      return { allowed: false, remaining: 0 };
+    }
     return { allowed: true, remaining: limit };
   }
 }
@@ -71,6 +79,18 @@ export function resolveProcedureRateLimit(path: string): {
   }
   if (path === "support.guest.createMessage") {
     return { authenticated: 60, apiKey: 60, anonymous: 30, windowSec: 3600 };
+  }
+  if (path === "zeepoAiSupport.guest.getOrCreate") {
+    return { authenticated: 20, apiKey: 20, anonymous: 10, windowSec: 3600 };
+  }
+	if (path === "zeepoAiSupport.guest.getSession") {
+    return { authenticated: 60, apiKey: 60, anonymous: 40, windowSec: 60 };
+  }
+  if (path === "zeepoAiSupport.guest.openTicket") {
+    return { authenticated: 8, apiKey: 8, anonymous: 5, windowSec: 3600 };
+  }
+  if (path === "zeepoAiSupport.openTicket" || path === "zeepoAi.sessions.openSupportTicket") {
+    return { authenticated: 8, apiKey: 8, anonymous: 3, windowSec: 3600 };
   }
   if (
     path === "support.guest.getList" ||
