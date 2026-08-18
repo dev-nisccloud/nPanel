@@ -47,8 +47,8 @@ export function ViewMailAddressSheet({
               <Mail className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <SheetTitle className="text-2xl font-bold">Email Account</SheetTitle>
-              <SheetDescription className="text-base">
+              <SheetTitle>Email Account</SheetTitle>
+              <SheetDescription>
                 View mailbox settings and usage
               </SheetDescription>
             </div>

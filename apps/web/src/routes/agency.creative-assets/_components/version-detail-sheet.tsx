@@ -184,7 +184,7 @@ export function VersionDetailSheet({
 							<div className="flex items-start justify-between gap-4">
 								<div className="flex items-center gap-3 flex-1 min-w-0">
 									<div className="flex-1 min-w-0">
-										<SheetTitle className="text-lg font-semibold truncate">
+										<SheetTitle className="truncate">
 											{version.fileName}
 										</SheetTitle>
 										<SheetDescription className="flex items-center gap-2 mt-1 flex-wrap">

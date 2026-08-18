@@ -67,8 +67,8 @@ export function KeywordOverviewSheet({
               <BarChart3 className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <SheetTitle className="text-2xl font-bold">Keyword overview</SheetTitle>
-              <SheetDescription className="text-base">{keyword}</SheetDescription>
+              <SheetTitle>Keyword overview</SheetTitle>
+              <SheetDescription>{keyword}</SheetDescription>
             </div>
           </div>
           <SheetClose asChild>

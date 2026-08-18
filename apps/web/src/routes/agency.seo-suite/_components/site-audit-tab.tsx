@@ -238,8 +238,8 @@ export function SiteAuditTab({ projectId, project }: SiteAuditTabProps) {
                 <ShieldCheck className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <SheetTitle className="text-2xl font-bold">Start site audit</SheetTitle>
-                <SheetDescription className="text-base">
+                <SheetTitle>Start site audit</SheetTitle>
+                <SheetDescription>
                   Crawl and score pages for technical SEO issues
                 </SheetDescription>
               </div>

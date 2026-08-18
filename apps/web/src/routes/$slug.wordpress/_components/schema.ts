@@ -232,6 +232,15 @@ export const wordpressInstallationSchema = z.object({
       amountOfPluginsWithUpdates: z.number().optional(),
       amountOfThemesWithUpdates: z.number().optional(),
       availableVersion: z.string().optional(),
+      smart: z.object({
+        available: z.boolean().optional(),
+        applicable: z.boolean().optional(),
+        status: z.boolean().optional(),
+      }).optional(),
+      php: z.object({
+        available: z.boolean().optional(),
+        applicable: z.boolean().optional(),
+      }).optional(),
     }).optional(),
     restorePoint: z.object({
       available: z.boolean().optional(),
@@ -266,8 +275,16 @@ export const wordpressInstallationSchema = z.object({
       panelBackupsAvailable: z.boolean().optional(),
       wptBackupsAvailable: z.boolean().optional(),
       backupManagerUrl: z.string().nullable().optional(),
-    }).optional(),
-    wpCli: z.object({
+          }).optional(),
+          virtualPatches: z.object({
+            status: z.boolean().nullable().optional(),
+            available: z.boolean().optional(),
+          }).optional(),
+          vulnerabilityFiltering: z.object({
+            status: z.any().optional(),
+            available: z.boolean().optional(),
+          }).optional(),
+          wpCli: z.object({
       available: z.boolean().optional(),
     }).optional(),
     clone: z.object({
@@ -298,6 +315,10 @@ export const wordpressInstallationSchema = z.object({
     }).optional(),
     debug: z.object({
       status: z.boolean().optional(),
+    }).optional(),
+    virtualPatches: z.object({
+      status: z.boolean().nullable().optional(),
+      available: z.boolean().optional(),
     }).optional(),
     credentials: z.object({
       available: z.boolean().optional(),

@@ -98,8 +98,8 @@ export function ManagePermissionsSheet({
               <Users className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <SheetTitle className="text-2xl font-bold">Manage Permissions</SheetTitle>
-              <SheetDescription className="text-base">
+              <SheetTitle>Manage Permissions</SheetTitle>
+              <SheetDescription>
                 Grant or revoke permissions for agency users
               </SheetDescription>
             </div>

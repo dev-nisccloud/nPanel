@@ -164,8 +164,8 @@
 }
 
 .zeepo-ai-orb {
-  width: clamp(3.25rem, 16cqh, 7.5rem);
-  height: clamp(3.25rem, 16cqh, 7.5rem);
+  width: clamp(5rem, 23cqh, 10.75rem);
+  height: clamp(5rem, 23cqh, 10.75rem);
 }
 
 .zeepo-ai-greeting {
@@ -175,6 +175,14 @@
 @container zeepo-ai (max-height: 640px) {
   .zeepo-ai-subhead {
     display: none;
+  }
+
+  .zeepo-ai-shortcut-row {
+    padding-block: 0.4rem;
+  }
+
+  .zeepo-ai-shortcut-divider {
+    margin-block: 0.25rem;
   }
 }
 
@@ -186,6 +194,10 @@
   .zeepo-ai-hero-copy {
     margin-top: 0;
   }
+
+  .zeepo-ai-shortcut-compact-hide {
+    display: none;
+  }
 }
 
 @container zeepo-ai (max-height: 480px) {
@@ -196,6 +208,10 @@
 
 @container zeepo-ai (max-height: 400px) {
   .zeepo-ai-hero {
+    display: none;
+  }
+
+  .zeepo-ai-shortcuts {
     display: none;
   }
 }

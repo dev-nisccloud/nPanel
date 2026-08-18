@@ -11,6 +11,7 @@ import {
   formatQueueStatus,
   formatQueueType,
   normalizeQueueStatusKey,
+  sortNewestFirst,
 } from "../formatters";
 import { NiscBackupErrorState, NiscBackupTableSkeleton } from "../primitives";
 import { NiscBackupMinimalList, NiscBackupMinimalRow } from "../minimal-list";
@@ -25,7 +26,10 @@ function normalizeQueueGroups(data: unknown): {
   const record = data as Record<string, unknown>;
   const list = record.groups ?? record.items ?? record.queue_groups;
   return {
-    groups: Array.isArray(list) ? (list as NiscBackupQueueGroupRow[]) : [],
+    groups: sortNewestFirst(
+      Array.isArray(list) ? (list as NiscBackupQueueGroupRow[]) : [],
+      (group) => group.created,
+    ),
     warning: typeof record.warning === "string" ? record.warning : undefined,
   };
 }

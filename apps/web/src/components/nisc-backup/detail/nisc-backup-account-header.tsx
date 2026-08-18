@@ -9,7 +9,7 @@ import { niscBackupSuccessBadgeClass } from "../status-badges";
 function accountBackupCount(account: Record<string, unknown>): number | null {
   const stats = account.backup_stats as Record<string, number> | undefined;
   if (!stats) return null;
-  const total = stats["511"] ?? stats["127"] ?? Object.values(stats).find((v) => v > 0);
+  const total = stats["511"] ?? Object.values(stats).find((v) => v > 0);
   return typeof total === "number" ? total : null;
 }
 
@@ -45,7 +45,7 @@ export function NiscBackupAccountHeader({
     .slice(0, 2) || username.slice(0, 2).toUpperCase() || "JB";
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border bg-card px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
+    <div className="flex flex-col gap-3 rounded-xl border bg-card px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold text-muted-foreground">
           {initials}

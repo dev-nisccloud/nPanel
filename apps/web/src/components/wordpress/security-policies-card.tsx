@@ -33,7 +33,7 @@ function PolicyRow({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 px-4 py-3">
+    <div className="flex items-center justify-between gap-4 rounded-md border px-3 py-2.5">
       <div className="min-w-0 space-y-0.5">
         <p className="text-sm font-medium text-primary">{label}</p>
         {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
@@ -53,14 +53,12 @@ function PolicySection({
   children: React.ReactNode;
 }) {
   return (
-    <div>
-      <div className="border-b bg-muted/20 px-4 py-2.5">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {title}
-        </p>
-        <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+    <div className="space-y-3 rounded-lg border p-3">
+      <div>
+        <p className="text-sm font-medium text-primary">{title}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
       </div>
-      <div className="divide-y divide-border">{children}</div>
+      <div className="space-y-2">{children}</div>
     </div>
   );
 }
@@ -68,14 +66,17 @@ function PolicySection({
 export function SecurityPoliciesCard({
   installationId,
   shell = "card",
+  enabled = true,
 }: {
   installationId: number;
   shell?: "card" | "panel" | "none";
+  enabled?: boolean;
 }) {
   const utils = trpc.useUtils();
-  const { data, isLoading } = trpc.plesk.wpFeatures.getSecurityPolicies.useQuery({
-    installationId,
-  });
+  const { data, isLoading } = trpc.plesk.wpFeatures.getSecurityPolicies.useQuery(
+    { installationId },
+    { enabled },
+  );
 
   const policies = data?.data ?? data;
   const [local, setLocal] = React.useState<PolicyState>({
@@ -147,7 +148,7 @@ export function SecurityPoliciesCard({
           <Skeleton className="h-10 w-full" />
         </div>
       ) : (
-        <div className="divide-y divide-border">
+        <div className="space-y-3">
           <PolicySection title="Core" description="WordPress core vulnerability response">
             <PolicyRow
               label="Auto-update vulnerable core"

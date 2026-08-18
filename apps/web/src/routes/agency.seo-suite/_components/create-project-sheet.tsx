@@ -95,8 +95,8 @@ export function CreateProjectSheet({ open, onOpenChange, onSuccess }: CreateProj
               <Search className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <SheetTitle className="text-2xl font-bold">New SEO project</SheetTitle>
-              <SheetDescription className="text-base">
+              <SheetTitle>New SEO project</SheetTitle>
+              <SheetDescription>
                 Track a client domain for research, ranks, audits, and AI visibility
               </SheetDescription>
             </div>

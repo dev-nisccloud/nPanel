@@ -86,8 +86,8 @@ export function AddTeamSheet({ open, onOpenChange, onAddTeam }: AddTeamSheetProp
               <Users className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <SheetTitle className="text-2xl font-bold">Add Organization</SheetTitle>
-              <SheetDescription className="text-base">
+              <SheetTitle>Add Organization</SheetTitle>
+              <SheetDescription>
                 Create a new organization
               </SheetDescription>
             </div>

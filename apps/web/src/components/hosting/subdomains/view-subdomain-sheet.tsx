@@ -43,8 +43,8 @@ export function ViewSubdomainSheet({ open, onOpenChange, data }: ViewSubdomainSh
               <Globe className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <SheetTitle className="text-2xl font-bold">Subdomain Details</SheetTitle>
-              <SheetDescription className="text-base">
+              <SheetTitle>Subdomain Details</SheetTitle>
+              <SheetDescription>
                 View complete subdomain information
               </SheetDescription>
             </div>

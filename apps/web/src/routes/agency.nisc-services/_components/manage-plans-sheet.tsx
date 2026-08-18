@@ -161,8 +161,8 @@ export function ManagePlansSheet({
                                 <Layers className="h-6 w-6 text-primary" />
                             </div>
                             <div>
-                                <SheetTitle className="text-xl font-bold">Manage plans</SheetTitle>
-                                <SheetDescription className="text-base">
+                                <SheetTitle>Manage plans</SheetTitle>
+                                <SheetDescription>
                                     Add and edit pricing plans for {productName}
                                 </SheetDescription>
                             </div>

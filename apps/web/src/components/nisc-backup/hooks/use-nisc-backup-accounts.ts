@@ -1,12 +1,14 @@
 import { trpc } from "@/utils/trpc";
 import { niscBackupQueryOptions } from "../query-options";
+import { sortNewestFirst } from "../formatters";
 import type { NiscBackupAccountRow } from "../types";
 
 function normalizeAccounts(data: unknown): NiscBackupAccountRow[] {
   if (!data || typeof data !== "object") return [];
   const record = data as Record<string, unknown>;
   const list = record.accounts ?? record.items ?? record.data;
-  return Array.isArray(list) ? (list as NiscBackupAccountRow[]) : [];
+  const rows = Array.isArray(list) ? (list as NiscBackupAccountRow[]) : [];
+  return sortNewestFirst(rows, (account) => account.created);
 }
 
 export function useNiscBackupAccounts(input?: { limit?: number; search?: string }) {

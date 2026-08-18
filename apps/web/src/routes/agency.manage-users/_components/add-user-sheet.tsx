@@ -93,8 +93,8 @@ export function AddUserSheet({ open, onOpenChange, onAddUser }: AddUserSheetProp
               <User className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <SheetTitle className="text-2xl font-bold">Add User</SheetTitle>
-              <SheetDescription className="text-base">
+              <SheetTitle>Add User</SheetTitle>
+              <SheetDescription>
                 Create a new user account
               </SheetDescription>
             </div>

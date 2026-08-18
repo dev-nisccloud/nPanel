@@ -129,7 +129,7 @@ export function OrderViewSheet({ open, onOpenChange, orderId }: OrderViewSheetPr
                             <Receipt className="h-6 w-6 text-primary" />
                         </div>
                         <div>
-                            <SheetTitle className="text-xl font-bold flex items-center gap-2">
+                            <SheetTitle className="flex items-center gap-2">
                                 {isLoading ? "Loading Order..." : order?.orderNumber || "Order Details"}
                             </SheetTitle>
                             <SheetDescription>

@@ -74,7 +74,7 @@ export function ViewETimsSaleSheet({
                 <SheetHeader>
                     <div className="flex items-start justify-between gap-3 pr-6">
                         <div className="space-y-1">
-                            <SheetTitle className="text-xl">
+                            <SheetTitle>
                                 {creditNote ? `Credit note #${sale.invcNo}` : `Sale #${sale.invcNo}`}
                             </SheetTitle>
                             <SheetDescription>

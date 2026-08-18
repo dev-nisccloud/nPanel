@@ -194,8 +194,8 @@ export function SelectAdAccountSheet({
       <SheetContent className="overflow-y-auto sm:max-w-[520px]" title="Select ad account">
         <SheetHeader className="mb-6 flex justify-between items-center flex-row">
           <div className="flex flex-col gap-1">
-            <SheetTitle className="text-2xl font-bold">Select ad account</SheetTitle>
-            <SheetDescription className="text-base">
+            <SheetTitle>Select ad account</SheetTitle>
+            <SheetDescription>
               Choose an ad account, date range, then select one or more campaigns. Each campaign is added as a separate invoice line with commission applied.
             </SheetDescription>
           </div>

@@ -73,8 +73,8 @@ export function ViewETimsCustomerSheet({
                 <SheetHeader>
                     <div className="flex items-start justify-between gap-3 pr-6">
                         <div className="space-y-1">
-                            <SheetTitle className="text-xl">{customer.custNm}</SheetTitle>
-                            <SheetDescription className="font-mono text-xs">
+                            <SheetTitle>{customer.custNm}</SheetTitle>
+                            <SheetDescription className="font-mono">
                                 Branch customer #{customer.custNo}
                             </SheetDescription>
                         </div>

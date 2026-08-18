@@ -174,8 +174,8 @@ export function TransferReadyCard({
                 <ArrowLeftRight className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <SheetTitle className="text-2xl font-bold">Complete transfer</SheetTitle>
-                <SheetDescription className="text-base">
+                <SheetTitle>Complete transfer</SheetTitle>
+                <SheetDescription>
                   Enter your authorization code to transfer {domain} to Nisc Cloud
                 </SheetDescription>
               </div>

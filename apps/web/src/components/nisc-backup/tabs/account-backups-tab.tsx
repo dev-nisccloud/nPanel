@@ -3,42 +3,106 @@
 import { captureEvent } from "@/lib/posthog";
 
 import * as React from "react";
-import { Download, RotateCcw } from "lucide-react";
+import { Download, HardDrive, Plus, RefreshCw, RotateCcw, Search } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { CleanList, CleanListRow } from "@/components/ui/clean-list";
 import { trpc } from "@/utils/trpc";
-import { formatBytes, formatNiscBackupDate } from "../formatters";
-import { NiscBackupErrorState, NiscBackupTableSkeleton } from "../primitives";
-import { NiscBackupMinimalList, NiscBackupMinimalRow } from "../minimal-list";
+import { formatNiscBackupDate, formatSnapshotSize } from "../formatters";
+import { NiscBackupErrorState } from "../primitives";
 import { useNiscBackupAccountBackups } from "../hooks/use-nisc-backup-account-backups";
+import {
+  niscBackupStatusBadgeClass,
+  niscBackupSuccessBadgeClass,
+} from "../status-badges";
+import {
+  NiscBackupRestoreDialog,
+  type RestoreRole,
+  type RestoreTarget,
+} from "../restore-backup-dialog";
+import type { NiscBackupSnapshotRow } from "../types";
 
-type RestoreTarget = {
-  snapshotId: string;
-  backupDate: string;
+const BACKUP_STRUCTURE_LABELS: Record<number, string> = {
+  1: "Incremental",
+  2: "Archived",
+  4: "Compressed",
 };
+
+function snapshotStatus(snapshot: NiscBackupSnapshotRow): {
+  label: string;
+  className?: string;
+} {
+  if (snapshot.damaged) {
+    return { label: "Damaged", className: niscBackupStatusBadgeClass("error") };
+  }
+  if (snapshot.locked) {
+    return { label: "Locked", className: niscBackupStatusBadgeClass("warning") };
+  }
+  return { label: "Available", className: niscBackupSuccessBadgeClass(true) };
+}
+
+function snapshotDescription(snapshot: NiscBackupSnapshotRow): string {
+  return [
+    formatSnapshotSize(snapshot.size, snapshot.backup_structure),
+    snapshot.destination_name,
+    snapshot.backup_structure != null
+      ? BACKUP_STRUCTURE_LABELS[snapshot.backup_structure]
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function AccountBackupsSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-4 @sm/main:flex-row @sm/main:items-center @sm/main:justify-between">
+        <Skeleton className="h-10 flex-1 @sm/main:max-w-sm" />
+        <div className="flex gap-2">
+          <Skeleton className="h-9 w-9" />
+          <Skeleton className="h-9 w-28" />
+        </div>
+      </div>
+      <div className="divide-y overflow-hidden rounded-xl border bg-card">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <div key={index} className="flex items-center justify-between gap-3 px-4 py-3.5">
+            <div className="flex min-w-0 flex-1 items-start gap-3">
+              <Skeleton className="mt-0.5 h-4 w-4" />
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <Skeleton className="h-4 w-44" />
+                <Skeleton className="h-3 w-36 max-w-full" />
+              </div>
+            </div>
+            <div className="flex gap-1.5">
+              <Skeleton className="h-7 w-20" />
+              <Skeleton className="h-7 w-24" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function NiscBackupAccountBackupsTab({
   accountId,
   username,
   readOnly = false,
+  restoreRole = "user",
 }: {
   accountId: string;
   username: string;
   readOnly?: boolean;
+  restoreRole?: RestoreRole;
 }) {
   const utils = trpc.useUtils();
+  const [search, setSearch] = React.useState("");
   const [restoreTarget, setRestoreTarget] = React.useState<RestoreTarget | null>(null);
-  const { snapshots, isLoading, isError, error, refetch } = useNiscBackupAccountBackups(accountId);
+  const { snapshots, isLoading, isError, error, refetch, isRefetching } =
+    useNiscBackupAccountBackups(accountId);
 
   const queueRestore = trpc.niscBackup.queues.queueSnapshot.useMutation({
     onSuccess: () => {
@@ -53,7 +117,7 @@ export function NiscBackupAccountBackupsTab({
   const queueDownload = trpc.niscBackup.downloads.queueSnapshot.useMutation({
     onSuccess: () => {
       captureEvent("backup_downloaded");
-      toast.success("Download queued  open the Downloads tab when the queue finishes, then click Save file.");
+      toast.success("Download queued. Open Downloads when it finishes, then save the file.");
       utils.niscBackup.downloads.list.invalidate();
       utils.niscBackup.queues.listGroups.invalidate();
     },
@@ -70,7 +134,26 @@ export function NiscBackupAccountBackupsTab({
     onError: (err) => toast.error(err.message),
   });
 
-  if (isLoading) return <NiscBackupTableSkeleton rows={4} />;
+  const filtered = React.useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return snapshots;
+    return snapshots.filter((snapshot) => {
+      const haystack = [
+        formatNiscBackupDate(snapshot.date),
+        snapshot.destination_name,
+        formatSnapshotSize(snapshot.size, snapshot.backup_structure),
+        snapshot.backup_structure != null
+          ? BACKUP_STRUCTURE_LABELS[snapshot.backup_structure]
+          : null,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(query);
+    });
+  }, [snapshots, search]);
+
+  if (isLoading) return <AccountBackupsSkeleton />;
   if (isError) {
     return (
       <NiscBackupErrorState
@@ -84,57 +167,93 @@ export function NiscBackupAccountBackupsTab({
   return (
     <>
       <div className="space-y-4">
-        {!readOnly ? (
-          <div className="flex justify-end">
+        <div className="flex flex-col gap-4 @sm/main:flex-row @sm/main:items-center @sm/main:justify-between">
+          <div className="relative flex-1 @sm/main:max-w-sm">
+            <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search backups..."
+              className="w-full pl-10"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
             <Button
+              type="button"
               variant="outline"
               size="sm"
-              disabled={onDemand.isPending}
-              onClick={() => onDemand.mutate({ account_id: accountId })}
+              onClick={() => refetch()}
+              disabled={isRefetching}
             >
-              Run on-demand backup
+              <RefreshCw className={`h-4 w-4 ${isRefetching ? "animate-spin" : ""} @sm/main:mr-2`} />
+              <span className="hidden @sm/main:inline">Refresh</span>
             </Button>
+            {!readOnly ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={onDemand.isPending}
+                onClick={() => onDemand.mutate({ account_id: accountId })}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Backup now
+              </Button>
+            ) : null}
           </div>
-        ) : null}
+        </div>
 
-        <NiscBackupMinimalList emptyMessage="No backups found for this account.">
-          {snapshots.map((snapshot) => {
+        <CleanList emptyMessage={search.trim() ? "No backups match your search." : "No backups found for this account."}>
+          {filtered.map((snapshot, index) => {
             const snapshotId = snapshot.parent_id ?? snapshot._id;
-            const subtitle = [
-              formatBytes(snapshot.size ?? 0),
-              snapshot.destination_name,
-            ]
-              .filter(Boolean)
-              .join(" · ");
+            const status = snapshotStatus(snapshot);
+            const canAct = !readOnly && !snapshot.damaged;
 
             return (
-              <NiscBackupMinimalRow
+              <CleanListRow
                 key={snapshot._id}
-                compact
+                leading={<HardDrive className="h-4 w-4 text-muted-foreground" />}
                 title={formatNiscBackupDate(snapshot.date)}
-                subtitle={subtitle}
-                badge={snapshot.damaged ? "Damaged" : snapshot.locked ? "Locked" : "Available"}
-                badgeVariant={snapshot.damaged ? "destructive" : snapshot.locked ? "secondary" : "outline"}
+                description={<p className="truncate">{snapshotDescription(snapshot)}</p>}
+                trailing={
+                  <div className="flex items-center gap-1.5">
+                    {index === 0 && !search.trim() ? (
+                      <Badge variant="outline">Latest</Badge>
+                    ) : null}
+                    <Badge
+                      variant={snapshot.damaged ? "destructive" : "outline"}
+                      className={status.className}
+                    >
+                      {status.label}
+                    </Badge>
+                  </div>
+                }
                 actions={
-                  readOnly || snapshot.damaged ? undefined : (
+                  canAct ? (
                     <>
                       <Button
+                        type="button"
+                        variant="outline"
                         size="sm"
-                        variant="ghost"
+                        className="h-7 px-2.5 text-xs"
                         disabled={queueRestore.isPending}
                         onClick={() =>
                           setRestoreTarget({
                             snapshotId,
                             backupDate: formatNiscBackupDate(snapshot.date),
+                            size: snapshot.size,
+                            backupStructure: snapshot.backup_structure,
                           })
                         }
                       >
-                        <RotateCcw className="mr-1 h-3 w-3" />
+                        <RotateCcw className="mr-1 h-3.5 w-3.5" />
                         Restore
                       </Button>
                       <Button
+                        type="button"
+                        variant="outline"
                         size="sm"
-                        variant="ghost"
+                        className="h-7 px-2.5 text-xs"
                         disabled={queueDownload.isPending}
                         onClick={() =>
                           queueDownload.mutate({
@@ -142,59 +261,28 @@ export function NiscBackupAccountBackupsTab({
                           })
                         }
                       >
-                        <Download className="mr-1 h-3 w-3" />
+                        <Download className="mr-1 h-3.5 w-3.5" />
                         Download
                       </Button>
                     </>
-                  )
+                  ) : undefined
                 }
               />
             );
           })}
-        </NiscBackupMinimalList>
+        </CleanList>
       </div>
 
-      <AlertDialog
-        open={restoreTarget != null}
+      <NiscBackupRestoreDialog
+        target={restoreTarget}
+        username={username}
+        pending={queueRestore.isPending}
+        restoreRole={restoreRole}
         onOpenChange={(open) => {
           if (!open && !queueRestore.isPending) setRestoreTarget(null);
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Restore backup?</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <p>
-                  You are about to restore the backup from{" "}
-                  <span className="font-medium text-foreground">{restoreTarget?.backupDate}</span>{" "}
-                  to account <span className="font-medium text-foreground">{username}</span>.
-                </p>
-                <p>
-                  This will overwrite the account&apos;s current websites, databases, email, and
-                  files with the contents of that backup. Any data created or changed after that
-                  backup date will be lost.
-                </p>
-                <p className="font-medium text-foreground">This action cannot be undone.</p>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={queueRestore.isPending}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                if (!restoreTarget) return;
-                queueRestore.mutate({ snapshot_id: restoreTarget.snapshotId });
-              }}
-              disabled={queueRestore.isPending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {queueRestore.isPending ? "Queuing restore…" : "Restore backup"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        onConfirm={(input) => queueRestore.mutate(input)}
+      />
     </>
   );
 }

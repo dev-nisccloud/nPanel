@@ -224,8 +224,8 @@ export function UploadVersionSheet({
               <Upload className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <SheetTitle className="text-2xl font-bold">Upload New Version</SheetTitle>
-              <SheetDescription className="text-base">
+              <SheetTitle>Upload New Version</SheetTitle>
+              <SheetDescription>
                 Upload version {nextVersionNumber} of this creative asset
               </SheetDescription>
             </div>
