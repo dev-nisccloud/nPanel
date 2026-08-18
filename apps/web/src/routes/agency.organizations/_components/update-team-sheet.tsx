@@ -101,8 +101,8 @@ export function UpdateTeamSheet({ open, onOpenChange, team, onUpdateTeam }: Upda
               <Users className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <SheetTitle className="text-2xl font-bold">Update Organization</SheetTitle>
-              <SheetDescription className="text-base">
+              <SheetTitle>Update Organization</SheetTitle>
+              <SheetDescription>
                 Edit organization information
               </SheetDescription>
             </div>

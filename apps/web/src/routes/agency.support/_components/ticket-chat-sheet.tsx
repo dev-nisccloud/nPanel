@@ -271,10 +271,10 @@ export function TicketChatSheet({
           <SheetHeader className="shrink-0 space-y-3 border-b px-5 pb-4 pt-5 text-left sm:px-6">
             <div className="flex items-start justify-between gap-3 pr-8">
               <div className="min-w-0 space-y-1">
-                <SheetTitle className="truncate text-base font-semibold">
+                <SheetTitle className="truncate">
                   {isTicketLoading ? "Loading..." : title}
                 </SheetTitle>
-                <SheetDescription className="flex flex-wrap items-center gap-2 text-xs">
+                <SheetDescription className="flex flex-wrap items-center gap-2">
                   {ticket?.ticketNumber && (
                     <span className="font-medium text-foreground">
                       {ticket.ticketNumber}

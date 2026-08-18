@@ -2,26 +2,35 @@ import { protectedProcedure, router } from "../../trpc";
 import { NiscBackupListResponse, QueueGroup, QueueItem, QueuePriority } from "../../types/nisc-backup";
 import { z } from "zod";
 import {
+  buildAddQueueItemsParams,
   extractList,
   idSchema,
+  jetBackupNewestFirst,
   niscBackupCall,
   niscBackupCallSafe,
   NISC_BACKUP_QUEUE_TYPE_RESTORE,
   listSchema,
   queueItemSchema,
+  restoreQueueOptionsSchema,
+  sortByDateDesc,
 } from "./_helpers";
 
 export const niscBackupQueuesRouter = router({
-  /** Queue a full backup snapshot for restore (NiscBackup Queues API shape). */
+  /** Queue a backup snapshot for restore. Omit `items` for a full-account restore. */
   queueSnapshot: protectedProcedure
     .input(z.object({
       snapshot_id: z.string(),
-    }))
+      items: z.array(z.string()).optional(),
+    }).merge(restoreQueueOptionsSchema))
     .mutation(async ({ input }) => {
-      return niscBackupCall("addQueueItems", {
+      return niscBackupCall("addQueueItems", buildAddQueueItemsParams({
         type: NISC_BACKUP_QUEUE_TYPE_RESTORE,
         snapshot_id: input.snapshot_id,
-      });
+        items: input.items,
+        merge: input.merge,
+        terminate: input.terminate,
+        suspend: input.suspend,
+      }));
     }),
 
   addItems: protectedProcedure
@@ -53,7 +62,7 @@ export const niscBackupQueuesRouter = router({
       for (const queueType of types) {
         const result = await niscBackupCallSafe<NiscBackupListResponse<QueueGroup>>(
           "listQueueGroups",
-          { ...rest, type: queueType },
+          { ...jetBackupNewestFirst(rest, "created"), type: queueType },
         );
         if (result.success) {
           groups.push(
@@ -64,7 +73,12 @@ export const niscBackupQueuesRouter = router({
         }
       }
 
-      if (groups.length === 0 && errors.length > 0) {
+      const sorted = sortByDateDesc(
+        groups,
+        (group) => (group as Record<string, unknown>).created,
+      );
+
+      if (sorted.length === 0 && errors.length > 0) {
         return {
           groups: [],
           total: 0,
@@ -73,8 +87,8 @@ export const niscBackupQueuesRouter = router({
       }
 
       return {
-        groups,
-        total: groups.length,
+        groups: sorted,
+        total: sorted.length,
         warning: errors.length > 0 ? errors[0] : undefined,
       };
     }),

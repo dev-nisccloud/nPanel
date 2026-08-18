@@ -341,10 +341,10 @@ export function AddEditProductSheet({
                             <Package className="h-6 w-6 text-primary" />
                         </div>
                         <div>
-                            <SheetTitle className="text-2xl font-bold">
+                            <SheetTitle>
                                 {isEditing ? "Edit Product" : "Add Product"}
                             </SheetTitle>
-                            <SheetDescription className="text-base">
+                            <SheetDescription>
                                 {isEditing
                                     ? "Update the product details"
                                     : "Create a new service product for your catalogue"}

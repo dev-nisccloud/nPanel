@@ -328,6 +328,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
                 <HostingBackupRestoreTab
                   domainName={hostingData.gen_info?.name}
                   username={niscBackupUsername}
+                  restoreRole="admin"
                   enabled
                 />
               ) : null}

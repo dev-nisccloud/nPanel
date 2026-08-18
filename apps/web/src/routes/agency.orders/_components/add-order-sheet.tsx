@@ -411,8 +411,8 @@ export function AddOrderSheet({ open, onOpenChange, onSuccess }: AddOrderSheetPr
 							<ShoppingCart className="h-6 w-6 text-primary" />
 						</div>
 						<div>
-							<SheetTitle className="text-2xl font-bold">Create Service Order</SheetTitle>
-							<SheetDescription className="text-base">
+							<SheetTitle>Create Service Order</SheetTitle>
+							<SheetDescription>
 								Create a new order with one or more service plans
 							</SheetDescription>
 						</div>

@@ -106,8 +106,8 @@ export function HotlinkProtectionSheet({
               <Link2 className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <SheetTitle className="text-2xl font-bold">Hotlink protection</SheetTitle>
-              <SheetDescription className="text-base">
+              <SheetTitle>Hotlink protection</SheetTitle>
+              <SheetDescription>
                 Allow listed sites to embed your media. Domains are validated server-side (hostname
                 only).
               </SheetDescription>

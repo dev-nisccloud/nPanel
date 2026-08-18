@@ -47,7 +47,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
           <SheetHeader className="flex-shrink-0 px-6 pt-6 pb-4 border-b">
             <div className="flex items-center justify-between">
               <div>
-                <SheetTitle className="text-xl font-semibold">Shopping Cart</SheetTitle>
+                <SheetTitle>Shopping Cart</SheetTitle>
                 <SheetDescription className="mt-1">
                   {itemCount === 0 
                     ? "Your cart is empty" 

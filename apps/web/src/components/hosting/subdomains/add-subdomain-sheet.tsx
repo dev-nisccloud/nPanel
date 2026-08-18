@@ -149,8 +149,8 @@ export function AddSubdomainSheet({ open, onOpenChange, domainName, onSuccess }:
               <Globe className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <SheetTitle className="text-2xl font-bold">Add Subdomain</SheetTitle>
-              <SheetDescription className="text-base">
+              <SheetTitle>Add Subdomain</SheetTitle>
+              <SheetDescription>
                 Create a new subdomain for your hosting account
               </SheetDescription>
             </div>

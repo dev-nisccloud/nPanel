@@ -396,7 +396,7 @@ export function HostingFileViewerSheet({
                   <File className="h-5 w-5 text-primary" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <SheetTitle className="truncate text-lg font-semibold">
+                  <SheetTitle className="truncate">
                     {file.name}
                   </SheetTitle>
                   <SheetDescription className="mt-1 flex flex-wrap items-center gap-2">

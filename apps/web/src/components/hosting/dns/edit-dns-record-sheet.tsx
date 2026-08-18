@@ -154,8 +154,8 @@ export function EditDnsRecordSheet({ open, onOpenChange, siteId, domainName, rec
                             <Edit className="h-6 w-6 text-primary" />
                         </div>
                         <div>
-                            <SheetTitle className="text-2xl font-bold">Edit DNS Record</SheetTitle>
-                            <SheetDescription className="text-base">
+                            <SheetTitle>Edit DNS Record</SheetTitle>
+                            <SheetDescription>
                                 Modify DNS record details
                             </SheetDescription>
                         </div>

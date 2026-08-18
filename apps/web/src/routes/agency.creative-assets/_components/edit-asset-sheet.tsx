@@ -170,8 +170,8 @@ export function EditAssetSheet({ open, onOpenChange, asset, onEditAsset }: EditA
               <Edit className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <SheetTitle className="text-2xl font-bold">Edit Creative Asset</SheetTitle>
-              <SheetDescription className="text-base">
+              <SheetTitle>Edit Creative Asset</SheetTitle>
+              <SheetDescription>
                 Update the creative asset details
               </SheetDescription>
             </div>

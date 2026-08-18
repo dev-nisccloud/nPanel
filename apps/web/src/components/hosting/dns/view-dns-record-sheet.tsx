@@ -83,8 +83,8 @@ export function ViewDnsRecordSheet({ open, onOpenChange, data }: ViewDnsRecordSh
               <Globe className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <SheetTitle className="text-2xl font-bold">DNS Record Details</SheetTitle>
-              <SheetDescription className="text-base">
+              <SheetTitle>DNS Record Details</SheetTitle>
+              <SheetDescription>
                 View complete DNS record information
               </SheetDescription>
             </div>

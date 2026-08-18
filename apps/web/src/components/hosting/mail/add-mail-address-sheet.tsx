@@ -413,10 +413,10 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, domainName, ma
               <Mail className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <SheetTitle className="text-2xl font-bold">
+              <SheetTitle>
                 {mode === 'create' ? 'Add Email Address' : 'Edit Email Address'}
               </SheetTitle>
-              <SheetDescription className="text-base">
+              <SheetDescription>
                 {mode === 'create' ? 'Create a new email address for your domain' : 'Update email address settings'}
               </SheetDescription>
             </div>

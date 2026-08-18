@@ -1,13 +1,29 @@
 import { protectedProcedure, router } from "../../trpc";
 import { Download, NiscBackupListResponse } from "../../types/nisc-backup";
 import { z } from "zod";
-import { idSchema, niscBackupCall, NISC_BACKUP_QUEUE_TYPE_DOWNLOAD, listSchema } from "./_helpers";
+import {
+  extractList,
+  idSchema,
+  jetBackupNewestFirst,
+  niscBackupCall,
+  NISC_BACKUP_QUEUE_TYPE_DOWNLOAD,
+  listSchema,
+  sortByDateDesc,
+} from "./_helpers";
 
 export const niscBackupDownloadsRouter = router({
   list: protectedProcedure
     .input(listSchema)
     .query(async ({ input }) => {
-      return niscBackupCall<NiscBackupListResponse<Download>>("listDownloads", input);
+      const data = await niscBackupCall<NiscBackupListResponse<Download>>(
+        "listDownloads",
+        jetBackupNewestFirst(input, "created"),
+      );
+      const downloads = sortByDateDesc(
+        extractList(data, ["downloads", "items"]) as Download[],
+        (item) => (item as Record<string, unknown>).created,
+      );
+      return { downloads, total: downloads.length };
     }),
 
   get: protectedProcedure

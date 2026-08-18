@@ -82,8 +82,8 @@ export function ViewETimsItemSheet({
                 <SheetHeader>
                     <div className="flex items-start justify-between gap-3 pr-6">
                         <div className="space-y-1">
-                            <SheetTitle className="text-xl">{item.itemNm}</SheetTitle>
-                            <SheetDescription className="font-mono text-xs">{item.itemCd}</SheetDescription>
+                            <SheetTitle>{item.itemNm}</SheetTitle>
+                            <SheetDescription className="font-mono">{item.itemCd}</SheetDescription>
                         </div>
                         <Badge
                             variant={isActive ? "default" : "secondary"}

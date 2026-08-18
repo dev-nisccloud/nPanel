@@ -130,7 +130,7 @@ export function TldDetailsSheet({
           <SheetHeader className="flex-shrink-0 px-6 pt-6 pb-4 border-b">
             <div className="flex items-center justify-between">
               <div>
-                <SheetTitle className="text-xl font-semibold">
+                <SheetTitle>
                   {tld.name.toUpperCase()} Details
                 </SheetTitle>
                 <SheetDescription className="mt-1">

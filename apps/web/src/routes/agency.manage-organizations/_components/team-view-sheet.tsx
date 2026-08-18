@@ -212,7 +212,7 @@ export function TeamViewSheet({
                                 <Building2 className="h-6 w-6 text-primary" />
                             </div>
                             <div>
-                                <SheetTitle className="text-xl font-bold flex items-center gap-2">
+                                <SheetTitle className="flex items-center gap-2">
                                     {isLoadingTeam ? "Loading Organization..." : team?.name || "Organization Details"}
                                 </SheetTitle>
                                 <SheetDescription>

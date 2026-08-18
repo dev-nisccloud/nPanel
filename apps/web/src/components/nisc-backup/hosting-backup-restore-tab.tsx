@@ -10,17 +10,37 @@ export interface HostingBackupRestoreTabProps {
   domainName?: string;
   username?: string;
   readOnly?: boolean;
+  restoreRole?: "admin" | "user";
   enabled?: boolean;
 }
 
 function BackupRestoreTabSkeleton() {
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-5">
-      <Skeleton className="h-4 w-64" />
-      <Skeleton className="h-20 w-full rounded-lg" />
-      <div className="flex gap-8">
-        <Skeleton className="hidden h-40 w-44 rounded-lg md:block" />
-        <Skeleton className="h-64 flex-1 rounded-lg" />
+    <div className="space-y-5">
+      <Skeleton className="h-9 w-72 rounded-lg" />
+      <div className="flex flex-col gap-4 @sm/main:flex-row @sm/main:items-center @sm/main:justify-between">
+        <Skeleton className="h-10 flex-1 @sm/main:max-w-sm" />
+        <div className="flex gap-2">
+          <Skeleton className="h-9 w-9" />
+          <Skeleton className="h-9 w-28" />
+        </div>
+      </div>
+      <div className="divide-y overflow-hidden rounded-xl border bg-card">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <div key={index} className="flex items-center justify-between gap-3 px-4 py-3.5">
+            <div className="flex min-w-0 flex-1 items-start gap-3">
+              <Skeleton className="mt-0.5 h-4 w-4" />
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <Skeleton className="h-4 w-44" />
+                <Skeleton className="h-3 w-36 max-w-full" />
+              </div>
+            </div>
+            <div className="flex gap-1.5">
+              <Skeleton className="h-7 w-20" />
+              <Skeleton className="h-7 w-24" />
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -34,10 +54,10 @@ function BackupRestoreEmptyState({
   message: string;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12 text-center">
-      <ArchiveRestore className="mb-4 h-12 w-12 text-muted-foreground" />
-      <h3 className="mb-2 text-lg font-semibold">{title}</h3>
-      <p className="max-w-md text-sm text-muted-foreground">{message}</p>
+    <div className="rounded-xl border border-dashed bg-card px-4 py-10 text-center">
+      <ArchiveRestore className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+      <h3 className="text-sm font-semibold">{title}</h3>
+      <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">{message}</p>
     </div>
   );
 }
@@ -46,6 +66,7 @@ export function HostingBackupRestoreTab({
   domainName,
   username,
   readOnly = false,
+  restoreRole = "user",
   enabled = true,
 }: HostingBackupRestoreTabProps) {
   const {
@@ -100,6 +121,8 @@ export function HostingBackupRestoreTab({
       accountId={accountId}
       account={account}
       readOnly={readOnly}
+      restoreRole={restoreRole}
+      embedded
     />
   );
 }

@@ -18,11 +18,29 @@ export interface NiscBackupSnapshotRow {
   username?: string;
   date?: number | string;
   type?: number;
+  backup_contains?: number;
+  backup_structure?: number;
   size?: number;
   destination_id?: string;
   destination_name?: string;
   locked?: number | boolean;
   damaged?: boolean;
+}
+
+export interface NiscBackupBackupItemRow {
+  _id: string;
+  parent_id?: string;
+  name?: string;
+  path?: string;
+  backup_contains?: number;
+  backup_structure?: number;
+  size?: number;
+}
+
+export interface NiscBackupRestoreConditionRow {
+  _id: string;
+  condition?: string;
+  disabled?: number | boolean;
 }
 
 export interface NiscBackupAlertSendLog {
@@ -84,7 +102,17 @@ export interface NiscBackupDestinationRow {
   name?: string;
   type?: string;
   type_name?: string;
-  disk_usage?: number | string;
+  disk_usage?:
+    | number
+    | string
+    | {
+        usage?: number | string;
+        free?: number | string;
+        total?: number | string;
+      };
+  usage?: number | string;
+  free?: number | string;
+  total?: number | string;
   disk_limit?: number;
   disabled?: number | boolean;
   running?: boolean;
@@ -117,5 +145,5 @@ export interface NiscBackupLogRow {
   created?: number | string;
   start_time?: string;
   execution_time?: number;
-  info?: { Type?: string; Destination?: string };
+  info?: { Type?: string; Destination?: string; Account?: string };
 }

@@ -215,8 +215,8 @@ export function UploadFileSheet({
 			<SheetContent className="overflow-y-auto sm:max-w-md">
 				<SheetHeader className="mb-3 flex flex-row items-start justify-between gap-3 space-y-0">
 					<div className="min-w-0">
-						<SheetTitle className="text-base font-semibold">Upload files</SheetTitle>
-						<SheetDescription className="text-xs">
+						<SheetTitle>Upload files</SheetTitle>
+						<SheetDescription>
 							Add files to the current directory on your hosting account.
 						</SheetDescription>
 					</div>

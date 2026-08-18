@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import {
   AlertTriangle,
   Download,
@@ -18,7 +19,7 @@ import {
   wpDetailLayout,
 } from "@/components/wordpress/wp-detail-layout";
 import { NiscBackupDetailTabTrigger } from "../detail-tab-trigger";
-import { NiscBackupOverviewTab } from "../tabs/overview-tab";
+import { NiscBackupOverviewTab, type NiscBackupPageTab } from "../tabs/overview-tab";
 import { NiscBackupAccountsTab } from "../tabs/accounts-tab";
 import { NiscBackupJobsTab } from "../tabs/jobs-tab";
 import { NiscBackupQueueTab } from "../tabs/queue-tab";
@@ -31,6 +32,8 @@ export interface NiscBackupMainPageProps {
 }
 
 export function NiscBackupMainPage({ basePath }: NiscBackupMainPageProps) {
+  const [activeTab, setActiveTab] = React.useState<NiscBackupPageTab>("overview");
+
   return (
     <div className={wpDetailLayout.page}>
       <div className={wpDetailLayout.container}>
@@ -42,7 +45,11 @@ export function NiscBackupMainPage({ basePath }: NiscBackupMainPageProps) {
         </div>
 
         <div className="mt-8">
-          <Tabs defaultValue="overview" className="w-full">
+          <Tabs
+            value={activeTab}
+            onValueChange={(value) => setActiveTab(value as NiscBackupPageTab)}
+            className="w-full"
+          >
             <ScrollArea className={DETAIL_TABS_SCROLL_CLASS}>
               <TabsList className={DETAIL_TABS_LIST_CLASS}>
                 <NiscBackupDetailTabTrigger
@@ -92,7 +99,7 @@ export function NiscBackupMainPage({ basePath }: NiscBackupMainPageProps) {
             </ScrollArea>
 
             <TabsContent value="overview" className={DETAIL_TAB_CONTENT_CLASS + " mt-10"}>
-              <NiscBackupOverviewTab />
+              <NiscBackupOverviewTab onNavigateTab={setActiveTab} />
             </TabsContent>
             <TabsContent value="accounts" className={DETAIL_TAB_CONTENT_CLASS + " mt-10"}>
               <NiscBackupAccountsTab basePath={basePath} />

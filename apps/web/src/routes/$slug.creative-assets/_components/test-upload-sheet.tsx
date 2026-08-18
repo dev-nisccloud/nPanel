@@ -209,8 +209,8 @@ export function TestUploadSheet({ open, onOpenChange }: TestUploadSheetProps) {
               <Upload className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <SheetTitle className="text-2xl font-bold">Test UploadThing</SheetTitle>
-              <SheetDescription className="text-base">
+              <SheetTitle>Test UploadThing</SheetTitle>
+              <SheetDescription>
                 Test file uploads and view detailed logs
               </SheetDescription>
             </div>

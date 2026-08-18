@@ -116,8 +116,8 @@ export function UpdateOrderSheet({ open, onOpenChange, order, onUpdateOrder }: U
               <ShoppingCart className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <SheetTitle className="text-2xl font-bold">Update Order</SheetTitle>
-              <SheetDescription className="text-base">
+              <SheetTitle>Update Order</SheetTitle>
+              <SheetDescription>
                 Edit order details
               </SheetDescription>
             </div>

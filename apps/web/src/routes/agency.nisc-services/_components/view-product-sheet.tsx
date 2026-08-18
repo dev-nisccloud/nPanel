@@ -95,8 +95,8 @@ export function ViewProductSheet({ productId, onClose, onEdit, onManagePlans }: 
                             <Package className="h-6 w-6 text-primary" />
                         </div>
                         <div>
-                            <SheetTitle className="text-2xl font-bold">Product Details</SheetTitle>
-                            <SheetDescription className="text-base">
+                            <SheetTitle>Product Details</SheetTitle>
+                            <SheetDescription>
                                 Full details of this service product
                             </SheetDescription>
                         </div>
