@@ -19,6 +19,7 @@ import {
 } from "./session-cache";
 import { invalidateSessionById } from "./session-enforcement";
 import {
+  ipsIndicateNetworkChange,
   normalizeIpAddress,
   normalizeUserAgent,
   SESSION_IP_ALERT_DEDUPE_SEC,
@@ -185,6 +186,16 @@ export async function handleIpAnomaly(params: {
   userAgent?: string | null;
   expiresAt?: Date;
 }): Promise<{ reauthRequired: boolean; mfaRequired: boolean; invalidated?: boolean }> {
+  const boundRows = await db
+    .select({ ipAddress: session.ipAddress })
+    .from(session)
+    .where(eq(session.id, params.sessionId))
+    .limit(1);
+  const boundIp = boundRows[0]?.ipAddress ?? null;
+  if (!ipsIndicateNetworkChange(boundIp, params.ipAddress ?? null)) {
+    return { reauthRequired: false, mfaRequired: false };
+  }
+
   const mfaEnabled = await isMfaEnabledForUser(params.userId);
 
   if (mfaEnabled) {
@@ -293,17 +304,18 @@ export async function maybeNotifyNewSignIn(params: {
     const requestUa = normalizeUserAgent(params.userAgent);
     const requestIp = normalizeIpAddress(params.ipAddress);
 
-    const differsFromOther = others.some((s) => {
+    const matchesKnownSession = others.some((s) => {
       const otherUa = normalizeUserAgent(s.userAgent);
       const otherIp = normalizeIpAddress(s.ipAddress);
-      return (
-        (otherUa && requestUa && otherUa !== requestUa) ||
-        (otherIp && requestIp && otherIp !== requestIp)
-      );
+      const sameBrowser = Boolean(otherUa && requestUa && otherUa === requestUa);
+      const sameNetwork = !ipsIndicateNetworkChange(otherIp, requestIp);
+      return sameBrowser && sameNetwork;
     });
 
-    // Concurrent session or UA/IP different from another active session.
-    if (others.length > 0 || differsFromOther) {
+    // Only notify when this login does not match any other active session's
+    // browser + network. A second browser on the same LAN is a new device;
+    // a second login from the same browser/network is not.
+    if (others.length > 0 && !matchesKnownSession) {
       await notifySessionSecurityEvent({
         userId: params.userId,
         kind: "new_signin",

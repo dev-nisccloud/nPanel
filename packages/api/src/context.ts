@@ -5,6 +5,7 @@ import {
   resolveReauthRequired,
 } from "@npanel/auth/session-security";
 import { isImpersonatedSession } from "@npanel/auth/impersonation";
+import { resolveClientIp } from "@npanel/auth/session-policy";
 import {
   getRequestBrowserOrigin,
   isAllowedStorefrontBrowserRequest,
@@ -31,12 +32,7 @@ export type CookieOptions = {
 };
 
 function resolveIpAddress(headers: Headers): string | null {
-  return (
-    headers.get("x-forwarded-for")?.split(",").pop()?.trim() ||
-    headers.get("x-real-ip")?.trim() ||
-    headers.get("cf-connecting-ip")?.trim() ||
-    null
-  );
+  return resolveClientIp(headers);
 }
 
 type AuthSessionNonNull = NonNullable<

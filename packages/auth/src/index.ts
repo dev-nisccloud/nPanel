@@ -40,7 +40,7 @@ import {
   rollbackSignupWithoutTerms,
   signupRequestAcceptsTerms,
 } from "./signup-terms";
-import { STANDARD_SESSION_MAX_AGE_SEC, SESSION_TOUCH_THROTTLE_MS } from "./session-policy";
+import { STANDARD_SESSION_MAX_AGE_SEC, SESSION_TOUCH_THROTTLE_MS, resolveClientIp } from "./session-policy";
 import {
   getRequestBrowserOrigin,
   isAllowedStorefrontBrowserRequest,
@@ -61,13 +61,7 @@ import {
 import { isImpersonatedSession } from "./impersonation";
 
 function resolveRequestIp(headers: Headers | null | undefined): string | null {
-  if (!headers) return null;
-  return (
-    headers.get("x-forwarded-for")?.split(",").pop()?.trim() ||
-    headers.get("x-real-ip")?.trim() ||
-    headers.get("cf-connecting-ip")?.trim() ||
-    null
-  );
+  return resolveClientIp(headers);
 }
 
 const resolvedTrustedOrigins = (() => {
@@ -322,10 +316,7 @@ export const auth = betterAuth<BetterAuthOptions>({
                 action: "LOGIN_BLOCKED",
                 description: `Login blocked due to account status: ${u.status}`,
                 metadata: { status: u.status, reason: "Account not active" },
-                ipAddress:
-                  ctx.headers?.get("x-forwarded-for") ||
-                  ctx.headers?.get("x-real-ip") ||
-                  "unknown",
+                ipAddress: resolveRequestIp(ctx.headers) || "unknown",
                 userAgent: ctx.headers?.get("user-agent") || "unknown",
                 createdAt: new Date(),
               })
@@ -834,10 +825,7 @@ export const auth = betterAuth<BetterAuthOptions>({
                 userId: sess.user.id,
                 action: "LOGOUT",
                 description: "User logged out",
-                ipAddress:
-                  ctx.headers?.get("x-forwarded-for") ||
-                  ctx.headers?.get("x-real-ip") ||
-                  "unknown",
+                ipAddress: resolveRequestIp(ctx.headers) || "unknown",
                 userAgent: ctx.headers?.get("user-agent") || "unknown",
                 createdAt: new Date(),
               });
@@ -859,20 +847,14 @@ export const auth = betterAuth<BetterAuthOptions>({
                 action: "EMAIL_VERIFIED",
                 description: "User email address verified",
                 metadata: { email: newSession.user.email },
-                ipAddress:
-                  ctx.headers?.get("x-forwarded-for") ||
-                  ctx.headers?.get("x-real-ip") ||
-                  "unknown",
+                ipAddress: resolveRequestIp(ctx.headers) || "unknown",
                 userAgent: ctx.headers?.get("user-agent") || "unknown",
                 createdAt: new Date(),
               });
             });
 
             try {
-              const ipAddress =
-                ctx.headers?.get("x-forwarded-for") ||
-                ctx.headers?.get("x-real-ip") ||
-                null;
+              const ipAddress = resolveRequestIp(ctx.headers);
               const verificationTime = new Date().toLocaleString("en-US", {
                 year: "numeric",
                 month: "long",
@@ -1260,7 +1242,7 @@ export const auth = betterAuth<BetterAuthOptions>({
   },
   advanced: {
     ipAddress: {
-      ipAddressHeaders: ["x-forwarded-for", "x-real-ip", "cf-connecting-ip"],
+      ipAddressHeaders: ["cf-connecting-ip", "true-client-ip", "x-real-ip", "x-forwarded-for"],
     },
     defaultCookieAttributes: {
       // In production, the web SPA (npanel-web) and the API server (npanel-server) are on

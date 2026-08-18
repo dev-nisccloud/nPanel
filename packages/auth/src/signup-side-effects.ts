@@ -6,6 +6,7 @@ import {
 } from "@npanel/db/schema/notifications";
 import { renderWelcomeEmail } from "react-email-starter/src/email-templates";
 import { sendAuthEmail } from "./transactional-email";
+import { resolveClientIp } from "./session-policy";
 
 type SignupMethod = "email_password" | "google";
 
@@ -19,8 +20,7 @@ function frontendBaseUrl(): string {
 }
 
 function requestMeta(headers: Headers | undefined) {
-  const ipAddress =
-    headers?.get("x-forwarded-for") || headers?.get("x-real-ip") || null;
+  const ipAddress = resolveClientIp(headers);
   return {
     ipAddress,
     ipDisplay: ipAddress ? ` from ${ipAddress}` : "",
