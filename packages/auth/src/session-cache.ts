@@ -1,5 +1,10 @@
 import type { IdleSessionValidation } from "./session-policy";
-import { SESSION_TOUCH_THROTTLE_MS, normalizeUserAgent } from "./session-policy";
+import {
+  SESSION_TOUCH_THROTTLE_MS,
+  ipsIndicateNetworkChange,
+  normalizeIpAddress,
+  normalizeUserAgent,
+} from "./session-policy";
 import { getAuthRedisClient } from "./redis";
 
 const CACHE_PREFIX = "npanel:session:idle:";
@@ -78,9 +83,9 @@ export async function readCachedSessionValidation(
         return null;
       }
 
-      const requestIp = opts?.ipAddress?.trim() || null;
-      const boundIp = raw.boundIpAddress?.trim() || null;
-      const ipAnomaly = Boolean(boundIp && requestIp && boundIp !== requestIp);
+      const requestIp = normalizeIpAddress(opts?.ipAddress);
+      const boundIp = normalizeIpAddress(raw.boundIpAddress);
+      const ipAnomaly = ipsIndicateNetworkChange(boundIp, requestIp);
 
       return {
         status: "valid",

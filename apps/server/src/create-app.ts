@@ -44,6 +44,7 @@ import { handleNiscBackupHealthCheck } from "./api/nisc-backup-health-check";
 import { handleNiscBackupDownloadFile } from "./api/nisc-backup-download-file";
 import { handleTestPleskConnection } from "./api/test-plesk-connection";
 import { handlePhpMyAdminSso } from "./api/hosting-phpmyadmin";
+import { handlePhpMyAdminProxy } from "./api/hosting-phpmyadmin-proxy";
 import { handleTestKenicConnection } from "./api/test-kenic-connection";
 import { handleMpesaWebhook } from "./api/webhooks/mpesa";
 import { handleJengaCallback, handleJengaIpn } from "./api/webhooks/jenga";
@@ -238,6 +239,7 @@ export function createApp(options: CreateAppOptions = {}) {
     app.get("/api/plesk/health-check", handlePleskHealthCheck);
     app.get("/api/plesk/test-connection", handleTestPleskConnection);
     app.get("/api/hosting/phpmyadmin", handlePhpMyAdminSso);
+    app.use("/api/hosting/phpmyadmin/proxy/*", handlePhpMyAdminProxy);
     app.get("/api/nisc-backup/health-check", handleNiscBackupHealthCheck);
     app.get("/api/nisc-backup/downloads/:id/file", handleNiscBackupDownloadFile);
     app.get("/api/kenic/test-connection", handleTestKenicConnection);

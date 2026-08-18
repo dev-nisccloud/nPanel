@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import type { Context } from "hono";
 import { createContext } from "@npanel/api";
 import { createPhpMyAdminSsoRedirect } from "@npanel/api/lib/plesk/phpmyadmin-sso";
+import { PHPMYADMIN_PROXY_PREFIX } from "./hosting-phpmyadmin-proxy";
 
 function httpStatusForTrpc(error: TRPCError): number {
   switch (error.code) {
@@ -47,6 +48,15 @@ export async function handlePhpMyAdminSso(c: Context) {
       teamId,
       userIp: ctx.ipAddress,
     });
+
+    const embed = c.req.query("embed") === "1";
+    if (embed) {
+      const pleskUrl = new URL(url);
+      return c.redirect(
+        `${PHPMYADMIN_PROXY_PREFIX}${pleskUrl.pathname}${pleskUrl.search}`,
+        302,
+      );
+    }
 
     return c.redirect(url, 302);
   } catch (error) {
