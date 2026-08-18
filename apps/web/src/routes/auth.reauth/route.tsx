@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Globe } from "lucide-react";
+import { Eye, EyeOff, Globe } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 
 import { APP_CONFIG } from "@/config/app-config";
@@ -17,6 +17,7 @@ export default function ReauthPage() {
   const navigate = useNavigate();
   const loginHref = authPathWithRedirect("/auth/login");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -86,15 +87,31 @@ export default function ReauthPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="reauth-password">Password</Label>
-              <Input
-                id="reauth-password"
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isSubmitting}
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="reauth-password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isSubmitting}
+                  required
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
             </div>
             <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? (

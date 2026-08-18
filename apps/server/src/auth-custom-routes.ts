@@ -9,6 +9,7 @@ import {
   isSessionReauthRequired,
 } from "@npanel/auth/session-cache";
 import { handleIpAnomaly } from "@npanel/auth/session-security";
+import { resolveClientIp } from "@npanel/auth/session-policy";
 import { isImpersonatedSession } from "@npanel/auth/impersonation";
 import { getRootRedirectTargetFromHeaders } from "@npanel/auth/root-redirect-target";
 import { and, db, desc, eq, gt, isNull } from "@npanel/db";
@@ -37,23 +38,13 @@ function frontendBase(): string {
 }
 
 function resolveIpAddress(headers: Headers): string | null {
-  return (
-    headers.get("x-forwarded-for")?.split(",").pop()?.trim() ||
-    headers.get("x-real-ip")?.trim() ||
-    headers.get("cf-connecting-ip")?.trim() ||
-    null
-  );
+  return resolveClientIp(headers);
 }
 
-function hashMfaCode(code: string): string {
-  return createHash("sha256").update(code).digest("hex");
-}
-
-function generateOtpCode(): string {
-  return String(randomInt(0, 1_000_000)).padStart(6, "0");
-}
-
-async function getActiveAuthSession(headers: Headers) {
+async function getActiveAuthSession(
+  headers: Headers,
+  opts?: { skipIpAnomaly?: boolean },
+) {
   const session = await auth.api.getSession({ headers });
   const sessionId = session?.session?.id;
   if (typeof sessionId === "string" && sessionId.length > 0) {
@@ -65,7 +56,7 @@ async function getActiveAuthSession(headers: Headers) {
       rotateToken: false,
     });
     if (lifetime.status === "expired") return null;
-    if (lifetime.ipAnomaly && lifetime.userId) {
+    if (lifetime.ipAnomaly && lifetime.userId && !opts?.skipIpAnomaly) {
       try {
         const anomaly = await handleIpAnomaly({
           userId: lifetime.userId,
@@ -83,8 +74,19 @@ async function getActiveAuthSession(headers: Headers) {
   return session;
 }
 
-async function getActiveAuthSessionParts(headers: Headers) {
-  const session = await getActiveAuthSession(headers);
+function hashMfaCode(code: string): string {
+  return createHash("sha256").update(code).digest("hex");
+}
+
+function generateOtpCode(): string {
+  return String(randomInt(0, 1_000_000)).padStart(6, "0");
+}
+
+async function getActiveAuthSessionParts(
+  headers: Headers,
+  opts?: { skipIpAnomaly?: boolean },
+) {
+  const session = await getActiveAuthSession(headers, opts);
   return {
     session,
     sessionRecord: session?.session ?? null,
@@ -433,6 +435,7 @@ export function registerAuthCustomRoutes(app: Hono) {
     try {
       const { sessionRecord, sessionUser } = await getActiveAuthSessionParts(
         c.req.raw.headers,
+        { skipIpAnomaly: true },
       );
       if (!sessionRecord || !sessionUser) {
         return c.json({ error: "Authentication required" }, 401);
@@ -454,6 +457,7 @@ export function registerAuthCustomRoutes(app: Hono) {
     try {
       const { sessionRecord, sessionUser } = await getActiveAuthSessionParts(
         c.req.raw.headers,
+        { skipIpAnomaly: true },
       );
       if (!sessionRecord || !sessionUser) {
         return c.json({ error: "Authentication required" }, 401);

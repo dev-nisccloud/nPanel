@@ -5,6 +5,7 @@ import { userActivityLog } from "@npanel/db/schema/auth-extras";
 
 import {
   isSessionLifetimeExpired,
+  ipsIndicateNetworkChange,
   nextIdleSessionExpiry,
   normalizeIpAddress,
   normalizeUserAgent,
@@ -196,7 +197,7 @@ export async function validateAndRefreshIdleSessionById(
   // Impersonation must not trigger customer IP step-up / security emails.
   const ipAnomaly = isImpersonation
     ? false
-    : Boolean(boundIp && requestIp && boundIp !== requestIp);
+    : ipsIndicateNetworkChange(boundIp, requestIp);
 
   let effectiveBoundIp = boundIp;
   if (!boundIp && requestIp) {
@@ -233,11 +234,15 @@ export async function validateAndRefreshIdleSessionById(
       ipAnomaly,
       userId: row.userId,
     };
-    await writeCachedSessionValidation(sessionId, valid, {
-      boundUserAgent: effectiveBoundUa,
-      boundIpAddress: effectiveBoundIp,
-      userId: row.userId,
-    });
+    // Do not cache anomalous sessions: a concurrent step-up updates the bound
+    // IP and must be visible on the next request instead of a stale cache hit.
+    if (!ipAnomaly) {
+      await writeCachedSessionValidation(sessionId, valid, {
+        boundUserAgent: effectiveBoundUa,
+        boundIpAddress: effectiveBoundIp,
+        userId: row.userId,
+      });
+    }
     return valid;
   }
 
@@ -265,11 +270,13 @@ export async function validateAndRefreshIdleSessionById(
     rotatedToken,
     userId: row.userId,
   };
-  await writeCachedSessionValidation(sessionId, extended, {
-    boundUserAgent: effectiveBoundUa,
-    boundIpAddress: effectiveBoundIp,
-    userId: row.userId,
-  });
+  if (!ipAnomaly) {
+    await writeCachedSessionValidation(sessionId, extended, {
+      boundUserAgent: effectiveBoundUa,
+      boundIpAddress: effectiveBoundIp,
+      userId: row.userId,
+    });
+  }
   return extended;
 }
 
