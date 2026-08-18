@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { Clock, History, Paperclip, Search, Send, Trash2, X } from "lucide-react";
+import { ChevronRight, Clock, FileText, Globe, History, ImageIcon, Paperclip, Search, Send, Server, Trash2, X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -50,6 +50,42 @@ type PendingFile = {
   name: string;
   mimeType: string;
 };
+
+const ZEEPO_AI_CAPABILITY_SHORTCUTS = [
+  {
+    id: "image",
+    label: "Create an image",
+    starter: "Create an image of ",
+    icon: ImageIcon,
+  },
+  {
+    id: "document",
+    label: "Write a document",
+    starter: "Write a document about ",
+    icon: FileText,
+  },
+  {
+    id: "domain",
+    label: "Check a domain",
+    starter: "Check domain availability for ",
+    icon: Globe,
+  },
+  {
+    id: "search",
+    label: "Search the web",
+    starter: "Search the web for ",
+    icon: Search,
+    enableSearch: true,
+    compactHide: true,
+  },
+  {
+    id: "hosting",
+    label: "Find hosting",
+    starter: "Help me find a hosting plan for ",
+    icon: Server,
+    compactHide: true,
+  },
+] as const;
 
 function getTimeGreeting(date = new Date()): "Hello" | "Good morning" | "Good afternoon" | "Good evening" {
   const hour = date.getHours();
@@ -199,6 +235,20 @@ export function ZeepoAiAssistantInterface() {
     setSelectedPromptCategory(category);
     setSelectedPromptTitle(title);
     setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
+  const selectCapabilityShortcut = (starter: string, enableSearch?: boolean) => {
+    setInputValue(starter);
+    setSelectedPromptCategory(null);
+    setSelectedPromptTitle(null);
+    if (enableSearch) setSearchEnabled(true);
+    requestAnimationFrame(() => {
+      const el = inputRef.current;
+      if (!el) return;
+      el.focus();
+      const caret = starter.length;
+      el.setSelectionRange(caret, caret);
+    });
   };
 
   const [isHandingOff, setIsHandingOff] = useState(false);
@@ -384,7 +434,7 @@ export function ZeepoAiAssistantInterface() {
 
       <div
         className={cn(
-          "mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col justify-center px-1 pt-2 sm:px-2",
+          "mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col justify-center overflow-y-auto overscroll-contain px-1 pt-2 sm:px-2",
           isHandingOff && "pointer-events-none opacity-60",
         )}
       >
@@ -397,7 +447,7 @@ export function ZeepoAiAssistantInterface() {
               {greeting}
             </h1>
             <p className="zeepo-ai-subhead mx-auto max-w-sm text-sm leading-snug text-muted-foreground">
-              Ask anything, or pick a suggestion to start
+              Ask anything to get started
             </p>
           </div>
           <ZeepoAiFreeCreditsNudge compact className="zeepo-ai-nudge mt-2 w-full max-w-xl text-left sm:mt-3" />
@@ -564,6 +614,54 @@ export function ZeepoAiAssistantInterface() {
 
         <div
           className={cn(
+            "zeepo-ai-shortcuts mt-3 w-full min-w-0 shrink-0 sm:mt-4",
+            isHandingOff && "pointer-events-none opacity-60",
+          )}
+        >
+          <div className="flex flex-col">
+            {ZEEPO_AI_CAPABILITY_SHORTCUTS.map((item, index) => {
+              const Icon = item.icon;
+              const isSelected = inputValue.startsWith(item.starter);
+              const compactHide = "compactHide" in item && item.compactHide;
+              return (
+                <div
+                  key={item.id}
+                  className={cn(compactHide && "zeepo-ai-shortcut-compact-hide")}
+                >
+                  {index > 0 ? (
+                    <div className="zeepo-ai-shortcut-divider mx-2 my-1.5 h-px bg-border/70" role="separator" />
+                  ) : null}
+                  <button
+                    type="button"
+                    disabled={isHandingOff}
+                    onClick={() =>
+                      selectCapabilityShortcut(
+                        item.starter,
+                        "enableSearch" in item ? item.enableSearch : undefined,
+                      )
+                    }
+                    className={cn(
+                      "zeepo-ai-shortcut-row flex w-full min-w-0 items-center gap-2 sm:gap-2.5 rounded-lg px-1.5 py-2 text-left text-[13px] sm:px-2 sm:py-2.5 sm:text-sm transition-colors",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      "disabled:pointer-events-none disabled:opacity-50",
+                      isSelected
+                        ? "bg-muted/70 text-foreground"
+                        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+                    )}
+                  >
+                    <Icon className="size-3.5 shrink-0 opacity-70 sm:size-4" aria-hidden />
+                    <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                    <ChevronRight className="size-4 shrink-0 opacity-40" aria-hidden />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Sample prompt tabs — temporarily hidden
+        <div
+          className={cn(
             "mt-3 w-full shrink-0 sm:mt-4",
             isHandingOff && "pointer-events-none opacity-60",
           )}
@@ -619,6 +717,7 @@ export function ZeepoAiAssistantInterface() {
             })}
           </div>
         </div>
+        */}
       </div>
 
       <ZeepoDeleteChatDialog
