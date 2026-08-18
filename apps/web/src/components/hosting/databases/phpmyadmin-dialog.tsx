@@ -80,6 +80,7 @@ export function PhpMyAdminDialog({
               title={databaseName ? `phpMyAdmin — ${databaseName}` : "phpMyAdmin"}
               src={src}
               className="h-full w-full border-0 bg-background"
+              sandbox="allow-scripts allow-forms allow-downloads allow-modals allow-popups allow-popups-to-escape-sandbox allow-same-origin"
               onLoad={() => setLoaded(true)}
             />
           ) : null}
