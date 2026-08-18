@@ -53,7 +53,7 @@ export function ViewRoleSheet({ open, onOpenChange, roleId, onEdit }: ViewRoleSh
 								<Shield className="h-5 w-5 text-primary" />
 							</div>
 							<div className="space-y-1 text-left">
-								<SheetTitle className="flex items-center gap-2 text-base">
+								<SheetTitle className="flex items-center gap-2">
 									{isLoading ? "Loading role..." : safeRole?.name ?? "Role details"}
 									{safeRole?.isSystem && (
 										<Badge variant="outline" className="text-[10px]">

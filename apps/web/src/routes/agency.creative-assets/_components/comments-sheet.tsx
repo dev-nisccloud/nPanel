@@ -224,8 +224,8 @@ export function CommentsSheet({ open, onOpenChange, version }: CommentsSheetProp
 						<SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0">
 							<div className="flex items-start justify-between gap-4">
 								<div className="min-w-0 flex-1">
-									<SheetTitle className="text-base font-semibold truncate">Comments</SheetTitle>
-									<SheetDescription className="text-xs text-muted-foreground truncate mt-1">
+									<SheetTitle className="truncate">Comments</SheetTitle>
+									<SheetDescription className="truncate mt-1">
 										{version.fileName}
 									</SheetDescription>
 								</div>

@@ -40,8 +40,8 @@ export function WpManageSheet({
               <Icon className="h-5 w-5 text-primary" />
             </div>
             <div className="min-w-0">
-              <SheetTitle className="text-xl font-bold">{title}</SheetTitle>
-              <SheetDescription className="text-sm">{description}</SheetDescription>
+              <SheetTitle>{title}</SheetTitle>
+              <SheetDescription>{description}</SheetDescription>
             </div>
           </div>
           <SheetClose asChild>

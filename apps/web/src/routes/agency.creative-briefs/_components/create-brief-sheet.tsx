@@ -314,8 +314,8 @@ export function CreateBriefSheet({ open, onOpenChange, onCreateBrief }: CreateBr
               <FileText className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <SheetTitle className="text-2xl font-bold">Create Creative Brief</SheetTitle>
-              <SheetDescription className="text-base">
+              <SheetTitle>Create Creative Brief</SheetTitle>
+              <SheetDescription>
                 Create a new creative brief for your design project
               </SheetDescription>
             </div>

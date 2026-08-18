@@ -221,10 +221,10 @@ export function PluginMarketplaceSheet({
                 <Package className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <SheetTitle className="text-2xl font-bold">
+                <SheetTitle>
                   {viewMode === "details" ? selectedPlugin?.title || "Plugin Details" : "Plugin Marketplace"}
                 </SheetTitle>
-                <SheetDescription className="text-base">
+                <SheetDescription>
                   {viewMode === "details"
                     ? "View plugin details and install"
                     : "Browse and install plugins from the WordPress repository"}

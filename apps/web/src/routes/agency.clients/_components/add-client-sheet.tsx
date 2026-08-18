@@ -116,8 +116,8 @@ export function AddClientSheet({ open, onOpenChange, onAddClient }: AddClientShe
               <Users className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <SheetTitle className="text-2xl font-bold">Add Client</SheetTitle>
-              <SheetDescription className="text-base">
+              <SheetTitle>Add Client</SheetTitle>
+              <SheetDescription>
                 Create a new client account
               </SheetDescription>
             </div>

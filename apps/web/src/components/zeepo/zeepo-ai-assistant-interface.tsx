@@ -23,8 +23,8 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { GradientOrb } from "@/components/ui/gradient-orb";
 import { UploadProgressRing } from "@/components/upload-progress-ring";
+import { ZeepoMascot } from "@/components/zeepo/zeepo-mascot";
 import { useAppFileUpload } from "@/hooks/use-app-file-upload";
 import { startViewTransitionNavigate } from "@/routes/_agency.zeepo-ai-agent/nav-state";
 import {
@@ -389,8 +389,8 @@ export function ZeepoAiAssistantInterface() {
         )}
       >
         <div className="zeepo-ai-hero flex shrink-0 flex-col items-center text-center">
-          <div className="zeepo-ai-orb relative" aria-hidden>
-            <GradientOrb />
+          <div className="zeepo-ai-orb relative flex items-center justify-center">
+            <ZeepoMascot className="h-full w-full sm:h-full sm:w-full" />
           </div>
           <div className="zeepo-ai-hero-copy mt-2 space-y-1 sm:mt-3">
             <h1 className="zeepo-ai-greeting font-bold leading-[1.15] tracking-tight text-foreground">

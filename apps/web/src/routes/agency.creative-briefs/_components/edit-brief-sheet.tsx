@@ -424,8 +424,8 @@ export function EditBriefSheet({ open, onOpenChange, brief, onEditBrief }: EditB
               <FileText className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <SheetTitle className="text-2xl font-bold">Edit Creative Brief</SheetTitle>
-              <SheetDescription className="text-base">
+              <SheetTitle>Edit Creative Brief</SheetTitle>
+              <SheetDescription>
                 Update the creative brief details
               </SheetDescription>
             </div>

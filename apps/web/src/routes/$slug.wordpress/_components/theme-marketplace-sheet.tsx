@@ -250,10 +250,10 @@ export function ThemeMarketplaceSheet({
                 <Palette className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <SheetTitle className="text-2xl font-bold">
+                <SheetTitle>
                   {viewMode === "details" ? selectedTheme?.title || "Theme Details" : "Theme Marketplace"}
                 </SheetTitle>
-                <SheetDescription className="text-base">
+                <SheetDescription>
                   {viewMode === "details"
                     ? "View theme details and install"
                     : "Browse and install themes from the WordPress repository"}

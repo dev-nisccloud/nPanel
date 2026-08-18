@@ -185,8 +185,8 @@ export function AddDnsRecordSheet({ open, onOpenChange, siteId, domainName, onSu
               <Globe className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <SheetTitle className="text-2xl font-bold">Add DNS Record</SheetTitle>
-              <SheetDescription className="text-base">
+              <SheetTitle>Add DNS Record</SheetTitle>
+              <SheetDescription>
                 Create a new DNS record for your domain
               </SheetDescription>
             </div>

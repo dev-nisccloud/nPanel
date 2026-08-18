@@ -151,8 +151,8 @@ export function AddAssetSheet({ open, onOpenChange, onAddAsset }: AddAssetSheetP
               <FileText className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <SheetTitle className="text-2xl font-bold">Create Creative Asset</SheetTitle>
-              <SheetDescription className="text-base">
+              <SheetTitle>Create Creative Asset</SheetTitle>
+              <SheetDescription>
                 Create a new creative asset for an organization
               </SheetDescription>
             </div>

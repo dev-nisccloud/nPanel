@@ -66,8 +66,8 @@ export function TldCellViewer({ tld, children }: TldCellViewerProps) {
               <Globe className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <SheetTitle className="text-2xl font-bold">{tld.name}</SheetTitle>
-              <SheetDescription className="text-base">
+              <SheetTitle>{tld.name}</SheetTitle>
+              <SheetDescription>
                 Top Level Domain Extension
               </SheetDescription>
             </div>

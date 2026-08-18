@@ -109,8 +109,8 @@ export function UpdateUserSheet({ open, onOpenChange, user, onUpdateUser }: Upda
               <User className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <SheetTitle className="text-2xl font-bold">Update User</SheetTitle>
-              <SheetDescription className="text-base">
+              <SheetTitle>Update User</SheetTitle>
+              <SheetDescription>
                 Edit user information
               </SheetDescription>
             </div>

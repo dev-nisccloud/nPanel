@@ -79,7 +79,7 @@ export function UserViewSheet({
                                 <User className="h-6 w-6 text-primary" />
                             </div>
                             <div>
-                                <SheetTitle className="text-xl font-bold flex items-center gap-2">
+                                <SheetTitle className="flex items-center gap-2">
                                     {isLoading ? "Loading User..." : user?.name || "User Details"}
                                     {user?.emailVerified && (
                                         <BadgeCheck className="h-5 w-5 text-blue-500 fill-blue-500" />

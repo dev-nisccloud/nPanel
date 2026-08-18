@@ -444,10 +444,10 @@ export function AddEditHostingPlanSheet({
               <Plus className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <SheetTitle className="text-2xl font-bold">
+              <SheetTitle>
                 {isEditing ? "Edit Service Plan" : "Add Service Plan"}
               </SheetTitle>
-              <SheetDescription className="text-base">
+              <SheetDescription>
                 {isEditing 
                   ? "Update the service plan details" 
                   : "Create a new Nisc service plan for your customers"
