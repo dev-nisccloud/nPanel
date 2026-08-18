@@ -49,7 +49,7 @@ export function NiscBackupMinimalRow({
     <div
       className={cn(
         "flex items-center justify-between gap-3",
-        compact ? "px-3 py-2" : "px-4 py-3",
+        compact ? "px-3 py-1.5" : "px-4 py-3",
         onClick && "cursor-pointer hover:bg-muted/40",
       )}
       onClick={onClick}
@@ -72,7 +72,9 @@ export function NiscBackupMinimalRow({
         {subtitle ? (
           <p className="truncate text-[11px] text-muted-foreground mt-0.5">{subtitle}</p>
         ) : null}
-        {meta ? <p className="text-[11px] text-muted-foreground mt-0.5">{meta}</p> : null}
+        {meta ? (
+          <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{meta}</p>
+        ) : null}
       </div>
       {actions ? <div className="flex shrink-0 items-center gap-1.5">{actions}</div> : null}
     </div>

@@ -7,10 +7,6 @@ import {
   LayoutDashboard,
   Code,
   FileText,
-  Shield,
-  Settings2,
-  RefreshCw,
-  Database,
 } from "lucide-react";
 import { z } from "zod";
 
@@ -19,10 +15,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { WpInstallationStatusBadge } from "@/components/wordpress/wp-installation-status-badge";
-import { WordPressSecurityTab } from "@/components/wordpress/tabs/security-tab";
-import { WordPressSiteSettingsTab } from "@/components/wordpress/tabs/site-settings-tab";
-import { WordPressUpdatesTab } from "@/components/wordpress/tabs/updates-tab";
-import { WordPressBackupsTab } from "@/components/wordpress/tabs/backups-tab";
 import { wpDetailLayout, DETAIL_TABS_LIST_CLASS, DETAIL_TABS_SCROLL_CLASS, DETAIL_TAB_CONTENT_CLASS } from "@/components/wordpress/wp-detail-layout";
 import { DetailCardTabsTrigger } from "@/components/ui/detail-card-tabs";
 import { wordpressInstallationSchema } from "@/routes/$slug.wordpress/_components/schema";
@@ -42,10 +34,6 @@ const TABS: TabDef[] = [
   { value: "overview", label: "Overview", sub: "Summary", icon: LayoutDashboard },
   { value: "plugins", label: "Plugins", sub: "Extensions", icon: Code },
   { value: "themes", label: "Themes", sub: "Design", icon: FileText },
-  { value: "security", label: "Security", sub: "Protection", icon: Shield },
-  { value: "site-settings", label: "Site settings", sub: "Speed & debug", icon: Settings2 },
-  { value: "updates", label: "Updates", sub: "Smart & auto", icon: RefreshCw },
-  { value: "backups", label: "Backups", sub: "Restore", icon: Database },
 ];
 
 export interface WordPressDetailPageProps {
@@ -199,18 +187,6 @@ export function WordPressDetailPage({
             </TabsContent>
             <TabsContent value="themes" className={DETAIL_TAB_CONTENT_CLASS}>
               <WordPressThemes installationId={String(wp.id)} />
-            </TabsContent>
-            <TabsContent value="security" className={DETAIL_TAB_CONTENT_CLASS}>
-              <WordPressSecurityTab installationId={String(wp.id)} />
-            </TabsContent>
-            <TabsContent value="site-settings" className={DETAIL_TAB_CONTENT_CLASS}>
-              <WordPressSiteSettingsTab installationId={String(wp.id)} />
-            </TabsContent>
-            <TabsContent value="updates" className={DETAIL_TAB_CONTENT_CLASS}>
-              <WordPressUpdatesTab installationId={String(wp.id)} wpData={wp} />
-            </TabsContent>
-            <TabsContent value="backups" className={DETAIL_TAB_CONTENT_CLASS}>
-              <WordPressBackupsTab installationId={String(wp.id)} />
             </TabsContent>
           </Tabs>
         </div>

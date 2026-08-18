@@ -1,3 +1,4 @@
+import { parseNiscBackupBytes, sortNewestFirst } from "../formatters";
 import type { NiscBackupDownloadRow } from "../types";
 
 function mapDownloadRow(raw: Record<string, unknown>): NiscBackupDownloadRow {
@@ -6,7 +7,7 @@ function mapDownloadRow(raw: Record<string, unknown>): NiscBackupDownloadRow {
     path: raw.path ? String(raw.path) : undefined,
     account: raw.account ? String(raw.account) : raw.account_name ? String(raw.account_name) : undefined,
     account_id: raw.account_id ? String(raw.account_id) : undefined,
-    size: typeof raw.size === "number" ? raw.size : undefined,
+    size: parseNiscBackupBytes(raw.size),
     created: raw.created as string | number | undefined,
     backup_type: typeof raw.backup_type === "number" ? raw.backup_type : undefined,
   };
@@ -17,9 +18,12 @@ function normalizeDownloads(data: unknown): NiscBackupDownloadRow[] {
   const record = data as Record<string, unknown>;
   const list = record.downloads ?? record.items;
   if (!Array.isArray(list)) return [];
-  return list
-    .filter((item) => item && typeof item === "object")
-    .map((item) => mapDownloadRow(item as Record<string, unknown>));
+  return sortNewestFirst(
+    list
+      .filter((item) => item && typeof item === "object")
+      .map((item) => mapDownloadRow(item as Record<string, unknown>)),
+    (item) => item.created,
+  );
 }
 
 export function buildNiscBackupDownloadFileUrl(downloadId: string): string {

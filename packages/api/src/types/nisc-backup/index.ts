@@ -13,18 +13,25 @@ export interface NiscBackupListResponse<T> {
   total: number;
 }
 
-// Section 8: Backup Type Bitmask
-export enum BackupType {
-  HomeDirectory = 1,
-  Databases = 2,
-  Emails = 4,
-  SSLCertificates = 8,
+/** JetBackup 5 Backup Contains flags (binary). Full account = 511. */
+export enum BackupContains {
+  PanelConfig = 1,
+  Homedir = 2,
+  Databases = 4,
+  Emails = 8,
   CronJobs = 16,
-  DNSZones = 32,
-  FTPAccounts = 64,
-  FullAccount = 128,
-  AllExceptFull = 127,
-  Everything = 255,
+  DnsZones = 32,
+  SslCertificates = 64,
+  DatabaseUsers = 128,
+  FtpAccounts = 256,
+  FullAccount = 511,
+}
+
+/** JetBackup 5 backup structure. */
+export enum BackupStructure {
+  Incremental = 1,
+  Archived = 2,
+  Compressed = 4,
 }
 
 // 9.2 Dashboard
@@ -122,17 +129,27 @@ export interface Schedule {
 // 9.9 Backups (Snapshots)
 export interface BackupSnapshot {
   _id: string;
+  parent_id?: string;
   username: string;
   date: number; // Unix timestamp
+  created?: string;
+  backup_type?: number;
+  backup_contains?: number;
+  backup_structure?: number;
   type: number;
   size: number;
   destination_id: string;
+  destination_name?: string;
   locked: number;
 }
 
 export interface BackupItem {
   _id: string;
+  parent_id?: string;
   name: string;
+  path?: string;
+  backup_contains?: number;
+  backup_structure?: number;
   type: number;
   size: number;
 }
@@ -216,8 +233,8 @@ export interface QueuePriority {
 // 9.17 Restore Conditions
 export interface RestoreCondition {
   _id: string;
-  name: string;
-  rules?: Record<string, unknown>[];
+  condition: string;
+  disabled?: number | boolean;
 }
 
 // 9.18 File Permissions

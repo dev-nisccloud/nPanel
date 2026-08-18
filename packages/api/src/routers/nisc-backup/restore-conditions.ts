@@ -1,13 +1,15 @@
 import { protectedProcedure, router } from "../../trpc";
-import { NiscBackupListResponse, RestoreCondition } from "../../types/nisc-backup";
+import { RestoreCondition } from "../../types/nisc-backup";
 import { z } from "zod";
-import { idSchema, niscBackupCall, listSchema } from "./_helpers";
+import { extractList, idSchema, niscBackupCall, listSchema } from "./_helpers";
 
 export const niscBackupRestoreConditionsRouter = router({
   list: protectedProcedure
     .input(listSchema)
     .query(async ({ input }) => {
-      return niscBackupCall<NiscBackupListResponse<RestoreCondition>>("listRestoreConditions", input);
+      const data = await niscBackupCall("listRestoreConditions", input);
+      const conditions = extractList(data, ["conditions", "items"]) as RestoreCondition[];
+      return { conditions, total: conditions.length };
     }),
 
   get: protectedProcedure
@@ -20,8 +22,8 @@ export const niscBackupRestoreConditionsRouter = router({
     .input(z.object({
       action: z.enum(["create", "modify"]),
       _id: z.string().optional(),
-      name: z.string().optional(),
-      rules: z.array(z.record(z.string(), z.unknown())).optional(),
+      condition: z.string().optional(),
+      disabled: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
       return niscBackupCall("manageRestoreCondition", input);

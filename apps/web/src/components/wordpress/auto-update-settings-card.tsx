@@ -37,12 +37,17 @@ const defaultSettings = {
 export function AutoUpdateSettingsCard({
   installationId,
   shell = "card",
+  enabled = true,
 }: {
   installationId: number;
   shell?: "card" | "none";
+  enabled?: boolean;
 }) {
   const utils = trpc.useUtils();
-  const { data, isLoading } = trpc.plesk.wpUpdatesSettings.get.useQuery({ installationId });
+  const { data, isLoading } = trpc.plesk.wpUpdatesSettings.get.useQuery(
+    { installationId },
+    { enabled },
+  );
 
   const [settings, setSettings] = React.useState(defaultSettings);
 

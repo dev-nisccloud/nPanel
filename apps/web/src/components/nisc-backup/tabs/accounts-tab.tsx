@@ -13,7 +13,7 @@ import type { NiscBackupAccountRow } from "../types";
 function accountBackupCount(account: NiscBackupAccountRow): number | null {
   const stats = account.backup_stats;
   if (!stats) return null;
-  const total = stats["511"] ?? stats["127"] ?? Object.values(stats).find((v) => v > 0);
+  const total = stats["511"] ?? Object.values(stats).find((v) => v > 0);
   return typeof total === "number" ? total : null;
 }
 

@@ -3,17 +3,43 @@
 import { captureEvent } from "@/lib/posthog";
 
 import { Download, RefreshCw } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { CleanList, CleanListRow } from "@/components/ui/clean-list";
 import { trpc } from "@/utils/trpc";
 import { niscBackupQueryOptions } from "../query-options";
 import { formatBytes, formatNiscBackupDate } from "../formatters";
-import { NiscBackupErrorState, NiscBackupTableSkeleton } from "../primitives";
-import { NiscBackupMinimalList, NiscBackupMinimalRow } from "../minimal-list";
+import { NiscBackupErrorState } from "../primitives";
 import {
   buildNiscBackupDownloadFileUrl,
   normalizeDownloads,
 } from "../hooks/use-nisc-backup-downloads";
-import { niscBackupStatusBadgeClass } from "../status-badges";
+import { niscBackupSuccessBadgeClass } from "../status-badges";
+
+function DownloadsSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-end">
+        <Skeleton className="h-9 w-24" />
+      </div>
+      <div className="divide-y overflow-hidden rounded-xl border bg-card">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div key={index} className="flex items-center justify-between gap-3 px-4 py-3.5">
+            <div className="flex min-w-0 flex-1 items-start gap-3">
+              <Skeleton className="mt-0.5 h-4 w-4" />
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <Skeleton className="h-4 w-52" />
+                <Skeleton className="h-3 w-36 max-w-full" />
+              </div>
+            </div>
+            <Skeleton className="h-7 w-24" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function NiscBackupDownloadsTab({ username }: { username?: string }) {
   const { data, isLoading, isError, error, refetch, isRefetching } =
@@ -29,7 +55,7 @@ export function NiscBackupDownloadsTab({ username }: { username?: string }) {
     username ? item.account === username : true,
   );
 
-  if (isLoading) return <NiscBackupTableSkeleton rows={4} />;
+  if (isLoading) return <DownloadsSkeleton />;
   if (isError) {
     return (
       <NiscBackupErrorState
@@ -47,33 +73,42 @@ export function NiscBackupDownloadsTab({ username }: { username?: string }) {
           Completed archives ready to save to your device.
         </p>
         <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isRefetching}>
-          <RefreshCw className={`mr-2 h-4 w-4 ${isRefetching ? "animate-spin" : ""}`} />
-          Refresh
+          <RefreshCw className={`h-4 w-4 ${isRefetching ? "animate-spin" : ""} @sm/main:mr-2`} />
+          <span className="hidden @sm/main:inline">Refresh</span>
         </Button>
       </div>
 
-      <NiscBackupMinimalList emptyMessage="No downloads yet.">
+      <CleanList emptyMessage="No downloads yet.">
         {downloads.map((item) => {
-          const subtitle = [
-            item.account,
-            formatNiscBackupDate(item.created),
-            formatBytes(item.size ?? 0),
-          ]
+          const fileName = item.path?.split(/[\\/]/).pop() || item.path || "Backup archive";
+          const description = [formatNiscBackupDate(item.created), formatBytes(item.size)]
             .filter(Boolean)
             .join(" · ");
 
           return (
-            <NiscBackupMinimalRow
+            <CleanListRow
               key={item._id}
-              title={item.path ?? "Backup archive"}
-              subtitle={subtitle || "-"}
-              badge="Ready"
-              badgeVariant="outline"
-              badgeClassName={niscBackupStatusBadgeClass("success")}
+              leading={<Download className="h-4 w-4 text-muted-foreground" />}
+              title={fileName}
+              description={<p className="truncate">{description}</p>}
+              trailing={
+                <Badge variant="outline" className={niscBackupSuccessBadgeClass(true)}>
+                  Ready
+                </Badge>
+              }
               actions={
-                <Button size="sm" variant="ghost" asChild>
-                  <a href={buildNiscBackupDownloadFileUrl(item._id)} onClick={() => captureEvent("backup_downloaded", { backup_id: item._id })} download={item.path}>
-                    <Download className="mr-1 h-3 w-3" />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 px-2.5 text-xs"
+                  asChild
+                >
+                  <a
+                    href={buildNiscBackupDownloadFileUrl(item._id)}
+                    onClick={() => captureEvent("backup_downloaded", { backup_id: item._id })}
+                    download={item.path}
+                  >
+                    <Download className="mr-1 h-3.5 w-3.5" />
                     Save file
                   </a>
                 </Button>
@@ -81,7 +116,7 @@ export function NiscBackupDownloadsTab({ username }: { username?: string }) {
             />
           );
         })}
-      </NiscBackupMinimalList>
+      </CleanList>
     </div>
   );
 }

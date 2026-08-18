@@ -17,18 +17,23 @@ type MeasureStatus = { id: string; status?: boolean; available?: boolean };
 export function SecurityMeasuresCard({
   installationId,
   shell = "card",
+  enabled = true,
 }: {
   installationId: number;
   shell?: "card" | "none";
+  enabled?: boolean;
 }) {
   const [taskUrl, setTaskUrl] = React.useState<string | null>(null);
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const utils = trpc.useUtils();
 
-  const { data: catalog } = trpc.plesk.wpFeatures.getSecurityMeasures.useQuery();
-  const { data: statusData, refetch: refetchStatus } = trpc.plesk.wpFeatures.getSecurityStatus.useQuery({
-    installationsIds: [installationId],
+  const { data: catalog } = trpc.plesk.wpFeatures.getSecurityMeasures.useQuery(undefined, {
+    enabled,
   });
+  const { data: statusData, refetch: refetchStatus } = trpc.plesk.wpFeatures.getSecurityStatus.useQuery(
+    { installationsIds: [installationId] },
+    { enabled },
+  );
 
   const rawMeasures = Array.isArray(catalog?.data)
     ? catalog.data
@@ -130,29 +135,28 @@ export function SecurityMeasuresCard({
           </Button>
         </div>
 
-        <ul className="space-y-2 max-h-80 overflow-y-auto rounded-lg border border-border/60 divide-y divide-border/60">
+        <div className="space-y-3">
           {measures.map((m) => {
             const st = applied.find((a) => a.id === m.id);
             return (
-              <li key={m.id} className="flex items-start gap-3 px-3 py-2.5 text-sm">
+              <div key={m.id} className="flex items-start gap-3 rounded-lg border px-3 py-3 text-sm">
                 <Checkbox
                   checked={selected.has(m.id)}
                   onCheckedChange={() => toggleSelect(m.id)}
                   disabled={st?.status === true}
+                  className="mt-0.5"
                 />
                 <div className="min-w-0 flex-1">
                   <p className="font-medium leading-snug">{m.title}</p>
                   {m.description ? (
-                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                      {m.description}
-                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{m.description}</p>
                   ) : null}
                 </div>
                 <WpStatusBadge label={st?.status ? "Applied" : "Pending"} />
-              </li>
+              </div>
             );
           })}
-        </ul>
+        </div>
       </div>
   );
 

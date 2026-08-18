@@ -20,6 +20,8 @@ interface NiscBackupAccountSettingsShellProps {
   onTabChange: (tab: NiscBackupAccountTab) => void;
   header: ReactNode;
   backAction?: ReactNode;
+  /** Hosting detail already has a page header; skip the extra title and identity card. */
+  embedded?: boolean;
   children: ReactNode;
 }
 
@@ -30,43 +32,45 @@ export function NiscBackupAccountSettingsShell({
   onTabChange,
   header,
   backAction,
+  embedded = false,
   children,
 }: NiscBackupAccountSettingsShellProps) {
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-5">
+    <div className={cn("w-full space-y-5", !embedded && "mx-auto max-w-6xl")}>
       {backAction}
 
-      <div className="space-y-1">
-        <h1 className="text-base font-semibold tracking-tight">{title}</h1>
-        <p className="text-xs text-muted-foreground">{description}</p>
-      </div>
+      {!embedded ? (
+        <>
+          <div className="space-y-1">
+            <h1 className="text-base font-semibold tracking-tight">{title}</h1>
+            <p className="text-xs text-muted-foreground">{description}</p>
+          </div>
+          {header}
+        </>
+      ) : null}
 
-      {header}
+      <nav
+        aria-label="Backup account"
+        className="flex w-fit max-w-full gap-1 overflow-x-auto rounded-lg bg-muted p-1"
+      >
+        {NISC_BACKUP_ACCOUNT_TABS.map((tab) => (
+          <button
+            key={tab.value}
+            type="button"
+            onClick={() => onTabChange(tab.value)}
+            className={cn(
+              "rounded-md px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors",
+              activeTab === tab.value
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </nav>
 
-      <div className="flex flex-col gap-5 md:flex-row md:gap-8">
-        <nav
-          aria-label="Backup account"
-          className="flex shrink-0 gap-1 overflow-x-auto rounded-lg bg-muted p-1 md:w-44 md:flex-col md:overflow-visible"
-        >
-          {NISC_BACKUP_ACCOUNT_TABS.map((tab) => (
-            <button
-              key={tab.value}
-              type="button"
-              onClick={() => onTabChange(tab.value)}
-              className={cn(
-                "rounded-md px-3 py-1.5 text-left text-sm font-medium whitespace-nowrap transition-colors",
-                activeTab === tab.value
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-
-        <div className="min-w-0 flex-1">{children}</div>
-      </div>
+      <div className="min-w-0">{children}</div>
     </div>
   );
 }

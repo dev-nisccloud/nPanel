@@ -13,12 +13,13 @@ export interface NiscBackupAccountDetailPageProps {
   accountId: string;
   backPath: string;
   readOnly?: boolean;
+  restoreRole?: "admin" | "user";
 }
 
 function AccountDetailSkeleton() {
   return (
     <div className="@container/main flex flex-col px-4 py-4 md:px-6 md:py-6 lg:px-8">
-      <div className="mx-auto w-full max-w-4xl space-y-5">
+      <div className="mx-auto w-full max-w-6xl space-y-5">
         <Skeleton className="h-8 w-32" />
         <Skeleton className="h-4 w-64" />
         <Skeleton className="h-20 w-full rounded-lg" />
@@ -35,6 +36,7 @@ export function NiscBackupAccountDetailPage({
   accountId,
   backPath,
   readOnly = false,
+  restoreRole = "admin",
 }: NiscBackupAccountDetailPageProps) {
   const { data, isLoading, isError, error, refetch } = trpc.niscBackup.accounts.get.useQuery(
     { _id: accountId },
@@ -45,7 +47,7 @@ export function NiscBackupAccountDetailPage({
   if (isError || !data) {
     return (
       <div className="@container/main flex flex-col px-4 py-4 md:px-6 md:py-6 lg:px-8">
-        <div className="mx-auto w-full max-w-4xl space-y-5">
+        <div className="mx-auto w-full max-w-6xl space-y-5">
           <Link to={backPath}>
             <Button variant="ghost" size="sm" className="-ml-2 h-8 px-2 text-muted-foreground hover:text-foreground">
               <ArrowLeft className="mr-2 h-4 w-4" />
@@ -70,6 +72,7 @@ export function NiscBackupAccountDetailPage({
         accountId={accountId}
         account={account}
         readOnly={readOnly}
+        restoreRole={restoreRole}
         backAction={
           <Link to={backPath}>
             <Button variant="ghost" size="sm" className="-ml-2 h-8 px-2 text-muted-foreground hover:text-foreground">

@@ -59,6 +59,15 @@ function transformWordPressInstanceToDetail(
         amountOfPluginsWithUpdates: installation.features.updates.amountOfPluginsWithUpdates,
         amountOfThemesWithUpdates: installation.features.updates.amountOfThemesWithUpdates,
         availableVersion: installation.features.updates.availableVersion ?? undefined,
+        smart: installation.features.updates.smart ? {
+          available: installation.features.updates.smart.available,
+          applicable: installation.features.updates.smart.applicable,
+          status: installation.features.updates.smart.status,
+        } : undefined,
+        php: installation.features.updates.php ? {
+          available: installation.features.updates.php.available,
+          applicable: installation.features.updates.php.applicable,
+        } : undefined,
       } : undefined,
       restorePoint: installation.features.restorePoint ? {
         available: installation.features.restorePoint.available,
@@ -127,6 +136,10 @@ function transformWordPressInstanceToDetail(
       } : undefined,
       debug: installation.features.debug ? {
         status: installation.features.debug.status,
+      } : undefined,
+      virtualPatches: installation.features.virtualPatches ? {
+        status: installation.features.virtualPatches.status,
+        available: installation.features.virtualPatches.available,
       } : undefined,
       credentials: installation.features.credentials ? {
         available: installation.features.credentials.available,
