@@ -21,7 +21,22 @@ function phpMyAdminUrl(siteId: number, databaseId: number): string {
     databaseId: String(databaseId),
     embed: "1",
   });
-  return apiUrl(`/api/hosting/phpmyadmin?${params.toString()}`);
+  const url = apiUrl(`/api/hosting/phpmyadmin?${params.toString()}`);
+  
+  // CRITICAL: Ensure URL is always relative, never absolute
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    console.error("[phpMyAdmin] CRITICAL: apiUrl returned absolute URL:", url);
+    // Force relative path
+    try {
+      const parsed = new URL(url);
+      return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    } catch {
+      return `/api/hosting/phpmyadmin?${params.toString()}`;
+    }
+  }
+  
+  console.log("[phpMyAdmin] iframe URL:", url, "origin:", window.location.origin);
+  return url;
 }
 
 export function PhpMyAdminPage({
@@ -31,7 +46,12 @@ export function PhpMyAdminPage({
   backTo,
 }: PhpMyAdminPageProps) {
   const [loaded, setLoaded] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
   const src = phpMyAdminUrl(siteId, databaseId);
+
+  React.useEffect(() => {
+    console.log("[phpMyAdmin] iframe src:", src);
+  }, [src]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -54,10 +74,15 @@ export function PhpMyAdminPage({
       </div>
 
       <div className="relative min-h-0 flex-1 bg-background">
-        {!loaded ? (
+        {!loaded && !error ? (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-background/80">
             <Spinner size={28} className="text-muted-foreground" />
             <p className="text-sm text-muted-foreground">Loading phpMyAdmin…</p>
+          </div>
+        ) : null}
+        {error ? (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-background p-4">
+            <p className="text-sm text-destructive">{error}</p>
           </div>
         ) : null}
         <iframe
@@ -65,7 +90,14 @@ export function PhpMyAdminPage({
           title={databaseName ? `phpMyAdmin — ${databaseName}` : "phpMyAdmin"}
           src={src}
           className="block h-full w-full border-0 bg-background"
-          onLoad={() => setLoaded(true)}
+          onLoad={() => {
+            setLoaded(true);
+            console.log("[phpMyAdmin] iframe loaded");
+          }}
+          onError={(e) => {
+            console.error("[phpMyAdmin] iframe error:", e);
+            setError("Failed to load phpMyAdmin");
+          }}
         />
       </div>
     </div>

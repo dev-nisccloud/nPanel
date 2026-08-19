@@ -395,8 +395,16 @@ export async function bootstrapPhpMyAdminEmbed(
       return c.text("Could not open phpMyAdmin. Please try again.", 502);
     }
 
+    const proxyPath = proxyUrlFor(finalUrl);
+    console.log("[phpMyAdmin bootstrap] redirect", {
+      finalUrl: finalUrl.href,
+      proxyPath,
+      cookies: setCookies.length,
+    });
+
     const headers = cookieResponseHeaders(setCookies);
-    headers.set("location", proxyUrlFor(finalUrl));
+    headers.set("location", proxyPath);
+    headers.set("cache-control", "no-store, no-cache, must-revalidate");
     return new Response(null, { status: 302, headers });
   } catch (error) {
     console.error("[phpMyAdmin proxy] bootstrap error:", error);
