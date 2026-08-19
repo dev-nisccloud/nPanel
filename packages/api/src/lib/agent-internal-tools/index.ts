@@ -5,9 +5,8 @@
  * wrappers that the agent can call. Adding a new internal tool:
  *   1. Create a new file in this directory with the implementation.
  *   2. Export it from here.
- *   3. Add its Zod schema to `agent-tools.ts`.
- *   4. Add a handler branch in `chat.ts`.
- *   5. Document when to call it in `prompts.ts`.
+ *   3. Add its Anthropic schema + execute branch in `zeepo-ai/ops-tools.ts`.
+ *   4. Document when to call it in `zeepo-ai/prompts.ts`.
  */
 
 export {
@@ -74,3 +73,8 @@ export {
 	type WordPressSiteEntry,
 	type WordPressSiteKind,
 } from "./wordpress-sites";
+
+export { agentMarketingAds } from "./marketing-ads";
+export { agentMarketingEmail } from "./marketing-email";
+export { agentMarketingSeo } from "./marketing-seo";
+export { agentSubmitCreativeBrief } from "./marketing-creative-briefs";
