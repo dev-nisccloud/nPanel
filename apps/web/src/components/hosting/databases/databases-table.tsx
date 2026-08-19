@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { z } from "zod";
 import { toast } from "@/components/ui/sonner";
+import { Link, useLocation } from "react-router";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,7 +35,6 @@ import { useDatabasesBySiteId } from "./use-databases-by-site-id";
 import { ChangeDatabasePasswordSheet } from "./change-database-password-sheet";
 import { ChangeDatabasePermissionsSheet } from "./change-database-permissions-sheet";
 import { DatabaseConnectionInfoDialog } from "./database-connection-info-dialog";
-import { PhpMyAdminDialog } from "./phpmyadmin-dialog";
 import { CreateDatabaseSheet } from "./create-database-sheet";
 import { CreateDatabaseUserSheet } from "./create-database-user-sheet";
 import { captureEvent } from "@/lib/posthog";
@@ -106,9 +106,9 @@ export function DatabasesTable({
   const [connectionInfoOpen, setConnectionInfoOpen] = React.useState(false);
   const [createDatabaseOpen, setCreateDatabaseOpen] = React.useState(false);
   const [createUserOpen, setCreateUserOpen] = React.useState(false);
-  const [phpMyAdminOpen, setPhpMyAdminOpen] = React.useState(false);
   const [selectedDatabase, setSelectedDatabase] = React.useState<z.infer<typeof databaseSchema> | null>(null);
   const [selectedUserId, setSelectedUserId] = React.useState(0);
+  const { pathname } = useLocation();
 
   React.useEffect(() => {
     if (!openCreateSheet) return;
@@ -164,17 +164,14 @@ export function DatabasesTable({
     }
   };
 
-  const handleOpenPhpMyAdmin = (db: z.infer<typeof databaseSchema>) => {
-    if (!db.id) {
-      toast.error("Database id not available");
-      return;
-    }
-    if (!isMysqlFamily(db.type)) {
-      toast.error("phpMyAdmin is only available for MySQL and MariaDB");
-      return;
-    }
-    setSelectedDatabase(db);
-    setPhpMyAdminOpen(true);
+  const phpMyAdminHref = (db: z.infer<typeof databaseSchema>) => {
+    const hostingBase =
+      pathname.match(/^(.*\/hosting\/[^/]+)/)?.[1] ??
+      `/${pathname.split("/")[1] ?? ""}/hosting/${siteId}`;
+    const params = new URLSearchParams();
+    if (db.name) params.set("name", db.name);
+    const query = params.toString();
+    return `${hostingBase}/phpmyadmin/${db.id}${query ? `?${query}` : ""}`;
   };
 
   const handleConnectionInfo = (db: z.infer<typeof databaseSchema>) => {
@@ -255,17 +252,33 @@ export function DatabasesTable({
                     <Eye className="mr-1 h-3.5 w-3.5" />
                     View
                   </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-7 px-2.5 text-xs"
-                    disabled={!isMysqlFamily(db.type) || !db.id}
-                    title={!isMysqlFamily(db.type) ? "phpMyAdmin is only available for MySQL and MariaDB" : undefined}
-                    onClick={() => handleOpenPhpMyAdmin(db)}
-                  >
-                    phpMyAdmin
-                  </Button>
+                  {isMysqlFamily(db.type) && db.id ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 px-2.5 text-xs"
+                      asChild
+                    >
+                      <Link
+                        to={phpMyAdminHref(db)}
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        phpMyAdmin
+                      </Link>
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 px-2.5 text-xs"
+                      disabled
+                      title="phpMyAdmin is only available for MySQL and MariaDB"
+                    >
+                      phpMyAdmin
+                    </Button>
+                  )}
                   <Button
                     type="button"
                     variant="outline"
@@ -361,16 +374,6 @@ export function DatabasesTable({
           onSuccess={() => refetch()}
         />
       )}
-
-      {selectedDatabase?.id ? (
-        <PhpMyAdminDialog
-          open={phpMyAdminOpen}
-          onOpenChange={setPhpMyAdminOpen}
-          siteId={siteId}
-          databaseId={selectedDatabase.id}
-          databaseName={selectedDatabase.name}
-        />
-      ) : null}
 
       <CreateDatabaseSheet
         open={createDatabaseOpen}

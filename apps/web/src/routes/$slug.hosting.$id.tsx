@@ -1,7 +1,5 @@
-import { useParams } from "react-router";
+import { Outlet, useParams } from "react-router";
 import React, { Component, ErrorInfo, ReactNode } from "react";
-
-import { HostingDetailPage } from "./$slug.hosting/_components/hosting-detail-page";
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
   constructor(props: { children: ReactNode }) {
@@ -34,10 +32,8 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
   }
 }
 
-export default function HostingDetailRoute() {
+export default function HostingDetailLayout() {
   const { id } = useParams();
-
-  console.log("DEBUG: HostingDetailRoute rendering for ID:", id);
 
   if (!id) {
     return (
@@ -49,7 +45,7 @@ export default function HostingDetailRoute() {
 
   return (
     <ErrorBoundary>
-      <HostingDetailPage subscriptionId={id} />
+      <Outlet />
     </ErrorBoundary>
   );
 }

@@ -48,7 +48,8 @@ export function TeamSidebarLayout({
   const { pathname } = useLocation();
   const isZeepoAgent = pathname?.includes("/zeepo-ai-agent");
   const isZeepoAi = pathname?.includes("/zeepo-ai");
-  const isZeepoFullBleed = isZeepoAgent || isZeepoAi;
+  const isPhpMyAdmin = pathname?.includes("/phpmyadmin");
+  const isFullBleed = isZeepoAgent || isZeepoAi || isPhpMyAdmin;
 
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
@@ -63,7 +64,7 @@ export function TeamSidebarLayout({
         className={cn(
           "data-[content-layout=centered]:!mx-auto data-[content-layout=centered]:max-w-screen-2xl",
           "max-[113rem]:peer-data-[variant=inset]:!mr-2 min-[101rem]:peer-data-[variant=inset]:peer-data-[state=collapsed]:!mr-auto",
-          isZeepoFullBleed && "min-h-0 max-h-svh overflow-hidden",
+          isFullBleed && "min-h-0 max-h-svh overflow-hidden",
         )}
       >
         <header className="flex h-12 shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
@@ -85,7 +86,7 @@ export function TeamSidebarLayout({
         <div
           className={cn(
             "h-full p-4 md:p-6 bg-[#f8fafb] dark:bg-background",
-            isZeepoFullBleed && "flex min-h-0 flex-1 flex-col overflow-hidden !p-0",
+            isFullBleed && "flex min-h-0 flex-1 flex-col overflow-hidden !p-0",
           )}
         >
           {children}

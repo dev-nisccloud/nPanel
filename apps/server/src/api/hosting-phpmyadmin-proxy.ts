@@ -4,9 +4,25 @@ import { getPleskPanelBase } from "@npanel/api/lib/plesk/session";
 
 export const PHPMYADMIN_PROXY_PREFIX = "/api/hosting/phpmyadmin/proxy";
 
-const FRAME_BUST_NOOP = "/* nPanel: phpMyAdmin stays in the dialog */\n";
+const FRAME_BUST_NOOP = `/* nPanel: keep phpMyAdmin in the iframe and undo clickjack hiding */
+(function () {
+  function reveal() {
+    var style = document.getElementById("cfs-style");
+    if (style && style.parentNode) style.parentNode.removeChild(style);
+    if (document.documentElement) document.documentElement.style.display = "block";
+  }
+  reveal();
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", reveal);
+  }
+})();
+`;
 const CHROME_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36";
+
+type TlsFetchInit = RequestInit & {
+  tls?: { rejectUnauthorized?: boolean };
+};
 
 const HOP_BY_HOP = new Set([
   "connection",
@@ -32,11 +48,20 @@ const REWRITE_TYPES = [
   "application/xhtml+xml",
 ];
 
+const DROP_COOKIE_PREFIX = /^(better-auth|__secure-better-auth|np\.|npanel)/i;
+
 type CachedAuth = { userId: string; expiresAt: number };
 const proxyAuthCache = new Map<string, CachedAuth>();
 const PROXY_AUTH_TTL_MS = 30_000;
 
 type CookieJar = Map<string, string>;
+
+type PleskFetchResult = {
+  status: number;
+  headers: Headers;
+  setCookies: string[];
+  body: ArrayBuffer;
+};
 
 function pleskOrigin(): URL {
   return new URL(getPleskPanelBase());
@@ -50,6 +75,8 @@ function shouldRewrite(contentType: string | null): boolean {
 
 function neutralizeFrameBusting(body: string): string {
   return body
+    .replace(/<style\b[^>]*id=["']cfs-style["'][^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/html\s*\{\s*display\s*:\s*none\s*;?\s*\}/gi, "html{display:block}")
     .replace(/target\s*=\s*(["'])_top\1/gi, "target=$1_self$1")
     .replace(/target\s*=\s*(["'])_parent\1/gi, "target=$1_self$1")
     .replace(/\bwindow\.top\.location(?:\.href)?\s*=/g, "window.self.location=")
@@ -57,21 +84,29 @@ function neutralizeFrameBusting(body: string): string {
     .replace(/\bparent\.location(?:\.href)?\s*=/g, "self.location=");
 }
 
-function rewritePleskUrls(body: string, requestOrigin: string): string {
+function rewritePleskUrls(body: string, requestOrigin: string, contentType: string | null): string {
   const plesk = getPleskPanelBase();
   const prefix = `${requestOrigin}${PHPMYADMIN_PROXY_PREFIX}`;
-  const host = pleskOrigin().host;
-  const escapedPrefix = prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const type = contentType?.split(";")[0]?.trim().toLowerCase() ?? "";
 
   let next = body.replaceAll(plesk, prefix);
   next = next.replaceAll(plesk.replace(/^https:/, "http:"), prefix);
-  next = next.replaceAll(`//${host}`, prefix.replace(/^https?:/, ""));
-  next = next.replace(new RegExp(`${escapedPrefix}${escapedPrefix}`, "g"), prefix);
-  next = next.replace(
-    /(^|["'`(=])\/(?!api\/hosting\/phpmyadmin\/proxy)(phpMyAdmin|smb\/|enterprise\/|modules\/phpMyAdmin)/g,
-    `$1${PHPMYADMIN_PROXY_PREFIX}/$2`,
-  );
-  return neutralizeFrameBusting(next);
+
+  if (type === "text/html" || type === "application/xhtml+xml") {
+    next = next.replace(
+      /(^|["'`(=])\/(?!api\/hosting\/phpmyadmin\/proxy)(phpMyAdmin|modules\/phpMyAdmin)/g,
+      `$1${PHPMYADMIN_PROXY_PREFIX}/$2`,
+    );
+    if (!/<style\b[^>]*id=["']npanel-pma-frame["']/i.test(next)) {
+      next = next.replace(
+        /<head([^>]*)>/i,
+        `<head$1><style id="npanel-pma-frame">html{display:block!important}</style>`,
+      );
+    }
+    return neutralizeFrameBusting(next);
+  }
+
+  return next;
 }
 
 function rewriteLocation(location: string, requestOrigin: string): string {
@@ -110,15 +145,23 @@ function requestOriginFrom(c: Context): string {
 }
 
 function isAllowedProxyPath(pathname: string): boolean {
+  const path = pathname.toLowerCase();
   return (
-    pathname.startsWith("/phpMyAdmin") ||
-    pathname.startsWith("/smb/") ||
-    pathname.startsWith("/enterprise/") ||
-    pathname.startsWith("/modules/phpMyAdmin") ||
-    pathname.startsWith("/theme/") ||
-    pathname.startsWith("/ui-library/") ||
-    pathname.startsWith("/javascript/") ||
-    pathname === "/favicon.ico"
+    path.startsWith("/phpmyadmin") ||
+    path.startsWith("/modules/phpmyadmin") ||
+    path.startsWith("/theme/") ||
+    path.startsWith("/favicon.ico")
+  );
+}
+
+function isPhpMyAdminPath(pathname: string): boolean {
+  const path = pathname.toLowerCase();
+  return path.includes("phpmyadmin");
+}
+
+function isSsoBootstrapPath(pathname: string): boolean {
+  return (
+    pathname.includes("rsession_init") || pathname.includes("/smb/database/webadmin")
   );
 }
 
@@ -152,17 +195,32 @@ function cookieHeaderFromJar(jar: CookieJar): string {
   return [...jar.entries()].map(([name, value]) => `${name}=${value}`).join("; ");
 }
 
+function cookiesForPlesk(cookieHeader: string | undefined): string | undefined {
+  if (!cookieHeader) return undefined;
+  const kept = cookieHeader
+    .split(";")
+    .map((part) => part.trim())
+    .filter((part) => {
+      const name = part.split("=")[0]?.trim() ?? "";
+      return name.length > 0 && !DROP_COOKIE_PREFIX.test(name);
+    });
+  return kept.length > 0 ? kept.join("; ") : undefined;
+}
+
 function extractPhpMyAdminUrl(html: string, base: URL): URL | null {
   const patterns = [
+    /window\.open\s*\(\s*["']([^"']+)["']/i,
     /(?:href|src|action)\s*=\s*["']([^"']*phpMyAdmin[^"']*)["']/i,
     /location(?:\.href)?\s*=\s*["']([^"']*phpMyAdmin[^"']*)["']/i,
     /(?:replace|assign)\(\s*["']([^"']*phpMyAdmin[^"']*)["']/i,
+    /["']([^"']*\/phpMyAdmin[^"']*)["']/i,
   ];
   for (const re of patterns) {
     const match = html.match(re);
     if (!match?.[1]) continue;
     try {
-      return new URL(match[1].replace(/&amp;/g, "&"), base);
+      const found = new URL(match[1].replace(/&amp;/g, "&"), base);
+      if (isPhpMyAdminPath(found.pathname)) return found;
     } catch {
       // ignore malformed URLs in Plesk HTML
     }
@@ -170,8 +228,8 @@ function extractPhpMyAdminUrl(html: string, base: URL): URL | null {
   return null;
 }
 
-function refreshUrl(res: Response, base: URL): URL | null {
-  const refresh = res.headers.get("refresh");
+function refreshUrl(headers: Headers, base: URL): URL | null {
+  const refresh = headers.get("refresh");
   if (!refresh) return null;
   const match = refresh.match(/url\s*=\s*(.+)$/i);
   if (!match?.[1]) return null;
@@ -180,6 +238,10 @@ function refreshUrl(res: Response, base: URL): URL | null {
   } catch {
     return null;
   }
+}
+
+function decodeText(body: ArrayBuffer): string {
+  return new TextDecoder("utf-8").decode(body);
 }
 
 async function requireProxyUser(c: Context): Promise<string | null> {
@@ -201,26 +263,40 @@ async function requireProxyUser(c: Context): Promise<string | null> {
   return userId;
 }
 
-type TlsFetchInit = RequestInit & {
-  tls?: { rejectUnauthorized?: boolean };
-};
-
-async function fetchPlesk(url: string, init: RequestInit): Promise<Response> {
-  return fetch(url, {
-    ...init,
+async function fetchPlesk(url: string, init: RequestInit = {}): Promise<PleskFetchResult> {
+  // Bun's undici build uses native fetch and ignores Agent rejectUnauthorized.
+  // Plesk's cert hostname does not match orion.nisccloud.com.
+  const response = await fetch(url, {
+    method: init.method || "GET",
+    headers: init.headers,
+    body: init.body,
+    signal: init.signal,
     redirect: "manual",
     tls: { rejectUnauthorized: false },
   } as TlsFetchInit);
+
+  const headers = new Headers();
+  response.headers.forEach((value, key) => {
+    if (key.toLowerCase() !== "set-cookie") headers.set(key, value);
+  });
+
+  return {
+    status: response.status,
+    headers,
+    setCookies: readSetCookies(response),
+    body: await response.arrayBuffer(),
+  };
 }
 
 async function followPleskDocument(
   startUrl: string,
   jar: CookieJar,
-): Promise<{ response: Response; finalUrl: URL; setCookies: string[] }> {
+): Promise<{ result: PleskFetchResult; finalUrl: URL; setCookies: string[] }> {
   const plesk = pleskOrigin();
   let url = new URL(startUrl);
   const allSetCookies: string[] = [];
-  let last: Response | null = null;
+  let last: PleskFetchResult | null = null;
+  let triedPhpMyAdminFallback = false;
 
   for (let hop = 0; hop < 12; hop++) {
     const headers = new Headers();
@@ -238,55 +314,61 @@ async function followPleskDocument(
       signal: AbortSignal.timeout(60_000),
     });
 
-    const newly = readSetCookies(last);
-    allSetCookies.push(...newly);
-    applySetCookies(jar, newly);
+    allSetCookies.push(...last.setCookies);
+    applySetCookies(jar, last.setCookies);
 
     const location = last.headers.get("location");
+    const contentType = last.headers.get("content-type") ?? "";
     console.log("[phpMyAdmin proxy] hop", {
       status: last.status,
       path: url.pathname + url.search,
       location,
-      contentType: last.headers.get("content-type"),
+      contentType,
       cookies: jar.size,
     });
 
     if (last.status >= 300 && last.status < 400 && location) {
       const next = new URL(location, url);
       if (next.origin !== plesk.origin) break;
+      if (triedPhpMyAdminFallback && !isPhpMyAdminPath(next.pathname)) break;
       url = next;
       continue;
     }
 
-    const viaRefresh = refreshUrl(last, url);
+    const viaRefresh = refreshUrl(last.headers, url);
     if (viaRefresh && viaRefresh.origin === plesk.origin) {
       url = viaRefresh;
       continue;
     }
 
-    const contentType = last.headers.get("content-type") ?? "";
-    if (contentType.includes("text/html") && !url.pathname.includes("phpMyAdmin")) {
-      const html = await last.text();
+    if (contentType.includes("text/html")) {
+      const html = decodeText(last.body);
       const pma = extractPhpMyAdminUrl(html, url);
       if (pma && pma.origin === plesk.origin && pma.href !== url.href) {
         url = pma;
         continue;
       }
-      return {
-        response: new Response(html, {
-          status: last.status,
-          headers: last.headers,
-        }),
-        finalUrl: url,
-        setCookies: allSetCookies,
-      };
+
+      if (isPhpMyAdminPath(url.pathname)) {
+        break;
+      }
+
+      if (!triedPhpMyAdminFallback) {
+        triedPhpMyAdminFallback = true;
+        console.log("[phpMyAdmin proxy] html preview", {
+          path: url.pathname,
+          snippet: html.slice(0, 600).replace(/\s+/g, " "),
+        });
+        url = new URL("/phpMyAdmin/index.php", plesk);
+        continue;
+      }
     }
 
     break;
   }
 
   if (!last) throw new Error("No response from Plesk");
-  return { response: last, finalUrl: url, setCookies: allSetCookies };
+  return { result: last, finalUrl: url, setCookies: allSetCookies };
 }
 
 function proxyUrlFor(finalUrl: URL, requestOrigin: string): string {
@@ -308,12 +390,25 @@ export async function bootstrapPhpMyAdminEmbed(
   c: Context,
   pleskSsoUrl: string,
 ): Promise<Response> {
-  const origin = requestOriginFrom(c);
-  const jar: CookieJar = new Map();
-  const { finalUrl, setCookies } = await followPleskDocument(pleskSsoUrl, jar);
-  const headers = cookieResponseHeaders(setCookies);
-  headers.set("location", proxyUrlFor(finalUrl, origin));
-  return new Response(null, { status: 302, headers });
+  try {
+    const origin = requestOriginFrom(c);
+    const jar: CookieJar = new Map();
+    const { finalUrl, setCookies } = await followPleskDocument(pleskSsoUrl, jar);
+
+    if (!isPhpMyAdminPath(finalUrl.pathname)) {
+      console.error("[phpMyAdmin proxy] SSO did not reach phpMyAdmin", {
+        finalPath: finalUrl.pathname + finalUrl.search,
+      });
+      return c.text("Could not open phpMyAdmin. Please try again.", 502);
+    }
+
+    const headers = cookieResponseHeaders(setCookies);
+    headers.set("location", proxyUrlFor(finalUrl, origin));
+    return new Response(null, { status: 302, headers });
+  } catch (error) {
+    console.error("[phpMyAdmin proxy] bootstrap error:", error);
+    return c.text("Could not open phpMyAdmin. Please try again.", 502);
+  }
 }
 
 export async function handlePhpMyAdminProxy(c: Context) {
@@ -332,11 +427,8 @@ export async function handlePhpMyAdminProxy(c: Context) {
   if (!restPath.startsWith("/") || restPath.includes("..")) {
     return c.text("Invalid path", 400);
   }
-  if (!isAllowedProxyPath(restPath)) {
-    return c.text("Forbidden", 403);
-  }
 
-  if (restPath.includes("cross_framing_protection")) {
+  if (restPath.toLowerCase().includes("cross_framing_protection")) {
     return new Response(FRAME_BUST_NOOP, {
       status: 200,
       headers: {
@@ -348,22 +440,34 @@ export async function handlePhpMyAdminProxy(c: Context) {
 
   const method = c.req.method.toUpperCase();
   const origin = requestOriginFrom(c);
-  const shouldFollowSso =
-    method === "GET" &&
-    (restPath.includes("rsession_init") || restPath.includes("/smb/database/webadmin"));
 
-  if (shouldFollowSso) {
+  if (method === "GET" && isSsoBootstrapPath(restPath)) {
     const start = new URL(getPleskPanelBase());
     start.pathname = restPath;
     start.search = url.search;
-    const jar: CookieJar = new Map();
-    const { finalUrl, setCookies } = await followPleskDocument(start.toString(), jar);
-    const dest = proxyUrlFor(finalUrl, origin);
-    if (finalUrl.pathname !== restPath || finalUrl.search !== url.search) {
-      const headers = cookieResponseHeaders(setCookies);
-      headers.set("location", dest);
-      return new Response(null, { status: 302, headers });
+    try {
+      const jar: CookieJar = new Map();
+      const incoming = cookiesForPlesk(c.req.header("cookie"));
+      if (incoming) {
+        for (const part of incoming.split(";")) {
+          const parsed = parseCookiePair(part.trim());
+          if (parsed) jar.set(parsed.name, parsed.value);
+        }
+      }
+      const { finalUrl, setCookies } = await followPleskDocument(start.toString(), jar);
+      if (isPhpMyAdminPath(finalUrl.pathname) && finalUrl.pathname !== restPath) {
+        const headers = cookieResponseHeaders(setCookies);
+        headers.set("location", proxyUrlFor(finalUrl, origin));
+        return new Response(null, { status: 302, headers });
+      }
+    } catch (error) {
+      console.error("[phpMyAdmin proxy] SSO follow error:", error);
+      return c.text("Could not open phpMyAdmin. Please try again.", 502);
     }
+  }
+
+  if (!isAllowedProxyPath(restPath)) {
+    return c.text("Forbidden", 403);
   }
 
   const upstream = new URL(getPleskPanelBase());
@@ -376,12 +480,15 @@ export async function handlePhpMyAdminProxy(c: Context) {
     if (HOP_BY_HOP.has(lower)) return;
     if (lower === "host" || lower === "origin" || lower === "referer") return;
     if (lower === "accept-encoding") return;
+    if (lower === "cookie") return;
     outgoing.set(key, value);
   });
   outgoing.set("host", upstream.host);
   outgoing.set("accept-encoding", "identity");
   outgoing.set("user-agent", c.req.header("user-agent") || CHROME_UA);
   outgoing.set("referer", `${getPleskPanelBase()}/`);
+  const cookie = cookiesForPlesk(c.req.header("cookie"));
+  if (cookie) outgoing.set("cookie", cookie);
 
   const body =
     method === "GET" || method === "HEAD" ? undefined : Buffer.from(await c.req.arrayBuffer());
@@ -395,15 +502,13 @@ export async function handlePhpMyAdminProxy(c: Context) {
     });
 
     const headers = new Headers();
-    const setCookies = readSetCookies(response);
     response.headers.forEach((value, key) => {
       const lower = key.toLowerCase();
       if (HOP_BY_HOP.has(lower)) return;
       if (
         lower === "x-frame-options" ||
         lower === "content-security-policy" ||
-        lower === "content-length" ||
-        lower === "set-cookie"
+        lower === "content-length"
       ) {
         return;
       }
@@ -413,21 +518,20 @@ export async function handlePhpMyAdminProxy(c: Context) {
       }
       headers.set(key, value);
     });
-    for (const cookie of setCookies) {
-      headers.append("set-cookie", rewriteSetCookie(cookie));
+    for (const cookieLine of response.setCookies) {
+      headers.append("set-cookie", rewriteSetCookie(cookieLine));
     }
     headers.set("x-frame-options", "SAMEORIGIN");
 
     const contentType = headers.get("content-type");
     if (shouldRewrite(contentType) && method !== "HEAD") {
-      const text = await response.text();
-      return new Response(rewritePleskUrls(text, origin), {
+      return new Response(rewritePleskUrls(decodeText(response.body), origin, contentType), {
         status: response.status,
         headers,
       });
     }
 
-    const payload = method === "HEAD" ? null : await response.arrayBuffer();
+    const payload = method === "HEAD" ? null : response.body;
     return new Response(payload, {
       status: response.status,
       headers,
