@@ -30,6 +30,7 @@ export function CleanList({
   if (items.length === 0) {
     return (
       <div
+        data-slot="clean-list"
         className={cn(
           "rounded-xl border border-dashed bg-card px-4 py-10 text-center text-sm text-muted-foreground",
           className,
@@ -42,6 +43,7 @@ export function CleanList({
 
   return (
     <div
+      data-slot="clean-list"
       className={cn(
         "overflow-hidden rounded-xl border bg-card divide-y divide-border",
         className,
