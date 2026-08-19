@@ -128,7 +128,8 @@ function isLongLivedApiProxy(pathname: string, request: Request): boolean {
 function isExtendedTimeoutApiProxy(pathname: string): boolean {
   return (
     pathname.includes("pagespeedInsights") ||
-    pathname.includes("openProvider.tlds")
+    pathname.includes("openProvider.tlds") ||
+    pathname.startsWith("/api/hosting/phpmyadmin")
   );
 }
 
@@ -149,6 +150,18 @@ function trpcProxyErrorResponse(status: number, message: string): Response {
     ],
     { status },
   );
+}
+
+function rewriteProxiedLocation(location: string, incoming: URL): string {
+  try {
+    const resolved = new URL(location, BACKEND_ORIGIN);
+    if (resolved.origin === BACKEND_ORIGIN.origin || resolved.host === incoming.host) {
+      return `${resolved.pathname}${resolved.search}${resolved.hash}`;
+    }
+  } catch {
+    // keep original Location if it is not a valid URL
+  }
+  return location;
 }
 
 async function proxyToBackend(request: Request): Promise<Response> {
@@ -190,10 +203,16 @@ async function proxyToBackend(request: Request): Promise<Response> {
 
   // Browser still sees this response as same-origin (web URL). Set-Cookie without Domain
   // attaches to the SPA host, which is what Better Auth OAuth needs.
+  const outgoing = new Headers(backendResponse.headers);
+  const location = outgoing.get("location");
+  if (location) {
+    outgoing.set("location", rewriteProxiedLocation(location, incoming));
+  }
+
   return new Response(backendResponse.body, {
     status: backendResponse.status,
     statusText: backendResponse.statusText,
-    headers: backendResponse.headers,
+    headers: outgoing,
   });
 }
 

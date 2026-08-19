@@ -84,9 +84,9 @@ function neutralizeFrameBusting(body: string): string {
     .replace(/\bparent\.location(?:\.href)?\s*=/g, "self.location=");
 }
 
-function rewritePleskUrls(body: string, requestOrigin: string, contentType: string | null): string {
+function rewritePleskUrls(body: string, contentType: string | null): string {
   const plesk = getPleskPanelBase();
-  const prefix = `${requestOrigin}${PHPMYADMIN_PROXY_PREFIX}`;
+  const prefix = PHPMYADMIN_PROXY_PREFIX;
   const type = contentType?.split(";")[0]?.trim().toLowerCase() ?? "";
 
   let next = body.replaceAll(plesk, prefix);
@@ -109,17 +109,17 @@ function rewritePleskUrls(body: string, requestOrigin: string, contentType: stri
   return next;
 }
 
-function rewriteLocation(location: string, requestOrigin: string): string {
+function rewriteLocation(location: string): string {
   try {
     const plesk = pleskOrigin();
     const resolved = new URL(location, plesk);
     if (resolved.origin === plesk.origin) {
-      return `${requestOrigin}${PHPMYADMIN_PROXY_PREFIX}${resolved.pathname}${resolved.search}${resolved.hash}`;
+      return `${PHPMYADMIN_PROXY_PREFIX}${resolved.pathname}${resolved.search}${resolved.hash}`;
     }
     return location;
   } catch {
     if (location.startsWith("/") && !location.startsWith(PHPMYADMIN_PROXY_PREFIX)) {
-      return `${requestOrigin}${PHPMYADMIN_PROXY_PREFIX}${location}`;
+      return `${PHPMYADMIN_PROXY_PREFIX}${location}`;
     }
     return location;
   }
@@ -136,12 +136,6 @@ function rewriteSetCookie(value: string): string {
     next = `${next}; Path=${PHPMYADMIN_PROXY_PREFIX}`;
   }
   return next.trim();
-}
-
-function requestOriginFrom(c: Context): string {
-  const proto = c.req.header("x-forwarded-proto") || new URL(c.req.url).protocol.replace(":", "");
-  const host = c.req.header("x-forwarded-host") || c.req.header("host") || new URL(c.req.url).host;
-  return `${proto}://${host}`;
 }
 
 function isAllowedProxyPath(pathname: string): boolean {
@@ -371,8 +365,8 @@ async function followPleskDocument(
   return { result: last, finalUrl: url, setCookies: allSetCookies };
 }
 
-function proxyUrlFor(finalUrl: URL, requestOrigin: string): string {
-  return `${requestOrigin}${PHPMYADMIN_PROXY_PREFIX}${finalUrl.pathname}${finalUrl.search}${finalUrl.hash}`;
+function proxyUrlFor(finalUrl: URL): string {
+  return `${PHPMYADMIN_PROXY_PREFIX}${finalUrl.pathname}${finalUrl.search}${finalUrl.hash}`;
 }
 
 function cookieResponseHeaders(setCookies: string[]): Headers {
@@ -391,7 +385,6 @@ export async function bootstrapPhpMyAdminEmbed(
   pleskSsoUrl: string,
 ): Promise<Response> {
   try {
-    const origin = requestOriginFrom(c);
     const jar: CookieJar = new Map();
     const { finalUrl, setCookies } = await followPleskDocument(pleskSsoUrl, jar);
 
@@ -403,7 +396,7 @@ export async function bootstrapPhpMyAdminEmbed(
     }
 
     const headers = cookieResponseHeaders(setCookies);
-    headers.set("location", proxyUrlFor(finalUrl, origin));
+    headers.set("location", proxyUrlFor(finalUrl));
     return new Response(null, { status: 302, headers });
   } catch (error) {
     console.error("[phpMyAdmin proxy] bootstrap error:", error);
@@ -439,7 +432,6 @@ export async function handlePhpMyAdminProxy(c: Context) {
   }
 
   const method = c.req.method.toUpperCase();
-  const origin = requestOriginFrom(c);
 
   if (method === "GET" && isSsoBootstrapPath(restPath)) {
     const start = new URL(getPleskPanelBase());
@@ -457,7 +449,7 @@ export async function handlePhpMyAdminProxy(c: Context) {
       const { finalUrl, setCookies } = await followPleskDocument(start.toString(), jar);
       if (isPhpMyAdminPath(finalUrl.pathname) && finalUrl.pathname !== restPath) {
         const headers = cookieResponseHeaders(setCookies);
-        headers.set("location", proxyUrlFor(finalUrl, origin));
+        headers.set("location", proxyUrlFor(finalUrl));
         return new Response(null, { status: 302, headers });
       }
     } catch (error) {
@@ -513,7 +505,7 @@ export async function handlePhpMyAdminProxy(c: Context) {
         return;
       }
       if (lower === "location") {
-        headers.set("location", rewriteLocation(value, origin));
+        headers.set("location", rewriteLocation(value));
         return;
       }
       headers.set(key, value);
@@ -525,7 +517,7 @@ export async function handlePhpMyAdminProxy(c: Context) {
 
     const contentType = headers.get("content-type");
     if (shouldRewrite(contentType) && method !== "HEAD") {
-      return new Response(rewritePleskUrls(decodeText(response.body), origin, contentType), {
+      return new Response(rewritePleskUrls(decodeText(response.body), contentType), {
         status: response.status,
         headers,
       });
