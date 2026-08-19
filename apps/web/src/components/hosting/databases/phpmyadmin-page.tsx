@@ -51,6 +51,13 @@ export function PhpMyAdminPage({
 
   React.useEffect(() => {
     console.log("[phpMyAdmin] iframe src:", src);
+    console.log("[phpMyAdmin] window.location.href:", window.location.href);
+    console.log("[phpMyAdmin] window.location.origin:", window.location.origin);
+    
+    // Test if the URL is accessible
+    fetch(src, { method: "HEAD" })
+      .then((res) => console.log("[phpMyAdmin] HEAD request status:", res.status, res.url))
+      .catch((err) => console.error("[phpMyAdmin] HEAD request failed:", err));
   }, [src]);
 
   return (
