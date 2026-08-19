@@ -158,6 +158,34 @@ export const ZEEPO_AI_SKILLS: ZeepoAiSkill[] = [
     description: "Describe your vibe, get palettes with hex codes and usage tips.",
     starterPrompt: "Suggest color palettes for a brand that feels: ",
   },
+  {
+    id: "analyze-ad-performance",
+    category: "MARKETING",
+    title: "Analyze ad performance",
+    description: "Pull live Meta, Google, Instagram, or LinkedIn ads and get account-to-campaign advice.",
+    starterPrompt: "Review our live ad accounts and tell me what to change this month. ",
+  },
+  {
+    id: "review-email-campaigns",
+    category: "MARKETING",
+    title: "Review email campaigns",
+    description: "Use aggregated send/open/click totals and the campaign HTML to advise.",
+    starterPrompt: "Review our email marketing performance and the latest campaign HTML. ",
+  },
+  {
+    id: "seo-health-check",
+    category: "MARKETING",
+    title: "SEO health check",
+    description: "Read SEO Suite rankings, audits, backlinks, and monthly reports for a domain.",
+    starterPrompt: "Give me an SEO health check for ",
+  },
+  {
+    id: "request-campaign-creatives",
+    category: "MARKETING",
+    title: "Request campaign creatives",
+    description: "File a design brief for the Nisc Cloud creatives team from campaign context.",
+    starterPrompt: "We need new campaign creatives. Context: ",
+  },
 ];
 
 export function generationToPanel(

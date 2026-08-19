@@ -1051,7 +1051,7 @@ export async function streamZeepoAiTurn(params: StreamZeepoAiTurnParams): Promis
 		const client = getAnthropicClient();
 		let loopMessages = [...anthropicMessages];
 		let iterations = 0;
-		const maxIterations = 6;
+		const maxIterations = 10;
 
 		while (iterations < maxIterations) {
 			iterations += 1;

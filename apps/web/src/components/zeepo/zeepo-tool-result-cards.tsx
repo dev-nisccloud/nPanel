@@ -10,6 +10,10 @@ import { ZeepoHostingResourcesCard } from "@/components/zeepo/hosting-resources-
 import { ZeepoHostingDetailCard } from "@/components/zeepo/hosting-detail-card";
 import { ZeepoWordPressSitesCard } from "@/components/zeepo/wordpress-sites-card";
 import { ZeepoSupportTicketCard, parseSupportTicketResult } from "@/components/zeepo/zeepo-support-ticket-card";
+import {
+  ZeepoCreativeBriefCard,
+  parseCreativeBriefResult,
+} from "@/components/zeepo/zeepo-creative-brief-card";
 import type {
   AgentDomainCheckResult,
   AgentHostingPlansResult,
@@ -150,7 +154,8 @@ export function hasRenderableZeepoToolCard(payload: unknown): boolean {
       parseDomainDetailResult(payload) ||
       parseHostingResourcesResult(payload) ||
       parseHostingDetailResult(payload) ||
-      parseWordPressSitesResult(payload),
+      parseWordPressSitesResult(payload) ||
+      parseCreativeBriefResult(payload),
   );
 }
 
@@ -169,6 +174,8 @@ export function ZeepoToolResultCard({
 }) {
   const ticketResult = parseSupportTicketResult(result);
   if (ticketResult) return <ZeepoSupportTicketCard result={result} onViewTicket={onViewTicket} />;
+  const briefResult = parseCreativeBriefResult(result);
+  if (briefResult) return <ZeepoCreativeBriefCard result={result} />;
   const domainResult = parseDomainCheckResult(result);
   if (domainResult) return <ZeepoDomainPurchaseCard result={domainResult} />;
 

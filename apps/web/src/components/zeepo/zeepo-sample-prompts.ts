@@ -75,6 +75,7 @@ export const ZEEPO_LANDING_SUGGESTIONS: Array<{
   { title: "Series A investor pitch", label: "Build a pitch deck" },
   { title: "Competitor analysis report", label: "Research competitors" },
   { title: "Digital marketing strategy doc", label: "Draft a marketing plan" },
+  { title: "Live ads performance review", label: "Review our ads" },
   { title: "Legal tech brand & domains", label: "Find a brand & domains" },
   { title: "Brand mockup suite", label: "Create brand mockups" },
 ];
@@ -245,5 +246,21 @@ Global craft rules: one unified campaign world (same lighting family, colour gra
     category: "strategy",
     title: "Digital marketing strategy doc",
     prompt: `Write a full 12-month digital marketing strategy document for a Kenyan fashion brand targeting diaspora shoppers in the UK, USA, and Canada. Cover: (1) Brand voice and messaging framework - how to speak to diaspora identity, nostalgia, and pride; (2) Instagram and TikTok content strategy - content pillars, posting frequency, format mix (Reels vs static vs Stories), with a 30-day sample content calendar; (3) Influencer marketing plan - 3 macro influencers (100K+) and 10 micro influencers (10–50K) in the diaspora market, outreach approach, compensation model; (4) Paid social strategy - Meta Ads (suggested audiences, lookalike strategy, retargeting funnel) and TikTok Ads (UGC creatives, interest targeting), monthly budget recommendation; (5) Email marketing flows - Welcome series (5 emails), Abandoned cart (3 emails), Post-purchase upsell (2 emails) - include subject lines and content hooks for each; (6) SEO strategy - target keyword clusters for "African fashion diaspora", content SEO plan; (7) 90-day revenue model - projected traffic, conversion rate, AOV, and revenue by channel. Present as a structured document.`,
+  },
+  {
+    icon: BarChart3,
+    color: "text-indigo-500",
+    bg: "bg-indigo-500/10",
+    category: "strategy",
+    title: "Live ads performance review",
+    prompt: `Pull our live ad accounts across Meta, Instagram, Google, and LinkedIn. For each account, use its native currency (do not convert to USD). Summarise account-level spend and results for the last 30 days, then drill into the weakest and strongest campaigns. Advise on budget, targeting, creative fatigue, and whether we should file a creative brief for new assets.`,
+  },
+  {
+    icon: Megaphone,
+    color: "text-orange-500",
+    bg: "bg-orange-500/10",
+    category: "strategy",
+    title: "Email campaign audit",
+    prompt: `Review our email marketing using aggregated totals (opens, clicks, bounces — not recipient lists). Then open the most recent sent campaign including its HTML and tell me what to change in subject, offer, layout, and CTA. Compare that campaign to overall account totals.`,
   },
 ];

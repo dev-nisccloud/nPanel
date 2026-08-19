@@ -337,6 +337,46 @@ export const ZEEPO_AI_SKILLS: readonly ZeepoAiSkillDefinition[] = [
 		agentDirectives:
 			"The user wants image generation. Gather brief (subject, style, format, audience) via clarifying questions if needed, then call generate_images with a rich prompt. Use intent=design for brand/logo work. Never name underlying models or vendors.",
 	},
+	{
+		id: "analyze-ad-performance",
+		category: "MARKETING",
+		title: "Analyze ad performance",
+		description: "Pull live Meta, Google, Instagram, or LinkedIn ads and get account-to-campaign advice.",
+		available: true,
+		starterPrompt: "Review our live ad accounts and tell me what to change this month. ",
+		agentDirectives:
+			"Load live ads data before advising. list_accounts, then get_account / get_campaign as needed. Quote every money figure in the ad account's native currency from the tool result. Never convert to USD. Cover spend, results, creative fatigue, and next actions. Submit a creative brief only if new assets are clearly needed.",
+	},
+	{
+		id: "review-email-campaigns",
+		category: "MARKETING",
+		title: "Review email campaigns",
+		description: "Use aggregated send/open/click totals and the campaign HTML to advise.",
+		available: true,
+		starterPrompt: "Review our email marketing performance and the latest campaign HTML. ",
+		agentDirectives:
+			"Use marketing_email. Prefer get_totals and list_campaigns for the picture, then get_campaign for HTML + aggregates. Do not request recipient-level data. Critique subject, offer, and HTML against the rates.",
+	},
+	{
+		id: "seo-health-check",
+		category: "MARKETING",
+		title: "SEO health check",
+		description: "Read SEO Suite rankings, audits, backlinks, and monthly reports for a domain.",
+		available: true,
+		starterPrompt: "Give me an SEO health check for ",
+		agentDirectives:
+			"Use marketing_seo: list_projects or get_overview/get_rankings for the named domain, plus get_reports if monthly GSC/GA4 reports exist. Advise from stored data; do not invent ranks.",
+	},
+	{
+		id: "request-campaign-creatives",
+		category: "MARKETING",
+		title: "Request campaign creatives",
+		description: "File a design brief for the Nisc Cloud creatives team from campaign context.",
+		available: true,
+		starterPrompt: "We need new campaign creatives. Context: ",
+		agentDirectives:
+			"Gather enough campaign/platform/format/copy context (use ads/email tools if they have live campaigns). Then submit_creative_brief. Do not generate the finished ads unless they explicitly asked for image mocks.",
+	},
 ] as const;
 
 const skillById = new Map(ZEEPO_AI_SKILLS.map((s) => [s.id, s]));
