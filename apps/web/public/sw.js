@@ -126,6 +126,19 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
+    let requestUrl;
+    try {
+        requestUrl = new URL(event.request.url);
+    } catch (e) {
+        return;
+    }
+    // Never intercept API traffic. Iframe navigations to /api/hosting/phpmyadmin
+    // must hit the network; a failed redirect-follow here used to serve cached `/`
+    // (the full nPanel shell) inside the phpMyAdmin iframe.
+    if (requestUrl.pathname.startsWith('/api/')) {
+        return;
+    }
+
     // For document navigations, always follow redirects so we never return a redirect
     // response to the client (avoids "redirected response was used for a request whose
     // redirect mode is not 'follow'" which breaks the page).

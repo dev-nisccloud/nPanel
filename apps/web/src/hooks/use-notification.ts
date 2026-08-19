@@ -27,7 +27,7 @@ export function useNotification() {
                     }
                 }).catch(console.error);
 
-                const swUrl = "/sw.js?v=4";
+                const swUrl = "/sw.js?v=5";
                 navigator.serviceWorker.register(swUrl).then((reg) => {
                     console.log("Service Worker registered:", reg.scope);
                 }).catch((err) => {
