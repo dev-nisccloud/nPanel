@@ -227,7 +227,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
               <ScrollBar orientation="horizontal" className="flex mt-0.5" />
             </ScrollArea>
 
-            <TabsContent value="overview" className="hosting-glass mt-10">
+            <TabsContent value="overview" className="mt-10">
               <HostingOverview
                 hostingData={hostingData}
                 showOverusePolicy={false}
@@ -235,7 +235,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
               />
             </TabsContent>
 
-            <TabsContent value="dns" className="hosting-glass mt-10">
+            <TabsContent value="dns" className="mt-10">
               <DnsTable
                 siteId={hostingData.id}
                 domainName={hostingData.gen_info?.name}
@@ -244,7 +244,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
               />
             </TabsContent>
 
-            <TabsContent value="mail" className="hosting-glass mt-10">
+            <TabsContent value="mail" className="mt-10">
               <MailTable
                 siteId={hostingData.id}
                 domainName={hostingData.gen_info?.name}
@@ -254,7 +254,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
               />
             </TabsContent>
 
-            <TabsContent value="file-manager" className="hosting-glass mt-10">
+            <TabsContent value="file-manager" className="mt-10">
               <FileManager
                 hostingData={hostingData}
                 openCreateSheet={createIntentTab === "file-manager"}
@@ -262,7 +262,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
               />
             </TabsContent>
 
-            <TabsContent value="subdomains" className="hosting-glass mt-10">
+            <TabsContent value="subdomains" className="mt-10">
               <SubdomainsTable
                 domainName={hostingData.gen_info?.name || ""}
                 openCreateSheet={createIntentTab === "subdomains"}
@@ -270,7 +270,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
               />
             </TabsContent>
 
-            <TabsContent value="databases" className="hosting-glass mt-10">
+            <TabsContent value="databases" className="mt-10">
               <DatabasesTable
                 siteId={hostingData.id}
                 openCreateSheet={createIntentTab === "databases"}
@@ -278,7 +278,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
               />
             </TabsContent>
 
-            <TabsContent value="wordpress" className="hosting-glass mt-10">
+            <TabsContent value="wordpress" className="mt-10">
               <WordPressInstancesTable
                 domainName={hostingData.gen_info?.name || ""}
                 hostingData={hostingData}
@@ -286,7 +286,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
               />
             </TabsContent>
 
-            <TabsContent value="backup-restore" className="hosting-glass mt-10">
+            <TabsContent value="backup-restore" className="mt-10">
               {activeTab === "backup-restore" ? (
                 <HostingBackupRestoreTab
                   domainName={hostingData.gen_info?.name}
