@@ -23,6 +23,10 @@ import {
 	agentGetWebHostingPlans,
 	agentGetWordPressHostingPlans,
 	agentGetWordPressSites,
+	agentMarketingAds,
+	agentMarketingEmail,
+	agentMarketingSeo,
+	agentSubmitCreativeBrief,
 	DEFAULT_DISPLAY_CURRENCY,
 	DEFAULT_DOMAIN_EXTENSIONS,
 } from "../../lib/agent-internal-tools";
@@ -58,6 +62,10 @@ export const ZEEPO_AI_OPS_TOOL_NAMES = [
 	"get_hosting_detail",
 	"get_wordpress_sites",
 	"create_support_ticket",
+	"marketing_ads",
+	"marketing_email",
+	"marketing_seo",
+	"submit_creative_brief",
 ] as const;
 
 export type ZeepoAiOpsToolName = (typeof ZEEPO_AI_OPS_TOOL_NAMES)[number];
@@ -279,6 +287,113 @@ export const ZEEPO_AI_OPS_CLIENT_TOOLS = [
 				},
 			},
 			required: ["subject", "summary", "intent"],
+		},
+	},
+	{
+		name: "marketing_ads",
+		description:
+			"Live media buying data for Meta, Instagram, Google Ads, and LinkedIn Ads. Use list_accounts first, then get_account (campaigns + totals in the ad account currency), then get_campaign or get_performance for a specific campaign. Money is ALWAYS the ad account's native currency (e.g. KES) — never treat it as USD.",
+		input_schema: {
+			type: "object" as const,
+			properties: {
+				action: {
+					type: "string",
+					enum: ["list_accounts", "get_account", "get_campaign", "get_performance"],
+					description:
+						"list_accounts: all connected ad accounts. get_account: one account + campaigns + spend totals. get_campaign: campaign + child ad sets/ads. get_performance: daily series or breakdown.",
+				},
+				platform: {
+					type: "string",
+					enum: ["meta", "instagram", "google", "linkedin", "all"],
+					description: "Required except list_accounts (defaults to all). Instagram uses Meta ad accounts with Instagram delivery.",
+				},
+				accountId: { type: "string", description: "Ad account id (act_… / Google customer id / LinkedIn URN or numeric id)." },
+				campaignId: {
+					type: "string",
+					description: "Campaign id. For LinkedIn this is the campaign GROUP id used in the UI.",
+				},
+				entityId: { type: "string", description: "Optional entity for get_performance if not campaignId/accountId." },
+				level: {
+					type: "string",
+					enum: ["account", "campaign", "adset", "ad", "adgroup", "campaign_group"],
+				},
+				datePreset: {
+					type: "string",
+					enum: ["last_7d", "last_30d", "last_90d", "lifetime"],
+					description: "Default last_30d. lifetime is account/campaign totals only, not daily series.",
+				},
+				since: { type: "string", description: "YYYY-MM-DD start (overrides datePreset)." },
+				until: { type: "string", description: "YYYY-MM-DD end." },
+				breakdown: {
+					type: "string",
+					description: "Meta: age, gender, publisher_platform, device_platform, region, platform_position.",
+				},
+			},
+			required: ["action"],
+		},
+	},
+	{
+		name: "marketing_email",
+		description:
+			"Email marketing campaigns with SQL-aggregated totals (opens, clicks, bounces) plus the campaign HTML as creative context. Never request per-recipient dumps — totals are already aggregated.",
+		input_schema: {
+			type: "object" as const,
+			properties: {
+				action: {
+					type: "string",
+					enum: ["list_campaigns", "get_campaign", "get_totals"],
+					description: "list_campaigns: summaries. get_campaign: one campaign with HTML + aggregates. get_totals: account-level aggregates.",
+				},
+				campaignId: { type: "string" },
+				status: { type: "string", description: "Optional status filter for list_campaigns." },
+				includeHtml: {
+					type: "boolean",
+					description: "Default true on get_campaign. Set false if you only need metrics.",
+				},
+				limit: { type: "integer", description: "Max campaigns to list (default 40)." },
+			},
+			required: ["action"],
+		},
+	},
+	{
+		name: "marketing_seo",
+		description:
+			"SEO Suite projects (rankings, organic traffic, audits, backlinks) and stored monthly SEO reports. Use list_projects, then get_overview / get_rankings for a project, or get_reports for GSC/GA4 monthly reports.",
+		input_schema: {
+			type: "object" as const,
+			properties: {
+				action: {
+					type: "string",
+					enum: ["list_projects", "get_overview", "get_rankings", "get_reports"],
+				},
+				projectId: { type: "string" },
+				domain: { type: "string", description: "Find a project or filter reports by domain." },
+				reportId: { type: "string" },
+				limit: { type: "integer" },
+			},
+			required: ["action"],
+		},
+	},
+	{
+		name: "submit_creative_brief",
+		description:
+			"Submit a creative brief to the Nisc Cloud design team when new ads, emails, or brand assets need to be produced. Do not generate the finished agency creatives yourself unless the user explicitly asked for image generation. Use this when performance advice depends on new design work.",
+		input_schema: {
+			type: "object" as const,
+			properties: {
+				name: { type: "string", description: "Short brief title, e.g. Diamond Coffee Meta retargeting — May." },
+				background: { type: "string", description: "Client, product, campaign, platforms, and why new creatives are needed." },
+				objectives: { type: "string", description: "What success looks like (CTR, ROAS, brand, offer)." },
+				requirements: { type: "string", description: "Formats, sizes, quantities, copy, brand rules, must-include elements." },
+				comments: { type: "string" },
+				style: { type: "string" },
+				copy: { type: "string", description: "Headlines, CTAs, legal lines to include." },
+				mandatoryElements: { type: "string" },
+				designPreference: { type: "string" },
+				timelineStartDate: { type: "string", description: "ISO date if known." },
+				timelineEndDate: { type: "string", description: "ISO date if known." },
+			},
+			required: ["name", "background", "objectives", "requirements"],
 		},
 	},
 ] as const satisfies ReadonlyArray<{
@@ -643,6 +758,114 @@ export async function executeZeepoAiOpsTool(
 				return { error: e.message };
 			}
 			return toolError("Could not open a ticket", e);
+		}
+	}
+
+	if (name === "marketing_ads") {
+		const parsed = z
+			.object({
+				action: z.enum(["list_accounts", "get_account", "get_campaign", "get_performance"]),
+				platform: z.enum(["meta", "instagram", "google", "linkedin", "all"]).optional(),
+				accountId: z.string().min(1).optional(),
+				campaignId: z.string().min(1).optional(),
+				entityId: z.string().min(1).optional(),
+				level: z.enum(["account", "campaign", "adset", "ad", "adgroup", "campaign_group"]).optional(),
+				datePreset: z.enum(["last_7d", "last_30d", "last_90d", "lifetime"]).optional(),
+				since: z.string().optional(),
+				until: z.string().optional(),
+				breakdown: z.string().optional(),
+			})
+			.safeParse(input);
+		if (!parsed.success) return { error: parsed.error.message };
+		try {
+			return await agentMarketingAds({
+				...parsed.data,
+				userId,
+				userRole: params.userRole,
+				teamId,
+			});
+		} catch (e) {
+			if (e instanceof TRPCError) return { error: e.message };
+			return toolError("Could not load ads data", e);
+		}
+	}
+
+	if (name === "marketing_email") {
+		const parsed = z
+			.object({
+				action: z.enum(["list_campaigns", "get_campaign", "get_totals"]),
+				campaignId: z.string().min(1).optional(),
+				search: z.string().optional(),
+				status: z.string().optional(),
+				includeHtml: z.boolean().optional(),
+				limit: z.number().int().optional(),
+			})
+			.safeParse(input);
+		if (!parsed.success) return { error: parsed.error.message };
+		try {
+			return await agentMarketingEmail({
+				...parsed.data,
+				userId,
+				userRole: params.userRole,
+				teamId,
+			});
+		} catch (e) {
+			if (e instanceof TRPCError) return { error: e.message };
+			return toolError("Could not load email marketing data", e);
+		}
+	}
+
+	if (name === "marketing_seo") {
+		const parsed = z
+			.object({
+				action: z.enum(["list_projects", "get_overview", "get_rankings", "get_reports"]),
+				projectId: z.string().min(1).optional(),
+				domain: z.string().optional(),
+				reportId: z.string().min(1).optional(),
+				limit: z.number().int().optional(),
+			})
+			.safeParse(input);
+		if (!parsed.success) return { error: parsed.error.message };
+		try {
+			return await agentMarketingSeo({
+				...parsed.data,
+				userId,
+				userRole: params.userRole,
+				teamId,
+			});
+		} catch (e) {
+			if (e instanceof TRPCError) return { error: e.message };
+			return toolError("Could not load SEO data", e);
+		}
+	}
+
+	if (name === "submit_creative_brief") {
+		const parsed = z
+			.object({
+				name: z.string().trim().min(1).max(255),
+				background: z.string().trim().min(1).max(20000),
+				objectives: z.string().trim().min(1).max(20000),
+				requirements: z.string().trim().min(1).max(20000),
+				comments: z.string().max(10000).optional(),
+				style: z.string().max(5000).optional(),
+				copy: z.string().max(10000).optional(),
+				mandatoryElements: z.string().max(5000).optional(),
+				designPreference: z.string().max(5000).optional(),
+				timelineStartDate: z.string().optional(),
+				timelineEndDate: z.string().optional(),
+			})
+			.safeParse(input);
+		if (!parsed.success) return { error: parsed.error.message };
+		try {
+			return await agentSubmitCreativeBrief({
+				...parsed.data,
+				userId,
+				userRole: params.userRole,
+				teamId,
+			});
+		} catch (e) {
+			if (e instanceof TRPCError) return { error: e.message };
+			return toolError("Could not submit creative brief", e);
 		}
 	}
 
