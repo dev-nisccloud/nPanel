@@ -6,7 +6,7 @@ export { AssignDatabaseSheet } from "./assign-database-sheet";
 export { ChangeDatabasePasswordSheet } from "./change-database-password-sheet";
 export { ChangeDatabasePermissionsSheet } from "./change-database-permissions-sheet";
 export { DatabaseConnectionInfoDialog } from "./database-connection-info-dialog";
-export { PhpMyAdminDialog } from "./phpmyadmin-dialog";
+export { PhpMyAdminPage } from "./phpmyadmin-page";
 export { useDatabasesBySiteId, usePrefetchDatabasesBySiteId } from "./use-databases-by-site-id";
 export {
   databaseSchema,
