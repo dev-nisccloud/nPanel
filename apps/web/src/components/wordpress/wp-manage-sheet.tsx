@@ -21,6 +21,7 @@ export function WpManageSheet({
   description,
   icon: Icon,
   isLoading,
+  size = "default",
   children,
 }: {
   open: boolean;
@@ -29,11 +30,13 @@ export function WpManageSheet({
   description: string;
   icon: React.ComponentType<{ className?: string }>;
   isLoading?: boolean;
+  /** `default` (~520px) for settings; `wide` only when the sheet is a catalog/list that needs it. */
+  size?: "default" | "wide";
   children: React.ReactNode;
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent size="wide" className="flex h-full min-h-0 flex-col overflow-hidden">
+      <SheetContent size={size} className="flex h-full min-h-0 flex-col overflow-hidden">
         <SheetHeader className="mb-4 flex shrink-0 flex-row items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <div className="shrink-0 rounded-full bg-primary/10 p-2">

@@ -1,7 +1,7 @@
 "use client";
 
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { WpActionSwitch } from "@/components/wordpress/wp-action-switch";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +16,8 @@ export function WpCronSettingsDialog({
   takeoverEnabled,
   replacementEnabled,
   disabled,
+  loadingTakeover,
+  loadingReplacement,
   onTakeoverChange,
   onReplacementChange,
 }: {
@@ -24,6 +26,8 @@ export function WpCronSettingsDialog({
   takeoverEnabled: boolean;
   replacementEnabled: boolean;
   disabled?: boolean;
+  loadingTakeover?: boolean;
+  loadingReplacement?: boolean;
   onTakeoverChange: (value: boolean) => void;
   onReplacementChange: (value: boolean) => void;
 }) {
@@ -39,9 +43,10 @@ export function WpCronSettingsDialog({
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3 rounded-lg border px-4 py-3">
             <Label className="text-sm font-medium text-primary">Takeover enabled</Label>
-            <Switch
+            <WpActionSwitch
               checked={takeoverEnabled}
               disabled={disabled}
+              loading={loadingTakeover}
               onCheckedChange={onTakeoverChange}
             />
           </div>
@@ -52,9 +57,10 @@ export function WpCronSettingsDialog({
                 Skip wp-cron.php during web requests
               </p>
             </div>
-            <Switch
+            <WpActionSwitch
               checked={replacementEnabled}
               disabled={disabled}
+              loading={loadingReplacement}
               onCheckedChange={onReplacementChange}
             />
           </div>

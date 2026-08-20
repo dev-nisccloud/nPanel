@@ -5,12 +5,13 @@ import { Link2, Lock } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { WpActionSwitch } from "@/components/wordpress/wp-action-switch";
 import { HotlinkProtectionSheet } from "@/components/wordpress/hotlink-protection-sheet";
 import { PasswordProtectionDialog } from "@/components/wordpress/password-protection-dialog";
 import { trpc } from "@/utils/trpc";
+import { wpInstallationFields } from "@/components/wordpress/wp-optimistic";
 
 type ProtectionFlags = {
   available?: boolean;
@@ -30,12 +31,16 @@ export function AccessProtectionCard({
   const [passwordOpen, setPasswordOpen] = React.useState(false);
   const utils = trpc.useUtils();
 
+  const hotlinkOpt = wpInstallationFields(utils, installationId, ["hotlinkProtection"]);
+
   const toggleHotlink = trpc.plesk.wpFeatures.updateHotlinkProtectionStatus.useMutation({
-    onSuccess: () => {
-      toast.success("Hotlink protection updated");
-      utils.plesk.wordpress.getById.invalidate({ id: installationId });
+    onMutate: hotlinkOpt.onMutate,
+    onSuccess: () => toast.success("Hotlink protection updated"),
+    onError: (e, _vars, ctx) => {
+      toast.error(e.message);
+      hotlinkOpt.rollback(ctx);
     },
-    onError: (e) => toast.error(e.message),
+    onSettled: () => utils.plesk.wordpress.getById.invalidate({ id: installationId }),
   });
 
   const hotlinkAvailable = hotlinkProtection?.available !== false;
@@ -75,9 +80,10 @@ export function AccessProtectionCard({
               <div className="flex flex-wrap items-center justify-end gap-2">
                 <div className="flex items-center gap-2">
                   <Label className="text-xs text-muted-foreground">Enabled</Label>
-                  <Switch
+                  <WpActionSwitch
                     checked={hotlinkProtection?.status ?? false}
-                    disabled={!hotlinkAvailable || toggleHotlink.isPending}
+                    disabled={!hotlinkAvailable}
+                    loading={toggleHotlink.isPending}
                     onCheckedChange={(val) =>
                       toggleHotlink.mutate({ installationId, status: val })
                     }

@@ -3,8 +3,9 @@
 import { Terminal } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { WpActionSwitch, isPendingField } from "@/components/wordpress/wp-action-switch";
 import { WpManageSheet } from "@/components/wordpress/wp-manage-sheet";
+import { wpDebugSettingsFields } from "@/components/wordpress/wp-optimistic";
 import { trpc } from "@/utils/trpc";
 
 export function DebugSettingsSheet({
@@ -22,12 +23,17 @@ export function DebugSettingsSheet({
     { enabled: open },
   );
 
+  const debugSettingsOpt = wpDebugSettingsFields(utils, installationId);
+
   const updateDebugSettings = trpc.plesk.wpFeatures.updateDebugSettings.useMutation({
-    onSuccess: () => {
-      toast.success("Debug settings saved");
-      utils.plesk.wpFeatures.getDebugSettings.invalidate({ installationId });
+    onMutate: debugSettingsOpt.onMutate,
+    onSuccess: () => toast.success("Debug settings saved"),
+    onError: (e, _vars, ctx) => {
+      toast.error(e.message);
+      debugSettingsOpt.rollback(ctx);
     },
-    onError: (e) => toast.error(e.message),
+    onSettled: () =>
+      utils.plesk.wpFeatures.getDebugSettings.invalidate({ installationId }),
   });
 
   return (
@@ -54,9 +60,9 @@ export function DebugSettingsSheet({
             className="flex items-center justify-between gap-3 rounded-lg border px-4 py-3"
           >
             <Label className="text-sm font-medium text-primary">{label}</Label>
-            <Switch
+            <WpActionSwitch
               checked={Boolean(checked)}
-              disabled={updateDebugSettings.isPending}
+              loading={isPendingField(updateDebugSettings, key)}
               onCheckedChange={(val) =>
                 updateDebugSettings.mutate({ installationId, [key]: val })
               }

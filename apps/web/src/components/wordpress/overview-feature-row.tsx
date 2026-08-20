@@ -3,12 +3,12 @@
 import { AlertTriangle, SlidersHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { WpActionSwitch } from "@/components/wordpress/wp-action-switch";
 import { cn } from "@/lib/utils";
 
 export function OverviewFeatureRow({
@@ -31,6 +31,7 @@ export function OverviewFeatureRow({
     checked: boolean;
     onCheckedChange: (value: boolean) => void;
     disabled?: boolean;
+    loading?: boolean;
   };
   onConfigure?: () => void;
 }) {
@@ -77,9 +78,10 @@ export function OverviewFeatureRow({
           </Button>
         ) : null}
         {toggle ? (
-          <Switch
+          <WpActionSwitch
             checked={toggle.checked}
             disabled={toggle.disabled}
+            loading={toggle.loading}
             onCheckedChange={toggle.onCheckedChange}
           />
         ) : null}

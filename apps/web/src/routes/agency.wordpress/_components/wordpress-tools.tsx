@@ -20,11 +20,11 @@ import { toast } from "@/components/ui/sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { WpActionSwitch, isPendingField } from "@/components/wordpress/wp-action-switch";
 
 import { trpc } from "@/utils/trpc";
 import { MaintenanceModeDialog } from "./maintenance-mode-dialog";
@@ -211,10 +211,10 @@ export function WordPressTools({ installationId }: WordPressToolsProps) {
                                 Enable WP_DEBUG constant to see errors.
                             </p>
                         </div>
-                        <Switch
+                        <WpActionSwitch
                             checked={f?.debug?.status || false}
+                            loading={updateDebug.isPending}
                             onCheckedChange={(val) => updateDebug.mutate({ installationId: id, status: val })}
-                            disabled={updateDebug.isPending}
                         />
                     </div>
 
@@ -224,22 +224,25 @@ export function WordPressTools({ installationId }: WordPressToolsProps) {
                                 <>
                                     <div className="flex items-center justify-between">
                                         <Label className="font-normal">WP_DEBUG_LOG (Save errors to debug.log)</Label>
-                                        <Switch
+                                        <WpActionSwitch
                                             checked={debugSettings?.data?.wpDebugLog || false}
+                                            loading={isPendingField(updateDebugSettings, "wpDebugLog")}
                                             onCheckedChange={(val) => updateDebugSettings.mutate({ installationId: id, wpDebugLog: val })}
                                         />
                                     </div>
                                     <div className="flex items-center justify-between">
                                         <Label className="font-normal">WP_DEBUG_DISPLAY (Show errors on screen)</Label>
-                                        <Switch
+                                        <WpActionSwitch
                                             checked={debugSettings?.data?.wpDebugDisplay || false}
+                                            loading={isPendingField(updateDebugSettings, "wpDebugDisplay")}
                                             onCheckedChange={(val) => updateDebugSettings.mutate({ installationId: id, wpDebugDisplay: val })}
                                         />
                                     </div>
                                     <div className="flex items-center justify-between">
                                         <Label className="font-normal">SCRIPT_DEBUG (Use non-minified scripts)</Label>
-                                        <Switch
+                                        <WpActionSwitch
                                             checked={debugSettings?.data?.scriptDebug || false}
+                                            loading={isPendingField(updateDebugSettings, "scriptDebug")}
                                             onCheckedChange={(val) => updateDebugSettings.mutate({ installationId: id, scriptDebug: val })}
                                         />
                                     </div>
@@ -269,10 +272,10 @@ export function WordPressTools({ installationId }: WordPressToolsProps) {
                                 Prevent other sites from linking directly to your images.
                             </p>
                         </div>
-                        <Switch
+                        <WpActionSwitch
                             checked={f?.hotlinkProtection?.status || false}
+                            loading={toggleHotlink.isPending}
                             onCheckedChange={(val) => toggleHotlink.mutate({ installationId: id, status: val })}
-                            disabled={toggleHotlink.isPending}
                         />
                     </div>
                     <Separator />
@@ -322,10 +325,10 @@ export function WordPressTools({ installationId }: WordPressToolsProps) {
                             <Badge variant={f?.indexing?.status ? "default" : "secondary"}>
                                 {f?.indexing?.status ? "Indexed" : "No-Index"}
                             </Badge>
-                            <Switch
+                            <WpActionSwitch
                                 checked={f?.indexing?.status || false}
+                                loading={toggleIndexing.isPending}
                                 onCheckedChange={(val) => toggleIndexing.mutate({ installationId: id, status: val })}
-                                disabled={toggleIndexing.isPending}
                             />
                         </div>
                     </div>
@@ -337,10 +340,10 @@ export function WordPressTools({ installationId }: WordPressToolsProps) {
                                 Enable Nginx-level caching for faster load times.
                             </p>
                         </div>
-                        <Switch
+                        <WpActionSwitch
                             checked={f?.nginxCaching?.status || false}
+                            loading={toggleNginx.isPending}
                             onCheckedChange={(val) => toggleNginx.mutate({ installationId: id, status: val })}
-                            disabled={toggleNginx.isPending}
                         />
                     </div>
                 </CardContent>
@@ -367,10 +370,10 @@ export function WordPressTools({ installationId }: WordPressToolsProps) {
                         </div>
                         <div className="flex items-center gap-2">
                             {f?.maintenance?.status && <Badge variant="secondary">Active</Badge>}
-                            <Switch
+                            <WpActionSwitch
                                 checked={f?.maintenance?.status || false}
+                                loading={toggleMaintenance.isPending}
                                 onCheckedChange={(val) => toggleMaintenance.mutate({ installationId: id, status: val })}
-                                disabled={toggleMaintenance.isPending}
                             />
                             <Button variant="outline" size="icon" onClick={() => setMaintenanceOpen(true)}>
                                 <Settings className="h-4 w-4" />
