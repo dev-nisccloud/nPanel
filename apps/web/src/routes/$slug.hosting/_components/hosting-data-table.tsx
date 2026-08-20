@@ -7,6 +7,7 @@ import {
   HostingStatusBadge,
   HostingSubscriptionsList,
 } from "@/components/hosting/hosting-subscriptions-list";
+import { CleanListCell } from "@/components/ui/clean-list";
 import { ViewDetailsButton, VisitSiteButton } from "@/components/ui/list-row-actions";
 import { HostingPricing } from "./hosting-pricing";
 import { getStatusBadgeVariant, getStatusDisplayText } from "./hosting-utils";
@@ -70,21 +71,22 @@ export function HostingDataTable() {
       ) : (
         <span className="text-muted-foreground">{titleText}</span>
       ),
-      trailing: (
-        <HostingStatusBadge
-          label={getStatusDisplayText(subscription.status)}
-          variant={getStatusBadgeVariant(subscription.status)}
-          isActive={statusUpper === "ACTIVE"}
-        />
-      ),
-      description:
-        subscribed || expires ? (
-          <p>
-            {subscribed ? `Subscribed ${subscribed}` : null}
-            {subscribed && expires ? " · " : null}
-            {expires ? `Expires ${expires}` : null}
-          </p>
-        ) : undefined,
+      cells: {
+        dates: (
+          <CleanListCell>
+            {subscribed || expires
+              ? `${subscribed ? `Subscribed ${subscribed}` : ""}${subscribed && expires ? " · " : ""}${expires ? `Expires ${expires}` : ""}`
+              : "—"}
+          </CleanListCell>
+        ),
+        status: (
+          <HostingStatusBadge
+            label={getStatusDisplayText(subscription.status)}
+            variant={getStatusBadgeVariant(subscription.status)}
+            isActive={statusUpper === "ACTIVE"}
+          />
+        ),
+      },
       actions: (
         <>
           <VisitSiteButton url={siteUrl} />
@@ -107,6 +109,12 @@ export function HostingDataTable() {
       isError={isError}
       error={error as unknown as Error | null}
       onRetry={() => refetch()}
+      columns={[
+        { key: "name", label: "Domain" },
+        { key: "dates", label: "Dates", className: "min-w-0 flex-1", hideBelow: "@lg" },
+        { key: "status", label: "Status", className: "w-28 shrink-0", hideBelow: "@xl" },
+        { key: "actions", label: "Actions", align: "end" },
+      ]}
     />
   );
 }

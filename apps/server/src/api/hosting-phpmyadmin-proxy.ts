@@ -2,7 +2,10 @@ import type { Context } from "hono";
 import { createContext } from "@npanel/api";
 import { getPleskPanelBase } from "@npanel/api/lib/plesk/session";
 
-export const PHPMYADMIN_PROXY_PREFIX = "/api/hosting/phpmyadmin/proxy";
+/** Public embed URL — must not contain "phpmyadmin" (WAFs drop those paths). */
+export const PHPMYADMIN_PUBLIC_PREFIX = "/api/hosting/db-webadmin";
+export const PHPMYADMIN_PROXY_PREFIX = `${PHPMYADMIN_PUBLIC_PREFIX}/p`;
+const LEGACY_PROXY_PREFIX = "/api/hosting/phpmyadmin/proxy";
 
 const FRAME_BUST_NOOP = `/* nPanel: keep phpMyAdmin in the iframe and undo clickjack hiding */
 (function () {
@@ -84,6 +87,28 @@ function neutralizeFrameBusting(body: string): string {
     .replace(/\bparent\.location(?:\.href)?\s*=/g, "self.location=");
 }
 
+/** Map a public proxy rest path (`/pma/...`) back to the Plesk path (`/phpMyAdmin/...`). */
+function publicRestToPlesk(restPath: string): string {
+  if (restPath === "/pma" || restPath.startsWith("/pma/")) {
+    return `/phpMyAdmin${restPath.slice("/pma".length)}`;
+  }
+  if (restPath === "/mod-pma" || restPath.startsWith("/mod-pma/")) {
+    return `/modules/phpMyAdmin${restPath.slice("/mod-pma".length)}`;
+  }
+  return restPath;
+}
+
+/** Map a Plesk path to a public proxy URL that does not contain "phpmyadmin". */
+function pleskPathToPublic(pathname: string, search = "", hash = ""): string {
+  let path = pathname;
+  if (/^\/phpMyAdmin/i.test(path)) {
+    path = `/pma${path.replace(/^\/phpMyAdmin/i, "")}`;
+  } else if (/^\/modules\/phpMyAdmin/i.test(path)) {
+    path = `/mod-pma${path.replace(/^\/modules\/phpMyAdmin/i, "")}`;
+  }
+  return `${PHPMYADMIN_PROXY_PREFIX}${path}${search}${hash}`;
+}
+
 function rewritePleskUrls(body: string, contentType: string | null): string {
   const plesk = getPleskPanelBase();
   const prefix = PHPMYADMIN_PROXY_PREFIX;
@@ -91,12 +116,16 @@ function rewritePleskUrls(body: string, contentType: string | null): string {
 
   let next = body.replaceAll(plesk, prefix);
   next = next.replaceAll(plesk.replace(/^https:/, "http:"), prefix);
+  next = next.replaceAll(`${prefix}/phpMyAdmin`, `${prefix}/pma`);
+  next = next.replaceAll(`${prefix}/modules/phpMyAdmin`, `${prefix}/mod-pma`);
+  next = next.replace(
+    /(^|["'`(=])\/(?!api\/hosting\/db-webadmin)(phpMyAdmin|modules\/phpMyAdmin)/gi,
+    (_match, lead: string, name: string) =>
+      `${lead}${/modules/i.test(name) ? `${prefix}/mod-pma` : `${prefix}/pma`}`,
+  );
+  next = next.replace(/(^|["'`(=])\/login\.php/gi, `$1${prefix}/login.php`);
 
   if (type === "text/html" || type === "application/xhtml+xml") {
-    next = next.replace(
-      /(^|["'`(=])\/(?!api\/hosting\/phpmyadmin\/proxy)(phpMyAdmin|modules\/phpMyAdmin)/g,
-      `$1${PHPMYADMIN_PROXY_PREFIX}/$2`,
-    );
     if (!/<style\b[^>]*id=["']npanel-pma-frame["']/i.test(next)) {
       next = next.replace(
         /<head([^>]*)>/i,
@@ -114,12 +143,13 @@ function rewriteLocation(location: string): string {
     const plesk = pleskOrigin();
     const resolved = new URL(location, plesk);
     if (resolved.origin === plesk.origin) {
-      return `${PHPMYADMIN_PROXY_PREFIX}${resolved.pathname}${resolved.search}${resolved.hash}`;
+      return pleskPathToPublic(resolved.pathname, resolved.search, resolved.hash);
     }
     return location;
   } catch {
-    if (location.startsWith("/") && !location.startsWith(PHPMYADMIN_PROXY_PREFIX)) {
-      return `${PHPMYADMIN_PROXY_PREFIX}${location}`;
+    if (location.startsWith("/") && !location.startsWith(PHPMYADMIN_PUBLIC_PREFIX)) {
+      const parsed = new URL(location, "http://placeholder.local");
+      return pleskPathToPublic(parsed.pathname, parsed.search, parsed.hash);
     }
     return location;
   }
@@ -131,10 +161,13 @@ function rewriteSetCookie(value: string): string {
     .replace(/;\s*secure/gi, "")
     .replace(/;\s*samesite=[^;]*/gi, "");
   if (/;\s*path=/i.test(next)) {
-    next = next.replace(/;\s*path=[^;]*/i, `; Path=${PHPMYADMIN_PROXY_PREFIX}`);
+    next = next.replace(/;\s*path=[^;]*/i, `; Path=${PHPMYADMIN_PUBLIC_PREFIX}`);
   } else {
-    next = `${next}; Path=${PHPMYADMIN_PROXY_PREFIX}`;
+    next = `${next}; Path=${PHPMYADMIN_PUBLIC_PREFIX}`;
   }
+  // CRITICAL: Add SameSite=None for iframe compatibility
+  // Note: SameSite=None requires Secure, but we're on same-origin so we can use Lax
+  next = `${next}; SameSite=Lax`;
   return next.trim();
 }
 
@@ -143,12 +176,13 @@ function isAllowedProxyPath(pathname: string): boolean {
   return (
     path.startsWith("/phpmyadmin") ||
     path.startsWith("/modules/phpmyadmin") ||
+    path.startsWith("/login.php") ||
     path.startsWith("/theme/") ||
     path.startsWith("/favicon.ico")
   );
 }
 
-function isPhpMyAdminPath(pathname: string): boolean {
+export function isPhpMyAdminPath(pathname: string): boolean {
   const path = pathname.toLowerCase();
   return path.includes("phpmyadmin");
 }
@@ -282,7 +316,7 @@ async function fetchPlesk(url: string, init: RequestInit = {}): Promise<PleskFet
   };
 }
 
-async function followPleskDocument(
+export async function followPleskDocument(
   startUrl: string,
   jar: CookieJar,
 ): Promise<{ result: PleskFetchResult; finalUrl: URL; setCookies: string[] }> {
@@ -365,8 +399,8 @@ async function followPleskDocument(
   return { result: last, finalUrl: url, setCookies: allSetCookies };
 }
 
-function proxyUrlFor(finalUrl: URL): string {
-  return `${PHPMYADMIN_PROXY_PREFIX}${finalUrl.pathname}${finalUrl.search}${finalUrl.hash}`;
+export function proxyUrlFor(finalUrl: URL): string {
+  return pleskPathToPublic(finalUrl.pathname, finalUrl.search, finalUrl.hash);
 }
 
 function cookieResponseHeaders(setCookies: string[]): Headers {
@@ -379,14 +413,14 @@ function cookieResponseHeaders(setCookies: string[]): Headers {
   return headers;
 }
 
-/** Consume Plesk SSO redirects server-side, then send the iframe to phpMyAdmin. */
+/** Consume Plesk SSO server-side and return phpMyAdmin HTML (no 302 — intermediaries rewrite Location to /login.php). */
 export async function bootstrapPhpMyAdminEmbed(
   c: Context,
   pleskSsoUrl: string,
 ): Promise<Response> {
   try {
     const jar: CookieJar = new Map();
-    const { finalUrl, setCookies } = await followPleskDocument(pleskSsoUrl, jar);
+    const { result, finalUrl, setCookies } = await followPleskDocument(pleskSsoUrl, jar);
 
     if (!isPhpMyAdminPath(finalUrl.pathname)) {
       console.error("[phpMyAdmin proxy] SSO did not reach phpMyAdmin", {
@@ -395,17 +429,22 @@ export async function bootstrapPhpMyAdminEmbed(
       return c.text("Could not open phpMyAdmin. Please try again.", 502);
     }
 
-    const proxyPath = proxyUrlFor(finalUrl);
-    console.log("[phpMyAdmin bootstrap] redirect", {
+    const contentType = result.headers.get("content-type") ?? "text/html; charset=utf-8";
+    const headers = cookieResponseHeaders(setCookies);
+    headers.set("content-type", contentType);
+    headers.set("cache-control", "no-store, no-cache, must-revalidate");
+
+    console.log("[phpMyAdmin bootstrap] document", {
       finalUrl: finalUrl.href,
-      proxyPath,
+      status: result.status,
       cookies: setCookies.length,
     });
 
-    const headers = cookieResponseHeaders(setCookies);
-    headers.set("location", proxyPath);
-    headers.set("cache-control", "no-store, no-cache, must-revalidate");
-    return new Response(null, { status: 302, headers });
+    const body = shouldRewrite(contentType)
+      ? rewritePleskUrls(decodeText(result.body), contentType)
+      : result.body;
+
+    return new Response(body, { status: 200, headers });
   } catch (error) {
     console.error("[phpMyAdmin proxy] bootstrap error:", error);
     return c.text("Could not open phpMyAdmin. Please try again.", 502);
@@ -418,13 +457,19 @@ export async function handlePhpMyAdminProxy(c: Context) {
     return c.text("Unauthorized", 401);
   }
 
-  const prefix = PHPMYADMIN_PROXY_PREFIX;
   const url = new URL(c.req.url);
-  if (!url.pathname.startsWith(`${prefix}/`) && url.pathname !== prefix) {
+  const isLegacy =
+    url.pathname.startsWith(`${LEGACY_PROXY_PREFIX}/`) || url.pathname === LEGACY_PROXY_PREFIX;
+  const isCurrent =
+    url.pathname.startsWith(`${PHPMYADMIN_PROXY_PREFIX}/`) ||
+    url.pathname === PHPMYADMIN_PROXY_PREFIX;
+  if (!isLegacy && !isCurrent) {
     return c.text("Not found", 404);
   }
 
-  const restPath = url.pathname === prefix ? "/" : url.pathname.slice(prefix.length);
+  const prefix = isLegacy ? LEGACY_PROXY_PREFIX : PHPMYADMIN_PROXY_PREFIX;
+  const restRaw = url.pathname === prefix ? "/" : url.pathname.slice(prefix.length);
+  const restPath = isLegacy ? restRaw : publicRestToPlesk(restRaw);
   if (!restPath.startsWith("/") || restPath.includes("..")) {
     return c.text("Invalid path", 400);
   }
@@ -487,7 +532,14 @@ export async function handlePhpMyAdminProxy(c: Context) {
   outgoing.set("accept-encoding", "identity");
   outgoing.set("user-agent", c.req.header("user-agent") || CHROME_UA);
   outgoing.set("referer", `${getPleskPanelBase()}/`);
-  const cookie = cookiesForPlesk(c.req.header("cookie"));
+  const incomingCookies = c.req.header("cookie");
+  const cookie = cookiesForPlesk(incomingCookies);
+  console.log("[phpMyAdmin proxy]", {
+    path: restPath,
+    incomingCookiesLen: incomingCookies?.length ?? 0,
+    pleskCookiesLen: cookie?.length ?? 0,
+    cookiePreview: cookie?.slice(0, 200),
+  });
   if (cookie) outgoing.set("cookie", cookie);
 
   const body =

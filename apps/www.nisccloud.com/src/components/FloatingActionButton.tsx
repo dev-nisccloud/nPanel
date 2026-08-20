@@ -303,8 +303,8 @@ export function FloatingActionButton({ className }: { className?: string }) {
         <button
           type="button"
           className={cn(
-            "fixed bottom-6 right-6 z-50",
-            "flex h-14 w-14 items-center justify-center rounded-full",
+            "fixed z-50 bottom-4 right-4 h-12 w-12 sm:bottom-6 sm:right-6 sm:h-14 sm:w-14",
+            "flex items-center justify-center rounded-full",
             "bg-primary shadow-lg hover:shadow-xl hover:scale-105",
             "transition-all duration-200 active:scale-95",
             "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
@@ -330,9 +330,12 @@ export function FloatingActionButton({ className }: { className?: string }) {
       <PopoverContent
         align="end"
         side="top"
-        sideOffset={16}
+        sideOffset={12}
+        collisionPadding={12}
         className={cn(
-          "flex h-[580px] w-[360px] flex-col overflow-hidden rounded-2xl border border-border/50 bg-background p-0 shadow-2xl",
+          "flex min-w-0 w-[min(22.5rem,calc(100vw-1.5rem))] max-w-[calc(100vw-1.5rem)]",
+          "h-[min(36.25rem,calc(100dvh-5.5rem))] max-h-[calc(100dvh-5.5rem)]",
+          "flex-col overflow-hidden rounded-2xl border border-border/50 bg-background p-0 shadow-2xl",
           "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
           "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
           "data-[side=top]:slide-in-from-bottom-4",
@@ -635,7 +638,7 @@ export function FloatingActionButton({ className }: { className?: string }) {
                     </button>
                   </div>
 
-                  <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
+                  <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overflow-x-hidden px-4 py-4">
                     {loadingChat && messages.length === 0 ? (
                       <div className="flex justify-center py-10">
                         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -653,13 +656,13 @@ export function FloatingActionButton({ className }: { className?: string }) {
                             <div
                               key={msg.id}
                               className={cn(
-                                "flex",
+                                "flex min-w-0",
                                 mine ? "justify-end" : "justify-start",
                               )}
                             >
                               <div
                                 className={cn(
-                                  "max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap",
+                                  "min-w-0 max-w-[min(80%,100%)] overflow-hidden break-words [overflow-wrap:anywhere] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap",
                                   mine
                                     ? "bg-primary text-primary-foreground"
                                     : "bg-muted text-foreground",
@@ -692,7 +695,7 @@ export function FloatingActionButton({ className }: { className?: string }) {
                     <p className="px-4 pb-1 text-xs text-red-600">{error}</p>
                   ) : null}
 
-                  <div className="flex flex-shrink-0 items-end gap-2 border-t px-3 py-3">
+                  <div className="flex min-w-0 flex-shrink-0 items-end gap-2 border-t px-3 py-3">
                     <textarea
                       value={messageInput}
                       onChange={(e) => setMessageInput(e.target.value)}
@@ -704,7 +707,7 @@ export function FloatingActionButton({ className }: { className?: string }) {
                       }}
                       rows={1}
                       placeholder="Type a message..."
-                      className="max-h-28 min-h-[40px] flex-1 resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/40"
+                      className="max-h-28 min-h-[40px] min-w-0 flex-1 resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/40"
                     />
                     <button
                       type="button"

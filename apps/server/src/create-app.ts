@@ -238,6 +238,8 @@ export function createApp(options: CreateAppOptions = {}) {
     app.get("/api/manifest.json", handleManifest);
     app.get("/api/plesk/health-check", handlePleskHealthCheck);
     app.get("/api/plesk/test-connection", handleTestPleskConnection);
+    app.get("/api/hosting/db-webadmin", handlePhpMyAdminSso);
+    app.use("/api/hosting/db-webadmin/p/*", handlePhpMyAdminProxy);
     app.get("/api/hosting/phpmyadmin", handlePhpMyAdminSso);
     app.use("/api/hosting/phpmyadmin/proxy/*", handlePhpMyAdminProxy);
     app.get("/api/nisc-backup/health-check", handleNiscBackupHealthCheck);

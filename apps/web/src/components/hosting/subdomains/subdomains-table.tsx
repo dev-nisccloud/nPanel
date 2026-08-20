@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CleanList, CleanListRow } from "@/components/ui/clean-list";
+import { CleanList, CleanListCell, CleanListRow } from "@/components/ui/clean-list";
 import { Badge } from "@/components/ui/badge";
 import { subdomainSchema } from "./subdomains-schema";
 import { useSubdomainsByDomain } from "./use-subdomains-by-domain";
@@ -259,7 +259,15 @@ export function SubdomainsTable({
         </div>
       </div>
 
-      <CleanList emptyMessage="No subdomains found">
+      <CleanList
+        emptyMessage="No subdomains found"
+        columns={[
+          { key: "name", label: "Name" },
+          { key: "php", label: "PHP", className: "w-24 shrink-0", hideBelow: "@lg" },
+          { key: "ssl", label: "SSL", className: "w-28 shrink-0", hideBelow: "@xl" },
+          { key: "actions", label: "Actions", align: "end" },
+        ]}
+      >
         {filteredData.map((subdomain) => {
           const phpHandler = subdomain.properties?.php_handler_id ?? "";
           const phpVersion = phpVersionFromHandler(phpHandler);
@@ -269,22 +277,25 @@ export function SubdomainsTable({
               key={subdomain.id}
               title={subdomain.name || "Unknown subdomain"}
               description={
-                <span className="block truncate">
-                  {`Parent: ${subdomain.parent || ""} · PHP ${phpVersion}`}
-                </span>
+                subdomain.parent ? (
+                  <span className="block truncate">Parent: {subdomain.parent}</span>
+                ) : undefined
               }
-              trailing={
-                <Badge
-                  variant={subdomain.properties?.ssl ? "default" : "secondary"}
-                  className={
-                    subdomain.properties?.ssl
-                      ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800"
-                      : ""
-                  }
-                >
-                  {subdomain.properties?.ssl ? "SSL On" : "SSL Off"}
-                </Badge>
-              }
+              cells={{
+                php: <CleanListCell>{phpVersion ? `PHP ${phpVersion}` : "—"}</CleanListCell>,
+                ssl: (
+                  <Badge
+                    variant={subdomain.properties?.ssl ? "default" : "secondary"}
+                    className={
+                      subdomain.properties?.ssl
+                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800"
+                        : ""
+                    }
+                  >
+                    {subdomain.properties?.ssl ? "SSL On" : "SSL Off"}
+                  </Badge>
+                ),
+              }}
               onClick={() => handleView(subdomain)}
               actions={
                 <>

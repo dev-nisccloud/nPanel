@@ -7,6 +7,7 @@ import { Plus, RefreshCw, Globe, ArrowRightLeft } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router";
 import { Button } from "@/components/ui/button";
 import { ViewDetailsButton, VisitSiteButton } from "@/components/ui/list-row-actions";
+import { CleanListCell } from "@/components/ui/clean-list";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { type DomainPortfolio } from "./$slug.domains-portfolio/_components/domain-portfolio-card";
 import { EmptyState } from "./$slug.domains-portfolio/_components/empty-state";
@@ -111,15 +112,16 @@ export default function DomainsPortfolioPage() {
           <DomainListTitle domain={item.domain} />
         </Link>
       ),
-      trailing: <DomainStatusBadge status={item.status} />,
-      description:
-        subscribed || expires ? (
-          <p>
-            {subscribed ? `Subscribed ${subscribed}` : null}
-            {subscribed && expires ? " · " : null}
-            {expires ? `Expires ${expires}` : null}
-          </p>
-        ) : undefined,
+      cells: {
+        dates: (
+          <CleanListCell>
+            {subscribed || expires
+              ? `${subscribed ? `Subscribed ${subscribed}` : ""}${subscribed && expires ? " · " : ""}${expires ? `Expires ${expires}` : ""}`
+              : "—"}
+          </CleanListCell>
+        ),
+        status: <DomainStatusBadge status={item.status} />,
+      },
       actions: (
         <>
           <VisitSiteButton url={item.domain} />
@@ -164,6 +166,12 @@ export default function DomainsPortfolioPage() {
             onSearchChange={setSearchQuery}
             totalCount={displayItems.length}
             searchPlaceholder="Search by name or status..."
+            columns={[
+              { key: "name", label: "Domain" },
+              { key: "dates", label: "Dates", className: "min-w-0 flex-1", hideBelow: "@lg" },
+              { key: "status", label: "Status", className: "w-28 shrink-0", hideBelow: "@xl" },
+              { key: "actions", label: "Actions", align: "end" },
+            ]}
             toolbarActions={
               <>
                 <Button

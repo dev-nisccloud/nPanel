@@ -10,6 +10,7 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CleanListCell } from "@/components/ui/clean-list";
 import {
   SearchableCleanList,
   type SearchableCleanListItem,
@@ -204,35 +205,39 @@ export function PluginsTable({ installationId }: PluginsTableProps) {
           (p) => p.slug === plugin.slug,
         ));
 
-    const descriptionParts = [
-      plugin.description ? truncateText(plugin.description) : null,
-      pluginVersionLine(plugin),
-      plugin.autoUpdates ? "Auto-update on" : "Auto-update off",
-    ].filter(Boolean);
+    const description = plugin.description ? truncateText(plugin.description) : undefined;
 
     return {
       key: plugin.slug || plugin.title || `plugin-${index}`,
       title: plugin.title || plugin.slug || "Unknown plugin",
-      description: (
-        <span className="block truncate">{descriptionParts.join(" · ")}</span>
-      ),
-      trailing: (
-        <div className="flex flex-wrap items-center justify-end gap-1.5">
-          <Badge
-            variant={isActive ? "default" : "secondary"}
-            className={isActive ? WORDPRESS_STATUS_ACTIVE_BADGE_CLASS : undefined}
-          >
-            {isActive ? "Active" : "Inactive"}
-          </Badge>
-          {hasUpdate ? <Badge variant="outline">Update</Badge> : null}
-          {plugin.vulnerable ? (
-            <Badge variant="destructive">
-              <ShieldAlert className="mr-1 h-3 w-3" />
-              Vulnerable
+      description: description ? (
+        <span className="block truncate">{description}</span>
+      ) : undefined,
+      cells: {
+        version: (
+          <CleanListCell>
+            {pluginVersionLine(plugin)}
+            {plugin.autoUpdates ? " · Auto-update on" : " · Auto-update off"}
+          </CleanListCell>
+        ),
+        status: (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Badge
+              variant={isActive ? "default" : "secondary"}
+              className={isActive ? WORDPRESS_STATUS_ACTIVE_BADGE_CLASS : undefined}
+            >
+              {isActive ? "Active" : "Inactive"}
             </Badge>
-          ) : null}
-        </div>
-      ),
+            {hasUpdate ? <Badge variant="outline">Update</Badge> : null}
+            {plugin.vulnerable ? (
+              <Badge variant="destructive">
+                <ShieldAlert className="mr-1 h-3 w-3" />
+                Vulnerable
+              </Badge>
+            ) : null}
+          </div>
+        ),
+      },
       actions: isProcessing ? (
         <div className="flex items-center justify-center p-2">
           <Spinner className="h-4 w-4" />
@@ -310,6 +315,12 @@ export function PluginsTable({ installationId }: PluginsTableProps) {
             ? "No plugins match your search."
             : "No plugins installed on this WordPress site."
         }
+        columns={[
+          { key: "name", label: "Plugin" },
+          { key: "version", label: "Version", className: "min-w-0 flex-1", hideBelow: "@lg" },
+          { key: "status", label: "Status", className: "w-40 shrink-0", hideBelow: "@xl" },
+          { key: "actions", label: "Actions", align: "end" },
+        ]}
         toolbarActions={
           <>
             <Button

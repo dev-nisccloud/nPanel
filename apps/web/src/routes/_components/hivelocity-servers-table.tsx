@@ -11,6 +11,7 @@ import { resolveClientErrorMessage } from "@/lib/public-error-message";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ViewDetailsButton } from "@/components/ui/list-row-actions";
+import { CleanListCell } from "@/components/ui/clean-list";
 import {
 	SearchableCleanList,
 	type SearchableCleanListItem,
@@ -285,12 +286,16 @@ export function HivelocityServersTable({ type, resourceBasePath, teamSlug }: Hiv
 						{titleText}
 					</Link>
 				),
-				trailing: (
-					<Badge className="bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200 border-amber-200 dark:border-amber-800 text-xs font-medium">
-						Suspended
-					</Badge>
-				),
-				description: <p>Service suspended  open details to review or reactivate.</p>,
+				cells: {
+					ip: <CleanListCell>—</CleanListCell>,
+					location: <CleanListCell>—</CleanListCell>,
+					status: (
+						<Badge className="bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200 border-amber-200 dark:border-amber-800 text-xs font-medium">
+							Suspended
+						</Badge>
+					),
+				},
+				description: <p>Service suspended — open details to review or reactivate.</p>,
 				actions: <ViewDetailsButton onClick={() => navigate(detailHref)} />,
 				onClick: () => navigate(detailHref),
 			};
@@ -312,38 +317,36 @@ export function HivelocityServersTable({ type, resourceBasePath, teamSlug }: Hiv
 					{titleText}
 				</Link>
 			),
-			trailing: (
-				<span className="inline-flex flex-wrap items-center gap-1">
-					{getStatusBadge(isVps ? resource.status : resource.powerStatus)}
-					{resource.status && resource.status !== "active" && !isVps
-						? getStatusBadge(resource.status)
-						: null}
-					{!hideSubscriptionActions && isLinked ? (
-						<Badge
-							variant="outline"
-							className="bg-green-50 text-green-700 border-green-200 gap-1.5 py-0.5 px-2"
-						>
-							<span className="h-1.5 w-1.5 rounded-full bg-green-600" />
-							Linked
-						</Badge>
-					) : null}
-				</span>
-			),
-			description: (
-				<p>
-					{resource.hostname && resource.hostname !== resource.name ? (
-						<>
-							<span className="break-all">{resource.hostname}</span>
-							{" · "}
-						</>
-					) : null}
-					<span className="font-mono">{ip}</span>
-					{" · "}
-					{locationLabel}
-					{" · "}
-					Created {created}
-				</p>
-			),
+			cells: {
+				ip: <CleanListCell mono>{ip}</CleanListCell>,
+				location: (
+					<CleanListCell>
+						{locationLabel}
+						{created && created !== "-" ? ` · ${created}` : ""}
+					</CleanListCell>
+				),
+				status: (
+					<span className="inline-flex flex-wrap items-center gap-1">
+						{getStatusBadge(isVps ? resource.status : resource.powerStatus)}
+						{resource.status && resource.status !== "active" && !isVps
+							? getStatusBadge(resource.status)
+							: null}
+						{!hideSubscriptionActions && isLinked ? (
+							<Badge
+								variant="outline"
+								className="bg-green-50 text-green-700 border-green-200 gap-1.5 py-0.5 px-2"
+							>
+								<span className="h-1.5 w-1.5 rounded-full bg-green-600" />
+								Linked
+							</Badge>
+						) : null}
+					</span>
+				),
+			},
+			description:
+				resource.hostname && resource.hostname !== resource.name ? (
+					<p className="truncate">{resource.hostname}</p>
+				) : undefined,
 			actions: (
 				<>
 					<ViewDetailsButton onClick={() => navigate(detailHref)} />
@@ -406,6 +409,13 @@ export function HivelocityServersTable({ type, resourceBasePath, teamSlug }: Hiv
 				searchPlaceholder="Search hostname, IP, type…"
 				emptyMessage={emptyStateDescription(type, isTeamScoped)}
 				errorTitle="Failed to load servers"
+				columns={[
+					{ key: "name", label: "Name" },
+					{ key: "ip", label: "IP", className: "min-w-0 w-40 shrink-0", hideBelow: "@lg" },
+					{ key: "location", label: "Location", className: "min-w-0 flex-1", hideBelow: "@xl" },
+					{ key: "status", label: "Status", className: "w-36 shrink-0", hideBelow: "@2xl" },
+					{ key: "actions", label: "Actions", align: "end" },
+				]}
 				toolbarActions={
 					<>
 						<Select

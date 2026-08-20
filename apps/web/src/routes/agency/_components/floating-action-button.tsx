@@ -185,7 +185,7 @@ function TicketChatBubbleBody({ msg }: { msg: ChatMessage }) {
   return (
     <div
       className={cn(
-        "max-w-[80%] rounded-2xl px-4 py-2.5 space-y-2",
+        "min-w-0 max-w-[min(80%,100%)] overflow-hidden break-words [overflow-wrap:anywhere] rounded-2xl px-4 py-2.5 space-y-2",
         msg.type === "user"
           ? "bg-primary text-primary-foreground"
           : "bg-primary/10 text-foreground",
@@ -215,7 +215,7 @@ function TicketChatBubbleBody({ msg }: { msg: ChatMessage }) {
       )}
 
       {msg.message && (
-        <p className="text-sm leading-relaxed whitespace-pre-line">{msg.message}</p>
+        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{msg.message}</p>
       )}
     </div>
   );
@@ -688,8 +688,8 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
       <PopoverTrigger asChild>
         <button
           className={cn(
-            "fixed bottom-6 right-6 z-50",
-            "flex h-14 w-14 items-center justify-center rounded-full",
+            "fixed z-50 bottom-4 right-4 h-12 w-12 sm:bottom-6 sm:right-6 sm:h-14 sm:w-14",
+            "flex items-center justify-center rounded-full",
             "bg-primary shadow-lg hover:shadow-xl hover:scale-105",
             "transition-all duration-200 active:scale-95",
             "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
@@ -715,13 +715,16 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
       <PopoverContent
         align="end"
         side="top"
-        sideOffset={16}
+        sideOffset={12}
+        collisionPadding={12}
         className={cn(
-          "w-[360px] p-0 rounded-2xl overflow-hidden border border-border/50 shadow-2xl bg-background",
+          "min-w-0 w-[min(22.5rem,calc(100vw-1.5rem))] max-w-[calc(100vw-1.5rem)]",
+          "h-[min(36.25rem,calc(100dvh-5.5rem))] max-h-[calc(100dvh-5.5rem)]",
+          "p-0 rounded-2xl overflow-hidden border border-border/50 shadow-2xl bg-background",
           "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
           "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
           "data-[side=top]:slide-in-from-bottom-4",
-          "h-[580px] flex flex-col",
+          "flex flex-col",
         )}
       >
         {/* ── Content area (scrollable per tab) ── */}
@@ -872,7 +875,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
               MESSAGES TAB
           ═══════════════════════════════════════ */}
           {activeTab === "messages" && (
-            <div className="flex flex-col h-full">
+            <div className="flex flex-col h-full min-h-0 overflow-hidden">
               {/* ── Ticket List ── */}
               {messagesSubView === "list" && (
                 <>
@@ -1145,7 +1148,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                             </div>
                             <div className="flex flex-col gap-1 pr-8 min-w-0 flex-1">
                               <div className="flex items-center justify-between">
-                                <span className="font-bold text-sm text-foreground">
+                                <span className="truncate font-bold text-sm text-foreground">
                                   {chat.title || "Zepo Chat"}
                                 </span>
                                 <span className="text-xs text-muted-foreground ml-2 flex-shrink-0">
@@ -1326,7 +1329,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                                 <div
                                   key={msg.id}
                                   className={cn(
-                                    "flex items-end gap-2",
+                                    "flex min-w-0 items-end gap-2",
                                     msg.type === "user" ? "justify-end" : "justify-start",
                                   )}
                                 >
@@ -1475,7 +1478,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
               {/* ── Zepo Chat ── */}
               {messagesSubView === "zepo" && (
                 <>
-                  <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b flex-shrink-0">
+                  <div className="flex min-w-0 items-center justify-between px-4 pt-4 pb-3 border-b flex-shrink-0">
                     <div className="flex items-center gap-2">
                       <Button
                         variant="ghost"
@@ -1492,15 +1495,15 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                       />
                     </div>
                     <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                        onClick={handleEscalateToHuman}
-                        disabled={isSending}
-                      >
-                        Speak to human
-                      </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 shrink-0 px-2 text-[11px] text-blue-600 hover:bg-blue-50 hover:text-blue-700 sm:text-xs"
+                          onClick={handleEscalateToHuman}
+                          disabled={isSending}
+                        >
+                          Speak to human
+                        </Button>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -1578,7 +1581,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                           <div
                             key={msg.id}
                             className={cn(
-                              "flex items-end gap-2",
+                              "flex min-w-0 items-end gap-2",
                               msg.type === "user" ? "justify-end" : "justify-start",
                             )}
                           >
@@ -1595,7 +1598,8 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                             )}
                             <div
                               className={cn(
-                                "max-w-[80%] rounded-2xl px-4 py-2.5",
+                                "min-w-0 max-w-[min(80%,100%)] overflow-hidden break-words [overflow-wrap:anywhere] rounded-2xl px-4 py-2.5",
+                                "[&_pre]:max-w-full [&_pre]:overflow-x-auto [&_img]:max-w-full [&_table]:max-w-full",
                                 msg.type === "user"
                                   ? "bg-primary text-primary-foreground"
                                   : "bg-primary/10 text-foreground",
@@ -1633,14 +1637,14 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                     )}
                   </ScrollArea>
 
-                  <div className="px-3 py-3 border-t flex items-end gap-2 flex-shrink-0">
-                    <div className="flex-1">
+                  <div className="px-3 py-3 border-t flex min-w-0 items-end gap-2 flex-shrink-0">
+                    <div className="min-w-0 flex-1">
                       <textarea
                         value={messageInput}
                         onChange={(e) => setMessageInput(e.target.value)}
                         placeholder={isSending ? "Zepo is responding..." : "Ask Zepo anything..."}
                         className={cn(
-                          "w-full bg-muted/50 border-0 rounded-xl px-3 py-2 focus:ring-0 resize-none min-h-[36px] max-h-[100px] text-sm",
+                          "w-full min-w-0 bg-muted/50 border-0 rounded-xl px-3 py-2 focus:ring-0 resize-none min-h-[36px] max-h-[100px] text-sm",
                           "placeholder:text-muted-foreground/50",
                           isSending && "opacity-50 cursor-not-allowed",
                         )}

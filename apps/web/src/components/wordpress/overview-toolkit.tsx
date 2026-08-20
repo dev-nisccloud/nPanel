@@ -25,6 +25,10 @@ import { useWpInstallationSummary } from "@/components/wordpress/use-wp-installa
 import { MaintenanceModeDialog } from "@/routes/$slug.wordpress/_components/maintenance-mode-dialog";
 import { useConfirm } from "@/hooks/use-confirm";
 import { trpc } from "@/utils/trpc";
+import {
+  wpCronMetaFields,
+  wpInstallationFields,
+} from "@/components/wordpress/wp-optimistic";
 import type { z } from "zod";
 import type { wordpressInstallationSchema } from "@/routes/$slug.wordpress/_components/schema";
 
@@ -82,69 +86,99 @@ export function WordPressOverviewToolkit({
 
   const invalidate = () => utils.plesk.wordpress.getById.invalidate({ id: installationId });
 
+  const hotlinkOpt = wpInstallationFields(utils, installationId, ["hotlinkProtection"]);
+  const passwordOpt = wpInstallationFields(utils, installationId, ["passwordProtection"]);
+  const maintenanceOpt = wpInstallationFields(utils, installationId, ["maintenance"]);
+  const debugOpt = wpInstallationFields(utils, installationId, ["debug"]);
+  const smartOpt = wpInstallationFields(utils, installationId, ["updates", "smart"]);
+  const indexingOpt = wpInstallationFields(utils, installationId, ["indexing"]);
+  const nginxOpt = wpInstallationFields(utils, installationId, ["nginxCaching"]);
+  const patchesOpt = wpInstallationFields(utils, installationId, ["virtualPatches"]);
+  const cronOpt = wpCronMetaFields(utils, installationId);
+
   const toggleHotlink = trpc.plesk.wpFeatures.updateHotlinkProtectionStatus.useMutation({
-    onSuccess: () => {
-      toast.success("Hotlink protection updated");
-      invalidate();
+    onMutate: hotlinkOpt.onMutate,
+    onSuccess: () => toast.success("Hotlink protection updated"),
+    onError: (e, _vars, ctx) => {
+      toast.error(e.message);
+      hotlinkOpt.rollback(ctx);
     },
-    onError: (e) => toast.error(e.message),
+    onSettled: invalidate,
   });
   const togglePassword = trpc.plesk.wpFeatures.updatePasswordProtection.useMutation({
-    onSuccess: () => {
-      toast.success("Password protection updated");
-      invalidate();
+    onMutate: passwordOpt.onMutate,
+    onSuccess: () => toast.success("Password protection updated"),
+    onError: (e, _vars, ctx) => {
+      toast.error(e.message);
+      passwordOpt.rollback(ctx);
     },
-    onError: (e) => toast.error(e.message),
+    onSettled: invalidate,
   });
   const toggleMaintenance = trpc.plesk.wpFeatures.toggleMaintenanceMode.useMutation({
-    onSuccess: () => {
-      toast.success("Maintenance mode updated");
-      invalidate();
+    onMutate: maintenanceOpt.onMutate,
+    onSuccess: () => toast.success("Maintenance mode updated"),
+    onError: (e, _vars, ctx) => {
+      toast.error(e.message);
+      maintenanceOpt.rollback(ctx);
     },
-    onError: (e) => toast.error(e.message),
+    onSettled: invalidate,
   });
   const toggleDebug = trpc.plesk.wpFeatures.updateDebugStatus.useMutation({
-    onSuccess: () => {
-      toast.success("Debug mode updated");
-      invalidate();
+    onMutate: debugOpt.onMutate,
+    onSuccess: () => toast.success("Debug mode updated"),
+    onError: (e, _vars, ctx) => {
+      toast.error(e.message);
+      debugOpt.rollback(ctx);
     },
-    onError: (e) => toast.error(e.message),
+    onSettled: invalidate,
   });
   const toggleSmart = trpc.plesk.wpFeatures.toggleSmartUpdate.useMutation({
-    onSuccess: () => {
-      toast.success("Smart Update setting saved");
-      invalidate();
+    onMutate: smartOpt.onMutate,
+    onSuccess: () => toast.success("Smart Update setting saved"),
+    onError: (e, _vars, ctx) => {
+      toast.error(e.message);
+      smartOpt.rollback(ctx);
     },
-    onError: (e) => toast.error(e.message),
+    onSettled: invalidate,
   });
   const toggleIndexing = trpc.plesk.wpFeatures.toggleIndexing.useMutation({
-    onSuccess: () => {
-      toast.success("Search indexing updated");
-      invalidate();
+    onMutate: indexingOpt.onMutate,
+    onSuccess: () => toast.success("Search indexing updated"),
+    onError: (e, _vars, ctx) => {
+      toast.error(e.message);
+      indexingOpt.rollback(ctx);
     },
-    onError: (e) => toast.error(e.message),
+    onSettled: invalidate,
   });
   const toggleNginx = trpc.plesk.wpFeatures.toggleNginxCaching.useMutation({
-    onSuccess: () => {
-      toast.success("Nginx caching updated");
-      invalidate();
+    onMutate: nginxOpt.onMutate,
+    onSuccess: () => toast.success("Nginx caching updated"),
+    onError: (e, _vars, ctx) => {
+      toast.error(e.message);
+      nginxOpt.rollback(ctx);
     },
-    onError: (e) => toast.error(e.message),
+    onSettled: invalidate,
   });
   const updateCron = trpc.plesk.wpFeatures.updateWpCronTakeover.useMutation({
-    onSuccess: () => {
-      toast.success("WP-Cron takeover updated");
+    onMutate: cronOpt.onMutate,
+    onSuccess: () => toast.success("WP-Cron takeover updated"),
+    onError: (e, _vars, ctx) => {
+      toast.error(e.message);
+      cronOpt.rollback(ctx);
+    },
+    onSettled: () => {
       utils.plesk.wpFeatures.getWpCronTakeoverMeta.invalidate({ installationId });
       invalidate();
     },
-    onError: (e) => toast.error(e.message),
   });
   const togglePatches = trpc.plesk.wpFeatures.applyVirtualPatches.useMutation({
-    onSuccess: () => {
-      toast.success("Vulnerability protection updated");
-      invalidate();
+    onMutate: patchesOpt.onMutate,
+    onSuccess: () => toast.success("Vulnerability protection updated"),
+    onError: (e, _vars, ctx) => {
+      toast.error(e.message);
+      patchesOpt.rollback(ctx);
     },
-    onError: (e) => toast.error(e.message),
+    onSettled: invalidate,
   });
 
   const [EnableMaintenanceDialog, confirmEnableMaintenance] = useConfirm(
@@ -227,7 +261,8 @@ export function WordPressOverviewToolkit({
             hint="Test updates on a clone before applying them to the live site"
             toggle={{
               checked: Boolean(smart?.status),
-              disabled: toggleSmart.isPending || smart?.available === false,
+              disabled: smart?.available === false,
+              loading: toggleSmart.isPending,
               onCheckedChange: (val) =>
                 toggleSmart.mutate({ installationId, status: val }),
             }}
@@ -249,7 +284,7 @@ export function WordPressOverviewToolkit({
             warning={Boolean(f?.debug?.status)}
             toggle={{
               checked: Boolean(f?.debug?.status),
-              disabled: toggleDebug.isPending,
+              loading: toggleDebug.isPending,
               onCheckedChange: async (val) => {
                 if (val) {
                   const ok = await confirmEnableDebug();
@@ -265,7 +300,7 @@ export function WordPressOverviewToolkit({
             hint="Restrict site access with HTTP basic authentication"
             toggle={{
               checked: Boolean(f?.passwordProtection?.status),
-              disabled: togglePassword.isPending,
+              loading: togglePassword.isPending,
               onCheckedChange: async (val) => {
                 if (val) {
                   setPasswordOpen(true);
@@ -284,7 +319,7 @@ export function WordPressOverviewToolkit({
             warning={Boolean(f?.maintenance?.status)}
             toggle={{
               checked: Boolean(f?.maintenance?.status),
-              disabled: toggleMaintenance.isPending,
+              loading: toggleMaintenance.isPending,
               onCheckedChange: async (val) => {
                 if (val) {
                   const ok = await confirmEnableMaintenance();
@@ -340,7 +375,8 @@ export function WordPressOverviewToolkit({
             hint="Virtual patches and automated responses when issues are found"
             toggle={{
               checked: patchesOn,
-              disabled: togglePatches.isPending || !patchesAvailable,
+              disabled: !patchesAvailable,
+              loading: togglePatches.isPending,
               onCheckedChange: (val) =>
                 togglePatches.mutate({ installationId, status: val }),
             }}
@@ -351,8 +387,8 @@ export function WordPressOverviewToolkit({
             hint="Block external sites from embedding your media"
             toggle={{
               checked: Boolean(f?.hotlinkProtection?.status),
-              disabled:
-                toggleHotlink.isPending || f?.hotlinkProtection?.available === false,
+              disabled: f?.hotlinkProtection?.available === false,
+              loading: toggleHotlink.isPending,
               onCheckedChange: (val) =>
                 toggleHotlink.mutate({ installationId, status: val }),
             }}
@@ -372,7 +408,7 @@ export function WordPressOverviewToolkit({
             hint="When disabled, search engines are discouraged from indexing the site"
             toggle={{
               checked: Boolean(f?.indexing?.status),
-              disabled: toggleIndexing.isPending,
+              loading: toggleIndexing.isPending,
               onCheckedChange: (val) =>
                 toggleIndexing.mutate({ installationId, status: val }),
             }}
@@ -382,8 +418,8 @@ export function WordPressOverviewToolkit({
             hint="Enable nginx-level caching when available on the server"
             toggle={{
               checked: Boolean(f?.nginxCaching?.status),
-              disabled:
-                toggleNginx.isPending || f?.nginxCaching?.available === false,
+              disabled: f?.nginxCaching?.available === false,
+              loading: toggleNginx.isPending,
               onCheckedChange: (val) =>
                 toggleNginx.mutate({ installationId, status: val }),
             }}
@@ -393,7 +429,8 @@ export function WordPressOverviewToolkit({
             hint="Run WordPress cron via the server task scheduler"
             toggle={{
               checked: Boolean(cron?.status),
-              disabled: updateCron.isPending || cron?.available === false,
+              disabled: cron?.available === false,
+              loading: updateCron.isPending,
               onCheckedChange: (val) =>
                 updateCron.mutate({ installationId, status: val }),
             }}
@@ -470,7 +507,11 @@ export function WordPressOverviewToolkit({
         onOpenChange={setCronOpen}
         takeoverEnabled={Boolean(cron?.status)}
         replacementEnabled={Boolean(cron?.taskReplacementStatus)}
-        disabled={updateCron.isPending || cron?.available === false}
+        disabled={cron?.available === false}
+        loadingTakeover={updateCron.isPending && updateCron.variables?.status !== undefined}
+        loadingReplacement={
+          updateCron.isPending && updateCron.variables?.taskReplacementStatus !== undefined
+        }
         onTakeoverChange={(val) => updateCron.mutate({ installationId, status: val })}
         onReplacementChange={(val) =>
           updateCron.mutate({ installationId, taskReplacementStatus: val })

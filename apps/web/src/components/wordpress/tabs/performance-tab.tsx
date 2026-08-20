@@ -3,10 +3,14 @@
 import { Gauge, Search, Clock } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { WpActionSwitch, isPendingField } from "@/components/wordpress/wp-action-switch";
 import { WpFeatureCard } from "@/components/wordpress/wp-feature-card";
 import { useWpInstallationSummary } from "@/components/wordpress/use-wp-installation-summary";
 import { trpc } from "@/utils/trpc";
+import {
+  wpCronMetaFields,
+  wpInstallationFields,
+} from "@/components/wordpress/wp-optimistic";
 
 export function WordPressPerformanceTab({ installationId }: { installationId: string }) {
   const { id, features } = useWpInstallationSummary(installationId);
@@ -17,31 +21,41 @@ export function WordPressPerformanceTab({ installationId }: { installationId: st
   });
   const cron = cronMeta?.data;
 
-  const invalidate = () => utils.plesk.wordpress.getById.invalidate({ id });
+  const indexingOpt = wpInstallationFields(utils, id, ["indexing"]);
+  const nginxOpt = wpInstallationFields(utils, id, ["nginxCaching"]);
+  const cronOpt = wpCronMetaFields(utils, id);
 
   const toggleIndexing = trpc.plesk.wpFeatures.toggleIndexing.useMutation({
-    onSuccess: () => {
-      toast.success("Search indexing updated");
-      invalidate();
+    onMutate: indexingOpt.onMutate,
+    onSuccess: () => toast.success("Search indexing updated"),
+    onError: (e, _vars, ctx) => {
+      toast.error(e.message);
+      indexingOpt.rollback(ctx);
     },
-    onError: (e) => toast.error(e.message),
+    onSettled: () => utils.plesk.wordpress.getById.invalidate({ id }),
   });
 
   const toggleNginx = trpc.plesk.wpFeatures.toggleNginxCaching.useMutation({
-    onSuccess: () => {
-      toast.success("Nginx caching updated");
-      invalidate();
+    onMutate: nginxOpt.onMutate,
+    onSuccess: () => toast.success("Nginx caching updated"),
+    onError: (e, _vars, ctx) => {
+      toast.error(e.message);
+      nginxOpt.rollback(ctx);
     },
-    onError: (e) => toast.error(e.message),
+    onSettled: () => utils.plesk.wordpress.getById.invalidate({ id }),
   });
 
   const updateCron = trpc.plesk.wpFeatures.updateWpCronTakeover.useMutation({
-    onSuccess: () => {
-      toast.success("WP-Cron takeover updated");
-      utils.plesk.wpFeatures.getWpCronTakeoverMeta.invalidate({ installationId: id });
-      invalidate();
+    onMutate: cronOpt.onMutate,
+    onSuccess: () => toast.success("WP-Cron takeover updated"),
+    onError: (e, _vars, ctx) => {
+      toast.error(e.message);
+      cronOpt.rollback(ctx);
     },
-    onError: (e) => toast.error(e.message),
+    onSettled: () => {
+      utils.plesk.wpFeatures.getWpCronTakeoverMeta.invalidate({ installationId: id });
+      utils.plesk.wordpress.getById.invalidate({ id });
+    },
   });
 
   return (
@@ -57,9 +71,9 @@ export function WordPressPerformanceTab({ installationId }: { installationId: st
       >
         <div className="flex items-center justify-between gap-3">
           <Label className="text-sm">Allow indexing</Label>
-          <Switch
+          <WpActionSwitch
             checked={features?.indexing?.status ?? false}
-            disabled={toggleIndexing.isPending}
+            loading={toggleIndexing.isPending}
             onCheckedChange={(val) => toggleIndexing.mutate({ installationId: id, status: val })}
           />
         </div>
@@ -77,9 +91,10 @@ export function WordPressPerformanceTab({ installationId }: { installationId: st
       >
         <div className="flex items-center justify-between gap-3">
           <Label className="text-sm">Enable caching</Label>
-          <Switch
+          <WpActionSwitch
             checked={features?.nginxCaching?.status ?? false}
-            disabled={toggleNginx.isPending || features?.nginxCaching?.available === false}
+            disabled={features?.nginxCaching?.available === false}
+            loading={toggleNginx.isPending}
             onCheckedChange={(val) => toggleNginx.mutate({ installationId: id, status: val })}
           />
         </div>
@@ -98,9 +113,10 @@ export function WordPressPerformanceTab({ installationId }: { installationId: st
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <Label className="text-sm">Takeover enabled</Label>
-            <Switch
+            <WpActionSwitch
               checked={cron?.status ?? false}
-              disabled={updateCron.isPending || cron?.available === false}
+              disabled={cron?.available === false}
+              loading={isPendingField(updateCron, "status")}
               onCheckedChange={(val) => updateCron.mutate({ installationId: id, status: val })}
             />
           </div>
@@ -108,9 +124,10 @@ export function WordPressPerformanceTab({ installationId }: { installationId: st
             <Label className="text-sm font-normal text-muted-foreground">
               Replace wp-cron.php in web requests
             </Label>
-            <Switch
+            <WpActionSwitch
               checked={cron?.taskReplacementStatus ?? false}
-              disabled={updateCron.isPending || cron?.available === false}
+              disabled={cron?.available === false}
+              loading={isPendingField(updateCron, "taskReplacementStatus")}
               onCheckedChange={(val) =>
                 updateCron.mutate({ installationId: id, taskReplacementStatus: val })
               }

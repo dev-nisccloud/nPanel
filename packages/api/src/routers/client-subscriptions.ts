@@ -1850,6 +1850,91 @@ export const clientSubscriptionsRouter = router({
             return idStrs.filter((id) => found.has(id));
         }),
 
+    /** Linked Nisc customers for Plesk hosting ids (agency hosting list: team, user, expiry). */
+    getLinkedHostingCustomersByPleskIds: protectedProcedure
+        .input(z.object({ pleskSubscriptionIds: z.array(z.union([z.string(), z.number()])) }))
+        .output(
+            z.array(
+                z.object({
+                    pleskSubscriptionId: z.string(),
+                    teamName: z.string().nullable(),
+                    userName: z.string().nullable(),
+                    expiryDate: z.date().nullable(),
+                }),
+            ),
+        )
+        .query(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view subscriptions",
+                });
+            }
+            if (input.pleskSubscriptionIds.length === 0) return [];
+            const idStrs = [...new Set(input.pleskSubscriptionIds.map((id) => String(id)))];
+            const idSet = new Set(idStrs);
+            const readScope = await buildSubscriptionReadScope(session.user.id, session.user.role);
+            const subs = await db
+                .select({
+                    serviceRefs: niscClientSubscription.serviceRefs,
+                    expiryDate: niscClientSubscription.expiryDate,
+                    userId: niscClientSubscription.userId,
+                    teamName: team.name,
+                    createdAt: niscClientSubscription.createdAt,
+                })
+                .from(niscClientSubscription)
+                .leftJoin(team, eq(niscClientSubscription.teamId, team.id))
+                .where(
+                    and(
+                        or(
+                            ...idStrs.map(
+                                (id) => sql`(${niscClientSubscription.serviceRefs}->>'pleskSubscriptionId') = ${id}`,
+                            ),
+                        ),
+                        readScope ?? sql`true`,
+                    ),
+                )
+                .orderBy(desc(niscClientSubscription.createdAt));
+
+            const userIds = [...new Set(subs.map((s) => s.userId).filter(Boolean))] as string[];
+            const users =
+                userIds.length > 0
+                    ? await db
+                          .select({
+                              id: userTable.id,
+                              name: userTable.name,
+                              email: userTable.email,
+                          })
+                          .from(userTable)
+                          .where(inArray(userTable.id, userIds))
+                    : [];
+            const userMap = new Map(users.map((u) => [u.id, u.name ?? u.email ?? u.id]));
+
+            const byPleskId = new Map<
+                string,
+                {
+                    pleskSubscriptionId: string;
+                    teamName: string | null;
+                    userName: string | null;
+                    expiryDate: Date | null;
+                }
+            >();
+            for (const sub of subs) {
+                const refs = sub.serviceRefs as Record<string, unknown> | null;
+                const rawId = refs?.pleskSubscriptionId;
+                const pleskId = rawId == null ? "" : String(rawId);
+                if (!pleskId || !idSet.has(pleskId) || byPleskId.has(pleskId)) continue;
+                byPleskId.set(pleskId, {
+                    pleskSubscriptionId: pleskId,
+                    teamName: sub.teamName ?? null,
+                    userName: sub.userId ? userMap.get(sub.userId) ?? null : null,
+                    expiryDate: sub.expiryDate ?? null,
+                });
+            }
+            return [...byPleskId.values()];
+        }),
+
     /** Check if a Hivelocity device id already has a linked NiscClientSubscription (serviceRefs.hivelocityDeviceId). */
     getHasLinkedSubscriptionByHivelocityDeviceId: protectedProcedure
         .input(z.object({ hivelocityDeviceId: z.union([z.string(), z.number()]) }))

@@ -5,16 +5,24 @@ import { Search } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CleanList, CleanListRow } from "@/components/ui/clean-list";
+import {
+  CleanList,
+  CleanListRow,
+  type CleanListColumn,
+} from "@/components/ui/clean-list";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+
+export type { CleanListColumn };
 
 export type SearchableCleanListItem = {
   key: string;
   title: React.ReactNode;
   description?: React.ReactNode;
+  leading?: React.ReactNode;
   trailing?: React.ReactNode;
   actions?: React.ReactNode;
+  cells?: Record<string, React.ReactNode>;
   onClick?: () => void;
 };
 
@@ -25,16 +33,22 @@ function ListSkeleton() {
         <Skeleton className="h-9 w-full max-w-sm" />
         <Skeleton className="h-9 w-36" />
       </div>
-      <div className="overflow-hidden rounded-xl border bg-card divide-y">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="flex items-center justify-between gap-3 px-4 py-3.5">
-            <div className="min-w-0 flex-1 space-y-1.5">
-              <Skeleton className="h-4 w-48" />
-              <Skeleton className="h-3 w-32 max-w-full" />
+      <div className="overflow-hidden rounded-xl border bg-card">
+        <div className="flex items-center gap-3 border-b bg-muted/40 px-4 py-2">
+          <Skeleton className="h-3 w-16" />
+          <Skeleton className="ml-auto h-3 w-14" />
+        </div>
+        <div className="divide-y">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center justify-between gap-3 px-4 py-3.5">
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <Skeleton className="h-4 w-48" />
+                <Skeleton className="h-3 w-32 max-w-full" />
+              </div>
+              <Skeleton className="h-7 w-8" />
             </div>
-            <Skeleton className="h-7 w-8" />
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -75,6 +89,7 @@ export function SearchableCleanList({
   onRetry,
   searchPlaceholder = "Search...",
   errorTitle = "Failed to load",
+  columns,
 }: {
   items: SearchableCleanListItem[];
   searchQuery: string;
@@ -88,6 +103,7 @@ export function SearchableCleanList({
   onRetry?: () => void;
   searchPlaceholder?: string;
   errorTitle?: string;
+  columns?: CleanListColumn[];
 }) {
   if (isLoading) {
     return <ListSkeleton />;
@@ -127,14 +143,16 @@ export function SearchableCleanList({
         ) : null}
       </div>
 
-      <CleanList emptyMessage={emptyMessage}>
+      <CleanList emptyMessage={emptyMessage} columns={columns}>
         {items.map((item) => (
           <CleanListRow
             key={item.key}
             title={item.title}
             description={item.description}
+            leading={item.leading}
             trailing={item.trailing}
             actions={item.actions}
+            cells={item.cells}
             onClick={item.onClick}
           />
         ))}

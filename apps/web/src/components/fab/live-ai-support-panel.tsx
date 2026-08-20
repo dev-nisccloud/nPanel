@@ -210,11 +210,11 @@ function LiveAiSupportChat({
             </div>
           ) : (
             <>
-              <div className="flex gap-2">
+              <div className="flex min-w-0 gap-2">
                 <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
                   <Sparkles className="h-4 w-4 text-primary" />
                 </div>
-                <div className="max-w-[85%] rounded-2xl rounded-tl-md bg-muted/60 px-3 py-2 text-sm leading-relaxed">
+                <div className="min-w-0 max-w-[min(85%,calc(100%-2.5rem))] overflow-hidden break-words [overflow-wrap:anywhere] rounded-2xl rounded-tl-md bg-muted/60 px-3 py-2 text-sm leading-relaxed">
                   {GREETING}
                 </div>
               </div>
@@ -222,22 +222,27 @@ function LiveAiSupportChat({
               {messages.map((msg) => (
                 <div
                   key={msg.id}
-                  className={cn("flex", msg.role === "user" ? "justify-end" : "justify-start")}
+                  className={cn(
+                    "flex min-w-0",
+                    msg.role === "user" ? "justify-end" : "justify-start",
+                  )}
                 >
                   <div
                     className={cn(
-                      "max-w-[90%] space-y-2",
+                      "min-w-0 max-w-[min(90%,100%)] overflow-hidden break-words [overflow-wrap:anywhere] space-y-2",
                       msg.role === "user"
                         ? "rounded-2xl rounded-tr-md bg-primary px-3 py-2 text-sm text-primary-foreground"
                         : "w-full",
                     )}
                   >
                     {msg.role === "user" ? (
-                      <p className="whitespace-pre-wrap">{msg.content}</p>
+                      <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+                        {msg.content}
+                      </p>
                     ) : (
                       <>
                         {msg.content ? (
-                          <div className="rounded-2xl rounded-tl-md bg-muted/60 px-3 py-2 text-sm">
+                          <div className="overflow-hidden break-words [overflow-wrap:anywhere] rounded-2xl rounded-tl-md bg-muted/60 px-3 py-2 text-sm [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_img]:max-w-full">
                             <AiMarkdownRenderer content={msg.content} />
                           </div>
                         ) : sending && msg.id.startsWith("local-assistant") ? (
@@ -271,7 +276,7 @@ function LiveAiSupportChat({
 
       {error ? <p className="px-3 pb-1 text-xs text-red-600">{error}</p> : null}
 
-      <div className="flex flex-shrink-0 items-end gap-2 border-t px-3 py-3">
+      <div className="flex min-w-0 flex-shrink-0 items-end gap-2 border-t px-3 py-3">
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -284,7 +289,7 @@ function LiveAiSupportChat({
           rows={1}
           disabled={sending || bootstrapping || !sessionId}
           placeholder={sending ? "Zeepo is answering…" : "Ask about hosting, VPS, domains…"}
-          className="max-h-28 min-h-[40px] flex-1 resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/40"
+          className="max-h-28 min-h-[40px] min-w-0 flex-1 resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/40"
         />
         {sending ? (
           <Button

@@ -6,13 +6,14 @@ import { toast } from "@/components/ui/sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { WpActionSwitch } from "@/components/wordpress/wp-action-switch";
 import { SmartPhpUpdateCard } from "@/components/wordpress/smart-php-update-card";
 import { SmartUpdateResultCard } from "@/components/wordpress/smart-update-result-card";
 import { WpManageSheet } from "@/components/wordpress/wp-manage-sheet";
 import { WpTaskProgress, extractTaskUrl } from "@/components/wordpress/wp-task-progress";
 import { useConfirm } from "@/hooks/use-confirm";
 import { trpc } from "@/utils/trpc";
+import { wpInstallationFields } from "@/components/wordpress/wp-optimistic";
 
 export function SmartUpdatesSheet({
   open,
@@ -32,12 +33,16 @@ export function SmartUpdatesSheet({
   const [taskUrl, setTaskUrl] = React.useState<string | null>(null);
   const utils = trpc.useUtils();
 
+  const smartOpt = wpInstallationFields(utils, installationId, ["updates", "smart"]);
+
   const toggleSmart = trpc.plesk.wpFeatures.toggleSmartUpdate.useMutation({
-    onSuccess: () => {
-      toast.success("Smart Update setting saved");
-      utils.plesk.wordpress.getById.invalidate({ id: installationId });
+    onMutate: smartOpt.onMutate,
+    onSuccess: () => toast.success("Smart Update setting saved"),
+    onError: (e, _vars, ctx) => {
+      toast.error(e.message);
+      smartOpt.rollback(ctx);
     },
-    onError: (e) => toast.error(e.message),
+    onSettled: () => utils.plesk.wordpress.getById.invalidate({ id: installationId }),
   });
 
   const runSmartUpdate = trpc.plesk.wpFeatures.applySmartUpdate.useMutation({
@@ -86,9 +91,10 @@ export function SmartUpdatesSheet({
             {smartEnabled ? "Enabled" : "Disabled"}
           </Badge>
           <Label className="text-xs text-muted-foreground">Enable</Label>
-          <Switch
+          <WpActionSwitch
             checked={smartEnabled ?? false}
-            disabled={toggleSmart.isPending || smartAvailable === false}
+            disabled={smartAvailable === false}
+            loading={toggleSmart.isPending}
             onCheckedChange={(val) =>
               toggleSmart.mutate({ installationId, status: val })
             }

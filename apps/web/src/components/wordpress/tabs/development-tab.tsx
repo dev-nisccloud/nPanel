@@ -3,12 +3,16 @@
 import { Terminal } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { WpActionSwitch, isPendingField } from "@/components/wordpress/wp-action-switch";
 import { WpFeatureCard } from "@/components/wordpress/wp-feature-card";
 import { useWpInstallationSummary } from "@/components/wordpress/use-wp-installation-summary";
 import { useConfirm } from "@/hooks/use-confirm";
 import { trpc } from "@/utils/trpc";
+import {
+  wpDebugSettingsFields,
+  wpInstallationFields,
+} from "@/components/wordpress/wp-optimistic";
 
 export function WordPressDevelopmentTab({ installationId }: { installationId: string }) {
   const { id, features } = useWpInstallationSummary(installationId);
@@ -17,20 +21,27 @@ export function WordPressDevelopmentTab({ installationId }: { installationId: st
   const { data: debugSettings, isLoading: debugLoading } =
     trpc.plesk.wpFeatures.getDebugSettings.useQuery({ installationId: id });
 
+  const debugOpt = wpInstallationFields(utils, id, ["debug"]);
+  const debugSettingsOpt = wpDebugSettingsFields(utils, id);
+
   const updateDebug = trpc.plesk.wpFeatures.updateDebugStatus.useMutation({
-    onSuccess: () => {
-      toast.success("Debug mode updated");
-      utils.plesk.wordpress.getById.invalidate({ id });
+    onMutate: debugOpt.onMutate,
+    onSuccess: () => toast.success("Debug mode updated"),
+    onError: (e, _vars, ctx) => {
+      toast.error(e.message);
+      debugOpt.rollback(ctx);
     },
-    onError: (e) => toast.error(e.message),
+    onSettled: () => utils.plesk.wordpress.getById.invalidate({ id }),
   });
 
   const updateDebugSettings = trpc.plesk.wpFeatures.updateDebugSettings.useMutation({
-    onSuccess: () => {
-      toast.success("Debug settings saved");
-      utils.plesk.wpFeatures.getDebugSettings.invalidate({ installationId: id });
+    onMutate: debugSettingsOpt.onMutate,
+    onSuccess: () => toast.success("Debug settings saved"),
+    onError: (e, _vars, ctx) => {
+      toast.error(e.message);
+      debugSettingsOpt.rollback(ctx);
     },
-    onError: (e) => toast.error(e.message),
+    onSettled: () => utils.plesk.wpFeatures.getDebugSettings.invalidate({ installationId: id }),
   });
 
   const [EnableDebugDialog, confirmEnableDebug] = useConfirm(
@@ -52,9 +63,9 @@ export function WordPressDevelopmentTab({ installationId }: { installationId: st
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3">
           <Label className="text-sm">Enable debug mode</Label>
-          <Switch
+          <WpActionSwitch
             checked={debugOn}
-            disabled={updateDebug.isPending}
+            loading={updateDebug.isPending}
             onCheckedChange={async (val) => {
               if (val) {
                 const ok = await confirmEnableDebug();
@@ -82,8 +93,9 @@ export function WordPressDevelopmentTab({ installationId }: { installationId: st
                 ).map(([key, label, checked]) => (
                   <div key={key} className="flex items-center justify-between gap-3">
                     <Label className="text-sm font-normal text-muted-foreground">{label}</Label>
-                    <Switch
+                    <WpActionSwitch
                       checked={Boolean(checked)}
+                      loading={isPendingField(updateDebugSettings, key)}
                       onCheckedChange={(val) =>
                         updateDebugSettings.mutate({ installationId: id, [key]: val })
                       }

@@ -4,25 +4,30 @@ import * as React from "react";
 import { Construction, Settings2 } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { WpActionSwitch } from "@/components/wordpress/wp-action-switch";
 import { WpFeatureCard } from "@/components/wordpress/wp-feature-card";
 import { useWpInstallationSummary } from "@/components/wordpress/use-wp-installation-summary";
 import { MaintenanceModeDialog } from "@/routes/$slug.wordpress/_components/maintenance-mode-dialog";
 import { useConfirm } from "@/hooks/use-confirm";
 import { trpc } from "@/utils/trpc";
+import { wpInstallationFields } from "@/components/wordpress/wp-optimistic";
 
 export function WordPressMaintenanceTab({ installationId }: { installationId: string }) {
   const { id, features } = useWpInstallationSummary(installationId);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const utils = trpc.useUtils();
 
+  const maintenanceOpt = wpInstallationFields(utils, id, ["maintenance"]);
+
   const toggleMaintenance = trpc.plesk.wpFeatures.toggleMaintenanceMode.useMutation({
-    onSuccess: () => {
-      toast.success("Maintenance mode updated");
-      utils.plesk.wordpress.getById.invalidate({ id });
+    onMutate: maintenanceOpt.onMutate,
+    onSuccess: () => toast.success("Maintenance mode updated"),
+    onError: (e, _vars, ctx) => {
+      toast.error(e.message);
+      maintenanceOpt.rollback(ctx);
     },
-    onError: (e) => toast.error(e.message),
+    onSettled: () => utils.plesk.wordpress.getById.invalidate({ id }),
   });
 
   const [EnableMaintenanceDialog, confirmEnableMaintenance] = useConfirm(
@@ -45,9 +50,9 @@ export function WordPressMaintenanceTab({ installationId }: { installationId: st
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Label className="text-sm">Enable maintenance mode</Label>
           <div className="flex items-center gap-2">
-            <Switch
+            <WpActionSwitch
               checked={features?.maintenance?.status ?? false}
-              disabled={toggleMaintenance.isPending}
+              loading={toggleMaintenance.isPending}
               onCheckedChange={async (val) => {
                 if (val) {
                   const ok = await confirmEnableMaintenance();

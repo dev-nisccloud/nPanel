@@ -5,9 +5,9 @@ import { RefreshCw, Search, Sparkles } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { WpActionSwitch } from "@/components/wordpress/wp-action-switch";
 import { WpTaskProgress, extractTaskUrl } from "@/components/wordpress/wp-task-progress";
 import { AutoUpdateSettingsCard } from "@/components/wordpress/auto-update-settings-card";
 import { UpdatesCheckerCard } from "@/components/wordpress/updates-checker-card";
@@ -16,6 +16,7 @@ import { SmartPhpUpdateCard } from "@/components/wordpress/smart-php-update-card
 import { useWpInstallationSummary } from "@/components/wordpress/use-wp-installation-summary";
 import { useConfirm } from "@/hooks/use-confirm";
 import { trpc } from "@/utils/trpc";
+import { wpInstallationFields } from "@/components/wordpress/wp-optimistic";
 import type { z } from "zod";
 import type { wordpressInstallationSchema } from "@/routes/$slug.wordpress/_components/schema";
 
@@ -26,19 +27,22 @@ export function WordPressUpdatesTab({
   installationId: string;
   wpData: z.infer<typeof wordpressInstallationSchema>;
 }) {
-  const { id } = useWpInstallationSummary(installationId);
+  const { id, features } = useWpInstallationSummary(installationId);
   const [taskUrl, setTaskUrl] = React.useState<string | null>(null);
   const utils = trpc.useUtils();
 
-  const smart = wpData.features?.updates?.smart;
-  const smartPhp = wpData.features?.updates?.php;
+  const smart = features?.updates?.smart ?? wpData.features?.updates?.smart;
+  const smartPhp = features?.updates?.php ?? wpData.features?.updates?.php;
+  const smartOpt = wpInstallationFields(utils, id, ["updates", "smart"]);
 
   const toggleSmart = trpc.plesk.wpFeatures.toggleSmartUpdate.useMutation({
-    onSuccess: () => {
-      toast.success("Smart Update setting saved");
-      utils.plesk.wordpress.getById.invalidate({ id });
+    onMutate: smartOpt.onMutate,
+    onSuccess: () => toast.success("Smart Update setting saved"),
+    onError: (e, _vars, ctx) => {
+      toast.error(e.message);
+      smartOpt.rollback(ctx);
     },
-    onError: (e) => toast.error(e.message),
+    onSettled: () => utils.plesk.wordpress.getById.invalidate({ id }),
   });
 
   const runSmartUpdate = trpc.plesk.wpFeatures.applySmartUpdate.useMutation({
@@ -111,9 +115,10 @@ export function WordPressUpdatesTab({
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex items-center gap-2">
                   <Label className="text-xs text-muted-foreground">Enable</Label>
-                  <Switch
+                  <WpActionSwitch
                     checked={smart?.status ?? false}
-                    disabled={toggleSmart.isPending || smart?.available === false}
+                    disabled={smart?.available === false}
+                    loading={toggleSmart.isPending}
                     onCheckedChange={(val) =>
                       toggleSmart.mutate({ installationId: id, status: val })
                     }

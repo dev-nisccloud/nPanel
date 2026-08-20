@@ -5,6 +5,7 @@ import * as React from "react";
 import { Badge } from "@/components/ui/badge";
 import {
   SearchableCleanList,
+  type CleanListColumn,
   type SearchableCleanListItem,
 } from "@/components/ui/searchable-clean-list";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,7 @@ export function WordPressList({
   onRetry,
   searchPlaceholder = "Search WordPress...",
   errorTitle = "Failed to load WordPress",
+  columns,
 }: {
   items: WordPressListItem[];
   searchQuery: string;
@@ -40,6 +42,7 @@ export function WordPressList({
   onRetry?: () => void;
   searchPlaceholder?: string;
   errorTitle?: string;
+  columns?: CleanListColumn[];
 }) {
   return (
     <SearchableCleanList
@@ -55,6 +58,7 @@ export function WordPressList({
       onRetry={onRetry}
       searchPlaceholder={searchPlaceholder}
       errorTitle={errorTitle}
+      columns={columns}
     />
   );
 }

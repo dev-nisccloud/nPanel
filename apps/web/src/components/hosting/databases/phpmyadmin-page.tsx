@@ -21,22 +21,7 @@ function phpMyAdminUrl(siteId: number, databaseId: number): string {
     databaseId: String(databaseId),
     embed: "1",
   });
-  const url = apiUrl(`/api/hosting/phpmyadmin?${params.toString()}`);
-  
-  // CRITICAL: Ensure URL is always relative, never absolute
-  if (url.startsWith("http://") || url.startsWith("https://")) {
-    console.error("[phpMyAdmin] CRITICAL: apiUrl returned absolute URL:", url);
-    // Force relative path
-    try {
-      const parsed = new URL(url);
-      return `${parsed.pathname}${parsed.search}${parsed.hash}`;
-    } catch {
-      return `/api/hosting/phpmyadmin?${params.toString()}`;
-    }
-  }
-  
-  console.log("[phpMyAdmin] iframe URL:", url, "origin:", window.location.origin);
-  return url;
+  return apiUrl(`/api/hosting/db-webadmin?${params.toString()}`);
 }
 
 export function PhpMyAdminPage({
@@ -47,53 +32,11 @@ export function PhpMyAdminPage({
 }: PhpMyAdminPageProps) {
   const [loaded, setLoaded] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [finalSrc, setFinalSrc] = React.useState<string | null>(null);
-  const initialUrl = phpMyAdminUrl(siteId, databaseId);
+  const src = phpMyAdminUrl(siteId, databaseId);
 
   React.useEffect(() => {
-    let cancelled = false;
-
-    async function fetchProxyUrl() {
-      try {
-        console.log("[phpMyAdmin] Fetching redirect chain for:", initialUrl);
-        
-        // Follow redirects to get the final proxy URL
-        const response = await fetch(initialUrl, {
-          method: "GET",
-          credentials: "include",
-          redirect: "manual", // Don't follow redirects automatically
-        });
-
-        if (cancelled) return;
-
-        console.log("[phpMyAdmin] Initial response:", response.status, response.headers.get("location"));
-
-        if (response.status >= 300 && response.status < 400) {
-          const location = response.headers.get("location");
-          if (location) {
-            console.log("[phpMyAdmin] Using redirect location:", location);
-            setFinalSrc(location);
-            return;
-          }
-        }
-
-        // If no redirect, use the original URL
-        console.log("[phpMyAdmin] No redirect, using original URL");
-        setFinalSrc(initialUrl);
-      } catch (err) {
-        console.error("[phpMyAdmin] Failed to fetch redirect:", err);
-        if (!cancelled) {
-          setError("Failed to load phpMyAdmin. Please try again.");
-        }
-      }
-    }
-
-    fetchProxyUrl();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [initialUrl]);
+    console.log("[phpMyAdmin] Loading iframe with src:", src);
+  }, [src]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -127,22 +70,20 @@ export function PhpMyAdminPage({
             <p className="text-sm text-destructive">{error}</p>
           </div>
         ) : null}
-        {finalSrc ? (
-          <iframe
-            key={finalSrc}
-            title={databaseName ? `phpMyAdmin — ${databaseName}` : "phpMyAdmin"}
-            src={finalSrc}
-            className="block h-full w-full border-0 bg-background"
-            onLoad={() => {
-              setLoaded(true);
-              console.log("[phpMyAdmin] iframe loaded");
-            }}
-            onError={(e) => {
-              console.error("[phpMyAdmin] iframe error:", e);
-              setError("Failed to load phpMyAdmin");
-            }}
-          />
-        ) : null}
+        <iframe
+          key={src}
+          title={databaseName ? `phpMyAdmin — ${databaseName}` : "phpMyAdmin"}
+          src={src}
+          className="block h-full w-full border-0 bg-background"
+          onLoad={() => {
+            setLoaded(true);
+            console.log("[phpMyAdmin] iframe loaded");
+          }}
+          onError={(e) => {
+            console.error("[phpMyAdmin] iframe error:", e);
+            setError("Failed to load phpMyAdmin");
+          }}
+        />
       </div>
     </div>
   );

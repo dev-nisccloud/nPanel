@@ -129,7 +129,8 @@ function isExtendedTimeoutApiProxy(pathname: string): boolean {
   return (
     pathname.includes("pagespeedInsights") ||
     pathname.includes("openProvider.tlds") ||
-    pathname.startsWith("/api/hosting/phpmyadmin")
+    pathname.startsWith("/api/hosting/phpmyadmin") ||
+    pathname.startsWith("/api/hosting/db-webadmin")
   );
 }
 
@@ -154,7 +155,17 @@ function trpcProxyErrorResponse(status: number, message: string): Response {
 
 function rewriteProxiedLocation(location: string, incoming: URL): string {
   try {
-    const resolved = new URL(location, BACKEND_ORIGIN);
+    const resolved = new URL(location, incoming);
+    const path = resolved.pathname;
+    // Plesk login / phpMyAdmin redirects must stay inside the proxy, not the SPA.
+    if (/^\/login\.php/i.test(path) || /^\/phpMyAdmin/i.test(path) || /^\/modules\/phpMyAdmin/i.test(path)) {
+      const mapped = /^\/phpMyAdmin/i.test(path)
+        ? `/pma${path.replace(/^\/phpMyAdmin/i, "")}`
+        : /^\/modules\/phpMyAdmin/i.test(path)
+          ? `/mod-pma${path.replace(/^\/modules\/phpMyAdmin/i, "")}`
+          : path;
+      return `/api/hosting/db-webadmin/p${mapped}${resolved.search}${resolved.hash}`;
+    }
     if (resolved.origin === BACKEND_ORIGIN.origin || resolved.host === incoming.host) {
       return `${resolved.pathname}${resolved.search}${resolved.hash}`;
     }
@@ -216,24 +227,49 @@ async function proxyToBackend(request: Request): Promise<Response> {
   });
 }
 
-console.log(`[web-server] Serving ${STATIC_ROOT}`);
-console.log(`[web-server] Proxying /api/* -> ${API_TARGET}`);
-console.log(`[web-server] Listening on ${HOSTNAME}:${PORT}`);
+console.log(`[web-server] ========================================`);
+console.log(`[web-server] nPanel Web Server Starting`);
+console.log(`[web-server] ========================================`);
+console.log(`[web-server] Static Root: ${STATIC_ROOT}`);
+console.log(`[web-server] API Proxy: /api/* -> ${API_TARGET}`);
+console.log(`[web-server] Listening: ${HOSTNAME}:${PORT}`);
+console.log(`[web-server] ========================================`);
 
 Bun.serve({
   port: PORT,
   hostname: HOSTNAME,
   async fetch(request) {
-    const { pathname } = new URL(request.url);
+    const url = new URL(request.url);
+    const { pathname } = url;
 
     // Lightweight probe for the web container itself (no backend hop).
     if (pathname === "/health" || pathname === "/healthz") {
-      return Response.json({ status: "ok", service: "npanel-web" });
+      return Response.json({ 
+        status: "ok", 
+        service: "npanel-web",
+        version: "2026-08-20-db-webadmin",
+        apiTarget: API_TARGET,
+      });
     }
 
     if (pathname.startsWith("/api/")) {
+      console.log("[web-server] Proxying API request:", {
+        pathname,
+        method: request.method,
+        search: url.search,
+        headers: {
+          accept: request.headers.get("accept"),
+          referer: request.headers.get("referer"),
+        },
+      });
       try {
-        return await proxyToBackend(request);
+        const response = await proxyToBackend(request);
+        console.log("[web-server] Proxy response:", {
+          pathname,
+          status: response.status,
+          contentType: response.headers.get("content-type"),
+        });
+        return response;
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         console.error("[web-server] API proxy error:", message);

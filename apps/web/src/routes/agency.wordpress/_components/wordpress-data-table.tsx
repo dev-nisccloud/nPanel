@@ -5,6 +5,7 @@ import { Link, useLocation, useNavigate } from "react-router";
 import { z } from "zod";
 
 import { Badge } from "@/components/ui/badge";
+import { CleanListCell } from "@/components/ui/clean-list";
 import { ViewDetailsButton, VisitSiteButton } from "@/components/ui/list-row-actions";
 import { WordPressList } from "@/components/wordpress/wordpress-list";
 import {
@@ -73,17 +74,14 @@ export function WordPressDataTable() {
           {title}
         </Link>
       ),
-      trailing: <WpInstallationStatusBadge status={item.status} />,
-      description: (
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span>WP {item.version || "Unknown"}</span>
-          {item.title && item.displayTitle && item.title !== item.displayTitle ? (
-            <span>· {item.title}</span>
-          ) : null}
-          {item.domain?.name ? <span>· {item.domain.name}</span> : null}
-          <span className="inline-flex items-center gap-1">· {getSecurityBadge(item)}</span>
-        </div>
-      ),
+      cells: {
+        version: <CleanListCell>{item.version ? `WP ${item.version}` : "Unknown"}</CleanListCell>,
+        security: getSecurityBadge(item),
+        status: <WpInstallationStatusBadge status={item.status} />,
+      },
+      description: item.domain?.name ? (
+        <span className="block truncate">{item.domain.name}</span>
+      ) : undefined,
       actions: (
         <>
           <VisitSiteButton url={siteUrl} />
@@ -107,6 +105,13 @@ export function WordPressDataTable() {
       searchPlaceholder="Search WordPress installations..."
       emptyMessage="No WordPress installations found"
       errorTitle="Failed to load WordPress installations"
+      columns={[
+        { key: "name", label: "Name" },
+        { key: "version", label: "Version", className: "w-28 shrink-0", hideBelow: "@lg" },
+        { key: "security", label: "Security", className: "min-w-0 w-36 shrink-0", hideBelow: "@xl" },
+        { key: "status", label: "Status", className: "w-28 shrink-0", hideBelow: "@2xl" },
+        { key: "actions", label: "Actions", align: "end" },
+      ]}
     />
   );
 }
