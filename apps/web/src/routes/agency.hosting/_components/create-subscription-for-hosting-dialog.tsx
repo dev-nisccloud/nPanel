@@ -109,6 +109,7 @@ export function CreateSubscriptionForHostingDialog({
       utils.clientSubscriptions.getAll.invalidate();
       utils.clientSubscriptions.listForAgency.invalidate();
       utils.clientSubscriptions.getPleskSubscriptionIdsWithLinkedSubscription.invalidate();
+      utils.clientSubscriptions.getLinkedHostingCustomersByPleskIds.invalidate();
       onSuccess?.();
     },
     onError: (error) => {

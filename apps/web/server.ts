@@ -129,7 +129,8 @@ function isExtendedTimeoutApiProxy(pathname: string): boolean {
   return (
     pathname.includes("pagespeedInsights") ||
     pathname.includes("openProvider.tlds") ||
-    pathname.startsWith("/api/hosting/phpmyadmin")
+    pathname.startsWith("/api/hosting/phpmyadmin") ||
+    pathname.startsWith("/api/hosting/db-webadmin")
   );
 }
 
@@ -154,7 +155,17 @@ function trpcProxyErrorResponse(status: number, message: string): Response {
 
 function rewriteProxiedLocation(location: string, incoming: URL): string {
   try {
-    const resolved = new URL(location, BACKEND_ORIGIN);
+    const resolved = new URL(location, incoming);
+    const path = resolved.pathname;
+    // Plesk login / phpMyAdmin redirects must stay inside the proxy, not the SPA.
+    if (/^\/login\.php/i.test(path) || /^\/phpMyAdmin/i.test(path) || /^\/modules\/phpMyAdmin/i.test(path)) {
+      const mapped = /^\/phpMyAdmin/i.test(path)
+        ? `/pma${path.replace(/^\/phpMyAdmin/i, "")}`
+        : /^\/modules\/phpMyAdmin/i.test(path)
+          ? `/mod-pma${path.replace(/^\/modules\/phpMyAdmin/i, "")}`
+          : path;
+      return `/api/hosting/db-webadmin/p${mapped}${resolved.search}${resolved.hash}`;
+    }
     if (resolved.origin === BACKEND_ORIGIN.origin || resolved.host === incoming.host) {
       return `${resolved.pathname}${resolved.search}${resolved.hash}`;
     }
@@ -236,7 +247,7 @@ Bun.serve({
       return Response.json({ 
         status: "ok", 
         service: "npanel-web",
-        version: "2026-08-20-phpmyadmin-fix",
+        version: "2026-08-20-db-webadmin",
         apiTarget: API_TARGET,
       });
     }

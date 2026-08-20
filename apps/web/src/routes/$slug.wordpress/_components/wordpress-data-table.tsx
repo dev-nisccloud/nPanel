@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 
+import { CleanListCell } from "@/components/ui/clean-list";
 import { ViewDetailsButton, VisitSiteButton } from "@/components/ui/list-row-actions";
 import {
   WordPressList,
@@ -87,21 +88,22 @@ export function WordPressDataTable() {
       ) : (
         <span className="text-muted-foreground">{titleText}</span>
       ),
-      trailing: (
-        <WordPressListStatusBadge
-          label={getStatusDisplayText(subscription.status)}
-          variant={getStatusBadgeVariant(subscription.status)}
-          isActive={statusUpper === "ACTIVE"}
-        />
-      ),
-      description:
-        subscribed || expires ? (
-          <p>
-            {subscribed ? `Subscribed ${subscribed}` : null}
-            {subscribed && expires ? " · " : null}
-            {expires ? `Expires ${expires}` : null}
-          </p>
-        ) : undefined,
+      cells: {
+        dates: (
+          <CleanListCell>
+            {subscribed || expires
+              ? `${subscribed ? `Subscribed ${subscribed}` : ""}${subscribed && expires ? " · " : ""}${expires ? `Expires ${expires}` : ""}`
+              : "—"}
+          </CleanListCell>
+        ),
+        status: (
+          <WordPressListStatusBadge
+            label={getStatusDisplayText(subscription.status)}
+            variant={getStatusBadgeVariant(subscription.status)}
+            isActive={statusUpper === "ACTIVE"}
+          />
+        ),
+      },
       actions: (
         <>
           <VisitSiteButton url={siteUrl} />
@@ -127,6 +129,12 @@ export function WordPressDataTable() {
       searchPlaceholder="Search WordPress subscriptions..."
       emptyMessage="No WordPress subscriptions found"
       errorTitle="Failed to load WordPress subscriptions"
+      columns={[
+        { key: "name", label: "Domain" },
+        { key: "dates", label: "Dates", className: "min-w-0 flex-1", hideBelow: "@lg" },
+        { key: "status", label: "Status", className: "w-28 shrink-0", hideBelow: "@xl" },
+        { key: "actions", label: "Actions", align: "end" },
+      ]}
     />
   );
 }

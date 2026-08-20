@@ -7,6 +7,7 @@ import { Plus, RefreshCw, Globe, FilePlus2, Link2, ArrowRightLeft } from "lucide
 import { Link, useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { ViewDetailsButton, VisitSiteButton } from "@/components/ui/list-row-actions";
+import { CleanListCell } from "@/components/ui/clean-list";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { type DomainPortfolio } from "./agency.domains-portfolio/_components/domain-portfolio-card";
 import { CreateSubscriptionFromDomainDialog } from "./agency.domains-portfolio/_components/create-subscription-from-domain-dialog";
@@ -183,19 +184,17 @@ export default function DomainsPortfolioPage() {
           <DomainListTitle domain={domain.domain} />
         </Link>
       ),
-      trailing: (
-        <span className="flex flex-wrap items-center justify-end gap-1.5">
-          <DomainSourceBadge source={domain.source} />
-          <DomainStatusBadge status={domain.status} />
-        </span>
-      ),
-      description: (
-        <p>
-          {domain.clientName}
-          {domain.clientEmail ? ` · ${domain.clientEmail}` : ""}
-          {expiry ? ` · Expires ${expiry}` : ""}
-        </p>
-      ),
+      trailing: <DomainSourceBadge source={domain.source} />,
+      cells: {
+        client: (
+          <CleanListCell>
+            {domain.clientName}
+            {domain.clientEmail ? ` · ${domain.clientEmail}` : ""}
+          </CleanListCell>
+        ),
+        expiry: <CleanListCell>{expiry ? `Expires ${expiry}` : "—"}</CleanListCell>,
+        status: <DomainStatusBadge status={domain.status} />,
+      },
       actions: (() => {
         const showCreate = domain.source === "openprovider";
         const showLink = domain.source === "kenic" && !domain.teamId;
@@ -334,6 +333,13 @@ export default function DomainsPortfolioPage() {
               onSearchChange={setSearchQuery}
               totalCount={allDomains.length}
               searchPlaceholder="Search by domain, client, status, or source…"
+              columns={[
+                { key: "name", label: "Domain" },
+                { key: "client", label: "Client", className: "min-w-0 flex-1", hideBelow: "@lg" },
+                { key: "expiry", label: "Expiry", className: "w-36 shrink-0", hideBelow: "@xl" },
+                { key: "status", label: "Status", className: "w-28 shrink-0", hideBelow: "@2xl" },
+                { key: "actions", label: "Actions", align: "end" },
+              ]}
               toolbarActions={
                 <>
                   <Button

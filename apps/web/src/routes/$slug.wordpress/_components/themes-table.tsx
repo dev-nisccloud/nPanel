@@ -11,6 +11,7 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CleanListCell } from "@/components/ui/clean-list";
 import {
   SearchableCleanList,
   type SearchableCleanListItem,
@@ -220,35 +221,39 @@ export function ThemesTable({ installationId }: ThemesTableProps) {
           (t) => t.slug === theme.slug,
         ));
 
-    const descriptionParts = [
-      theme.description ? truncateText(theme.description) : null,
-      themeVersionLine(theme),
-      theme.autoUpdates ? "Auto-update on" : "Auto-update off",
-    ].filter(Boolean);
+    const description = theme.description ? truncateText(theme.description) : undefined;
 
     return {
       key: theme.slug || theme.title || `theme-${index}`,
       title: theme.title || theme.slug || "Unknown theme",
-      description: (
-        <span className="block truncate">{descriptionParts.join(" · ")}</span>
-      ),
-      trailing: (
-        <div className="flex flex-wrap items-center justify-end gap-1.5">
-          <Badge
-            variant={isActive ? "default" : "secondary"}
-            className={isActive ? WORDPRESS_STATUS_ACTIVE_BADGE_CLASS : undefined}
-          >
-            {isActive ? "Active" : "Inactive"}
-          </Badge>
-          {hasUpdate ? <Badge variant="outline">Update</Badge> : null}
-          {theme.vulnerable ? (
-            <Badge variant="destructive">
-              <ShieldAlert className="mr-1 h-3 w-3" />
-              Vulnerable
+      description: description ? (
+        <span className="block truncate">{description}</span>
+      ) : undefined,
+      cells: {
+        version: (
+          <CleanListCell>
+            {themeVersionLine(theme)}
+            {theme.autoUpdates ? " · Auto-update on" : " · Auto-update off"}
+          </CleanListCell>
+        ),
+        status: (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Badge
+              variant={isActive ? "default" : "secondary"}
+              className={isActive ? WORDPRESS_STATUS_ACTIVE_BADGE_CLASS : undefined}
+            >
+              {isActive ? "Active" : "Inactive"}
             </Badge>
-          ) : null}
-        </div>
-      ),
+            {hasUpdate ? <Badge variant="outline">Update</Badge> : null}
+            {theme.vulnerable ? (
+              <Badge variant="destructive">
+                <ShieldAlert className="mr-1 h-3 w-3" />
+                Vulnerable
+              </Badge>
+            ) : null}
+          </div>
+        ),
+      },
       actions: isProcessing ? (
         <div className="flex items-center justify-center p-2">
           <Spinner className="h-4 w-4" />
@@ -326,6 +331,12 @@ export function ThemesTable({ installationId }: ThemesTableProps) {
             ? "No themes match your search."
             : "No themes installed on this WordPress site."
         }
+        columns={[
+          { key: "name", label: "Theme" },
+          { key: "version", label: "Version", className: "min-w-0 flex-1", hideBelow: "@lg" },
+          { key: "status", label: "Status", className: "w-40 shrink-0", hideBelow: "@xl" },
+          { key: "actions", label: "Actions", align: "end" },
+        ]}
         toolbarActions={
           <>
             <Button

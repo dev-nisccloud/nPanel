@@ -6,6 +6,7 @@ import { Globe } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   SearchableCleanList,
+  type CleanListColumn,
   type SearchableCleanListItem,
 } from "@/components/ui/searchable-clean-list";
 import { cn } from "@/lib/utils";
@@ -87,6 +88,7 @@ export function DomainsPortfolioList({
   error,
   onRetry,
   searchPlaceholder = "Search domains...",
+  columns,
 }: {
   items: DomainsPortfolioListItem[];
   searchQuery: string;
@@ -99,6 +101,7 @@ export function DomainsPortfolioList({
   error?: Error | null;
   onRetry?: () => void;
   searchPlaceholder?: string;
+  columns?: CleanListColumn[];
 }) {
   return (
     <SearchableCleanList
@@ -114,6 +117,7 @@ export function DomainsPortfolioList({
       onRetry={onRetry}
       searchPlaceholder={searchPlaceholder}
       errorTitle="Failed to load domains"
+      columns={columns}
     />
   );
 }

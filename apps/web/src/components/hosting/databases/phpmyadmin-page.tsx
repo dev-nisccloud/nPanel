@@ -21,22 +21,7 @@ function phpMyAdminUrl(siteId: number, databaseId: number): string {
     databaseId: String(databaseId),
     embed: "1",
   });
-  const url = apiUrl(`/api/hosting/phpmyadmin?${params.toString()}`);
-  
-  // CRITICAL: Ensure URL is always relative, never absolute
-  if (url.startsWith("http://") || url.startsWith("https://")) {
-    console.error("[phpMyAdmin] CRITICAL: apiUrl returned absolute URL:", url);
-    // Force relative path
-    try {
-      const parsed = new URL(url);
-      return `${parsed.pathname}${parsed.search}${parsed.hash}`;
-    } catch {
-      return `/api/hosting/phpmyadmin?${params.toString()}`;
-    }
-  }
-  
-  console.log("[phpMyAdmin] iframe URL:", url, "origin:", window.location.origin);
-  return url;
+  return apiUrl(`/api/hosting/db-webadmin?${params.toString()}`);
 }
 
 export function PhpMyAdminPage({

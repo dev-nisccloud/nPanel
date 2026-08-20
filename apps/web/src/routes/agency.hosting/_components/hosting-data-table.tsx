@@ -5,6 +5,7 @@ import { FilePlus2, Lock, Unlock } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 
 import { Button } from "@/components/ui/button";
+import { CleanListCell } from "@/components/ui/clean-list";
 import {
   HostingStatusBadge,
   HostingSubscriptionsList,
@@ -31,6 +32,13 @@ import { useHostingSubscriptions } from "./use-hosting-subscriptions";
 const CREATE_SUBSCRIPTION_TOOLTIP_LINKED =
   "This service already has a subscription attached. You need to suspend or disable the current subscription to link it to a new one.";
 
+function formatExpiryDate(value: string | Date | null | undefined) {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString();
+}
+
 export function HostingDataTable() {
   const navigate = useNavigate();
   const { data, isLoading, isError, error, refetch } = useHostingSubscriptions();
@@ -45,26 +53,43 @@ export function HostingDataTable() {
   });
 
   const pleskIds = React.useMemo(() => data.map((s) => String(s.id)), [data]);
-  const { data: pleskIdsWithLinked = [] } =
-    trpc.clientSubscriptions.getPleskSubscriptionIdsWithLinkedSubscription.useQuery(
+  const { data: linkedCustomers = [] } =
+    trpc.clientSubscriptions.getLinkedHostingCustomersByPleskIds.useQuery(
       { pleskSubscriptionIds: pleskIds },
       { enabled: pleskIds.length > 0 },
     );
-  const pleskIdsWithLinkedSet = React.useMemo(
-    () => new Set(pleskIdsWithLinked),
-    [pleskIdsWithLinked],
-  );
+  const linkedByPleskId = React.useMemo(() => {
+    const map = new Map<
+      string,
+      (typeof linkedCustomers)[number]
+    >();
+    for (const row of linkedCustomers) {
+      map.set(row.pleskSubscriptionId, row);
+    }
+    return map;
+  }, [linkedCustomers]);
 
   const filteredData = React.useMemo(() => {
     if (!searchQuery.trim()) return data;
-    return data.filter((subscription) =>
-      subscription.subscriptionName.toLowerCase().includes(searchQuery.toLowerCase()),
-    );
-  }, [data, searchQuery]);
+    const q = searchQuery.toLowerCase();
+    return data.filter((subscription) => {
+      const linked = linkedByPleskId.get(String(subscription.id));
+      const customer = linked?.teamName || linked?.userName || "";
+      return (
+        subscription.subscriptionName.toLowerCase().includes(q) ||
+        customer.toLowerCase().includes(q)
+      );
+    });
+  }, [data, searchQuery, linkedByPleskId]);
 
   const items = filteredData.map((subscription) => {
-    const hasLinked = pleskIdsWithLinkedSet.has(String(subscription.id));
+    const linked = linkedByPleskId.get(String(subscription.id));
+    const hasLinked = Boolean(linked);
     const isSuspended = isHostingSubscriptionSuspended(subscription.status);
+    const customerLabel = linked
+      ? linked.teamName || linked.userName || "—"
+      : null;
+    const expiry = formatExpiryDate(linked?.expiryDate);
 
     return {
       key: String(subscription.id),
@@ -77,13 +102,25 @@ export function HostingDataTable() {
           {subscription.subscriptionName}
         </Link>
       ),
-      trailing: (
+      description: (
         <HostingStatusBadge
           label={getStatusDisplayText(subscription.status)}
           variant={getStatusBadgeVariant(subscription.status)}
           isActive={subscription.status === 0}
         />
       ),
+      cells: {
+        customer: customerLabel ? (
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-foreground">{customerLabel}</p>
+            {expiry ? (
+              <CleanListCell>Expires {expiry}</CleanListCell>
+            ) : null}
+          </div>
+        ) : (
+          <CleanListCell>No subscription</CleanListCell>
+        ),
+      },
       actions: (
         <>
           <VisitSiteButton url={subscription.subscriptionName} />
@@ -169,6 +206,11 @@ export function HostingDataTable() {
         isError={isError}
         error={error as Error | null}
         onRetry={() => refetch()}
+        columns={[
+          { key: "name", label: "Name" },
+          { key: "customer", label: "Customer", className: "w-64", hideBelow: "@lg" },
+          { key: "actions", label: "Actions", align: "end" },
+        ]}
         toolbarActions={
           <Button
             type="button"

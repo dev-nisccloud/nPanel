@@ -6,7 +6,7 @@ import { Download, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CleanList, CleanListRow } from "@/components/ui/clean-list";
+import { CleanList, CleanListCell, CleanListRow } from "@/components/ui/clean-list";
 import { trpc } from "@/utils/trpc";
 import { niscBackupQueryOptions } from "../query-options";
 import { formatBytes, formatNiscBackupDate } from "../formatters";
@@ -78,24 +78,35 @@ export function NiscBackupDownloadsTab({ username }: { username?: string }) {
         </Button>
       </div>
 
-      <CleanList emptyMessage="No downloads yet.">
+      <CleanList
+        emptyMessage="No downloads yet."
+        columns={[
+          { key: "name", label: "File" },
+          { key: "date", label: "Date", className: "min-w-0 flex-1", hideBelow: "@lg" },
+          { key: "size", label: "Size", className: "w-24 shrink-0", hideBelow: "@xl" },
+          { key: "status", label: "Status", className: "w-24 shrink-0", hideBelow: "@2xl" },
+          { key: "actions", label: "Actions", align: "end" },
+        ]}
+      >
         {downloads.map((item) => {
           const fileName = item.path?.split(/[\\/]/).pop() || item.path || "Backup archive";
-          const description = [formatNiscBackupDate(item.created), formatBytes(item.size)]
-            .filter(Boolean)
-            .join(" · ");
+          const dateLabel = formatNiscBackupDate(item.created);
+          const sizeLabel = formatBytes(item.size);
 
           return (
             <CleanListRow
               key={item._id}
               leading={<Download className="h-4 w-4 text-muted-foreground" />}
               title={fileName}
-              description={<p className="truncate">{description}</p>}
-              trailing={
-                <Badge variant="outline" className={niscBackupSuccessBadgeClass(true)}>
-                  Ready
-                </Badge>
-              }
+              cells={{
+                date: <CleanListCell>{dateLabel}</CleanListCell>,
+                size: <CleanListCell>{sizeLabel}</CleanListCell>,
+                status: (
+                  <Badge variant="outline" className={niscBackupSuccessBadgeClass(true)}>
+                    Ready
+                  </Badge>
+                ),
+              }}
               actions={
                 <Button
                   variant="outline"

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CleanListRow } from "@/components/ui/clean-list";
+import { CleanList, CleanListCell, CleanListRow } from "@/components/ui/clean-list";
 import { WpTaskProgress, extractTaskUrl } from "@/components/wordpress/wp-task-progress";
 import { RestoreBackupDialog } from "@/components/wordpress/restore-backup-dialog";
 import { useWpInstallationSummary } from "@/components/wordpress/use-wp-installation-summary";
@@ -149,20 +149,29 @@ export function WordPressBackupsTab({ installationId }: { installationId: string
         <CardContent className="p-0">
           {isLoading ? (
             <p className="px-4 py-8 text-center text-sm text-muted-foreground">Loading backups…</p>
-          ) : list.length === 0 ? (
-            <p className="px-4 py-8 text-center text-sm text-muted-foreground">No backups found.</p>
           ) : (
-            <div className="divide-y divide-border">
+            <CleanList
+              className="rounded-none border-0"
+              emptyMessage="No backups found."
+              columns={[
+                { key: "name", label: "File" },
+                { key: "size", label: "Size", className: "w-24 shrink-0", hideBelow: "@lg" },
+                { key: "date", label: "Date", className: "min-w-0 flex-1", hideBelow: "@xl" },
+                { key: "actions", label: "Actions", align: "end" },
+              ]}
+            >
               {list.map((b) => (
                 <CleanListRow
                   key={b.fileName}
                   title={b.fileName}
-                  description={
-                    <p>
-                      {formatSize(b.fileSize)}
-                      {b.createdAt ? ` · ${new Date(b.createdAt).toLocaleString()}` : ""}
-                    </p>
-                  }
+                  cells={{
+                    size: <CleanListCell>{formatSize(b.fileSize)}</CleanListCell>,
+                    date: (
+                      <CleanListCell>
+                        {b.createdAt ? new Date(b.createdAt).toLocaleString() : "—"}
+                      </CleanListCell>
+                    ),
+                  }}
                   actions={
                     <>
                       <Button
@@ -190,7 +199,7 @@ export function WordPressBackupsTab({ installationId }: { installationId: string
                   }
                 />
               ))}
-            </div>
+            </CleanList>
           )}
         </CardContent>
       </Card>

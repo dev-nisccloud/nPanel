@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CleanList, CleanListRow } from "@/components/ui/clean-list";
+import { CleanList, CleanListCell, CleanListRow } from "@/components/ui/clean-list";
 import { trpc } from "@/utils/trpc";
 import { captureEvent } from "@/lib/posthog";
 import {
@@ -50,23 +50,31 @@ function DnsTableSkeleton() {
         <Skeleton className="h-9 w-28" />
       </div>
 
-      <div className="overflow-hidden rounded-xl border bg-card divide-y">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="flex items-center justify-between gap-3 px-4 py-3.5">
-            <div className="flex min-w-0 flex-1 items-start gap-3">
-              <Skeleton className="mt-0.5 h-5 w-12 rounded-full" />
-              <div className="min-w-0 flex-1 space-y-1.5">
-                <Skeleton className="h-4 w-40" />
-                <Skeleton className="h-3 w-64 max-w-full" />
+      <div className="overflow-hidden rounded-xl border bg-card">
+        <div className="flex items-center gap-3 border-b bg-muted/40 px-4 py-2">
+          <Skeleton className="h-3 w-16" />
+          <Skeleton className="hidden h-3 w-16 @lg:block" />
+          <Skeleton className="hidden h-3 w-10 @2xl:block" />
+          <Skeleton className="ml-auto h-3 w-14" />
+        </div>
+        <div className="divide-y">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center justify-between gap-3 px-4 py-3.5">
+              <div className="flex min-w-0 flex-1 items-start gap-3">
+                <Skeleton className="mt-0.5 h-5 w-12 rounded-full" />
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-3 w-64 max-w-full" />
+                </div>
+              </div>
+              <div className="flex gap-1.5">
+                <Skeleton className="h-7 w-14" />
+                <Skeleton className="h-7 w-14" />
+                <Skeleton className="h-7 w-7" />
               </div>
             </div>
-            <div className="flex gap-1.5">
-              <Skeleton className="h-7 w-14" />
-              <Skeleton className="h-7 w-14" />
-              <Skeleton className="h-7 w-7" />
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -238,11 +246,20 @@ export function DnsTable({
   };
 
   const ListView = () => (
-    <CleanList emptyMessage="No DNS records found">
+    <CleanList
+      emptyMessage="No DNS records found"
+      columns={[
+        { key: "name", label: "Name" },
+        { key: "value", label: "Value", className: "w-64", hideBelow: "@xl" },
+        { key: "ttl", label: "TTL", className: "w-16", hideBelow: "@3xl" },
+        { key: "actions", label: "Actions", align: "end" },
+      ]}
+    >
       {filteredData.map((record) => {
         const type = record.type || "A";
         const host = record.host === "@" ? "@" : record.host || "Unknown Host";
         const value = record.value || "Unknown Value";
+        const ttl = record.ttl != null ? String(record.ttl) : null;
 
         return (
           <CleanListRow
@@ -253,7 +270,14 @@ export function DnsTable({
               </Badge>
             }
             title={host}
-            description={<span className="block truncate">{value}</span>}
+            cells={{
+              value: (
+                <CleanListCell mono wrap>
+                  {value}
+                </CleanListCell>
+              ),
+              ttl: <CleanListCell>{ttl}</CleanListCell>,
+            }}
             onClick={() => handleView(record)}
             actions={
               <>
