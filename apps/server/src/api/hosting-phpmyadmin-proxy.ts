@@ -135,6 +135,9 @@ function rewriteSetCookie(value: string): string {
   } else {
     next = `${next}; Path=${PHPMYADMIN_PROXY_PREFIX}`;
   }
+  // CRITICAL: Add SameSite=None for iframe compatibility
+  // Note: SameSite=None requires Secure, but we're on same-origin so we can use Lax
+  next = `${next}; SameSite=Lax`;
   return next.trim();
 }
 
@@ -148,7 +151,7 @@ function isAllowedProxyPath(pathname: string): boolean {
   );
 }
 
-function isPhpMyAdminPath(pathname: string): boolean {
+export function isPhpMyAdminPath(pathname: string): boolean {
   const path = pathname.toLowerCase();
   return path.includes("phpmyadmin");
 }
@@ -282,7 +285,7 @@ async function fetchPlesk(url: string, init: RequestInit = {}): Promise<PleskFet
   };
 }
 
-async function followPleskDocument(
+export async function followPleskDocument(
   startUrl: string,
   jar: CookieJar,
 ): Promise<{ result: PleskFetchResult; finalUrl: URL; setCookies: string[] }> {
@@ -365,7 +368,7 @@ async function followPleskDocument(
   return { result: last, finalUrl: url, setCookies: allSetCookies };
 }
 
-function proxyUrlFor(finalUrl: URL): string {
+export function proxyUrlFor(finalUrl: URL): string {
   return `${PHPMYADMIN_PROXY_PREFIX}${finalUrl.pathname}${finalUrl.search}${finalUrl.hash}`;
 }
 
@@ -487,7 +490,14 @@ export async function handlePhpMyAdminProxy(c: Context) {
   outgoing.set("accept-encoding", "identity");
   outgoing.set("user-agent", c.req.header("user-agent") || CHROME_UA);
   outgoing.set("referer", `${getPleskPanelBase()}/`);
-  const cookie = cookiesForPlesk(c.req.header("cookie"));
+  const incomingCookies = c.req.header("cookie");
+  const cookie = cookiesForPlesk(incomingCookies);
+  console.log("[phpMyAdmin proxy]", {
+    path: restPath,
+    incomingCookiesLen: incomingCookies?.length ?? 0,
+    pleskCookiesLen: cookie?.length ?? 0,
+    cookiePreview: cookie?.slice(0, 200),
+  });
   if (cookie) outgoing.set("cookie", cookie);
 
   const body =
