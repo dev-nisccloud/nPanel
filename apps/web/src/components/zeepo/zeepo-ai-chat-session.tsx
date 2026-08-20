@@ -1039,13 +1039,9 @@ export function ZeepoAiChatSessionPage() {
     const handoff = handoffRef.current ?? resolveHandoff(sessionId, locationState);
     if (!handoff?.content) return;
     if (sessionQuery.isLoading) return;
-    if (sessionQuery.isError) {
-      toast.error("Could not load this chat. Try again from the home screen.");
-      clearZeepoAiHandoff(sessionId);
-      handoffRef.current = null;
-      setHandoffStarting(false);
-      return;
-    }
+    // A failed sessions.get must not kill compose auto-send: the session was just
+    // created and stream-turn does its own lookup. Retry on the user bubble still
+    // works in that case; we should not wait for the user to tap it.
     if ((sessionQuery.data?.messages?.length ?? 0) > 0) {
       const msgs = sessionQuery.data!.messages;
       const lastUser = [...msgs].reverse().find((m) => m.role === "user");
@@ -1079,9 +1075,15 @@ export function ZeepoAiChatSessionPage() {
     void (async () => {
       try {
         // Remount path: a previous Strict Mode mount may already have persisted messages.
-        const fresh = await utils.zeepoAi.sessions.get.fetch({ id: sessionId });
+        let fresh: Awaited<ReturnType<typeof utils.zeepoAi.sessions.get.fetch>> | null =
+          null;
+        try {
+          fresh = await utils.zeepoAi.sessions.get.fetch({ id: sessionId });
+        } catch {
+          fresh = null;
+        }
         if (cancelled) return;
-        if ((fresh.messages?.length ?? 0) > 0) {
+        if (fresh && (fresh.messages?.length ?? 0) > 0) {
           const msgs = fresh.messages;
           const lastUser = [...msgs].reverse().find((m) => m.role === "user");
           const lastAsst = [...msgs].reverse().find((m) => m.role === "assistant");
@@ -1151,7 +1153,7 @@ export function ZeepoAiChatSessionPage() {
       streamingLockRef.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- do not depend on messages.length (would abort mid-stream)
-  }, [sessionId, sessionQuery.isLoading, sessionQuery.isError, applyServerSession, utils.zeepoAi.sessions.get]);
+  }, [sessionId, sessionQuery.isLoading, applyServerSession, utils.zeepoAi.sessions.get]);
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort();

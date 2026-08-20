@@ -105,47 +105,47 @@ export function ViewDnsRecordSheet({ open, onOpenChange, data }: ViewDnsRecordSh
             {/* Basic Information */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Basic Information</CardTitle>
-                <CardDescription>DNS record configuration details</CardDescription>
+                <CardTitle className="text-sm font-semibold">Basic Information</CardTitle>
+                <CardDescription className="text-xs">DNS record configuration details</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">Host</p>
-                  <p className="text-base font-bold text-primary">
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground">Host</p>
+                  <p className="text-sm font-semibold text-foreground break-all">
                     {data.host === "@" ? "@" : data.host || "Unknown Host"}
                   </p>
                 </div>
 
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">Record Type</p>
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground">Record Type</p>
                   <div className="flex items-center gap-2">
                     <Badge variant={getTypeBadgeVariant(data.type)}>
                       {data.type || "Unknown"}
                     </Badge>
                     {data.type && getRecordTypeDescription(data.type) && (
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         {getRecordTypeDescription(data.type)}
                       </p>
                     )}
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">Value</p>
-                  <p className="text-base font-bold text-primary break-all">
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground">Value</p>
+                  <p className="text-xs text-muted-foreground break-all font-mono">
                     {data.value || "No value"}
                   </p>
                 </div>
 
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">TTL (Time To Live)</p>
-                  <p className="text-base">{ttl}s</p>
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground">TTL (Time To Live)</p>
+                  <p className="text-xs text-muted-foreground">{ttl}s</p>
                 </div>
 
                 {priority !== undefined && (
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-muted-foreground">Priority</p>
-                    <p className="text-base">{priority}</p>
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground">Priority</p>
+                    <p className="text-xs text-muted-foreground">{priority}</p>
                   </div>
                 )}
               </CardContent>
@@ -155,13 +155,13 @@ export function ViewDnsRecordSheet({ open, onOpenChange, data }: ViewDnsRecordSh
             {(data.status || (data.opt && typeof data.opt === 'string' && !priority)) && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Additional Information</CardTitle>
-                  <CardDescription>Record metadata and status</CardDescription>
+                  <CardTitle className="text-sm font-semibold">Additional Information</CardTitle>
+                  <CardDescription className="text-xs">Record metadata and status</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {data.status && (
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium text-muted-foreground">Status</p>
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-muted-foreground">Status</p>
                       <Badge variant={data.status === "ok" ? "default" : "destructive"}>
                         {data.status}
                       </Badge>
@@ -169,9 +169,9 @@ export function ViewDnsRecordSheet({ open, onOpenChange, data }: ViewDnsRecordSh
                   )}
 
                   {data.opt && typeof data.opt === 'string' && !priority && (
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium text-muted-foreground">Options</p>
-                      <p className="text-base font-bold text-primary">{data.opt}</p>
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-muted-foreground">Options</p>
+                      <p className="text-xs text-muted-foreground break-all font-mono">{data.opt}</p>
                     </div>
                   )}
                 </CardContent>

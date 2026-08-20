@@ -48,17 +48,17 @@ export function AiMarkdownRenderer({ content, className }: AiMarkdownRendererPro
     return (
         <div
             className={cn(
-                "prose prose-sm dark:prose-invert max-w-none",
+                "prose prose-sm dark:prose-invert max-w-none min-w-0 overflow-hidden break-words [overflow-wrap:anywhere]",
                 "prose-p:leading-relaxed prose-p:my-1",
                 "prose-ul:my-1 prose-ol:my-1",
                 "prose-li:my-0.5",
                 "prose-headings:my-2 prose-headings:font-semibold",
-                "prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none",
-                "prose-pre:bg-muted prose-pre:p-2 prose-pre:rounded-lg",
+                "prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-code:break-all",
+                "prose-pre:bg-muted prose-pre:p-2 prose-pre:rounded-lg prose-pre:max-w-full prose-pre:overflow-x-auto",
                 "prose-table:my-2 prose-table:border-collapse",
                 "prose-th:border prose-th:border-border prose-th:p-1 prose-th:bg-muted/50",
                 "prose-td:border prose-td:border-border prose-td:p-1",
-                "prose-img:rounded-lg prose-img:my-2",
+                "prose-img:rounded-lg prose-img:my-2 prose-img:max-w-full",
                 "prose-a:text-primary prose-a:underline hover:prose-a:no-underline",
                 className
             )}

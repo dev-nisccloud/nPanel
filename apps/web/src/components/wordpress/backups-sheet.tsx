@@ -6,7 +6,7 @@ import { toast } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { WpActionSwitch } from "@/components/wordpress/wp-action-switch";
 import { RestoreBackupDialog } from "@/components/wordpress/restore-backup-dialog";
 import { WpManageSheet } from "@/components/wordpress/wp-manage-sheet";
 import { WpTaskProgress, extractTaskUrl } from "@/components/wordpress/wp-task-progress";
@@ -39,7 +39,7 @@ export function WordPressBackupsSheet({
     "This permanently removes the backup archive from the server. You will not be able to restore your site from this backup again.",
   );
 
-  const { data, isLoading, refetch } = trpc.plesk.wpFeatures.getBackupsList.useQuery(
+  const { data, isLoading, isFetching, refetch } = trpc.plesk.wpFeatures.getBackupsList.useQuery(
     { installationId, showAllBackups: showAll },
     { enabled: open },
   );
@@ -125,7 +125,12 @@ export function WordPressBackupsSheet({
           <Label htmlFor="show-all-backups" className="text-xs font-normal text-muted-foreground">
             Show all
           </Label>
-          <Switch id="show-all-backups" checked={showAll} onCheckedChange={setShowAll} />
+          <WpActionSwitch
+            id="show-all-backups"
+            checked={showAll}
+            loading={isFetching && !isLoading}
+            onCheckedChange={setShowAll}
+          />
         </div>
       </div>
 

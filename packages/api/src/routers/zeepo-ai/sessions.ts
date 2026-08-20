@@ -20,6 +20,10 @@ import {
 } from "../../lib/zeepo-ai-access";
 import { createAiSupportTicket, buildSessionTranscriptSummary } from "../../lib/create-ai-support-ticket";
 import { checkWelcomeTokenEligibility, tryGrantWelcomeTokens } from "../../lib/zeepo-ai-free-token-grant";
+import {
+	ZEEPO_AI_SUPPORT_FAB_SURFACE,
+	isZeepoAiSupportFabSession,
+} from "../../lib/zeepo-ai-support";
 import { failStaleZeepoAiGenerations } from "./image-generation";
 import {
 	createSessionSchema,

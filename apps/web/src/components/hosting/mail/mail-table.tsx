@@ -268,7 +268,15 @@ export function MailTable({
         </div>
       </div>
 
-      <CleanList emptyMessage="No email addresses found">
+      <CleanList
+        emptyMessage="No email addresses found"
+        columns={[
+          { key: "email", label: "Email" },
+          { key: "usage", label: "Usage", className: "min-w-0 flex-1", hideBelow: "@lg" },
+          { key: "status", label: "Status", className: "w-28 shrink-0", hideBelow: "@xl" },
+          { key: "actions", label: "Actions", align: "end" },
+        ]}
+      >
         {filteredData.map((email) => {
           const fullAddress = `${email.name || "Unknown Email"}@${domainName || "example.com"}`;
 
@@ -278,28 +286,30 @@ export function MailTable({
               leading={<Mail className="h-4 w-4 text-muted-foreground" />}
               title={fullAddress}
               description={
-                <>
-                  {email.description?.trim() ? (
-                    <p className="truncate">{email.description}</p>
-                  ) : null}
+                email.description?.trim() ? (
+                  <p className="truncate">{email.description}</p>
+                ) : undefined
+              }
+              cells={{
+                usage: (
                   <MailboxUsageDisplay
                     usage={email.mailbox?.usage}
                     quota={maxMailboxQuotaBytes}
                   />
-                </>
-              }
-              trailing={
-                <Badge
-                  variant={email.mailbox?.enabled ? "default" : "secondary"}
-                  className={
-                    email.mailbox?.enabled
-                      ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800"
-                      : ""
-                  }
-                >
-                  {email.mailbox?.enabled ? "Enabled" : "Disabled"}
-                </Badge>
-              }
+                ),
+                status: (
+                  <Badge
+                    variant={email.mailbox?.enabled ? "default" : "secondary"}
+                    className={
+                      email.mailbox?.enabled
+                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800"
+                        : ""
+                    }
+                  >
+                    {email.mailbox?.enabled ? "Enabled" : "Disabled"}
+                  </Badge>
+                ),
+              }}
               actions={
                 <>
                   <Button

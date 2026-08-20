@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { CleanList, CleanListRow } from "@/components/ui/clean-list";
+import { CleanList, CleanListCell, CleanListRow } from "@/components/ui/clean-list";
 import { VisitSiteButton } from "@/components/ui/list-row-actions";
 
 import { wordpressInstallationSchema } from "@/routes/$slug.wordpress/_components/schema";
@@ -172,7 +172,16 @@ export function WordPressInstancesTable({ domainName, onInstallClick }: WordPres
         </div>
       </div>
 
-      <CleanList emptyMessage={`No WordPress installations found for ${domainName}`}>
+      <CleanList
+        emptyMessage={`No WordPress installations found for ${domainName}`}
+        columns={[
+          { key: "name", label: "Name" },
+          { key: "version", label: "Version", className: "w-28 shrink-0", hideBelow: "@lg" },
+          { key: "security", label: "Security", className: "min-w-0 flex-1", hideBelow: "@xl" },
+          { key: "status", label: "Status", className: "w-28 shrink-0", hideBelow: "@2xl" },
+          { key: "actions", label: "Actions", align: "end" },
+        ]}
+      >
         {filteredData.map((item) => {
           const href = `${detailBasePath}/${item.id}`;
           const title = item.displayTitle || item.title || `Installation ${item.id}`;
@@ -186,11 +195,15 @@ export function WordPressInstancesTable({ domainName, onInstallClick }: WordPres
                 </Link>
               }
               description={
-                <span className="block truncate">
-                  {`${item.domain?.name || domainName} · v${item.version || "Unknown"} · ${getSecurityLabel(item)}`}
-                </span>
+                item.domain?.name ? (
+                  <span className="block truncate">{item.domain.name}</span>
+                ) : undefined
               }
-              trailing={getStatusBadge(item)}
+              cells={{
+                version: <CleanListCell>{item.version ? `v${item.version}` : "Unknown"}</CleanListCell>,
+                security: <CleanListCell>{getSecurityLabel(item)}</CleanListCell>,
+                status: getStatusBadge(item),
+              }}
               onClick={() => {
                 if (item.id) {
                   window.location.href = href;

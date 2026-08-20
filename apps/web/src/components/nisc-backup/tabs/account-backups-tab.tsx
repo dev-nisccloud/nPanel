@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CleanList, CleanListRow } from "@/components/ui/clean-list";
+import { CleanList, CleanListCell, CleanListRow } from "@/components/ui/clean-list";
 import { trpc } from "@/utils/trpc";
 import { formatNiscBackupDate, formatSnapshotSize } from "../formatters";
 import { NiscBackupErrorState } from "../primitives";
@@ -203,7 +203,15 @@ export function NiscBackupAccountBackupsTab({
           </div>
         </div>
 
-        <CleanList emptyMessage={search.trim() ? "No backups match your search." : "No backups found for this account."}>
+        <CleanList
+          emptyMessage={search.trim() ? "No backups match your search." : "No backups found for this account."}
+          columns={[
+            { key: "date", label: "Date" },
+            { key: "details", label: "Details", className: "min-w-0 flex-1", hideBelow: "@lg" },
+            { key: "status", label: "Status", className: "w-36 shrink-0", hideBelow: "@xl" },
+            { key: "actions", label: "Actions", align: "end" },
+          ]}
+        >
           {filtered.map((snapshot, index) => {
             const snapshotId = snapshot.parent_id ?? snapshot._id;
             const status = snapshotStatus(snapshot);
@@ -214,20 +222,22 @@ export function NiscBackupAccountBackupsTab({
                 key={snapshot._id}
                 leading={<HardDrive className="h-4 w-4 text-muted-foreground" />}
                 title={formatNiscBackupDate(snapshot.date)}
-                description={<p className="truncate">{snapshotDescription(snapshot)}</p>}
-                trailing={
-                  <div className="flex items-center gap-1.5">
-                    {index === 0 && !search.trim() ? (
-                      <Badge variant="outline">Latest</Badge>
-                    ) : null}
-                    <Badge
-                      variant={snapshot.damaged ? "destructive" : "outline"}
-                      className={status.className}
-                    >
-                      {status.label}
-                    </Badge>
-                  </div>
-                }
+                cells={{
+                  details: <CleanListCell>{snapshotDescription(snapshot)}</CleanListCell>,
+                  status: (
+                    <div className="flex items-center gap-1.5">
+                      {index === 0 && !search.trim() ? (
+                        <Badge variant="outline">Latest</Badge>
+                      ) : null}
+                      <Badge
+                        variant={snapshot.damaged ? "destructive" : "outline"}
+                        className={status.className}
+                      >
+                        {status.label}
+                      </Badge>
+                    </div>
+                  ),
+                }}
                 actions={
                   canAct ? (
                     <>

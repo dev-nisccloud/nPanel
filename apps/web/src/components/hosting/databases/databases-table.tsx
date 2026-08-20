@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { CleanList, CleanListRow } from "@/components/ui/clean-list";
+import { CleanList, CleanListCell, CleanListRow } from "@/components/ui/clean-list";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -227,7 +227,16 @@ export function DatabasesTable({
         </div>
       </div>
 
-      <CleanList emptyMessage="No databases found">
+      <CleanList
+        emptyMessage="No databases found"
+        columns={[
+          { key: "name", label: "Name" },
+          { key: "type", label: "Type", className: "w-28 shrink-0", hideBelow: "@lg" },
+          { key: "related", label: "Related site", className: "min-w-0 flex-1", hideBelow: "@xl" },
+          { key: "status", label: "Status", className: "w-28 shrink-0", hideBelow: "@2xl" },
+          { key: "actions", label: "Actions", align: "end" },
+        ]}
+      >
         {filteredData.map((db, index) => {
           const typeUpper = (db.type || "mysql").toUpperCase();
           const related = relatedSiteLabel(db, relatedSitesStatus);
@@ -237,8 +246,11 @@ export function DatabasesTable({
               key={db.id || `db-${index}`}
               leading={<DatabaseIcon className="h-4 w-4 text-muted-foreground" />}
               title={db.name || "Unknown Database"}
-              description={<span className="block truncate">{`${typeUpper} · ${related}`}</span>}
-              trailing={getStatusBadge(db.status)}
+              cells={{
+                type: <CleanListCell>{typeUpper}</CleanListCell>,
+                related: <CleanListCell>{related}</CleanListCell>,
+                status: getStatusBadge(db.status),
+              }}
               onClick={() => handleConnectionInfo(db)}
               actions={
                 <>
