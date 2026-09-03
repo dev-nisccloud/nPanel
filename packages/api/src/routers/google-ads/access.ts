@@ -97,6 +97,18 @@ export async function getGoogleAdsExecutionContext(ctx: AuthCtx, customerId: str
     });
   }
 
+  const { assertTeamModulePermission } = await import("../../lib/team-permissions/assert");
+  const permissionTeamId = linkedAccount?.teamId ?? teamIds[0];
+  if (permissionTeamId) {
+    await assertTeamModulePermission({
+      teamId: permissionTeamId,
+      userId,
+      userRole: role,
+      module: "ads.google",
+      access: "read",
+    });
+  }
+
   const [integration] = linkedAccount
     ? await db
         .select()

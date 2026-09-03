@@ -41,6 +41,14 @@ export async function assertZeepoAiTeamAccess(params: {
 	}
 
 	await assertUserIsTeamMember(params.userId, params.teamId);
+	const { assertTeamPermission } = await import("./team-permissions/assert");
+	await assertTeamPermission({
+		teamId: params.teamId,
+		userId: params.userId,
+		userRole: params.userRole,
+		key: "gen_ai.zeepo_ai",
+		access: "read",
+	});
 	return params.teamId;
 }
 

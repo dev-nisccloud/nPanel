@@ -546,10 +546,11 @@ const STEPS: Step[] = [
             bhfId: ctx.bhfId,
             cmcKey: ctx.cmcKey,
             custNo: "CUST001",
-            custTin: ctx.appTestPin || ctx.tin,
-            custNm: ctx.appTestPin
-                ? "Automated Test Customer"
-                : "NPanel Certification Customer",
+            custTin:
+                ctx.tin === ctx.appTestPin
+                    ? "P052377334H"
+                    : ctx.appTestPin || ctx.tin,
+            custNm: "Automated Test Customer",
             adrs: "Nairobi",
             telNo: "0700000000",
             email: "cert@nisccloud.com",
@@ -753,8 +754,11 @@ const STEPS: Step[] = [
             // Session invcNo must start at 1; trdInvcNo can be a unique trade reference
             // so we do not collide with historical production invoices (e.g. invcNo=1 credit note).
             const trdInvcNo = `CERT${String(Date.now()).slice(-10)}`;
-            const custTin = ctx.appTestPin || null;
-            const custNm = ctx.appTestPin
+            const custTin =
+                ctx.tin === ctx.appTestPin
+                    ? "P052377334H"
+                    : ctx.appTestPin || null;
+            const custNm = custTin
                 ? "Automated Test Customer"
                 : "Walk-in Customer";
             return {

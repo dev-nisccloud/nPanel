@@ -16,14 +16,28 @@ import {
 } from "../email-marketing/schemas";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
+import { assertTeamModulePermission, assertTeamPermission } from "../../lib/team-permissions/assert";
 
-async function assertTeamMember(teamId: string, userId: string) {
+async function assertTeamMember(
+  teamId: string,
+  userId: string,
+  role?: string | null,
+) {
+  if (isAgencyUserRole(role)) return { id: "agency" };
   const [member] = await db
     .select({ id: teamMember.id })
     .from(teamMember)
     .where(and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)))
     .limit(1);
-  return member ?? null;
+  if (!member) return null;
+  await assertTeamModulePermission({
+    teamId,
+    userId,
+    userRole: role,
+    module: "email_marketing",
+    access: "read",
+  });
+  return member;
 }
 
 function isAgencyUserRole(role: string | null | undefined): boolean {
@@ -121,8 +135,15 @@ export const niscEmailMarketingAudiencesRouter = router({
     }
 
     if (input.teamId) {
-      const member = await assertTeamMember(input.teamId, userId);
+      const member = await assertTeamMember(input.teamId, userId, userRole);
       if (!member) throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+      await assertTeamPermission({
+        teamId: input.teamId,
+        userId,
+        userRole,
+        key: "email_marketing.audiences",
+        access: "write",
+      });
     }
 
     const now = new Date();
@@ -214,7 +235,7 @@ export const niscEmailMarketingAudiencesRouter = router({
       // Agency-side view: list all audiences globally.
     } else if (input.teamId) {
       // Team-scoped: allow members
-      const member = await assertTeamMember(input.teamId, userId);
+      const member = await assertTeamMember(input.teamId, userId, userRole);
       if (!member) throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
       conditions.push(eq(niscEmAudience.teamId, input.teamId));
     } else {

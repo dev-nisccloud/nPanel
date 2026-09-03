@@ -6,6 +6,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
@@ -53,6 +54,31 @@ export const teamMember = pgTable(
   (table) => [
     index("team_member_teamId_idx").on(table.teamId),
     index("team_member_userId_idx").on(table.userId),
+  ],
+);
+
+export const teamMemberPermission = pgTable(
+  "team_member_permission",
+  {
+    id: text("id").primaryKey(),
+    teamMemberId: text("team_member_id")
+      .notNull()
+      .references(() => teamMember.id, { onDelete: "cascade" }),
+    permissionKey: text("permission_key").notNull(),
+    access: text("access").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("team_member_permission_memberId_key_unique").on(
+      table.teamMemberId,
+      table.permissionKey,
+    ),
+    index("team_member_permission_teamMemberId_idx").on(table.teamMemberId),
+    index("team_member_permission_permissionKey_idx").on(table.permissionKey),
   ],
 );
 
@@ -147,7 +173,7 @@ export const teamRelations = relations(team, ({ many }) => ({
   billingSettings: many(teamBillingSettings),
 }));
 
-export const teamMemberRelations = relations(teamMember, ({ one }) => ({
+export const teamMemberRelations = relations(teamMember, ({ one, many }) => ({
   team: one(team, {
     fields: [teamMember.teamId],
     references: [team.id],
@@ -156,7 +182,18 @@ export const teamMemberRelations = relations(teamMember, ({ one }) => ({
     fields: [teamMember.userId],
     references: [user.id],
   }),
+  permissions: many(teamMemberPermission),
 }));
+
+export const teamMemberPermissionRelations = relations(
+  teamMemberPermission,
+  ({ one }) => ({
+    member: one(teamMember, {
+      fields: [teamMemberPermission.teamMemberId],
+      references: [teamMember.id],
+    }),
+  }),
+);
 
 export const teamInviteRelations = relations(teamInvite, ({ one }) => ({
   team: one(team, {

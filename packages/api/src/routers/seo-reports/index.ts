@@ -142,12 +142,26 @@ async function userMayAccessTeamForSeoReports(userId: string, role: string, team
     .from(teamMember)
     .where(and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)))
     .limit(1);
-  if (m) return true;
-  const owned = await db.query.team.findFirst({
-    where: and(eq(team.id, teamId), eq(team.createdById, userId)),
-    columns: { id: true },
-  });
-  return !!owned;
+  if (!m) {
+    const owned = await db.query.team.findFirst({
+      where: and(eq(team.id, teamId), eq(team.createdById, userId)),
+      columns: { id: true },
+    });
+    if (!owned) return false;
+  }
+  try {
+    const { assertTeamPermission } = await import("../../lib/team-permissions/assert");
+    await assertTeamPermission({
+      teamId,
+      userId,
+      userRole: role,
+      key: "seo.reports",
+      access: "read",
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function loadActiveTeamSeoSubscriptionResources(teamId: string): Promise<TeamSeoSubscriptionResources> {

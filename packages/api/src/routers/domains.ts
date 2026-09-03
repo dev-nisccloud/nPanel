@@ -171,6 +171,14 @@ async function ensureTeamAccess(teamId: string, userId: string, role: string) {
       message: "You do not have access to this team.",
     });
   }
+  const { assertTeamModulePermission } = await import("../lib/team-permissions/assert");
+  await assertTeamModulePermission({
+    teamId,
+    userId,
+    userRole: role,
+    module: "domains",
+    access: "read",
+  });
 }
 
 async function ensureDomainReadAccess(domainId: string, userId: string, role: string) {

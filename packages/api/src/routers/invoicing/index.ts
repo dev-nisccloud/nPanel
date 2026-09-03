@@ -174,6 +174,15 @@ async function ensureTeamAccess(_db: DbLike, userId: string, role: string, teamI
 			message: "You do not have access to this team.",
 		});
 	}
+
+	const { assertTeamPermission } = await import("../../lib/team-permissions/assert");
+	await assertTeamPermission({
+		teamId,
+		userId,
+		userRole: role,
+		key: "billing.invoices_view",
+		access: "read",
+	});
 }
 
 async function ensureTeamMutationAccess(
@@ -199,12 +208,14 @@ async function ensureTeamMutationAccess(
 	if (!teamRow) {
 		throw new TRPCError({ code: "NOT_FOUND", message: "Team not found." });
 	}
-	if (teamRow.createdById !== userId) {
-		throw new TRPCError({
-			code: "FORBIDDEN",
-			message: "Only the team owner can modify team invoices.",
-		});
-	}
+	const { assertTeamPermission } = await import("../../lib/team-permissions/assert");
+	await assertTeamPermission({
+		teamId,
+		userId,
+		userRole: role,
+		key: "billing.invoices_create",
+		access: "write",
+	});
 }
 
 async function ensureInvoiceAccess(_db: DbLike, userId: string, role: string, invoiceId: string) {

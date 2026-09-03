@@ -19,6 +19,10 @@ import {
 
 import { TeamSidebarLayout } from "@/routes/$slug/_components/team-sidebar-layout";
 import { IntercomSupport } from "@/components/intercom-support";
+import {
+  TeamPermissionRouteGuard,
+  TeamPermissionsProvider,
+} from "@/contexts/team-permissions-context";
 
 function readSidebarDefaultOpen(): boolean {
   if (typeof document === "undefined") return true;
@@ -127,15 +131,19 @@ export default function TeamLayout() {
     <NavigationLoadingProvider>
       <IntercomSupport user={session.user} />
       <SwitchingTeamProvider>
-        <TeamSidebarLayout
-          defaultOpen={defaultOpen}
-          sidebarVariant={sidebarVariant}
-          sidebarCollapsible={sidebarCollapsible}
-          contentLayout={contentLayout}
-          teamSlug={teamRow.slug}
-        >
-          <Outlet />
-        </TeamSidebarLayout>
+        <TeamPermissionsProvider teamId={teamRow.id} teamSlug={teamRow.slug}>
+          <TeamSidebarLayout
+            defaultOpen={defaultOpen}
+            sidebarVariant={sidebarVariant}
+            sidebarCollapsible={sidebarCollapsible}
+            contentLayout={contentLayout}
+            teamSlug={teamRow.slug}
+          >
+            <TeamPermissionRouteGuard>
+              <Outlet />
+            </TeamPermissionRouteGuard>
+          </TeamSidebarLayout>
+        </TeamPermissionsProvider>
       </SwitchingTeamProvider>
     </NavigationLoadingProvider>
   );

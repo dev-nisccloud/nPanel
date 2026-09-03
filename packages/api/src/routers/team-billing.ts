@@ -189,6 +189,14 @@ const ensureTeamMutationAccess = async (teamId: string, userId: string, role: st
 
 	if (!isAgencyUser(role)) {
 		await ensureTeamReadAccess(teamId, userId, role);
+		const { assertTeamPermission } = await import("../lib/team-permissions/assert");
+		await assertTeamPermission({
+			teamId,
+			userId,
+			userRole: role,
+			key: "billing.team_billing",
+			access: "write",
+		});
 	}
 };
 

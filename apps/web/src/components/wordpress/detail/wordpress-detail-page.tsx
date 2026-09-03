@@ -22,18 +22,20 @@ import { useWordPressDetailBatched } from "@/routes/$slug.wordpress/_components/
 import { WordPressOverview } from "@/components/wordpress/wordpress-overview";
 import { WordPressPlugins } from "@/routes/$slug.wordpress/_components/wordpress-plugins";
 import { WordPressThemes } from "@/routes/$slug.wordpress/_components/wordpress-themes";
+import { useCanTeamPermission } from "@/contexts/team-permissions-context";
 
 interface TabDef {
   value: string;
   label: string;
   sub: string;
   icon: React.ComponentType<{ className?: string }>;
+  permissionKey: string;
 }
 
 const TABS: TabDef[] = [
-  { value: "overview", label: "Overview", sub: "Summary", icon: LayoutDashboard },
-  { value: "plugins", label: "Plugins", sub: "Extensions", icon: Code },
-  { value: "themes", label: "Themes", sub: "Design", icon: FileText },
+  { value: "overview", label: "Overview", sub: "Summary", icon: LayoutDashboard, permissionKey: "wordpress.list" },
+  { value: "plugins", label: "Plugins", sub: "Extensions", icon: Code, permissionKey: "wordpress.plugins" },
+  { value: "themes", label: "Themes", sub: "Design", icon: FileText, permissionKey: "wordpress.themes" },
 ];
 
 export interface WordPressDetailPageProps {
@@ -125,6 +127,13 @@ export function WordPressDetailPage({
   const { data: wpData, isLoading, isError, error, refetch } =
     useWordPressDetailBatched(installationId);
   const [activeTab, setActiveTab] = React.useState("overview");
+  const { can } = useCanTeamPermission();
+  const visibleTabs = TABS.filter((tab) => can(tab.permissionKey));
+  React.useEffect(() => {
+    if (!visibleTabs.some((tab) => tab.value === activeTab) && visibleTabs[0]) {
+      setActiveTab(visibleTabs[0].value);
+    }
+  }, [activeTab, visibleTabs]);
 
   if (isLoading) return <WordPressDetailSkeleton />;
 
@@ -166,7 +175,7 @@ export function WordPressDetailPage({
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full gap-0">
             <ScrollArea className={DETAIL_TABS_SCROLL_CLASS}>
               <TabsList className={DETAIL_TABS_LIST_CLASS}>
-                {TABS.map((tab) => (
+                {visibleTabs.map((tab) => (
                   <DetailCardTabsTrigger
                     key={tab.value}
                     value={tab.value}

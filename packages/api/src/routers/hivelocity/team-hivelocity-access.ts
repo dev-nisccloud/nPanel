@@ -8,6 +8,7 @@ import {
 	niscProductPlan,
 } from "@npanel/db/schema/products";
 import { team, teamMember } from "@npanel/db/schema/teams";
+import { assertTeamModulePermission } from "../../lib/team-permissions/assert";
 
 export type TeamHivelocityResourceCategory = "vps" | "vds" | "dedicated";
 
@@ -222,6 +223,13 @@ export async function assertHivelocityDeviceLinkedToTeam(params: {
 		throw new TRPCError({ code: "NOT_FOUND", message: "Team not found" });
 	}
 	await assertUserCanReadTeamCloud(teamId, params.userId, params.role);
+	await assertTeamModulePermission({
+		teamId,
+		userId: params.userId,
+		userRole: params.role,
+		module: `servers.${params.category === "dedicated" ? "dedicated" : params.category}`,
+		access: "read",
+	});
 	const allowed = await collectHivelocityDeviceIdsForTeam(teamId, params.category);
 	if (!allowed.has(params.deviceId)) {
 		throw new TRPCError({ code: "FORBIDDEN", message: "You do not have access to this server" });

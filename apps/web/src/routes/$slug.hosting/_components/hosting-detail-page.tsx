@@ -26,6 +26,7 @@ import { useHostingDetailBatched } from "./use-hosting-detail-batched";
 import { getStatusDisplayText, getStatusBadgeVariant } from "./hosting-utils";
 import { HostingBackupRestoreTab } from "@/components/nisc-backup/hosting-backup-restore-tab";
 import { resolveHostingNiscBackupUsername } from "@/components/nisc-backup/resolve-hosting-nisc-backup-username";
+import { useCanTeamPermission } from "@/contexts/team-permissions-context";
 
 interface HostingDetailPageProps {
   subscriptionId: string;
@@ -130,6 +131,26 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
   const { data: hostingData, isLoading, isError, error, refetch } = useHostingDetailBatched(subscriptionId);
   const [installWordPressOpen, setInstallWordPressOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState("overview");
+  const { can } = useCanTeamPermission();
+  const hostingTabAllowed = React.useMemo(
+    () => ({
+      overview: can("hosting.list"),
+      dns: can("hosting.dns"),
+      mail: can("hosting.mail"),
+      "file-manager": can("hosting.file_manager"),
+      subdomains: can("hosting.subdomains"),
+      databases: can("hosting.databases"),
+      wordpress: can("hosting.wordpress"),
+      "backup-restore": can("hosting.backups"),
+    }),
+    [can],
+  );
+  React.useEffect(() => {
+    if (!hostingTabAllowed[activeTab as keyof typeof hostingTabAllowed]) {
+      const first = (Object.entries(hostingTabAllowed) as [string, boolean][]).find(([, ok]) => ok)?.[0];
+      if (first) setActiveTab(first);
+    }
+  }, [activeTab, hostingTabAllowed]);
   const [createIntentTab, setCreateIntentTab] = React.useState<HostingDetailTab | null>(null);
   const mailboxQuotaLimitBytes = React.useMemo(() => {
     const limits = hostingData?.limits?.limit ?? [];
@@ -215,14 +236,30 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <ScrollArea className="w-full -mx-4 px-4 md:mx-0 md:px-0 scrollbar-default">
               <TabsList className={DETAIL_TABS_LIST_CLASS}>
+                {hostingTabAllowed.overview ? (
                 <DetailCardTabsTrigger value="overview" icon={LayoutDashboard} title="Overview" subtitle="Details" />
+                ) : null}
+                {hostingTabAllowed.dns ? (
                 <DetailCardTabsTrigger value="dns" icon={Network} title="DNS" subtitle="Records" />
+                ) : null}
+                {hostingTabAllowed.mail ? (
                 <DetailCardTabsTrigger value="mail" icon={Mail} title="Mail" subtitle="Accounts" />
+                ) : null}
+                {hostingTabAllowed["file-manager"] ? (
                 <DetailCardTabsTrigger value="file-manager" icon={Folder} title="File Manager" subtitle="Files" />
+                ) : null}
+                {hostingTabAllowed.subdomains ? (
                 <DetailCardTabsTrigger value="subdomains" icon={Layers} title="Subdomains" subtitle="Domains" />
+                ) : null}
+                {hostingTabAllowed.databases ? (
                 <DetailCardTabsTrigger value="databases" icon={Database} title="Databases" subtitle="MySQL/PostgreSQL" />
+                ) : null}
+                {hostingTabAllowed.wordpress ? (
                 <DetailCardTabsTrigger value="wordpress" icon={Icons.Wordpress} title="WordPress" subtitle="Instances" />
+                ) : null}
+                {hostingTabAllowed["backup-restore"] ? (
                 <DetailCardTabsTrigger value="backup-restore" icon={ArchiveRestore} title="Backup & Restore" subtitle="Nisc Backup" />
+                ) : null}
               </TabsList>
               <ScrollBar orientation="horizontal" className="flex mt-0.5" />
             </ScrollArea>

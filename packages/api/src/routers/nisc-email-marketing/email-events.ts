@@ -17,14 +17,24 @@ import {
   topClickedLinksInputSchema,
   topClickedLinksResponseSchema,
 } from "../email-marketing/schemas";
+import { assertTeamModulePermission } from "../../lib/team-permissions/assert";
 
-async function assertTeamMember(teamId: string, userId: string) {
+async function assertTeamMember(teamId: string, userId: string, role?: string | null) {
+  if (isAgencyUserRole(role)) return { id: "agency" };
   const [member] = await db
     .select({ id: teamMember.id })
     .from(teamMember)
     .where(and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)))
     .limit(1);
-  return member ?? null;
+  if (!member) return null;
+  await assertTeamModulePermission({
+    teamId,
+    userId,
+    userRole: role,
+    module: "email_marketing",
+    access: "read",
+  });
+  return member;
 }
 
 function isAgencyUserRole(role: string | null | undefined): boolean {

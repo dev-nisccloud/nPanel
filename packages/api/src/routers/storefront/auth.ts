@@ -534,12 +534,21 @@ export const storefrontAuthRouter = router({
         )
         .limit(1);
 
-      if (!membership || !isPurchaseRole(membership.role)) {
+      if (!membership) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You cannot purchase under the selected organization.",
         });
       }
+
+      const { assertTeamPermission } = await import("../../lib/team-permissions/assert");
+      await assertTeamPermission({
+        teamId: membership.teamId,
+        userId,
+        userRole: ctx.session?.user?.role,
+        key: "billing.checkout",
+        access: "write",
+      });
 
       return {
         storefrontToken: signStorefrontToken(
