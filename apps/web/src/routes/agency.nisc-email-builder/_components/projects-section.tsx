@@ -17,6 +17,12 @@ import { useGetNebDesigns } from "../_api/use-get-neb-designs";
 import { useDeleteNebDesign } from "../_api/use-delete-neb-design";
 import { useDuplicateNebDesign } from "../_api/use-duplicate-neb-design";
 import { useNiscEmailMarketingRoute } from "@/components/nisc-email-marketing/nisc-email-marketing-route-context";
+import {
+	NiscEmLinkOrganizationDialog,
+	NiscEmLinkOrganizationMenuItem,
+} from "@/components/nisc-email-marketing/nisc-em-link-organization";
+import { toast } from "@/components/ui/sonner";
+import { trpc } from "@/utils/trpc";
 
 import {
 	DropdownMenuContent,
@@ -37,10 +43,27 @@ export const ProjectsSection = () => {
 	const [navigatingDesignId, setNavigatingDesignId] = useState<string | null>(null);
 	const [duplicatingDesignId, setDuplicatingDesignId] = useState<string | null>(null);
 	const [deletingDesignId, setDeletingDesignId] = useState<string | null>(null);
+	const [linkDesign, setLinkDesign] = useState<{
+		id: string;
+		name: string;
+		teamId: string | null;
+	} | null>(null);
 	const duplicateMutation = useDuplicateNebDesign();
 	const removeMutation = useDeleteNebDesign();
 	const navigate = useNavigate();
 	const route = useNiscEmailMarketingRoute();
+	const utils = trpc.useUtils();
+
+	const linkMutation = trpc.niscEmailBuilder.design.linkOrganization.useMutation({
+		onSuccess: async () => {
+			toast.success("Organization linked");
+			setLinkDesign(null);
+			await utils.niscEmailBuilder.design.list.invalidate();
+		},
+		onError: (e) => {
+			toast.error(e.message || "Failed to link organization");
+		},
+	});
 
 	const teamId = route.isCustomer ? route.teamId ?? undefined : undefined;
 
@@ -123,6 +146,21 @@ export const ProjectsSection = () => {
 	return (
 		<div className="space-y-4 mt-8">
 			<ConfirmDialog />
+			{route.showAdminFeatures ? (
+				<NiscEmLinkOrganizationDialog
+					open={Boolean(linkDesign)}
+					onOpenChange={(open) => {
+						if (!open) setLinkDesign(null);
+					}}
+					alreadyLinked={Boolean(linkDesign?.teamId)}
+					isPending={linkMutation.isPending}
+					resourceLabel={linkDesign?.name ?? "this email design"}
+					onConfirm={async (teamId) => {
+						if (!linkDesign) return;
+						await linkMutation.mutateAsync({ designId: linkDesign.id, teamId });
+					}}
+				/>
+			) : null}
 			<h3 className="font-semibold text-lg">Recent designs</h3>
 			<div className="rounded-md border">
 				<Table>
@@ -235,6 +273,19 @@ export const ProjectsSection = () => {
 																<CopyIcon className="size-4 mr-2" />
 																Make a copy
 															</DropdownMenuItem>
+															{route.showAdminFeatures ? (
+																<NiscEmLinkOrganizationMenuItem
+																	alreadyLinked={Boolean(design.teamId)}
+																	disabled={isDeleteInProgress}
+																	onSelect={() =>
+																		setLinkDesign({
+																			id: design.id,
+																			name: design.name,
+																			teamId: design.teamId ?? null,
+																		})
+																	}
+																/>
+															) : null}
 															<DropdownMenuItem
 																className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
 																disabled={isDeleteInProgress}

@@ -25,6 +25,10 @@ import {
 } from "../email-marketing/schemas";
 import { sendSesRawEmail } from "../../lib/ses-client";
 import { assertTeamModulePermission, assertTeamPermission } from "../../lib/team-permissions/assert";
+import {
+  assertCanLinkNiscEmResource,
+  assertTeamHasNiscEmailMarketingSubscription,
+} from "../../lib/nisc-email-marketing-billing";
 
 async function assertTeamMember(teamId: string, userId: string, role?: string | null) {
   if (isAgencyUserRole(role)) return { id: "agency" };
@@ -285,7 +289,11 @@ export const niscEmailMarketingDomainsRouter = router({
         const rows = await db
           .select({ id: niscEmDomain.id, domainName: niscEmDomain.domainName })
           .from(niscEmDomain)
-          .where(eq(niscEmDomain.status, "VERIFIED"))
+          .where(
+            input.teamId
+              ? and(eq(niscEmDomain.status, "VERIFIED"), eq(niscEmDomain.teamId, input.teamId))
+              : eq(niscEmDomain.status, "VERIFIED"),
+          )
           .orderBy(desc(niscEmDomain.createdAt))
           .limit(500);
 
@@ -336,6 +344,7 @@ export const niscEmailMarketingDomainsRouter = router({
         key: "email_marketing.sending_domains",
         access: "write",
       });
+      await assertTeamHasNiscEmailMarketingSubscription(input.teamId);
     }
     const teamId = input.teamId ?? null;
     const domainName = input.domainName.trim().toLowerCase();
@@ -504,11 +513,58 @@ export const niscEmailMarketingDomainsRouter = router({
       if (input.teamId) {
         const member = await assertTeamMember(input.teamId, userId);
         if (!member) throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+        await assertTeamHasNiscEmailMarketingSubscription(input.teamId);
       }
 
       const teamId = input.teamId ?? null;
       const domainName = input.domainName.trim().toLowerCase();
       return addDomainCore({ userId, teamId, domainName });
+    }),
+
+  linkOrganization: protectedProcedure
+    .input(z.object({ id: z.string().min(1), teamId: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id;
+      const userRole = ctx.session?.user?.role;
+      if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
+
+      const [domain] = await db
+        .select({
+          id: niscEmDomain.id,
+          teamId: niscEmDomain.teamId,
+          domainName: niscEmDomain.domainName,
+        })
+        .from(niscEmDomain)
+        .where(eq(niscEmDomain.id, input.id))
+        .limit(1);
+      if (!domain) throw new TRPCError({ code: "NOT_FOUND", message: "Domain not found" });
+
+      await assertCanLinkNiscEmResource({
+        role: userRole,
+        currentTeamId: domain.teamId,
+        nextTeamId: input.teamId,
+      });
+
+      const [conflict] = await db
+        .select({ id: niscEmDomain.id })
+        .from(niscEmDomain)
+        .where(
+          and(eq(niscEmDomain.teamId, input.teamId), eq(niscEmDomain.domainName, domain.domainName)),
+        )
+        .limit(1);
+      if (conflict) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "This domain is already linked for that organization",
+        });
+      }
+
+      await db
+        .update(niscEmDomain)
+        .set({ teamId: input.teamId, updatedAt: new Date() })
+        .where(eq(niscEmDomain.id, domain.id));
+
+      return { ok: true as const };
     }),
 
   verifyCheck: protectedProcedure

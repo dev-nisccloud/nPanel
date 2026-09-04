@@ -7,6 +7,7 @@ import { niscEmailMarketingQuotaRouter } from "./quota";
 import { niscEmailMarketingSesUsageRouter } from "./ses-usage";
 import { niscEmailMarketingSesIdentitiesRouter } from "./ses-identities";
 import { niscEmailMarketingTransactionalRouter } from "./transactional";
+import { niscEmailMarketingEligibleTeamsRouter } from "./eligible-teams";
 
 export const niscEmailMarketingRouter = router({
   audiences: niscEmailMarketingAudiencesRouter,
@@ -17,5 +18,6 @@ export const niscEmailMarketingRouter = router({
   quota: niscEmailMarketingQuotaRouter,
   sesUsage: niscEmailMarketingSesUsageRouter,
   sesIdentities: niscEmailMarketingSesIdentitiesRouter,
+  eligibleTeams: niscEmailMarketingEligibleTeamsRouter,
 });
 

@@ -1,23 +1,28 @@
 import { z } from "zod";
+import { asPleskArray, firstPleskResult, normalizePleskPacket } from "./plesk-xml-normalize";
 
 // Schema for the raw Plesk API response for single subscription (getById)
 export const pleskSubscriptionByIdResponseSchema = z.object({
   raw: z.string(),
   parsed: z.object({
-    packet: z.object({
+    packet: z.preprocess(
+      normalizePleskPacket,
+      z.object({
       webspace: z.object({
         get: z.object({
-          result: z.object({
-            status: z.string(),
-            "filter-id": z.number(),
-            id: z.number(),
+          result: z.preprocess(
+            firstPleskResult,
+            z.object({
+            status: z.string().optional(),
+            "filter-id": z.coerce.number().optional(),
+            id: z.coerce.number(),
             data: z.object({
               gen_info: z.object({
                 "cr_date": z.string().optional(),
                 name: z.string().optional(),
                 "ascii-name": z.string().optional(),
-                status: z.number().optional(),
-                "real_size": z.number().optional(),
+                status: z.coerce.number().optional(),
+                "real_size": z.coerce.number().optional(),
                 "owner-login": z.string().optional(),
                 "dns_ip_address": z.string().optional(),
                 htype: z.string().optional(),
@@ -30,20 +35,20 @@ export const pleskSubscriptionByIdResponseSchema = z.object({
               }),
               hosting: z.object({
                 vrt_hst: z.object({
-                  property: z.array(z.object({
+                  property: z.preprocess(asPleskArray, z.array(z.object({
                     name: z.string().optional(),
                     value: z.union([z.string(), z.number(), z.boolean()]).optional(),
-                  })).optional(),
+                  }))).optional(),
                   ip_address: z.string().optional(),
                 }).optional(),
               }).optional(),
               limits: z.object({
                 overuse: z.string().optional(),
-                limit: z.array(z.object({
+                limit: z.preprocess(asPleskArray, z.array(z.object({
                   name: z.string().optional(),
                   // XML parser may leave numeric tag values as strings
                   value: z.coerce.number().optional(),
-                })).optional(),
+                }))).optional(),
               }).optional(),
               stat: z.object({
                 traffic: z.coerce.number().optional(),
@@ -65,13 +70,14 @@ export const pleskSubscriptionByIdResponseSchema = z.object({
                 stat_ttl: z.number().optional(),
               }).optional(),
               permissions: z.object({
-                permission: z.array(z.object({
+                permission: z.preprocess(asPleskArray, z.array(z.object({
                   name: z.string().optional(),
                   value: z.boolean().optional(),
-                })).optional(),
+                }))).optional(),
               }).optional(),
+            }).optional(),
             }),
-          }),
+          ),
         }),
       }).optional(),
       system: z.object({
@@ -80,6 +86,7 @@ export const pleskSubscriptionByIdResponseSchema = z.object({
         errtext: z.string().optional(),
       }).optional(),
     }),
+    ),
   }),
 });
 

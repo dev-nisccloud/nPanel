@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normalizePleskPacket } from "@/components/hosting/plesk-xml-normalize";
 
 // Single result item from Plesk (API may return one object or an array)
 const pleskMailResultItemSchema = z.object({
@@ -46,13 +47,13 @@ function normalizeMailResult(val: unknown): unknown[] {
 export const pleskEmailsResponseSchema = z.object({
   raw: z.string(),
   parsed: z.object({
-    packet: z.object({
+    packet: z.preprocess(normalizePleskPacket, z.object({
       mail: z.object({
         "get_info": z.object({
           result: z.preprocess(normalizeMailResult, z.array(pleskMailResultItemSchema)),
         }),
       }),
-    }),
+    })),
   }),
 });
 

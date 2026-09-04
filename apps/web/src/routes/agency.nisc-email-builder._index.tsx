@@ -9,19 +9,30 @@ import { ProjectsSection } from "./agency.nisc-email-builder/_components/project
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { RotatingText } from "@/components/rotating-text";
 import { useNiscEmailMarketingRoute } from "@/components/nisc-email-marketing/nisc-email-marketing-route-context";
+import { NiscEmOrganizationSelect } from "@/components/nisc-email-marketing/nisc-em-organization-select";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function NiscEmailBuilderLandingPage() {
 	const navigate = useNavigate();
 	const route = useNiscEmailMarketingRoute();
 	const createMutation = useCreateNebDesign();
 	const [isCreating, setIsCreating] = useState(false);
+	const [linkOrgOpen, setLinkOrgOpen] = useState(false);
+	const [linkedTeamId, setLinkedTeamId] = useState("");
 
-	const handleCreate = () => {
+	const createDesign = (teamId?: string) => {
 		setIsCreating(true);
 		createMutation.mutate(
 			{
 				name: "Untitled Email",
-				...(route.isCustomer && route.teamId ? { teamId: route.teamId } : {}),
+				...(teamId ? { teamId } : {}),
 			},
 			{
 				onSuccess: (data) => {
@@ -32,6 +43,24 @@ export default function NiscEmailBuilderLandingPage() {
 				},
 			},
 		);
+	};
+
+	const handleCreate = () => {
+		if (route.isCustomer) {
+			createDesign(route.teamId ?? undefined);
+			return;
+		}
+		if (route.showAdminFeatures) {
+			setLinkedTeamId("");
+			setLinkOrgOpen(true);
+			return;
+		}
+		createDesign();
+	};
+
+	const handleConfirmOrg = () => {
+		setLinkOrgOpen(false);
+		createDesign(linkedTeamId || undefined);
 	};
 
 	return (
@@ -96,6 +125,32 @@ export default function NiscEmailBuilderLandingPage() {
 
 				<ProjectsSection />
 			</div>
+
+			{route.showAdminFeatures ? (
+			<Dialog open={linkOrgOpen} onOpenChange={setLinkOrgOpen}>
+				<DialogContent className="sm:max-w-md">
+					<DialogHeader>
+						<DialogTitle>Link to organization</DialogTitle>
+						<DialogDescription>
+							Choose an organization for this design.
+						</DialogDescription>
+					</DialogHeader>
+					<NiscEmOrganizationSelect
+						value={linkedTeamId}
+						onChange={setLinkedTeamId}
+						disabled={isCreating}
+					/>
+					<DialogFooter>
+						<Button variant="outline" onClick={() => setLinkOrgOpen(false)} disabled={isCreating}>
+							Cancel
+						</Button>
+						<Button onClick={handleConfirmOrg} disabled={isCreating}>
+							Create design
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+			) : null}
 		</div>
 	);
 }
