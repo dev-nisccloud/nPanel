@@ -38,6 +38,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { trpc, type RouterOutputs } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
+import { useNiscEmailMarketingRoute } from "@/components/nisc-email-marketing/nisc-email-marketing-route-context";
+import {
+	NiscEmLinkOrganizationDialog,
+	NiscEmLinkOrganizationMenuItem,
+} from "@/components/nisc-email-marketing/nisc-em-link-organization";
 
 type EmailDomainSummary = RouterOutputs["niscEmailMarketing"]["domains"]["listLegacy"]["domains"][0];
 
@@ -94,9 +99,13 @@ interface DomainRowActionsProps {
 
 function DomainRowActions({ domain, onRefetch, hideDelete }: DomainRowActionsProps) {
 	const utils = trpc.useUtils();
+	const { showAdminFeatures } = useNiscEmailMarketingRoute();
 	const [isVerifying, setIsVerifying] = React.useState(false);
 	const [isDeleting, setIsDeleting] = React.useState(false);
 	const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
+	const [linkOpen, setLinkOpen] = React.useState(false);
+
+	const alreadyLinked = Boolean(domain.teamId);
 
 	const verifyMutation = trpc.niscEmailMarketing.domains.verify.useMutation({
 		onSuccess: () => {
@@ -129,6 +138,20 @@ function DomainRowActions({ domain, onRefetch, hideDelete }: DomainRowActionsPro
 		},
 	});
 
+	const linkMutation = trpc.niscEmailMarketing.domains.linkOrganization.useMutation({
+		onSuccess: () => {
+			toast.success("Organization linked", {
+				description: `${domain.domainName} is now linked to the selected organization.`,
+			});
+			utils.niscEmailMarketing.domains.listLegacy.invalidate();
+			onRefetch?.();
+			setLinkOpen(false);
+		},
+		onError: (e) => {
+			toast.error("Failed to link organization", { description: e.message });
+		},
+	});
+
 	const handleVerify = async () => {
 		setIsVerifying(true);
 		try {
@@ -147,7 +170,7 @@ function DomainRowActions({ domain, onRefetch, hideDelete }: DomainRowActionsPro
 		}
 	};
 
-	const busy = isVerifying || isDeleting;
+	const busy = isVerifying || isDeleting || linkMutation.isPending;
 
 	return (
 		<>
@@ -165,6 +188,13 @@ function DomainRowActions({ domain, onRefetch, hideDelete }: DomainRowActionsPro
 								<DropdownMenuItem onClick={handleVerify} disabled={busy}>
 									{isVerifying ? "Verifying..." : "Verify Domain"}
 								</DropdownMenuItem>
+								{showAdminFeatures ? (
+									<NiscEmLinkOrganizationMenuItem
+										alreadyLinked={alreadyLinked}
+										disabled={busy}
+										onSelect={() => setLinkOpen(true)}
+									/>
+								) : null}
 								{!hideDelete && (
 									<>
 										<DropdownMenuSeparator />
@@ -207,6 +237,19 @@ function DomainRowActions({ domain, onRefetch, hideDelete }: DomainRowActionsPro
 					</AlertDialogContent>
 				</AlertDialog>
 			)}
+
+			{showAdminFeatures ? (
+				<NiscEmLinkOrganizationDialog
+					open={linkOpen}
+					onOpenChange={setLinkOpen}
+					alreadyLinked={alreadyLinked}
+					isPending={linkMutation.isPending}
+					resourceLabel={domain.domainName}
+					onConfirm={async (teamId) => {
+						await linkMutation.mutateAsync({ id: domain.id, teamId });
+					}}
+				/>
+			) : null}
 		</>
 	);
 }
@@ -219,6 +262,7 @@ export interface EmailDomainsTableProps {
 
 export function EmailDomainsTable({ domains, onRefetch, hideDelete }: EmailDomainsTableProps) {
 	const [viewDomainId, setViewDomainId] = React.useState<string | null>(null);
+	const { showAdminFeatures } = useNiscEmailMarketingRoute();
 
 	return (
 		<>
@@ -228,6 +272,7 @@ export function EmailDomainsTable({ domains, onRefetch, hideDelete }: EmailDomai
 						<TableRow>
 							<TableHead className="pl-6">Domain Name</TableHead>
 							<TableHead>Status</TableHead>
+							{showAdminFeatures ? <TableHead>Organization</TableHead> : null}
 							<TableHead>Verified At</TableHead>
 							<TableHead>Created At</TableHead>
 							<TableHead className="w-12 pr-6"></TableHead>
@@ -249,6 +294,11 @@ export function EmailDomainsTable({ domains, onRefetch, hideDelete }: EmailDomai
 								<TableCell>
 									{getStatusBadge(domain.status)}
 								</TableCell>
+								{showAdminFeatures ? (
+									<TableCell className="text-sm text-muted-foreground">
+										{domain.teamId ? "Linked" : "Not linked"}
+									</TableCell>
+								) : null}
 								<TableCell>
 									{domain.verifiedAt ? formatDate(domain.verifiedAt) : "- "}
 								</TableCell>

@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "@/components/ui/sonner";
 import { z } from "zod";
-import { Globe, Plus, Lightbulb, ChevronRight, ChevronLeft, Copy } from "lucide-react";
+import { Globe, Plus, Lightbulb, ChevronLeft, Copy } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -18,11 +18,10 @@ import {
 } from "@/components/npanel-ui/sheet";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 import { useNiscEmailMarketingRoute } from "@/components/nisc-email-marketing/nisc-email-marketing-route-context";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { NiscEmOrganizationSelect } from "@/components/nisc-email-marketing/nisc-em-organization-select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { captureEvent } from "@/lib/posthog";
@@ -51,7 +50,6 @@ interface AddDomainSheetProps {
 export function AddDomainSheet({ open, onOpenChange, onSuccess }: AddDomainSheetProps) {
 	const route = useNiscEmailMarketingRoute();
 	const [step, setStep] = React.useState(1);
-	const [showAdvanced, setShowAdvanced] = React.useState(false);
 	const [createdDomain, setCreatedDomain] = React.useState<{ dnsRecords: unknown; domainName: string } | null>(null);
 
 	const utils = trpc.useUtils();
@@ -63,15 +61,6 @@ export function AddDomainSheet({ open, onOpenChange, onSuccess }: AddDomainSheet
 			teamId: "",
 		},
 	});
-
-	// Fetch teams for advanced options (agency only)
-	const { data: teamsData, isLoading: isLoadingTeams } = trpc.teams.getAll.useQuery(
-		undefined,
-		{
-			enabled: open && route.showAdminFeatures,
-			staleTime: 5 * 60 * 1000,
-		}
-	);
 
 	const createMutation = trpc.niscEmailMarketing.domains.create.useMutation({
 		onSuccess: (data) => {
@@ -99,7 +88,6 @@ export function AddDomainSheet({ open, onOpenChange, onSuccess }: AddDomainSheet
 		if (!next) {
 			setStep(1);
 			form.reset();
-			setShowAdvanced(false);
 			setCreatedDomain(null);
 			// Call onSuccess when sheet closes after domain creation
 			if (createdDomain) {
@@ -183,56 +171,18 @@ export function AddDomainSheet({ open, onOpenChange, onSuccess }: AddDomainSheet
 										)}
 									/>
 
-									{/* Advanced Options (agency only) */}
 									{route.showAdminFeatures && (
-									<Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
-										<CollapsibleTrigger asChild>
-											<Button
-												type="button"
-												variant="ghost"
-												className="w-full justify-start p-0 h-auto font-normal text-muted-foreground hover:text-foreground"
-											>
-												<ChevronRight
-													className={cn(
-														"mr-2 h-4 w-4 transition-transform",
-														showAdvanced && "rotate-90"
-													)}
+										<FormField
+											control={form.control}
+											name="teamId"
+											render={({ field }) => (
+												<NiscEmOrganizationSelect
+													value={field.value ?? ""}
+													onChange={field.onChange}
+													disabled={createMutation.isPending}
 												/>
-												Advanced options
-											</Button>
-										</CollapsibleTrigger>
-										<CollapsibleContent className="space-y-4 pt-4">
-											<FormField
-												control={form.control}
-												name="teamId"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>Organization (optional)</FormLabel>
-														<Select
-															onValueChange={(v) => field.onChange(v === "__none__" ? "" : v)}
-															value={field.value && field.value !== "" ? field.value : "__none__"}
-															disabled={isLoadingTeams || createMutation.isPending}
-														>
-															<FormControl>
-																<SelectTrigger>
-																	<SelectValue placeholder="Select an organization (optional)" />
-																</SelectTrigger>
-															</FormControl>
-															<SelectContent>
-																<SelectItem value="__none__">None</SelectItem>
-																{teamsData?.map((team) => (
-																	<SelectItem key={team.id} value={team.id}>
-																		{team.name}
-																	</SelectItem>
-																))}
-															</SelectContent>
-														</Select>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-										</CollapsibleContent>
-									</Collapsible>
+											)}
+										/>
 									)}
 								</div>
 							)}

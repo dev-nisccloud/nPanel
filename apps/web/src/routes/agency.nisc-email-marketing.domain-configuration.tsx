@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/utils/trpc";
+import { useLocation } from "react-router";
 import { EmailDomainsTable } from "./agency.nisc-email-marketing/domain-configuration/_components/email-domains-table";
 import { AddDomainSheet } from "./agency.nisc-email-marketing/domain-configuration/_components/add-domain-sheet";
 import { SesDomainsTable } from "./agency.nisc-email-marketing/domain-configuration/_components/ses-domains-table";
@@ -55,12 +56,16 @@ const EmptyState: React.FC<{
 
 export default function DomainConfigurationPage() {
 	const route = useNiscEmailMarketingRoute();
+	const location = useLocation();
+	const showUsageTab = !route.isCustomer && location.pathname.startsWith("/agency/");
 	const [searchTerm, setSearchTerm] = React.useState("");
 	const [isAddSheetOpen, setIsAddSheetOpen] = React.useState(false);
 	const [isRefreshing, setIsRefreshing] = React.useState(false);
-	const [tab, setTab] = React.useState<"usage" | "domains">(
-		route.showAdminFeatures ? "usage" : "domains",
-	);
+	const [tab, setTab] = React.useState<"usage" | "domains">(showUsageTab ? "usage" : "domains");
+
+	React.useEffect(() => {
+		if (!showUsageTab && tab !== "domains") setTab("domains");
+	}, [showUsageTab, tab]);
 
 	const {
 		data,
@@ -78,7 +83,7 @@ export default function DomainConfigurationPage() {
 		isLoading: usageQuotaLoading,
 		refetch: refetchUsageQuota,
 	} = trpc.niscEmailMarketing.sesUsage.quotaLive.useQuery(undefined, {
-		enabled: route.showAdminFeatures && tab === "usage",
+		enabled: showUsageTab && tab === "usage",
 	});
 
 	const {
@@ -88,7 +93,7 @@ export default function DomainConfigurationPage() {
 	} = trpc.niscEmailMarketing.sesUsage.listDomainsLive.useQuery(
 		{ limit: 100 },
 		{
-			enabled: route.showAdminFeatures && tab === "usage",
+			enabled: showUsageTab && tab === "usage",
 		},
 	);
 
@@ -171,7 +176,7 @@ export default function DomainConfigurationPage() {
 				</div>
 
 				<div className="mt-6">
-					{route.showAdminFeatures ? (
+					{showUsageTab ? (
 						<Tabs value={tab} onValueChange={(v) => setTab(v as "usage" | "domains")}>
 							<TabsList>
 								<TabsTrigger value="usage">Usage</TabsTrigger>

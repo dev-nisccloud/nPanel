@@ -58,6 +58,7 @@ import {
 	niscEmTeamScopedInput,
 	useNiscEmailMarketingRoute,
 } from "@/components/nisc-email-marketing/nisc-email-marketing-route-context";
+import { NiscEmOrganizationSelect } from "@/components/nisc-email-marketing/nisc-em-organization-select";
 
 const STEPS = [
 	{ title: "Setup", description: "Domain, from address, and subject" },
@@ -375,10 +376,17 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 	const [selectedAudienceId, setSelectedAudienceId] = React.useState<string | null>(null);
 	const [isLoadingAudienceRecipients, setIsLoadingAudienceRecipients] = React.useState(false);
 	const [recipientIssue, setRecipientIssue] = React.useState<RecipientIssue | null>(null);
+	const [linkedTeamId, setLinkedTeamId] = React.useState("");
+
+	const scopedTeamId = route.isCustomer ? route.teamId : linkedTeamId || undefined;
 
 	const { data: audiencesData, isLoading: audiencesLoading } =
 		trpc.niscEmailMarketing.audiences.list.useQuery(
-			niscEmTeamScopedInput(route, { limit: 100, offset: 0 }),
+			niscEmTeamScopedInput(route, {
+				limit: 100,
+				offset: 0,
+				...(scopedTeamId ? { teamId: scopedTeamId } : {}),
+			}),
 			{
 				enabled: open && (!route.isCustomer || Boolean(route.teamId)),
 			},
@@ -400,7 +408,7 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 
 	// Fetch verified domains
 	const { data: domainsData, isLoading: domainsLoading } = trpc.niscEmailMarketing.domains.listAllVerified.useQuery(
-		niscEmTeamScopedInput(route, {}),
+		niscEmTeamScopedInput(route, scopedTeamId ? { teamId: scopedTeamId } : {}),
 		{ enabled: open && (!route.isCustomer || Boolean(route.teamId)), staleTime: 5 * 60 * 1000 },
 	);
 
@@ -684,6 +692,7 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 			setRecipientIssue(null);
 			setIsSending(false);
 			setCreatedCampaignId(null);
+			setLinkedTeamId("");
 		}
 		onOpenChange(next);
 	};
@@ -888,7 +897,11 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 				recipientEmails: data.recipientEmails,
 				emailDomainId: data.emailDomainId ?? undefined,
 				scheduledAt: undefined,
-				...(route.isCustomer && route.teamId ? { teamId: route.teamId } : {}),
+				...(route.isCustomer && route.teamId
+					? { teamId: route.teamId }
+					: linkedTeamId
+						? { teamId: linkedTeamId }
+						: {}),
 			});
 
 			// Fire-and-forget: enqueue send job in background. Do not block UI on queue latency.
@@ -948,7 +961,11 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 				recipientEmails: data.recipientEmails,
 				emailDomainId: data.emailDomainId ?? undefined,
 				scheduledAt: data.scheduledAt ?? undefined,
-				...(route.isCustomer && route.teamId ? { teamId: route.teamId } : {}),
+				...(route.isCustomer && route.teamId
+					? { teamId: route.teamId }
+					: linkedTeamId
+						? { teamId: linkedTeamId }
+						: {}),
 			});
 
 			// Fire-and-forget: enqueue scheduled send job in background.
@@ -1026,6 +1043,19 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 											</FormItem>
 										)}
 									/>
+
+									{route.showAdminFeatures && (
+										<NiscEmOrganizationSelect
+											value={linkedTeamId}
+											onChange={(next) => {
+												setLinkedTeamId(next);
+												form.setValue("emailDomainId", null);
+												form.setValue("fromEmail", "");
+												setSelectedAudienceId(null);
+											}}
+											disabled={isSending}
+										/>
+									)}
 
 									<FormField
 										control={form.control}

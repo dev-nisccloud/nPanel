@@ -33,6 +33,10 @@ import {
 import { trpc, type RouterOutputs } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { useNiscEmailMarketingRoute } from "@/components/nisc-email-marketing/nisc-email-marketing-route-context";
+import {
+	NiscEmLinkOrganizationDialog,
+	NiscEmLinkOrganizationMenuItem,
+} from "@/components/nisc-email-marketing/nisc-em-link-organization";
 
 type AudienceSummary = RouterOutputs["niscEmailMarketing"]["audiences"]["list"]["audiences"][0];
 
@@ -50,8 +54,11 @@ interface AudienceRowActionsProps {
 
 function AudienceRowActions({ audience, onRefetch, onView }: AudienceRowActionsProps) {
 	const utils = trpc.useUtils();
+	const { showAdminFeatures } = useNiscEmailMarketingRoute();
 	const [isDeleting, setIsDeleting] = React.useState(false);
 	const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
+	const [linkOpen, setLinkOpen] = React.useState(false);
+	const alreadyLinked = Boolean(audience.teamId);
 
 	const deleteMutation = trpc.niscEmailMarketing.audiences.delete.useMutation({
 		onSuccess: () => {
@@ -66,6 +73,20 @@ function AudienceRowActions({ audience, onRefetch, onView }: AudienceRowActionsP
 		onError: (e) => {
 			toast.error("Failed to delete audience", { description: e.message });
 			setIsDeleting(false);
+		},
+	});
+
+	const linkMutation = trpc.niscEmailMarketing.audiences.linkOrganization.useMutation({
+		onSuccess: () => {
+			toast.success("Organization linked", {
+				description: `"${audience.name}" is now linked to the selected organization.`,
+			});
+			utils.niscEmailMarketing.audiences.list.invalidate();
+			onRefetch?.();
+			setLinkOpen(false);
+		},
+		onError: (e) => {
+			toast.error("Failed to link organization", { description: e.message });
 		},
 	});
 
@@ -87,11 +108,18 @@ function AudienceRowActions({ audience, onRefetch, onView }: AudienceRowActionsP
 						<span className="sr-only">Actions</span>
 					</Button>
 				</DropdownMenuTrigger>
-				<DropdownMenuContent align="end" className="w-40">
+				<DropdownMenuContent align="end" className="w-48">
 					<DropdownMenuItem onClick={onView}>
 						<Eye className="mr-2 h-4 w-4" />
 						View
 					</DropdownMenuItem>
+					{showAdminFeatures ? (
+						<NiscEmLinkOrganizationMenuItem
+							alreadyLinked={alreadyLinked}
+							disabled={isDeleting || linkMutation.isPending}
+							onSelect={() => setLinkOpen(true)}
+						/>
+					) : null}
 					<DropdownMenuSeparator />
 					<DropdownMenuItem
 						onClick={() => setShowDeleteDialog(true)}
@@ -125,6 +153,19 @@ function AudienceRowActions({ audience, onRefetch, onView }: AudienceRowActionsP
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
+
+			{showAdminFeatures ? (
+				<NiscEmLinkOrganizationDialog
+					open={linkOpen}
+					onOpenChange={setLinkOpen}
+					alreadyLinked={alreadyLinked}
+					isPending={linkMutation.isPending}
+					resourceLabel={audience.name}
+					onConfirm={async (teamId) => {
+						await linkMutation.mutateAsync({ id: audience.id, teamId });
+					}}
+				/>
+			) : null}
 		</>
 	);
 }
@@ -136,7 +177,7 @@ export interface AudiencesTableProps {
 
 export function AudiencesTable({ audiences, onRefetch }: AudiencesTableProps) {
 	const navigate = useNavigate();
-	const { basePath } = useNiscEmailMarketingRoute();
+	const { basePath, showAdminFeatures } = useNiscEmailMarketingRoute();
 
 	return (
 		<div className="overflow-hidden rounded-lg border bg-card shadow-sm">
@@ -145,6 +186,7 @@ export function AudiencesTable({ audiences, onRefetch }: AudiencesTableProps) {
 					<TableRow>
 						<TableHead className="pl-6">Audience</TableHead>
 						<TableHead>Contacts</TableHead>
+						{showAdminFeatures ? <TableHead>Organization</TableHead> : null}
 						<TableHead>Created</TableHead>
 						<TableHead className="w-12 pr-6" />
 					</TableRow>
@@ -167,6 +209,11 @@ export function AudiencesTable({ audiences, onRefetch }: AudiencesTableProps) {
 								</button>
 							</TableCell>
 							<TableCell>{audience.contactsCount}</TableCell>
+							{showAdminFeatures ? (
+								<TableCell className="text-sm text-muted-foreground">
+									{audience.teamId ? "Linked" : "Not linked"}
+								</TableCell>
+							) : null}
 							<TableCell>{formatDate(audience.createdAt)}</TableCell>
 							<TableCell className="pr-6">
 								<div

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normalizePleskPacket } from "@/components/hosting/plesk-xml-normalize";
 
 /** Single database item from Plesk get-db result. */
 const dbItemSchema = z.object({
@@ -34,13 +35,13 @@ export const pleskRelatedSitesResponseSchema = z.object({
 export const pleskDatabasesResponseSchema = z.object({
   raw: z.string(),
   parsed: z.object({
-    packet: z.object({
+    packet: z.preprocess(normalizePleskPacket, z.object({
       database: z.object({
         "get-db": z.object({
           result: resultSchema,
         }),
       }),
-    }),
+    })),
   }),
 });
 

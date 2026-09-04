@@ -18,6 +18,29 @@ export function asArray<T>(value: T | T[] | undefined | null): T[] {
   return Array.isArray(value) ? value : [value];
 }
 
+/**
+ * fast-xml-parser turns an empty `<packet></packet>` into a string (""),
+ * and namespaced XML may use a `*:packet` key. Zod expects an object.
+ */
+export function normalizePleskPacket(value: unknown): Record<string, unknown> {
+  if (value == null || value === "") return {};
+  if (Array.isArray(value)) {
+    const first = value[0];
+    if (first && typeof first === "object" && !Array.isArray(first)) {
+      return first as Record<string, unknown>;
+    }
+    return {};
+  }
+  if (typeof value === "object") return value as Record<string, unknown>;
+  return {};
+}
+
+function extractPacket(parsed: Record<string, unknown>): unknown {
+  if ("packet" in parsed) return parsed.packet;
+  const namespaced = Object.keys(parsed).find((key) => key.endsWith(":packet"));
+  return namespaced ? parsed[namespaced] : undefined;
+}
+
 export function pleskXmlScalar(value: unknown): string | undefined {
   if (value == null) return undefined;
   if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
@@ -40,7 +63,11 @@ export function pleskXmlInt(value: unknown): number | undefined {
 }
 
 export function parsePleskXml(xml: string): Record<string, unknown> {
-  return parser.parse(xml) as Record<string, unknown>;
+  const parsed = parser.parse(xml) as Record<string, unknown>;
+  return {
+    ...parsed,
+    packet: normalizePleskPacket(extractPacket(parsed)),
+  };
 }
 
 export async function sendPleskXmlOrThrow(xmlRequest: string): Promise<{

@@ -1,4 +1,3 @@
-import { XMLParser } from 'fast-xml-parser';
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "@npanel/db";
@@ -9,6 +8,7 @@ import { niscClientSubscription } from "@npanel/db/schema/products";
 import { serviceSubscription } from "@npanel/db/schema/service-subscriptions";
 import { team, teamMember } from "@npanel/db/schema/teams";
 import { sendPleskXmlRequest } from '../../lib/plesk/xml-client';
+import { asArray, parsePleskXml } from '../../lib/plesk/xml-utils';
 import { protectedProcedure, router } from '../../trpc';
 
 const isAgencyUserRole = (role: string | null | undefined) =>
@@ -133,11 +133,9 @@ export const subscriptionsRouter = router({
           });
         }
 
-        const parser = new XMLParser({ ignoreAttributes: false });
         let parsed: any;
-
         try {
-          parsed = parser.parse(xml);
+          parsed = parsePleskXml(xml);
         } catch (parseError) {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
@@ -164,6 +162,13 @@ export const subscriptionsRouter = router({
             code: "BAD_REQUEST",
             message: `Plesk API Error ${errorCode}: ${errorText}`,
           });
+        }
+
+        const packet = parsed.packet as Record<string, unknown>;
+        const webspace = packet.webspace as Record<string, unknown> | undefined;
+        const getNode = webspace?.get as Record<string, unknown> | undefined;
+        if (getNode && "result" in getNode) {
+          getNode.result = asArray(getNode.result);
         }
 
         return {
@@ -260,11 +265,9 @@ export const subscriptionsRouter = router({
           });
         }
 
-        const parser = new XMLParser({ ignoreAttributes: false });
         let parsed: any;
-
         try {
-          parsed = parser.parse(xml);
+          parsed = parsePleskXml(xml);
         } catch (parseError) {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
@@ -451,11 +454,9 @@ export const subscriptionsRouter = router({
           });
         }
 
-        const parser = new XMLParser({ ignoreAttributes: false });
         let parsed: any;
-
         try {
-          parsed = parser.parse(xml);
+          parsed = parsePleskXml(xml);
         } catch (parseError) {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
@@ -482,39 +483,43 @@ export const subscriptionsRouter = router({
           });
         }
 
-        // Filter subscriptions by matching filter-id with our pleskFilterIds
-        // Use pre-built Sets for O(1) lookup performance
-        const allResults = parsed?.packet?.webspace?.get?.result || [];
-        
-        // Optimized filtering: single pass with Set lookup (O(1) instead of O(n))
+        const packet = (parsed.packet ?? {}) as Record<string, unknown>;
+        const webspace =
+          packet.webspace && typeof packet.webspace === "object" && !Array.isArray(packet.webspace)
+            ? (packet.webspace as Record<string, unknown>)
+            : {};
+        const getNode =
+          webspace.get && typeof webspace.get === "object" && !Array.isArray(webspace.get)
+            ? (webspace.get as Record<string, unknown>)
+            : {};
+
+        const allResults = asArray(getNode.result);
+
         const filteredResults = allResults.filter((subscription: any) => {
           const filterId = subscription["filter-id"];
           if (filterId === undefined || filterId === null) {
             return false;
           }
           
-          // Try number lookup first (most common case, fastest)
           const filterIdNum = typeof filterId === "number" ? filterId : Number(filterId);
           if (!isNaN(filterIdNum) && pleskFilterIdSet.has(filterIdNum)) {
             return true;
           }
           
-          // Fallback: string comparison for edge cases
           return pleskFilterIdStringSet.has(String(filterId));
         });
 
-        // Return filtered results with flag
         return {
           hasServiceSubscriptions: true,
           raw: xml,
           parsed: {
             ...parsed,
             packet: {
-              ...parsed.packet,
+              ...packet,
               webspace: {
-                ...parsed.packet.webspace,
+                ...webspace,
                 get: {
-                  ...parsed.packet.webspace.get,
+                  ...getNode,
                   result: filteredResults,
                 },
               },
