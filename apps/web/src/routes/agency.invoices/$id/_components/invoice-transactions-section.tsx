@@ -67,11 +67,13 @@ function getMethodDisplay(method: string): string {
 export interface InvoiceTransactionsSectionProps {
 	transactions: InvoiceTransaction[];
 	onViewTransaction: (transaction: InvoiceTransaction) => void;
+	emptyMessage?: string;
 }
 
 export function InvoiceTransactionsSection({
 	transactions,
 	onViewTransaction,
+	emptyMessage = "No transactions yet. Use \"Update payment\" to record one.",
 }: InvoiceTransactionsSectionProps) {
 	return (
 		<div className="w-full max-w-3xl mx-auto space-y-3">
@@ -84,7 +86,7 @@ export function InvoiceTransactionsSection({
 
 			{transactions.length === 0 ? (
 				<div className="rounded-lg border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
-					No transactions yet. Use &quot;Update payment&quot; to record one.
+					{emptyMessage}
 				</div>
 			) : (
 				<div className="overflow-hidden rounded-lg border bg-card shadow-sm">

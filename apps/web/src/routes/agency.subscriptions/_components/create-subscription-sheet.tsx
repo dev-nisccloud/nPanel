@@ -281,19 +281,23 @@ const createFormSchema = z
 		teamId: z.string().min(1, "Select an organization"),
 		serviceProduct: z.enum(SERVICE_PRODUCT_IDS),
 		planId: z.string().optional(),
+		billingCycle: z.enum(["MONTHLY", "YEARLY", "BIENNIALLY", "CUSTOM"]).optional(),
 		provisionUserId: z.string().optional(),
 		primaryDomain: z.string().optional(),
+		portfolioDomainId: z.string().optional(),
 		amount: z.string().min(1, "Enter the payment amount"),
+		createInvoice: z.boolean().default(false),
 		overrideTokens: z.boolean(),
 		tokenGrant: z.string().optional(),
-		transactionReference: z
-			.string()
-			.trim()
-			.min(3, "Transaction reference must be at least 3 characters")
-			.max(120, "Transaction reference is too long"),
-		/** How the customer paid  stored on payment_transaction.gateway. */
-		gateway: z.enum(["MPESA", "JENGA", "OTHER"]),
-	})
+	transactionReference: z
+		.string()
+		.optional()
+		.default(""),
+	/** How the customer paid  stored on payment_transaction.gateway. */
+	gateway: z.enum(["MPESA", "JENGA", "OTHER"]),
+	useStkPush: z.boolean().default(false),
+	mpesaPhoneNumber: z.string().optional(),
+})
 	.superRefine((data, ctx) => {
 		const def = getServiceDef(data.serviceProduct);
 
@@ -304,12 +308,25 @@ const createFormSchema = z
 				message: "Amount must be a number greater than 0",
 				path: ["amount"],
 			});
-		} else if (!Number.isInteger(amount)) {
-			ctx.addIssue({
-				code: "custom",
-				message: "Amount must be a whole number (no decimals)",
-				path: ["amount"],
-			});
+		}
+
+		// Validate transaction reference only for manual payments
+		if (!data.useStkPush || data.gateway !== "MPESA") {
+			const ref = (data.transactionReference ?? "").trim();
+			if (ref.length < 3) {
+				ctx.addIssue({
+					code: "custom",
+					message: "Transaction reference must be at least 3 characters",
+					path: ["transactionReference"],
+				});
+			}
+			if (ref.length > 120) {
+				ctx.addIssue({
+					code: "custom",
+					message: "Transaction reference is too long",
+					path: ["transactionReference"],
+				});
+			}
 		}
 
 		if (def.needsPlan && !data.planId?.trim()) {
@@ -335,17 +352,37 @@ const createFormSchema = z
 			}
 		}
 
-		if (def.supportsZeepoTokens && data.overrideTokens) {
-			const rawTokens = (data.tokenGrant ?? "").trim();
-			if (!/^\d+$/.test(rawTokens)) {
+	if (def.supportsZeepoTokens && data.overrideTokens) {
+		const rawTokens = (data.tokenGrant ?? "").trim();
+		if (!/^\d+$/.test(rawTokens)) {
+			ctx.addIssue({
+				code: "custom",
+				message: "Enter a whole number of tokens (0 or more)",
+				path: ["tokenGrant"],
+			});
+		}
+	}
+
+	if (data.useStkPush && data.gateway === "MPESA") {
+		const phone = (data.mpesaPhoneNumber ?? "").trim();
+		if (!phone) {
+			ctx.addIssue({
+				code: "custom",
+				message: "Enter customer's M-Pesa phone number",
+				path: ["mpesaPhoneNumber"],
+			});
+		} else {
+			const digits = phone.replace(/\D/g, "");
+			if (digits.length < 10) {
 				ctx.addIssue({
 					code: "custom",
-					message: "Enter a whole number of tokens (0 or more)",
-					path: ["tokenGrant"],
+					message: "Phone number must be at least 10 digits",
+					path: ["mpesaPhoneNumber"],
 				});
 			}
 		}
-	});
+	}
+});
 
 type CreateFormData = z.infer<typeof createFormSchema>;
 
@@ -411,24 +448,57 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 			teamId: "",
 			serviceProduct: "zeepo_ai_agent",
 			planId: "",
+			billingCycle: "MONTHLY",
 			provisionUserId: "",
 			primaryDomain: "",
+			portfolioDomainId: "",
 			amount: "",
+			createInvoice: false,
 			overrideTokens: false,
 			tokenGrant: "",
 			transactionReference: "",
 			gateway: "MPESA",
+			useStkPush: false,
+			mpesaPhoneNumber: "",
 		},
 	});
 
 	const watchedTeamId = form.watch("teamId");
 	const watchedPlanId = form.watch("planId");
+	const watchedBillingCycle = form.watch("billingCycle");
 	const watchedOverride = form.watch("overrideTokens");
 	const watchedServiceProduct = form.watch("serviceProduct");
 	const watchedProvisionUserId = form.watch("provisionUserId");
 	const watchedPrimaryDomain = form.watch("primaryDomain");
+	const watchedPortfolioDomainId = form.watch("portfolioDomainId");
 	const watchedAmount = form.watch("amount");
+	const watchedCreateInvoice = form.watch("createInvoice");
 	const watchedTransactionReference = form.watch("transactionReference");
+	const watchedGateway = form.watch("gateway");
+	const watchedUseStkPush = form.watch("useStkPush");
+	const watchedMpesaPhoneNumber = form.watch("mpesaPhoneNumber");
+
+	// STK Push state
+	const [checkoutRequestId, setCheckoutRequestId] = React.useState<string | null>(null);
+	const [paymentError, setPaymentError] = React.useState<string | null>(null);
+	const [isAwaitingPayment, setIsAwaitingPayment] = React.useState(false);
+
+	// STK Push polling refs (instant polling pattern like storefront)
+	const pollingIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+	const pollingQuickRetryRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+	const terminalStateDetectedRef = React.useRef(false);
+	const pollAttemptsRef = React.useRef(0);
+
+	const stopPolling = React.useCallback(() => {
+		if (pollingQuickRetryRef.current !== null) {
+			clearTimeout(pollingQuickRetryRef.current);
+			pollingQuickRetryRef.current = null;
+		}
+		if (pollingIntervalRef.current !== null) {
+			clearInterval(pollingIntervalRef.current);
+			pollingIntervalRef.current = null;
+		}
+	}, []);
 
 	const serviceDef = getServiceDef(watchedServiceProduct);
 
@@ -436,6 +506,47 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 		{ teamId: watchedTeamId },
 		{ enabled: open && Boolean(watchedTeamId) },
 	);
+
+	// Get all domains from OpenProvider and KENIC (like the domains portfolio page)
+	const { data: opDomainsData, isLoading: loadingOpDomains } = trpc.openProvider.domains.list.useQuery(
+		{ limit: 1000, offset: 0, with_customer_info: false },
+		{ enabled: open, refetchOnWindowFocus: false },
+	);
+
+	const { data: kenicDomainsData, isLoading: loadingKenicDomains } = trpc.kenic.domainList.list.useQuery(
+		{},
+		{ enabled: open, refetchOnWindowFocus: false },
+	);
+
+	const loadingDomains = loadingOpDomains || loadingKenicDomains;
+
+	// Combine and normalize domains from both sources
+	const allDomains = React.useMemo(() => {
+		const normalize = (name: string) => name.trim().toLowerCase().replace(/\.$/, "");
+		
+		const kenicDomains = (kenicDomainsData?.data ?? []).map((d: any) => ({
+			id: String(d.id),
+			domainName: d.domain,
+			source: "kenic" as const,
+		}));
+
+		const kenicNames = new Set(kenicDomains.map((d) => normalize(d.domainName)));
+
+		const opDomains = (opDomainsData?.data ?? [])
+			.filter((d: any) => {
+				const name = normalize(d.domain);
+				// Skip .ke domains from OP if they're in KENIC
+				if (name.endsWith(".ke") && kenicNames.has(name)) return false;
+				return true;
+			})
+			.map((d: any) => ({
+				id: String(d.id),
+				domainName: d.domain,
+				source: "openprovider" as const,
+			}));
+
+		return [...opDomains, ...kenicDomains];
+	}, [opDomainsData?.data, kenicDomainsData?.data]);
 
 	const memberUserIds = React.useMemo(
 		() => teamMembers.map((m) => m.userId),
@@ -598,102 +709,165 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 		});
 	}, [teamMembers, usersMap]);
 
+	const domainItems = React.useMemo((): ComboboxItem[] => {
+		return allDomains.map((d) => ({
+			id: d.id,
+			label: d.domainName,
+		}));
+	}, [allDomains]);
+
 	React.useEffect(() => {
 		if (!open) {
 			form.reset();
+			// Reset STK push state when dialog closes
+			stopPolling();
+			terminalStateDetectedRef.current = false;
+			pollAttemptsRef.current = 0;
+			setCheckoutRequestId(null);
+			setPaymentError(null);
+			setIsAwaitingPayment(false);
+			setSubmitting(false);
 		}
-	}, [open, form]);
+	}, [open, form, stopPolling]);
 
 	React.useEffect(() => {
 		form.setValue("planId", "");
+		form.setValue("billingCycle", "MONTHLY");
 		form.setValue("amount", "");
 		form.setValue("overrideTokens", false);
 		form.setValue("tokenGrant", "");
 		form.setValue("primaryDomain", "");
+		form.setValue("portfolioDomainId", "");
 	}, [watchedServiceProduct, form]);
 
 	React.useEffect(() => {
 		if (!selectedPlan) return;
-		form.setValue("amount", String(Math.ceil(selectedPlan.displayPrice)));
+		
+		// Set billing cycle from plan
+		const cycle = selectedPlan.zeepoPlanType === "top_up" 
+			? "CUSTOM" 
+			: normalizeBillingCycle(selectedPlan.billingCycle);
+		form.setValue("billingCycle", cycle);
+		
 		if (isZeepo && selectedPlan.tokenGrant != null && !form.getValues("overrideTokens")) {
 			form.setValue("tokenGrant", String(selectedPlan.tokenGrant));
 		}
 	}, [selectedPlan, isZeepo, form]);
 
+	// Recalculate amount when billing cycle changes
+	const calculateAmountForBillingCycle = React.useCallback((
+		basePlanPrice: number,
+		billingCycle: string,
+	): number => {
+		// Get the base cycle from the plan
+		const planCycle = selectedPlan?.billingCycle?.toUpperCase() || "MONTHLY";
+		const selectedCycle = billingCycle?.toUpperCase() || "MONTHLY";
+		
+		// Define multipliers
+		const cycleMonths: Record<string, number> = {
+			MONTHLY: 1,
+			YEARLY: 12,
+			BIENNIALLY: 24,
+			CUSTOM: 1,
+		};
+		
+		const planMonths = cycleMonths[planCycle] || 1;
+		const selectedMonths = cycleMonths[selectedCycle] || 1;
+		
+		// Calculate: (basePlanPrice / planMonths) * selectedMonths
+		const monthlyRate = basePlanPrice / planMonths;
+		const subtotal = monthlyRate * selectedMonths;
+		// Add 16% tax
+		return subtotal * 1.16;
+	}, [selectedPlan]);
+
+	const calculateAmountBreakdown = React.useCallback((
+		basePlanPrice: number,
+		billingCycle: string,
+	): { subtotal: number; tax: number; total: number } => {
+		// Get the base cycle from the plan
+		const planCycle = selectedPlan?.billingCycle?.toUpperCase() || "MONTHLY";
+		const selectedCycle = billingCycle?.toUpperCase() || "MONTHLY";
+		
+		// Define multipliers
+		const cycleMonths: Record<string, number> = {
+			MONTHLY: 1,
+			YEARLY: 12,
+			BIENNIALLY: 24,
+			CUSTOM: 1,
+		};
+		
+		const planMonths = cycleMonths[planCycle] || 1;
+		const selectedMonths = cycleMonths[selectedCycle] || 1;
+		
+		// Calculate: (basePlanPrice / planMonths) * selectedMonths
+		const monthlyRate = basePlanPrice / planMonths;
+		const subtotal = monthlyRate * selectedMonths;
+		const tax = subtotal * 0.16; // 16% tax
+		const total = subtotal + tax;
+		
+		return { subtotal, tax, total };
+	}, [selectedPlan]);
+
+	React.useEffect(() => {
+		if (!selectedPlan || !watchedBillingCycle) return;
+		
+		const calculatedAmount = calculateAmountForBillingCycle(
+			selectedPlan.displayPrice,
+			watchedBillingCycle,
+		);
+		
+		form.setValue("amount", String(Math.ceil(calculatedAmount)));
+	}, [selectedPlan, watchedBillingCycle, calculateAmountForBillingCycle, form]);
+
 	const recordManualPayment = trpc.paymentTransactions.recordManual.useMutation();
 	const createFromPayment = trpc.niscServiceOrders.createFromPayment.useMutation();
 
-	const [submitting, setSubmitting] = React.useState(false);
+	const proceedWithSubscriptionCreation = React.useCallback(async (successCheckoutRequestId: string) => {
+		try {
+			const data = form.getValues();
+			const def = getServiceDef(data.serviceProduct);
+			const billedForUserId =
+				data.provisionUserId?.trim() ||
+				defaultOwnerUserId ||
+				teamMembers.find((m) => m.role === "OWNER")?.userId ||
+				teamMembers[0]?.userId;
 
-	const resolveProductId = React.useCallback((): string | null => {
-		if (isZeepo) return zeepoPlansData?.productId ? String(zeepoPlansData.productId) : null;
-		return selectedPlan?.productId ?? null;
-	}, [isZeepo, zeepoPlansData?.productId, selectedPlan?.productId]);
-
-	const onSubmit = form.handleSubmit(async (data) => {
-		const def = getServiceDef(data.serviceProduct);
-		const billedForUserId =
-			data.provisionUserId?.trim() ||
-			defaultOwnerUserId ||
-			teamMembers.find((m) => m.role === "OWNER")?.userId ||
-			teamMembers[0]?.userId;
-
-		const productId = resolveProductId();
-		if (!productId) {
-			toast.error("Product is not available. Check that it is seeded and active.");
-			return;
-		}
-
-		if (def.needsPlan && !selectedPlan) {
-			toast.error("Select a valid plan.");
-			return;
-		}
-
-		const amount = Math.ceil(Number.parseFloat(data.amount));
-		const currency = selectedPlan?.displayCurrency || "KES";
-		let primaryDomain: string | undefined;
-		if (def.needsDomain) {
-			const domainResult = validateDomainName(data.primaryDomain ?? "");
-			if (!domainResult.ok) {
-				toast.error(domainResult.message);
-				form.setError("primaryDomain", { message: domainResult.message });
+			const productId = resolveProductId();
+			if (!productId) {
+				toast.error("Product is not available.");
+				setIsAwaitingPayment(false);
 				return;
 			}
-			primaryDomain = domainResult.normalized;
-		}
-		const provisionUserId = billedForUserId || undefined;
 
-		if (def.needsProvisionUser && !provisionUserId) {
-			toast.error("Select the provisioning identity user.");
-			form.setError("provisionUserId", {
-				message: "Select the user whose profile will be used for provisioning",
-			});
-			return;
-		}
-
-		setSubmitting(true);
-		try {
-			const productLabel = def.label;
-			const planLabel = selectedPlan?.name ?? primaryDomain ?? "order";
-
-			const payment = await recordManualPayment.mutateAsync({
-				transactionReference: data.transactionReference.trim(),
-				amount,
-				currency,
-				gateway: data.gateway,
-				teamId: data.teamId,
-				transactionDesc: `Agency subscription: ${productLabel} - ${planLabel}`.slice(0, 200),
-			});
-
-			let billingCycle = def.defaultBillingCycle;
-			if (selectedPlan) {
-				billingCycle =
-					selectedPlan.zeepoPlanType === "top_up"
-						? "CUSTOM"
-						: normalizeBillingCycle(selectedPlan.billingCycle);
+			const amount = Math.ceil(Number.parseFloat(data.amount));
+			const currency = selectedPlan?.displayCurrency || "KES";
+			
+			let primaryDomain: string | undefined;
+			if (def.needsDomain) {
+				const domainResult = validateDomainName(data.primaryDomain ?? "");
+				if (!domainResult.ok) {
+					toast.error(domainResult.message);
+					setIsAwaitingPayment(false);
+					return;
+				}
+				primaryDomain = domainResult.normalized;
 			}
 
-			const metadata: Record<string, unknown> = {};
+			const provisionUserId = billedForUserId || undefined;
+
+			const actualPlanPrice = selectedPlan 
+				? calculateAmountForBillingCycle(selectedPlan.displayPrice, data.billingCycle || "MONTHLY")
+				: amount;
+			const actualPlanPriceExVat = Math.ceil(actualPlanPrice / 1.16);
+
+			const metadata: Record<string, unknown> = {
+				billingCycle: data.billingCycle || "MONTHLY",
+				actualPlanPrice: String(Math.ceil(actualPlanPrice)),
+				actualPlanPriceExVat: String(actualPlanPriceExVat),
+				amountPaid: String(amount),
+				isPartialPayment: amount < Math.ceil(actualPlanPrice),
+			};
 
 			if (def.supportsZeepoTokens && data.overrideTokens && data.tokenGrant?.trim()) {
 				metadata[ZEEPO_TOKEN_OVERRIDE_KEY] = Number.parseInt(data.tokenGrant, 10);
@@ -704,25 +878,330 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 			}
 
 			await createFromPayment.mutateAsync({
-				checkoutRequestId: payment.checkoutRequestId,
+				checkoutRequestId: successCheckoutRequestId,
 				teamId: data.teamId,
 				...(provisionUserId ? { billedForUserId: provisionUserId } : {}),
 				currency,
-				/** Agency manual provision  no invoice or customer order emails. */
-				skipInvoice: true,
+				skipInvoice: !data.createInvoice,
 				items: [
 					{
 						productId,
-						productPlanId: data.planId,
-						billingCycle,
-						itemPrice: String(amount),
-						itemSubtotal: String(amount),
+						productPlanId: data.planId || undefined,
+						billingCycle: data.billingCycle || "MONTHLY",
+						itemPrice: String(actualPlanPriceExVat),
+						itemSubtotal: String(actualPlanPriceExVat),
 						description: selectedPlan?.name ?? def.label,
 						...(primaryDomain ? { primaryDomain } : {}),
-						...(Object.keys(metadata).length > 0 ? { metadata } : {}),
+						metadata,
 					},
 				],
 			});
+
+			toast.success("Subscription created and provisioned for the customer.");
+			captureEvent("subscription_created");
+			setIsAwaitingPayment(false);
+			setCheckoutRequestId(null);
+			onOpenChange(false);
+			void utils.clientSubscriptions.listForAgency.invalidate();
+			void utils.niscServiceOrders.getAll.invalidate();
+		} catch (err) {
+			const message = err instanceof Error ? err.message : "Could not create subscription.";
+			toast.error(message);
+			setIsAwaitingPayment(false);
+		}
+	}, [form, defaultOwnerUserId, teamMembers, selectedPlan, createFromPayment, utils, onOpenChange, calculateAmountForBillingCycle]);
+
+	const resolveProductId = React.useCallback((): string | null => {
+		if (isZeepo) return zeepoPlansData?.productId ? String(zeepoPlansData.productId) : null;
+		return selectedPlan?.productId ?? null;
+	}, [isZeepo, zeepoPlansData?.productId, selectedPlan?.productId]);
+
+	const handlePaymentFailure = React.useCallback((msg: string) => {
+		stopPolling();
+		terminalStateDetectedRef.current = true;
+		setPaymentError(msg);
+		setIsAwaitingPayment(false);
+		toast.error(msg);
+	}, [stopPolling]);
+
+	const handlePaymentSuccess = React.useCallback(async (checkoutRequestId: string) => {
+		stopPolling();
+		terminalStateDetectedRef.current = true;
+		setPaymentError(null);
+		try {
+			await proceedWithSubscriptionCreation(checkoutRequestId);
+			// Success toast is already shown in proceedWithSubscriptionCreation
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : "Failed to create subscription.";
+			setIsAwaitingPayment(false);
+			setPaymentError(msg);
+			toast.error(msg);
+		}
+	}, [stopPolling, proceedWithSubscriptionCreation]);
+
+	const startPolling = React.useCallback((checkoutRequestId: string) => {
+		stopPolling();
+		terminalStateDetectedRef.current = false;
+		pollAttemptsRef.current = 0;
+		setIsAwaitingPayment(true);
+		setPaymentError(null);
+
+		const poll = async (): Promise<boolean> => {
+			if (terminalStateDetectedRef.current) return true;
+
+			try {
+				const res = await utils.client.paymentGateway.mpesa.queryStkPush.query({
+					checkoutRequestId,
+				});
+				
+				const resultCode = res.data?.resultCode ? Number.parseInt(res.data.resultCode, 10) : null;
+				const resultDesc = res.data?.resultDesc;
+
+				if (resultCode === null) return false;
+				
+				// M-Pesa processing codes (1037, 4999) - keep polling
+				if (resultCode === 1037 || resultCode === 4999) return false;
+
+				if (resultCode === 0) {
+					void handlePaymentSuccess(checkoutRequestId);
+					return true;
+				}
+
+				// All other codes are terminal failures
+				handlePaymentFailure(getMpesaUserFriendlyError(resultCode, resultDesc));
+				return true;
+			} catch (err) {
+				const message = err instanceof Error ? err.message : String(err);
+				const isAuthError =
+					message.includes("UNAUTHORIZED") ||
+					message.includes("Authentication") ||
+					message.includes("session") ||
+					message.includes("Session expired");
+				if (isAuthError) {
+					handlePaymentFailure("Your session may have expired. Please restart.");
+					return true;
+				}
+				return false;
+			}
+		};
+
+		// Immediate first poll
+		poll().then((finished) => {
+			if (finished) return;
+
+			pollAttemptsRef.current = 1;
+			// Quick 1-second retry
+			pollingQuickRetryRef.current = setTimeout(async () => {
+				pollingQuickRetryRef.current = null;
+				if (terminalStateDetectedRef.current) return;
+
+				pollAttemptsRef.current += 1;
+				const done = await poll();
+				if (done) return;
+
+				// Regular polling every 1 second (MPESA_POLL_INTERVAL_MS = 1000)
+				const id = setInterval(async () => {
+					if (terminalStateDetectedRef.current) return;
+
+					pollAttemptsRef.current += 1;
+					const finishedAgain = await poll();
+					if (finishedAgain || pollAttemptsRef.current >= 90) {
+						stopPolling();
+						if (!finishedAgain && pollAttemptsRef.current >= 90) {
+							handlePaymentFailure(
+								"Payment is taking longer than expected. Please check M-Pesa or try again.",
+							);
+						}
+					}
+				}, 1000);
+				pollingIntervalRef.current = id;
+			}, 1000);
+		});
+	}, [stopPolling, handlePaymentFailure, handlePaymentSuccess, utils]);
+
+	// STK Push mutations
+	const initiateMpesaPayment = trpc.paymentGateway.mpesa.initiateStkPush.useMutation({
+		onSuccess: (response) => {
+			const checkoutId = response.data?.checkoutRequestId;
+			if (!checkoutId) {
+				toast.error("Payment request sent but failed to get transaction ID.");
+				setIsAwaitingPayment(false);
+				return;
+			}
+			setCheckoutRequestId(checkoutId);
+			setPaymentError(null);
+			toast.message("Check customer's phone for the M-Pesa prompt.");
+			startPolling(checkoutId);
+		},
+		onError: (error) => {
+			toast.error(error.message || "Failed to initiate M-Pesa payment");
+			setIsAwaitingPayment(false);
+			setPaymentError(error.message);
+		},
+	});
+
+	// M-Pesa error helper (matching storefront)
+	function getMpesaUserFriendlyError(resultCode: number, resultDesc?: string): string {
+		const map: Record<number, string> = {
+			0: "Payment completed successfully",
+			1: "Insufficient balance in M-Pesa account",
+			2: "Amount is below the minimum transaction limit",
+			3: "Amount exceeds the maximum transaction limit",
+			4: "Transaction would exceed daily transfer limit",
+			8: "Transaction would exceed account balance limit",
+			17: "Too many requests. Please wait a few minutes and try again",
+			1019: "Payment request expired. Please initiate a new payment",
+			1025: "Error sending payment request. Please try again",
+			1032: "Payment request was cancelled",
+			2001: "Incorrect M-Pesa PIN entered. Please try again with the correct PIN",
+			2028: "Payment request not permitted. Please contact support",
+			8006: "M-Pesa account is locked. Please contact M-Pesa customer care",
+		};
+		return map[resultCode] ?? resultDesc ?? `Payment failed with error code ${resultCode}`;
+	}
+
+	const [submitting, setSubmitting] = React.useState(false);
+
+	const onSubmit = form.handleSubmit(
+		async (data) => {
+			const def = getServiceDef(data.serviceProduct);
+			const billedForUserId =
+				data.provisionUserId?.trim() ||
+				defaultOwnerUserId ||
+				teamMembers.find((m) => m.role === "OWNER")?.userId ||
+				teamMembers[0]?.userId;
+
+			const productId = resolveProductId();
+			if (!productId) {
+				toast.error("Product is not available. Check that it is seeded and active.");
+				return;
+			}
+
+			if (def.needsPlan && !selectedPlan) {
+				toast.error("Select a valid plan.");
+				return;
+			}
+
+			const amount = Math.ceil(Number.parseFloat(data.amount));
+			const currency = selectedPlan?.displayCurrency || "KES";
+			let primaryDomain: string | undefined;
+			if (def.needsDomain) {
+				const domainResult = validateDomainName(data.primaryDomain ?? "");
+				if (!domainResult.ok) {
+					toast.error(domainResult.message);
+					form.setError("primaryDomain", { message: domainResult.message });
+					return;
+				}
+				primaryDomain = domainResult.normalized;
+			}
+			const provisionUserId = billedForUserId || undefined;
+
+			if (def.needsProvisionUser && !provisionUserId) {
+				toast.error("Select the provisioning identity user.");
+				form.setError("provisionUserId", {
+					message: "Select the user whose profile will be used for provisioning",
+				});
+				return;
+			}
+
+			// Handle STK Push flow
+			if (data.useStkPush && data.gateway === "MPESA") {
+				setIsAwaitingPayment(true);
+				setSubmitting(true);
+				try {
+					const productLabel = def.label;
+					const planLabel = selectedPlan?.name ?? primaryDomain ?? "order";
+					const phoneNumber = data.mpesaPhoneNumber?.trim() || "";
+					
+				await initiateMpesaPayment.mutateAsync({
+					phoneNumber,
+					amount,
+					accountReference: `SUB${Date.now().toString().slice(-8)}`, // Alphanumeric only, max 12 chars
+					transactionDesc: `${productLabel}`.slice(0, 13),
+					checkoutTotalIncVat: amount,
+					teamId: data.teamId,
+					billedForUserId: provisionUserId,
+				});
+					// Payment status will be handled by the polling effect
+				} catch (error) {
+					// Error handled by mutation onError
+					setSubmitting(false);
+				}
+				return;
+			}
+
+		// Handle manual payment flow (existing logic)
+		setSubmitting(true);
+		try {
+			const productLabel = def.label;
+			const planLabel = selectedPlan?.name ?? primaryDomain ?? "order";
+
+			const payment = await recordManualPayment.mutateAsync({
+				transactionReference: (data.transactionReference || "MANUAL").trim(),
+				amount,
+				currency,
+				gateway: data.gateway,
+				teamId: data.teamId,
+				transactionDesc: `Agency subscription: ${productLabel} - ${planLabel}`.slice(0, 200),
+				...(provisionUserId ? { billedForUserId: provisionUserId } : {}),
+			});
+
+		let billingCycle = def.defaultBillingCycle;
+		if (selectedPlan) {
+			billingCycle =
+				selectedPlan.zeepoPlanType === "top_up"
+					? "CUSTOM"
+					: normalizeBillingCycle(selectedPlan.billingCycle);
+		}
+
+		// Use the selected billing cycle from form, fallback to calculated one
+		const effectiveBillingCycle = data.billingCycle || billingCycle || "MONTHLY";
+
+		// Calculate actual plan price based on selected plan and billing cycle
+		const actualPlanPrice = selectedPlan 
+			? calculateAmountForBillingCycle(selectedPlan.displayPrice, effectiveBillingCycle)
+			: amount;
+		const actualPlanPriceExVat = Math.ceil(actualPlanPrice / 1.16); // Remove tax to get ex-VAT price
+
+		const metadata: Record<string, unknown> = {
+			// Store billing cycle for tracking
+			billingCycle: effectiveBillingCycle,
+			// Store actual amounts for reference
+			actualPlanPrice: String(Math.ceil(actualPlanPrice)),
+			actualPlanPriceExVat: String(actualPlanPriceExVat),
+			amountPaid: String(amount),
+			// Mark as partial payment if applicable
+			isPartialPayment: amount < Math.ceil(actualPlanPrice),
+		};
+
+		if (def.supportsZeepoTokens && data.overrideTokens && data.tokenGrant?.trim()) {
+			metadata[ZEEPO_TOKEN_OVERRIDE_KEY] = Number.parseInt(data.tokenGrant, 10);
+		}
+
+		if (provisionUserId && def.needsProvisionUser) {
+			metadata.provisionUserId = provisionUserId;
+		}
+
+		await createFromPayment.mutateAsync({
+			checkoutRequestId: payment.checkoutRequestId,
+			teamId: data.teamId,
+			...(provisionUserId ? { billedForUserId: provisionUserId } : {}),
+			currency,
+			/** Agency manual provision - skip invoice unless checkbox enabled */
+			skipInvoice: !data.createInvoice,
+			items: [
+				{
+					productId,
+					productPlanId: data.planId,
+					billingCycle: effectiveBillingCycle, // Use the effective billing cycle
+					itemPrice: String(actualPlanPriceExVat), // Use actual plan price (ex-VAT)
+					itemSubtotal: String(actualPlanPriceExVat), // Use actual plan price (ex-VAT)
+					description: selectedPlan?.name ?? def.label,
+					...(primaryDomain ? { primaryDomain } : {}),
+					metadata,
+				},
+			],
+		});
 
 			toast.success("Subscription created and provisioned for the customer.");
 			captureEvent("subscription_created");
@@ -735,15 +1214,34 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 		} finally {
 			setSubmitting(false);
 		}
+	},
+	// Handle validation errors
+	(errors) => {
+		console.error("Form validation errors:", errors);
+		const firstError = Object.values(errors)[0];
+		if (firstError?.message) {
+			toast.error(firstError.message as string);
+		} else {
+			toast.error("Please fill in all required fields correctly");
+		}
 	});
 
-	const isBusy = submitting || recordManualPayment.isPending || createFromPayment.isPending;
+	const isBusy = submitting || recordManualPayment.isPending || createFromPayment.isPending || initiateMpesaPayment.isPending;
 
 	const canSubmit = React.useMemo(() => {
 		if (!watchedTeamId || planOptions.length === 0 || !watchedPlanId) return false;
 		const amount = Number.parseFloat(watchedAmount);
 		if (!Number.isFinite(amount) || amount <= 0 || !Number.isInteger(amount)) return false;
-		if ((watchedTransactionReference?.trim().length ?? 0) < 3) return false;
+		
+		// For STK push, check phone number instead of transaction reference
+		if (watchedUseStkPush && watchedGateway === "MPESA") {
+			const phone = (watchedMpesaPhoneNumber ?? "").trim();
+			if (!phone || phone.replace(/\D/g, "").length < 10) return false;
+		} else {
+			// For manual payment, check transaction reference
+			if ((watchedTransactionReference?.trim().length ?? 0) < 3) return false;
+		}
+		
 		if (serviceDef.needsProvisionUser && !watchedProvisionUserId?.trim()) return false;
 		if (serviceDef.needsDomain && !isValidDomainName(watchedPrimaryDomain ?? "")) return false;
 		return true;
@@ -753,6 +1251,9 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 		watchedPlanId,
 		watchedAmount,
 		watchedTransactionReference,
+		watchedUseStkPush,
+		watchedGateway,
+		watchedMpesaPhoneNumber,
 		serviceDef.needsProvisionUser,
 		serviceDef.needsDomain,
 		watchedProvisionUserId,
@@ -827,8 +1328,7 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 													)}
 													<FormDescription>
 														Defaults to the organization owner. Profile details from this user are
-														used when creating the third-party account (e.g. Plesk customer or
-														domain registrant).
+														used when creating the third-party account
 													</FormDescription>
 													<FormMessage />
 												</FormItem>
@@ -893,7 +1393,7 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 																	<SelectItem key={plan.id} value={plan.id}>
 																		{isZeepo ? (
 																			<>
-																				{plan.name} -{" "}
+																				{plan.name} —{" "}
 																				{(plan.tokenGrant ?? 0).toLocaleString()} tokens (
 																				{plan.zeepoPlanType === "top_up"
 																					? "top-up"
@@ -902,7 +1402,7 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 																			</>
 																		) : (
 																			<>
-																				{plan.name} - {plan.displayCurrency}{" "}
+																				{plan.name} — {plan.displayCurrency}{" "}
 																				{Math.ceil(plan.displayPrice).toLocaleString()} /{" "}
 																				{plan.billingCycle.toLowerCase()}
 																			</>
@@ -984,14 +1484,85 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 										</>
 									) : null}
 
-									{serviceDef.needsDomain ? (
+									{/* Billing Cycle Selector */}
+									{serviceDef.needsPlan && selectedPlan ? (
 										<FormField
 											control={form.control}
-											name="primaryDomain"
+											name="billingCycle"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Plesk domain name</FormLabel>
-													<FormControl>
+													<FormLabel>Billing Cycle</FormLabel>
+													<Select
+														onValueChange={field.onChange}
+														value={field.value}
+														disabled={isBusy}
+													>
+														<FormControl>
+															<SelectTrigger className="w-full">
+																<SelectValue placeholder="Select billing cycle" />
+															</SelectTrigger>
+														</FormControl>
+														<SelectContent>
+															<SelectItem value="MONTHLY">Monthly</SelectItem>
+															<SelectItem value="YEARLY">Yearly</SelectItem>
+															<SelectItem value="BIENNIALLY">Biennially</SelectItem>
+															<SelectItem value="CUSTOM">Custom</SelectItem>
+														</SelectContent>
+													</Select>
+													<FormDescription>
+														Auto-filled from plan; editable for custom billing arrangements.
+													</FormDescription>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									) : null}
+
+									{serviceDef.needsDomain ? (
+										<>
+											{/* Portfolio Domain Selector */}
+											<FormField
+												control={form.control}
+												name="portfolioDomainId"
+												render={({ field }) => (
+													<FormItem>
+														<FormLabel>Select from Portfolio (Optional)</FormLabel>
+														{loadingDomains ? (
+															<Skeleton className="h-10 w-full" />
+														) : (
+															<ComboboxDropdown
+																items={domainItems}
+																selectedItem={domainItems.find((i) => i.id === field.value)}
+																onSelect={(item) => {
+																	field.onChange(item.id);
+																	// Auto-fill primaryDomain with selected domain name
+																	const selectedDomain = allDomains.find((d) => d.id === item.id);
+																	if (selectedDomain) {
+																		form.setValue("primaryDomain", selectedDomain.domainName);
+																	}
+																}}
+																placeholder="Select domain from portfolio"
+																searchPlaceholder="Search domains..."
+																emptyResults="No domains found in portfolio"
+																disabled={isBusy}
+															/>
+														)}
+														<FormDescription>
+															Choose an existing domain from your portfolio, or enter a new domain below.
+														</FormDescription>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+
+											{/* Manual Domain Input */}
+											<FormField
+												control={form.control}
+												name="primaryDomain"
+												render={({ field }) => (
+													<FormItem>
+														<FormLabel>Domain Name</FormLabel>
+														<FormControl>
 														<Input
 															placeholder="example.com"
 															autoCapitalize="none"
@@ -1019,13 +1590,13 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 														/>
 													</FormControl>
 													<FormDescription>
-														Valid FQDN only (e.g. example.com). Used as the Plesk webspace
-														name  not a Domains subscription. No http://, paths, or IPs.
+														Valid FQDN only (e.g. example.com). Used as the webspace name.
 													</FormDescription>
 													<FormMessage />
 												</FormItem>
 											)}
 										/>
+										</>
 									) : null}
 								</section>
 
@@ -1034,6 +1605,65 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 										<Receipt className="h-4 w-4" />
 										Payment
 									</h3>
+
+								{/* Expected Amount Display */}
+								{selectedPlan ? (
+									<div className="rounded-lg border-2 border-primary/20 bg-primary/5 p-4 space-y-3">
+										<div className="space-y-1.5">
+											<div className="flex items-center justify-between text-sm">
+												<span className="text-muted-foreground">Subtotal:</span>
+												<span className="font-medium">
+													{displayCurrency} {Math.ceil(
+														calculateAmountBreakdown(
+															selectedPlan.displayPrice,
+															watchedBillingCycle || "MONTHLY"
+														).subtotal
+													).toLocaleString()}
+												</span>
+											</div>
+											<div className="flex items-center justify-between text-sm">
+												<span className="text-muted-foreground">Tax (16%):</span>
+												<span className="font-medium">
+													{displayCurrency} {Math.ceil(
+														calculateAmountBreakdown(
+															selectedPlan.displayPrice,
+															watchedBillingCycle || "MONTHLY"
+														).tax
+													).toLocaleString()}
+												</span>
+											</div>
+										</div>
+										<div className="flex items-center justify-between pt-2 border-t">
+											<span className="text-sm font-medium text-muted-foreground">Expected Amount:</span>
+											<span className="text-2xl font-bold text-primary">
+												{displayCurrency} {Math.ceil(
+													calculateAmountBreakdown(
+														selectedPlan.displayPrice,
+														watchedBillingCycle || "MONTHLY"
+													).total
+												).toLocaleString()}
+											</span>
+										</div>
+										<div className="flex items-center justify-between text-xs text-muted-foreground pt-2">
+											<span>
+												{selectedPlan.name}
+												{isZeepo && selectedPlan.tokenGrant != null && (
+													<> ({(selectedPlan.tokenGrant ?? 0).toLocaleString()} tokens)</>
+												)}
+											</span>
+											<span className="capitalize">
+												{isZeepo && selectedPlan.zeepoPlanType === "top_up" 
+													? "One-time top-up"
+													: `Billed ${watchedBillingCycle?.toLowerCase() || selectedPlan.billingCycle.toLowerCase()}`}
+											</span>
+										</div>
+									</div>
+								) : (
+									<div className="rounded-lg border border-dashed bg-muted/20 p-4 text-center text-sm text-muted-foreground">
+										Select a plan above to see the expected payment amount
+									</div>
+								)}
+
 									<FormField
 										control={form.control}
 										name="amount"
@@ -1058,10 +1688,24 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 														disabled={isBusy}
 													/>
 												</FormControl>
-												<FormDescription>
-													Whole-number amount in {displayCurrency} (prefilled from plan;
-													editable). No invoice is generated.
-												</FormDescription>
+											<FormDescription>
+												{selectedPlan ? (
+													<>
+														Auto-filled from selected plan ({displayCurrency}{" "}
+														{Math.ceil(
+															calculateAmountForBillingCycle(
+																selectedPlan.displayPrice,
+																watchedBillingCycle || "MONTHLY"
+															)
+														).toLocaleString()} /{" "}
+														{(watchedBillingCycle || selectedPlan.billingCycle).toLowerCase()}, including 16% tax). Any amount accepted – partial payments are tracked on the invoice.
+													</>
+												) : (
+													<>
+														Any amount in {displayCurrency}. Select a plan to auto-fill. Partial payments are supported.
+													</>
+												)}
+											</FormDescription>
 												<FormMessage />
 											</FormItem>
 										)}
@@ -1095,6 +1739,60 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 											</FormItem>
 										)}
 									/>
+									
+									{/* STK Push Checkbox - Only visible for M-Pesa */}
+									{watchedGateway === "MPESA" && (
+										<>
+											<FormField
+												control={form.control}
+												name="useStkPush"
+												render={({ field }) => (
+													<FormItem className="flex flex-row items-start gap-3 space-y-0 rounded-md border p-4">
+														<FormControl>
+															<Checkbox
+																checked={field.value}
+																onCheckedChange={field.onChange}
+																disabled={isBusy || isAwaitingPayment}
+															/>
+														</FormControl>
+														<div className="space-y-1 leading-none">
+															<FormLabel>Send STK push to customer</FormLabel>
+															<FormDescription>
+																Automatically send payment prompt to customer's phone and wait for payment before provisioning.
+															</FormDescription>
+														</div>
+													</FormItem>
+												)}
+											/>
+
+											{/* M-Pesa Phone Number - Only visible when STK push is enabled */}
+											{watchedUseStkPush && (
+												<FormField
+													control={form.control}
+													name="mpesaPhoneNumber"
+													render={({ field }) => (
+														<FormItem>
+															<FormLabel>Customer M-Pesa phone number</FormLabel>
+															<FormControl>
+																<Input
+																	placeholder="e.g. 0712345678 or 254712345678"
+																	{...field}
+																	disabled={isBusy || isAwaitingPayment}
+																/>
+															</FormControl>
+															<FormDescription>
+																Enter the customer's Safaricom M-Pesa number to send the payment prompt.
+															</FormDescription>
+															<FormMessage />
+														</FormItem>
+													)}
+												/>
+											)}
+										</>
+									)}
+									
+									{/* Transaction Reference - Hidden when using STK push */}
+									{(!watchedUseStkPush || watchedGateway !== "MPESA") && (
 									<FormField
 										control={form.control}
 										name="transactionReference"
@@ -1116,33 +1814,82 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 											</FormItem>
 										)}
 									/>
+									)}
+									
+									{/* Create Invoice Checkbox */}
+									<FormField
+										control={form.control}
+										name="createInvoice"
+										render={({ field }) => (
+											<FormItem className="flex flex-row items-start gap-3 space-y-0 rounded-md border p-4">
+												<FormControl>
+													<Checkbox
+														checked={field.value}
+														onCheckedChange={field.onChange}
+														disabled={isBusy}
+													/>
+												</FormControl>
+												<div className="space-y-1 leading-none">
+													<FormLabel>Create invoice for this subscription</FormLabel>
+													<FormDescription>
+														Generate and send an invoice to the customer for this subscription payment.
+													</FormDescription>
+												</div>
+											</FormItem>
+										)}
+									/>
 								</section>
 							</div>
 						</ScrollArea>
 
-						<SheetFooter className="flex-shrink-0 flex-wrap gap-2 px-6 py-4 border-t bg-muted/30">
-							<Button
-								type="button"
-								variant="outline"
-								onClick={() => onOpenChange(false)}
-								disabled={isBusy}
-							>
-								Cancel
-							</Button>
-							<Button type="submit" disabled={isBusy || !canSubmit}>
-								{isBusy ? (
-									<>
-										<Spinner size={16} className="mr-2" />
-										Processing…
-									</>
-								) : (
-									<>
-										<Plus className="mr-2 h-4 w-4" />
-										Create subscription
-									</>
-								)}
-							</Button>
-						</SheetFooter>
+					<SheetFooter className="flex-shrink-0 flex-wrap gap-2 px-6 py-4 border-t bg-muted/30">
+						{/* Payment status message */}
+						{isAwaitingPayment && (
+							<div className="w-full flex items-center gap-2 rounded-md bg-blue-50 dark:bg-blue-950 p-3 text-sm text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+								<Spinner size={16} />
+								<span>Waiting for customer to complete M-Pesa payment...</span>
+							</div>
+						)}
+						{paymentError && (
+							<div className="w-full rounded-md bg-red-50 dark:bg-red-950 p-3 text-sm text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800">
+								{paymentError}
+							</div>
+						)}
+						
+						<Button
+							type="button"
+							variant="outline"
+							onClick={() => {
+								if (isAwaitingPayment) {
+									stopPolling();
+									setIsAwaitingPayment(false);
+									setCheckoutRequestId(null);
+								}
+								onOpenChange(false);
+							}}
+							disabled={isBusy && !isAwaitingPayment}
+						>
+							Cancel
+						</Button>
+						<Button type="submit" disabled={isBusy || !canSubmit || isAwaitingPayment}>
+							{isBusy && !isAwaitingPayment ? (
+								<>
+									<Spinner size={16} className="mr-2" />
+									{watchedUseStkPush && watchedGateway === "MPESA" ? "Sending payment prompt…" : "Processing…"}
+								</>
+							) : isAwaitingPayment ? (
+								<>
+									<Spinner size={16} className="mr-2" />
+									Awaiting payment…
+								</>
+							) : (
+								<>
+									<Plus className="mr-2 h-4 w-4" />
+									{watchedUseStkPush && watchedGateway === "MPESA" ? "Send payment prompt" : "Create subscription"}
+								</>
+							)}
+						</Button>
+					</SheetFooter>
 					</form>
 				</Form>
 			</SheetContent>

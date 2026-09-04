@@ -52,26 +52,33 @@ export const InvoiceDetailsPreview: React.FC<
           </div>
         </div>
       </div>
-      {items.map(({ itemDescription, amount, qty }, index) => (
+      {items.map(({ itemDescription, amount, qty, billingCycle }, index) => (
         <div
           className={`grid grid-cols-2 items-start border-b ${
             index === 0 ? "border-t" : ""
           } border-dashed mx-10 py-3 gap-x-4`}
           key={index}
         >
-          <p className="min-w-0 text-xs font-medium text-gray-600 break-words whitespace-normal">
-            {itemDescription}
-          </p>
-          <div className="pl-10 grid grid-cols-3 items-center">
-            <p className="flex truncate text-xs font-medium text-gray-600">
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-gray-600 break-words whitespace-normal">
+              {itemDescription}
+            </p>
+            {billingCycle && (
+              <p className="text-[10px] text-gray-500 mt-1">
+                Billing: {formatBillingCycle(billingCycle)}
+              </p>
+            )}
+          </div>
+          <div className="pl-10 grid grid-cols-3 items-center gap-2">
+            <p className="text-xs font-medium text-gray-600">
               {qty || "-"}
             </p>
-            <p className="flex truncate text-xs font-medium text-gray-600">
+            <p className="text-xs font-medium text-gray-600 break-words">
               {amount != null ? formatMoney(amount) : ""}
             </p>
-            <p className="flex items-end w-full text-xs font-medium text-gray-600 text-right justify-end">
+            <p className="text-xs font-medium text-gray-600 text-right break-words">
               {currencyDetails?.currencySymbol}
-              {amount != null ? formatMoney((qty ? qty : 1) * amount) : ""}
+              {amount != null && <>&nbsp;{formatMoney((qty ? qty : 1) * amount)}</>}
             </p>
           </div>
         </div>
@@ -90,46 +97,43 @@ export const InvoiceDetailsPreview: React.FC<
           <div />
         )}
         <div>
-          <div className="flex justify-between items-center mx-10 border-b border-dashed py-3">
-            <p className="flex truncate text-xs font-medium text-gray-600">
+          <div className="flex justify-between items-center mx-10 border-b border-dashed py-3 gap-4">
+            <p className="text-xs font-medium text-gray-600 flex-shrink-0">
               Subtotal
             </p>
-            <p className="flex truncate text-xs font-medium text-gray-600">
-              {currencyDetails?.currencySymbol}
-              {formatMoney(subtotal)}
+            <p className="text-xs font-medium text-gray-600 text-right break-words">
+              {currencyDetails?.currencySymbol}&nbsp;{formatMoney(subtotal)}
             </p>
           </div>
           {discount && (
-            <div className="flex justify-between items-center mx-10 border-b border-dashed py-3">
-              <p className="flex truncate text-xs font-medium text-gray-600">
+            <div className="flex justify-between items-center mx-10 border-b border-dashed py-3 gap-4">
+              <p className="text-xs font-medium text-gray-600 flex-shrink-0">
                 Discount
               </p>
-              <p className="flex truncate text-xs font-medium text-gray-600">
-                {currencyDetails?.currencySymbol}
-                {discount ? formatMoney(+discount) : ""}
+              <p className="text-xs font-medium text-gray-600 text-right break-words">
+                {currencyDetails?.currencySymbol}&nbsp;{discount ? formatMoney(+discount) : ""}
               </p>
             </div>
           )}
           {taxPercentage && (
-            <div className="flex justify-between items-center mx-10 border-b border-dashed py-3">
-              <p className="flex truncate text-xs font-medium text-gray-600">
+            <div className="flex justify-between items-center mx-10 border-b border-dashed py-3 gap-4">
+              <p className="text-xs font-medium text-gray-600 flex-shrink-0">
                 Tax ({taxPercentage})%
               </p>
-              <p className="flex truncate text-xs font-medium text-gray-600">
-                {currencyDetails?.currencySymbol}
-                {formatMoney(taxAmount)}
+              <p className="text-xs font-medium text-gray-600 text-right break-words">
+                {currencyDetails?.currencySymbol}&nbsp;{formatMoney(taxAmount)}
               </p>
             </div>
           )}
-          <div className="flex justify-between items-center px-10 py-3">
-            <div>
-              <p className="flex truncate text-xs font-medium text-gray-600">
+          <div className="flex justify-between items-center px-10 py-3 gap-4">
+            <div className="flex-shrink-0">
+              <p className="text-xs font-medium text-gray-600">
                 Amount
               </p>
             </div>
-            <p className="flex items-center text-sm font-semibold text-gray-700 whitespace-nowrap">
+            <p className="text-sm font-semibold text-gray-700 text-right break-words">
               <span>{currencyDetails?.currencySymbol}</span>
-              <span>{formatMoney(totalAmount)}</span>
+              <span>&nbsp;{formatMoney(totalAmount)}</span>
             </p>
           </div>
         </div>
@@ -163,5 +167,16 @@ const roundTotalIfExceeds = (amount: number): number => {
     return Math.round(amount * 100) / 100;
   }
   return amount;
+};
+
+const formatBillingCycle = (cycle: string): string => {
+  const cycleMap: Record<string, string> = {
+    '__unset__': 'None',
+    'one-time': 'One Time',
+    'monthly': 'Monthly',
+    'quarterly': 'Quarterly',
+    'annually': 'Annually',
+  };
+  return cycleMap[cycle] || cycle;
 };
 

@@ -6,12 +6,34 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PricingTable } from "@/components/ui/pricing-table";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { mapHostingPlansToPricingTable } from "@/components/pricing-table-wrapper";
 
 export type HostingPlanType = "web" | "email";
+export type HostingBillingCycle = "MONTHLY" | "YEARLY" | "BIENNIALLY";
 
-export const DEFAULT_HOSTING_BILLING_CYCLE = "MONTHLY" as const;
+export const DEFAULT_HOSTING_BILLING_CYCLE: HostingBillingCycle = "MONTHLY";
 export const DEFAULT_HOSTING_BILLING_INTERVAL = "monthly" as const;
+
+export const HOSTING_BILLING_CYCLES: ReadonlyArray<{
+  value: HostingBillingCycle;
+  label: string;
+  shortLabel: string;
+  months: number;
+  priceSuffix: string;
+}> = [
+  { value: "MONTHLY", label: "Monthly", shortLabel: "Monthly", months: 1, priceSuffix: "/mo" },
+  { value: "YEARLY", label: "Yearly", shortLabel: "Yearly", months: 12, priceSuffix: "/yr" },
+  { value: "BIENNIALLY", label: "Every 2 years", shortLabel: "2 years", months: 24, priceSuffix: "/2yr" },
+];
+
+export function hostingBillingCycleLabel(cycle: HostingBillingCycle): string {
+  return HOSTING_BILLING_CYCLES.find((c) => c.value === cycle)?.label ?? cycle;
+}
+
+export function hostingBillingCycleMeta(cycle: HostingBillingCycle) {
+  return HOSTING_BILLING_CYCLES.find((c) => c.value === cycle) ?? HOSTING_BILLING_CYCLES[0];
+}
 
 export type PricingPlanRow = {
   id: string;
@@ -37,7 +59,7 @@ export type SelectedServiceUpsell = {
   productName: string;
   planId: string;
   planName: string;
-  billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY";
+  billingCycle: HostingBillingCycle;
   price: number;
   currency: string;
 };
@@ -91,9 +113,42 @@ function monthlyFromPlanPrice(price: number, billingCycle: string) {
   return price;
 }
 
-function totalForCycle(monthly: number, cycle: "MONTHLY" | "YEARLY" | "BIENNIALLY") {
-  const months = cycle === "MONTHLY" ? 1 : cycle === "YEARLY" ? 12 : 24;
+function totalForCycle(monthly: number, cycle: HostingBillingCycle) {
+  const months = hostingBillingCycleMeta(cycle).months;
   return Math.round(monthly * months * 100) / 100;
+}
+
+export function HostingBillingCycleSelector({
+  value,
+  onChange,
+  className,
+}: {
+  value: HostingBillingCycle;
+  onChange: (cycle: HostingBillingCycle) => void;
+  className?: string;
+}) {
+  return (
+    <div className={cn("space-y-1.5", className)}>
+      <p className="text-xs font-medium text-muted-foreground">Billing cycle</p>
+      <ToggleGroup
+        type="single"
+        value={value}
+        onValueChange={(next) => {
+          if (next) onChange(next as HostingBillingCycle);
+        }}
+        variant="outline"
+        size="sm"
+        className="w-full"
+        aria-label="Billing cycle"
+      >
+        {HOSTING_BILLING_CYCLES.map((opt) => (
+          <ToggleGroupItem key={opt.value} value={opt.value} className="flex-1 px-2 text-xs">
+            {opt.shortLabel}
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
+    </div>
+  );
 }
 
 type HostingUpsellStepProps = {
@@ -231,8 +286,8 @@ function HostingServiceCard({
               </div>
               <div className="flex justify-between gap-2">
                 <span className="text-muted-foreground">Billing</span>
-                <span className="font-medium text-foreground capitalize">
-                  {selected.billingCycle.toLowerCase()}
+                <span className="font-medium text-foreground">
+                  {hostingBillingCycleLabel(selected.billingCycle)}
                 </span>
               </div>
               <div className="flex justify-between gap-2">
@@ -288,6 +343,8 @@ type HostingPlanSelectionStepProps = {
   isLoading: boolean;
   selectedPlanId: string | null;
   onSelectPlan: (planId: string) => void;
+  billingCycle: HostingBillingCycle;
+  onBillingCycleChange: (cycle: HostingBillingCycle) => void;
 };
 
 export function HostingPlanSelectionStep({
@@ -299,22 +356,39 @@ export function HostingPlanSelectionStep({
   isLoading,
   selectedPlanId,
   onSelectPlan,
+  billingCycle,
+  onBillingCycleChange,
 }: HostingPlanSelectionStepProps) {
   const title =
     selectionTitle ??
     (planType === "web" ? "Website hosting" : planType === "email" ? "Email hosting" : "Select a plan");
 
-  const pricingPlans = React.useMemo(
-    () => mapHostingPlansToPricingTable(plans, productFeatures),
-    [plans, productFeatures],
-  );
+  const cycleMeta = hostingBillingCycleMeta(billingCycle);
+
+  const pricingPlans = React.useMemo(() => {
+    const mapped = mapHostingPlansToPricingTable(plans, productFeatures);
+    if (billingCycle === "MONTHLY") return mapped;
+    return mapped.map((plan) => ({
+      ...plan,
+      price: {
+        monthly: Math.round(plan.price.monthly * cycleMeta.months),
+        yearly: plan.price.yearly,
+      },
+    }));
+  }, [plans, productFeatures, billingCycle, cycleMeta.months]);
 
   const currency = plans[0]?.niscCurrency || "KES";
+  const selectedPlan = plans.find((p) => p.id === selectedPlanId);
+  const selectedTotal =
+    selectedPlan != null
+      ? planSelectionToUpsell(selectedPlan, { hostingType: planType ?? "web" }, billingCycle).price
+      : null;
 
   if (isLoading) {
     return (
       <div className="space-y-3">
         <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-16 w-full rounded-xl" />
         <div className="grid gap-3 sm:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton key={i} className="h-32 w-full rounded-xl" />
@@ -337,14 +411,29 @@ export function HostingPlanSelectionStep({
 
   return (
     <div className="space-y-3">
-      <div>
-        <p className="text-sm font-medium text-foreground">{title}</p>
-        {domainLabel && (
-          <p className="text-xs text-muted-foreground mt-0.5">
-            For <span className="font-medium text-foreground">{domainLabel}</span>
-          </p>
-        )}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-sm font-medium text-foreground">{title}</p>
+          {domainLabel && (
+            <p className="text-xs text-muted-foreground mt-0.5">
+              For <span className="font-medium text-foreground">{domainLabel}</span>
+            </p>
+          )}
+        </div>
+        <HostingBillingCycleSelector
+          value={billingCycle}
+          onChange={onBillingCycleChange}
+          className="sm:w-72"
+        />
       </div>
+
+      {selectedPlan && selectedTotal != null && (
+        <p className="text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">{selectedPlan.name}</span>
+          {" · "}
+          {formatPrice(selectedTotal, currency)} billed {cycleMeta.label.toLowerCase()}
+        </p>
+      )}
 
       <PricingTable
         embedded
@@ -356,6 +445,7 @@ export function HostingPlanSelectionStep({
         onSelectedPlanLevelChange={onSelectPlan}
         currency={currency}
         locale="en-KE"
+        priceSuffix={cycleMeta.priceSuffix}
       />
     </div>
   );
@@ -364,7 +454,7 @@ export function HostingPlanSelectionStep({
 export function planSelectionToUpsell(
   plan: PricingPlanRow,
   target: UpsellBrowseTarget,
-  billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY",
+  billingCycle: HostingBillingCycle,
 ): SelectedServiceUpsell {
   const price = parseFloat(plan.niscPrice || "0");
   const monthly = monthlyFromPlanPrice(price, plan.billingCycle);

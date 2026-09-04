@@ -255,17 +255,20 @@ export async function createAndEmailNiscOrderInvoice(
 		}
 	}
 
-	const initiator = await db.query.user.findFirst({
-		where: eq(userTable.id, createdBy),
-		columns: { email: true },
-	});
-	if (initiator?.email?.trim()) {
-		const initiatorEmail = initiator.email.trim();
-		if (
-			initiatorEmail.toLowerCase() !== primaryLower &&
-			!ccList.some((e) => e.toLowerCase() === initiatorEmail.toLowerCase())
-		) {
-			ccList.push(initiatorEmail);
+	// Agency staff who initiated the order are not billed identities — do not CC them.
+	if (createdBy && userId && createdBy === userId) {
+		const initiator = await db.query.user.findFirst({
+			where: eq(userTable.id, createdBy),
+			columns: { email: true },
+		});
+		if (initiator?.email?.trim()) {
+			const initiatorEmail = initiator.email.trim();
+			if (
+				initiatorEmail.toLowerCase() !== primaryLower &&
+				!ccList.some((e) => e.toLowerCase() === initiatorEmail.toLowerCase())
+			) {
+				ccList.push(initiatorEmail);
+			}
 		}
 	}
 

@@ -8,6 +8,7 @@ import {
 	paymentTransactionActivityLog,
 } from "@npanel/db/schema/payment-transactions";
 import { team, teamMember } from "@npanel/db/schema/teams";
+import { user } from "@npanel/db/schema/auth";
 import {
 	createMpesaClientFromEnv,
 	MpesaApiError,
@@ -102,7 +103,42 @@ export const mpesaRouter = router({
 				const userRole = ctx.session.user.role;
 				const now = new Date();
 
-				if (input.teamId && !isAgencyUserRole(userRole)) {
+				// For agency users: allow creating payment for a customer (billedForUserId)
+				const agencyUser = isAgencyUserRole(userRole);
+				let transactionUserId = userId;
+				
+				if (input.billedForUserId && agencyUser) {
+					const [targetUser] = await db
+						.select({ id: user.id })
+						.from(user)
+						.where(eq(user.id, input.billedForUserId))
+						.limit(1);
+					if (!targetUser) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "Target user not found",
+						});
+					}
+					// Verify target user is team member if teamId is provided
+					if (input.teamId) {
+						const membership = await db.query.teamMember.findFirst({
+							where: and(
+								eq(teamMember.teamId, input.teamId),
+								eq(teamMember.userId, input.billedForUserId),
+							),
+							columns: { id: true },
+						});
+						if (!membership) {
+							throw new TRPCError({
+								code: "BAD_REQUEST",
+								message: "Target user is not a member of the specified team",
+							});
+						}
+					}
+					transactionUserId = input.billedForUserId;
+				}
+
+				if (input.teamId && !agencyUser) {
 					const [membership, ownedTeam] = await Promise.all([
 						db.query.teamMember.findFirst({
 							where: and(
@@ -129,7 +165,6 @@ export const mpesaRouter = router({
 					input.checkoutTotalIncVat != null
 						? Math.ceil(input.checkoutTotalIncVat)
 						: null;
-				const agencyUser = isAgencyUserRole(userRole);
 
 				// Customers must send the tax-inclusive checkout total; agency may overpay but never underpay.
 				if (!agencyUser && checkoutTotalIncVat == null) {
@@ -165,7 +200,7 @@ export const mpesaRouter = router({
 				const transactionId = crypto.randomUUID();
 				await db.insert(paymentTransaction).values({
 						id: transactionId,
-						userId,
+						userId: transactionUserId, // Use customer userId if provided by agency, otherwise agency userId
 						teamId: input.teamId || null,
 						gateway: "MPESA",
 						gatewayStatus: response.ResponseCode,
@@ -230,7 +265,7 @@ export const mpesaRouter = router({
 
 							await db.insert(paymentTransaction).values({
 									id: transactionId,
-									userId,
+									userId: input.billedForUserId?.trim() || userId,
 									teamId: input.teamId || null,
 									gateway: "MPESA",
 									gatewayStatus: String(error.code),

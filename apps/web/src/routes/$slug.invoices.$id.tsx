@@ -10,7 +10,10 @@ import { toast } from "@/components/ui/sonner";
 import { captureEvent } from "@/lib/posthog";
 import { PreviewDetails } from "@/routes/agency.invoices/create/_components/form/previewDetails";
 import { transformInvoiceToPreviewData } from "@/lib/transform-invoice-preview-data";
-import { buildInvoicePdfDetails } from "@npanel/api/agency-invoice-pdf/build-invoice-pdf-details";
+import { InvoicePaymentSummary } from "@/routes/agency.invoices/$id/_components/invoice-payment-summary";
+import { InvoiceTransactionsSection } from "@/routes/agency.invoices/$id/_components/invoice-transactions-section";
+import { InvoiceTransactionViewSheet } from "@/routes/agency.invoices/$id/_components/invoice-transaction-view-sheet";
+import type { InvoiceTransaction } from "@/routes/agency.invoices/create/api/schemas";
 
 // Font registration state
 let fontsRegistered = false;
@@ -105,6 +108,8 @@ export default function InvoiceViewPage() {
 
 	const invoicesPath = teamSlug ? `/${teamSlug}/invoices` : "/agency/invoices";
 	const [isDownloading, setIsDownloading] = React.useState(false);
+	const [transactionSheetOpen, setTransactionSheetOpen] = React.useState(false);
+	const [viewingTransaction, setViewingTransaction] = React.useState<InvoiceTransaction | null>(null);
 
 	const handleDownloadInvoice = async () => {
 		if (!invoice) return;
@@ -165,16 +170,10 @@ export default function InvoiceViewPage() {
 	}
 
 	const previewData = transformInvoiceToPreviewData(invoice);
-	const pdfMeta = buildInvoicePdfDetails(invoice);
 	const existingCreditNoteId = invoice.creditNote?.id;
-	const etimsFiscal = invoice.etimsFiscal ?? pdfMeta.etimsFiscal;
 	const paymentDetails = {
 		...previewData.paymentDetails,
-		etimsVerificationUrl:
-			previewData.paymentDetails.etimsVerificationUrl ??
-			invoice.etimsFiscal?.verificationUrl ??
-			invoice.kraVerificationUrl ??
-			undefined,
+		etimsVerificationUrl: undefined,
 	};
 
 	return (
@@ -231,6 +230,30 @@ export default function InvoiceViewPage() {
 					</div>
 				</div>
 
+				<div className="flex flex-col items-center gap-4 px-4">
+					<InvoicePaymentSummary
+						amount={invoice.amount}
+						amountPaid={invoice.amountPaid}
+						amountRemaining={invoice.amountRemaining}
+						creditBalance={invoice.creditBalance}
+						status={invoice.status}
+						dueDate={invoice.dueDate}
+						currency={invoice.currency}
+						transactions={invoice.transactions ?? []}
+					/>
+				</div>
+
+				<div className="px-4">
+					<InvoiceTransactionsSection
+						transactions={invoice.transactions ?? []}
+						emptyMessage="No payments have been recorded on this invoice yet."
+						onViewTransaction={(tx) => {
+							setViewingTransaction(tx);
+							setTransactionSheetOpen(true);
+						}}
+					/>
+				</div>
+
 				<div className="flex justify-center items-start">
 					<PreviewDetails
 						yourDetails={previewData.yourDetails}
@@ -238,10 +261,18 @@ export default function InvoiceViewPage() {
 						invoiceDetails={previewData.invoiceDetails}
 						paymentDetails={paymentDetails}
 						invoiceTerms={previewData.invoiceTerms}
-						etimsFiscal={etimsFiscal}
 					/>
 				</div>
 			</div>
+			<InvoiceTransactionViewSheet
+				transaction={viewingTransaction}
+				invoiceNumber={invoice.invoiceNumber}
+				open={transactionSheetOpen}
+				onOpenChange={(open) => {
+					setTransactionSheetOpen(open);
+					if (!open) setViewingTransaction(null);
+				}}
+			/>
 			<Outlet />
 		</>
 	);

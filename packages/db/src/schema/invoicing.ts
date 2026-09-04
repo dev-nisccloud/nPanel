@@ -36,6 +36,10 @@ export const invoice = pgTable(
     currency: text("currency").default("KES").notNull(),
     creditedAmount: text("credited_amount"),
     creditBalance: text("credit_balance"),
+    
+    // Payment tracking fields
+    amountPaid: text("amount_paid").default("0"),
+    amountRemaining: text("amount_remaining"),
 
     issueDate: timestamp("issue_date"),
     dueDate: timestamp("due_date"),

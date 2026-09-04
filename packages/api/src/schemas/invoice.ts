@@ -29,6 +29,7 @@ export const invoiceLineItemCreateSchema = z.object({
 	quantity: z.number().int().min(0),
 	price: z.string(),
 	total: z.string(),
+	billingCycle: nullableString,
 	metadata: z.record(z.unknown()).optional().nullable(),
 });
 export type InvoiceLineItemCreate = z.infer<typeof invoiceLineItemCreateSchema>;

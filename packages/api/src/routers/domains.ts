@@ -602,6 +602,86 @@ export const domainsRouter = router({
     }),
 
   /**
+   * Get all domains in portfolio (for agency use - no user restrictions)
+   */
+  getAllForAgency: protectedProcedure.query(async ({ ctx }) => {
+    const authenticatedUser = await getAuthenticatedUser(ctx);
+    
+    // Only allow agency users to access all domains
+    if (!isAgencyUser(authenticatedUser.role)) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Only agency users can access all domains",
+      });
+    }
+
+    try {
+      const rows = await db
+        .select({
+          id: domain.id,
+          domainName: domain.domainName,
+          userId: domain.userId,
+          teamId: domain.teamId,
+          openProviderId: domain.openProviderId,
+          activationDate: domain.activationDate,
+          expirationDate: domain.expirationDate,
+          renewalDate: domain.renewalDate,
+          registrationDate: domain.registrationDate,
+          openProviderPrice: domain.openProviderPrice,
+          niscPrice: domain.niscPrice,
+          notes: domain.notes,
+          createdAt: domain.createdAt,
+          updatedAt: domain.updatedAt,
+          userName: userTable.name,
+          userEmail: userTable.email,
+          teamName: team.name,
+          teamSlug: team.slug,
+        })
+        .from(domain)
+        .leftJoin(userTable, eq(domain.userId, userTable.id))
+        .leftJoin(team, eq(domain.teamId, team.id))
+        .orderBy(desc(domain.createdAt));
+
+      return rows.map((row) => ({
+        id: row.id,
+        domainName: row.domainName,
+        userId: row.userId,
+        teamId: row.teamId,
+        openProviderId: row.openProviderId,
+        activationDate: row.activationDate,
+        expirationDate: row.expirationDate,
+        renewalDate: row.renewalDate,
+        registrationDate: row.registrationDate,
+        openProviderPrice: row.openProviderPrice,
+        niscPrice: row.niscPrice,
+        notes: row.notes,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+        user: row.userId
+          ? {
+              id: row.userId,
+              name: row.userName || "",
+              email: row.userEmail || "",
+            }
+          : undefined,
+        team: row.teamId
+          ? {
+              id: row.teamId,
+              name: row.teamName || "",
+              slug: row.teamSlug || "",
+            }
+          : null,
+      }));
+    } catch (error) {
+      console.error("Get all domains for agency error:", error);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to fetch domains",
+      });
+    }
+  }),
+
+  /**
    * Get domains by user
    */
   getByUser: protectedProcedure

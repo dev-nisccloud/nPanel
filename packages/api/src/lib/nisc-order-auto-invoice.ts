@@ -14,8 +14,10 @@ import {
 	invoiceActivityLog,
 	invoiceCounter,
 	invoiceLineItem,
+	invoiceTransaction,
 } from "@npanel/db/schema/invoicing";
 import { niscOrder } from "@npanel/db/schema/nisc-orders";
+import { paymentTransaction } from "@npanel/db/schema/payment-transactions";
 import { buildNiscOrderInvoiceLineItemCopy, resolveHostingServiceLabel } from "./nisc-order-invoice-line-items";
 import {
 	buildHivelocityCollapsedInvoiceLineCopy,
@@ -31,7 +33,8 @@ import {
 } from "./domain-bundle-order";
 import { buildNiscInvoiceLineMetadata } from "./invoice-kra-mapper";
 import { COMPANY_LOGO_URL } from "./company-branding";
-import { invoicePaymentMethodFromGateway } from "./invoice-payment-method";
+import { invoicePaymentMethodFromGateway, mapGatewayPaymentToInvoiceTransaction } from "./invoice-payment-method";
+import { computeInvoicePaymentState, parseInvoiceMoney } from "./invoice-payment-state";
 
 const FROM_DETAILS = {
 	name: "Nisc Cloud Limited",
@@ -89,7 +92,6 @@ export async function createInvoiceForNiscOrder(
 ): Promise<{ invoiceId: string; invoiceNumber: string } | null> {
 	const now = new Date();
 	const issueDate = now;
-	const dueDate = null; // Already paid; schema allows null
 
 	const subtotalNum = order.orderItems.reduce((sum, i) => sum + parseFloat(i.itemSubtotal || "0"), 0);
 	const { subtotal: subtotalRounded, tax: taxAmount, total: totalNum } =
@@ -98,6 +100,34 @@ export async function createInvoiceForNiscOrder(
 	const tax = taxAmount.toFixed(2);
 	const total = totalNum.toFixed(2);
 	const currency = order.currency || "KES";
+
+	const [orderPayment] = await db
+		.select({ paymentTransactionId: niscOrder.paymentTransactionId })
+		.from(niscOrder)
+		.where(eq(niscOrder.id, order.id))
+		.limit(1);
+	const paymentTxId = orderPayment?.paymentTransactionId?.trim() || null;
+	let paymentRow: typeof paymentTransaction.$inferSelect | null = null;
+	if (paymentTxId) {
+		const [pt] = await db
+			.select()
+			.from(paymentTransaction)
+			.where(eq(paymentTransaction.id, paymentTxId))
+			.limit(1);
+		paymentRow = pt ?? null;
+	}
+
+	const paidNum = paymentRow
+		? parseInvoiceMoney(paymentRow.paidAmount || paymentRow.amount)
+		: 0;
+	const paymentState = computeInvoicePaymentState({
+		amount: totalNum,
+		amountPaid: paidNum,
+		status: "SENT",
+	});
+	const fullyPaid = paymentState.fullyPaid;
+	const invoiceStatus = paymentState.status;
+	const dueDate = fullyPaid ? null : new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
 	const customerDetails = {
 		name: billing.legalName,
@@ -138,7 +168,7 @@ export async function createInvoiceForNiscOrder(
 		customerName: billing.legalName,
 		customerEmail: billing.billingEmail,
 		invoiceNumber: generatedInvoiceNumber,
-		status: "PAID",
+		status: invoiceStatus,
 		amount: total,
 		subtotal,
 		tax,
@@ -146,7 +176,10 @@ export async function createInvoiceForNiscOrder(
 		currency,
 		issueDate,
 		dueDate,
-		paidAt: now,
+		paidAt: fullyPaid ? now : null,
+		amountPaid: paymentState.amountPaid,
+		amountRemaining: paymentState.amountRemaining,
+		creditBalance: paymentState.creditBalance,
 		fromDetails: FROM_DETAILS,
 		customerDetails,
 		paymentDetails,
@@ -281,10 +314,33 @@ export async function createInvoiceForNiscOrder(
 		invoiceId: newInvoiceId,
 		userId: createdBy,
 		action: "CREATE",
-		description: "Auto-generated invoice from Nisc order (already paid)",
+		description: fullyPaid
+			? "Auto-generated invoice from Nisc order (paid in full)"
+			: paymentState.paid > 0
+				? `Auto-generated invoice from Nisc order (partial payment ${currency} ${paymentState.amountPaid})`
+				: "Auto-generated invoice from Nisc order",
 		metadata: { niscOrderId: order.id, orderNumber: order.orderNumber },
 		createdAt: now,
 	});
+
+	if (paymentRow) {
+		const mapped = mapGatewayPaymentToInvoiceTransaction(newInvoiceId, paymentRow);
+		await db.insert(invoiceTransaction).values({
+			id: crypto.randomUUID(),
+			invoiceId: mapped.invoiceId,
+			reference: mapped.reference,
+			providerReference: mapped.providerReference,
+			status: mapped.status,
+			method: mapped.method,
+			amount: mapped.amount,
+			currency: mapped.currency,
+			paidAt: mapped.paidAt,
+			notes: mapped.notes,
+			recordedBy: mapped.recordedBy,
+			createdAt: mapped.createdAt,
+			updatedAt: mapped.updatedAt,
+		});
+	}
 
 	const claimed = await db
 		.update(niscOrder)
@@ -299,6 +355,7 @@ export async function createInvoiceForNiscOrder(
 	if (!claimed[0]) {
 		// Another worker linked an invoice  delete the orphan we created, return the existing one.
 		await db.delete(invoiceActivityLog).where(eq(invoiceActivityLog.invoiceId, newInvoiceId));
+		await db.delete(invoiceTransaction).where(eq(invoiceTransaction.invoiceId, newInvoiceId));
 		await db.delete(invoiceLineItem).where(eq(invoiceLineItem.invoiceId, newInvoiceId));
 		await db.delete(invoice).where(eq(invoice.id, newInvoiceId));
 		const [current] = await db

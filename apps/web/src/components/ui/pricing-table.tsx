@@ -68,6 +68,8 @@ export interface PricingTableProps
   pricingMode?: "fixed" | "commission"
   commissionSuffix?: string
   actionButtonLabel?: string
+  /** Period suffix shown after the plan price. Defaults to "/mo". */
+  priceSuffix?: string
 }
 
 /**
@@ -180,6 +182,7 @@ export function PricingTable({
   pricingMode = "fixed",
   commissionSuffix = "of ad spend / month",
   actionButtonLabel,
+  priceSuffix = "/mo",
   ...props
 }: PricingTableProps) {
   const isCommission = pricingMode === "commission"
@@ -355,7 +358,7 @@ export function PricingTable({
                 value={plan.price.monthly}
                 className={cn("font-bold tracking-tight", embedded ? "text-lg" : "text-2xl sm:text-3xl")}
               />
-              <span className="text-xs text-muted-foreground">/mo</span>
+              <span className="text-xs text-muted-foreground">{priceSuffix}</span>
             </>
           )}
         </div>

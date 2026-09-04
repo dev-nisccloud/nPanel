@@ -39,6 +39,8 @@ export const StkPushRequestSchema = z.object({
 	teamId: z.string().optional(), // Optional team ID for team payments
 	/** Tax-inclusive checkout total; used to reject underpayment (and allow agency overpay). */
 	checkoutTotalIncVat: z.number().positive().optional(),
+	/** For agency users creating payment for a customer - transaction will be created for this user instead of the initiating agency user */
+	billedForUserId: z.string().optional(),
 });
 
 export type StkPushRequest = z.infer<typeof StkPushRequestSchema>;
