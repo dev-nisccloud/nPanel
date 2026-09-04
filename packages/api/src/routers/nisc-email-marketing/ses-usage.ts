@@ -11,6 +11,7 @@ import { db, eq, inArray } from "@npanel/db";
 import { and } from "@npanel/db";
 import { niscEmDomain, team, teamMember } from "@npanel/db/schema";
 import { randomUUID } from "node:crypto";
+import { assertTeamHasNiscEmailMarketingSubscription } from "../../lib/nisc-email-marketing-billing";
 
 function isAgencyUserRole(role: string | null | undefined): boolean {
   return ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
@@ -207,6 +208,7 @@ export const niscEmailMarketingSesUsageRouter = router({
             });
           }
         }
+        await assertTeamHasNiscEmailMarketingSubscription(teamId);
       }
 
       const dkimStatus = entry.DkimVerificationStatus ?? "NotStarted";

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normalizePleskPacket } from "@/components/hosting/plesk-xml-normalize";
 
 // Single subdomain result item (Plesk returns one object when there is only one subdomain)
 const subdomainResultItemSchema = z.object({
@@ -25,7 +26,7 @@ const subdomainResultItemSchema = z.object({
 export const pleskSubdomainsResponseSchema = z.object({
   raw: z.string(),
   parsed: z.object({
-    packet: z.object({
+    packet: z.preprocess(normalizePleskPacket, z.object({
       subdomain: z.object({
         get: z.object({
           result: z
@@ -33,7 +34,7 @@ export const pleskSubdomainsResponseSchema = z.object({
             .transform((val) => (Array.isArray(val) ? val : [val])),
         }),
       }),
-    }),
+    })),
   }),
 });
 

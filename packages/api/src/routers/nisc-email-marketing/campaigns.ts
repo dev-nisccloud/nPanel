@@ -18,6 +18,10 @@ import {
 } from "../email-marketing/schemas";
 import { enqueueNiscEmDispatch } from "../../lib/qstash/nisc-em-dispatch";
 import { assertTeamModulePermission, assertTeamPermission } from "../../lib/team-permissions/assert";
+import {
+  assertCanLinkNiscEmResource,
+  assertTeamHasNiscEmailMarketingSubscription,
+} from "../../lib/nisc-email-marketing-billing";
 
 async function assertTeamMember(
   teamId: string,
@@ -346,6 +350,10 @@ export const niscEmailMarketingCampaignsRouter = router({
       });
     }
 
+    if (input.teamId) {
+      await assertTeamHasNiscEmailMarketingSubscription(input.teamId);
+    }
+
     if (input.emailDomainId) {
       const [domain] = await db
         .select({ id: niscEmDomain.id, status: niscEmDomain.status })
@@ -423,6 +431,34 @@ export const niscEmailMarketingCampaignsRouter = router({
 
     return { id: campaignId };
   }),
+
+  linkOrganization: protectedProcedure
+    .input(z.object({ id: z.string().min(1), teamId: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id;
+      const userRole = ctx.session?.user?.role;
+      if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
+
+      const [campaign] = await db
+        .select({ id: niscEmCampaign.id, teamId: niscEmCampaign.teamId })
+        .from(niscEmCampaign)
+        .where(eq(niscEmCampaign.id, input.id))
+        .limit(1);
+      if (!campaign) throw new TRPCError({ code: "NOT_FOUND", message: "Campaign not found" });
+
+      await assertCanLinkNiscEmResource({
+        role: userRole,
+        currentTeamId: campaign.teamId,
+        nextTeamId: input.teamId,
+      });
+
+      await db
+        .update(niscEmCampaign)
+        .set({ teamId: input.teamId, updatedAt: new Date() })
+        .where(eq(niscEmCampaign.id, campaign.id));
+
+      return { ok: true as const };
+    }),
 
   send: protectedProcedure.input(campaignSendInputSchema).mutation(async ({ ctx, input }) => {
     const userId = ctx.session?.user?.id;

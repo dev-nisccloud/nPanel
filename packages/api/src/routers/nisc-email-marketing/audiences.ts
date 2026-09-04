@@ -17,6 +17,10 @@ import {
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { assertTeamModulePermission, assertTeamPermission } from "../../lib/team-permissions/assert";
+import {
+  assertCanLinkNiscEmResource,
+  assertTeamHasNiscEmailMarketingSubscription,
+} from "../../lib/nisc-email-marketing-billing";
 
 async function assertTeamMember(
   teamId: string,
@@ -144,6 +148,7 @@ export const niscEmailMarketingAudiencesRouter = router({
         key: "email_marketing.audiences",
         access: "write",
       });
+      await assertTeamHasNiscEmailMarketingSubscription(input.teamId);
     }
 
     const now = new Date();
@@ -160,6 +165,34 @@ export const niscEmailMarketingAudiencesRouter = router({
 
     return { id };
   }),
+
+  linkOrganization: protectedProcedure
+    .input(z.object({ id: z.string().min(1), teamId: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id;
+      const userRole = ctx.session?.user?.role;
+      if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
+
+      const [aud] = await db
+        .select({ id: niscEmAudience.id, teamId: niscEmAudience.teamId })
+        .from(niscEmAudience)
+        .where(eq(niscEmAudience.id, input.id))
+        .limit(1);
+      if (!aud) throw new TRPCError({ code: "NOT_FOUND", message: "Audience not found" });
+
+      await assertCanLinkNiscEmResource({
+        role: userRole,
+        currentTeamId: aud.teamId,
+        nextTeamId: input.teamId,
+      });
+
+      await db
+        .update(niscEmAudience)
+        .set({ teamId: input.teamId, updatedAt: new Date() })
+        .where(eq(niscEmAudience.id, aud.id));
+
+      return { ok: true as const };
+    }),
 
   getById: protectedProcedure.input(z.object({ id: z.string().min(1) })).query(async ({ ctx, input }) => {
     const userId = ctx.session?.user?.id;

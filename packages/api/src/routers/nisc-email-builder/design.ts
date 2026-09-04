@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { randomUUID } from "node:crypto";
+import { z } from "zod";
 import { and, desc, eq } from "@npanel/db";
 import { db } from "@npanel/db";
 import {
@@ -19,6 +20,10 @@ import {
 } from "./access";
 import { stripEditorArtifactsFromHtml } from "../../lib/nisc-email-builder/html-sanitize-for-save";
 import { processEmailHtml } from "../../lib/nisc-email-builder/pipeline";
+import {
+	assertCanLinkNiscEmResource,
+	assertTeamHasNiscEmailMarketingSubscription,
+} from "../../lib/nisc-email-marketing-billing";
 import {
 	createDesignSchema,
 	designIdSchema,
@@ -44,6 +49,10 @@ export const nebDesignRouter = router({
 				),
 			});
 			if (!membership) throw new TRPCError({ code: "FORBIDDEN" });
+		}
+
+		if (input.teamId) {
+			await assertTeamHasNiscEmailMarketingSubscription(input.teamId);
 		}
 
 		const designId = randomUUID();
@@ -75,6 +84,37 @@ export const nebDesignRouter = router({
 
 		return { id: designId, sessionId };
 	}),
+
+	linkOrganization: protectedProcedure
+		.input(z.object({ designId: z.string().min(1), teamId: z.string().min(1) }))
+		.mutation(async ({ ctx, input }) => {
+			const userId = ctx.session?.user?.id;
+			const userRole = ctx.session?.user?.role;
+			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+
+			const design = await db.query.nebDesign.findFirst({
+				where: eq(nebDesign.id, input.designId),
+			});
+			if (!design) throw new TRPCError({ code: "NOT_FOUND", message: "Design not found" });
+
+			await assertCanLinkNiscEmResource({
+				role: userRole,
+				currentTeamId: design.teamId,
+				nextTeamId: input.teamId,
+			});
+
+			const now = new Date();
+			await db
+				.update(nebDesign)
+				.set({ teamId: input.teamId, updatedAt: now })
+				.where(eq(nebDesign.id, design.id));
+			await db
+				.update(nebSession)
+				.set({ teamId: input.teamId, updatedAt: now })
+				.where(eq(nebSession.designId, design.id));
+
+			return { ok: true as const };
+		}),
 
 	list: protectedProcedure.input(listDesignsSchema).query(async ({ ctx, input }) => {
 		const userId = ctx.session?.user?.id;

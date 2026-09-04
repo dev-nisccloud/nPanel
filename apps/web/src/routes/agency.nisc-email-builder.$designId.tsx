@@ -35,6 +35,10 @@ import {
 	type DesignVariation,
 } from "./agency.nisc-email-builder/_components/preview-tabs";
 import { useNiscEmailMarketingRoute } from "@/components/nisc-email-marketing/nisc-email-marketing-route-context";
+import {
+	NiscEmLinkOrganizationButton,
+	NiscEmLinkOrganizationDialog,
+} from "@/components/nisc-email-marketing/nisc-em-link-organization";
 
 // ── Status badge ──────────────────────────────────────────────────────────────
 
@@ -154,6 +158,7 @@ export default function NiscEmailBuilderEditorPage() {
 
 	const [chatInput, setChatInput] = React.useState("");
 	const [mediaLibraryOpen, setMediaLibraryOpen] = React.useState(false);
+	const [linkOrgOpen, setLinkOrgOpen] = React.useState(false);
 	const [brief, setBrief] = React.useState<BriefFormValues>({
 		companyName: "",
 		goalPreset: NEB_EMAIL_GOALS[0].value,
@@ -254,6 +259,15 @@ export default function NiscEmailBuilderEditorPage() {
 		{ designId },
 		{ enabled: false },
 	);
+
+	const linkMutation = trpc.niscEmailBuilder.design.linkOrganization.useMutation({
+		onSuccess: () => {
+			toast.success("Organization linked");
+			setLinkOrgOpen(false);
+			void utils.niscEmailBuilder.design.get.invalidate({ designId });
+		},
+		onError: (e) => toast.error(e.message),
+	});
 
 	const design = designQuery.data;
 	const messages = design?.session?.messages ?? [];
@@ -493,6 +507,11 @@ export default function NiscEmailBuilderEditorPage() {
 					<InlineNameEditor designId={designId} initialName={design.name} />
 					<StatusBadge phase={phase} aiStatus={design.aiStatus} />
 				</div>
+				<NiscEmLinkOrganizationButton
+					alreadyLinked={Boolean(design.teamId)}
+					disabled={linkMutation.isPending}
+					onClick={() => setLinkOrgOpen(true)}
+				/>
 				<Button
 					variant="outline"
 					size="sm"
@@ -517,6 +536,18 @@ export default function NiscEmailBuilderEditorPage() {
 				open={mediaLibraryOpen}
 				onOpenChange={setMediaLibraryOpen}
 			/>
+			{route.showAdminFeatures ? (
+			<NiscEmLinkOrganizationDialog
+				open={linkOrgOpen}
+				onOpenChange={setLinkOrgOpen}
+				alreadyLinked={Boolean(design.teamId)}
+				isPending={linkMutation.isPending}
+				resourceLabel={design.name}
+				onConfirm={async (teamId) => {
+					await linkMutation.mutateAsync({ designId, teamId });
+				}}
+			/>
+			) : null}
 
 			<div className="flex min-h-0 flex-1 overflow-hidden">
 				<aside className="flex min-h-0 w-full max-w-md shrink-0 flex-col overflow-hidden">

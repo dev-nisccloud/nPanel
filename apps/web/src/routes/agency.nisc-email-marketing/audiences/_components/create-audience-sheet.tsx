@@ -24,11 +24,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import { useNiscEmailMarketingRoute } from "@/components/nisc-email-marketing/nisc-email-marketing-route-context";
+import { NiscEmOrganizationSelect } from "@/components/nisc-email-marketing/nisc-em-organization-select";
 import { Badge } from "@/components/ui/badge";
 
 const FormSchema = z.object({
 	name: z.string().min(1, "Audience name is required"),
 	description: z.string().optional(),
+	teamId: z.string().optional(),
 });
 
 type FormData = z.infer<typeof FormSchema>;
@@ -127,6 +129,7 @@ export function CreateAudienceSheet({ open, onOpenChange, onSuccess }: CreateAud
 		defaultValues: {
 			name: "",
 			description: "",
+			teamId: "",
 		},
 	});
 
@@ -244,7 +247,11 @@ export function CreateAudienceSheet({ open, onOpenChange, onSuccess }: CreateAud
 			const audience = await createAudience.mutateAsync({
 				name: data.name,
 				description: data.description || undefined,
-				teamId: route.isCustomer ? route.teamId : null,
+				teamId: route.isCustomer
+					? route.teamId
+					: data.teamId && data.teamId !== ""
+						? data.teamId
+						: null,
 			});
 
 			if (contacts.length > 0) {
@@ -342,6 +349,20 @@ export function CreateAudienceSheet({ open, onOpenChange, onSuccess }: CreateAud
 										</FormItem>
 									)}
 								/>
+
+								{route.showAdminFeatures && (
+									<FormField
+										control={form.control}
+										name="teamId"
+										render={({ field }) => (
+											<NiscEmOrganizationSelect
+												value={field.value ?? ""}
+												onChange={field.onChange}
+												disabled={isSaving}
+											/>
+										)}
+									/>
+								)}
 							</div>
 
 							<div className="space-y-4 pt-2">

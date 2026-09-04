@@ -36,8 +36,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { NiscEmOrganizationSelect } from "@/components/nisc-email-marketing/nisc-em-organization-select";
+import {
+  NiscEmLinkOrganizationDialog,
+  NiscEmLinkOrganizationMenuItem,
+} from "@/components/nisc-email-marketing/nisc-em-link-organization";
+import { useNiscEmailMarketingRoute } from "@/components/nisc-email-marketing/nisc-email-marketing-route-context";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -84,16 +88,15 @@ const getStatusBadge = (status: string) => {
 
 function SesDomainRowActions(props: { domain: SesDomainLive; onVerified?: () => void }) {
   const { domain, onVerified } = props;
+  const { showAdminFeatures } = useNiscEmailMarketingRoute();
   const [isVerifying, setIsVerifying] = React.useState(false);
   const [connectOpen, setConnectOpen] = React.useState(false);
   const [disconnectOpen, setDisconnectOpen] = React.useState(false);
-  const [selectedTeamId, setSelectedTeamId] = React.useState<string>("__none__");
+  const [linkOpen, setLinkOpen] = React.useState(false);
+  const [selectedTeamId, setSelectedTeamId] = React.useState<string>("");
   const utils = trpc.useUtils();
-
-  const { data: teamsData, isLoading: teamsLoading } = trpc.teams.getAll.useQuery(undefined, {
-    enabled: connectOpen,
-    staleTime: 5 * 60 * 1000,
-  });
+  const alreadyLinked = Boolean(domain.connectedTeamId);
+  const connectedDomainId = domain.connectedDomainId ?? null;
 
   const verifyMutation = trpc.niscEmailMarketing.sesUsage.verifyDomainLive.useMutation({
     onSuccess: () => {
@@ -137,6 +140,21 @@ function SesDomainRowActions(props: { domain: SesDomainLive; onVerified?: () => 
     },
   });
 
+  const linkMutation = trpc.niscEmailMarketing.domains.linkOrganization.useMutation({
+    onSuccess: async () => {
+      toast.success("Organization linked", {
+        description: `${domain.domainName} is now linked to the selected organization.`,
+      });
+      setLinkOpen(false);
+      await utils.niscEmailMarketing.sesUsage.listDomainsLive.invalidate();
+      await utils.niscEmailMarketing.domains.listLegacy.invalidate();
+      onVerified?.();
+    },
+    onError: (e) => {
+      toast.error("Failed to link organization", { description: e.message });
+    },
+  });
+
   const handleVerify = async () => {
     setIsVerifying(true);
     try {
@@ -147,7 +165,7 @@ function SesDomainRowActions(props: { domain: SesDomainLive; onVerified?: () => 
   };
 
   const handleConnect = async () => {
-    const teamId = selectedTeamId === "__none__" ? null : selectedTeamId;
+    const teamId = selectedTeamId ? selectedTeamId : null;
     await connectMutation.mutateAsync({ domainName: domain.domainName, teamId });
   };
 
@@ -158,7 +176,8 @@ function SesDomainRowActions(props: { domain: SesDomainLive; onVerified?: () => 
   const menuBusy =
     isVerifying ||
     connectMutation.isPending ||
-    disconnectMutation.isPending;
+    disconnectMutation.isPending ||
+    linkMutation.isPending;
 
   return (
     <>
@@ -211,6 +230,13 @@ function SesDomainRowActions(props: { domain: SesDomainLive; onVerified?: () => 
                     )}
                   </DropdownMenuItem>
                 )}
+                {showAdminFeatures && domain.connected ? (
+                  <NiscEmLinkOrganizationMenuItem
+                    alreadyLinked={alreadyLinked}
+                    disabled={menuBusy || !connectedDomainId}
+                    onSelect={() => setLinkOpen(true)}
+                  />
+                ) : null}
               </DropdownMenuContent>
             </DropdownMenu>
           </TooltipTrigger>
@@ -233,22 +259,11 @@ function SesDomainRowActions(props: { domain: SesDomainLive; onVerified?: () => 
               <div className="font-medium">{domain.domainName}</div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Organization (optional)</Label>
-              <Select value={selectedTeamId} onValueChange={setSelectedTeamId} disabled={teamsLoading || connectMutation.isPending}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select an organization (optional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">None</SelectItem>
-                  {teamsData?.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <NiscEmOrganizationSelect
+              value={selectedTeamId}
+              onChange={setSelectedTeamId}
+              disabled={connectMutation.isPending || alreadyLinked}
+            />
           </div>
 
           <DialogFooter>
@@ -296,6 +311,19 @@ function SesDomainRowActions(props: { domain: SesDomainLive; onVerified?: () => 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {showAdminFeatures && connectedDomainId ? (
+        <NiscEmLinkOrganizationDialog
+          open={linkOpen}
+          onOpenChange={setLinkOpen}
+          alreadyLinked={alreadyLinked}
+          isPending={linkMutation.isPending}
+          resourceLabel={domain.domainName}
+          onConfirm={async (teamId) => {
+            await linkMutation.mutateAsync({ id: connectedDomainId, teamId });
+          }}
+        />
+      ) : null}
     </>
   );
 }

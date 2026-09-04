@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normalizePleskPacket } from "@/components/hosting/plesk-xml-normalize";
 
 function normalizeDnsGetRecResult(val: unknown): unknown[] {
   if (val == null) return [];
@@ -24,13 +25,13 @@ const pleskDnsResultItemSchema = z.object({
 export const pleskDnsResponseSchema = z.object({
   raw: z.string(),
   parsed: z.object({
-    packet: z.object({
+    packet: z.preprocess(normalizePleskPacket, z.object({
       dns: z.object({
         "get_rec": z.object({
           result: z.preprocess(normalizeDnsGetRecResult, z.array(pleskDnsResultItemSchema)),
         }),
       }),
-    }),
+    })),
   }),
 });
 

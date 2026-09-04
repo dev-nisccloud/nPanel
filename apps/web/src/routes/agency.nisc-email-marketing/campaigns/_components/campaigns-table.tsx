@@ -40,6 +40,10 @@ import {
 import { trpc, type RouterOutputs } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { useNiscEmailMarketingRoute } from "@/components/nisc-email-marketing/nisc-email-marketing-route-context";
+import {
+	NiscEmLinkOrganizationDialog,
+	NiscEmLinkOrganizationMenuItem,
+} from "@/components/nisc-email-marketing/nisc-em-link-organization";
 
 type CampaignSummary = RouterOutputs["niscEmailMarketing"]["campaigns"]["list"]["campaigns"][0];
 
@@ -106,13 +110,15 @@ interface CampaignRowActionsProps {
 
 function CampaignRowActions({ campaign, onRefetch }: CampaignRowActionsProps) {
 	const navigate = useNavigate();
-	const { basePath } = useNiscEmailMarketingRoute();
+	const { basePath, showAdminFeatures } = useNiscEmailMarketingRoute();
 	const utils = trpc.useUtils();
 	const [isDeleting, setIsDeleting] = React.useState(false);
 	const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
 	const [showCancelDialog, setShowCancelDialog] = React.useState(false);
 	const [isCancelling, setIsCancelling] = React.useState(false);
 	const [isRefreshing, setIsRefreshing] = React.useState(false);
+	const [linkOpen, setLinkOpen] = React.useState(false);
+	const alreadyLinked = Boolean(campaign.teamId);
 
 	const handleRefresh = async () => {
 		if (isRefreshing) return;
@@ -160,6 +166,20 @@ function CampaignRowActions({ campaign, onRefetch }: CampaignRowActionsProps) {
 		},
 	});
 
+	const linkMutation = trpc.niscEmailMarketing.campaigns.linkOrganization.useMutation({
+		onSuccess: () => {
+			toast.success("Organization linked", {
+				description: `"${campaign.name}" is now linked to the selected organization.`,
+			});
+			utils.niscEmailMarketing.campaigns.list.invalidate();
+			onRefetch?.();
+			setLinkOpen(false);
+		},
+		onError: (e: { message: string }) => {
+			toast.error("Failed to link organization", { description: e.message });
+		},
+	});
+
 	const handleDelete = async () => {
 		setIsDeleting(true);
 		try {
@@ -196,7 +216,7 @@ function CampaignRowActions({ campaign, onRefetch }: CampaignRowActionsProps) {
 		}
 	};
 
-	const busy = isDeleting || isRefreshing || isCancelling;
+	const busy = isDeleting || isRefreshing || isCancelling || linkMutation.isPending;
 
 	return (
 		<>
@@ -224,6 +244,13 @@ function CampaignRowActions({ campaign, onRefetch }: CampaignRowActionsProps) {
 										Cancel scheduled
 									</DropdownMenuItem>
 								)}
+								{showAdminFeatures ? (
+									<NiscEmLinkOrganizationMenuItem
+										alreadyLinked={alreadyLinked}
+										disabled={busy}
+										onSelect={() => setLinkOpen(true)}
+									/>
+								) : null}
 								<DropdownMenuSeparator />
 								<DropdownMenuItem
 									onClick={() => setShowDeleteDialog(true)}
@@ -278,6 +305,19 @@ function CampaignRowActions({ campaign, onRefetch }: CampaignRowActionsProps) {
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
+
+			{showAdminFeatures ? (
+				<NiscEmLinkOrganizationDialog
+					open={linkOpen}
+					onOpenChange={setLinkOpen}
+					alreadyLinked={alreadyLinked}
+					isPending={linkMutation.isPending}
+					resourceLabel={campaign.name}
+					onConfirm={async (teamId) => {
+						await linkMutation.mutateAsync({ id: campaign.id, teamId });
+					}}
+				/>
+			) : null}
 		</>
 	);
 }
@@ -288,7 +328,7 @@ export interface CampaignsTableProps {
 }
 
 export function CampaignsTable({ campaigns, onRefetch }: CampaignsTableProps) {
-	const { basePath } = useNiscEmailMarketingRoute();
+	const { basePath, showAdminFeatures } = useNiscEmailMarketingRoute();
 
 	return (
 		<div className="overflow-hidden rounded-lg border bg-card shadow-sm">
@@ -298,6 +338,7 @@ export function CampaignsTable({ campaigns, onRefetch }: CampaignsTableProps) {
 						<TableHead className="pl-6">Campaign Name</TableHead>
 						<TableHead>Status</TableHead>
 						<TableHead>Recipients</TableHead>
+						{showAdminFeatures ? <TableHead>Organization</TableHead> : null}
 						<TableHead>Created At</TableHead>
 						<TableHead className="w-12 pr-6"></TableHead>
 					</TableRow>
@@ -320,6 +361,11 @@ export function CampaignsTable({ campaigns, onRefetch }: CampaignsTableProps) {
 							<TableCell>
 								{formatNumber(campaign.recipientCount)}
 							</TableCell>
+							{showAdminFeatures ? (
+								<TableCell className="text-sm text-muted-foreground">
+									{campaign.teamId ? "Linked" : "Not linked"}
+								</TableCell>
+							) : null}
 							<TableCell>
 								{formatDate(campaign.createdAt)}
 							</TableCell>
