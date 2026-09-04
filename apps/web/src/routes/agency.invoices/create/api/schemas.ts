@@ -140,6 +140,8 @@ export const invoiceDetailSchema = invoiceSummarySchema.extend({
 	discount: nullableString,
 	creditedAmount: nullableString,
 	creditBalance: nullableString,
+	amountPaid: nullableString,
+	amountRemaining: nullableString,
 	issueDate: nullableDate,
 	paidAt: nullableDate,
 	sentAt: nullableDate,

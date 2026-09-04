@@ -18,10 +18,16 @@ import {
 } from "@npanel/db/schema/invoicing";
 import { order } from "@npanel/db/schema/orders";
 import { niscOrder } from "@npanel/db/schema/nisc-orders";
+import { paymentTransaction } from "@npanel/db/schema/payment-transactions";
 import { cronWorkflowRunInvoice } from "@npanel/db/schema/cron-workflow-runs";
 import { team, teamMember } from "@npanel/db/schema/teams";
 import { protectedProcedure, router, type Context } from "../../trpc";
-import { resolveInvoicePaymentMethod } from "../../lib/invoice-payment-method";
+import { resolveInvoicePaymentMethod, mapGatewayPaymentToInvoiceTransaction } from "../../lib/invoice-payment-method";
+import {
+	computeInvoicePaymentState,
+	parseInvoiceMoney,
+	roundInvoiceMoney,
+} from "../../lib/invoice-payment-state";
 import {
 	buildInvoiceKraInsertFields,
 	buildInvoiceKraUpdateFields,
@@ -174,6 +180,15 @@ async function ensureTeamAccess(_db: DbLike, userId: string, role: string, teamI
 			message: "You do not have access to this team.",
 		});
 	}
+
+	const { assertTeamPermission } = await import("../../lib/team-permissions/assert");
+	await assertTeamPermission({
+		teamId,
+		userId,
+		userRole: role,
+		key: "billing.invoices_view",
+		access: "read",
+	});
 }
 
 async function ensureTeamMutationAccess(
@@ -199,12 +214,14 @@ async function ensureTeamMutationAccess(
 	if (!teamRow) {
 		throw new TRPCError({ code: "NOT_FOUND", message: "Team not found." });
 	}
-	if (teamRow.createdById !== userId) {
-		throw new TRPCError({
-			code: "FORBIDDEN",
-			message: "Only the team owner can modify team invoices.",
-		});
-	}
+	const { assertTeamPermission } = await import("../../lib/team-permissions/assert");
+	await assertTeamPermission({
+		teamId,
+		userId,
+		userRole: role,
+		key: "billing.invoices_create",
+		access: "write",
+	});
 }
 
 async function ensureInvoiceAccess(_db: DbLike, userId: string, role: string, invoiceId: string) {
@@ -483,7 +500,7 @@ function mapInvoiceDetail(invoice: any): InvoiceDetail {
 		}),
 	);
 
-	const transactions = invoice.transactions.map((transaction: any) =>
+	const transactions = (invoice.transactions ?? []).map((transaction: any) =>
 		invoiceTransactionOutputSchema.parse({
 			id: transaction.id,
 			invoiceId: transaction.invoiceId,
@@ -547,12 +564,20 @@ function mapInvoiceDetail(invoice: any): InvoiceDetail {
 		}),
 	);
 
+	const paymentState = computeInvoicePaymentState({
+		amount: invoice.amount,
+		amountPaid: invoice.amountPaid,
+		creditBalance: invoice.creditBalance,
+		status: invoice.status,
+		transactions: invoice.transactions ?? [],
+	});
+
 	return invoiceDetailSchema.parse({
 		id: invoice.id,
 		invoiceNumber: invoice.invoiceNumber,
 		customerName: invoice.customerName,
 		customerEmail: invoice.customerEmail,
-		status: invoice.status,
+		status: paymentState.status,
 		amount: invoice.amount,
 		currency: invoice.currency,
 		dueDate: invoice.dueDate,
@@ -567,9 +592,11 @@ function mapInvoiceDetail(invoice: any): InvoiceDetail {
 		vat: invoice.vat,
 		discount: invoice.discount,
 		creditedAmount: invoice.creditedAmount,
-		creditBalance: invoice.creditBalance,
+		creditBalance: paymentState.creditBalance,
+		amountPaid: paymentState.amountPaid,
+		amountRemaining: paymentState.amountRemaining,
 		issueDate: invoice.issueDate,
-		paidAt: invoice.paidAt,
+		paidAt: paymentState.fullyPaid ? invoice.paidAt : null,
 		sentAt: invoice.sentAt,
 		reminderSentAt: invoice.reminderSentAt,
 		viewedAt: invoice.viewedAt,
@@ -626,7 +653,171 @@ async function fetchInvoiceDetail(tx: DbLike, invoiceId: string) {
 		});
 	}
 
-	return inv;
+	return reconcileInvoicePaymentFromNiscOrder(tx, inv);
+}
+
+async function reconcileInvoicePaymentFromNiscOrder(tx: DbLike, inv: any): Promise<any> {
+	let transactions = [...(inv.transactions ?? [])] as Array<{
+		id: string;
+		amount?: string | null;
+		status?: string | null;
+		providerReference?: string | null;
+		reference?: string | null;
+		activityLogs?: unknown[];
+	}>;
+
+	const [linkedById] = await tx
+		.select({
+			paymentTransactionId: niscOrder.paymentTransactionId,
+			invoiceNumber: niscOrder.invoiceNumber,
+			metadata: niscOrder.metadata,
+		})
+		.from(niscOrder)
+		.where(eq(niscOrder.invoiceId, inv.id))
+		.limit(1);
+	let linkedOrder = linkedById ?? null;
+	if (!linkedOrder && inv.invoiceNumber) {
+		const [linkedByNumber] = await tx
+			.select({
+				paymentTransactionId: niscOrder.paymentTransactionId,
+				invoiceNumber: niscOrder.invoiceNumber,
+				metadata: niscOrder.metadata,
+			})
+			.from(niscOrder)
+			.where(eq(niscOrder.invoiceNumber, inv.invoiceNumber))
+			.limit(1);
+		linkedOrder = linkedByNumber ?? null;
+	}
+
+	const paymentTxId = linkedOrder?.paymentTransactionId?.trim() || null;
+	let paymentRow: typeof paymentTransaction.$inferSelect | null = null;
+	if (paymentTxId) {
+		const [pt] = await tx
+			.select()
+			.from(paymentTransaction)
+			.where(eq(paymentTransaction.id, paymentTxId))
+			.limit(1);
+		paymentRow = pt ?? null;
+	}
+
+	const metadataPaid =
+		linkedOrder?.metadata &&
+		typeof linkedOrder.metadata === "object" &&
+		!Array.isArray(linkedOrder.metadata)
+			? parseInvoiceMoney(
+					(linkedOrder.metadata as Record<string, unknown>).amountPaid as string | number | undefined,
+				)
+			: 0;
+	const paymentSucceeded =
+		!!paymentRow && (paymentRow.status ?? "").trim().toUpperCase() === "SUCCESS";
+	const gatewayPaid = roundInvoiceMoney(
+		paymentSucceeded
+			? parseInvoiceMoney(paymentRow.paidAmount || paymentRow.amount)
+			: metadataPaid,
+	);
+	const invoiceTotal = roundInvoiceMoney(parseInvoiceMoney(inv.amount));
+	const now = new Date();
+
+	if (paymentSucceeded && paymentRow && gatewayPaid > 0) {
+		const mapped = mapGatewayPaymentToInvoiceTransaction(inv.id, paymentRow);
+		const completed = transactions.filter(
+			(txRow) => (txRow.status ?? "").toUpperCase() === "COMPLETED",
+		);
+
+		try {
+			if (transactions.length === 0) {
+				const insertedId = crypto.randomUUID();
+				await tx.insert(invoiceTransaction).values({
+					id: insertedId,
+					invoiceId: mapped.invoiceId,
+					reference: mapped.reference,
+					providerReference: mapped.providerReference,
+					status: mapped.status,
+					method: mapped.method,
+					amount: mapped.amount,
+					currency: mapped.currency,
+					paidAt: mapped.paidAt,
+					notes: mapped.notes,
+					recordedBy: mapped.recordedBy,
+					metadata: { paymentTransactionId: paymentRow.id },
+					createdAt: mapped.createdAt,
+					updatedAt: mapped.updatedAt,
+				});
+				transactions = [{ ...mapped, id: insertedId, activityLogs: [] }];
+			} else if (
+				completed.length === 1 &&
+				completed[0] &&
+				roundInvoiceMoney(parseInvoiceMoney(completed[0].amount)) !== gatewayPaid &&
+				(roundInvoiceMoney(parseInvoiceMoney(completed[0].amount)) === invoiceTotal ||
+					roundInvoiceMoney(parseInvoiceMoney(inv.amountPaid)) === invoiceTotal)
+			) {
+				await tx
+					.update(invoiceTransaction)
+					.set({
+						amount: String(gatewayPaid),
+						updatedAt: now,
+					})
+					.where(eq(invoiceTransaction.id, completed[0].id));
+				transactions = transactions.map((txRow) =>
+					txRow.id === completed[0]!.id ? { ...txRow, amount: String(gatewayPaid) } : txRow,
+				);
+			}
+		} catch {
+			if (transactions.length === 0) {
+				transactions = [mapped];
+			}
+		}
+	}
+
+	const paymentState = computeInvoicePaymentState({
+		amount: inv.amount,
+		amountPaid: gatewayPaid > 0 ? gatewayPaid : inv.amountPaid,
+		creditBalance: inv.creditBalance,
+		status: inv.status,
+		transactions,
+	});
+
+	const storedPaid = roundInvoiceMoney(parseInvoiceMoney(inv.amountPaid));
+	const storedRemaining = roundInvoiceMoney(parseInvoiceMoney(inv.amountRemaining));
+	const fieldsDiffer =
+		storedPaid !== paymentState.paid ||
+		storedRemaining !== paymentState.remaining ||
+		inv.status !== paymentState.status ||
+		(paymentState.fullyPaid ? !inv.paidAt : !!inv.paidAt);
+
+	if (fieldsDiffer && inv.status !== "CANCELLED" && inv.status !== "WRITTEN_OFF") {
+		const dueDate = paymentState.fullyPaid
+			? inv.dueDate
+			: (inv.dueDate ?? new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000));
+		try {
+			await tx
+				.update(invoice)
+				.set({
+					status: paymentState.status,
+					amountPaid: paymentState.amountPaid,
+					amountRemaining: paymentState.amountRemaining,
+					creditBalance: paymentState.creditBalance,
+					paidAt: paymentState.fullyPaid ? (inv.paidAt ?? now) : null,
+					dueDate,
+					updatedAt: now,
+				})
+				.where(eq(invoice.id, inv.id));
+		} catch {
+			// Read path should still return corrected figures even if the heal write fails.
+		}
+		return {
+			...inv,
+			status: paymentState.status,
+			amountPaid: paymentState.amountPaid,
+			amountRemaining: paymentState.amountRemaining,
+			creditBalance: paymentState.creditBalance,
+			paidAt: paymentState.fullyPaid ? (inv.paidAt ?? now) : null,
+			dueDate,
+			transactions,
+		};
+	}
+
+	return { ...inv, transactions };
 }
 
 async function logInvoiceActivity(
@@ -1175,6 +1366,7 @@ export const invoicingRouter = router({
 					amount: invoice.amount,
 					currency: invoice.currency,
 					paymentDetails: invoice.paymentDetails,
+					amountPaid: invoice.amountPaid,
 				})
 				.from(invoice)
 				.where(eq(invoice.id, input.invoiceId))
@@ -1183,36 +1375,57 @@ export const invoicingRouter = router({
 			if (!inv) {
 				throw new TRPCError({ code: "NOT_FOUND", message: "Invoice not found." });
 			}
-			if (inv.status === "PAID") {
+			if (inv.status === "CANCELLED" || inv.status === "WRITTEN_OFF") {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This invoice can no longer accept payments.",
+				});
+			}
+
+			const existingTxs = await db
+				.select({ amount: invoiceTransaction.amount, status: invoiceTransaction.status })
+				.from(invoiceTransaction)
+				.where(eq(invoiceTransaction.invoiceId, input.invoiceId));
+			const paymentState = computeInvoicePaymentState({
+				amount: inv.amount,
+				amountPaid: inv.amountPaid,
+				status: inv.status,
+				transactions: existingTxs,
+			});
+			if (paymentState.fullyPaid) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Invoice is already fully paid.",
 				});
 			}
 
+			const alreadyPaid = paymentState.paid;
+			const totalAmountNum = Number.parseFloat(inv.amount ?? "0") || 0;
+			const remainingBefore = Math.max(0, Math.round((totalAmountNum - alreadyPaid) * 100) / 100);
 			const totalAmount = inv.amount ?? "0";
-			const amountToRecord = input.type === "COMPLETE" ? totalAmount : (input.amountPaid ?? "0").trim();
+			const amountToRecord =
+				input.type === "COMPLETE"
+					? String(remainingBefore > 0 ? remainingBefore : totalAmountNum)
+					: (input.amountPaid ?? "0").trim();
+			const recordedNum = Number.parseFloat(amountToRecord) || 0;
+			const newPaid = Math.round((alreadyPaid + recordedNum) * 100) / 100;
+			const newRemaining = Math.max(0, Math.round((totalAmountNum - newPaid) * 100) / 100);
+			const newCredit = Math.max(0, Math.round((newPaid - totalAmountNum) * 100) / 100);
+			const nowPaidInFull = newRemaining <= 0;
 
 			await db.transaction(async (tx) => {
 				const now = new Date();
-				if (input.type === "COMPLETE") {
-					await tx
-						.update(invoice)
-						.set({
-							status: "PAID",
-							paidAt: now,
-							updatedAt: now,
-						})
-						.where(eq(invoice.id, input.invoiceId));
-				} else {
-					await tx
-						.update(invoice)
-						.set({
-							status: "PARTIALLY_PAID",
-							updatedAt: now,
-						})
-						.where(eq(invoice.id, input.invoiceId));
-				}
+				await tx
+					.update(invoice)
+					.set({
+						status: nowPaidInFull ? "PAID" : "PARTIALLY_PAID",
+						paidAt: nowPaidInFull ? now : null,
+						amountPaid: String(newPaid),
+						amountRemaining: String(newRemaining),
+						creditBalance: newCredit > 0 ? String(newCredit) : "0",
+						updatedAt: now,
+					})
+					.where(eq(invoice.id, input.invoiceId));
 
 				const transactionId = crypto.randomUUID();
 				const paymentMethod = resolveInvoicePaymentMethod(null, inv.paymentDetails);

@@ -24,6 +24,8 @@ export type Item = {
   productPlanId?: string;
   /** When selected plan has COMMISSION pricing, ad account + campaign context */
   commissionContext?: ItemCommissionContext;
+  /** Optional billing cycle for the item */
+  billingCycle?: string;
 };
 
 export type YourDetails = {

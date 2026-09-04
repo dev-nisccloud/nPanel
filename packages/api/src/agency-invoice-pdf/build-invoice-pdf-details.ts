@@ -58,15 +58,19 @@ export function buildInvoicePdfDetails(invoice: InvoiceDetail): {
 		note: invoice.note ?? undefined,
 		discount: invoice.discount ?? undefined,
 		taxRate: invoice.taxPercentage != null ? String(invoice.taxPercentage) : undefined,
-		items: (invoice.lineItems ?? []).map((li) => ({
-			id: li.id,
-			itemDescription: formatInvoiceLineItemForPdf(
-				li.name || "Service",
-				li.description,
-			),
-			amount: li.price != null ? Number(li.price) : undefined,
-			qty: li.quantity ?? undefined,
-		})),
+		items: (invoice.lineItems ?? []).map((li) => {
+			const billingCycle = (li.metadata as { billingCycle?: string } | null)?.billingCycle;
+			return {
+				id: li.id,
+				itemDescription: formatInvoiceLineItemForPdf(
+					li.name || "Service",
+					li.description,
+				),
+				amount: li.price != null ? Number(li.price) : undefined,
+				qty: li.quantity ?? undefined,
+				billingCycle: (billingCycle && billingCycle !== '__unset__') ? billingCycle : undefined,
+			};
+		}),
 		currency: invoice.currency ?? "KES",
 		compactLineItems: true,
 	};

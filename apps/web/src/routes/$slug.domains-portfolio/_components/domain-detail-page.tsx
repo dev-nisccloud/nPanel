@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
 import { DetailCardTabsTrigger } from "@/components/ui/detail-card-tabs";
+import { useCanTeamPermission } from "@/contexts/team-permissions-context";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
@@ -65,6 +66,7 @@ function subscriptionStatusToPortfolioStatus(
 export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const { can } = useCanTeamPermission();
   const teamSlug = pathname.split("/")[1] ?? "";
   const isAgency = isAgencyRoute(pathname);
 
@@ -464,10 +466,18 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
         <div className="mt-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="flex w-full flex-wrap gap-3 @sm/main:flex-nowrap @sm/main:grid @sm/main:grid-cols-4 h-auto p-0 bg-transparent">
+              {can("domains.portfolio") ? (
               <DetailCardTabsTrigger layout="fluid" value="overview" icon={LayoutDashboard} title="Overview" subtitle="Details" />
+              ) : null}
+              {can("domains.dns") ? (
               <DetailCardTabsTrigger layout="fluid" value="dns" icon={Network} title="DNS" subtitle="Records" />
+              ) : null}
+              {can("domains.nameservers") ? (
               <DetailCardTabsTrigger layout="fluid" value="nameservers" icon={Server} title="Nameservers" subtitle="Configuration" />
+              ) : null}
+              {can("domains.brand_protection") ? (
               <DetailCardTabsTrigger layout="fluid" value="protect-brand" icon={Globe} title="Protect Brand" subtitle="Extensions" />
+              ) : null}
             </TabsList>
 
             <TabsContent value="overview" className="mt-6">

@@ -24,14 +24,24 @@ import {
   emailDomainSummarySchema,
 } from "../email-marketing/schemas";
 import { sendSesRawEmail } from "../../lib/ses-client";
+import { assertTeamModulePermission, assertTeamPermission } from "../../lib/team-permissions/assert";
 
-async function assertTeamMember(teamId: string, userId: string) {
+async function assertTeamMember(teamId: string, userId: string, role?: string | null) {
+  if (isAgencyUserRole(role)) return { id: "agency" };
   const [member] = await db
     .select({ id: teamMember.id, role: teamMember.role })
     .from(teamMember)
     .where(and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)))
     .limit(1);
-  return member ?? null;
+  if (!member) return null;
+  await assertTeamModulePermission({
+    teamId,
+    userId,
+    userRole: role,
+    module: "email_marketing",
+    access: "read",
+  });
+  return member;
 }
 
 function isAgencyUserRole(role: string | null | undefined): boolean {
@@ -317,8 +327,15 @@ export const niscEmailMarketingDomainsRouter = router({
       });
     }
     if (input.teamId) {
-      const member = await assertTeamMember(input.teamId, userId);
+      const member = await assertTeamMember(input.teamId, userId, userRole);
       if (!member) throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+      await assertTeamPermission({
+        teamId: input.teamId,
+        userId,
+        userRole,
+        key: "email_marketing.sending_domains",
+        access: "write",
+      });
     }
     const teamId = input.teamId ?? null;
     const domainName = input.domainName.trim().toLowerCase();

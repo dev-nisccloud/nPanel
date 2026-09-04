@@ -17,14 +17,28 @@ import {
   campaignSummarySchema,
 } from "../email-marketing/schemas";
 import { enqueueNiscEmDispatch } from "../../lib/qstash/nisc-em-dispatch";
+import { assertTeamModulePermission, assertTeamPermission } from "../../lib/team-permissions/assert";
 
-async function assertTeamMember(teamId: string, userId: string) {
+async function assertTeamMember(
+  teamId: string,
+  userId: string,
+  role?: string | null,
+) {
+  if (isAgencyUserRole(role)) return { id: "agency" };
   const [member] = await db
     .select({ id: teamMember.id })
     .from(teamMember)
     .where(and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)))
     .limit(1);
-  return member ?? null;
+  if (!member) return null;
+  await assertTeamModulePermission({
+    teamId,
+    userId,
+    userRole: role,
+    module: "email_marketing",
+    access: "read",
+  });
+  return member;
 }
 
 function isAgencyUserRole(role: string | null | undefined): boolean {
@@ -36,7 +50,7 @@ function isAgencySuperAdminRole(role: string | null | undefined): boolean {
   return role === "AGENCY_SUPER_ADMIN";
 }
 
-async function assertCampaignAccess(campaignId: string, userId: string) {
+async function assertCampaignAccess(campaignId: string, userId: string, role?: string | null) {
   const [campaign] = await db
     .select({
       id: niscEmCampaign.id,
@@ -63,7 +77,7 @@ async function assertCampaignAccess(campaignId: string, userId: string) {
   if (!campaign) throw new TRPCError({ code: "NOT_FOUND", message: "Campaign not found" });
   if (campaign.userId === userId) return campaign;
   if (campaign.teamId) {
-    const member = await assertTeamMember(campaign.teamId, userId);
+    const member = await assertTeamMember(campaign.teamId, userId, role);
     if (!member) throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
     return campaign;
   }
@@ -211,7 +225,7 @@ export const niscEmailMarketingCampaignsRouter = router({
     if (isAgencyUserRole(userRole)) {
       // Agency-side view: list all campaigns globally.
     } else if (input.teamId) {
-      const member = await assertTeamMember(input.teamId, userId);
+      const member = await assertTeamMember(input.teamId, userId, userRole);
       if (!member) throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
       conditions.push(eq(niscEmCampaign.teamId, input.teamId));
     } else {
@@ -321,8 +335,15 @@ export const niscEmailMarketingCampaignsRouter = router({
           message: "teamId is required for customer campaign creation",
         });
       }
-      const member = await assertTeamMember(input.teamId, userId);
+      const member = await assertTeamMember(input.teamId, userId, userRole);
       if (!member) throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+      await assertTeamPermission({
+        teamId: input.teamId,
+        userId,
+        userRole,
+        key: "email_marketing.campaigns",
+        access: "write",
+      });
     }
 
     if (input.emailDomainId) {

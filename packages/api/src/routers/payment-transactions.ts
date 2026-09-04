@@ -174,6 +174,7 @@ export const paymentTransactionsRouter = router({
 				transactionDesc: z.string().max(200).optional(),
 				teamId: z.string().optional(),
 				notes: z.string().max(500).optional(),
+				billedForUserId: z.string().min(1).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -185,6 +186,36 @@ export const paymentTransactionsRouter = router({
 					code: "BAD_REQUEST",
 					message: "Transaction reference is required.",
 				});
+			}
+
+			const billedFor = input.billedForUserId?.trim() || null;
+			let transactionUserId = agencyUser.id;
+			if (billedFor) {
+				const [targetUser] = await db
+					.select({ id: userTable.id })
+					.from(userTable)
+					.where(eq(userTable.id, billedFor))
+					.limit(1);
+				if (!targetUser) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Selected user was not found.",
+					});
+				}
+				if (input.teamId) {
+					const [membership] = await db
+						.select({ id: teamMember.id })
+						.from(teamMember)
+						.where(and(eq(teamMember.teamId, input.teamId), eq(teamMember.userId, billedFor)))
+						.limit(1);
+					if (!membership) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "Selected user is not a member of this team.",
+						});
+					}
+				}
+				transactionUserId = billedFor;
 			}
 
 			const [existing] = await db
@@ -206,7 +237,7 @@ export const paymentTransactionsRouter = router({
 
 			await db.insert(paymentTransaction).values({
 				id: transactionId,
-				userId: agencyUser.id,
+				userId: transactionUserId,
 				teamId: input.teamId ?? null,
 				gateway,
 				gatewayStatus: "MANUAL",
@@ -226,6 +257,7 @@ export const paymentTransactionsRouter = router({
 					recordedBy: agencyUser.id,
 					recordedAt: now.toISOString(),
 					gateway,
+					billedForUserId: billedFor,
 				},
 				notes: input.notes ?? null,
 				metadata: {
@@ -233,6 +265,7 @@ export const paymentTransactionsRouter = router({
 					recordedBy: agencyUser.id,
 					recordedByRole: agencyUser.role,
 					gateway,
+					billedForUserId: billedFor,
 				},
 				initiatedAt: now,
 				processedAt: now,

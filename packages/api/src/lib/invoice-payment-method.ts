@@ -54,3 +54,55 @@ export function resolveInvoicePaymentMethod(
   }
   return paymentMethodFromDetails(paymentDetails) ?? "OTHER";
 }
+
+export type GatewayPaymentForInvoice = {
+  id: string;
+  amount: string;
+  paidAmount?: string | null;
+  currency: string | null;
+  gateway: string | null;
+  receiptNumber?: string | null;
+  checkoutRequestId?: string | null;
+  gatewayTransactionId?: string | null;
+  status: string | null;
+  notes?: string | null;
+  userId?: string | null;
+  processedAt?: Date | null;
+  initiatedAt?: Date | null;
+  createdAt?: Date | null;
+  updatedAt?: Date | null;
+};
+
+export function invoicePaymentStatusFromGateway(
+  status: string | null | undefined,
+): "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED" {
+  const s = (status ?? "").trim().toUpperCase();
+  if (s === "SUCCESS") return "COMPLETED";
+  if (s === "REFUNDED" || s === "PARTIALLY_REFUNDED") return "REFUNDED";
+  if (s === "FAILED" || s === "CANCELLED") return "FAILED";
+  return "PENDING";
+}
+
+export function mapGatewayPaymentToInvoiceTransaction(
+  invoiceId: string,
+  payment: GatewayPaymentForInvoice,
+) {
+  const now = new Date();
+  return {
+    id: payment.id,
+    invoiceId,
+    reference: payment.receiptNumber || payment.checkoutRequestId || null,
+    providerReference:
+      payment.gatewayTransactionId || payment.checkoutRequestId || payment.id,
+    status: invoicePaymentStatusFromGateway(payment.status),
+    method: invoicePaymentMethodFromGateway(payment.gateway) ?? "OTHER",
+    amount: payment.paidAmount || payment.amount,
+    currency: payment.currency || "KES",
+    paidAt: payment.processedAt ?? payment.initiatedAt ?? now,
+    notes: payment.notes ?? null,
+    recordedBy: payment.userId ?? null,
+    createdAt: payment.createdAt ?? now,
+    updatedAt: payment.updatedAt ?? now,
+    activityLogs: [] as unknown[],
+  };
+}

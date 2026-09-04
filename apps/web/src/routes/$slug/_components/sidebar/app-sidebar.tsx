@@ -14,6 +14,8 @@ import {
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { SidebarBrandMenu } from "@/components/sidebar-brand-menu";
 import { sidebarItems } from "@/navigation/sidebar/sidebar-items";
+import { useCanTeamPermission } from "@/contexts/team-permissions-context";
+import { navItemIsAllowed } from "@/lib/team-permissions";
 import {
   ZeepoAiRouteProvider,
   type ZeepoAiRouteConfig,
@@ -67,6 +69,30 @@ export function AppSidebar({
 }: React.ComponentProps<typeof Sidebar> & { teamSlug?: string }) {
   const { pathname } = useLocation();
   const showZeepoAiHistory = isZeepoAiChatSessionPath(pathname);
+  const { can, canModule, isLoading: permissionsLoading } = useCanTeamPermission();
+
+  const filteredItems = React.useMemo(() => {
+    return sidebarItems
+      .map((group) => ({
+        ...group,
+        items: group.items
+          .map((item) => {
+            if (item.subItems?.length) {
+              const subItems = item.subItems.filter((sub) =>
+                navItemIsAllowed(sub, can, canModule),
+              );
+              if (subItems.length === 0) return null;
+              return { ...item, subItems };
+            }
+            if (permissionsLoading && (item.permissionKey || item.permissionModule)) {
+              return null;
+            }
+            return navItemIsAllowed(item, can, canModule) ? item : null;
+          })
+          .filter((item): item is NonNullable<typeof item> => item != null),
+      }))
+      .filter((group) => group.items.length > 0);
+  }, [can, canModule, permissionsLoading]);
 
   return (
     <Sidebar {...props}>
@@ -81,7 +107,7 @@ export function AppSidebar({
         {showZeepoAiHistory && teamSlug ? (
           <CustomerZeepoAiHistoryNav teamSlug={teamSlug} />
         ) : (
-          <NavMain items={sidebarItems} teamSlug={teamSlug} />
+          <NavMain items={filteredItems} teamSlug={teamSlug} />
         )}
       </SidebarContent>
       <SidebarFooter>

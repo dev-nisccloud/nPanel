@@ -31,6 +31,8 @@ export const databasesRouter = router({
           siteId,
           userId: ctx.session.user.id,
           role: ctx.session.user.role,
+          key: "hosting.databases",
+          access: "read",
         });
 
         const { xml, parsed } = await sendPleskXmlOrThrow(buildDatabaseGetXml(siteId));

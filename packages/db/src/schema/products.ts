@@ -204,6 +204,9 @@ export const niscClientSubscription = pgTable(
     // `nisc_order` is in `./nisc-orders`; no FK here to avoid `products` ↔ `nisc-orders` import cycle.
     orderId: text("order_id"),
     niscOrderId: text("nisc_order_id"),
+    
+    // Link to invoice (for subscription invoicing)
+    invoiceId: text("invoice_id"),
 
     subscribedBy: text("subscribed_by"),
     recordedBy: text("recorded_by"),
@@ -276,6 +279,7 @@ export const niscClientSubscription = pgTable(
     index("nisc_client_subscription_productPlanId_idx").on(table.productPlanId),
     index("nisc_client_subscription_orderId_idx").on(table.orderId),
     index("nisc_client_subscription_niscOrderId_idx").on(table.niscOrderId),
+    index("nisc_client_subscription_invoiceId_idx").on(table.invoiceId),
     index("nisc_client_subscription_status_idx").on(table.status),
     index("nisc_client_subscription_upgradedToSubscriptionId_idx").on(
       table.upgradedToSubscriptionId,

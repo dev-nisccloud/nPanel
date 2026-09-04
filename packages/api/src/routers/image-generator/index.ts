@@ -44,6 +44,26 @@ async function isTeamMemberUser(teamId: string, userId: string) {
   return Boolean(membership);
 }
 
+async function ensureImageGeneratorTeamAccess(
+  teamId: string,
+  userId: string,
+  role: string | null | undefined,
+  access: "read" | "write",
+) {
+  if (isAgencyUserRole(role)) return;
+  if (!(await isTeamMemberUser(teamId, userId))) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "You do not have access to this team." });
+  }
+  const { assertTeamPermission } = await import("../../lib/team-permissions/assert");
+  await assertTeamPermission({
+    teamId,
+    userId,
+    userRole: role,
+    key: "gen_ai.image_generator",
+    access,
+  });
+}
+
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
 });
@@ -241,13 +261,7 @@ export const imageGeneratorRouter = router({
             message: "Team is required for customer image generation.",
           });
         }
-        const hasMembership = await isTeamMemberUser(input.teamId, userId);
-        if (!hasMembership) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "You do not have access to this team.",
-          });
-        }
+        await ensureImageGeneratorTeamAccess(input.teamId, userId, userRole, "write");
         const creditsResult = await getAiImageGeneratorCreditsForTeam(input.teamId);
         if (!creditsResult) {
           throw new TRPCError({
@@ -619,16 +633,8 @@ export const imageGeneratorRouter = router({
 
       let whereCond;
       if (input.teamId) {
-        if (!isAgencyUserRole(userRole) && !(await isTeamMemberUser(input.teamId, userId))) {
-          return {
-            data: [],
-            pagination: {
-              page: input.page,
-              limit: input.limit,
-              total: 0,
-              totalPages: 0,
-            },
-          };
+        if (!isAgencyUserRole(userRole)) {
+          await ensureImageGeneratorTeamAccess(input.teamId, userId, userRole, "read");
         }
         whereCond = eq(imageGeneratorGeneration.teamId, input.teamId);
       } else if (isAgencyUserRole(userRole)) {

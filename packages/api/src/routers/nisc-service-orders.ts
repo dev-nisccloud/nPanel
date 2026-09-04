@@ -677,16 +677,23 @@ export const niscServiceOrdersRouter = router({
 			const userId = session.user.id;
 			const userRole = session.user.role;
 
+			const billedFor = input.billedForUserId?.trim();
+			const isAgencyUser =
+				canAssignBilledForUserId(userRole as string | undefined) ||
+				(await userIsAgencyStaff(userId));
+
+			const txConditions = [
+				eq(paymentTransaction.checkoutRequestId, input.checkoutRequestId),
+				eq(paymentTransaction.status, "SUCCESS"),
+			];
+			if (!isAgencyUser) {
+				txConditions.push(eq(paymentTransaction.userId, userId));
+			}
+
 			const txRows = await db
 				.select()
 				.from(paymentTransaction)
-				.where(
-					and(
-						eq(paymentTransaction.checkoutRequestId, input.checkoutRequestId),
-						eq(paymentTransaction.userId, userId),
-						eq(paymentTransaction.status, "SUCCESS"),
-					),
-				)
+				.where(and(...txConditions))
 				.limit(1);
 			const transaction = txRows[0];
 			if (!transaction) {
@@ -732,14 +739,9 @@ export const niscServiceOrdersRouter = router({
 					message: "Payment amount is missing or invalid.",
 				});
 			}
-			const paidIncVat = Math.ceil(paidAmountNum);
-			if (paidIncVat < expectedPaidIncVat) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: `Paid amount (${paidIncVat}) is less than the order total (${expectedPaidIncVat}). Underpayment is not allowed.`,
-				});
-			}
-			const isBundleOrder = orderItemsIncludeDomainBundle(input.items);
+		const paidIncVat = Math.ceil(paidAmountNum);
+		// Partial payments are now allowed - removed underpayment validation
+		const isBundleOrder = orderItemsIncludeDomainBundle(input.items);
 			const bundleLeadIndex = isBundleOrder
 				? input.items.findIndex((item) => isDomainBundleLeadItem(item.metadata))
 				: -1;
@@ -1118,16 +1120,15 @@ export const niscServiceOrdersRouter = router({
 
 			const subtotalNum = input.items.reduce((sum, i) => sum + parseFloat(i.itemSubtotal || "0"), 0);
 			const { totalIncVat } = computeCeilVatTotals(subtotalNum);
-			const totalNum =
-				Number.isFinite(paidAmountNum) && paidAmountNum > 0
-					? Math.ceil(paidAmountNum)
-					: totalIncVat;
+			const paidIncVatRounded = Number.isFinite(paidAmountNum) && paidAmountNum > 0
+				? Math.ceil(paidAmountNum)
+				: 0;
 			const subtotal = String(subtotalNum);
-			const total = paymentTotalString(totalNum);
+			const total = paymentTotalString(totalIncVat);
 			const currency = input.currency || "KES";
+			const isPartialPayment = paidIncVatRounded > 0 && paidIncVatRounded < totalIncVat;
 
 			let orderUserId = userId;
-			const billedFor = input.billedForUserId?.trim();
 			const orderTeamId = input.teamId?.trim() || null;
 			if (billedFor) {
 				const role = session.user.role as string | undefined;
@@ -1214,14 +1215,17 @@ export const niscServiceOrdersRouter = router({
 							total,
 							currency,
 							paymentTransactionId: transaction.id,
-							...(skipInvoice
-								? {
-										metadata: {
+							metadata: {
+								...(skipInvoice
+									? {
 											skipInvoice: true,
 											agencyManualCreate: true,
-										},
-									}
-								: {}),
+										}
+									: {}),
+								amountPaid: String(paidIncVatRounded),
+								expectedTotalIncVat: String(totalIncVat),
+								isPartialPayment,
+							},
 						})
 						.returning();
 					const created = payOrderIns[0];

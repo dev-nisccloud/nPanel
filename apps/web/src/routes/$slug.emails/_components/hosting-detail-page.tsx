@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { DetailCardTabsTrigger, DETAIL_TABS_LIST_CLASS } from "@/components/ui/detail-card-tabs";
+import { useCanTeamPermission } from "@/contexts/team-permissions-context";
 
 import { HostingOverview } from "@/components/hosting/hosting-overview";
 import { DnsTable } from "@/components/hosting/dns";
@@ -120,6 +121,7 @@ function HostingDetailError({ error, onRetry, teamSlug }: { error: Error | null;
 export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
   const { pathname } = useLocation();
   const teamSlug = pathname.split("/")[1];
+  const { can } = useCanTeamPermission();
   const { data: hostingData, isLoading, isError, error, refetch } = useHostingDetailBatched(subscriptionId, teamSlug);
 
   // Show loading state
@@ -180,10 +182,18 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
           <Tabs defaultValue="overview" className="w-full">
             <ScrollArea className="w-full -mx-4 px-4 md:mx-0 md:px-0 scrollbar-default">
               <TabsList className={DETAIL_TABS_LIST_CLASS}>
+                {can("emails.list") ? (
                 <DetailCardTabsTrigger value="overview" icon={LayoutDashboard} title="Overview" subtitle="Details" />
+                ) : null}
+                {can("emails.dns") ? (
                 <DetailCardTabsTrigger value="dns" icon={Network} title="DNS" subtitle="Records" />
+                ) : null}
+                {can("emails.mail") ? (
                 <DetailCardTabsTrigger value="mail" icon={Mail} title="Mail" subtitle="Accounts" />
+                ) : null}
+                {can("emails.file_manager") ? (
                 <DetailCardTabsTrigger value="file-manager" icon={Folder} title="File Manager" subtitle="Files" />
+                ) : null}
               </TabsList>
               <ScrollBar orientation="horizontal" className="flex mt-0.5" />
             </ScrollArea>
