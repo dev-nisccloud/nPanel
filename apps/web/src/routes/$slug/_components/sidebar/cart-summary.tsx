@@ -7,8 +7,11 @@ import { Separator } from "@/components/ui/separator";
 import { useCartStore } from "@/stores/cart-store";
 import { useGlobalBuyNowStore } from "@/stores/global-buy-now-store";
 import { captureEvent } from "@/lib/posthog";
+import { useCanTeamPermission } from "@/contexts/team-permissions-context";
 
 export function CartSummary() {
+  const { can } = useCanTeamPermission();
+  const canCheckout = can("billing.checkout", "write");
   const {
     getItemCount,
     getTotalsByCurrency,
@@ -102,6 +105,8 @@ export function CartSummary() {
       <Button
         className="w-full h-11 font-medium"
         onClick={handleCheckout}
+        disabled={!canCheckout}
+        title={!canCheckout ? "You do not have permission to checkout" : undefined}
       >
         <CreditCard className="h-4 w-4 mr-2" />
         Proceed to Checkout

@@ -247,7 +247,7 @@ function InvoiceItemRow({
   };
 
   return (
-    <div className="flex relative items-start group -ml-8 gap-2 flex-wrap" key={index}>
+    <div className="flex relative items-start group -ml-8 gap-2 flex-wrap pb-4 mb-4 border-b border-gray-100 last:border-0 last:mb-0" key={index}>
       <div className={cn("w-9 h-7 flex-shrink-0", itemsLength === 1 && "invisible")}>
         <button
           onClick={() => removeItem(index)}
@@ -259,7 +259,7 @@ function InvoiceItemRow({
         </button>
       </div>
 
-      <div className="flex-1 min-w-[200px] space-y-2">
+      <div className="flex-1 min-w-[200px] space-y-3">
         {/* Product: Manual vs From catalog */}
         <Select
           value={selectedProductId || "__manual__"}
@@ -346,6 +346,23 @@ function InvoiceItemRow({
           type="text"
           onChange={(e) => updateItem(index, { itemDescription: e.target.value })}
         />
+
+        {/* Billing cycle (optional) */}
+        <Select
+          value={item.billingCycle || "__unset__"}
+          onValueChange={(v) => updateItem(index, { billingCycle: v === "__unset__" ? undefined : v })}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Billing cycle (optional)" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__unset__">None</SelectItem>
+            <SelectItem value="one-time">One Time</SelectItem>
+            <SelectItem value="monthly">Monthly</SelectItem>
+            <SelectItem value="quarterly">Quarterly</SelectItem>
+            <SelectItem value="annually">Annually</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="w-14 flex-shrink-0">

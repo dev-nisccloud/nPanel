@@ -3,6 +3,7 @@ export type Item = {
   itemDescription: string;
   amount?: number;
   qty?: number;
+  billingCycle?: string;
 };
 
 export type YourDetails = {

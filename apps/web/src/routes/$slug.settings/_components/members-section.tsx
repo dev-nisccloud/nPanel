@@ -25,6 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/sonner";
 import { captureEvent } from "@/lib/posthog";
 import { trpc } from "@/utils/trpc";
+import { useCanTeamPermission } from "@/contexts/team-permissions-context";
 
 interface MembersSectionProps {
   teamId: string;
@@ -47,6 +48,8 @@ function MembersSkeleton() {
 }
 
 export function MembersSection({ teamId }: MembersSectionProps) {
+  const { can } = useCanTeamPermission();
+  const canRemoveMembers = can("team_settings.members", "write");
   const [removeMemberDialog, setRemoveMemberDialog] = React.useState<{
     open: boolean;
     memberId: string | null;
@@ -121,6 +124,7 @@ export function MembersSection({ teamId }: MembersSectionProps) {
                     </p>
                   </div>
 
+                  {canRemoveMembers ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm" className="h-8 w-8 shrink-0 p-0">
@@ -145,6 +149,7 @@ export function MembersSection({ teamId }: MembersSectionProps) {
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
+                  ) : null}
                 </div>
               );
             })}

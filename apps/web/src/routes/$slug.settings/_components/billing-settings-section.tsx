@@ -35,6 +35,7 @@ import { trpc } from "@/utils/trpc";
 import { captureEvent } from "@/lib/posthog";
 import { CountrySelect } from "@/components/account-settings/country-select";
 import { SettingsSection } from "@/components/account-settings/settings-section";
+import { useCanTeamPermission } from "@/contexts/team-permissions-context";
 
 const billingSchema = z.object({
   legalName: z.string().min(1, "Legal name is required"),
@@ -70,6 +71,8 @@ function BillingSkeleton() {
 }
 
 export function BillingSettingsSection({ teamId }: BillingSettingsSectionProps) {
+  const { can } = useCanTeamPermission();
+  const canWriteBilling = can("billing.team_billing", "write");
   const [isEditMode, setIsEditMode] = React.useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
 
@@ -182,6 +185,8 @@ export function BillingSettingsSection({ teamId }: BillingSettingsSectionProps) 
               </div>
             </div>
             <div className="flex shrink-0 gap-2">
+              {canWriteBilling ? (
+                <>
               <Button size="sm" variant="outline" onClick={() => setIsEditMode(true)}>
                 <Edit className="mr-1.5 h-3.5 w-3.5" />
                 Edit
@@ -194,6 +199,8 @@ export function BillingSettingsSection({ teamId }: BillingSettingsSectionProps) 
               >
                 Remove
               </Button>
+                </>
+              ) : null}
             </div>
           </div>
 
@@ -273,6 +280,16 @@ export function BillingSettingsSection({ teamId }: BillingSettingsSectionProps) 
           </AlertDialogContent>
         </AlertDialog>
       </>
+    );
+  }
+
+  if (!hasBilling && !canWriteBilling) {
+    return (
+      <div className="rounded-lg border border-dashed px-4 py-8 text-center">
+        <p className="text-sm text-muted-foreground">
+          Billing details have not been added, and you do not have permission to edit them.
+        </p>
+      </div>
     );
   }
 

@@ -68,6 +68,8 @@ import {
   planSelectionToUpsell,
   getMinYearlyFromPlans,
   DEFAULT_HOSTING_BILLING_CYCLE,
+  hostingBillingCycleLabel,
+  type HostingBillingCycle,
   type HostingPlanType,
   type UpsellBrowseTarget,
   type SelectedServiceUpsell,
@@ -228,7 +230,7 @@ interface SelectedUpsellPlan {
   productName: string;
   planId: string;
   planName: string;
-  billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY";
+  billingCycle: HostingBillingCycle;
   price: number;
   currency: string;
   hostingType: HostingPlanType;
@@ -257,7 +259,7 @@ export function GlobalBuyNowDialog() {
   const [planSelectionProductId, setPlanSelectionProductId] = React.useState<string | null>(null);
   const [planSelectionProductName, setPlanSelectionProductName] = React.useState<string>("");
   const [selectedPlanId, setSelectedPlanId] = React.useState<string | null>(null);
-  const [selectedBillingCycle, setSelectedBillingCycle] = React.useState<"MONTHLY" | "YEARLY" | "BIENNIALLY">(
+  const [selectedBillingCycle, setSelectedBillingCycle] = React.useState<HostingBillingCycle>(
     DEFAULT_HOSTING_BILLING_CYCLE,
   );
   const [isSelectingMainProductPlan, setIsSelectingMainProductPlan] = React.useState(false);
@@ -1697,8 +1699,10 @@ export function GlobalBuyNowDialog() {
   };
 
   const openUpsellPlanSelection = (target: UpsellBrowseTarget) => {
+    const existing = selectedUpsellPlans.find((p) => p.hostingType === target.hostingType);
     setUpsellBrowseTarget(target);
-    setSelectedPlanId(null);
+    setSelectedPlanId(existing?.planId ?? null);
+    setSelectedBillingCycle(existing?.billingCycle ?? DEFAULT_HOSTING_BILLING_CYCLE);
     setIsSelectingMainProductPlan(false);
     setPlanSelectionProductId(null);
     setPlanSelectionProductName("");
@@ -1745,7 +1749,7 @@ export function GlobalBuyNowDialog() {
       const plans = upsellPlanSelectionContext?.plans ?? [];
       const plan = plans.find((p) => p.id === selectedPlanId);
       if (!plan) return;
-      const cycle = DEFAULT_HOSTING_BILLING_CYCLE;
+      const cycle = selectedBillingCycle;
       const upsell = planSelectionToUpsell(plan, upsellBrowseTarget, cycle);
       setSelectedUpsellPlans((prev) => {
         const without = prev.filter((p) => p.hostingType !== upsellBrowseTarget.hostingType);
@@ -1850,6 +1854,7 @@ export function GlobalBuyNowDialog() {
       setRegistrantStepCompleted(false);
       setPurchaseAsBusiness(false);
       setSelectedPlanId(null);
+      setSelectedBillingCycle(DEFAULT_HOSTING_BILLING_CYCLE);
       setRegistrantType(isAgencySide ? "existing_customer" : "myself");
       setSelectedExistingCustomerId("");
       setSelectedPaymentMethod(null);
@@ -2006,6 +2011,8 @@ export function GlobalBuyNowDialog() {
                 isLoading={upsellPlanSelectionContext.isLoading}
                 selectedPlanId={selectedPlanId}
                 onSelectPlan={setSelectedPlanId}
+                billingCycle={selectedBillingCycle}
+                onBillingCycleChange={setSelectedBillingCycle}
               />
               </div>
             </ScrollArea>
@@ -2058,7 +2065,7 @@ export function GlobalBuyNowDialog() {
                               <div className="mt-2" onClick={(e) => e.stopPropagation()}>
                                 <Select
                                   value={cycle}
-                                  onValueChange={(v: "MONTHLY" | "YEARLY" | "BIENNIALLY") =>
+                                  onValueChange={(v: HostingBillingCycle) =>
                                     setSelectedBillingCycle(v)
                                   }
                                 >
@@ -2299,7 +2306,7 @@ export function GlobalBuyNowDialog() {
                     <div className="flex justify-between gap-4">
                       <div>
                         <div className="font-medium">{selectedMainPlan.productName} · {selectedMainPlan.planName}</div>
-                        <div className="text-sm text-muted-foreground">{selectedMainPlan.billingCycle}</div>
+                        <div className="text-sm text-muted-foreground">{hostingBillingCycleLabel(selectedMainPlan.billingCycle)}</div>
                       </div>
                       <div className="font-semibold shrink-0">
                         {formatPrice(selectedMainPlan.price, selectedMainPlan.currency)}
@@ -2317,7 +2324,7 @@ export function GlobalBuyNowDialog() {
                     <div className="flex justify-between gap-4">
                       <div>
                         <div className="font-medium">{p.productName} · {p.planName}</div>
-                        <div className="text-sm text-muted-foreground">{p.billingCycle}</div>
+                        <div className="text-sm text-muted-foreground">{hostingBillingCycleLabel(p.billingCycle)}</div>
                       </div>
                       <div className="font-semibold shrink-0">{formatPrice(p.price, p.currency)}</div>
                     </div>

@@ -36,6 +36,7 @@ import { captureEvent } from "@/lib/posthog";
 import { trpc } from "@/utils/trpc";
 import { useUsersLookup } from "@/hooks/use-user-lookup";
 import { InviteMemberDialog } from "./invite-member-dialog";
+import { useCanTeamPermission } from "@/contexts/team-permissions-context";
 
 interface ActiveInvitationsSectionProps {
   teamId: string;
@@ -84,6 +85,8 @@ function InvitationsSkeleton() {
 }
 
 export function ActiveInvitationsSection({ teamId }: ActiveInvitationsSectionProps) {
+  const { can } = useCanTeamPermission();
+  const canManageInvites = can("team_settings.invitations", "write");
   const [inviteDialogOpen, setInviteDialogOpen] = React.useState(false);
   const [deleteInviteDialog, setDeleteInviteDialog] = React.useState<{
     open: boolean;
@@ -133,10 +136,12 @@ export function ActiveInvitationsSection({ teamId }: ActiveInvitationsSectionPro
           <p className="text-xs text-muted-foreground">
             Pending and recent company invitations.
           </p>
+          {canManageInvites ? (
           <Button size="sm" onClick={() => setInviteDialogOpen(true)}>
             <UserPlus className="mr-1.5 h-3.5 w-3.5" />
             Invite
           </Button>
+          ) : null}
         </div>
 
         {isLoading ? (
@@ -162,6 +167,7 @@ export function ActiveInvitationsSection({ teamId }: ActiveInvitationsSectionPro
                     </p>
                   </div>
 
+                  {canManageInvites ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm" className="h-8 w-8 shrink-0 p-0">
@@ -185,6 +191,7 @@ export function ActiveInvitationsSection({ teamId }: ActiveInvitationsSectionPro
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
+                  ) : null}
                 </div>
               );
             })}
@@ -192,6 +199,7 @@ export function ActiveInvitationsSection({ teamId }: ActiveInvitationsSectionPro
         ) : (
           <div className="rounded-lg border border-dashed px-4 py-8 text-center">
             <p className="text-sm text-muted-foreground">No pending invitations.</p>
+            {canManageInvites ? (
             <Button
               variant="outline"
               size="sm"
@@ -201,6 +209,7 @@ export function ActiveInvitationsSection({ teamId }: ActiveInvitationsSectionPro
               <UserPlus className="mr-1.5 h-3.5 w-3.5" />
               Invite a member
             </Button>
+            ) : null}
           </div>
         )}
       </div>

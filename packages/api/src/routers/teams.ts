@@ -10,6 +10,8 @@ import { hostingSubscription } from "@npanel/db/schema/hosting";
 import { team, teamInvite, teamMember } from "@npanel/db/schema/teams";
 import { renderTeamInviteEmail } from "../lib/email-templates";
 import { getSesClient, sendSesRawEmail } from "../lib/ses-client";
+import { assertTeamPermission } from "../lib/team-permissions/assert";
+import { teamPermissionsRouter } from "./team-permissions";
 
 // Zeepo AI Agent signup welcome grants removed  Zeepo AI uses gated first-use credits.
 
@@ -182,6 +184,7 @@ const acceptInviteOutputSchema = z.object({
 });
 
 export const teamsRouter = router({
+  permissions: teamPermissionsRouter,
   /**
    * Create a new team
    * Also creates the first team member with OWNER role
@@ -873,6 +876,14 @@ export const teamsRouter = router({
         });
       }
 
+      await assertTeamPermission({
+        teamId: input.teamId,
+        userId: session.user.id,
+        userRole: session.user.role,
+        key: "team_settings.members",
+        access: "read",
+      });
+
       const members = await db.query.teamMember.findMany({
         where: eq(teamMember.teamId, input.teamId),
         orderBy: [desc(teamMember.createdAt)],
@@ -935,6 +946,14 @@ export const teamsRouter = router({
           message: "You do not have access to this team",
         });
       }
+
+      await assertTeamPermission({
+        teamId: input.teamId,
+        userId: session.user.id,
+        userRole: session.user.role,
+        key: "team_settings.invitations",
+        access: "read",
+      });
 
       const invites = await db
         .select()
@@ -1490,17 +1509,13 @@ export const teamsRouter = router({
       if (isAgency) {
         await assertTeamMutationAccess(input.teamId, session.user.id, userRole);
       } else {
-        const [membership] = await db
-          .select({ role: teamMember.role })
-          .from(teamMember)
-          .where(and(eq(teamMember.teamId, input.teamId), eq(teamMember.userId, session.user.id)))
-          .limit(1);
-        if (!membership || (membership.role !== "OWNER" && membership.role !== "ADMIN")) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "You do not have permission to invite members to this team",
-          });
-        }
+        await assertTeamPermission({
+          teamId: input.teamId,
+          userId: session.user.id,
+          userRole,
+          key: "team_settings.invitations",
+          access: "write",
+        });
       }
 
       const [userByEmail] = await db.select().from(user).where(eq(user.email, input.email)).limit(1);
@@ -1644,13 +1659,17 @@ export const teamsRouter = router({
       }
 
       const userRole = session.user.role;
-      if (!isAgencyRole(userRole)) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You do not have permission",
+      if (isAgencyRole(userRole)) {
+        await assertTeamMutationAccess(input.teamId, session.user.id, userRole);
+      } else {
+        await assertTeamPermission({
+          teamId: input.teamId,
+          userId: session.user.id,
+          userRole,
+          key: "team_settings.members",
+          access: "write",
         });
       }
-      await assertTeamMutationAccess(input.teamId, session.user.id, userRole);
 
       const member = await db.query.teamMember.findFirst({
         where: eq(teamMember.id, input.memberId),
@@ -1724,12 +1743,6 @@ export const teamsRouter = router({
       }
 
       const userRole = session.user.role;
-      if (!isAgencyRole(userRole)) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You do not have permission",
-        });
-      }
 
       const invite = await db.query.teamInvite.findFirst({
         where: eq(teamInvite.id, input.inviteId),
@@ -1744,7 +1757,18 @@ export const teamsRouter = router({
           message: "Invite not found",
         });
       }
-      await assertTeamMutationAccess(invite.teamId, session.user.id, userRole);
+
+      if (isAgencyRole(userRole)) {
+        await assertTeamMutationAccess(invite.teamId, session.user.id, userRole);
+      } else {
+        await assertTeamPermission({
+          teamId: invite.teamId,
+          userId: session.user.id,
+          userRole,
+          key: "team_settings.invitations",
+          access: "write",
+        });
+      }
 
       const now = new Date();
       await db.transaction(async (tx) => {

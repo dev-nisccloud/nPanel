@@ -111,12 +111,12 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
           </View>
         </View>
       </View>
-      {itemsNormalized.map(({ itemDescription, amount, qty }, index) => {
+      {itemsNormalized.map(({ itemDescription, amount, qty, billingCycle }, index) => {
         const containerStyle = {
           marginHorizontal: 40,
           paddingVertical: compactLineItems ? 5 : 14,
           ...pdfUtils.borderBottom,
-          ...pdfUtils.flexRowItemCenter,
+          ...pdfUtils.flexRowItemStart,
         };
         const borderStyle = index === 0 ? pdfUtils.borderTop : {};
 
@@ -128,11 +128,18 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
               ...borderStyle,
             }}
           >
-            <LineItemDescriptionCell
-              text={itemDescription ?? ""}
-              lineStyle={lineText}
-              compactLineItems={!!compactLineItems}
-            />
+            <View style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
+              <LineItemDescriptionCell
+                text={itemDescription ?? ""}
+                lineStyle={lineText}
+                compactLineItems={!!compactLineItems}
+              />
+              {billingCycle && (
+                <Text style={{ ...lineText, fontSize: compactLineItems ? 7 : 9, color: "#666", marginTop: compactLineItems ? 2 : 4 }}>
+                  Billing: {formatBillingCycle(billingCycle)}
+                </Text>
+              )}
+            </View>
             <View
               style={{
                 flex: 1,
@@ -144,28 +151,26 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
                 {qty ? qty : "-"}
               </Text>
               <Text
+                wrap
                 style={{
                   flex: 1,
                   ...lineText,
                   flexWrap: "wrap",
-                  maxWidth: 80,
                 }}
               >
                 {hasLineAmount(amount) ? formatPdfMoney(Number(amount)) : ""}
               </Text>
               <Text
+                wrap
                 style={{
                   flex: 1,
                   ...lineText,
                   textAlign: "right",
                   flexWrap: "wrap",
-                  maxWidth: 120,
                 }}
               >
                 {currencyDetails?.currencySymbol}
-                {hasLineAmount(amount)
-                  ? formatPdfMoney((qty ? +qty : 1) * Number(amount))
-                  : ""}
+                {hasLineAmount(amount) && ` ${formatPdfMoney((qty ? +qty : 1) * Number(amount))}`}
               </Text>
             </View>
           </View>
@@ -193,14 +198,14 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
               Subtotal
             </Text>
             <Text
+              wrap
               style={{
                 ...totalsText,
                 flex: 1,
                 textAlign: "right",
               }}
             >
-              {currencyDetails?.currencySymbol}
-              {formatPdfMoney(subtotal)}
+              {currencyDetails?.currencySymbol} {formatPdfMoney(subtotal)}
             </Text>
           </View>
           {discount && (
@@ -216,14 +221,14 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
                 Discount
               </Text>
               <Text
+                wrap
                 style={{
                   ...totalsText,
                   flex: 1,
                   textAlign: "right",
                 }}
               >
-                {currencyDetails?.currencySymbol}
-                {discount ? formatPdfMoney(+discount) : ""}
+                {currencyDetails?.currencySymbol} {discount ? formatPdfMoney(+discount) : ""}
               </Text>
             </View>
           )}
@@ -240,14 +245,14 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
                 Tax ({taxRate})%
               </Text>
               <Text
+                wrap
                 style={{
                   ...totalsText,
                   flex: 1,
                   textAlign: "right",
                 }}
               >
-                {currencyDetails?.currencySymbol}
-                {formatPdfMoney(taxAmount)}
+                {currencyDetails?.currencySymbol} {formatPdfMoney(taxAmount)}
               </Text>
             </View>
           )}
@@ -262,6 +267,7 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
               Amount
             </Text>
             <Text
+              wrap
               style={{
                 ...totalsText,
                 flex: 1,
@@ -270,8 +276,7 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
                 flexWrap: "wrap",
               }}
             >
-              {currencyDetails?.currencySymbol}
-              {formatPdfMoney(totalAmount)}
+              {currencyDetails?.currencySymbol} {formatPdfMoney(totalAmount)}
             </Text>
           </View>
         </View>
@@ -299,4 +304,15 @@ const addCommasToNumber = (number: number): string => {
 };
 
 const formatPdfMoney = (n: number): string => addCommasToNumber(n);
+
+const formatBillingCycle = (cycle: string): string => {
+  const cycleMap: Record<string, string> = {
+    '__unset__': 'None',
+    'one-time': 'One Time',
+    'monthly': 'Monthly',
+    'quarterly': 'Quarterly',
+    'annually': 'Annually',
+  };
+  return cycleMap[cycle] || cycle;
+};
 

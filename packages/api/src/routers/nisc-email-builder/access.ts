@@ -54,23 +54,22 @@ export async function assertDesignReadAccess(params: {
 		throw new TRPCError({ code: "NOT_FOUND", message: "Design not found" });
 	}
 
-	// Owner always has access
-	if (design.userId === params.userId) return design;
-
 	// Agency users can view ALL designs
 	if (isAgencyUserRole(params.userRole)) return design;
 
-	// Team members can view designs on their team
 	if (design.teamId) {
-		const { teamMember } = await import("@npanel/db/schema/teams");
-		const membership = await db.query.teamMember.findFirst({
-			where: and(
-				eq(teamMember.teamId, design.teamId),
-				eq(teamMember.userId, params.userId),
-			),
+		const { assertTeamPermission } = await import("../../lib/team-permissions/assert");
+		await assertTeamPermission({
+			teamId: design.teamId,
+			userId: params.userId,
+			userRole: params.userRole,
+			key: "email_marketing.email_builder",
+			access: "read",
 		});
-		if (membership) return design;
+		return design;
 	}
+
+	if (design.userId === params.userId) return design;
 
 	throw new TRPCError({ code: "FORBIDDEN", message: "No access to this design" });
 }
@@ -90,15 +89,26 @@ export async function assertDesignMutateAccess(params: {
 		throw new TRPCError({ code: "NOT_FOUND", message: "Design not found" });
 	}
 
-	// Owner can always mutate
-	if (design.userId === params.userId) return design;
-
 	// Only agency SUPER ADMIN can override (not regular agency users)
 	if (isAgencySuperAdminRole(params.userRole)) return design;
 
+	if (design.teamId) {
+		const { assertTeamPermission } = await import("../../lib/team-permissions/assert");
+		await assertTeamPermission({
+			teamId: design.teamId,
+			userId: params.userId,
+			userRole: params.userRole,
+			key: "email_marketing.email_builder",
+			access: "write",
+		});
+		return design;
+	}
+
+	if (design.userId === params.userId) return design;
+
 	throw new TRPCError({
 		code: "FORBIDDEN",
-		message: "Only the creator or agency super admin can modify this design",
+		message: "Only the creator or a teammate with write access can modify this design",
 	});
 }
 

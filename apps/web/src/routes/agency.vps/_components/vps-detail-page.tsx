@@ -45,6 +45,7 @@ import {
 import { VpsInstanceSuspendDialog } from "./vps-instance-suspend-dialog";
 import { useVpsInstanceSuspend } from "./use-vps-instance-suspend";
 import { VpsSuspendedPaywall } from "./vps-suspended-paywall";
+import { useCanTeamPermission } from "@/contexts/team-permissions-context";
 
 interface VpsDetailPageProps {
   deviceId: string;
@@ -90,6 +91,7 @@ export function VpsDetailPage({
 }: VpsDetailPageProps) {
   const id = parseInt(deviceId, 10);
   const [activeTab, setActiveTab] = React.useState("overview");
+  const { can } = useCanTeamPermission();
 
   const teamInput =
     teamHivelocityAccess != null
@@ -216,15 +218,15 @@ export function VpsDetailPage({
   };
 
   const tabTriggers = [
-    { value: "overview", icon: LayoutDashboard, title: "Overview", subtitle: "Instance" },
-    { value: "network", icon: Network, title: "Network", subtitle: "Routing" },
-    { value: "storage", icon: HardDrive, title: "Storage", subtitle: "Volumes" },
-    { value: "access", icon: Key, title: "Access", subtitle: "Security" },
-    { value: "terminal", icon: TerminalIcon, title: "Terminal", subtitle: "SSH Access" },
-    { value: "metrics", icon: Activity, title: "Metrics", subtitle: "Performance" },
-    { value: "history", icon: History, title: "History", subtitle: "Events" },
-    { value: "rescue", icon: Disc, title: "Rescue", subtitle: "Tools" },
-  ];
+    { value: "overview", icon: LayoutDashboard, title: "Overview", subtitle: "Instance", permissionKey: `servers.${teamResourceCategory}.overview` },
+    { value: "network", icon: Network, title: "Network", subtitle: "Routing", permissionKey: `servers.${teamResourceCategory}.network` },
+    { value: "storage", icon: HardDrive, title: "Storage", subtitle: "Volumes", permissionKey: `servers.${teamResourceCategory}.storage` },
+    { value: "access", icon: Key, title: "Access", subtitle: "Security", permissionKey: `servers.${teamResourceCategory}.access` },
+    { value: "terminal", icon: TerminalIcon, title: "Terminal", subtitle: "SSH Access", permissionKey: `servers.${teamResourceCategory}.terminal` },
+    { value: "metrics", icon: Activity, title: "Metrics", subtitle: "Performance", permissionKey: `servers.${teamResourceCategory}.metrics` },
+    { value: "history", icon: History, title: "History", subtitle: "Events", permissionKey: `servers.${teamResourceCategory}.history` },
+    { value: "rescue", icon: Disc, title: "Rescue", subtitle: "Tools", permissionKey: `servers.${teamResourceCategory}.rescue` },
+  ].filter((tab) => can(tab.permissionKey));
 
   return (
     <TeamHivelocityAccessProvider value={teamHivelocityAccess ?? null}>

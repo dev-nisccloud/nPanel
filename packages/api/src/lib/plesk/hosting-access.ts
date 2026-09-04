@@ -5,6 +5,14 @@ import { hostingSubscription } from "@npanel/db/schema/hosting";
 import { niscClientSubscription } from "@npanel/db/schema/products";
 import { serviceSubscription } from "@npanel/db/schema/service-subscriptions";
 import { team, teamMember } from "@npanel/db/schema/teams";
+import {
+	assertAnyTeamModulePermission,
+	assertTeamPermission,
+} from "../team-permissions/assert";
+import type {
+	TeamPermissionGrantedAccess,
+	TeamPermissionKey,
+} from "../team-permissions/catalog";
 
 export function isAgencyUserRole(role: string | null | undefined): boolean {
   return ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
@@ -73,6 +81,8 @@ export async function assertCanAccessPleskSite(params: {
   userId: string;
   role: string | null | undefined;
   teamId?: string;
+  key?: TeamPermissionKey;
+  access?: TeamPermissionGrantedAccess;
 }): Promise<void> {
   if (isAgencyUserRole(params.role)) return;
 
@@ -89,7 +99,26 @@ export async function assertCanAccessPleskSite(params: {
   }
 
   for (const teamId of candidateIds) {
-    if (await userCanReadTeam(teamId, params.userId)) return;
+    if (await userCanReadTeam(teamId, params.userId)) {
+      if (params.key) {
+        await assertTeamPermission({
+          teamId,
+          userId: params.userId,
+          userRole: params.role,
+          key: params.key,
+          access: params.access ?? "read",
+        });
+      } else {
+        await assertAnyTeamModulePermission({
+          teamId,
+          userId: params.userId,
+          userRole: params.role,
+          modules: ["hosting", "emails", "wordpress"],
+          access: "read",
+        });
+      }
+      return;
+    }
   }
 
   throw new TRPCError({

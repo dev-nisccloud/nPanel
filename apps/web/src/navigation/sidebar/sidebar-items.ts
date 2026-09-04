@@ -26,6 +26,8 @@ export interface NavSubItem {
   comingSoon?: boolean;
   newTab?: boolean;
   isNew?: boolean;
+  permissionKey?: string;
+  permissionModule?: string;
 }
 
 export interface NavMainItem {
@@ -36,6 +38,8 @@ export interface NavMainItem {
   comingSoon?: boolean;
   newTab?: boolean;
   isNew?: boolean;
+  permissionKey?: string;
+  permissionModule?: string;
 }
 
 export interface NavGroup {
@@ -59,34 +63,37 @@ export const sidebarItems: NavGroup[] = [
         url: "/dashboard/domains",
         icon: (props: any) => React.createElement(Icons.Site, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
-          { title: "Get a Domain", url: "/dashboard/domains", },
-          { title: "Transfer", url: "/dashboard/domain-transfer", },
-          { title: "My Domains", url: "/dashboard/domains-portfolio", },
+          { title: "Get a Domain", url: "/dashboard/domains", permissionKey: "domains.search_register" },
+          { title: "Transfer", url: "/dashboard/domain-transfer", permissionKey: "domains.transfer" },
+          { title: "My Domains", url: "/dashboard/domains-portfolio", permissionKey: "domains.portfolio" },
         ],
       },
       {
         title: "Hosting",
         url: "/dashboard/hosting",
         icon: (props: any) => React.createElement(Icons.Hosting, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        permissionModule: "hosting",
       },
       {
         title: "WordPress",
         url: "/dashboard/wordpress",
         icon: (props: any) => React.createElement(Icons.Wordpress, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        permissionModule: "wordpress",
       },
       {
         title: "Emails",
         url: "/dashboard/emails",
         icon: (props: any) => React.createElement(Icons.Mail, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        permissionModule: "emails",
       },
       {
         title: "Cloud Servers",
         url: "/dashboard/dedicated-servers",
         icon: (props: any) => React.createElement(Icons.DedicatedServers, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
-          { title: "VPS Hosting", url: "/dashboard/vps", },
-          { title: "VDS Hosting", url: "/dashboard/vds", },
-          { title: "Dedicated Servers", url: "/dashboard/dedicated-servers", },
+          { title: "VPS Hosting", url: "/dashboard/vps", permissionModule: "servers.vps" },
+          { title: "VDS Hosting", url: "/dashboard/vds", permissionModule: "servers.vds" },
+          { title: "Dedicated Servers", url: "/dashboard/dedicated-servers", permissionModule: "servers.dedicated" },
         ],
       },
     ],
@@ -109,9 +116,9 @@ export const sidebarItems: NavGroup[] = [
         url: "/dashboard/ad-campaigns",
         icon: (props: any) => React.createElement(Icons.Campaigns, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
-          { title: "Meta Ads", url: "/dashboard/ad-campaigns/meta-ads", },
-          { title: "Google Ads", url: "/dashboard/ad-campaigns/google-ads", },
-          { title: "LinkedIn Ads", url: "/dashboard/ad-campaigns/linkedin-ads", },
+          { title: "Meta Ads", url: "/dashboard/ad-campaigns/meta-ads", permissionModule: "ads.meta" },
+          { title: "Google Ads", url: "/dashboard/ad-campaigns/google-ads", permissionModule: "ads.google" },
+          { title: "LinkedIn Ads", url: "/dashboard/ad-campaigns/linkedin-ads", permissionModule: "ads.linkedin" },
         ],
       },
       {
@@ -119,10 +126,10 @@ export const sidebarItems: NavGroup[] = [
         url: "/dashboard/nisc-email-marketing",
         icon: (props: any) => React.createElement(Icons.EmailMarketing, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
-          { title: "Campaigns", url: "/dashboard/nisc-email-marketing/campaigns", },
-          { title: "Audiences", url: "/dashboard/nisc-email-marketing/audiences", },
-          { title: "AI Email Builder", url: "/dashboard/nisc-email-builder", },
-          { title: "Domains", url: "/dashboard/nisc-email-marketing/domain-configuration", },
+          { title: "Campaigns", url: "/dashboard/nisc-email-marketing/campaigns", permissionKey: "email_marketing.campaigns" },
+          { title: "Audiences", url: "/dashboard/nisc-email-marketing/audiences", permissionKey: "email_marketing.audiences" },
+          { title: "AI Email Builder", url: "/dashboard/nisc-email-builder", permissionKey: "email_marketing.email_builder" },
+          { title: "Domains", url: "/dashboard/nisc-email-marketing/domain-configuration", permissionKey: "email_marketing.sending_domains" },
         ],
       },
       {
@@ -130,13 +137,14 @@ export const sidebarItems: NavGroup[] = [
         url: "/dashboard/seo",
         icon: (props: any) => React.createElement(Icons.Seo, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
-          { title: "SEO Reports", url: "/dashboard/seo-reports", },
+          { title: "SEO Reports", url: "/dashboard/seo-reports", permissionKey: "seo.reports" },
         ],
       },
       {
         title: "Creatives & Design",
         url: "/dashboard/creative-assets",
         icon: (props: any) => React.createElement(Icons.CreativeAssets, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        permissionKey: "creatives.assets",
       },
     ],
   },
@@ -148,6 +156,7 @@ export const sidebarItems: NavGroup[] = [
         title: "Zeepo AI",
         url: "/dashboard/zeepo-ai",
         icon: (props: any) => React.createElement(Icons.AISupport, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        permissionKey: "gen_ai.zeepo_ai",
       },
     ],
   },
@@ -159,11 +168,13 @@ export const sidebarItems: NavGroup[] = [
         title: "Invoices",
         url: "/dashboard/invoices",
         icon: (props: any) => React.createElement(Icons.Invoices, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        permissionKey: "billing.invoices_view",
       },
       {
         title: "Subscriptions",
         url: "/dashboard/subscriptions",
         icon: (props: any) => React.createElement(Icons.Subscriptions, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        permissionKey: "billing.subscriptions",
       },
     ],
   },
@@ -196,6 +207,7 @@ export const sidebarItems: NavGroup[] = [
         title: "Marketplace",
         url: "/dashboard/marketplace",
         icon: (props: any) => React.createElement(Icons.Cart, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        permissionKey: "marketplace.browse",
       }
     ],
   },

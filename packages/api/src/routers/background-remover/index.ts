@@ -55,6 +55,14 @@ async function ensureTeamReadAccess(teamId: string, userId: string, role: string
   if (!member) {
     throw new TRPCError({ code: "FORBIDDEN", message: "You do not have access to this team." });
   }
+  const { assertTeamPermission } = await import("../../lib/team-permissions/assert");
+  await assertTeamPermission({
+    teamId,
+    userId,
+    userRole: role,
+    key: "gen_ai.background_remover",
+    access: "read",
+  });
 }
 
 /**
@@ -175,13 +183,15 @@ export const backgroundRemoverRouter = router({
             message: "Team is required for customer background removal.",
           });
         }
-        const hasMembership = await isTeamMemberUser(input.teamId, userId);
-        if (!hasMembership) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "You do not have access to this team.",
-          });
-        }
+        await ensureTeamReadAccess(input.teamId, userId, userRole);
+        const { assertTeamPermission } = await import("../../lib/team-permissions/assert");
+        await assertTeamPermission({
+          teamId: input.teamId,
+          userId,
+          userRole,
+          key: "gen_ai.background_remover",
+          access: "write",
+        });
         const creditsResult = await getBackgroundRemoverCreditsForTeam(input.teamId);
         if (!creditsResult) {
           throw new TRPCError({

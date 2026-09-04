@@ -30,15 +30,14 @@ import { PreviewDetails } from "@/routes/agency.invoices/create/_components/form
 import { transformInvoiceToPreviewData } from "@/lib/transform-invoice-preview-data";
 import { captureEvent } from "@/lib/posthog";
 import { UpdatePaymentDialog } from "./agency.invoices/$id/_components/update-payment-dialog";
-import {
-	InvoiceKraStatusPanel,
-	canSendInvoiceEmail,
-} from "./agency.invoices/$id/_components/invoice-kra-status-panel";
+import { InvoiceKraStatusPanel, canSendInvoiceEmail } from "./agency.invoices/$id/_components/invoice-kra-status-panel";
 import { IssueCreditNoteDialog } from "./agency.invoices/$id/_components/issue-credit-note-dialog";
+import { InvoicePaymentSummary } from "./agency.invoices/$id/_components/invoice-payment-summary";
 import { InvoiceTransactionsSection } from "./agency.invoices/$id/_components/invoice-transactions-section";
 import { InvoiceTransactionViewSheet } from "./agency.invoices/$id/_components/invoice-transaction-view-sheet";
 import { isInvoiceKraSynced } from "@npanel/api/lib/invoice-kra-status";
 import { buildInvoicePdfDetails } from "@npanel/api/agency-invoice-pdf/build-invoice-pdf-details";
+import { resolveInvoicePaymentTotals } from "@/lib/invoice-payment-totals";
 import type { InvoiceDetail, InvoiceTransaction } from "@/routes/agency.invoices/create/api/schemas";
 import { FormProvider, useForm } from "react-hook-form";
 import { YourDetailsForm } from "@/routes/agency.invoices/create/_components/form/yourDetails/yourDetailsForm";
@@ -479,6 +478,7 @@ export default function InvoiceViewPage() {
 	const canIssueCreditNote =
 		isInvoiceKraSynced(invoice.kraStatus) && !invoice.creditNote;
 	const existingCreditNoteId = invoice.creditNote?.id;
+	const paymentTotals = resolveInvoicePaymentTotals(invoice);
 
 	const handleOpenEdit = (step: string) => {
 		const s = step as InvoiceEditStep;
@@ -647,7 +647,7 @@ export default function InvoiceViewPage() {
 					)}
 					<Button
 						onClick={() => setUpdatePaymentOpen(true)}
-						disabled={invoice.status === "PAID" || isDownloading || isSending}
+						disabled={paymentTotals.remaining <= 0 || isDownloading || isSending}
 						variant="outline"
 					>
 						<DollarSign className="mr-2 h-4 w-4" />
@@ -741,10 +741,15 @@ export default function InvoiceViewPage() {
 			</AlertDialog>
 
 			<div className="flex flex-col items-center gap-4 px-4">
-				<InvoiceKraStatusPanel
-					invoice={invoice}
-					etimsFiscal={pdfMeta.etimsFiscal}
-					onInvoiceUpdated={() => utils.invoicing.getById.invalidate({ id: invoiceId })}
+				<InvoicePaymentSummary
+					amount={invoice.amount}
+					amountPaid={invoice.amountPaid}
+					amountRemaining={invoice.amountRemaining}
+					creditBalance={invoice.creditBalance}
+					status={invoice.status}
+					dueDate={invoice.dueDate}
+					currency={invoice.currency}
+					transactions={invoice.transactions ?? []}
 				/>
 			</div>
 
@@ -755,6 +760,14 @@ export default function InvoiceViewPage() {
 						setViewingTransaction(tx);
 						setTransactionSheetOpen(true);
 					}}
+				/>
+			</div>
+
+			<div className="flex flex-col items-center gap-4 px-4">
+				<InvoiceKraStatusPanel
+					invoice={invoice}
+					etimsFiscal={pdfMeta.etimsFiscal}
+					onInvoiceUpdated={() => utils.invoicing.getById.invalidate({ id: invoiceId })}
 				/>
 			</div>
 

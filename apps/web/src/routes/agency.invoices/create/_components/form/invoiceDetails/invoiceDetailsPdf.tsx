@@ -46,7 +46,7 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
           </View>
         </View>
       </View>
-      {items.map(({ itemDescription, amount, qty }, index) => {
+      {items.map(({ itemDescription, amount, qty, billingCycle }, index) => {
         return (
           <View
             key={index}
@@ -61,6 +61,11 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
               <Text style={pdfTypography.itemDescription} wrap>
                 {itemDescription}
               </Text>
+              {billingCycle && (
+                <Text style={{ ...pdfTypography.itemDescription, fontSize: 9, color: "#666", marginTop: 4 }}>
+                  Billing: {formatBillingCycle(billingCycle)}
+                </Text>
+              )}
             </View>
             <View
               style={{
@@ -73,7 +78,7 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
               <Text style={{ flex: 1, ...pdfTypography.itemDescription }}>
                 {qty ? qty : "-"}
               </Text>
-              <Text style={{ flex: 1, ...pdfTypography.itemDescription }}>
+              <Text style={{ flex: 1, ...pdfTypography.itemDescription }} wrap>
                 {amount != null ? formatMoney(amount) : ""}
               </Text>
               <Text
@@ -82,9 +87,10 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
                   ...pdfTypography.itemDescription,
                   textAlign: "right",
                 }}
+                wrap
               >
                 {currencyDetails?.currencySymbol}
-                {amount != null ? formatMoney((qty ? qty : 1) * amount) : ""}
+                {amount != null && ` ${formatMoney((qty ? qty : 1) * amount)}`}
               </Text>
             </View>
           </View>
@@ -117,9 +123,9 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
                 flex: 1,
                 textAlign: "right",
               }}
+              wrap
             >
-              {currencyDetails?.currencySymbol}
-              {formatMoney(subtotal)}
+              {currencyDetails?.currencySymbol} {formatMoney(subtotal)}
             </Text>
           </View>
           {discount && (
@@ -140,9 +146,9 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
                   flex: 1,
                   textAlign: "right",
                 }}
+                wrap
               >
-                {currencyDetails?.currencySymbol}
-                {discount ? formatMoney(+discount) : ""}
+                {currencyDetails?.currencySymbol} {discount ? formatMoney(+discount) : ""}
               </Text>
             </View>
           )}
@@ -164,9 +170,9 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
                   flex: 1,
                   textAlign: "right",
                 }}
+                wrap
               >
-                {currencyDetails?.currencySymbol}
-                {formatMoney(taxAmount)}
+                {currencyDetails?.currencySymbol} {formatMoney(taxAmount)}
               </Text>
             </View>
           )}
@@ -181,7 +187,7 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
               Amount
             </Text>
             <Text
-              wrap={false}
+              wrap
               style={{
                 ...pdfTypography.itemDescription,
                 flex: 1,
@@ -189,8 +195,7 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
                 fontWeight: "bold",
               }}
             >
-              {currencyDetails?.currencySymbol}
-              {formatMoney(totalAmount)}
+              {currencyDetails?.currencySymbol} {formatMoney(totalAmount)}
             </Text>
           </View>
         </View>
@@ -224,5 +229,16 @@ const roundTotalIfExceeds = (amount: number): number => {
     return Math.round(amount * 100) / 100;
   }
   return amount;
+};
+
+const formatBillingCycle = (cycle: string): string => {
+  const cycleMap: Record<string, string> = {
+    '__unset__': 'None',
+    'one-time': 'One Time',
+    'monthly': 'Monthly',
+    'quarterly': 'Quarterly',
+    'annually': 'Annually',
+  };
+  return cycleMap[cycle] || cycle;
 };
 
