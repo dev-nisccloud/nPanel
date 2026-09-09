@@ -1,4 +1,4 @@
-import { and, asc, db, desc, eq, inArray, isNotNull, lte, or, sql } from "@npanel/db";
+import { and, asc, db, desc, eq, inArray, isNotNull, isNull, lte, ne, or, sql } from "@npanel/db";
 import {
 	AGENCY_CRON_JOB_KEYS,
 	agencyCronJobRun,
@@ -479,6 +479,10 @@ async function fetchDueSubscriptions(
 		.where(
 			and(
 				inArray(niscClientSubscription.status, [...ELIGIBLE_STATUSES]),
+				or(
+					isNull(niscClientSubscription.billingCycle),
+					ne(niscClientSubscription.billingCycle, "ONE_TIME"),
+				),
 				or(
 					isNotNull(niscClientSubscription.expiryDate),
 					isNotNull(niscClientSubscription.nextRenewalDate),

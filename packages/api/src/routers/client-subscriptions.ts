@@ -6,11 +6,16 @@ import { user as userTable } from "@npanel/db/schema/auth";
 import {
 	niscClientSubscription,
 	niscClientSubscriptionActivityLog,
+	niscClientSubscriptionNote,
 	niscClientSubscriptionRenewal,
 	niscCommissionEntry,
 	niscProduct,
 	niscProductPlan,
 } from "@npanel/db/schema/products";
+import {
+	ensureOneTimeServicesProduct,
+	ONE_TIME_PROGRESS_STATUSES,
+} from "../lib/one-time-services";
 import { team, teamMember } from "@npanel/db/schema/teams";
 import { protectedProcedure, router } from "../trpc";
 import { getTeamLiveDomainsSummary } from "../lib/team-live-domains-summary";
@@ -50,6 +55,8 @@ const billingCycleSchema = z.enum([
     "CUSTOM",
     "ONE_TIME",
 ]);
+
+const progressStatusSchema = z.enum(ONE_TIME_PROGRESS_STATUSES);
 
 const hostingTypeSchema = z.enum([
     "WEB_HOSTING",
@@ -137,6 +144,8 @@ const createSubscriptionInputSchema = z
 
         notes: z.string().optional(),
         metadata: z.record(z.string(), z.unknown()).optional(),
+        progressPercent: z.number().int().min(0).max(100).nullable().optional(),
+        progressStatus: progressStatusSchema.nullable().optional(),
     })
     .superRefine((data, ctx) => {
         if ((data.pricingModel === "FIXED" || data.pricingModel === "USAGE") && !data.billingCycle) {
@@ -191,6 +200,8 @@ const updateSubscriptionInputSchema = z.object({
     serviceRefs: serviceRefsSchema,
     notes: z.string().nullable().optional(),
     metadata: z.record(z.string(), z.unknown()).optional(),
+    progressPercent: z.number().int().min(0).max(100).nullable().optional(),
+    progressStatus: progressStatusSchema.nullable().optional(),
 });
 
 const cancelSubscriptionInputSchema = z.object({
@@ -200,6 +211,54 @@ const cancelSubscriptionInputSchema = z.object({
 
 const deleteSubscriptionInputSchema = z.object({
     id: z.string(),
+});
+
+const createOneTimeServiceInputSchema = z.object({
+    name: z.string().trim().min(1, "Service name is required").max(200),
+    teamId: z.string().min(1, "Organization is required"),
+    status: subscriptionStatusSchema.default("ACTIVE"),
+    subscriptionDate: z.coerce.date().nullable().optional(),
+    expiryDate: z.coerce.date().nullable().optional(),
+    nextRenewalDate: z.coerce.date().nullable().optional(),
+    agreedPrice: z.string().optional(),
+    agreedCurrency: z.string().default("KES"),
+    progressPercent: z.number().int().min(0).max(100).default(0),
+    progressStatus: progressStatusSchema.default("NOT_STARTED"),
+    initialNote: z.string().trim().max(5000).optional(),
+});
+
+const updateProgressInputSchema = z.object({
+    id: z.string(),
+    progressPercent: z.number().int().min(0).max(100).optional(),
+    progressStatus: progressStatusSchema.optional(),
+});
+
+const listNotesInputSchema = z.object({
+    subscriptionId: z.string(),
+});
+
+const addNoteInputSchema = z.object({
+    subscriptionId: z.string(),
+    content: z.string().trim().min(1, "Note cannot be empty").max(5000),
+});
+
+const updateNoteInputSchema = z.object({
+    id: z.string(),
+    content: z.string().trim().min(1, "Note cannot be empty").max(5000),
+});
+
+const deleteNoteInputSchema = z.object({
+    id: z.string(),
+});
+
+const subscriptionNoteOutputSchema = z.object({
+    id: z.string(),
+    subscriptionId: z.string(),
+    userId: z.string(),
+    userName: z.string().nullable(),
+    content: z.string(),
+    createdAt: z.date(),
+    updatedAt: z.date(),
 });
 
 // --- List schema -------------------------------------------------------------
@@ -412,6 +471,8 @@ const subscriptionOutputSchema = z.object({
     hostingSubscriptionId: z.string().nullable(),
     notes: z.string().nullable(),
     metadata: z.unknown().nullable(),
+    progressPercent: z.number().int().nullable(),
+    progressStatus: progressStatusSchema.nullable(),
     createdAt: z.date(),
     updatedAt: z.date(),
 });
@@ -486,6 +547,13 @@ function mapSubscription(sub: any): z.infer<typeof subscriptionOutputSchema> {
         hostingSubscriptionId: sub.hostingSubscriptionId ?? null,
         notes: sub.notes ?? null,
         metadata: sub.metadata ?? null,
+        progressPercent:
+            typeof sub.progressPercent === "number" && Number.isFinite(sub.progressPercent)
+                ? sub.progressPercent
+                : sub.progressPercent == null
+                  ? null
+                  : Number.parseInt(String(sub.progressPercent), 10) || null,
+        progressStatus: coerceEnumOrNull(sub.progressStatus, progressStatusSchema.options),
         createdAt: sub.createdAt,
         updatedAt: sub.updatedAt,
     };
@@ -1435,6 +1503,9 @@ export const clientSubscriptionsRouter = router({
                     nextRenewalDate: z.date().nullable(),
                     expiryDate: z.date().nullable(),
                     status: subscriptionStatusSchema,
+                    billingCycle: billingCycleSchema.nullable(),
+                    progressPercent: z.number().int().nullable(),
+                    progressStatus: progressStatusSchema.nullable(),
                 })
             )
         )
@@ -1472,6 +1543,9 @@ export const clientSubscriptionsRouter = router({
                     nextRenewalDate: true,
                     expiryDate: true,
                     name: true,
+                    billingCycle: true,
+                    progressPercent: true,
+                    progressStatus: true,
                 },
                 with: {
                     product: { columns: { name: true } },
@@ -1488,6 +1562,10 @@ export const clientSubscriptionsRouter = router({
                 nextRenewalDate: sub.nextRenewalDate,
                 expiryDate: sub.expiryDate,
                 status: sub.status as SubscriptionStatus,
+                billingCycle: coerceEnumOrNull(sub.billingCycle, billingCycleSchema.options),
+                progressPercent:
+                    typeof sub.progressPercent === "number" ? sub.progressPercent : null,
+                progressStatus: coerceEnumOrNull(sub.progressStatus, progressStatusSchema.options),
             }));
         }),
 
@@ -1729,6 +1807,11 @@ export const clientSubscriptionsRouter = router({
     /** Resolve product ID for Domains checkout (matches seed-planless-services). */
     getDomainsProductId: protectedProcedure.query(async () => {
         return resolveActiveNiscProductId(NISC_DOMAINS_PRODUCT_ID);
+    }),
+
+    /** Resolve (and create if missing) the catch-all one-time services product. */
+    getOneTimeServicesProductId: protectedProcedure.query(async () => {
+        return ensureOneTimeServicesProduct();
     }),
 
     /** Resolve product ID for domain transfer (serviceType domain_transfer). Used for transfer checkout → createFromPayment. */
@@ -2706,6 +2789,8 @@ export const clientSubscriptionsRouter = router({
                     hostingSubscriptionId: input.hostingSubscriptionId ?? null,
                     notes: input.notes ?? null,
                     metadata: input.metadata ?? null,
+                    progressPercent: input.progressPercent ?? null,
+                    progressStatus: input.progressStatus ?? null,
                 })
                 .returning();
 
@@ -2733,6 +2818,400 @@ export const clientSubscriptionsRouter = router({
             });
 
             return mapSubscription(sub);
+        }),
+
+    /** Create a non-renewable custom service with a free-text name, optional dates, and progress tracking. */
+    createOneTimeService: protectedProcedure
+        .input(createOneTimeServiceInputSchema)
+        .output(subscriptionOutputSchema)
+        .mutation(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to create services",
+                });
+            }
+            if (!isAgencyUserRole(session.user.role)) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Only agency users can create one-time services",
+                });
+            }
+
+            const hasTeamAccess = await canAssignTeamSubscription({
+                teamId: input.teamId,
+                userId: session.user.id,
+                role: session.user.role,
+            });
+            if (!hasTeamAccess) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "You do not have access to this team",
+                });
+            }
+
+            const productId = await ensureOneTimeServicesProduct();
+            const subId = crypto.randomUUID();
+            const [sub] = await db
+                .insert(niscClientSubscription)
+                .values({
+                    id: subId,
+                    name: input.name,
+                    teamId: input.teamId,
+                    productId,
+                    productPlanId: null,
+                    recordedBy: session.user.id,
+                    subscribedBy: session.user.id,
+                    status: input.status,
+                    subscriptionDate: input.subscriptionDate ?? null,
+                    expiryDate: input.expiryDate ?? null,
+                    nextRenewalDate: input.nextRenewalDate ?? null,
+                    billingCycle: "ONE_TIME",
+                    autoRenew: false,
+                    pricingModel: "FIXED",
+                    agreedPrice: input.agreedPrice?.trim() ? input.agreedPrice.trim() : null,
+                    agreedCurrency: input.agreedCurrency,
+                    progressPercent: input.progressPercent,
+                    progressStatus: input.progressStatus,
+                })
+                .returning();
+
+            if (!sub) {
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: "Failed to create one-time service",
+                });
+            }
+
+            await db.insert(niscClientSubscriptionActivityLog).values({
+                id: crypto.randomUUID(),
+                subscriptionId: sub.id,
+                userId: session.user.id,
+                action: "CREATE",
+                description: `Created one-time service "${input.name}"`,
+                metadata: {
+                    productId,
+                    billingCycle: "ONE_TIME",
+                    status: input.status,
+                    progressStatus: input.progressStatus,
+                    progressPercent: input.progressPercent,
+                },
+                ipAddress: null,
+                userAgent: null,
+            });
+
+            const initialNote = input.initialNote?.trim();
+            if (initialNote) {
+                await db.insert(niscClientSubscriptionNote).values({
+                    id: crypto.randomUUID(),
+                    subscriptionId: sub.id,
+                    userId: session.user.id,
+                    content: initialNote,
+                });
+            }
+
+            return mapSubscription(sub);
+        }),
+
+    /** Update delivery progress for a one-time (or progress-tracked) service. Agency only. */
+    updateProgress: protectedProcedure
+        .input(updateProgressInputSchema)
+        .output(subscriptionOutputSchema)
+        .mutation(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to update progress",
+                });
+            }
+            if (!isAgencyUserRole(session.user.role)) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Only agency users can update service progress",
+                });
+            }
+
+            const [existing] = await db
+                .select()
+                .from(niscClientSubscription)
+                .where(eq(niscClientSubscription.id, input.id))
+                .limit(1);
+            if (!existing) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
+            }
+
+            if (input.progressPercent === undefined && input.progressStatus === undefined) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Provide progressPercent and/or progressStatus",
+                });
+            }
+
+            const patch: Record<string, unknown> = {};
+            if (input.progressPercent !== undefined) patch.progressPercent = input.progressPercent;
+            if (input.progressStatus !== undefined) patch.progressStatus = input.progressStatus;
+
+            const [updated] = await db
+                .update(niscClientSubscription)
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                .set(patch as any)
+                .where(eq(niscClientSubscription.id, input.id))
+                .returning();
+
+            if (!updated) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
+            }
+
+            await db.insert(niscClientSubscriptionActivityLog).values({
+                id: crypto.randomUUID(),
+                subscriptionId: input.id,
+                userId: session.user.id,
+                action: "UPDATE_PROGRESS",
+                description: "Updated service progress",
+                metadata: {
+                    previousPercent: existing.progressPercent ?? null,
+                    previousStatus: existing.progressStatus ?? null,
+                    progressPercent: input.progressPercent ?? existing.progressPercent ?? null,
+                    progressStatus: input.progressStatus ?? existing.progressStatus ?? null,
+                },
+                ipAddress: null,
+                userAgent: null,
+            });
+
+            return mapSubscription(updated);
+        }),
+
+    /** List delivery notes for a subscription (newest first). */
+    listNotes: protectedProcedure
+        .input(listNotesInputSchema)
+        .output(z.array(subscriptionNoteOutputSchema))
+        .query(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view notes",
+                });
+            }
+
+            const [sub] = await db
+                .select({
+                    id: niscClientSubscription.id,
+                    userId: niscClientSubscription.userId,
+                    teamId: niscClientSubscription.teamId,
+                })
+                .from(niscClientSubscription)
+                .where(eq(niscClientSubscription.id, input.subscriptionId))
+                .limit(1);
+            if (!sub) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
+            }
+            if (!(await canReadSubscription(sub, session.user.id, session.user.role))) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "You do not have access to this subscription",
+                });
+            }
+
+            const notes = await db
+                .select({
+                    id: niscClientSubscriptionNote.id,
+                    subscriptionId: niscClientSubscriptionNote.subscriptionId,
+                    userId: niscClientSubscriptionNote.userId,
+                    content: niscClientSubscriptionNote.content,
+                    createdAt: niscClientSubscriptionNote.createdAt,
+                    updatedAt: niscClientSubscriptionNote.updatedAt,
+                    userName: userTable.name,
+                    userEmail: userTable.email,
+                })
+                .from(niscClientSubscriptionNote)
+                .leftJoin(userTable, eq(userTable.id, niscClientSubscriptionNote.userId))
+                .where(eq(niscClientSubscriptionNote.subscriptionId, input.subscriptionId))
+                .orderBy(desc(niscClientSubscriptionNote.createdAt));
+
+            return notes.map((note) => ({
+                id: note.id,
+                subscriptionId: note.subscriptionId,
+                userId: note.userId,
+                userName: note.userName ?? note.userEmail ?? null,
+                content: note.content,
+                createdAt: note.createdAt,
+                updatedAt: note.updatedAt,
+            }));
+        }),
+
+    /** Add a delivery note. Agency only. */
+    addNote: protectedProcedure
+        .input(addNoteInputSchema)
+        .output(subscriptionNoteOutputSchema)
+        .mutation(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to add notes",
+                });
+            }
+            if (!isAgencyUserRole(session.user.role)) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Only agency users can add service notes",
+                });
+            }
+
+            const [sub] = await db
+                .select({ id: niscClientSubscription.id })
+                .from(niscClientSubscription)
+                .where(eq(niscClientSubscription.id, input.subscriptionId))
+                .limit(1);
+            if (!sub) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
+            }
+
+            const noteId = crypto.randomUUID();
+            const [note] = await db
+                .insert(niscClientSubscriptionNote)
+                .values({
+                    id: noteId,
+                    subscriptionId: input.subscriptionId,
+                    userId: session.user.id,
+                    content: input.content,
+                })
+                .returning();
+
+            if (!note) {
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: "Failed to add note",
+                });
+            }
+
+            await db.insert(niscClientSubscriptionActivityLog).values({
+                id: crypto.randomUUID(),
+                subscriptionId: input.subscriptionId,
+                userId: session.user.id,
+                action: "ADD_NOTE",
+                description: "Added a delivery note",
+                metadata: { noteId },
+                ipAddress: null,
+                userAgent: null,
+            });
+
+            return {
+                id: note.id,
+                subscriptionId: note.subscriptionId,
+                userId: note.userId,
+                userName: session.user.name ?? session.user.email ?? null,
+                content: note.content,
+                createdAt: note.createdAt,
+                updatedAt: note.updatedAt,
+            };
+        }),
+
+    /** Edit a delivery note. Agency only. */
+    updateNote: protectedProcedure
+        .input(updateNoteInputSchema)
+        .output(subscriptionNoteOutputSchema)
+        .mutation(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to update notes",
+                });
+            }
+            if (!isAgencyUserRole(session.user.role)) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Only agency users can update service notes",
+                });
+            }
+
+            const [existing] = await db
+                .select()
+                .from(niscClientSubscriptionNote)
+                .where(eq(niscClientSubscriptionNote.id, input.id))
+                .limit(1);
+            if (!existing) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Note not found" });
+            }
+
+            const [note] = await db
+                .update(niscClientSubscriptionNote)
+                .set({ content: input.content })
+                .where(eq(niscClientSubscriptionNote.id, input.id))
+                .returning();
+
+            if (!note) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Note not found" });
+            }
+
+            const [author] = await db
+                .select({ name: userTable.name, email: userTable.email })
+                .from(userTable)
+                .where(eq(userTable.id, note.userId))
+                .limit(1);
+
+            return {
+                id: note.id,
+                subscriptionId: note.subscriptionId,
+                userId: note.userId,
+                userName: author?.name ?? author?.email ?? null,
+                content: note.content,
+                createdAt: note.createdAt,
+                updatedAt: note.updatedAt,
+            };
+        }),
+
+    /** Delete a delivery note. Agency only. */
+    deleteNote: protectedProcedure
+        .input(deleteNoteInputSchema)
+        .output(z.object({ id: z.string() }))
+        .mutation(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to delete notes",
+                });
+            }
+            if (!isAgencyUserRole(session.user.role)) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Only agency users can delete service notes",
+                });
+            }
+
+            const [existing] = await db
+                .select({
+                    id: niscClientSubscriptionNote.id,
+                    subscriptionId: niscClientSubscriptionNote.subscriptionId,
+                })
+                .from(niscClientSubscriptionNote)
+                .where(eq(niscClientSubscriptionNote.id, input.id))
+                .limit(1);
+            if (!existing) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Note not found" });
+            }
+
+            await db
+                .delete(niscClientSubscriptionNote)
+                .where(eq(niscClientSubscriptionNote.id, input.id));
+
+            await db.insert(niscClientSubscriptionActivityLog).values({
+                id: crypto.randomUUID(),
+                subscriptionId: existing.subscriptionId,
+                userId: session.user.id,
+                action: "DELETE_NOTE",
+                description: "Deleted a delivery note",
+                metadata: { noteId: existing.id },
+                ipAddress: null,
+                userAgent: null,
+            });
+
+            return { id: existing.id };
         }),
 
     /** Update a subscription */
@@ -2816,6 +3295,9 @@ export const clientSubscriptionsRouter = router({
             if (rest.serviceRefs !== undefined) patch.serviceRefs = rest.serviceRefs ?? null;
             if (rest.notes !== undefined) patch.notes = rest.notes ?? null;
             if (rest.metadata !== undefined) patch.metadata = rest.metadata ?? null;
+            if (rest.progressPercent !== undefined) patch.progressPercent = rest.progressPercent ?? null;
+            if (rest.progressStatus !== undefined) patch.progressStatus = rest.progressStatus ?? null;
+            if (rest.billingCycle === "ONE_TIME") patch.autoRenew = false;
 
             const [updated] = await db
                 .update(niscClientSubscription)

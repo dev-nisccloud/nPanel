@@ -257,6 +257,10 @@ export const niscClientSubscription = pgTable(
     notes: text("notes"),
     metadata: jsonb("metadata"),
 
+    /** Delivery tracker for one-time (non-renewable) services. */
+    progressPercent: integer("progress_percent"),
+    progressStatus: text("progress_status"),
+
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()
@@ -298,6 +302,8 @@ export const niscClientSubscription = pgTable(
     index("nisc_client_subscription_subscriptionDate_idx").on(
       table.subscriptionDate,
     ),
+    index("nisc_client_subscription_progressStatus_idx").on(table.progressStatus),
+    index("nisc_client_subscription_billingCycle_idx").on(table.billingCycle),
   ],
 );
 
@@ -411,6 +417,33 @@ export const niscClientSubscriptionRenewal = pgTable(
 );
 
 // --- Activity logs -----------------------------------------------------------
+
+export const niscClientSubscriptionNote = pgTable(
+  "nisc_client_subscription_note",
+  {
+    id: text("id").primaryKey(),
+    subscriptionId: text("subscription_id")
+      .notNull()
+      .references(() => niscClientSubscription.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    content: text("content").notNull(),
+
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("nisc_client_subscription_note_subscriptionId_idx").on(
+      table.subscriptionId,
+    ),
+    index("nisc_client_subscription_note_userId_idx").on(table.userId),
+    index("nisc_client_subscription_note_createdAt_idx").on(table.createdAt),
+  ],
+);
 
 export const niscClientSubscriptionActivityLog = pgTable(
   "nisc_client_subscription_activity_log",
@@ -685,9 +718,24 @@ export const niscClientSubscriptionRelations = relations(
     }),
     usageRecords: many(niscClientSubscriptionUsage),
     renewals: many(niscClientSubscriptionRenewal),
+    notesEntries: many(niscClientSubscriptionNote),
     activityLogs: many(niscClientSubscriptionActivityLog),
     promoRedeems: many(niscProductPromoRedeem),
     commissionEntries: many(niscCommissionEntry),
+  }),
+);
+
+export const niscClientSubscriptionNoteRelations = relations(
+  niscClientSubscriptionNote,
+  ({ one }) => ({
+    subscription: one(niscClientSubscription, {
+      fields: [niscClientSubscriptionNote.subscriptionId],
+      references: [niscClientSubscription.id],
+    }),
+    author: one(user, {
+      fields: [niscClientSubscriptionNote.userId],
+      references: [user.id],
+    }),
   }),
 );
 

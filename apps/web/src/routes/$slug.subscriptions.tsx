@@ -32,7 +32,7 @@ export default function SubscriptionsPage() {
 				<div className="flex flex-col gap-2">
 					<h1 className="text-base font-semibold tracking-tight">Subscriptions</h1>
 					<p className="text-xs text-muted-foreground">
-						View your company&apos;s service subscriptions. Data from Nisc client subscriptions.
+						View your subscriptions and services
 					</p>
 				</div>
 

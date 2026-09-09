@@ -44,12 +44,13 @@ import { captureEvent } from "@/lib/posthog";
 
 function addBillingPeriod(
 	date: Date,
-	cycle: "YEARLY" | "MONTHLY" | "BIENNIALLY" | "CUSTOM",
+	cycle: "YEARLY" | "MONTHLY" | "BIENNIALLY" | "CUSTOM" | "ONE_TIME",
 ): Date {
 	const next = new Date(date);
 	if (cycle === "MONTHLY") next.setMonth(next.getMonth() + 1);
 	else if (cycle === "YEARLY") next.setFullYear(next.getFullYear() + 1);
 	else if (cycle === "BIENNIALLY") next.setFullYear(next.getFullYear() + 2);
+	else if (cycle === "ONE_TIME") return next;
 	else next.setFullYear(next.getFullYear() + 1);
 	return next;
 }
@@ -82,7 +83,7 @@ const editFormSchema = z.object({
 	subscriptionDate: z.date().optional(),
 	expiryDate: z.date().optional(),
 	nextRenewalDate: z.date().optional(),
-	billingCycle: z.enum(["YEARLY", "MONTHLY", "BIENNIALLY", "CUSTOM"]).optional(),
+	billingCycle: z.enum(["YEARLY", "MONTHLY", "BIENNIALLY", "CUSTOM", "ONE_TIME"]).optional(),
 	autoRenew: z.boolean(),
 	agreedPrice: z.string().optional(),
 	agreedCurrency: z.string().optional(),
@@ -98,6 +99,10 @@ const editFormSchema = z.object({
 		])
 		.optional(),
 	notes: z.string().optional(),
+	progressPercent: z.number().int().min(0).max(100).optional(),
+	progressStatus: z
+		.enum(["NOT_STARTED", "IN_PROGRESS", "ON_HOLD", "COMPLETED", "BLOCKED"])
+		.optional(),
 });
 
 type EditFormData = z.infer<typeof editFormSchema>;
@@ -156,6 +161,8 @@ export function SubscriptionEditSheet({
 			primaryDomain: sub.primaryDomain ?? "",
 			hostingType: (sub.hostingType as EditFormData["hostingType"]) ?? undefined,
 			notes: sub.notes ?? "",
+			progressPercent: sub.progressPercent ?? 0,
+			progressStatus: (sub.progressStatus as EditFormData["progressStatus"]) ?? "NOT_STARTED",
 		});
 	}, [sub, open, form]);
 
@@ -257,6 +264,16 @@ export function SubscriptionEditSheet({
 		const origNotes = sub.notes ?? "";
 		if (newNotes !== origNotes) payload.notes = newNotes || null;
 
+		if (data.billingCycle === "ONE_TIME") {
+			if (sub.autoRenew) payload.autoRenew = false;
+			const newPercent = data.progressPercent ?? 0;
+			const origPercent = sub.progressPercent ?? 0;
+			if (newPercent !== origPercent) payload.progressPercent = newPercent;
+			const newProgressStatus = data.progressStatus ?? "NOT_STARTED";
+			const origProgressStatus = sub.progressStatus ?? "NOT_STARTED";
+			if (newProgressStatus !== origProgressStatus) payload.progressStatus = newProgressStatus;
+		}
+
 		if (Object.keys(payload).length === 1) {
 			toast.error("No changes detected. Please modify at least one field.");
 			return;
@@ -269,6 +286,7 @@ export function SubscriptionEditSheet({
 	const productPlanName = sub?.productPlan?.name ?? null;
 	const isLoadingOwnerOptions = isLoadingTeams;
 	const isCommission = sub?.pricingModel === "COMMISSION";
+	const isOneTime = sub?.billingCycle === "ONE_TIME" || form.watch("billingCycle") === "ONE_TIME";
 
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>
@@ -409,7 +427,7 @@ export function SubscriptionEditSheet({
 																onChange={(date) => {
 																	field.onChange(date);
 																	const cycle = form.getValues("billingCycle");
-																	if (date && cycle) {
+																	if (date && cycle && cycle !== "ONE_TIME") {
 																		form.setValue(
 																			"expiryDate",
 																			addBillingPeriod(date, cycle),
@@ -481,6 +499,10 @@ export function SubscriptionEditSheet({
 																<Select
 																	onValueChange={(value) => {
 																		field.onChange(value);
+																		if (value === "ONE_TIME") {
+																			form.setValue("autoRenew", false);
+																			return;
+																		}
 																		const renewal = form.getValues("nextRenewalDate");
 																		if (renewal) {
 																			form.setValue(
@@ -505,6 +527,7 @@ export function SubscriptionEditSheet({
 																		<SelectItem value="YEARLY">Yearly</SelectItem>
 																		<SelectItem value="BIENNIALLY">Biennially</SelectItem>
 																		<SelectItem value="CUSTOM">Custom</SelectItem>
+																		<SelectItem value="ONE_TIME">One-time</SelectItem>
 																	</SelectContent>
 																</Select>
 																<FormMessage />
@@ -554,6 +577,7 @@ export function SubscriptionEditSheet({
 												</>
 											)}
 
+											{!isOneTime && (
 											<FormField
 												control={form.control}
 												name="autoRenew"
@@ -575,8 +599,70 @@ export function SubscriptionEditSheet({
 													</FormItem>
 												)}
 											/>
+											)}
 										</div>
 									</section>
+
+									{isOneTime && (
+									<section className="space-y-3">
+										<h3 className="text-sm font-medium text-muted-foreground">Progress</h3>
+										<div className="rounded-lg border bg-card p-4 space-y-4">
+											<FormField
+												control={form.control}
+												name="progressStatus"
+												render={({ field }) => (
+													<FormItem>
+														<FormLabel>Progress status</FormLabel>
+														<Select
+															onValueChange={field.onChange}
+															value={field.value}
+															disabled={updateSubscription.isPending}
+														>
+															<FormControl>
+																<SelectTrigger className="w-full">
+																	<SelectValue placeholder="Select progress status" />
+																</SelectTrigger>
+															</FormControl>
+															<SelectContent>
+																<SelectItem value="NOT_STARTED">Not started</SelectItem>
+																<SelectItem value="IN_PROGRESS">In progress</SelectItem>
+																<SelectItem value="ON_HOLD">On hold</SelectItem>
+																<SelectItem value="COMPLETED">Completed</SelectItem>
+																<SelectItem value="BLOCKED">Blocked</SelectItem>
+															</SelectContent>
+														</Select>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+											<FormField
+												control={form.control}
+												name="progressPercent"
+												render={({ field }) => (
+													<FormItem>
+														<FormLabel>Progress ({field.value ?? 0}%)</FormLabel>
+														<FormControl>
+															<Input
+																type="number"
+																min={0}
+																max={100}
+																value={field.value ?? 0}
+																onChange={(e) => {
+																	const n = Number.parseInt(e.target.value, 10);
+																	field.onChange(
+																		Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : 0,
+																	);
+																}}
+																disabled={updateSubscription.isPending}
+															/>
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+										</div>
+									</section>
+									)}
 
 									<section className="space-y-3">
 										<h3 className="text-sm font-medium text-muted-foreground">Service details</h3>
@@ -611,6 +697,7 @@ export function SubscriptionEditSheet({
 												/>
 											)}
 
+											{!isOneTime && (
 											<FormField
 												control={form.control}
 												name="primaryDomain"
@@ -628,6 +715,7 @@ export function SubscriptionEditSheet({
 													</FormItem>
 												)}
 											/>
+											)}
 
 											{sub.hostingType != null && (
 												<FormField
@@ -660,6 +748,7 @@ export function SubscriptionEditSheet({
 												/>
 											)}
 
+											{!isOneTime && (
 											<FormField
 												control={form.control}
 												name="notes"
@@ -679,6 +768,7 @@ export function SubscriptionEditSheet({
 													</FormItem>
 												)}
 											/>
+											)}
 										</div>
 									</section>
 								</div>
