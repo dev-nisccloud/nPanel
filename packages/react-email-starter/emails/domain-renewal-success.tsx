@@ -42,7 +42,7 @@ export const DomainRenewalSuccessEmail = ({
           on <strong>{renewalDate}</strong>.
         </EmailText>
         <EmailText>
-          Thank you for choosing Nisc Cloud for your domain services. Your domain is now 
+          Thank you for choosing Nisc Cloud® for your domain services. Your domain is now 
           secure and will remain active until <strong>{nextExpirationDate}</strong>.
         </EmailText>
         

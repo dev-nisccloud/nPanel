@@ -85,8 +85,10 @@ export function TeamSidebarLayout({
         </header>
         <div
           className={cn(
-            "h-full p-4 md:p-6 bg-[#f8fafb] dark:bg-background",
-            isFullBleed && "flex min-h-0 flex-1 flex-col overflow-hidden !p-0",
+            "bg-[#f8fafb] dark:bg-background",
+            isFullBleed
+              ? "flex h-[calc(100svh-theme(spacing.12))] max-h-[calc(100svh-theme(spacing.12))] min-h-0 flex-1 flex-col overflow-hidden p-0"
+              : "h-full p-4 md:p-6",
           )}
         >
           {children}

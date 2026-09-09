@@ -25,6 +25,8 @@ import { NISC_MEDIA_BUYING_PRODUCT_ID } from "../lib/media-buying-billing";
 import { NISC_DOMAINS_PRODUCT_ID } from "../lib/planless-services-billing";
 import { resolveActiveNiscProductById, resolveActiveNiscProductId } from "../lib/planless-product-resolver";
 import { domainProductSqlFilter } from "../lib/nisc-domain-product";
+import { ZEEPO_AI_PRODUCT_ID } from "../lib/zeepo-ai-billing";
+import { ZEEPO_AI_AGENT_PRODUCT_ID } from "../lib/zeepo-agent-billing";
 
 // ============================================================================
 // ZOD SCHEMAS   independent from the database schema layer
@@ -1496,6 +1498,7 @@ export const clientSubscriptionsRouter = router({
             z.array(
                 z.object({
                     id: z.string(),
+                    productId: z.string(),
                     productName: z.string(),
                     productPlanName: z.string().nullable(),
                     subscriptionName: z.string().nullable(),
@@ -1538,6 +1541,7 @@ export const clientSubscriptionsRouter = router({
                 orderBy: (s, { desc: d }) => [d(s.createdAt)],
                 columns: {
                     id: true,
+                    productId: true,
                     status: true,
                     subscriptionDate: true,
                     nextRenewalDate: true,
@@ -1555,6 +1559,7 @@ export const clientSubscriptionsRouter = router({
 
             return subs.map((sub) => ({
                 id: sub.id,
+                productId: sub.productId,
                 productName: sub.product.name,
                 productPlanName: sub.productPlan?.name ?? null,
                 subscriptionName: sub.name ?? null,
@@ -2941,6 +2946,15 @@ export const clientSubscriptionsRouter = router({
             if (!existing) {
                 throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
             }
+            if (
+                existing.productId === ZEEPO_AI_PRODUCT_ID ||
+                existing.productId === ZEEPO_AI_AGENT_PRODUCT_ID
+            ) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Progress tracking is not used for Zeepo subscriptions",
+                });
+            }
 
             if (input.progressPercent === undefined && input.progressStatus === undefined) {
                 throw new TRPCError({
@@ -4235,5 +4249,84 @@ export const clientSubscriptionsRouter = router({
                 .limit(500);
 
             return { run, items };
+        }),
+
+    /** Agency super admin: current Zeepo AI token balance for a subscription. */
+    getZeepoAiWallet: protectedProcedure
+        .input(z.object({ subscriptionId: z.string().min(1) }))
+        .query(async ({ ctx, input }) => {
+            if (!ctx.session?.user?.id) {
+                throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
+            }
+            if (!isAgencySuperAdminRole(ctx.session.user.role)) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Only agency super admins can view Zeepo AI token wallets",
+                });
+            }
+            const {
+                getZeepoAiWalletForSubscription,
+                formatZeepoAiTokenBalance,
+            } = await import("../lib/zeepo-ai-tokens");
+            const wallet = await getZeepoAiWalletForSubscription(input.subscriptionId);
+            return {
+                ...wallet,
+                tokensLabel: formatZeepoAiTokenBalance(wallet.tokens),
+            };
+        }),
+
+    /** Agency super admin: add or remove tokens on a Zeepo AI subscription. */
+    adjustZeepoAiWallet: protectedProcedure
+        .input(
+            z.object({
+                subscriptionId: z.string().min(1),
+                tokens: z.number().positive().max(1_000_000),
+                direction: z.enum(["add", "remove"]),
+                reason: z.string().trim().max(500).optional(),
+            }),
+        )
+        .mutation(async ({ ctx, input }) => {
+            if (!ctx.session?.user?.id) {
+                throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
+            }
+            if (!isAgencySuperAdminRole(ctx.session.user.role)) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Only agency super admins can adjust Zeepo AI tokens",
+                });
+            }
+            const { adjustZeepoAiTokensForSubscription } = await import("../lib/zeepo-ai-tokens");
+            return adjustZeepoAiTokensForSubscription({
+                subscriptionId: input.subscriptionId,
+                actorUserId: ctx.session.user.id,
+                tokens: input.tokens,
+                direction: input.direction,
+                reason: input.reason,
+            });
+        }),
+
+    /** Agency super admin: token add/remove history for a Zeepo AI subscription. */
+    listZeepoAiWalletLogs: protectedProcedure
+        .input(
+            z.object({
+                subscriptionId: z.string().min(1),
+                limit: z.number().int().min(1).max(100).optional(),
+            }),
+        )
+        .query(async ({ ctx, input }) => {
+            if (!ctx.session?.user?.id) {
+                throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
+            }
+            if (!isAgencySuperAdminRole(ctx.session.user.role)) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Only agency super admins can view Zeepo AI token logs",
+                });
+            }
+            const { listZeepoAiWalletLogsForSubscription } = await import("../lib/zeepo-ai-tokens");
+            return listZeepoAiWalletLogsForSubscription({
+                subscriptionId: input.subscriptionId,
+                limit: input.limit,
+            });
         }),
 });

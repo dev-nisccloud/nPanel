@@ -14,6 +14,7 @@ import { isZeepoAiAgencyUser, listZeepoAiTokenLedger, } from "../../lib/zeepo-ai
 import { ZEEPO_AI_SUPPORT_FAB_SURFACE } from "../../lib/zeepo-ai-support";
 import { convertPriceWithCeil } from "../../lib/convert-price";
 import { checkWelcomeTokenEligibility, teamHasQualifyingService, } from "../../lib/zeepo-ai-free-token-grant";
+import { ZEEPO_AI_MIN_TOKENS_TO_START, ZEEPO_AI_WELCOME_TOKEN_GRANT, } from "../../lib/zeepo-ai-billing";
 async function fetchUsdToKesRate() {
     try {
         const resp = await fetch("https://api.exchangerate-api.com/v4/latest/USD");
@@ -86,6 +87,7 @@ export const zeepoAiBillingRouter = router({
                 hasQualifyingService: true,
                 welcomeEligible: false,
                 welcomeTokenGrant: ZEEPO_AI_WELCOME_TOKEN_GRANT,
+                minTokensToStart: ZEEPO_AI_MIN_TOKENS_TO_START,
             };
         }
         const teamId = await assertZeepoAiTeamAccess({
@@ -103,6 +105,7 @@ export const zeepoAiBillingRouter = router({
                 hasQualifyingService: false,
                 welcomeEligible: false,
                 welcomeTokenGrant: ZEEPO_AI_WELCOME_TOKEN_GRANT,
+                minTokensToStart: ZEEPO_AI_MIN_TOKENS_TO_START,
             };
         }
         const [summary, hasQualifyingService, welcome] = await Promise.all([
@@ -121,6 +124,7 @@ export const zeepoAiBillingRouter = router({
             hasQualifyingService,
             welcomeEligible: welcome.eligible,
             welcomeTokenGrant: ZEEPO_AI_WELCOME_TOKEN_GRANT,
+            minTokensToStart: ZEEPO_AI_MIN_TOKENS_TO_START,
         };
     }),
     listTokenActivity: zeepoAiProcedure

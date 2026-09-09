@@ -44,6 +44,8 @@ import {
 	SubscriptionProgressPanel,
 } from "./subscription-progress-panel";
 import { SubscriptionNotesPanel } from "./subscription-notes-panel";
+import { SubscriptionZeepoAiTokensPanel } from "./subscription-zeepo-ai-tokens-panel";
+import { isProgressTrackedOneTime, isZeepoAiProduct } from "./zeepo-subscription";
 
 function getBillingCycleDisplayName(cycle: string | null): string {
 	if (!cycle) return "- ";
@@ -168,7 +170,8 @@ export function SubscriptionViewSheet({
 	const productName = sub?.product?.name ?? "";
 	const productPlanName = sub?.productPlan?.name ?? null;
 	const teamName = sub?.team?.name ?? null;
-	const isOneTime = isOneTimeService(sub?.billingCycle);
+	const isOneTime = isProgressTrackedOneTime(sub?.billingCycle, sub?.productId);
+	const isZeepoAi = isZeepoAiProduct(sub?.productId);
 
 	const isSuspended = sub?.status === "SUSPENDED";
 	const canReactivate = isSuspended;
@@ -316,6 +319,10 @@ export function SubscriptionViewSheet({
 										/>
 										<SubscriptionNotesPanel subscriptionId={sub.id} canWrite />
 									</>
+								) : null}
+
+								{isZeepoAi && isSuperAdmin ? (
+									<SubscriptionZeepoAiTokensPanel subscriptionId={sub.id} />
 								) : null}
 
 								{/* Billing */}

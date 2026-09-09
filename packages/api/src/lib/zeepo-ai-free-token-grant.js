@@ -14,6 +14,7 @@ import { niscClientSubscription, niscClientSubscriptionActivityLog, niscClientSu
 import { zeepoAiMessage, zeepoAiSession, zeepoAiTokenLedger } from "@npanel/db/schema/zeepo-ai";
 import { randomUUID } from "node:crypto";
 import { ZEEPO_AI_PLAN_IDS, ZEEPO_AI_PRODUCT_ID, ZEEPO_AI_PROVIDER, ZEEPO_AI_USAGE_KIND, ZEEPO_AI_WELCOME_TOKEN_GRANT, } from "./zeepo-ai-billing";
+import { getZeepoAiTokensForTeam } from "./zeepo-ai-tokens";
 const FREE_TOKEN_GRANT_FLAG = "zeepo_ai_free_tokens_granted";
 function formatTokenBalance(n) {
     if (!Number.isFinite(n))
@@ -48,6 +49,13 @@ async function teamHasZeepoAiHistory(teamId) {
     return row.length > 0;
 }
 async function ensurePaygWallet(params) {
+    const existingWallet = await getZeepoAiTokensForTeam(params.teamId);
+    if (existingWallet) {
+        return {
+            subscriptionId: existingWallet.subscriptionId,
+            usageId: existingWallet.subscriptionUsageId,
+        };
+    }
     const existing = await db
         .select({ id: niscClientSubscription.id })
         .from(niscClientSubscription)

@@ -127,7 +127,7 @@ export const InvoiceFinalNoticeEmail = ({
         <EmailText>
           <strong style={{ color: '#dc2626' }}>
             IMPORTANT: Service suspension will result in immediate loss of access to all 
-            Nisc Cloud services. Please process payment immediately to prevent service disruption.
+            Nisc Cloud® services. Please process payment immediately to prevent service disruption.
           </strong>
         </EmailText>
         <EmailText>

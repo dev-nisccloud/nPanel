@@ -9,7 +9,7 @@ interface EmailSignatureProps {
 
 export const EmailSignature = ({
   salutation = "Best regards,",
-  signature = "The Nisc Cloud Team",
+  signature = "The Nisc Cloud® Team",
   tagline = companyBranding.tagline,
 }: EmailSignatureProps) => {
   return (

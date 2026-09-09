@@ -104,20 +104,11 @@ export async function assertCustomerCanUseZeepoAi(params: {
 }
 
 export async function getZeepoAiSubscriptionSummary(teamId: string) {
-	const sub = await db.query.niscClientSubscription.findFirst({
-		where: and(
-			eq(niscClientSubscription.teamId, teamId),
-			eq(niscClientSubscription.productId, ZEEPO_AI_PRODUCT_ID),
-			eq(niscClientSubscription.status, "ACTIVE"),
-		),
-		columns: { id: true, productPlanId: true },
-	});
-
 	const tokens = await getZeepoAiTokensForTeam(teamId);
 
 	return {
-		hasSubscription: Boolean(sub),
-		subscriptionId: sub?.id ?? null,
+		hasSubscription: Boolean(tokens),
+		subscriptionId: tokens?.subscriptionId ?? null,
 		tokens: tokens?.tokens ?? 0,
 	};
 }

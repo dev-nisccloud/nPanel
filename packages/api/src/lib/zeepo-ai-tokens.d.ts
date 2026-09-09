@@ -76,4 +76,42 @@ export declare function listZeepoAiTokenLedger(params: {
     tokens: string;
     balanceAfter: string;
 }[]>;
+export declare const ZEEPO_AI_AGENCY_ADJUSTMENT_OPERATION = "agency_adjustment";
+export type ZeepoAiWalletForSubscription = {
+    subscriptionId: string;
+    subscriptionUsageId: string;
+    teamId: string;
+    tokens: number;
+};
+export declare function getZeepoAiWalletForSubscription(subscriptionId: string): Promise<ZeepoAiWalletForSubscription>;
+export declare function adjustZeepoAiTokensForSubscription(params: {
+    subscriptionId: string;
+    actorUserId: string;
+    tokens: number;
+    direction: "add" | "remove";
+    reason?: string;
+}): Promise<{
+    tokens: number;
+    balanceBefore: number;
+    balanceAfter: number;
+    direction: "CREDIT" | "DEBIT";
+}>;
+export type ZeepoAiWalletLogEntry = {
+    id: string;
+    direction: string;
+    tokens: string;
+    balanceBefore: string;
+    balanceAfter: string;
+    operationType: string;
+    description: string | null;
+    createdAt: Date;
+    actorUserId: string;
+    actorName: string | null;
+    actorEmail: string | null;
+    reason: string | null;
+};
+export declare function listZeepoAiWalletLogsForSubscription(params: {
+    subscriptionId: string;
+    limit?: number;
+}): Promise<ZeepoAiWalletLogEntry[]>;
 export { formatTokenBalance as formatZeepoAiTokenBalance };

@@ -19,6 +19,7 @@ import {
 	SubscriptionProgressPanel,
 } from "@/routes/agency.subscriptions/_components/subscription-progress-panel";
 import { SubscriptionNotesPanel } from "@/routes/agency.subscriptions/_components/subscription-notes-panel";
+import { isProgressTrackedOneTime } from "@/routes/agency.subscriptions/_components/zeepo-subscription";
 
 function getBillingCycleDisplayName(cycle: string | null): string {
 	if (!cycle) return "- ";
@@ -95,7 +96,7 @@ export function CustomerSubscriptionViewSheet({
 	const productPlanName = sub?.productPlan?.name ?? null;
 	const subscriptionName = sub?.name ?? null;
 	const teamName = sub?.team?.name ?? null;
-	const isOneTime = isOneTimeService(sub?.billingCycle);
+	const isOneTime = isProgressTrackedOneTime(sub?.billingCycle, sub?.productId);
 
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>

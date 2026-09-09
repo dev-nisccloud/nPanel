@@ -138,7 +138,7 @@ export async function sendInvoiceReminderEmail(params: {
 	const fromDomain = fromDomainRaw && !fromDomainRaw.includes("@") ? fromDomainRaw : undefined;
 	const fromEmail = (process.env.NISC_TX_FROM_EMAIL?.trim() ||
 		(fromDomain ? `noreply@${fromDomain}` : "noreply@npanel.com")) as string;
-	const fromName = process.env.NISC_TX_FROM_NAME?.trim() || "nPanel";
+	const fromName = process.env.NISC_TX_FROM_NAME?.trim() || "Nisc Cloud®";
 	const replyTo = process.env.NISC_TX_REPLY_TO?.trim() || undefined;
 
 	const cc = params.cc?.filter(Boolean);

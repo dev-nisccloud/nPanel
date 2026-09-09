@@ -156,7 +156,7 @@ export const DomainAutoRenewalReminderEmail = ({
           </EmailLink>
         </EmailText>
         <EmailText>
-          Thank you for choosing Nisc Cloud for your domain management needs.
+          Thank you for choosing Nisc Cloud® for your domain management needs.
         </EmailText>
         <EmailSignature />
       </Section>
