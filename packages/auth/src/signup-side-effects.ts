@@ -56,7 +56,7 @@ export async function completeSignupSideEffects(params: {
       createdAt: new Date(),
     });
 
-    const message = `Your account was successfully created${ipDisplay}. Welcome to npanel!`;
+    const message = `Your account was successfully created${ipDisplay}. Welcome to Nisc Cloud®!`;
     const nid = crypto.randomUUID();
     await tx.insert(notification).values({
       id: nid,
@@ -102,7 +102,7 @@ export async function sendGoogleSignupWelcomeEmail(params: {
 
   await sendAuthEmail({
     to: params.email,
-    subject: "Welcome to npanel",
+    subject: "Welcome to Nisc Cloud®",
     html,
   });
 }

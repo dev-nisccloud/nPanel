@@ -50,7 +50,7 @@ async function sendTransactionalEmail(params: {
       fromDomainRaw && !fromDomainRaw.includes("@") ? fromDomainRaw : undefined;
     const fromEmail = (process.env.NISC_TX_FROM_EMAIL?.trim() ||
       (fromDomain ? `noreply@${fromDomain}` : "noreply@npanel.com")) as string;
-    const fromName = process.env.NISC_TX_FROM_NAME?.trim() || "nPanel";
+    const fromName = process.env.NISC_TX_FROM_NAME?.trim() || "Nisc Cloud®";
     const replyTo = process.env.NISC_TX_REPLY_TO?.trim() || undefined;
 
     const stripHeaderUnsafe = (value: string) =>
@@ -328,7 +328,7 @@ export const teamsRouter = router({
 
             return {
               to: invite.email,
-              subject: `You've been invited to join ${createdTeam.name} on Nisc Cloud`,
+              subject: `You've been invited to join ${createdTeam.name} on nPanel`,
               html,
               inviteCode: invite.code,
             };
@@ -1600,7 +1600,7 @@ export const teamsRouter = router({
 
         const result = await sendTransactionalEmail({
           to: input.email,
-          subject: `You've been invited to join ${teamRow.name} on Nisc Cloud`,
+          subject: `You've been invited to join ${teamRow.name} on nPanel`,
           html,
         });
 

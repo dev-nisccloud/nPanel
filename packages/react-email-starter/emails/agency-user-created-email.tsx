@@ -24,12 +24,12 @@ export const AgencyUserCreatedEmail = ({
   loginLink,
 }: AgencyUserCreatedEmailProps) => {
   return (
-    <EmailLayout preview="Your agency account has been created - Nisc Cloud">
+    <EmailLayout preview="Your agency account has been created - Nisc Cloud®">
       <EmailHeader />
       <Section>
         <EmailText>Hello {userFirstname},</EmailText>
         <EmailText>
-          An agency user account has been created for you on Nisc Cloud. You now have access to the agency dashboard where you can manage clients, services, and team resources.
+          An agency user account has been created for you with Nisc Cloud®. You now have access to the nPanel agency dashboard where you can manage clients, services, and team resources.
         </EmailText>
         <EmailText>
           <strong>Your account details:</strong>

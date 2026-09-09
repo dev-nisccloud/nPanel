@@ -116,7 +116,7 @@ function getSenderConfig() {
     const fromDomain = fromDomainRaw && !fromDomainRaw.includes("@") ? fromDomainRaw : undefined;
     const fromEmail = process.env.NISC_TX_FROM_EMAIL?.trim() ??
         (fromDomain ? `noreply@${fromDomain}` : "noreply@nisccloud.com");
-    const fromName = process.env.NISC_TX_FROM_NAME?.trim() ?? "Nisc Cloud";
+    const fromName = process.env.NISC_TX_FROM_NAME?.trim() ?? "Nisc Cloud®";
     const replyTo = process.env.NISC_TX_REPLY_TO?.trim() ?? null;
     return { fromEmail, fromName, replyTo };
 }

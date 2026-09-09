@@ -158,7 +158,6 @@ export function SubscriptionsTable({ onViewSubscription, onEditSubscription }: S
 							<TableHead>Billing cycle</TableHead>
 							<TableHead>Subscription date</TableHead>
 							<TableHead>Expiry date</TableHead>
-							<TableHead>Progress</TableHead>
 							<TableHead>Status</TableHead>
 							<TableHead className="w-12" />
 						</TableRow>
@@ -180,9 +179,6 @@ export function SubscriptionsTable({ onViewSubscription, onEditSubscription }: S
 								</TableCell>
 								<TableCell>
 									<Skeleton className="h-4 w-24" />
-								</TableCell>
-								<TableCell>
-									<Skeleton className="h-4 w-16" />
 								</TableCell>
 								<TableCell>
 									<Skeleton className="h-4 w-20" />
@@ -251,7 +247,6 @@ export function SubscriptionsTable({ onViewSubscription, onEditSubscription }: S
 								<TableHead>Billing cycle</TableHead>
 								<TableHead>Subscription date</TableHead>
 								<TableHead>Expiry date</TableHead>
-								<TableHead>Progress</TableHead>
 								<TableHead>Status</TableHead>
 							<TableHead className="w-12" />
 						</TableRow>
@@ -259,7 +254,7 @@ export function SubscriptionsTable({ onViewSubscription, onEditSubscription }: S
 					<TableBody>
 						{filtered.length === 0 ? (
 							<TableRow>
-								<TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+								<TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
 									No subscriptions match &quot;{searchQuery}&quot;
 								</TableCell>
 							</TableRow>
@@ -276,11 +271,6 @@ export function SubscriptionsTable({ onViewSubscription, onEditSubscription }: S
 									<TableCell>{getBillingCycleDisplayName(sub.billingCycle)}</TableCell>
 									<TableCell>{formatDate(sub.subscriptionDate)}</TableCell>
 									<TableCell>{formatDate(sub.expiryDate)}</TableCell>
-									<TableCell>
-										{sub.billingCycle === "ONE_TIME"
-											? `${sub.progressPercent ?? 0}%`
-											: "- "}
-									</TableCell>
 									<TableCell>
 										<Badge variant="outline" className={getStatusBadgeClass(sub.status)}>
 											{sub.status}

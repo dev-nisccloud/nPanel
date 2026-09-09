@@ -388,7 +388,7 @@ export const niscEmailMarketingDomainsRouter = router({
 
       const ses = getSesClient();
       const timestamp = new Date().toLocaleString();
-      const body = `This is a test email from nPanel - ${timestamp} to test the domain name - ${domain.domainName} verification on npanel.`;
+      const body = `This is a test email from Nisc Cloud® sent through nPanel - ${timestamp} to test the domain name - ${domain.domainName} verification.`;
       const fromEmail = `send@${domain.domainName}`;
 
       try {
@@ -398,10 +398,10 @@ export const niscEmailMarketingDomainsRouter = router({
           RawMessage: {
             Data: Buffer.from(
               [
-                `From: nPanel <${fromEmail}>`,
+                `From: Nisc Cloud <${fromEmail}>`,
                 `To: ${input.to}`,
                 ...(input.cc.length ? [`Cc: ${input.cc.join(", ")}`] : []),
-                "Subject: nPanel domain verification test email",
+                "Subject: Nisc Cloud domain verification test email",
                 "MIME-Version: 1.0",
                 'Content-Type: text/plain; charset="UTF-8"',
                 "",

@@ -405,7 +405,7 @@ export function ViewDomainSheet({ open, onOpenChange, domainId }: ViewDomainShee
 							<div>
 								<SheetTitle>Send test email</SheetTitle>
 								<SheetDescription>
-									Send one test email for domain verification using a fixed nPanel message body.
+									Send one test email for domain verification using a fixed Nisc Cloud® message body.
 								</SheetDescription>
 							</div>
 							<SheetClose asChild>
@@ -448,8 +448,8 @@ export function ViewDomainSheet({ open, onOpenChange, domainId }: ViewDomainShee
 							<div className="space-y-2">
 								<p className="text-sm font-medium">Message (fixed)</p>
 								<div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
-									This is a test email from nPanel - timestamp to test the domain name -{" "}
-									<span className="font-medium text-foreground">{domain?.domainName ?? "-"}</span> verification on npanel.
+									This is a test email from Nisc Cloud® sent through nPanel - timestamp to test the domain name -{" "}
+									<span className="font-medium text-foreground">{domain?.domainName ?? "-"}</span> verification.
 								</div>
 							</div>
 							<div className="flex justify-end gap-2 pt-2">

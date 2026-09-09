@@ -18,15 +18,15 @@ export const WelcomeEmail = ({
   loginLink,
 }: WelcomeEmailProps) => {
   return (
-    <EmailLayout preview="Welcome to Nisc Cloud">
+    <EmailLayout preview="Welcome to Nisc Cloud®">
       <EmailHeader />
       <Section>
-        <EmailText>Welcome to Nisc Cloud, {userFirstname}!</EmailText>
+        <EmailText>Welcome to Nisc Cloud®, {userFirstname}!</EmailText>
         <EmailText>
-          Thank you for joining our platform. We're excited to help you transform your business and stand out in the market.
+          Thank you for joining Nisc Cloud®. We&apos;re excited to help you transform your business and stand out in the market.
         </EmailText>
         <EmailText>
-          To get started, please log in to your account and complete your profile setup.
+          To get started, please log in to nPanel and complete your profile setup.
         </EmailText>
         <EmailButton href={loginLink || '#'}>
           Get Started

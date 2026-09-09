@@ -831,7 +831,7 @@ export const auth = betterAuth({
                         });
                         await sendAuthEmail({
                             to: u.email,
-                            subject: "Approve your email change - npanel",
+                            subject: "Approve your email change - Nisc Cloud®",
                             html,
                         });
                     }
@@ -874,7 +874,7 @@ export const auth = betterAuth({
                     });
                     await sendAuthEmail({
                         to: u.email,
-                        subject: "Reset your password - npanel",
+                        subject: "Reset your password - Nisc Cloud®",
                         html,
                     });
                 }
@@ -959,7 +959,7 @@ export const auth = betterAuth({
                     });
                     await sendAuthEmail({
                         to: u.email,
-                        subject: "Password reset successful - npanel",
+                        subject: "Password reset successful - Nisc Cloud®",
                         html,
                     });
                 }
@@ -1057,7 +1057,7 @@ export const auth = betterAuth({
                         });
                         await sendAuthEmail({
                             to: u.email,
-                            subject: "Verify your new email - npanel",
+                            subject: "Verify your new email - Nisc Cloud®",
                             html,
                         });
                     }
@@ -1068,7 +1068,7 @@ export const auth = betterAuth({
                         });
                         await sendAuthEmail({
                             to: u.email,
-                            subject: "Welcome to npanel - Verify your email",
+                            subject: "Welcome to Nisc Cloud® - Verify your email",
                             html,
                         });
                     }

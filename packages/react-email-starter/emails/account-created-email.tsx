@@ -22,12 +22,12 @@ export const AccountCreatedEmail = ({
   loginLink,
 }: AccountCreatedEmailProps) => {
   return (
-    <EmailLayout preview="Your account has been created - Nisc Cloud">
+    <EmailLayout preview="Your account has been created - Nisc Cloud®">
       <EmailHeader />
       <Section>
         <EmailText>Hello {userFirstname},</EmailText>
         <EmailText>
-          An account has been created for you on Nisc Cloud. You can now access your dashboard and manage your services.
+          An account has been created for you with Nisc Cloud®. You can now log in to nPanel to access your dashboard and manage your services.
         </EmailText>
         <EmailText>
           <strong>Your login credentials:</strong>
@@ -42,7 +42,7 @@ export const AccountCreatedEmail = ({
           You can log in to your account using the button below:
         </EmailText>
         <EmailButton href={loginLink || '#'}>
-          Log in to Dashboard
+          Log in to nPanel
         </EmailButton>
         <EmailText>
           <strong>Important Security Notice:</strong>
