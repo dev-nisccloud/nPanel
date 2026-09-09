@@ -61,12 +61,16 @@ function getStatusBadgeClass(status: string): string {
 	return statusColors[status] ?? "";
 }
 
-/** Service label: "Product" or "Product - Plan", then optionally "(subscription name)" e.g. "Domains (example.com)" */
+/** Service label: custom name for one-time services, otherwise "Product - Plan (name)" */
 function displayServiceName(
 	productName: string,
 	productPlanName: string | null,
-	subscriptionName: string | null
+	subscriptionName: string | null,
+	billingCycle?: string | null,
 ): string {
+	if (billingCycle === "ONE_TIME" && subscriptionName?.trim()) {
+		return subscriptionName.trim();
+	}
 	const base = productPlanName?.trim() ? `${productName} - ${productPlanName}` : productName;
 	return subscriptionName?.trim() ? `${base} (${subscriptionName})` : base;
 }
@@ -119,6 +123,7 @@ export function SubscriptionsTable({ onViewSubscription, onEditSubscription }: S
 			(s) =>
 				s.productName.toLowerCase().includes(q) ||
 				(s.productPlanName ?? "").toLowerCase().includes(q) ||
+				(s.subscriptionName ?? "").toLowerCase().includes(q) ||
 				(s.teamName ?? "").toLowerCase().includes(q) ||
 				s.status.toLowerCase().includes(q)
 		);
@@ -128,7 +133,7 @@ export function SubscriptionsTable({ onViewSubscription, onEditSubscription }: S
 		if (!deleteSubscriptionId || !list) return "this subscription";
 		const sub = list.find((s) => s.id === deleteSubscriptionId);
 		if (!sub) return "this subscription";
-		return displayServiceName(sub.productName, sub.productPlanName, sub.subscriptionName);
+		return displayServiceName(sub.productName, sub.productPlanName, sub.subscriptionName, sub.billingCycle);
 	}, [deleteSubscriptionId, list]);
 
 	const handleViewSubscription = React.useCallback(
@@ -153,6 +158,7 @@ export function SubscriptionsTable({ onViewSubscription, onEditSubscription }: S
 							<TableHead>Billing cycle</TableHead>
 							<TableHead>Subscription date</TableHead>
 							<TableHead>Expiry date</TableHead>
+							<TableHead>Progress</TableHead>
 							<TableHead>Status</TableHead>
 							<TableHead className="w-12" />
 						</TableRow>
@@ -174,6 +180,9 @@ export function SubscriptionsTable({ onViewSubscription, onEditSubscription }: S
 								</TableCell>
 								<TableCell>
 									<Skeleton className="h-4 w-24" />
+								</TableCell>
+								<TableCell>
+									<Skeleton className="h-4 w-16" />
 								</TableCell>
 								<TableCell>
 									<Skeleton className="h-4 w-20" />
@@ -242,14 +251,15 @@ export function SubscriptionsTable({ onViewSubscription, onEditSubscription }: S
 								<TableHead>Billing cycle</TableHead>
 								<TableHead>Subscription date</TableHead>
 								<TableHead>Expiry date</TableHead>
-							<TableHead>Status</TableHead>
+								<TableHead>Progress</TableHead>
+								<TableHead>Status</TableHead>
 							<TableHead className="w-12" />
 						</TableRow>
 					</TableHeader>
 					<TableBody>
 						{filtered.length === 0 ? (
 							<TableRow>
-								<TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+								<TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
 									No subscriptions match &quot;{searchQuery}&quot;
 								</TableCell>
 							</TableRow>
@@ -260,12 +270,17 @@ export function SubscriptionsTable({ onViewSubscription, onEditSubscription }: S
 										className="pl-6 cursor-pointer font-medium hover:underline"
 										onClick={() => handleViewSubscription(sub.id)}
 									>
-										{displayServiceName(sub.productName, sub.productPlanName, sub.subscriptionName)}
+										{displayServiceName(sub.productName, sub.productPlanName, sub.subscriptionName, sub.billingCycle)}
 									</TableCell>
 									<TableCell>{organizationName(sub.teamName)}</TableCell>
 									<TableCell>{getBillingCycleDisplayName(sub.billingCycle)}</TableCell>
 									<TableCell>{formatDate(sub.subscriptionDate)}</TableCell>
 									<TableCell>{formatDate(sub.expiryDate)}</TableCell>
+									<TableCell>
+										{sub.billingCycle === "ONE_TIME"
+											? `${sub.progressPercent ?? 0}%`
+											: "- "}
+									</TableCell>
 									<TableCell>
 										<Badge variant="outline" className={getStatusBadgeClass(sub.status)}>
 											{sub.status}

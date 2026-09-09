@@ -35,6 +35,10 @@ import { isZeepoAiAgentProduct } from "../lib/zeepo-agent-order-provisioning";
 import { resolveActiveNiscProductById } from "../lib/planless-product-resolver";
 import { resolveDomainBillingCycle } from "../lib/nisc-subscription-dates";
 import {
+	ensureOneTimeServicesProduct,
+	NISC_ONE_TIME_SERVICES_PRODUCT_ID,
+} from "../lib/one-time-services";
+import {
 	createFromPaymentInputSchema,
 	createOrderInputSchema,
 	getAllNiscOrdersInputSchema,
@@ -780,6 +784,9 @@ export const niscServiceOrdersRouter = router({
 			}
 
 			for (const item of input.items) {
+				if (item.productId === NISC_ONE_TIME_SERVICES_PRODUCT_ID) {
+					item.productId = await ensureOneTimeServicesProduct();
+				}
 				const product = await resolveActiveNiscProductById(item.productId);
 				if (!product) {
 					throw new TRPCError({

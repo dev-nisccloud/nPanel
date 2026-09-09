@@ -39,6 +39,11 @@ import {
 } from "./subscription-status-confirm-dialog";
 import { SubscriptionDeleteDialog } from "./subscription-delete-dialog";
 import { captureEvent } from "@/lib/posthog";
+import {
+	isOneTimeService,
+	SubscriptionProgressPanel,
+} from "./subscription-progress-panel";
+import { SubscriptionNotesPanel } from "./subscription-notes-panel";
 
 function getBillingCycleDisplayName(cycle: string | null): string {
 	if (!cycle) return "- ";
@@ -73,7 +78,10 @@ function getStatusBadgeClass(status: string): string {
 	return statusColors[status] ?? "";
 }
 
-function serviceName(productName: string, productPlanName: string | null): string {
+function serviceName(productName: string, productPlanName: string | null, subscriptionName?: string | null, billingCycle?: string | null): string {
+	if (isOneTimeService(billingCycle) && subscriptionName?.trim()) {
+		return subscriptionName.trim();
+	}
 	if (!productPlanName?.trim()) return productName;
 	return `${productName} - ${productPlanName}`;
 }
@@ -160,6 +168,7 @@ export function SubscriptionViewSheet({
 	const productName = sub?.product?.name ?? "";
 	const productPlanName = sub?.productPlan?.name ?? null;
 	const teamName = sub?.team?.name ?? null;
+	const isOneTime = isOneTimeService(sub?.billingCycle);
 
 	const isSuspended = sub?.status === "SUSPENDED";
 	const canReactivate = isSuspended;
@@ -172,7 +181,7 @@ export function SubscriptionViewSheet({
 	const subscriptionDisplayName =
 		sub?.name?.trim() ||
 		sub?.primaryDomain?.trim() ||
-		serviceName(productName, productPlanName) ||
+		serviceName(productName, productPlanName, sub?.name, sub?.billingCycle) ||
 		"this subscription";
 
 	const [statusConfirmAction, setStatusConfirmAction] =
@@ -235,12 +244,10 @@ export function SubscriptionViewSheet({
 								{subscriptionId && isLoading ? (
 									<Skeleton className="h-6 w-48" />
 								) : (
-									serviceName(productName, productPlanName) || "Subscription"
+									serviceName(productName, productPlanName, sub?.name, sub?.billingCycle) || "Subscription"
 								)}
 							</SheetTitle>
-							<SheetDescription>
-								Subscription details and actions
-							</SheetDescription>
+							<SheetDescription>Subscription details</SheetDescription>
 						</div>
 					</div>
 				</SheetHeader>
@@ -299,6 +306,18 @@ export function SubscriptionViewSheet({
 									</div>
 								</section>
 
+								{isOneTime ? (
+									<>
+										<SubscriptionProgressPanel
+											subscriptionId={sub.id}
+											progressPercent={sub.progressPercent}
+											progressStatus={sub.progressStatus}
+											canEdit
+										/>
+										<SubscriptionNotesPanel subscriptionId={sub.id} canWrite />
+									</>
+								) : null}
+
 								{/* Billing */}
 								<section className="space-y-2">
 									<h3 className="text-sm font-medium text-muted-foreground">Billing</h3>
@@ -307,10 +326,12 @@ export function SubscriptionViewSheet({
 											<span className="text-muted-foreground">Billing cycle</span>
 											<span className="font-medium">{getBillingCycleDisplayName(sub.billingCycle)}</span>
 										</div>
+										{!isOneTime && (
 										<div className="flex justify-between items-center gap-2">
 											<span className="text-muted-foreground">Auto renew</span>
 											<span className="font-medium">{sub.autoRenew ? "Yes" : "No"}</span>
 										</div>
+										)}
 										{(sub.agreedPrice != null || sub.agreedCurrency) && (
 											<div className="flex justify-between items-center gap-2">
 												<span className="text-muted-foreground">Agreed price</span>
@@ -323,7 +344,7 @@ export function SubscriptionViewSheet({
 									</div>
 								</section>
 
-								{sub.notes ? (
+								{!isOneTime && sub.notes ? (
 									<section className="space-y-2">
 										<h3 className="text-sm font-medium text-muted-foreground">Notes</h3>
 										<div className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
@@ -346,15 +367,17 @@ export function SubscriptionViewSheet({
 									Suspend
 								</Button>
 							)}
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => onSendRenewalEmail?.(sub.id)}
-								disabled={!sub.teamId || !onSendRenewalEmail || isActionPending}
-							>
-								<Mail className="mr-2 h-4 w-4" />
-								Send renewal email
-							</Button>
+							{!isOneTime && (
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => onSendRenewalEmail?.(sub.id)}
+									disabled={!sub.teamId || !onSendRenewalEmail || isActionPending}
+								>
+									<Mail className="mr-2 h-4 w-4" />
+									Send renewal email
+								</Button>
+							)}
 							{canReactivate && (
 								<Button
 									variant="outline"

@@ -17,6 +17,7 @@ export const billingCycleSchema = z.enum([
 	"TRIENNIALLY",
 	"QUADRENNIALLY",
 	"CUSTOM",
+	"ONE_TIME",
 ]);
 export type BillingCycle = z.infer<typeof billingCycleSchema>;
 

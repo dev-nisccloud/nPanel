@@ -14,6 +14,7 @@ export const billingCycleSchema = z.enum([
     "TRIENNIALLY",
     "QUADRENNIALLY",
     "CUSTOM",
+    "ONE_TIME",
 ]);
 export const niscOrderStatusSchema = z.enum([
     "PENDING",
