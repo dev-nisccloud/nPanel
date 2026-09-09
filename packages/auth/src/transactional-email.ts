@@ -184,7 +184,7 @@ export async function sendAuthEmail(params: {
 }) {
   const fromDomain = requireEnv("NISC_TX_EMAIL_DOMAIN");
   const fromAddress = optionalEnv("NISC_TX_FROM_EMAIL") ?? `noreply@${fromDomain}`;
-  const fromName = optionalEnv("NISC_TX_FROM_NAME") ?? "nPanel";
+  const fromName = optionalEnv("NISC_TX_FROM_NAME") ?? "Nisc Cloud®";
   const defaultReplyTo = optionalEnv("NISC_TX_REPLY_TO");
   const replyTo = params.replyTo ?? defaultReplyTo;
 
@@ -217,7 +217,7 @@ export async function sendTransactionalEmail(params: {
 }) {
   const fromDomain = requireEnv("NISC_TX_EMAIL_DOMAIN");
   const fromAddress = optionalEnv("NISC_TX_FROM_EMAIL") ?? `noreply@${fromDomain}`;
-  const fromName = optionalEnv("NISC_TX_FROM_NAME") ?? "nPanel";
+  const fromName = optionalEnv("NISC_TX_FROM_NAME") ?? "Nisc Cloud®";
   const defaultReplyTo = optionalEnv("NISC_TX_REPLY_TO");
   const replyTo = params.replyTo ?? defaultReplyTo;
 

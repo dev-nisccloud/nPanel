@@ -24,7 +24,7 @@ import {
         <Section>
           <EmailText>Hello {userFirstname},</EmailText>
           <EmailText>
-            Someone recently requested a password change for your Nisc Cloud
+            Someone recently requested a password change for your Nisc Cloud®
             account. If this was you, you can set a new password here:
           </EmailText>
           <EmailButton href={resetPasswordLink || '#'}>

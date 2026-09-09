@@ -26,17 +26,17 @@ export const TeamInviteEmail = ({
   expiresInDays = 7,
 }: TeamInviteEmailProps) => {
   return (
-    <EmailLayout preview={`You've been invited to join ${teamName} on npanel`}>
+    <EmailLayout preview={`You've been invited to join ${teamName} on nPanel`}>
       <EmailHeader />
       <Section>
         <EmailText>Hello,</EmailText>
         <EmailText>
-          {inviterName} has invited you to join <strong>{teamName}</strong> on npanel as a {teamRole}.
+          {inviterName} has invited you to join <strong>{teamName}</strong> on nPanel as a {teamRole}.
         </EmailText>
         <EmailText>
-          npanel is Nisc Cloud&apos;s comprehensive management platform for your cloud services.
+          nPanel is Nisc Cloud®&apos;s management platform for your cloud services.
           It helps teams manage domains, hosting services, WordPress installations, and all your
-          Nisc Cloud resources from one centralized dashboard.
+          Nisc Cloud® resources from one centralized dashboard.
         </EmailText>
         <EmailText>
           By accepting this invitation, you will be able to:

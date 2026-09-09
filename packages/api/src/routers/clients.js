@@ -405,7 +405,7 @@ export const clientsRouter = router({
             });
             await sendEmail({
                 to: input.email,
-                subject: "Your account has been created - Nisc Cloud",
+                subject: "Your account has been created - Nisc Cloud®",
                 html,
             });
         }

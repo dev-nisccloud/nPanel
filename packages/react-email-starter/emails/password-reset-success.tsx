@@ -28,7 +28,7 @@ export const PasswordResetSuccessEmail = ({
       <Section>
         <EmailText>Hello {userFirstname},</EmailText>
         <EmailText>
-          Your password has been successfully reset for your Nisc Cloud account. 
+          Your password has been successfully reset for your Nisc Cloud® account. 
           You can now log in using your new password.
         </EmailText>
         <EmailText>

@@ -207,7 +207,7 @@ export const ServiceRestorationConfirmationEmail = ({
         </EmailText>
 
         <EmailText>
-          Thank you for choosing Nisc Cloud. We appreciate your business and are 
+          Thank you for choosing Nisc Cloud®. We appreciate your business and are 
           committed to providing reliable cloud services for your needs.
         </EmailText>
         <EmailSignature />

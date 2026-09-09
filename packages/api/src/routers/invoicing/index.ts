@@ -2327,7 +2327,7 @@ export const invoicingRouter = router({
 				supportPhone: "+254 748 777 666",
 			});
 
-			const fromName = process.env.NISC_TX_FROM_NAME?.trim() || "nPanel";
+			const fromName = process.env.NISC_TX_FROM_NAME?.trim() || "Nisc Cloud®";
 
 			try {
 				await sendInvoiceReminderEmail({

@@ -39,7 +39,7 @@ export const AccountEmailChangeEmail = ({
         {isConfirm ? (
           <>
             <EmailText>
-              Someone requested to change the email address on your Nisc Cloud
+              Someone requested to change the email address on your Nisc Cloud®
               account to <strong>{newEmail || 'a new address'}</strong>.
             </EmailText>
             <EmailText>
@@ -50,7 +50,7 @@ export const AccountEmailChangeEmail = ({
         ) : (
           <>
             <EmailText>
-              You approved an email change for your Nisc Cloud account. Please
+              You approved an email change for your Nisc Cloud® account. Please
               verify that you own <strong>{newEmail || 'this address'}</strong>{' '}
               to complete the update.
             </EmailText>

@@ -377,7 +377,7 @@ export const manageUsersRouter = router({
 
 				await sendEmail({
 					to: input.email,
-					subject: "Your agency account has been created - Nisc Cloud",
+					subject: "Your agency account has been created - Nisc Cloud®",
 					html,
 				});
 			} catch (emailError) {

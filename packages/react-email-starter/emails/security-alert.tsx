@@ -33,7 +33,7 @@ export const SecurityAlertEmail = ({
         </EmailText>
         <EmailText>Hello {userFirstname},</EmailText>
         <EmailText>
-          We detected suspicious activity on your Nisc Cloud account. Someone recently 
+          We detected suspicious activity on your Nisc Cloud® account. Someone recently 
           requested a {suspiciousActivity} for your account.
         </EmailText>
         <EmailText>
