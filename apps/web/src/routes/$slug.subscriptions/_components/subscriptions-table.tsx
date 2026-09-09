@@ -38,12 +38,16 @@ function getStatusBadgeClass(status: string): string {
 	return statusColors[status] ?? "";
 }
 
-/** Same as agency: "Product" or "Product - Plan", then "(subscription name)" e.g. "Domains (example.com)" */
+/** Same as agency: custom name for one-time, otherwise "Product - Plan (name)" */
 function displayServiceName(
 	productName: string,
 	productPlanName: string | null,
 	subscriptionName: string | null,
+	billingCycle?: string | null,
 ): string {
+	if (billingCycle === "ONE_TIME" && subscriptionName?.trim()) {
+		return subscriptionName.trim();
+	}
 	const base = productPlanName?.trim() ? `${productName} - ${productPlanName}` : productName;
 	return subscriptionName?.trim() ? `${base} (${subscriptionName})` : base;
 }
@@ -95,6 +99,7 @@ export function CustomerSubscriptionsTable({ onViewSubscription }: CustomerSubsc
 							<TableHead className="pl-6">Service Name</TableHead>
 							<TableHead>Subscription date</TableHead>
 							<TableHead>Expiry date</TableHead>
+							<TableHead>Progress</TableHead>
 							<TableHead>Status</TableHead>
 							<TableHead className="w-12" />
 						</TableRow>
@@ -110,6 +115,9 @@ export function CustomerSubscriptionsTable({ onViewSubscription }: CustomerSubsc
 								</TableCell>
 								<TableCell>
 									<Skeleton className="h-4 w-24" />
+								</TableCell>
+								<TableCell>
+									<Skeleton className="h-4 w-16" />
 								</TableCell>
 								<TableCell>
 									<Skeleton className="h-4 w-20" />
@@ -176,6 +184,7 @@ export function CustomerSubscriptionsTable({ onViewSubscription }: CustomerSubsc
 								<TableHead className="pl-6">Service Name</TableHead>
 								<TableHead>Subscription date</TableHead>
 								<TableHead>Expiry date</TableHead>
+								<TableHead>Progress</TableHead>
 								<TableHead>Status</TableHead>
 								<TableHead className="w-24">Actions</TableHead>
 							</TableRow>
@@ -183,7 +192,7 @@ export function CustomerSubscriptionsTable({ onViewSubscription }: CustomerSubsc
 						<TableBody>
 							{filtered.length === 0 ? (
 								<TableRow>
-									<TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+									<TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
 										No subscriptions match &quot;{searchQuery}&quot;
 									</TableCell>
 								</TableRow>
@@ -195,10 +204,16 @@ export function CustomerSubscriptionsTable({ onViewSubscription }: CustomerSubsc
 												sub.productName,
 												sub.productPlanName,
 												sub.subscriptionName,
+												sub.billingCycle,
 											)}
 										</TableCell>
 										<TableCell>{formatDate(sub.subscriptionDate)}</TableCell>
 										<TableCell>{formatDate(sub.expiryDate)}</TableCell>
+										<TableCell>
+											{sub.billingCycle === "ONE_TIME"
+												? `${sub.progressPercent ?? 0}%`
+												: "- "}
+										</TableCell>
 										<TableCell>
 											<Badge variant="outline" className={getStatusBadgeClass(sub.status)}>
 												{sub.status}

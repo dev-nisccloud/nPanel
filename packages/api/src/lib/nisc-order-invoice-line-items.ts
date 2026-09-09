@@ -56,6 +56,8 @@ function billingCycleLabel(billingCycle: string | null | undefined): string {
 			return "3 years";
 		case "QUADRENNIALLY":
 			return "4 years";
+		case "ONE_TIME":
+			return "one-time";
 		default:
 			return "1 year";
 	}
@@ -172,6 +174,7 @@ export function resolveHostingServiceLabel(
 function resolveIdentifier(item: NiscOrderItemForInvoice): string {
 	if (item.primaryDomain?.trim()) return item.primaryDomain.trim();
 	if (item.productPlan?.name?.trim()) return item.productPlan.name.trim();
+	if (item.description?.trim()) return item.description.trim();
 	return "";
 }
 

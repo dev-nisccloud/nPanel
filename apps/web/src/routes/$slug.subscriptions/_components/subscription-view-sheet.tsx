@@ -14,6 +14,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Package, Building2 } from "lucide-react";
 import { trpc } from "@/utils/trpc";
 import { captureEvent } from "@/lib/posthog";
+import {
+	isOneTimeService,
+	SubscriptionProgressPanel,
+} from "@/routes/agency.subscriptions/_components/subscription-progress-panel";
+import { SubscriptionNotesPanel } from "@/routes/agency.subscriptions/_components/subscription-notes-panel";
 
 function getBillingCycleDisplayName(cycle: string | null): string {
 	if (!cycle) return "- ";
@@ -22,6 +27,7 @@ function getBillingCycleDisplayName(cycle: string | null): string {
 		YEARLY: "Yearly",
 		BIENNIALLY: "Biennially",
 		CUSTOM: "Custom",
+		ONE_TIME: "One-time",
 	};
 	return m[cycle] ?? cycle;
 }
@@ -51,7 +57,11 @@ function displayServiceName(
 	productName: string,
 	productPlanName: string | null,
 	subscriptionName: string | null,
+	billingCycle?: string | null,
 ): string {
+	if (isOneTimeService(billingCycle) && subscriptionName?.trim()) {
+		return subscriptionName.trim();
+	}
 	const base = productPlanName?.trim() ? `${productName} - ${productPlanName}` : productName;
 	return subscriptionName?.trim() ? `${base} (${subscriptionName})` : base;
 }
@@ -85,6 +95,7 @@ export function CustomerSubscriptionViewSheet({
 	const productPlanName = sub?.productPlan?.name ?? null;
 	const subscriptionName = sub?.name ?? null;
 	const teamName = sub?.team?.name ?? null;
+	const isOneTime = isOneTimeService(sub?.billingCycle);
 
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>
@@ -99,13 +110,11 @@ export function CustomerSubscriptionViewSheet({
 								{subscriptionId && isLoading ? (
 									<Skeleton className="h-6 w-48" />
 								) : (
-									displayServiceName(productName, productPlanName, subscriptionName) ||
+									displayServiceName(productName, productPlanName, subscriptionName, sub?.billingCycle) ||
 										"Subscription"
 								)}
 							</SheetTitle>
-							<SheetDescription>
-								Subscription details
-							</SheetDescription>
+							<SheetDescription>Subscription details</SheetDescription>
 						</div>
 					</div>
 				</SheetHeader>
@@ -156,6 +165,18 @@ export function CustomerSubscriptionViewSheet({
 								</div>
 							</section>
 
+							{isOneTime ? (
+								<>
+									<SubscriptionProgressPanel
+										subscriptionId={sub.id}
+										progressPercent={sub.progressPercent}
+										progressStatus={sub.progressStatus}
+										canEdit={false}
+									/>
+									<SubscriptionNotesPanel subscriptionId={sub.id} canWrite={false} />
+								</>
+							) : null}
+
 							{/* Billing */}
 							<section className="space-y-2">
 								<h3 className="text-sm font-medium text-muted-foreground">Billing</h3>
@@ -164,10 +185,12 @@ export function CustomerSubscriptionViewSheet({
 										<span className="text-muted-foreground">Billing cycle</span>
 										<span className="font-medium">{getBillingCycleDisplayName(sub.billingCycle)}</span>
 									</div>
+									{!isOneTime && (
 									<div className="flex justify-between items-center gap-2">
 										<span className="text-muted-foreground">Auto renew</span>
 										<span className="font-medium">{sub.autoRenew ? "Yes" : "No"}</span>
 									</div>
+									)}
 									{(sub.agreedPrice != null || sub.agreedCurrency) && (
 										<div className="flex justify-between items-center gap-2">
 											<span className="text-muted-foreground">Agreed price</span>
@@ -180,7 +203,7 @@ export function CustomerSubscriptionViewSheet({
 								</div>
 							</section>
 
-							{sub.notes ? (
+							{!isOneTime && sub.notes ? (
 								<section className="space-y-2">
 									<h3 className="text-sm font-medium text-muted-foreground">Notes</h3>
 									<div className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">

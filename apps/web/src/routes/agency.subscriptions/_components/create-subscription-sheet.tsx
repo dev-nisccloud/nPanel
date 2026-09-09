@@ -52,6 +52,7 @@ const SERVICE_PRODUCT_IDS = [
 	"seo_reports",
 	"creatives_design",
 	"media_buying",
+	"one_time_service",
 ] as const;
 
 type ServiceProductId = (typeof SERVICE_PRODUCT_IDS)[number];
@@ -63,7 +64,7 @@ type ServiceProductDef = {
 	needsDomain: boolean;
 	needsProvisionUser: boolean;
 	supportsZeepoTokens: boolean;
-	defaultBillingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM";
+	defaultBillingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | "ONE_TIME";
 };
 
 const SERVICE_PRODUCTS: ServiceProductDef[] = [
@@ -138,6 +139,15 @@ const SERVICE_PRODUCTS: ServiceProductDef[] = [
 		needsProvisionUser: false,
 		supportsZeepoTokens: false,
 		defaultBillingCycle: "MONTHLY",
+	},
+	{
+		id: "one_time_service",
+		label: "One-time service",
+		needsPlan: false,
+		needsDomain: false,
+		needsProvisionUser: false,
+		supportsZeepoTokens: false,
+		defaultBillingCycle: "ONE_TIME",
 	},
 ];
 
@@ -281,7 +291,9 @@ const createFormSchema = z
 		teamId: z.string().min(1, "Select an organization"),
 		serviceProduct: z.enum(SERVICE_PRODUCT_IDS),
 		planId: z.string().optional(),
-		billingCycle: z.enum(["MONTHLY", "YEARLY", "BIENNIALLY", "CUSTOM"]).optional(),
+		serviceName: z.string().optional(),
+		customPrice: z.string().optional(),
+		billingCycle: z.enum(["MONTHLY", "YEARLY", "BIENNIALLY", "CUSTOM", "ONE_TIME"]).optional(),
 		provisionUserId: z.string().optional(),
 		primaryDomain: z.string().optional(),
 		portfolioDomainId: z.string().optional(),
@@ -331,6 +343,24 @@ const createFormSchema = z
 
 		if (def.needsPlan && !data.planId?.trim()) {
 			ctx.addIssue({ code: "custom", message: "Select a plan", path: ["planId"] });
+		}
+
+		if (data.serviceProduct === "one_time_service") {
+			if (!data.serviceName?.trim()) {
+				ctx.addIssue({
+					code: "custom",
+					message: "Enter a service name",
+					path: ["serviceName"],
+				});
+			}
+			const price = Number.parseFloat(data.customPrice ?? "");
+			if (!Number.isFinite(price) || price <= 0) {
+				ctx.addIssue({
+					code: "custom",
+					message: "Enter a price greater than 0",
+					path: ["customPrice"],
+				});
+			}
 		}
 
 		if (def.needsProvisionUser && !data.provisionUserId?.trim()) {
@@ -448,6 +478,8 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 			teamId: "",
 			serviceProduct: "zeepo_ai_agent",
 			planId: "",
+			serviceName: "",
+			customPrice: "",
 			billingCycle: "MONTHLY",
 			provisionUserId: "",
 			primaryDomain: "",
@@ -468,6 +500,8 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 	const watchedBillingCycle = form.watch("billingCycle");
 	const watchedOverride = form.watch("overrideTokens");
 	const watchedServiceProduct = form.watch("serviceProduct");
+	const watchedServiceName = form.watch("serviceName");
+	const watchedCustomPrice = form.watch("customPrice");
 	const watchedProvisionUserId = form.watch("provisionUserId");
 	const watchedPrimaryDomain = form.watch("primaryDomain");
 	const watchedPortfolioDomainId = form.watch("portfolioDomainId");
@@ -482,12 +516,17 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 	const [checkoutRequestId, setCheckoutRequestId] = React.useState<string | null>(null);
 	const [paymentError, setPaymentError] = React.useState<string | null>(null);
 	const [isAwaitingPayment, setIsAwaitingPayment] = React.useState(false);
+	const [submitting, setSubmitting] = React.useState(false);
 
 	// STK Push polling refs (instant polling pattern like storefront)
 	const pollingIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
 	const pollingQuickRetryRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 	const terminalStateDetectedRef = React.useRef(false);
 	const pollAttemptsRef = React.useRef(0);
+	const pendingStkCreateRef = React.useRef<{
+		productId: string;
+		billedForUserId: string;
+	} | null>(null);
 
 	const stopPolling = React.useCallback(() => {
 		if (pollingQuickRetryRef.current !== null) {
@@ -576,6 +615,7 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 	const isSeo = watchedServiceProduct === "seo_reports";
 	const isCreatives = watchedServiceProduct === "creatives_design";
 	const isMediaBuying = watchedServiceProduct === "media_buying";
+	const isOneTime = watchedServiceProduct === "one_time_service";
 
 	const { data: zeepoPlansData, isLoading: loadingZeepoPlans } =
 		trpc.zeepoAgent.billing.listPurchasePlans.useQuery(
@@ -617,6 +657,11 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 		trpc.products.getMediaBuyingPlansForPricing.useQuery(undefined, {
 			enabled: open && isMediaBuying,
 		});
+
+	const { data: oneTimeProductId } = trpc.clientSubscriptions.getOneTimeServicesProductId.useQuery(
+		undefined,
+		{ enabled: open },
+	);
 
 	const zeepoPlans = React.useMemo((): CatalogPlanOption[] => {
 		return (zeepoPlansData?.data ?? [])
@@ -732,8 +777,10 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 
 	React.useEffect(() => {
 		form.setValue("planId", "");
-		form.setValue("billingCycle", "MONTHLY");
+		form.setValue("billingCycle", getServiceDef(watchedServiceProduct).defaultBillingCycle);
 		form.setValue("amount", "");
+		form.setValue("serviceName", "");
+		form.setValue("customPrice", "");
 		form.setValue("overrideTokens", false);
 		form.setValue("tokenGrant", "");
 		form.setValue("primaryDomain", "");
@@ -820,27 +867,113 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 		form.setValue("amount", String(Math.ceil(calculatedAmount)));
 	}, [selectedPlan, watchedBillingCycle, calculateAmountForBillingCycle, form]);
 
+	React.useEffect(() => {
+		if (!isOneTime) return;
+		const exVat = Number.parseFloat(watchedCustomPrice ?? "");
+		if (!Number.isFinite(exVat) || exVat <= 0) {
+			form.setValue("amount", "");
+			return;
+		}
+		form.setValue("amount", String(Math.ceil(exVat * 1.16)));
+	}, [isOneTime, watchedCustomPrice, form]);
+
 	const recordManualPayment = trpc.paymentTransactions.recordManual.useMutation();
 	const createFromPayment = trpc.niscServiceOrders.createFromPayment.useMutation();
 
+	const buildOrderPricing = React.useCallback(
+		(data: CreateFormData) => {
+			const def = getServiceDef(data.serviceProduct);
+			const amount = Math.ceil(Number.parseFloat(data.amount));
+			if (def.id === "one_time_service") {
+				const actualPlanPriceExVat = Math.ceil(Number.parseFloat(data.customPrice ?? "0"));
+				const actualPlanPrice = Math.ceil(actualPlanPriceExVat * 1.16);
+				const description = data.serviceName?.trim() || def.label;
+				return {
+					billingCycle: "ONE_TIME" as const,
+					actualPlanPrice,
+					actualPlanPriceExVat,
+					description,
+					amount,
+					metadata: {
+						billingCycle: "ONE_TIME",
+						actualPlanPrice: String(actualPlanPrice),
+						actualPlanPriceExVat: String(actualPlanPriceExVat),
+						amountPaid: String(amount),
+						isPartialPayment: amount < actualPlanPrice,
+						subscriptionName: description,
+					} satisfies Record<string, unknown>,
+				};
+			}
+
+			let billingCycle = data.billingCycle || def.defaultBillingCycle || "MONTHLY";
+			if (selectedPlan && !data.billingCycle) {
+				billingCycle =
+					selectedPlan.zeepoPlanType === "top_up"
+						? "CUSTOM"
+						: normalizeBillingCycle(selectedPlan.billingCycle);
+			}
+			const actualPlanPrice = selectedPlan
+				? calculateAmountForBillingCycle(selectedPlan.displayPrice, billingCycle || "MONTHLY")
+				: amount;
+			const actualPlanPriceExVat = Math.ceil(actualPlanPrice / 1.16);
+			return {
+				billingCycle,
+				actualPlanPrice,
+				actualPlanPriceExVat,
+				description: selectedPlan?.name ?? def.label,
+				amount,
+				metadata: {
+					billingCycle,
+					actualPlanPrice: String(Math.ceil(actualPlanPrice)),
+					actualPlanPriceExVat: String(actualPlanPriceExVat),
+					amountPaid: String(amount),
+					isPartialPayment: amount < Math.ceil(actualPlanPrice),
+				} satisfies Record<string, unknown>,
+			};
+		},
+		[selectedPlan, calculateAmountForBillingCycle],
+	);
+
+	const resolveProductId = React.useCallback((): string | null => {
+		if (isOneTime) return oneTimeProductId ? String(oneTimeProductId) : null;
+		if (isZeepo) return zeepoPlansData?.productId ? String(zeepoPlansData.productId) : null;
+		return selectedPlan?.productId ?? null;
+	}, [isOneTime, oneTimeProductId, isZeepo, zeepoPlansData?.productId, selectedPlan?.productId]);
+
+	const resolveCustomerBilledForUserId = React.useCallback(
+		(provisionUserId?: string) => {
+			return (
+				provisionUserId?.trim() ||
+				defaultOwnerUserId ||
+				teamMembers.find((m) => m.role === "OWNER")?.userId ||
+				teamMembers[0]?.userId ||
+				""
+			);
+		},
+		[defaultOwnerUserId, teamMembers],
+	);
+
 	const proceedWithSubscriptionCreation = React.useCallback(async (successCheckoutRequestId: string) => {
+		setIsAwaitingPayment(false);
 		try {
 			const data = form.getValues();
 			const def = getServiceDef(data.serviceProduct);
+			const pending = pendingStkCreateRef.current;
 			const billedForUserId =
-				data.provisionUserId?.trim() ||
-				defaultOwnerUserId ||
-				teamMembers.find((m) => m.role === "OWNER")?.userId ||
-				teamMembers[0]?.userId;
+				pending?.billedForUserId || resolveCustomerBilledForUserId(data.provisionUserId);
 
-			const productId = resolveProductId();
+			const productId = pending?.productId || resolveProductId();
 			if (!productId) {
 				toast.error("Product is not available.");
 				setIsAwaitingPayment(false);
 				return;
 			}
+			if (!billedForUserId) {
+				toast.error("Select a customer organization with at least one member.");
+				setIsAwaitingPayment(false);
+				return;
+			}
 
-			const amount = Math.ceil(Number.parseFloat(data.amount));
 			const currency = selectedPlan?.displayCurrency || "KES";
 			
 			let primaryDomain: string | undefined;
@@ -854,43 +987,31 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 				primaryDomain = domainResult.normalized;
 			}
 
-			const provisionUserId = billedForUserId || undefined;
-
-			const actualPlanPrice = selectedPlan 
-				? calculateAmountForBillingCycle(selectedPlan.displayPrice, data.billingCycle || "MONTHLY")
-				: amount;
-			const actualPlanPriceExVat = Math.ceil(actualPlanPrice / 1.16);
-
-			const metadata: Record<string, unknown> = {
-				billingCycle: data.billingCycle || "MONTHLY",
-				actualPlanPrice: String(Math.ceil(actualPlanPrice)),
-				actualPlanPriceExVat: String(actualPlanPriceExVat),
-				amountPaid: String(amount),
-				isPartialPayment: amount < Math.ceil(actualPlanPrice),
-			};
+			const pricing = buildOrderPricing(data);
+			const metadata: Record<string, unknown> = { ...pricing.metadata };
 
 			if (def.supportsZeepoTokens && data.overrideTokens && data.tokenGrant?.trim()) {
 				metadata[ZEEPO_TOKEN_OVERRIDE_KEY] = Number.parseInt(data.tokenGrant, 10);
 			}
 
-			if (provisionUserId && def.needsProvisionUser) {
-				metadata.provisionUserId = provisionUserId;
+			if (def.needsProvisionUser) {
+				metadata.provisionUserId = billedForUserId;
 			}
 
 			await createFromPayment.mutateAsync({
 				checkoutRequestId: successCheckoutRequestId,
 				teamId: data.teamId,
-				...(provisionUserId ? { billedForUserId: provisionUserId } : {}),
+				billedForUserId,
 				currency,
 				skipInvoice: !data.createInvoice,
 				items: [
 					{
 						productId,
-						productPlanId: data.planId || undefined,
-						billingCycle: data.billingCycle || "MONTHLY",
-						itemPrice: String(actualPlanPriceExVat),
-						itemSubtotal: String(actualPlanPriceExVat),
-						description: selectedPlan?.name ?? def.label,
+						productPlanId: def.needsPlan ? data.planId || undefined : undefined,
+						billingCycle: pricing.billingCycle,
+						itemPrice: String(pricing.actualPlanPriceExVat),
+						itemSubtotal: String(pricing.actualPlanPriceExVat),
+						description: pricing.description,
 						...(primaryDomain ? { primaryDomain } : {}),
 						metadata,
 					},
@@ -901,6 +1022,7 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 			captureEvent("subscription_created");
 			setIsAwaitingPayment(false);
 			setCheckoutRequestId(null);
+			pendingStkCreateRef.current = null;
 			onOpenChange(false);
 			void utils.clientSubscriptions.listForAgency.invalidate();
 			void utils.niscServiceOrders.getAll.invalidate();
@@ -908,19 +1030,18 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 			const message = err instanceof Error ? err.message : "Could not create subscription.";
 			toast.error(message);
 			setIsAwaitingPayment(false);
+		} finally {
+			setSubmitting(false);
 		}
-	}, [form, defaultOwnerUserId, teamMembers, selectedPlan, createFromPayment, utils, onOpenChange, calculateAmountForBillingCycle]);
-
-	const resolveProductId = React.useCallback((): string | null => {
-		if (isZeepo) return zeepoPlansData?.productId ? String(zeepoPlansData.productId) : null;
-		return selectedPlan?.productId ?? null;
-	}, [isZeepo, zeepoPlansData?.productId, selectedPlan?.productId]);
+	}, [form, resolveCustomerBilledForUserId, resolveProductId, selectedPlan, createFromPayment, utils, onOpenChange, buildOrderPricing]);
 
 	const handlePaymentFailure = React.useCallback((msg: string) => {
 		stopPolling();
 		terminalStateDetectedRef.current = true;
+		pendingStkCreateRef.current = null;
 		setPaymentError(msg);
 		setIsAwaitingPayment(false);
+		setSubmitting(false);
 		toast.error(msg);
 	}, [stopPolling]);
 
@@ -1021,21 +1142,11 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 
 	// STK Push mutations
 	const initiateMpesaPayment = trpc.paymentGateway.mpesa.initiateStkPush.useMutation({
-		onSuccess: (response) => {
-			const checkoutId = response.data?.checkoutRequestId;
-			if (!checkoutId) {
-				toast.error("Payment request sent but failed to get transaction ID.");
-				setIsAwaitingPayment(false);
-				return;
-			}
-			setCheckoutRequestId(checkoutId);
-			setPaymentError(null);
-			toast.message("Check customer's phone for the M-Pesa prompt.");
-			startPolling(checkoutId);
-		},
 		onError: (error) => {
 			toast.error(error.message || "Failed to initiate M-Pesa payment");
+			pendingStkCreateRef.current = null;
 			setIsAwaitingPayment(false);
+			setSubmitting(false);
 			setPaymentError(error.message);
 		},
 	});
@@ -1060,20 +1171,19 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 		return map[resultCode] ?? resultDesc ?? `Payment failed with error code ${resultCode}`;
 	}
 
-	const [submitting, setSubmitting] = React.useState(false);
-
 	const onSubmit = form.handleSubmit(
 		async (data) => {
 			const def = getServiceDef(data.serviceProduct);
-			const billedForUserId =
-				data.provisionUserId?.trim() ||
-				defaultOwnerUserId ||
-				teamMembers.find((m) => m.role === "OWNER")?.userId ||
-				teamMembers[0]?.userId;
+			const billedForUserId = resolveCustomerBilledForUserId(data.provisionUserId);
 
 			const productId = resolveProductId();
 			if (!productId) {
 				toast.error("Product is not available. Check that it is seeded and active.");
+				return;
+			}
+
+			if (!billedForUserId) {
+				toast.error("Select a customer organization with at least one member.");
 				return;
 			}
 
@@ -1094,9 +1204,8 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 				}
 				primaryDomain = domainResult.normalized;
 			}
-			const provisionUserId = billedForUserId || undefined;
 
-			if (def.needsProvisionUser && !provisionUserId) {
+			if (def.needsProvisionUser && !data.provisionUserId?.trim()) {
 				toast.error("Select the provisioning identity user.");
 				form.setError("provisionUserId", {
 					message: "Select the user whose profile will be used for provisioning",
@@ -1109,22 +1218,32 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 				setIsAwaitingPayment(true);
 				setSubmitting(true);
 				try {
-					const productLabel = def.label;
-					const planLabel = selectedPlan?.name ?? primaryDomain ?? "order";
 					const phoneNumber = data.mpesaPhoneNumber?.trim() || "";
-					
-				await initiateMpesaPayment.mutateAsync({
+					pendingStkCreateRef.current = { productId, billedForUserId };
+				const response = await initiateMpesaPayment.mutateAsync({
 					phoneNumber,
 					amount,
 					accountReference: `SUB${Date.now().toString().slice(-8)}`, // Alphanumeric only, max 12 chars
-					transactionDesc: `${productLabel}`.slice(0, 13),
+					transactionDesc: def.label.slice(0, 13),
 					checkoutTotalIncVat: amount,
 					teamId: data.teamId,
-					billedForUserId: provisionUserId,
+					billedForUserId,
 				});
-					// Payment status will be handled by the polling effect
+					const checkoutId = response.data?.checkoutRequestId;
+					if (!checkoutId) {
+						pendingStkCreateRef.current = null;
+						toast.error("Payment request sent but failed to get transaction ID.");
+						setIsAwaitingPayment(false);
+						setSubmitting(false);
+						return;
+					}
+					setCheckoutRequestId(checkoutId);
+					setPaymentError(null);
+					toast.message("Check customer's phone for the M-Pesa prompt.");
+					startPolling(checkoutId);
 				} catch (error) {
 					// Error handled by mutation onError
+					pendingStkCreateRef.current = null;
 					setSubmitting(false);
 				}
 				return;
@@ -1133,7 +1252,8 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 		// Handle manual payment flow (existing logic)
 		setSubmitting(true);
 		try {
-			const productLabel = def.label;
+			const pricing = buildOrderPricing(data);
+			const productLabel = def.id === "one_time_service" ? pricing.description : def.label;
 			const planLabel = selectedPlan?.name ?? primaryDomain ?? "order";
 
 			const payment = await recordManualPayment.mutateAsync({
@@ -1143,60 +1263,34 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 				gateway: data.gateway,
 				teamId: data.teamId,
 				transactionDesc: `Agency subscription: ${productLabel} - ${planLabel}`.slice(0, 200),
-				...(provisionUserId ? { billedForUserId: provisionUserId } : {}),
+				billedForUserId,
 			});
 
-		let billingCycle = def.defaultBillingCycle;
-		if (selectedPlan) {
-			billingCycle =
-				selectedPlan.zeepoPlanType === "top_up"
-					? "CUSTOM"
-					: normalizeBillingCycle(selectedPlan.billingCycle);
-		}
-
-		// Use the selected billing cycle from form, fallback to calculated one
-		const effectiveBillingCycle = data.billingCycle || billingCycle || "MONTHLY";
-
-		// Calculate actual plan price based on selected plan and billing cycle
-		const actualPlanPrice = selectedPlan 
-			? calculateAmountForBillingCycle(selectedPlan.displayPrice, effectiveBillingCycle)
-			: amount;
-		const actualPlanPriceExVat = Math.ceil(actualPlanPrice / 1.16); // Remove tax to get ex-VAT price
-
-		const metadata: Record<string, unknown> = {
-			// Store billing cycle for tracking
-			billingCycle: effectiveBillingCycle,
-			// Store actual amounts for reference
-			actualPlanPrice: String(Math.ceil(actualPlanPrice)),
-			actualPlanPriceExVat: String(actualPlanPriceExVat),
-			amountPaid: String(amount),
-			// Mark as partial payment if applicable
-			isPartialPayment: amount < Math.ceil(actualPlanPrice),
-		};
+		const metadata: Record<string, unknown> = { ...pricing.metadata };
 
 		if (def.supportsZeepoTokens && data.overrideTokens && data.tokenGrant?.trim()) {
 			metadata[ZEEPO_TOKEN_OVERRIDE_KEY] = Number.parseInt(data.tokenGrant, 10);
 		}
 
-		if (provisionUserId && def.needsProvisionUser) {
-			metadata.provisionUserId = provisionUserId;
+		if (def.needsProvisionUser) {
+			metadata.provisionUserId = billedForUserId;
 		}
 
 		await createFromPayment.mutateAsync({
 			checkoutRequestId: payment.checkoutRequestId,
 			teamId: data.teamId,
-			...(provisionUserId ? { billedForUserId: provisionUserId } : {}),
+			billedForUserId,
 			currency,
 			/** Agency manual provision - skip invoice unless checkbox enabled */
 			skipInvoice: !data.createInvoice,
 			items: [
 				{
 					productId,
-					productPlanId: data.planId,
-					billingCycle: effectiveBillingCycle, // Use the effective billing cycle
-					itemPrice: String(actualPlanPriceExVat), // Use actual plan price (ex-VAT)
-					itemSubtotal: String(actualPlanPriceExVat), // Use actual plan price (ex-VAT)
-					description: selectedPlan?.name ?? def.label,
+					productPlanId: def.needsPlan ? data.planId : undefined,
+					billingCycle: pricing.billingCycle,
+					itemPrice: String(pricing.actualPlanPriceExVat),
+					itemSubtotal: String(pricing.actualPlanPriceExVat),
+					description: pricing.description,
 					...(primaryDomain ? { primaryDomain } : {}),
 					metadata,
 				},
@@ -1229,7 +1323,15 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 	const isBusy = submitting || recordManualPayment.isPending || createFromPayment.isPending || initiateMpesaPayment.isPending;
 
 	const canSubmit = React.useMemo(() => {
-		if (!watchedTeamId || planOptions.length === 0 || !watchedPlanId) return false;
+		if (!watchedTeamId) return false;
+		if (isOneTime) {
+			if (!oneTimeProductId) return false;
+			if (!(watchedServiceName ?? "").trim()) return false;
+			const price = Number.parseFloat(watchedCustomPrice ?? "");
+			if (!Number.isFinite(price) || price <= 0) return false;
+		} else if (planOptions.length === 0 || !watchedPlanId) {
+			return false;
+		}
 		const amount = Number.parseFloat(watchedAmount);
 		if (!Number.isFinite(amount) || amount <= 0 || !Number.isInteger(amount)) return false;
 		
@@ -1243,10 +1345,15 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 		}
 		
 		if (serviceDef.needsProvisionUser && !watchedProvisionUserId?.trim()) return false;
+		if (!(watchedProvisionUserId?.trim() || defaultOwnerUserId)) return false;
 		if (serviceDef.needsDomain && !isValidDomainName(watchedPrimaryDomain ?? "")) return false;
 		return true;
 	}, [
 		watchedTeamId,
+		isOneTime,
+		oneTimeProductId,
+		watchedServiceName,
+		watchedCustomPrice,
 		planOptions.length,
 		watchedPlanId,
 		watchedAmount,
@@ -1257,6 +1364,7 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 		serviceDef.needsProvisionUser,
 		serviceDef.needsDomain,
 		watchedProvisionUserId,
+		defaultOwnerUserId,
 		watchedPrimaryDomain,
 	]);
 
@@ -1367,6 +1475,49 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 											</FormItem>
 										)}
 									/>
+
+									{isOneTime ? (
+										<>
+											<FormField
+												control={form.control}
+												name="serviceName"
+												render={({ field }) => (
+													<FormItem>
+														<FormLabel>Service name</FormLabel>
+														<FormControl>
+															<Input
+																placeholder="e.g. Website design"
+																{...field}
+																disabled={isBusy}
+															/>
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+											<FormField
+												control={form.control}
+												name="customPrice"
+												render={({ field }) => (
+													<FormItem>
+														<FormLabel>Price ({displayCurrency})</FormLabel>
+														<FormControl>
+															<Input
+																type="number"
+																min={1}
+																step={1}
+																inputMode="decimal"
+																placeholder="0"
+																{...field}
+																disabled={isBusy}
+															/>
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+										</>
+									) : null}
 
 									{serviceDef.needsPlan ? (
 										<FormField
@@ -1607,7 +1758,39 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 									</h3>
 
 								{/* Expected Amount Display */}
-								{selectedPlan ? (
+								{isOneTime && Number.parseFloat(watchedCustomPrice ?? "") > 0 ? (
+									<div className="rounded-lg border-2 border-primary/20 bg-primary/5 p-4 space-y-3">
+										<div className="space-y-1.5">
+											<div className="flex items-center justify-between text-sm">
+												<span className="text-muted-foreground">Subtotal:</span>
+												<span className="font-medium">
+													{displayCurrency}{" "}
+													{Math.ceil(Number.parseFloat(watchedCustomPrice ?? "0")).toLocaleString()}
+												</span>
+											</div>
+											<div className="flex items-center justify-between text-sm">
+												<span className="text-muted-foreground">Tax (16%):</span>
+												<span className="font-medium">
+													{displayCurrency}{" "}
+													{Math.ceil(
+														Number.parseFloat(watchedCustomPrice ?? "0") * 0.16,
+													).toLocaleString()}
+												</span>
+											</div>
+										</div>
+										<div className="flex items-center justify-between pt-2 border-t">
+											<span className="text-sm font-medium text-muted-foreground">Expected Amount:</span>
+											<span className="text-2xl font-bold text-primary">
+												{displayCurrency}{" "}
+												{Math.ceil(Number.parseFloat(watchedCustomPrice ?? "0") * 1.16).toLocaleString()}
+											</span>
+										</div>
+										<div className="flex items-center justify-between text-xs text-muted-foreground pt-2">
+											<span>{watchedServiceName?.trim() || "One-time service"}</span>
+											<span>One-time</span>
+										</div>
+									</div>
+								) : selectedPlan ? (
 									<div className="rounded-lg border-2 border-primary/20 bg-primary/5 p-4 space-y-3">
 										<div className="space-y-1.5">
 											<div className="flex items-center justify-between text-sm">
@@ -1660,7 +1843,9 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 									</div>
 								) : (
 									<div className="rounded-lg border border-dashed bg-muted/20 p-4 text-center text-sm text-muted-foreground">
-										Select a plan above to see the expected payment amount
+										{isOneTime
+											? "Enter a price to see tax and total"
+											: "Select a plan above to see the expected payment amount"}
 									</div>
 								)}
 
@@ -1689,7 +1874,15 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 													/>
 												</FormControl>
 											<FormDescription>
-												{selectedPlan ? (
+												{isOneTime ? (
+													<>
+														Auto-filled from price ({displayCurrency}{" "}
+														{Math.ceil(
+															(Number.parseFloat(watchedCustomPrice ?? "0") || 0) * 1.16,
+														).toLocaleString()}{" "}
+														including 16% tax). Any amount accepted – partial payments are tracked on the invoice.
+													</>
+												) : selectedPlan ? (
 													<>
 														Auto-filled from selected plan ({displayCurrency}{" "}
 														{Math.ceil(
@@ -1862,8 +2055,10 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 							onClick={() => {
 								if (isAwaitingPayment) {
 									stopPolling();
+									pendingStkCreateRef.current = null;
 									setIsAwaitingPayment(false);
 									setCheckoutRequestId(null);
+									setSubmitting(false);
 								}
 								onOpenChange(false);
 							}}

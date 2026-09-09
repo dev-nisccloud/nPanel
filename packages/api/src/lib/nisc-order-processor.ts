@@ -779,6 +779,7 @@ async function createSubscriptionForOrderItem(
 		itemPrice: string;
 		itemSubtotal: string;
 		description: string | null;
+		metadata?: unknown;
 		product: { name: string };
 		productPlan: {
 			name: string;
@@ -790,7 +791,17 @@ async function createSubscriptionForOrderItem(
 	},
 ) {
 	const plan = item.productPlan;
-	const name = plan ? `${item.product.name} - ${plan.name}` : item.product.name;
+	const itemMeta =
+		item.metadata && typeof item.metadata === "object" && !Array.isArray(item.metadata)
+			? (item.metadata as Record<string, unknown>)
+			: {};
+	const customName =
+		typeof itemMeta.subscriptionName === "string" ? itemMeta.subscriptionName.trim() : "";
+	const isOneTime = (item.billingCycle ?? "").toUpperCase() === "ONE_TIME";
+	const name =
+		customName ||
+		item.description?.trim() ||
+		(plan ? `${item.product.name} - ${plan.name}` : item.product.name);
 	const pricingModel = (plan?.pricingModel as "FIXED" | "COMMISSION") ?? "FIXED";
 	const now = new Date();
 	const periodDates = resolveSubscriptionPeriodDates(now, item.billingCycle);
@@ -823,6 +834,7 @@ async function createSubscriptionForOrderItem(
 			status: "ACTIVE",
 			subscriptionDate: now,
 			billingCycle: (item.billingCycle as any) ?? null,
+			autoRenew: false,
 			pricingModel,
 			agreedPrice: agreedPriceIncVatFromOrderLine(item),
 			agreedCurrency: order.currency,
@@ -834,6 +846,8 @@ async function createSubscriptionForOrderItem(
 			agreedCommissionBase: null,
 			expiryDate: periodDates.expiryDate,
 			nextRenewalDate: periodDates.nextRenewalDate,
+			progressPercent: isOneTime ? 0 : null,
+			progressStatus: isOneTime ? "NOT_STARTED" : null,
 			metadata: { niscOrderItemId: item.id },
 		})
 		.returning();
