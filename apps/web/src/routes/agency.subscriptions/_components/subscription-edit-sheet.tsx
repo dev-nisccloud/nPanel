@@ -41,6 +41,7 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { captureEvent } from "@/lib/posthog";
+import { isProgressTrackedOneTime } from "./zeepo-subscription";
 
 function addBillingPeriod(
 	date: Date,
@@ -264,7 +265,7 @@ export function SubscriptionEditSheet({
 		const origNotes = sub.notes ?? "";
 		if (newNotes !== origNotes) payload.notes = newNotes || null;
 
-		if (data.billingCycle === "ONE_TIME") {
+		if (isProgressTrackedOneTime(data.billingCycle, sub.productId)) {
 			if (sub.autoRenew) payload.autoRenew = false;
 			const newPercent = data.progressPercent ?? 0;
 			const origPercent = sub.progressPercent ?? 0;
@@ -286,7 +287,10 @@ export function SubscriptionEditSheet({
 	const productPlanName = sub?.productPlan?.name ?? null;
 	const isLoadingOwnerOptions = isLoadingTeams;
 	const isCommission = sub?.pricingModel === "COMMISSION";
-	const isOneTime = sub?.billingCycle === "ONE_TIME" || form.watch("billingCycle") === "ONE_TIME";
+	const isOneTime = isProgressTrackedOneTime(
+		form.watch("billingCycle") ?? sub?.billingCycle,
+		sub?.productId,
+	);
 
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>

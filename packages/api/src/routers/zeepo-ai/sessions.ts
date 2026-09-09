@@ -49,7 +49,8 @@ export const zeepoAiSessionsRouter = router({
 			userId,
 			userRole: ctx.session?.user?.role,
 			teamId: input.teamId,
-			requireTokens: false,
+			requireTokens: true,
+			tryWelcomeGrant: true,
 		});
 
 		const id = randomUUID();

@@ -11,6 +11,7 @@ import { ZeepoAiMessageList } from "@/components/zeepo/zeepo-ai-conversation";
 import { ZeepoAiClarifyingQuestions } from "@/components/zeepo/zeepo-ai-questions";
 import { ZeepoAiDetailPane } from "@/components/zeepo/zeepo-ai-detail-pane";
 import { ZeepoAiTokenWallet } from "@/components/zeepo/zeepo-ai-token-wallet";
+import { ZeepoAiBuyTokensDialog } from "@/components/zeepo/zeepo-ai-buy-tokens-dialog";
 import { ZeepoDeleteChatDialog } from "@/components/zeepo/zeepo-delete-chat-dialog";
 import { ZeepoRenameChatDialog } from "@/components/zeepo/zeepo-rename-chat-dialog";
 import {
@@ -35,7 +36,8 @@ import {
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
-import { refreshZeepoAiTokenBalance } from "@/hooks/use-zeepo-ai-token-balance";
+import { refreshZeepoAiTokenBalance, useZeepoAiTokenBalance } from "@/hooks/use-zeepo-ai-token-balance";
+import { getZeepoTokenBillingErrorReason } from "@/lib/zeepo-token-errors";
 import { startViewTransitionNavigate } from "@/routes/_agency.zeepo-ai-agent/nav-state";
 import { OpenSupportTicketDialog } from "@/components/support/open-support-ticket-dialog";
 
@@ -261,6 +263,8 @@ export function ZeepoAiChatSessionPage() {
   const isAgencySuperAdmin = userRole === "AGENCY_SUPER_ADMIN";
   const isAgencyUser = ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(userRole ?? "");
   const hideReasoning = !isAgencyUser; // Hide reasoning for customer users
+  const { canAffordTurn, isLoading: tokensLoading } = useZeepoAiTokenBalance(route.teamId, userRole);
+  const [buyOpen, setBuyOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
@@ -478,6 +482,16 @@ export function ZeepoAiChatSessionPage() {
     ) => {
       if (!sessionId) return;
       if (streamingLockRef.current) return;
+      if (
+        route.isCustomer &&
+        !isAgencyUser &&
+        !tokensLoading &&
+        !canAffordTurn
+      ) {
+        setBuyOpen(true);
+        toast.error("Insufficient tokens. Purchase more tokens to continue.");
+        return;
+      }
       streamingLockRef.current = true;
       abortRef.current?.abort();
       const controller = new AbortController();
@@ -634,6 +648,7 @@ export function ZeepoAiChatSessionPage() {
         await streamZeepoAiChat({
           sessionId,
           content: userText,
+          teamId: route.teamId ?? undefined,
           skillId: opts?.skillId,
           searchEnabled: opts?.searchEnabled,
           attachmentIds: opts?.attachmentIds,
@@ -906,6 +921,9 @@ export function ZeepoAiChatSessionPage() {
               }
               setConnectionBanner(event.message);
               toast.error(event.message);
+              if (getZeepoTokenBillingErrorReason(event.message)) {
+                setBuyOpen(true);
+              }
               setSession((prev) => {
                 if (!prev) return prev;
                 const next = prev.generations.filter((g) => !isProvisionalGenerationId(g.id));
@@ -1006,7 +1024,7 @@ export function ZeepoAiChatSessionPage() {
         abortRef.current = null;
       }
     },
-    [sessionId, patchAssistant, utils, route.teamId],
+    [sessionId, patchAssistant, utils, route.teamId, route.isCustomer, isAgencyUser, tokensLoading, canAffordTurn],
   );
 
   const runAssistantTurnRef = useRef(runAssistantTurn);
@@ -1238,7 +1256,7 @@ export function ZeepoAiChatSessionPage() {
   return (
     <div
       className={cn(
-        "zeepo-ai-root relative flex h-full min-h-0 w-full overflow-hidden transition-all duration-300",
+        "zeepo-ai-root relative flex min-h-0 w-full flex-1 overflow-hidden transition-all duration-300",
       )}
     >
       <div
@@ -1249,8 +1267,8 @@ export function ZeepoAiChatSessionPage() {
             : "flex h-full w-full",
         )}
       >
-        <div className={cn("flex h-full min-h-0 flex-1 flex-col overflow-hidden", splitColumnPadding)}>
-          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border/60 py-2">
+        <div className={cn("flex h-full min-h-0 flex-1 flex-col overflow-hidden")}>
+          <div className={cn("flex shrink-0 items-center justify-between gap-2 border-b border-border/60 py-2", splitColumnPadding)}>
             <button
               type="button"
               className="group inline-flex min-w-0 max-w-[min(100%,20rem)] items-center gap-1.5 rounded-md px-1.5 py-1 text-left hover:bg-muted/60"
@@ -1274,8 +1292,10 @@ export function ZeepoAiChatSessionPage() {
           </div>
 
           {connectionBanner ? (
-            <div className="mt-2 shrink-0 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-950 dark:text-amber-100">
-              {connectionBanner}
+            <div className={cn("mt-2 shrink-0", splitColumnPadding)}>
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-950 dark:text-amber-100">
+                {connectionBanner}
+              </div>
             </div>
           ) : null}
 
@@ -1313,7 +1333,7 @@ export function ZeepoAiChatSessionPage() {
             ) : null}
           </div>
 
-          <div className="relative z-10 shrink-0 bg-gradient-to-t from-background via-background to-transparent pb-3 pt-2">
+          <div className={cn("relative z-10 shrink-0 bg-gradient-to-t from-background via-background to-transparent pb-3 pt-2", splitColumnPadding)}>
             <div className="mx-auto w-full max-w-3xl space-y-3">
               {questionsPreparing && !pendingQuestions ? (
                 <div className="rounded-2xl border border-border/70 bg-card px-4 py-3 shadow-sm">
@@ -1456,6 +1476,7 @@ export function ZeepoAiChatSessionPage() {
           await deleteSession.mutateAsync({ id });
         }}
       />
+      <ZeepoAiBuyTokensDialog open={buyOpen} onOpenChange={setBuyOpen} initialStep="alert" />
     </div>
   );
 }

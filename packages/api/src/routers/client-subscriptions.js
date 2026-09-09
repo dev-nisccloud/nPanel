@@ -3145,4 +3145,70 @@ export const clientSubscriptionsRouter = router({
             .limit(500);
         return { run, items };
     }),
+    getZeepoAiWallet: protectedProcedure
+        .input(z.object({ subscriptionId: z.string().min(1) }))
+        .query(async ({ ctx, input }) => {
+        if (!ctx.session?.user?.id) {
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
+        }
+        if (!isAgencySuperAdminRole(ctx.session.user.role)) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Only agency super admins can view Zeepo AI token wallets",
+            });
+        }
+        const { getZeepoAiWalletForSubscription, formatZeepoAiTokenBalance, } = await import("../lib/zeepo-ai-tokens");
+        const wallet = await getZeepoAiWalletForSubscription(input.subscriptionId);
+        return {
+            ...wallet,
+            tokensLabel: formatZeepoAiTokenBalance(wallet.tokens),
+        };
+    }),
+    adjustZeepoAiWallet: protectedProcedure
+        .input(z.object({
+        subscriptionId: z.string().min(1),
+        tokens: z.number().positive().max(1_000_000),
+        direction: z.enum(["add", "remove"]),
+        reason: z.string().trim().max(500).optional(),
+    }))
+        .mutation(async ({ ctx, input }) => {
+        if (!ctx.session?.user?.id) {
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
+        }
+        if (!isAgencySuperAdminRole(ctx.session.user.role)) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Only agency super admins can adjust Zeepo AI tokens",
+            });
+        }
+        const { adjustZeepoAiTokensForSubscription } = await import("../lib/zeepo-ai-tokens");
+        return adjustZeepoAiTokensForSubscription({
+            subscriptionId: input.subscriptionId,
+            actorUserId: ctx.session.user.id,
+            tokens: input.tokens,
+            direction: input.direction,
+            reason: input.reason,
+        });
+    }),
+    listZeepoAiWalletLogs: protectedProcedure
+        .input(z.object({
+        subscriptionId: z.string().min(1),
+        limit: z.number().int().min(1).max(100).optional(),
+    }))
+        .query(async ({ ctx, input }) => {
+        if (!ctx.session?.user?.id) {
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
+        }
+        if (!isAgencySuperAdminRole(ctx.session.user.role)) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Only agency super admins can view Zeepo AI token logs",
+            });
+        }
+        const { listZeepoAiWalletLogsForSubscription } = await import("../lib/zeepo-ai-tokens");
+        return listZeepoAiWalletLogsForSubscription({
+            subscriptionId: input.subscriptionId,
+            limit: input.limit,
+        });
+    }),
 });

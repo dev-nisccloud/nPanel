@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { authClient } from "@/lib/auth-client";
 import { trpc } from "@/utils/trpc";
+import { getZeepoTokenBillingErrorReason } from "@/lib/zeepo-token-errors";
 import {
   filterZeepoAiImageAttachments,
   ZEEPO_AGENT_MAX_ATTACHMENTS,
@@ -41,8 +42,12 @@ import {
   type ZeepoPromptCategory,
 } from "@/components/zeepo/zeepo-sample-prompts";
 import { ZeepoAiTokenWallet, ZeepoAiFreeCreditsNudge } from "@/components/zeepo/zeepo-ai-token-wallet";
+import { ZeepoAiBuyTokensDialog } from "@/components/zeepo/zeepo-ai-buy-tokens-dialog";
 import { ZeepoAiAutosizeTextarea } from "@/components/zeepo/zeepo-ai-autosize-textarea";
-import { refreshZeepoAiTokenBalance } from "@/hooks/use-zeepo-ai-token-balance";
+import {
+  applyZeepoAiWelcomeGrantToCache,
+  useZeepoAiTokenBalance,
+} from "@/hooks/use-zeepo-ai-token-balance";
 
 type PendingFile = {
   file: File;
@@ -106,6 +111,13 @@ export function ZeepoAiAssistantInterface() {
   const route = useZeepoAiRoute();
   const { data: session } = authClient.useSession();
   const firstName = getFirstName(session?.user?.name);
+  const userRole = (session?.user as { role?: string } | undefined)?.role;
+  const {
+    canAffordTurn,
+    isLoading: tokensLoading,
+    isAgency,
+  } = useZeepoAiTokenBalance(route.teamId, userRole);
+  const [buyOpen, setBuyOpen] = useState(false);
   const greeting = useMemo(() => {
     const salutation = getTimeGreeting();
     return firstName ? `${salutation}, ${firstName}` : salutation;
@@ -127,7 +139,7 @@ export function ZeepoAiAssistantInterface() {
       .then((result) => {
         sessionStorage.setItem("zeepo-ai-welcome-shown", "true");
         if (result.granted) {
-          refreshZeepoAiTokenBalance(utils, route.teamId);
+          applyZeepoAiWelcomeGrantToCache(utils, route.teamId, result);
           toast.success(
             `Welcome to Zeepo AI  ${result.tokensGranted} free tokens are on your team wallet to try it out.`,
             { duration: 7000 },
@@ -260,6 +272,11 @@ export function ZeepoAiAssistantInterface() {
 
   const handleSendMessage = async () => {
     if (!canSend) return;
+    if (route.isCustomer && !isAgency && !tokensLoading && !claimWelcomeGrant.isPending && !canAffordTurn) {
+      setBuyOpen(true);
+      toast.error("Insufficient tokens. Purchase more tokens to continue.");
+      return;
+    }
     const staged = [...pendingFiles];
     const message =
       inputValue.trim() || (staged.length ? "See attached." : "");
@@ -329,7 +346,9 @@ export function ZeepoAiAssistantInterface() {
       });
     } catch (e) {
       setIsHandingOff(false);
-      toast.error(e instanceof Error ? e.message : "Failed to start chat");
+      const message = e instanceof Error ? e.message : "Failed to start chat";
+      toast.error(message);
+      if (getZeepoTokenBillingErrorReason(message)) setBuyOpen(true);
     }
   };
 
@@ -343,8 +362,8 @@ export function ZeepoAiAssistantInterface() {
   );
 
   return (
-    <div className="zeepo-ai-root relative flex h-full min-h-0 w-full flex-col overflow-hidden px-2 pb-2 sm:px-3">
-      <header className="mx-auto flex w-full max-w-3xl shrink-0 items-center justify-between gap-2 px-1 pt-1 sm:px-2">
+    <div className="zeepo-ai-root relative flex min-h-0 w-full flex-1 flex-col overflow-hidden">
+      <header className="mx-auto flex w-full max-w-3xl shrink-0 items-center justify-between gap-2 px-3 pt-2 sm:px-4">
         <ZeepoAiTokenWallet />
         <Popover open={historyOpen} onOpenChange={setHistoryOpen}>
           <PopoverTrigger asChild>
@@ -432,12 +451,13 @@ export function ZeepoAiAssistantInterface() {
         </Popover>
       </header>
 
-      <div
-        className={cn(
-          "mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col justify-center overflow-y-auto overscroll-contain px-1 pt-2 sm:px-2",
-          isHandingOff && "pointer-events-none opacity-60",
-        )}
-      >
+      <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain">
+        <div
+          className={cn(
+            "mx-auto flex min-h-full w-full max-w-3xl flex-col justify-center px-3 py-2 sm:px-4",
+            isHandingOff && "pointer-events-none opacity-60",
+          )}
+        >
         <div className="zeepo-ai-hero flex shrink-0 flex-col items-center text-center">
           <div className="zeepo-ai-orb relative flex items-center justify-center">
             <ZeepoMascot className="h-full w-full sm:h-full sm:w-full" />
@@ -718,6 +738,7 @@ export function ZeepoAiAssistantInterface() {
           </div>
         </div>
         */}
+        </div>
       </div>
 
       <ZeepoDeleteChatDialog
@@ -731,6 +752,7 @@ export function ZeepoAiAssistantInterface() {
           await deleteSession.mutateAsync({ id });
         }}
       />
+      <ZeepoAiBuyTokensDialog open={buyOpen} onOpenChange={setBuyOpen} initialStep="alert" />
     </div>
   );
 }

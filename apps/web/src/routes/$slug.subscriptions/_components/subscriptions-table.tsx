@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/utils/trpc";
+import { isProgressTrackedOneTime } from "@/routes/agency.subscriptions/_components/zeepo-subscription";
 
 function formatDate(v: string | Date | null | undefined): string {
 	if (!v) return "- ";
@@ -210,7 +211,7 @@ export function CustomerSubscriptionsTable({ onViewSubscription }: CustomerSubsc
 										<TableCell>{formatDate(sub.subscriptionDate)}</TableCell>
 										<TableCell>{formatDate(sub.expiryDate)}</TableCell>
 										<TableCell>
-											{sub.billingCycle === "ONE_TIME"
+											{isProgressTrackedOneTime(sub.billingCycle, sub.productId)
 												? `${sub.progressPercent ?? 0}%`
 												: "- "}
 										</TableCell>

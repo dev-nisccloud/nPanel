@@ -3,6 +3,7 @@ import { TRPCClientError } from "@trpc/client";
 const TOKEN_BILLING_PATTERNS = [
 	/insufficient tokens/i,
 	/no active zeepo ai agent subscription/i,
+	/no active zeepo ai wallet/i,
 	/purchase more tokens/i,
 	/purchase a plan or token top-up/i,
 	/no tokens left/i,
@@ -16,6 +17,7 @@ export function getZeepoTokenBillingErrorReason(
 ): ZeepoTokenBillingErrorReason | null {
 	if (!TOKEN_BILLING_PATTERNS.some((p) => p.test(message))) return null;
 	if (/no active zeepo ai agent subscription/i.test(message)) return "no_subscription";
+	if (/no active zeepo ai wallet/i.test(message)) return "no_subscription";
 	return "depleted";
 }
 
