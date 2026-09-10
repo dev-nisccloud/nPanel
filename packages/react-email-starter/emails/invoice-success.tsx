@@ -6,6 +6,7 @@ import {
   EmailText,
   EmailLink,
   EmailSignature,
+  EmailDetails,
 } from './components';
 
 interface InvoiceSuccessEmailProps {
@@ -20,64 +21,42 @@ interface InvoiceSuccessEmailProps {
 }
 
 export const InvoiceSuccessEmail = ({
-  customerName = "Valued Customer",
-  invoiceNumber = "INV-001",
+  customerName = 'Valued Customer',
+  invoiceNumber = 'INV-001',
   orderNumber,
-  totalAmount = "0.00",
-  currency = "KES",
-  supportEmail = "accounts@nisccloud.com",
-  supportPhone = "+254 748 777 666",
+  totalAmount = '0.00',
+  currency = 'KES',
   invoiceLink,
 }: InvoiceSuccessEmailProps) => {
   const formattedAmount = `${currency} ${totalAmount}`;
 
   return (
-    <EmailLayout preview={`Your invoice ${invoiceNumber} from Nisc Cloud®`}>
+    <EmailLayout preview={`Invoice ${invoiceNumber} from Nisc Cloud®`}>
       <EmailHeader />
       <Section>
-        <EmailText>Dear {customerName},</EmailText>
+        <EmailText>Hello {customerName},</EmailText>
         <EmailText>
-          Thank you for your order. This is the <strong>invoice</strong> for the service you ordered.
+          Thank you for your order. Your invoice is attached to this email.
         </EmailText>
-
-        <div
-          style={{
-            backgroundColor: '#f0fdf4',
-            border: '1px solid #86efac',
-            borderRadius: '8px',
-            padding: '20px',
-            margin: '20px 0',
-          }}
-        >
-          <EmailText style={{ margin: '0 0 15px 0', fontWeight: 'bold', fontSize: '16px', color: '#059669' }}>
-            Invoice attached
-          </EmailText>
+        <EmailDetails>
           <EmailText style={{ margin: '8px 0' }}>
-            <strong>Invoice Number:</strong> {invoiceNumber}
+            <strong>Invoice number:</strong> {invoiceNumber}
           </EmailText>
           {orderNumber && (
             <EmailText style={{ margin: '8px 0' }}>
-              <strong>Order Number:</strong> {orderNumber}
+              <strong>Order number:</strong> {orderNumber}
             </EmailText>
           )}
-          <EmailText style={{ margin: '8px 0', fontSize: '16px', fontWeight: 'bold', color: '#059669' }}>
-            <strong>Total Amount:</strong> {formattedAmount}
+          <EmailText style={{ margin: '8px 0' }}>
+            <strong>Amount:</strong> {formattedAmount}
           </EmailText>
-        </div>
-
+        </EmailDetails>
         {invoiceLink && (
           <EmailText>
-            You can view the invoice in your dashboard:{' '}
-            <EmailLink href={invoiceLink}>View invoice in dashboard</EmailLink>
+            You can also view it in nPanel:{' '}
+            <EmailLink href={invoiceLink}>Open invoice</EmailLink>
           </EmailText>
         )}
-
-        <EmailText>
-          <strong>Need help?</strong> Contact us at{' '}
-          <EmailLink href={`mailto:${supportEmail}`}>{supportEmail}</EmailLink>
-          {supportPhone && ` or ${supportPhone}`}.
-        </EmailText>
-        <EmailText>Thank you for choosing Nisc Cloud®.</EmailText>
         <EmailSignature />
       </Section>
       <EmailFooter />
@@ -93,7 +72,7 @@ InvoiceSuccessEmail.PreviewProps = {
   currency: 'KES',
   supportEmail: 'accounts@nisccloud.com',
   supportPhone: '+254 748 777 666',
-  invoiceLink: undefined, // Set at send time from VITE_PUBLIC_APP_URL + /{teamSlug}/invoices
+  invoiceLink: undefined,
 } as InvoiceSuccessEmailProps;
 
 export default InvoiceSuccessEmail;

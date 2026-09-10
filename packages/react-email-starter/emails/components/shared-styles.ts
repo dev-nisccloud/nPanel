@@ -40,6 +40,47 @@ export const emailStyles = {
     textDecoration: 'underline',
   },
 
+  detailsBox: {
+    backgroundColor: '#fafafa',
+    border: '1px solid #f0f0f0',
+    padding: '20px 24px',
+    margin: '24px 0',
+  },
+
+  detailsTitle: {
+    fontSize: '16px',
+    fontFamily:
+      "'Inter', 'Inter Sans Serif', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+    fontWeight: '600',
+    color: '#404040',
+    lineHeight: '26px',
+    margin: '0 0 12px 0',
+  },
+
+  otpCode: {
+    fontSize: '30px',
+    fontFamily:
+      "'Inter', 'Inter Sans Serif', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+    fontWeight: '700',
+    letterSpacing: '10px',
+    textAlign: 'center' as const,
+    color: '#404040',
+    lineHeight: '36px',
+    margin: '28px 0',
+  },
+
+  itemBlock: {
+    marginBottom: '12px',
+    paddingBottom: '12px',
+    borderBottom: '1px solid #f0f0f0',
+  },
+
+  itemBlockLast: {
+    marginBottom: '0',
+    paddingBottom: '0',
+    borderBottom: 'none',
+  },
+
   // Signature styles
   salutation: {
     fontSize: '16px',

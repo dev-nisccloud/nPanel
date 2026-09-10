@@ -6,6 +6,8 @@ import {
   EmailText,
   EmailButton,
   EmailSignature,
+  EmailDetails,
+  EmailItem,
 } from './components';
 
 interface OrderFailedEmailProps {
@@ -17,112 +19,46 @@ interface OrderFailedEmailProps {
 }
 
 export const OrderFailedEmail = ({
-  customerName = "Admin",
-  orderNumber = "Nisc-000000-000000-000",
+  orderNumber = 'Nisc-000000-000000-000',
   failedItems = [],
   failureReason,
-  retryLink = "https://app.nisccloud.com/agency/nisc-service-orders",
+  retryLink = 'https://app.nisccloud.com/agency/nisc-service-orders',
 }: OrderFailedEmailProps) => {
   return (
-    <EmailLayout preview={`[Nisc Admin] Order could not be completed: ${orderNumber}`}>
+    <EmailLayout preview={`Order could not be completed: ${orderNumber}`}>
       <EmailHeader />
       <Section>
         <EmailText>Hello,</EmailText>
         <EmailText>
-          A Nisc service order could not be fully processed and requires attention.
+          Order <strong>{orderNumber}</strong> could not be fully processed and needs attention.
         </EmailText>
-
-        {/* Failure status box */}
-        <div
-          style={{
-            backgroundColor: '#fef2f2',
-            border: '1px solid #fecaca',
-            borderRadius: '8px',
-            padding: '20px',
-            margin: '20px 0',
-          }}
-        >
-          <EmailText
-            style={{
-              margin: '0 0 15px 0',
-              fontWeight: 'bold',
-              fontSize: '18px',
-              color: '#b91c1c',
-            }}
-          >
-            Order could not be completed
-          </EmailText>
-          <EmailText style={{ margin: '8px 0', color: '#991b1b' }}>
-            One or more items failed during provisioning. Review the details below and retry from the Nisc Service Orders page if needed.
-          </EmailText>
-        </div>
-
-        {/* Order & reason */}
-        <div
-          style={{
-            backgroundColor: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            borderRadius: '8px',
-            padding: '20px',
-            margin: '20px 0',
-          }}
-        >
-          <EmailText style={{ margin: '0 0 15px 0', fontWeight: 'bold', fontSize: '16px' }}>
-            Order information
-          </EmailText>
+        <EmailDetails>
           <EmailText style={{ margin: '8px 0' }}>
             <strong>Order number:</strong> {orderNumber}
           </EmailText>
           {failureReason && (
-            <EmailText style={{ margin: '8px 0', color: '#b91c1c', fontWeight: '600' }}>
+            <EmailText style={{ margin: '8px 0' }}>
               <strong>Reason:</strong> {failureReason}
             </EmailText>
           )}
-        </div>
-
-        {/* Failed items */}
+        </EmailDetails>
         {failedItems.length > 0 && (
-          <div
-            style={{
-              backgroundColor: '#ffffff',
-              border: '1px solid #e2e8f0',
-              borderRadius: '8px',
-              padding: '20px',
-              margin: '20px 0',
-            }}
-          >
-            <EmailText style={{ margin: '0 0 15px 0', fontWeight: 'bold' }}>
-              Failed items
-            </EmailText>
+          <EmailDetails title="Failed items">
             {failedItems.map((item, index) => (
-              <div
-                key={index}
-                style={{
-                  marginBottom: '12px',
-                  paddingBottom: '12px',
-                  borderBottom:
-                    index < failedItems.length - 1 ? '1px solid #e2e8f0' : 'none',
-                }}
-              >
-                <EmailText style={{ margin: '0 0 4px 0', fontWeight: 600 }}>
-                  {item.name}
+              <EmailItem key={index} isLast={index === failedItems.length - 1}>
+                <EmailText style={{ margin: '0 0 4px 0' }}>
+                  <strong>{item.name}</strong>
                 </EmailText>
                 {item.error && (
-                  <EmailText style={{ margin: '4px 0', color: '#b91c1c', fontSize: '14px' }}>
+                  <EmailText style={{ margin: '4px 0' }}>
                     {item.error}
                   </EmailText>
                 )}
-              </div>
+              </EmailItem>
             ))}
-          </div>
+          </EmailDetails>
         )}
-
-        <EmailText>
-          You can retry failed items from the Nisc Service Orders page.
-        </EmailText>
-
         <EmailButton href={retryLink}>Open Nisc Service Orders</EmailButton>
-
         <EmailSignature />
       </Section>
       <EmailFooter />

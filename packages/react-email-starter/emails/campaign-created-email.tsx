@@ -6,6 +6,7 @@ import {
   EmailText,
   EmailButton,
   EmailSignature,
+  EmailDetails,
 } from './components';
 
 export interface CampaignCreatedEmailProps {
@@ -26,52 +27,29 @@ export const CampaignCreatedEmail = ({
   const greeting = recipientName ? `Hello ${recipientName},` : 'Hello,';
 
   return (
-    <EmailLayout preview={`Your email campaign "${campaignName ?? 'Campaign'}" has been created`}>
+    <EmailLayout preview={`Campaign created: ${campaignName ?? 'Campaign'}`}>
       <EmailHeader />
       <Section>
         <EmailText>{greeting}</EmailText>
         <EmailText>
-          Your email campaign has been created successfully and is ready to send or schedule.
+          Your email campaign has been created and is ready to send or schedule.
         </EmailText>
-        <EmailText>
-          <strong>Campaign details:</strong>
-        </EmailText>
-        <EmailText>
-          <strong>Campaign name:</strong> {campaignName ?? ' '}
-        </EmailText>
-        <EmailText>
-          <strong>Subject:</strong> {subject ?? ' '}
-        </EmailText>
-        <EmailText>
-          <strong>Recipients:</strong> {recipientCount.toLocaleString()}
-        </EmailText>
-        <EmailText>
-          You can review the campaign, send it now, or schedule it for later from your email marketing dashboard.
-        </EmailText>
+        <EmailDetails>
+          <EmailText style={{ margin: '8px 0' }}>
+            <strong>Campaign:</strong> {campaignName ?? ' '}
+          </EmailText>
+          <EmailText style={{ margin: '8px 0' }}>
+            <strong>Subject:</strong> {subject ?? ' '}
+          </EmailText>
+          <EmailText style={{ margin: '8px 0' }}>
+            <strong>Recipients:</strong> {recipientCount.toLocaleString()}
+          </EmailText>
+        </EmailDetails>
         {viewCampaignLink && (
-          <>
-            <EmailButton href={viewCampaignLink}>
-              View Campaign
-            </EmailButton>
-            <EmailText>
-              Or copy and paste this link into your browser:
-            </EmailText>
-            <EmailText
-              style={{
-                wordBreak: 'break-all',
-                color: '#666',
-                fontSize: '14px',
-                backgroundColor: '#f4f4f4',
-                padding: '10px',
-                borderRadius: '4px',
-              }}
-            >
-              {viewCampaignLink}
-            </EmailText>
-          </>
+          <EmailButton href={viewCampaignLink}>View campaign</EmailButton>
         )}
         <EmailText>
-          If you did not create this campaign, please contact your team administrator or support.
+          If you did not create this campaign, contact your administrator.
         </EmailText>
         <EmailSignature />
       </Section>

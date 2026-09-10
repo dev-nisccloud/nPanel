@@ -5,4 +5,6 @@ export { EmailText } from './EmailText';
 export { EmailButton } from './EmailButton';
 export { EmailLink } from './EmailLink';
 export { EmailSignature } from './EmailSignature';
+export { EmailDetails } from './EmailDetails';
+export { EmailItem } from './EmailItemList';
 export { emailStyles, companyBranding } from './shared-styles';

@@ -5,6 +5,7 @@ import {
   EmailFooter,
   EmailText,
   EmailSignature,
+  EmailDetails,
 } from './components';
 
 interface ServiceRenewalReminderEmailProps {
@@ -15,7 +16,7 @@ interface ServiceRenewalReminderEmailProps {
   subscriptionName?: string;
   subscriptionDate?: string;
   expiryDate?: string;
-  /** e.g. "Your service will be suspended 7 days after the expiry date if not renewed." or "For domain services, suspension is immediate after expiry." */
+  /** e.g. "Your service will be suspended 7 days after the expiry date if not renewed." */
   gracePeriodText?: string;
   supportEmail?: string;
   supportPhone?: string;
@@ -28,8 +29,6 @@ export const ServiceRenewalReminderEmail = ({
   subscriptionDate = ' ',
   expiryDate = ' ',
   gracePeriodText = 'Your service will be suspended 7 days after the expiry date if not renewed.',
-  supportEmail = 'support@nisccloud.com',
-  supportPhone = '+254 748 777 666',
 }: ServiceRenewalReminderEmailProps) => {
   return (
     <EmailLayout preview={`Renewal reminder: ${subscriptionName || serviceName}`}>
@@ -39,53 +38,25 @@ export const ServiceRenewalReminderEmail = ({
           Hello{recipientName ? ` ${recipientName}` : ''},
         </EmailText>
         <EmailText>
-          This is a reminder that your subscription is approaching or has reached its expiry date.
+          Your {serviceName.toLowerCase()} subscription is approaching its expiry date. Log in to nPanel to renew.
         </EmailText>
-
-        {/* Service details box - same style as domain-expiration-reminder */}
-        <div style={{
-          backgroundColor: '#f8fafc',
-          border: '1px solid #e2e8f0',
-          borderRadius: '8px',
-          padding: '20px',
-          margin: '20px 0',
-        }}>
-          <EmailText style={{ margin: '0 0 10px 0', fontWeight: 'bold' }}>
-            Subscription details
-          </EmailText>
-          <EmailText style={{ margin: '5px 0' }}>
-            Service: {serviceName}
+        <EmailDetails>
+          <EmailText style={{ margin: '8px 0' }}>
+            <strong>Service:</strong> {serviceName}
           </EmailText>
           {subscriptionName && (
-            <EmailText style={{ margin: '5px 0' }}>
-              Name: {subscriptionName}
+            <EmailText style={{ margin: '8px 0' }}>
+              <strong>Name:</strong> {subscriptionName}
             </EmailText>
           )}
-          <EmailText style={{ margin: '5px 0' }}>
-            Subscription date: {subscriptionDate}
+          <EmailText style={{ margin: '8px 0' }}>
+            <strong>Started:</strong> {subscriptionDate}
           </EmailText>
-          <EmailText style={{ margin: '5px 0' }}>
-            Expiry date: {expiryDate}
+          <EmailText style={{ margin: '8px 0' }}>
+            <strong>Expires:</strong> {expiryDate}
           </EmailText>
-        </div>
-
-        <EmailText>
-          {gracePeriodText}
-        </EmailText>
-        <EmailText>
-          To renew your service, please log in to the panel.
-        </EmailText>
-
-        <EmailText>
-          <strong>Need help?</strong> Contact us:
-        </EmailText>
-        <EmailText>
-          • Email: <a href={`mailto:${supportEmail}`} style={{ color: '#38b6ff' }}>{supportEmail}</a>
-        </EmailText>
-        <EmailText>
-          • Phone: <a href={`tel:${supportPhone}`} style={{ color: '#38b6ff' }}>{supportPhone}</a>
-        </EmailText>
-
+        </EmailDetails>
+        <EmailText>{gracePeriodText}</EmailText>
         <EmailSignature />
       </Section>
       <EmailFooter />
