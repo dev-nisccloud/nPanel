@@ -6,6 +6,7 @@ import {
   EmailText,
   EmailButton,
   EmailSignature,
+  EmailDetails,
 } from './components';
 
 export interface CampaignCompletedEmailProps {
@@ -28,38 +29,32 @@ export const CampaignCompletedEmail = ({
   const greeting = recipientName ? `Hello ${recipientName},` : 'Hello,';
 
   return (
-    <EmailLayout preview={`Your email campaign "${campaignName ?? 'Campaign'}" has finished sending`}>
+    <EmailLayout preview={`Campaign sent: ${campaignName ?? 'Campaign'}`}>
       <EmailHeader />
       <Section>
         <EmailText>{greeting}</EmailText>
         <EmailText>
-          Your email campaign has finished sending. Here is a brief summary:
+          Your email campaign has finished sending.
         </EmailText>
-        <EmailText>
-          <strong>Campaign:</strong> {campaignName ?? ' '}
-        </EmailText>
-        <EmailText>
-          <strong>Subject:</strong> {subject ?? ' '}
-        </EmailText>
-        {sentAt && (
-          <EmailText>
-            <strong>Sent at:</strong> {sentAt}
+        <EmailDetails>
+          <EmailText style={{ margin: '8px 0' }}>
+            <strong>Campaign:</strong> {campaignName ?? ' '}
           </EmailText>
-        )}
-        <EmailText>
-          <strong>Total recipients:</strong> {totalRecipients.toLocaleString()}
-        </EmailText>
-        <EmailText>
-          Log in to your dashboard to see the full report including opens, clicks, and delivery details.
-        </EmailText>
+          <EmailText style={{ margin: '8px 0' }}>
+            <strong>Subject:</strong> {subject ?? ' '}
+          </EmailText>
+          {sentAt && (
+            <EmailText style={{ margin: '8px 0' }}>
+              <strong>Sent:</strong> {sentAt}
+            </EmailText>
+          )}
+          <EmailText style={{ margin: '8px 0' }}>
+            <strong>Recipients:</strong> {totalRecipients.toLocaleString()}
+          </EmailText>
+        </EmailDetails>
         {viewCampaignLink && (
-          <EmailButton href={viewCampaignLink}>
-            View Campaign Report
-          </EmailButton>
+          <EmailButton href={viewCampaignLink}>View report</EmailButton>
         )}
-        <EmailText>
-          If you have any questions about your campaign performance, our support team is here to help.
-        </EmailText>
         <EmailSignature />
       </Section>
       <EmailFooter />

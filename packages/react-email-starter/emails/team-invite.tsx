@@ -5,8 +5,8 @@ import {
   EmailFooter,
   EmailText,
   EmailButton,
-  EmailLink,
-  EmailSignature
+  EmailSignature,
+  EmailDetails,
 } from './components';
 
 interface TeamInviteEmailProps {
@@ -31,54 +31,24 @@ export const TeamInviteEmail = ({
       <Section>
         <EmailText>Hello,</EmailText>
         <EmailText>
-          {inviterName} has invited you to join <strong>{teamName}</strong> on nPanel as a {teamRole}.
+          {inviterName} has invited you to join <strong>{teamName}</strong> on nPanel.
         </EmailText>
-        <EmailText>
-          nPanel is Nisc Cloud®&apos;s management platform for your cloud services.
-          It helps teams manage domains, hosting services, WordPress installations, and all your
-          Nisc Cloud® resources from one centralized dashboard.
-        </EmailText>
-        <EmailText>
-          By accepting this invitation, you will be able to:
-        </EmailText>
-        <EmailText style={{ marginLeft: '20px', lineHeight: '1.8' }}>
-          • Collaborate with your team members<br />
-          • Access and manage team resources<br />
-          • View invoices and billing information<br />
-          • Manage domains and hosting services<br />
-          • Monitor team activity and usage
-        </EmailText>
+        <EmailDetails>
+          <EmailText style={{ margin: '8px 0' }}>
+            <strong>Team:</strong> {teamName}
+          </EmailText>
+          <EmailText style={{ margin: '8px 0' }}>
+            <strong>Role:</strong> {teamRole}
+          </EmailText>
+          <EmailText style={{ margin: '8px 0' }}>
+            <strong>Invited by:</strong> {inviterName}
+          </EmailText>
+        </EmailDetails>
         <EmailButton href={acceptInviteLink || '#'}>
-          Accept Invitation
+          Accept invitation
         </EmailButton>
         <EmailText>
-          Or copy and paste this link into your browser:
-        </EmailText>
-        <EmailText style={{
-          wordBreak: 'break-all',
-          color: '#666',
-          fontSize: '14px',
-          backgroundColor: '#f4f4f4',
-          padding: '10px',
-          borderRadius: '4px',
-        }}>
-          {acceptInviteLink}
-        </EmailText>
-        <EmailText style={{ color: '#666', fontSize: '14px' }}>
-          This invitation will expire in {expiresInDays} days. If you don&apos;t accept it by then,
-          you&apos;ll need to request a new invitation from {inviterName}.
-        </EmailText>
-        <EmailText>
-          If you weren&apos;t expecting this invitation or don&apos;t want to join this team,
-          you can safely ignore this email. No account will be created without your consent.
-        </EmailText>
-        <EmailText>
-          If you have any questions about this invitation, please contact {inviterName} directly
-          or reach out to our support team at{' '}
-          <EmailLink href="mailto:support@nisccloud.com">
-            support@nisccloud.com
-          </EmailLink>
-          .
+          This invitation expires in {expiresInDays} days. If you were not expecting it, you can ignore this email. No account will be created unless you accept.
         </EmailText>
         <EmailSignature />
       </Section>
@@ -97,4 +67,3 @@ TeamInviteEmail.PreviewProps = {
 } as TeamInviteEmailProps;
 
 export default TeamInviteEmail;
-

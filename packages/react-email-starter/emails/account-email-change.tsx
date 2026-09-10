@@ -5,7 +5,6 @@ import {
   EmailFooter,
   EmailText,
   EmailButton,
-  EmailLink,
   EmailSignature,
 } from './components';
 
@@ -37,37 +36,19 @@ export const AccountEmailChangeEmail = ({
       <Section>
         <EmailText>Hello {userFirstname},</EmailText>
         {isConfirm ? (
-          <>
-            <EmailText>
-              Someone requested to change the email address on your Nisc Cloud®
-              account to <strong>{newEmail || 'a new address'}</strong>.
-            </EmailText>
-            <EmailText>
-              If this was you, approve the change below. We&apos;ll then send a
-              verification link to the new address before updating your account.
-            </EmailText>
-          </>
+          <EmailText>
+            A request was made to change the email address on your Nisc Cloud® account to{' '}
+            <strong>{newEmail || 'a new address'}</strong>. If this was you, approve the change below. We will then send a verification link to the new address.
+          </EmailText>
         ) : (
-          <>
-            <EmailText>
-              You approved an email change for your Nisc Cloud® account. Please
-              verify that you own <strong>{newEmail || 'this address'}</strong>{' '}
-              to complete the update.
-            </EmailText>
-            <EmailText>
-              Your account email will only change after you verify this address.
-            </EmailText>
-          </>
+          <EmailText>
+            You approved an email change for your Nisc Cloud® account. Verify that you own{' '}
+            <strong>{newEmail || 'this address'}</strong> to complete the update. Your account email will only change after this step.
+          </EmailText>
         )}
         <EmailButton href={actionLink || '#'}>{buttonLabel}</EmailButton>
         <EmailText>
-          If you didn&apos;t request this change, you can ignore this message 
-          no changes will be made to your account.
-        </EmailText>
-        <EmailText>
-          To keep your account secure, please don&apos;t forward this email to
-          anyone. See our Help Center for{' '}
-          <EmailLink href={actionLink || '#'}>more security tips.</EmailLink>
+          If you did not request this change, you can ignore this email. No changes will be made to your account.
         </EmailText>
         <EmailSignature />
       </Section>
