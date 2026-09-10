@@ -287,15 +287,15 @@ export function HivelocityServersTable({ type, resourceBasePath, teamSlug }: Hiv
 					</Link>
 				),
 				cells: {
-					ip: <CleanListCell>—</CleanListCell>,
-					location: <CleanListCell>—</CleanListCell>,
+					ip: <CleanListCell></CleanListCell>,
+					location: <CleanListCell></CleanListCell>,
 					status: (
 						<Badge className="bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200 border-amber-200 dark:border-amber-800 text-xs font-medium">
 							Suspended
 						</Badge>
 					),
 				},
-				description: <p>Service suspended — open details to review or reactivate.</p>,
+				description: <p>Service suspended  open details to review or reactivate.</p>,
 				actions: <ViewDetailsButton onClick={() => navigate(detailHref)} />,
 				onClick: () => navigate(detailHref),
 			};

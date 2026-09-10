@@ -292,7 +292,7 @@ export const ZEEPO_AI_OPS_CLIENT_TOOLS = [
 	{
 		name: "marketing_ads",
 		description:
-			"Live media buying data for Meta, Instagram, Google Ads, and LinkedIn Ads. Use list_accounts first, then get_account (campaigns + totals in the ad account currency), then get_campaign or get_performance for a specific campaign. Money is ALWAYS the ad account's native currency (e.g. KES) — never treat it as USD.",
+			"Live media buying data for Meta, Instagram, Google Ads, and LinkedIn Ads. Use list_accounts first, then get_account (campaigns + totals in the ad account currency), then get_campaign or get_performance for a specific campaign. Money is ALWAYS the ad account's native currency (e.g. KES)  never treat it as USD.",
 		input_schema: {
 			type: "object" as const,
 			properties: {
@@ -335,7 +335,7 @@ export const ZEEPO_AI_OPS_CLIENT_TOOLS = [
 	{
 		name: "marketing_email",
 		description:
-			"Email marketing campaigns with SQL-aggregated totals (opens, clicks, bounces) plus the campaign HTML as creative context. Never request per-recipient dumps — totals are already aggregated.",
+			"Email marketing campaigns with SQL-aggregated totals (opens, clicks, bounces) plus the campaign HTML as creative context. Never request per-recipient dumps  totals are already aggregated.",
 		input_schema: {
 			type: "object" as const,
 			properties: {
@@ -381,7 +381,7 @@ export const ZEEPO_AI_OPS_CLIENT_TOOLS = [
 		input_schema: {
 			type: "object" as const,
 			properties: {
-				name: { type: "string", description: "Short brief title, e.g. Diamond Coffee Meta retargeting — May." },
+				name: { type: "string", description: "Short brief title, e.g. Diamond Coffee Meta retargeting  May." },
 				background: { type: "string", description: "Client, product, campaign, platforms, and why new creatives are needed." },
 				objectives: { type: "string", description: "What success looks like (CTR, ROAS, brand, offer)." },
 				requirements: { type: "string", description: "Formats, sizes, quantities, copy, brand rules, must-include elements." },

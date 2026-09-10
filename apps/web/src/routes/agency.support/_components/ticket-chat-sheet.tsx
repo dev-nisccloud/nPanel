@@ -387,7 +387,7 @@ export function TicketChatSheet({
                     </div>
                     <p className="text-xs leading-relaxed text-blue-800 dark:text-blue-200">
                       This ticket was created automatically by AI based on the customer's chat conversation. 
-                      It's informational only — reply directly to the customer using their contact details below.
+                      It's informational only  reply directly to the customer using their contact details below.
                     </p>
                     {guestContact || (ticket.metadata as Record<string, unknown>).callbackPhone ? (
                       <div className="flex flex-wrap items-center gap-3 pt-1">

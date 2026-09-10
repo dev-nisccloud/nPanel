@@ -166,7 +166,7 @@ export function TransactionsTable({
       cells: {
         customer: (
           <CleanListCell className="text-sm font-medium text-foreground">
-            {transaction.userName ?? "—"}
+            {transaction.userName ?? ""}
           </CleanListCell>
         ),
         gateway: (
@@ -178,7 +178,7 @@ export function TransactionsTable({
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-foreground">{amountLabel}</p>
             <CleanListCell>
-              {Number.isNaN(dateValue.getTime()) ? "—" : dateValue.toLocaleDateString()}
+              {Number.isNaN(dateValue.getTime()) ? "" : dateValue.toLocaleDateString()}
             </CleanListCell>
           </div>
         ),

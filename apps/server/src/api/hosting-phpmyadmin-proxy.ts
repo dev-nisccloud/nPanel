@@ -2,7 +2,7 @@ import type { Context } from "hono";
 import { createContext } from "@npanel/api";
 import { getPleskPanelBase } from "@npanel/api/lib/plesk/session";
 
-/** Public embed URL — must not contain "phpmyadmin" (WAFs drop those paths). */
+/** Public embed URL  must not contain "phpmyadmin" (WAFs drop those paths). */
 export const PHPMYADMIN_PUBLIC_PREFIX = "/api/hosting/db-webadmin";
 export const PHPMYADMIN_PROXY_PREFIX = `${PHPMYADMIN_PUBLIC_PREFIX}/p`;
 const LEGACY_PROXY_PREFIX = "/api/hosting/phpmyadmin/proxy";
@@ -413,7 +413,7 @@ function cookieResponseHeaders(setCookies: string[]): Headers {
   return headers;
 }
 
-/** Consume Plesk SSO server-side and return phpMyAdmin HTML (no 302 — intermediaries rewrite Location to /login.php). */
+/** Consume Plesk SSO server-side and return phpMyAdmin HTML (no 302  intermediaries rewrite Location to /login.php). */
 export async function bootstrapPhpMyAdminEmbed(
   c: Context,
   pleskSsoUrl: string,

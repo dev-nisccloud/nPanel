@@ -319,7 +319,7 @@ export function CreateClientSheet({
           .join(", ");
         parts.push(`added to ${membershipSummary}`);
       }
-      toast.success(parts.join(" — "));
+      toast.success(parts.join("  "));
 
       form.reset(DEFAULT_VALUES);
       setShowPassword(false);

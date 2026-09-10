@@ -93,7 +93,7 @@ export function WordPressDataTable() {
           <CleanListCell>
             {subscribed || expires
               ? `${subscribed ? `Subscribed ${subscribed}` : ""}${subscribed && expires ? " · " : ""}${expires ? `Expires ${expires}` : ""}`
-              : "—"}
+              : ""}
           </CleanListCell>
         ),
         status: (

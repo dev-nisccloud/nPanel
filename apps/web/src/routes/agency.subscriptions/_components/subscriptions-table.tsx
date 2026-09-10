@@ -19,7 +19,7 @@ import { authClient } from "@/lib/auth-client";
 import { SubscriptionDeleteDialog } from "./subscription-delete-dialog";
 
 function getBillingCycleDisplayName(cycle: string | null): string {
-	if (!cycle) return "—";
+	if (!cycle) return "";
 	const m: Record<string, string> = {
 		MONTHLY: "Monthly",
 		YEARLY: "Yearly",
@@ -163,10 +163,10 @@ export function SubscriptionsTable({
 				dates: (
 					<div className="flex min-w-0 flex-col gap-0.5">
 						<p className="truncate text-sm font-medium text-foreground">
-							{subscribed ? `Subscribed ${subscribed}` : "—"}
+							{subscribed ? `Subscribed ${subscribed}` : ""}
 						</p>
 						<CleanListCell>
-							{expires ? `Expires ${expires}` : "—"}
+							{expires ? `Expires ${expires}` : ""}
 						</CleanListCell>
 					</div>
 				),

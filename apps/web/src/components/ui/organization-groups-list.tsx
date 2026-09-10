@@ -108,7 +108,7 @@ export function OrganizationGroupsList({
 			),
 			last: (
 				<CleanListCell>
-					{group.lastAt ? group.lastAt.toLocaleDateString() : "—"}
+					{group.lastAt ? group.lastAt.toLocaleDateString() : ""}
 				</CleanListCell>
 			),
 		},

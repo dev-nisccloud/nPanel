@@ -170,7 +170,7 @@ export function TransactionsTable() {
                     {transaction.currency} {parseFloat(transaction.amount).toLocaleString()}
                   </p>
                   <CleanListCell>
-                    {Number.isNaN(dateValue.getTime()) ? "—" : dateValue.toLocaleDateString()}
+                    {Number.isNaN(dateValue.getTime()) ? "" : dateValue.toLocaleDateString()}
                   </CleanListCell>
                 </div>
               ),

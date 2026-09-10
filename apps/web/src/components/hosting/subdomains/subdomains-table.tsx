@@ -282,7 +282,7 @@ export function SubdomainsTable({
                 ) : undefined
               }
               cells={{
-                php: <CleanListCell>{phpVersion ? `PHP ${phpVersion}` : "—"}</CleanListCell>,
+                php: <CleanListCell>{phpVersion ? `PHP ${phpVersion}` : ""}</CleanListCell>,
                 ssl: (
                   <Badge
                     variant={subdomain.properties?.ssl ? "default" : "secondary"}

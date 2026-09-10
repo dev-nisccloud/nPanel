@@ -114,15 +114,15 @@ export function CustomerSubscriptionsTable({ onViewSubscription }: CustomerSubsc
 				dates: (
 					<div className="flex min-w-0 flex-col gap-0.5">
 						<p className="truncate text-sm font-medium text-foreground">
-							{subscribed ? `Subscribed ${subscribed}` : "—"}
+							{subscribed ? `Subscribed ${subscribed}` : ""}
 						</p>
 						<CleanListCell>
-							{expires ? `Expires ${expires}` : "—"}
+							{expires ? `Expires ${expires}` : ""}
 						</CleanListCell>
 					</div>
 				),
 				progress: (
-					<CleanListCell>{showProgress ? `${sub.progressPercent ?? 0}%` : "—"}</CleanListCell>
+					<CleanListCell>{showProgress ? `${sub.progressPercent ?? 0}%` : ""}</CleanListCell>
 				),
 			},
 			onClick: onViewSubscription ? () => onViewSubscription(sub.id) : undefined,

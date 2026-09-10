@@ -255,7 +255,7 @@ export async function createAndEmailNiscOrderInvoice(
 		}
 	}
 
-	// Agency staff who initiated the order are not billed identities — do not CC them.
+	// Agency staff who initiated the order are not billed identities  do not CC them.
 	if (createdBy && userId && createdBy === userId) {
 		const initiator = await db.query.user.findFirst({
 			where: eq(userTable.id, createdBy),

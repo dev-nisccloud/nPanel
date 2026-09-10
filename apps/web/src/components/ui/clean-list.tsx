@@ -182,7 +182,7 @@ export function CleanListCell({
   /** Wrap onto extra lines instead of truncating, so the full value stays visible. */
   wrap?: boolean;
 }) {
-  const content = children == null || children === "" ? "—" : children;
+  const content = children == null || children === "" ? "" : children;
 
   return (
     <span
@@ -402,7 +402,7 @@ export function CleanListRow({
           key={column.key}
           className={cn("cl-extra", `cl-extra-${cssKey(column.key)}`)}
         >
-          {cells?.[column.key] ?? <CleanListCell>—</CleanListCell>}
+          {cells?.[column.key] ?? <CleanListCell></CleanListCell>}
         </div>
       ))}
 

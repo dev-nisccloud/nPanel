@@ -166,17 +166,17 @@ export function DashboardSubscriptionsTable() {
         return (
           <CleanListRow
             key={sub.id}
-            title={sub.planName ?? "—"}
+            title={sub.planName ?? ""}
             description={<StatusBadge status={sub.status} />}
             cells={{
-              planType: <CleanListCell>{sub.planType ?? "—"}</CleanListCell>,
+              planType: <CleanListCell>{sub.planType ?? ""}</CleanListCell>,
               dates: (
                 <div className="flex min-w-0 flex-col gap-0.5">
                   <p className="truncate text-sm font-medium text-foreground">
-                    {subscribed ? `Subscribed ${subscribed}` : "—"}
+                    {subscribed ? `Subscribed ${subscribed}` : ""}
                   </p>
                   <CleanListCell>
-                    {renews ? `Expires ${renews}` : "—"}
+                    {renews ? `Expires ${renews}` : ""}
                   </CleanListCell>
                 </div>
               ),

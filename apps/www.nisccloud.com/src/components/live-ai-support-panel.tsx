@@ -29,9 +29,9 @@ type ChatMsg = {
 };
 
 const GREETING_GUEST =
-  "Hi — I'm Zeepo. Ask about domains, hosting, or VPS and I'll keep it short. For your own services, log in or contact us.";
+  "Hi  I'm Zeepo. Ask about domains, hosting, or VPS and I'll keep it short. For your own services, log in or contact us.";
 const GREETING_SIGNED_IN =
-  "Hi — I'm Zeepo. Ask about domains, hosting, or VPS. For live servers, DNS, and mail on your account, open Live AI Support in the nPanel dashboard.";
+  "Hi  I'm Zeepo. Ask about domains, hosting, or VPS. For live servers, DNS, and mail on your account, open Live AI Support in the nPanel dashboard.";
 
 export function LiveAiSupportPanel({
   isSignedIn,

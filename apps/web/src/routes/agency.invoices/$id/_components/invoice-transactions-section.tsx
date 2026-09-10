@@ -12,7 +12,7 @@ function formatDate(v: string | Date | null | undefined): string | null {
 }
 
 function formatCurrency(amount: string | null | undefined, currency: string): string {
-	if (!amount) return "—";
+	if (!amount) return "";
 	const n = Number(amount);
 	return Number.isFinite(n)
 		? new Intl.NumberFormat("en-US", {

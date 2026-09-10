@@ -1,6 +1,6 @@
 /**
  * Live media-buying tools for Zeepo AI.
- * Meta / Instagram, Google Ads, LinkedIn Ads — account through campaign (and children).
+ * Meta / Instagram, Google Ads, LinkedIn Ads  account through campaign (and children).
  * Every money field is tagged with the ad account's native currency. No FX conversion.
  */
 import { and, eq, ilike, inArray, or, sql } from "@npanel/db";
@@ -1396,7 +1396,7 @@ export async function agentMarketingAds(params: MarketingAdsArgs): Promise<unkno
 			_tool: "marketing_ads",
 			action: "list_accounts",
 			currency_rule: AD_ACCOUNT_CURRENCY_RULE,
-			note: "Each account has its own currency. Never mix spend across currencies. Instagram ads run on Meta ad accounts — use platform=instagram when drilling into Instagram delivery.",
+			note: "Each account has its own currency. Never mix spend across currencies. Instagram ads run on Meta ad accounts  use platform=instagram when drilling into Instagram delivery.",
 			platforms: results,
 		};
 	}

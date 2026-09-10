@@ -72,7 +72,7 @@ export function PhpMyAdminPage({
         ) : null}
         <iframe
           key={src}
-          title={databaseName ? `phpMyAdmin — ${databaseName}` : "phpMyAdmin"}
+          title={databaseName ? `phpMyAdmin  ${databaseName}` : "phpMyAdmin"}
           src={src}
           className="block h-full w-full border-0 bg-background"
           onLoad={() => {
