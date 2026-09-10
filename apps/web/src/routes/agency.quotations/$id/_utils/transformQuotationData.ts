@@ -8,6 +8,12 @@ import type {
 
 import { COMPANY_LOGO_URL as DEFAULT_LOGO } from "@npanel/api/lib/company-branding";
 
+function billingCycleFromMetadata(metadata: Record<string, unknown> | unknown[] | null | undefined): string | undefined {
+	if (!metadata || Array.isArray(metadata) || typeof metadata !== "object") return undefined;
+	const cycle = metadata.billingCycle;
+	return typeof cycle === "string" && cycle && cycle !== "__unset__" ? cycle : undefined;
+}
+
 /** Quotation shape as received from tRPC (dates may be serialized as strings). */
 export type QuotationForPreview = {
 	fromDetails?: unknown;
@@ -18,6 +24,7 @@ export type QuotationForPreview = {
 		description?: string | null;
 		price?: string | null;
 		quantity?: number | null;
+		metadata?: Record<string, unknown> | unknown[] | null;
 	}>;
 	note?: string | null;
 	discount?: string | null;
@@ -63,6 +70,7 @@ export function transformQuotationToPreviewData(quotation: QuotationForPreview):
 		itemDescription: lineItem.description || lineItem.name || "",
 		amount: lineItem.price ? parseFloat(lineItem.price) : undefined,
 		qty: lineItem.quantity ?? undefined,
+		billingCycle: billingCycleFromMetadata(lineItem.metadata),
 	}));
 
 	const quotationDetails: QuotationItemDetails = {
@@ -127,6 +135,7 @@ export function quotationToFormDefaultValues(quotation: QuotationForPreview): Re
 						itemDescription: i.itemDescription ?? "",
 						amount: i.amount,
 						qty: i.qty,
+						billingCycle: i.billingCycle,
 					}))
 				: [{ itemDescription: "" }],
 		quotationNo: preview.quotationTerms.quotationNumber ?? "",

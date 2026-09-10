@@ -9,6 +9,13 @@ import CustomNumberInput from "@/routes/agency.invoices/create/_components/ui/cu
 import { useGetValue } from "@/routes/agency.quotations/create/hooks/useGetValue";
 import { Controller, useFormContext } from "react-hook-form";
 import type { Item } from "@/routes/agency.quotations/create/types";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 
 export const QuotationDetailsForm = () => {
 	const { control } = useFormContext();
@@ -46,29 +53,53 @@ export const QuotationDetailsForm = () => {
 							</div>
 							<div>
 								<p className="py-3 font-medium text-sm text-neutral-500">Items</p>
-								{items.map(({ itemDescription, amount, qty }, index) => (
-									<div className="flex relative items-center group -ml-8" key={index}>
-										<div className={`w-9 h-7 ${items.length === 1 ? "invisible" : ""}`}>
+								{items.map((item, index) => (
+									<div
+										className="flex relative items-start group -ml-8 gap-2 flex-wrap pb-4 mb-4 border-b border-gray-100 last:border-0 last:mb-0"
+										key={index}
+									>
+										<div className={`w-9 h-7 flex-shrink-0 ${items.length === 1 ? "invisible" : ""}`}>
 											<button
 												type="button"
 												onClick={() => removeItem(index)}
 												className="flex-shrink-0 rounded-md p-1.5 group-hover:bg-gray-50 hidden group-hover:block"
+												aria-label="Remove item"
 											>
 												<Trash2 className="w-4 text-gray-500 h-4 group-hover:text-red-400" />
 											</button>
 										</div>
-										<div className="w-full flex-1">
+										<div className="flex-1 min-w-[200px] space-y-3">
 											<Input
 												placeholder="Item name"
-												value={itemDescription ?? ""}
+												value={item.itemDescription ?? ""}
 												type="text"
 												onChange={(e) => updateItem(index, { itemDescription: e.target.value })}
 											/>
+											{/* Billing cycle (optional) */}
+											<Select
+												value={item.billingCycle || "__unset__"}
+												onValueChange={(v) =>
+													updateItem(index, {
+														billingCycle: v === "__unset__" ? undefined : v,
+													})
+												}
+											>
+												<SelectTrigger className="w-full">
+													<SelectValue placeholder="Billing cycle (optional)" />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value="__unset__">None</SelectItem>
+													<SelectItem value="one-time">One Time</SelectItem>
+													<SelectItem value="monthly">Monthly</SelectItem>
+													<SelectItem value="quarterly">Quarterly</SelectItem>
+													<SelectItem value="annually">Annually</SelectItem>
+												</SelectContent>
+											</Select>
 										</div>
-										<div className="w-14">
+										<div className="w-14 flex-shrink-0">
 											<Input
 												placeholder="Qty"
-												value={qty ? `${qty}` : ""}
+												value={item.qty != null ? String(item.qty) : ""}
 												type="text"
 												pattern="[0-9]*"
 												onChange={(e) => {
@@ -78,12 +109,12 @@ export const QuotationDetailsForm = () => {
 												}}
 											/>
 										</div>
-										<div className="w-14">
+										<div className="w-20 flex-shrink-0">
 											<Input
-												placeholder="Amount"
-												value={amount ? `${amount}` : ""}
+												placeholder={currencyDetails?.currencySymbol ?? ""}
+												value={item.amount != null ? String(item.amount) : ""}
 												type="text"
-												pattern="[0-9]*"
+												pattern="[0-9]*\.?[0-9]*"
 												onChange={(e) => {
 													const v = e.target.value;
 													if (/^-?\d*\.?\d*$/.test(v) || v === "")
@@ -124,4 +155,3 @@ export const QuotationDetailsForm = () => {
 		/>
 	);
 };
-

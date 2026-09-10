@@ -3,6 +3,7 @@ import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure, publicProcedure } from '../../trpc';
 import { submitContactEmailVerification } from '../../lib/openprovider-contact-verification';
 import { createOpenProviderClient, OpenProviderApiError } from '../../lib/openprovider-client';
+import { assertAgencySuperAdmin } from '../../lib/domain-transfer-access';
 import type { 
   OpenProviderCustomerRequest,
   OpenProviderCustomerSearchRequest,
@@ -98,7 +99,8 @@ export const openProviderCustomersRouter = router({
    */
   create: protectedProcedure
     .input(CustomerRequestSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      await assertAgencySuperAdmin(ctx.session.user.id);
       try {
         const client = createOpenProviderClient();
         
@@ -266,7 +268,8 @@ export const openProviderCustomersRouter = router({
    */
   update: protectedProcedure
     .input(CustomerUpdateRequestSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      await assertAgencySuperAdmin(ctx.session.user.id);
       try {
         const client = createOpenProviderClient();
         
@@ -707,7 +710,8 @@ export const openProviderCustomersRouter = router({
    */
   startEmailVerification: protectedProcedure
     .input(EmailVerificationStartSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      await assertAgencySuperAdmin(ctx.session.user.id);
       try {
         const client = createOpenProviderClient();
         

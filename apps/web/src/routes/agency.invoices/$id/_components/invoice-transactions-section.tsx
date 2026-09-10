@@ -1,22 +1,14 @@
 "use client";
 
-import { Eye } from "lucide-react";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
+import { CleanList, CleanListCell, CleanListRow } from "@/components/ui/clean-list";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { ViewDetailsButton } from "@/components/ui/list-row-actions";
 import type { InvoiceTransaction } from "@/routes/agency.invoices/create/api/schemas";
 
-function formatDate(v: string | Date | null | undefined): string {
-	if (!v) return "";
+function formatDate(v: string | Date | null | undefined): string | null {
+	if (!v) return null;
 	const d = v instanceof Date ? v : new Date(v);
-	return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString();
+	return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString();
 }
 
 function formatCurrency(amount: string | null | undefined, currency: string): string {
@@ -84,55 +76,49 @@ export function InvoiceTransactionsSection({
 				</p>
 			</div>
 
-			{transactions.length === 0 ? (
-				<div className="rounded-lg border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
-					{emptyMessage}
-				</div>
-			) : (
-				<div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-					<Table>
-						<TableHeader>
-							<TableRow>
-								<TableHead className="pl-4">Reference</TableHead>
-								<TableHead>Method</TableHead>
-								<TableHead>Status</TableHead>
-								<TableHead>Amount</TableHead>
-								<TableHead>Date</TableHead>
-								<TableHead className="pr-4 w-[100px]">Actions</TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{transactions.map((tx) => (
-								<TableRow key={tx.id}>
-									<TableCell className="pl-4 font-medium">
-										{tx.reference || tx.providerReference || `${tx.id.slice(0, 8)}…`}
-									</TableCell>
-									<TableCell>
-										<Badge variant="outline">{getMethodDisplay(tx.method)}</Badge>
-									</TableCell>
-									<TableCell>
-										<Badge variant="outline" className={getStatusBadgeClass(tx.status)}>
-											{tx.status}
-										</Badge>
-									</TableCell>
-									<TableCell>{formatCurrency(tx.amount, tx.currency)}</TableCell>
-									<TableCell>{formatDate(tx.paidAt ?? tx.createdAt)}</TableCell>
-									<TableCell className="pr-4">
-										<Button
-											variant="ghost"
-											size="sm"
-											onClick={() => onViewTransaction(tx)}
-										>
-											<Eye className="mr-1.5 h-4 w-4" />
-											View
-										</Button>
-									</TableCell>
-								</TableRow>
-							))}
-						</TableBody>
-					</Table>
-				</div>
-			)}
+			<CleanList
+				emptyMessage={emptyMessage}
+				columns={[
+					{ key: "reference", label: "Reference" },
+					{ key: "method", label: "Method", className: "w-32", hideBelow: "@lg" },
+					{ key: "amount", label: "Amount", className: "w-40", hideBelow: "@xl" },
+					{ key: "actions", label: "Actions", align: "end" },
+				]}
+			>
+				{transactions.map((tx) => {
+					const dateLabel = formatDate(tx.paidAt ?? tx.createdAt);
+					return (
+						<CleanListRow
+							key={tx.id}
+							title={
+								<span className="text-primary hover:underline">
+									{tx.reference || tx.providerReference || `${tx.id.slice(0, 8)}…`}
+								</span>
+							}
+							description={
+								<Badge variant="outline" className={getStatusBadgeClass(tx.status)}>
+									{tx.status.replace(/_/g, " ")}
+								</Badge>
+							}
+							cells={{
+								method: <CleanListCell>{getMethodDisplay(tx.method)}</CleanListCell>,
+								amount: (
+									<div className="min-w-0">
+										<p className="truncate text-sm font-medium text-foreground">
+											{formatCurrency(tx.amount, tx.currency)}
+										</p>
+										{dateLabel ? <CleanListCell>{dateLabel}</CleanListCell> : null}
+									</div>
+								),
+							}}
+							onClick={() => onViewTransaction(tx)}
+							actions={
+								<ViewDetailsButton onClick={() => onViewTransaction(tx)} />
+							}
+						/>
+					);
+				})}
+			</CleanList>
 		</div>
 	);
 }

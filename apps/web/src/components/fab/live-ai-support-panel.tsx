@@ -27,7 +27,7 @@ type ChatMsg = {
 };
 
 const GREETING =
-  "Hi — I'm Zeepo. Ask about domains, hosting, VPS, or your services. I'll keep it short; tap a card to buy.";
+  "Hi  I'm Zeepo. Ask about domains, hosting, VPS, or your services. I'll keep it short; tap a card to buy.";
 
 export function LiveAiSupportPanel({
   teamId,

@@ -70,6 +70,8 @@ export interface OpenProviderTld {
   billing_handle_enabled: boolean;
   reseller_handle_enabled: boolean;
   supported_idn_scripts: Array<{ value: string; description: string; }>;
+  modify_owner_allowed?: boolean;
+  trade_allowed?: boolean;
   owner_handle_supported: boolean;
   admin_handle_supported: boolean;
   tech_handle_supported: boolean;
@@ -175,6 +177,11 @@ export interface OpenProviderCustomerRequest {
   company_name?: string;
   tags?: string[];
   additional_data?: Record<string, any>;
+  fax?: {
+    country_code: string;
+    area_code: string;
+    subscriber_number: string;
+  };
 }
 
 export interface OpenProviderCustomerResponse {
@@ -330,6 +337,28 @@ export interface OpenProviderDomainSearchResponse {
       }>;
     }>;
     total: number;
+  };
+}
+
+export interface OpenProviderDomainTradeRequest {
+  domain: {
+    name: string;
+    extension: string;
+  };
+  owner_handle: string;
+  admin_handle?: string;
+  tech_handle?: string;
+  billing_handle?: string;
+  auth_code?: string;
+  period?: number;
+}
+
+export interface OpenProviderDomainTradeResponse {
+  code: number;
+  desc: string;
+  data?: {
+    id?: number;
+    status?: string;
   };
 }
 

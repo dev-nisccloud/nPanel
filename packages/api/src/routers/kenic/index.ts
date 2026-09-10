@@ -8,6 +8,7 @@ import { kenicDomainCreateRouter } from "./domain-create";
 import { kenicDomainTransferRouter } from "./domain-transfer";
 import { kenicConfigStatusRouter } from "./config-status";
 import { kenicDomainListRouter } from "./domain-list";
+import { kenicContactUpdateRouter } from "./contact-update";
 import { kenicBalanceRouter } from "./balance";
 
 /**
@@ -26,6 +27,8 @@ export const kenicRouter = router({
 	configStatus: kenicConfigStatusRouter,
 	/** Agency domains portfolio: list all .ke domains registered through this agency. */
 	domainList: kenicDomainListRouter,
+	/** Agency: update or replace KENIC registrant contact. */
+	contactUpdate: kenicContactUpdateRouter,
 	/** Registrar account credit balance (CoCCA finance:info). */
 	balance: kenicBalanceRouter,
 });

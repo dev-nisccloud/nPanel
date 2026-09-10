@@ -117,7 +117,7 @@ export default function DomainsPortfolioPage() {
           <CleanListCell>
             {subscribed || expires
               ? `${subscribed ? `Subscribed ${subscribed}` : ""}${subscribed && expires ? " · " : ""}${expires ? `Expires ${expires}` : ""}`
-              : "—"}
+              : ""}
           </CleanListCell>
         ),
         status: <DomainStatusBadge status={item.status} />,

@@ -1544,7 +1544,7 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 																	<SelectItem key={plan.id} value={plan.id}>
 																		{isZeepo ? (
 																			<>
-																				{plan.name} —{" "}
+																				{plan.name} {" "}
 																				{(plan.tokenGrant ?? 0).toLocaleString()} tokens (
 																				{plan.zeepoPlanType === "top_up"
 																					? "top-up"
@@ -1553,7 +1553,7 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 																			</>
 																		) : (
 																			<>
-																				{plan.name} — {plan.displayCurrency}{" "}
+																				{plan.name}  {plan.displayCurrency}{" "}
 																				{Math.ceil(plan.displayPrice).toLocaleString()} /{" "}
 																				{plan.billingCycle.toLowerCase()}
 																			</>

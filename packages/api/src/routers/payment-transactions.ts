@@ -7,7 +7,7 @@ import {
   paymentTransaction,
   paymentTransactionActivityLog,
 } from "@npanel/db/schema/payment-transactions";
-import { and, count, desc, eq, inArray, or } from "@npanel/db";
+import { and, count, desc, eq, inArray, isNull, or } from "@npanel/db";
 import { z } from "zod";
 import { protectedProcedure, router, type Context } from "../trpc";
 
@@ -35,6 +35,7 @@ const paymentTransactionOutputSchema = z.object({
 	userId: z.string(),
 	teamId: z.string().nullable(),
 	userName: z.string().nullable(),
+	teamName: z.string().nullable(),
 	gateway: paymentGatewaySchema,
 	status: paymentTransactionStatusSchema,
 	amount: z.string(),
@@ -296,10 +297,12 @@ export const paymentTransactionsRouter = router({
 	list: protectedProcedure
 		.input(
 			z.object({
-				limit: z.number().int().min(1).max(100).optional().default(50),
+				limit: z.number().int().min(1).max(200).optional().default(50),
 				offset: z.number().int().min(0).optional().default(0),
 				status: paymentTransactionStatusSchema.optional(),
 				gateway: paymentGatewaySchema.optional(),
+				teamId: z.string().uuid().optional(),
+				unassignedOnly: z.boolean().optional(),
 			}),
 		)
 		.output(
@@ -335,6 +338,12 @@ export const paymentTransactionsRouter = router({
 				conditions.push(eq(paymentTransaction.gateway, input.gateway));
 			}
 
+			if (input.unassignedOnly) {
+				conditions.push(isNull(paymentTransaction.teamId));
+			} else if (input.teamId) {
+				conditions.push(eq(paymentTransaction.teamId, input.teamId));
+			}
+
 			const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
 			const [transactions, totalRes] = await Promise.all([
@@ -343,6 +352,7 @@ export const paymentTransactionsRouter = router({
 						id: paymentTransaction.id,
 						userId: paymentTransaction.userId,
 						teamId: paymentTransaction.teamId,
+						teamName: teamTable.name,
 						gateway: paymentTransaction.gateway,
 						status: paymentTransaction.status,
 						amount: paymentTransaction.amount,
@@ -357,6 +367,7 @@ export const paymentTransactionsRouter = router({
 						updatedAt: paymentTransaction.updatedAt,
 					})
 					.from(paymentTransaction)
+					.leftJoin(teamTable, eq(paymentTransaction.teamId, teamTable.id))
 					.where(whereClause)
 					.orderBy(desc(paymentTransaction.createdAt))
 					.limit(input.limit)
@@ -385,6 +396,7 @@ export const paymentTransactionsRouter = router({
 						userId: t.userId,
 						teamId: t.teamId,
 						userName: userMap.get(t.userId) ?? null,
+						teamName: t.teamName ?? null,
 						gateway: t.gateway,
 						status: t.status,
 						amount: t.amount,

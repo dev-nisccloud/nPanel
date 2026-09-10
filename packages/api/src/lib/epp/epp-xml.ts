@@ -380,6 +380,53 @@ export function buildDomainInfoXml(domain: string, authInfo?: string): string {
 </epp>`;
 }
 
+export interface ContactUpdateParams {
+	id: string;
+	postalInfo?: ContactCreatePostalInfo;
+	voice?: string;
+	/** Empty string or null removes fax. Omit to leave unchanged. */
+	fax?: string | null;
+	email?: string;
+}
+
+/**
+ * Build EPP contact:update command (RFC 5733).
+ */
+export function buildContactUpdateXml(params: ContactUpdateParams): string {
+	const chgParts: string[] = [];
+	if (params.postalInfo) {
+		chgParts.push(formatPostalInfo(params.postalInfo, "int"));
+	}
+	if (params.voice != null && params.voice !== "") {
+		chgParts.push(`    <contact:voice>${escapeXml(params.voice)}</contact:voice>`);
+	}
+	if (params.fax !== undefined) {
+		chgParts.push(
+			params.fax
+				? `    <contact:fax>${escapeXml(params.fax)}</contact:fax>`
+				: `    <contact:fax/>`,
+		);
+	}
+	if (params.email != null && params.email !== "") {
+		chgParts.push(`    <contact:email>${escapeXml(params.email)}</contact:email>`);
+	}
+
+	return `<?xml version="1.0" encoding="UTF-8"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0" xmlns:contact="urn:ietf:params:xml:ns:contact-1.0">
+  <command>
+    <update>
+      <contact:update>
+    <contact:id>${escapeXml(params.id)}</contact:id>
+    <contact:chg>
+${chgParts.join("\n")}
+    </contact:chg>
+      </contact:update>
+    </update>
+    <clTRID>${escapeXml(clTrId())}</clTRID>
+  </command>
+</epp>`;
+}
+
 /**
  * Build EPP contact:info command (RFC 5733).
  */
@@ -400,8 +447,10 @@ export function buildContactInfoXml(id: string, authInfo?: string): string {
   </command>
 </epp>`;
 }
+export type DomainContactType = "admin" | "tech" | "billing";
+
 /**
- * Build EPP domain:update command (RFC 5731) for nameservers.
+ * Build EPP domain:update command (RFC 5731) for nameservers, lock, and contacts.
  */
 export function buildDomainUpdateXml(params: {
 	domain: string;
@@ -410,6 +459,9 @@ export function buildDomainUpdateXml(params: {
 	authInfo?: string;
 	addStatus?: string[];
 	remStatus?: string[];
+	registrant?: string;
+	addContacts?: Array<{ type: DomainContactType; id: string }>;
+	remContacts?: Array<{ type: DomainContactType; id: string }>;
 }): string {
 	const addParts: string[] = [];
 	if (params.addNs && params.addNs.length > 0) {
@@ -419,6 +471,11 @@ export function buildDomainUpdateXml(params: {
 	if (params.addStatus && params.addStatus.length > 0) {
 		for (const status of params.addStatus) {
 			addParts.push(`        <domain:status s="${escapeXml(status)}"/>`);
+		}
+	}
+	if (params.addContacts) {
+		for (const c of params.addContacts) {
+			addParts.push(`        <domain:contact type="${escapeXml(c.type)}">${escapeXml(c.id)}</domain:contact>`);
 		}
 	}
 	const addEl =
@@ -436,14 +493,28 @@ export function buildDomainUpdateXml(params: {
 			remParts.push(`        <domain:status s="${escapeXml(status)}"/>`);
 		}
 	}
+	if (params.remContacts) {
+		for (const c of params.remContacts) {
+			remParts.push(`        <domain:contact type="${escapeXml(c.type)}">${escapeXml(c.id)}</domain:contact>`);
+		}
+	}
 	const remEl =
 		remParts.length > 0
 			? `\n      <domain:rem>\n${remParts.join("\n")}\n      </domain:rem>`
 			: "";
 
+	const chgParts: string[] = [];
+	if (params.registrant) {
+		chgParts.push(`        <domain:registrant>${escapeXml(params.registrant)}</domain:registrant>`);
+	}
+	if (params.authInfo != null) {
+		chgParts.push(
+			`        <domain:authInfo>\n          <domain:pw>${escapeXml(params.authInfo)}</domain:pw>\n        </domain:authInfo>`,
+		);
+	}
 	const chgEl =
-		params.authInfo != null
-			? `\n      <domain:chg>\n        <domain:authInfo>\n          <domain:pw>${escapeXml(params.authInfo)}</domain:pw>\n        </domain:authInfo>\n      </domain:chg>`
+		chgParts.length > 0
+			? `\n      <domain:chg>\n${chgParts.join("\n")}\n      </domain:chg>`
 			: "";
 
 	return `<?xml version="1.0" encoding="UTF-8"?>
