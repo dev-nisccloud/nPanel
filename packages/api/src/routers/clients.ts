@@ -7,7 +7,7 @@ import { invoice, invoiceTransaction } from "@npanel/db/schema/invoicing";
 import { quotation } from "@npanel/db/schema/quotations";
 import { serviceSubscription } from "@npanel/db/schema/service-subscriptions";
 import { paymentTransaction } from "@npanel/db/schema/payment-transactions";
-import { team, teamMember } from "@npanel/db/schema/teams";
+import { team, teamInvite, teamMember } from "@npanel/db/schema/teams";
 import {
 	customerIntegration,
 	customerIntegrationActivityLog,
@@ -95,14 +95,92 @@ function toClientOutput(client: {
 
 const getAllClientsOutputSchema = z.array(clientOutputSchema);
 
+const teamMemberRoleSchema = z.enum(["OWNER", "ADMIN", "MEMBER", "VIEWER"]);
+
+const createClientProfileInputSchema = z.object({
+	firstName: z.string().max(50).optional(),
+	lastName: z.string().max(50).optional(),
+	phone: z.string().max(50).optional(),
+	address: z.string().max(255).optional(),
+	city: z.string().max(100).optional(),
+	state: z.string().max(100).optional(),
+	country: z.string().max(100).optional(),
+	postalCode: z.string().max(20).optional(),
+});
+
 const createClientInputSchema = z.object({
 	name: z.string().min(1, "Name is required"),
 	email: z.string().email("Invalid email address"),
 	password: z.string().min(8, "Password must be at least 8 characters"),
 	role: z.enum(["CUSTOMER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"]).optional().default("CUSTOMER"),
+	profile: createClientProfileInputSchema.optional(),
+	createOrganization: z
+		.object({
+			name: z.string().min(2, "Organization name must be at least 2 characters").max(100),
+			baseCurrency: z.string().length(3, "Currency must be a 3-letter code").default("KES"),
+		})
+		.optional(),
+	addToOrganizations: z
+		.array(
+			z.object({
+				teamId: z.string().min(1, "Organization is required"),
+				role: teamMemberRoleSchema.default("MEMBER"),
+			}),
+		)
+		.max(50)
+		.optional()
+		.refine(
+			(memberships) => {
+				if (!memberships || memberships.length === 0) return true;
+				const teamIds = memberships.map((membership) => membership.teamId);
+				return new Set(teamIds).size === teamIds.length;
+			},
+			{ message: "Each organization can only be selected once" },
+		),
 }).merge(userEmailPreferencesInputSchema).merge(userAdminFieldsInputSchema);
 
-const createClientOutputSchema = clientOutputSchema;
+const createClientOutputSchema = clientOutputSchema.extend({
+	createdOrganization: z
+		.object({
+			id: z.string(),
+			name: z.string(),
+			slug: z.string(),
+		})
+		.nullable(),
+	addedMemberships: z.array(
+		z.object({
+			teamId: z.string(),
+			teamName: z.string(),
+			role: teamMemberRoleSchema,
+		}),
+	),
+});
+
+function trimToNull(value: string | undefined | null): string | null {
+	const trimmed = value?.trim();
+	return trimmed ? trimmed : null;
+}
+
+async function allocateUniqueTeamSlug(
+	query: Pick<typeof db, "select">,
+	name: string,
+): Promise<string> {
+	const baseSlug =
+		name
+			.toLowerCase()
+			.replace(/[^a-z0-9]+/g, "-")
+			.replace(/^-+|-+$/g, "") || "org";
+
+	let slug = baseSlug;
+	let counter = 1;
+
+	while (true) {
+		const [existing] = await query.select({ id: team.id }).from(team).where(eq(team.slug, slug)).limit(1);
+		if (!existing) return slug;
+		slug = `${baseSlug}-${counter}`;
+		counter++;
+	}
+}
 
 const updateClientInputSchema = z.object({
 	userId: z.string(),
@@ -430,6 +508,52 @@ export const clientsRouter = router({
 				});
 			}
 
+			const requestedMemberships = input.addToOrganizations ?? [];
+			const existingTeamsForMembership: Array<{
+				id: string;
+				name: string;
+				role: z.infer<typeof teamMemberRoleSchema>;
+			}> = [];
+
+			if (requestedMemberships.length > 0) {
+				const requestedTeamIds = requestedMemberships.map((membership) => membership.teamId);
+				const existingTeams = await db
+					.select({
+						id: team.id,
+						name: team.name,
+						isActive: team.isActive,
+					})
+					.from(team)
+					.where(inArray(team.id, requestedTeamIds));
+
+				const existingById = new Map(existingTeams.map((row) => [row.id, row]));
+				const missingTeamIds = requestedTeamIds.filter((teamId) => !existingById.has(teamId));
+				if (missingTeamIds.length > 0) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "One or more selected organizations were not found",
+					});
+				}
+
+				const inactiveTeam = existingTeams.find((row) => !row.isActive);
+				if (inactiveTeam) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: `The organization "${inactiveTeam.name}" is inactive`,
+					});
+				}
+
+				for (const membership of requestedMemberships) {
+					const existingTeam = existingById.get(membership.teamId);
+					if (!existingTeam) continue;
+					existingTeamsForMembership.push({
+						id: existingTeam.id,
+						name: existingTeam.name,
+						role: membership.role,
+					});
+				}
+			}
+
 			// Use Better Auth's signUpEmail API to create the user
 			// This properly handles password hashing and account creation
 			const signupResult = await auth.api.signUpEmail({
@@ -474,34 +598,235 @@ export const clientsRouter = router({
 				});
 			}
 
-			const extraFieldUpdates = {
-				...(input.role && input.role !== updatedUser.role ? { role: input.role } : {}),
-				...pickEmailPreferenceUpdates(input),
-				...pickAdminFieldUpdates(input),
-				...(input.acceptedTermsAndConditions === undefined
-					? { acceptedTermsAndConditions: true }
-					: {}),
+			const createdUserId = updatedUser.id;
+			const profile = input.profile;
+			const profileFields = {
+				firstName: trimToNull(profile?.firstName),
+				lastName: trimToNull(profile?.lastName),
+				phone: trimToNull(profile?.phone),
+				address: trimToNull(profile?.address),
+				city: trimToNull(profile?.city),
+				state: trimToNull(profile?.state),
+				country: trimToNull(profile?.country),
+				postalCode: trimToNull(profile?.postalCode),
 			};
+			const hasProfileFields = Object.values(profileFields).some((value) => value !== null);
 
-			if (Object.keys(extraFieldUpdates).length > 0) {
-				await db
-					.update(user)
-					.set(extraFieldUpdates)
-					.where(eq(user.id, updatedUser.id));
-				const [refetchedUser] = await db
-					.select()
-					.from(user)
-					.where(eq(user.id, updatedUser.id))
-					.limit(1);
-				updatedUser = refetchedUser;
-			}
+			let createdOrganization: { id: string; name: string; slug: string } | null = null;
+			let addedMemberships: Array<{
+				teamId: string;
+				teamName: string;
+				role: z.infer<typeof teamMemberRoleSchema>;
+			}> = [];
 
-			if (!updatedUser) {
+			try {
+				const setupResult = await db.transaction(async (tx) => {
+					const now = new Date();
+					const extraFieldUpdates = {
+						...(input.role && input.role !== updatedUser.role ? { role: input.role } : {}),
+						...pickEmailPreferenceUpdates(input),
+						...pickAdminFieldUpdates(input),
+						...(input.acceptedTermsAndConditions === undefined
+							? { acceptedTermsAndConditions: true }
+							: {}),
+					};
+
+					if (Object.keys(extraFieldUpdates).length > 0) {
+						await tx.update(user).set(extraFieldUpdates).where(eq(user.id, createdUserId));
+					}
+
+					if (hasProfileFields) {
+						await tx.insert(userProfile).values({
+							id: crypto.randomUUID(),
+							userId: createdUserId,
+							...profileFields,
+							createdAt: now,
+							updatedAt: now,
+						});
+					}
+
+					let createdOrg: { id: string; name: string; slug: string } | null = null;
+					const memberships: Array<{
+						teamId: string;
+						teamName: string;
+						role: z.infer<typeof teamMemberRoleSchema>;
+					}> = [];
+					let lastAccessedTeamId: string | null = null;
+
+					if (input.createOrganization) {
+						const slug = await allocateUniqueTeamSlug(tx as Pick<typeof db, "select">, input.createOrganization.name);
+						const [newTeam] = await tx
+							.insert(team)
+							.values({
+								id: crypto.randomUUID(),
+								name: input.createOrganization.name.trim(),
+								slug,
+								baseCurrency: input.createOrganization.baseCurrency,
+								isActive: true,
+								createdById: createdUserId,
+								createdAt: now,
+								updatedAt: now,
+							})
+							.returning({
+								id: team.id,
+								name: team.name,
+								slug: team.slug,
+							});
+
+						if (!newTeam) {
+							throw new TRPCError({
+								code: "INTERNAL_SERVER_ERROR",
+								message: "Failed to create organization for the client",
+							});
+						}
+
+						await tx.insert(teamMember).values({
+							id: crypto.randomUUID(),
+							teamId: newTeam.id,
+							userId: createdUserId,
+							role: "OWNER",
+							createdAt: now,
+							updatedAt: now,
+						});
+
+						await tx.insert(userActivityLog).values({
+							id: crypto.randomUUID(),
+							userId: createdUserId,
+							action: "TEAM_CREATED",
+							description: `Created team: ${newTeam.name}`,
+							metadata: {
+								teamId: newTeam.id,
+								teamName: newTeam.name,
+								teamSlug: newTeam.slug,
+								createdById: createdUserId,
+								createdOnBehalfBy: userId,
+								createdOnBehalfByEmail: session.user.email,
+							},
+							ipAddress: null,
+							userAgent: null,
+							createdAt: now,
+						});
+
+						createdOrg = newTeam;
+						lastAccessedTeamId = newTeam.id;
+					}
+
+					if (existingTeamsForMembership.length > 0) {
+						for (const existingTeam of existingTeamsForMembership) {
+							const alreadyOwnerOfSameTeam =
+								createdOrg !== null && createdOrg.id === existingTeam.id;
+							if (alreadyOwnerOfSameTeam) continue;
+
+							await tx.insert(teamMember).values({
+								id: crypto.randomUUID(),
+								teamId: existingTeam.id,
+								userId: createdUserId,
+								role: existingTeam.role,
+								createdAt: now,
+								updatedAt: now,
+							});
+
+							if (input.email) {
+								await tx
+									.update(teamInvite)
+									.set({ status: "CANCELLED", updatedAt: now })
+									.where(
+										and(
+											eq(teamInvite.teamId, existingTeam.id),
+											eq(teamInvite.email, input.email),
+											eq(teamInvite.status, "PENDING"),
+										),
+									);
+							}
+
+							await tx.insert(userActivityLog).values({
+								id: crypto.randomUUID(),
+								userId,
+								action: "TEAM_MEMBER_ADDED_BY_ADMIN",
+								description: `Added ${input.email} to ${existingTeam.name} as ${existingTeam.role}`,
+								metadata: {
+									teamId: existingTeam.id,
+									teamName: existingTeam.name,
+									addedUserId: createdUserId,
+									addedUserEmail: input.email,
+									role: existingTeam.role,
+									addedBy: userId,
+									addedByEmail: session.user.email,
+								},
+								ipAddress: null,
+								userAgent: null,
+								createdAt: now,
+							});
+
+							memberships.push({
+								teamId: existingTeam.id,
+								teamName: existingTeam.name,
+								role: existingTeam.role,
+							});
+							if (!lastAccessedTeamId) {
+								lastAccessedTeamId = existingTeam.id;
+							}
+						}
+					}
+
+					if (lastAccessedTeamId) {
+						await tx
+							.update(user)
+							.set({ lastAccessedTeamId, updatedAt: now })
+							.where(eq(user.id, createdUserId));
+					}
+
+					await tx.insert(userActivityLog).values({
+						id: crypto.randomUUID(),
+						userId: createdUserId,
+						action: "ACCOUNT_CREATED_BY_ADMIN",
+						description: `Account created by admin: ${session.user.email}`,
+						metadata: {
+							createdBy: userId,
+							createdByEmail: session.user.email,
+							role: input.role,
+							profileSaved: hasProfileFields,
+							createdOrganizationId: createdOrg?.id ?? null,
+							addedTeamIds: memberships.map((membership) => membership.teamId),
+						},
+						ipAddress: null,
+						userAgent: null,
+						createdAt: now,
+					});
+
+					return { createdOrg, memberships };
+				});
+
+				createdOrganization = setupResult.createdOrg;
+				addedMemberships = setupResult.memberships;
+			} catch (setupError) {
+				try {
+					await db.delete(user).where(eq(user.id, createdUserId));
+				} catch (cleanupError) {
+					console.error("Failed to roll back client after setup error:", cleanupError);
+				}
+
+				if (setupError instanceof TRPCError) {
+					throw setupError;
+				}
+
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
-					message: "User could not be retrieved after update",
+					message:
+						setupError instanceof Error
+							? setupError.message
+							: "Client account was created but organization setup failed. The account was rolled back.",
 				});
 			}
+
+			const [refetchedUser] = await db.select().from(user).where(eq(user.id, createdUserId)).limit(1);
+			if (!refetchedUser) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "User could not be retrieved after setup",
+				});
+			}
+			updatedUser = refetchedUser;
 
 			// Send custom credentials email
 			try {
@@ -523,26 +848,13 @@ export const clientsRouter = router({
 			} catch (emailError) {
 				// Log email error but don't fail the creation
 				console.error("Failed to send account creation email:", emailError);
-				// Still log activity even if email fails
 			}
 
-			// Log activity
-			await db.insert(userActivityLog).values({
-				id: crypto.randomUUID(),
-				userId: updatedUser.id,
-				action: "ACCOUNT_CREATED_BY_ADMIN",
-				description: `Account created by admin: ${session.user.email}`,
-				metadata: {
-					createdBy: userId,
-					createdByEmail: session.user.email,
-					role: input.role,
-				},
-				ipAddress: null,
-				userAgent: null,
-				createdAt: new Date(),
-			});
-
-			return toClientOutput(updatedUser);
+			return {
+				...toClientOutput(updatedUser),
+				createdOrganization,
+				addedMemberships,
+			};
 		}),
 
 	// Update client

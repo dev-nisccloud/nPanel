@@ -101,6 +101,7 @@ export default function ClientsPage() {
 
   const handleSuccess = () => {
     utils.clients.getAll.invalidate();
+    utils.teams.getAll.invalidate();
     setIsCreateSheetOpen(false);
   };
 
