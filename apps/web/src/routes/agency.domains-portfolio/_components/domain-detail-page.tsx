@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { trpc } from "@/utils/trpc";
+import { authClient } from "@/lib/auth-client";
 import { toast } from "@/components/ui/sonner";
 import { QrCodeDialog } from "./qr-code-dialog";
 import { HostingPlanDialog } from "./hosting-plan-dialog";
@@ -49,7 +50,11 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
   const [linkToTeamDialogOpen, setLinkToTeamDialogOpen] = React.useState(false);
 
   // 1. Fetch OpenProvider domains
-  const { data: opDomainsData, isLoading: isOpLoading } = trpc.openProvider.domains.list.useQuery(
+  const { data: session } = authClient.useSession();
+  const canEditContacts =
+    (session?.user as { role?: string } | undefined)?.role === "AGENCY_SUPER_ADMIN";
+
+  const { data: opDomainsData, isLoading: isOpLoading, refetch: refetchOpDomains } = trpc.openProvider.domains.list.useQuery(
     {
       limit: 1000,
       offset: 0,
@@ -334,6 +339,14 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
                     domain={mergedDomain as DomainPortfolio}
                     source={(mergedDomain as { source?: "kenic" | "openprovider" }).source}
                     registrantInfo={(mergedDomain as { registrantInfo?: KenicRegistrantInfo }).registrantInfo}
+                    canEdit={canEditContacts}
+                    onContactUpdated={async () => {
+                      if ((mergedDomain as { source?: string }).source === "kenic") {
+                        await refetchKenicLiveInfo();
+                      } else {
+                        await refetchOpDomains();
+                      }
+                    }}
                   />
                 </div>
               </div>

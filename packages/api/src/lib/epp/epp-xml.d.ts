@@ -116,12 +116,24 @@ export declare function buildDomainTransferXml(params: DomainTransferParams): st
  * Build EPP domain:info command (RFC 5731).
  */
 export declare function buildDomainInfoXml(domain: string, authInfo?: string): string;
+export interface ContactUpdateParams {
+    id: string;
+    postalInfo?: ContactCreatePostalInfo;
+    voice?: string;
+    fax?: string | null;
+    email?: string;
+}
+/**
+ * Build EPP contact:update command (RFC 5733).
+ */
+export declare function buildContactUpdateXml(params: ContactUpdateParams): string;
 /**
  * Build EPP contact:info command (RFC 5733).
  */
 export declare function buildContactInfoXml(id: string, authInfo?: string): string;
+export type DomainContactType = "admin" | "tech" | "billing";
 /**
- * Build EPP domain:update command (RFC 5731) for nameservers.
+ * Build EPP domain:update command (RFC 5731) for nameservers, lock, and contacts.
  */
 export declare function buildDomainUpdateXml(params: {
     domain: string;
@@ -130,6 +142,15 @@ export declare function buildDomainUpdateXml(params: {
     authInfo?: string;
     addStatus?: string[];
     remStatus?: string[];
+    registrant?: string;
+    addContacts?: Array<{
+        type: DomainContactType;
+        id: string;
+    }>;
+    remContacts?: Array<{
+        type: DomainContactType;
+        id: string;
+    }>;
 }): string;
 /**
  * Build EPP host:check command (RFC 5732).
