@@ -1,11 +1,12 @@
 import { Section } from '@react-email/components';
-import { 
-  EmailLayout, 
-  EmailHeader, 
-  EmailFooter, 
-  EmailText, 
-  EmailButton, 
-  EmailSignature 
+import {
+  EmailLayout,
+  EmailHeader,
+  EmailFooter,
+  EmailText,
+  EmailButton,
+  EmailSignature,
+  EmailDetails,
 } from './components';
 
 interface AgencyUserCreatedEmailProps {
@@ -29,37 +30,24 @@ export const AgencyUserCreatedEmail = ({
       <Section>
         <EmailText>Hello {userFirstname},</EmailText>
         <EmailText>
-          An agency user account has been created for you with Nisc Cloud®. You now have access to the nPanel agency dashboard where you can manage clients, services, and team resources.
+          An agency user account has been created for you with Nisc Cloud®. You now have access to the nPanel agency dashboard.
         </EmailText>
-        <EmailText>
-          <strong>Your account details:</strong>
-        </EmailText>
-        <EmailText>
-          <strong>Email:</strong> {email}
-        </EmailText>
-        <EmailText>
-          <strong>Password:</strong> {password}
-        </EmailText>
-        <EmailText>
-          <strong>Role:</strong> {role}
-        </EmailText>
-        <EmailText>
-          You can log in to your agency dashboard using the button below:
-        </EmailText>
+        <EmailDetails title="Your account details">
+          <EmailText style={{ margin: '8px 0' }}>
+            <strong>Email:</strong> {email}
+          </EmailText>
+          <EmailText style={{ margin: '8px 0' }}>
+            <strong>Password:</strong> {password}
+          </EmailText>
+          <EmailText style={{ margin: '8px 0' }}>
+            <strong>Role:</strong> {role}
+          </EmailText>
+        </EmailDetails>
         <EmailButton href={loginLink || '#'}>
-          Log in to Agency Dashboard
+          Log in to nPanel
         </EmailButton>
         <EmailText>
-          <strong>Important Security Notice:</strong>
-        </EmailText>
-        <EmailText>
-          For security purposes, we strongly recommend that you change your password to a secure one of your choice after your first login.
-        </EmailText>
-        <EmailText>
-          As an agency user, you have access to various administrative functions. If you have any questions about your role or permissions, please contact your administrator.
-        </EmailText>
-        <EmailText>
-          If you have any questions or need assistance, feel free to reach out to our support team. We're here to help!
+          <strong>Important:</strong> Change this password to one of your choosing after your first login.
         </EmailText>
         <EmailSignature />
       </Section>
@@ -77,4 +65,3 @@ AgencyUserCreatedEmail.PreviewProps = {
 } as AgencyUserCreatedEmailProps;
 
 export default AgencyUserCreatedEmail;
-

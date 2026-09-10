@@ -6,6 +6,7 @@ import {
   EmailText,
   EmailButton,
   EmailSignature,
+  EmailDetails,
 } from './components';
 
 export interface CampaignCancelledEmailProps {
@@ -26,29 +27,26 @@ export const CampaignCancelledEmail = ({
   const greeting = recipientName ? `Hello ${recipientName},` : 'Hello,';
 
   return (
-    <EmailLayout preview={`Your scheduled campaign "${campaignName ?? 'Campaign'}" was cancelled`}>
+    <EmailLayout preview={`Campaign cancelled: ${campaignName ?? 'Campaign'}`}>
       <EmailHeader />
       <Section>
         <EmailText>{greeting}</EmailText>
         <EmailText>
-          You cancelled your scheduled campaign. It will not be sent.
+          Your scheduled campaign has been cancelled and will not be sent.
         </EmailText>
-        <EmailText>
-          <strong>Campaign:</strong> {campaignName ?? ' '}
-        </EmailText>
-        <EmailText>
-          <strong>Subject:</strong> {subject ?? ' '}
-        </EmailText>
-        <EmailText>
-          <strong>Cancelled at:</strong> {cancelledAt ?? ' '}
-        </EmailText>
-        <EmailText>
-          No emails will be sent for this scheduled send. You can create or schedule a new campaign anytime from your dashboard.
-        </EmailText>
+        <EmailDetails>
+          <EmailText style={{ margin: '8px 0' }}>
+            <strong>Campaign:</strong> {campaignName ?? ' '}
+          </EmailText>
+          <EmailText style={{ margin: '8px 0' }}>
+            <strong>Subject:</strong> {subject ?? ' '}
+          </EmailText>
+          <EmailText style={{ margin: '8px 0' }}>
+            <strong>Cancelled:</strong> {cancelledAt ?? ' '}
+          </EmailText>
+        </EmailDetails>
         {viewCampaignLink && (
-          <EmailButton href={viewCampaignLink}>
-            View Campaigns
-          </EmailButton>
+          <EmailButton href={viewCampaignLink}>View campaigns</EmailButton>
         )}
         <EmailSignature />
       </Section>

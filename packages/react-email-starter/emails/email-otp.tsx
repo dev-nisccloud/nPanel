@@ -1,11 +1,12 @@
-import { Section } from "@react-email/components";
+import { Section } from '@react-email/components';
 import {
   EmailFooter,
   EmailHeader,
   EmailLayout,
   EmailSignature,
   EmailText,
-} from "./components";
+  emailStyles,
+} from './components';
 
 interface EmailOtpEmailProps {
   userFirstname?: string;
@@ -22,27 +23,15 @@ export const EmailOtpEmail = ({
     <EmailLayout preview={`Your nPanel verification code is ${otpCode}`}>
       <EmailHeader />
       <Section>
-        <EmailText>Hello {userFirstname || "there"},</EmailText>
+        <EmailText>Hello {userFirstname || 'there'},</EmailText>
         <EmailText>
-          Use the verification code below to finish signing in to your nPanel account.
+          Use this verification code to finish signing in to nPanel.
         </EmailText>
-        <EmailText
-          style={{
-            fontSize: "30px",
-            fontWeight: 700,
-            letterSpacing: "10px",
-            textAlign: "center",
-            margin: "28px 0",
-          }}
-        >
+        <EmailText style={emailStyles.otpCode}>
           {otpCode}
         </EmailText>
         <EmailText>
-          This code expires in {expiresInMinutes} minutes and can only be used once.
-        </EmailText>
-        <EmailText>
-          If you did not try to sign in, please reset your password and contact support
-          immediately.
+          This code expires in {expiresInMinutes} minutes and can only be used once. If you did not try to sign in, reset your password and contact support.
         </EmailText>
         <EmailSignature />
       </Section>
@@ -52,8 +41,8 @@ export const EmailOtpEmail = ({
 };
 
 EmailOtpEmail.PreviewProps = {
-  userFirstname: "John Doe",
-  otpCode: "834291",
+  userFirstname: 'John Doe',
+  otpCode: '834291',
   expiresInMinutes: 10,
 } as EmailOtpEmailProps;
 

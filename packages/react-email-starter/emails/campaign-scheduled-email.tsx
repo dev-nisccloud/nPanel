@@ -6,6 +6,7 @@ import {
   EmailText,
   EmailButton,
   EmailSignature,
+  EmailDetails,
 } from './components';
 
 export interface CampaignScheduledEmailProps {
@@ -28,38 +29,32 @@ export const CampaignScheduledEmail = ({
   const greeting = recipientName ? `Hello ${recipientName},` : 'Hello,';
 
   return (
-    <EmailLayout preview={`Your email campaign "${campaignName ?? 'Campaign'}" is scheduled`}>
+    <EmailLayout preview={`Campaign scheduled: ${campaignName ?? 'Campaign'}`}>
       <EmailHeader />
       <Section>
         <EmailText>{greeting}</EmailText>
         <EmailText>
-          Your email campaign has been scheduled and will be sent automatically at the date and time you selected.
+          Your email campaign is scheduled and will send automatically at the time you selected. You can cancel or reschedule it from nPanel before it sends.
         </EmailText>
-        <EmailText>
-          <strong>Campaign details:</strong>
-        </EmailText>
-        <EmailText>
-          <strong>Campaign name:</strong> {campaignName ?? ' '}
-        </EmailText>
-        <EmailText>
-          <strong>Subject:</strong> {subject ?? ' '}
-        </EmailText>
-        <EmailText>
-          <strong>Scheduled for:</strong> {scheduledAt ?? ' '}
-        </EmailText>
-        <EmailText>
-          <strong>Recipients:</strong> {recipientCount.toLocaleString()}
-        </EmailText>
-        <EmailText>
-          No further action is required. The campaign will be sent at the scheduled time. You can cancel or reschedule it from your dashboard before it sends.
-        </EmailText>
+        <EmailDetails>
+          <EmailText style={{ margin: '8px 0' }}>
+            <strong>Campaign:</strong> {campaignName ?? ' '}
+          </EmailText>
+          <EmailText style={{ margin: '8px 0' }}>
+            <strong>Subject:</strong> {subject ?? ' '}
+          </EmailText>
+          <EmailText style={{ margin: '8px 0' }}>
+            <strong>Scheduled for:</strong> {scheduledAt ?? ' '}
+          </EmailText>
+          <EmailText style={{ margin: '8px 0' }}>
+            <strong>Recipients:</strong> {recipientCount.toLocaleString()}
+          </EmailText>
+        </EmailDetails>
         {viewCampaignLink && (
-          <EmailButton href={viewCampaignLink}>
-            View Campaign
-          </EmailButton>
+          <EmailButton href={viewCampaignLink}>View campaign</EmailButton>
         )}
         <EmailText>
-          If you did not schedule this campaign, please contact your team administrator or support to cancel it.
+          If you did not schedule this campaign, contact your administrator to cancel it.
         </EmailText>
         <EmailSignature />
       </Section>
@@ -71,7 +66,7 @@ export const CampaignScheduledEmail = ({
 CampaignScheduledEmail.PreviewProps = {
   recipientName: 'Jane',
   campaignName: 'Weekly Newsletter',
-  subject: 'This week\'s updates and tips',
+  subject: "This week's updates and tips",
   scheduledAt: 'Feb 1, 2026 at 9:00 AM',
   recipientCount: 3200,
   viewCampaignLink: 'https://app.nisccloud.com/agency/email-marketing/campaigns/camp_456',
