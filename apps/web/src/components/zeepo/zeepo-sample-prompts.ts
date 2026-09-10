@@ -261,6 +261,6 @@ Global craft rules: one unified campaign world (same lighting family, colour gra
     bg: "bg-orange-500/10",
     category: "strategy",
     title: "Email campaign audit",
-    prompt: `Review our email marketing using aggregated totals (opens, clicks, bounces — not recipient lists). Then open the most recent sent campaign including its HTML and tell me what to change in subject, offer, layout, and CTA. Compare that campaign to overall account totals.`,
+    prompt: `Review our email marketing using aggregated totals (opens, clicks, bounces  not recipient lists). Then open the most recent sent campaign including its HTML and tell me what to change in subject, offer, layout, and CTA. Compare that campaign to overall account totals.`,
   },
 ];

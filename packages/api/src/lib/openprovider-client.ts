@@ -19,6 +19,8 @@ import type {
   OpenProviderDomainSearchResponse,
   OpenProviderDomainUpdateRequest,
   OpenProviderDomainUpdateResponse,
+  OpenProviderDomainTradeRequest,
+  OpenProviderDomainTradeResponse,
   OpenProviderDomainRenewalRequest,
   OpenProviderDomainRenewalResponse,
   OpenProviderAuthCodeResponse,
@@ -484,6 +486,37 @@ export class OpenProviderClient {
         throw error;
       }
       throw new OpenProviderApiError(0, 'Failed to search domains', error as Error);
+    }
+  }
+
+  /**
+   * Trade a domain to a new owner (TLDs that do not allow owner update).
+   */
+  async tradeDomain(params: OpenProviderDomainTradeRequest): Promise<OpenProviderDomainTradeResponse> {
+    try {
+      return await this.makeRequest<OpenProviderDomainTradeResponse>('POST', '/domains/trade', params);
+    } catch (error) {
+      if (error instanceof OpenProviderApiError) {
+        throw error;
+      }
+      throw new OpenProviderApiError(0, 'Failed to trade domain', error as Error);
+    }
+  }
+
+  /**
+   * Retrieve a domain by OpenProvider id.
+   */
+  async getDomain(id: number): Promise<{ code: number; desc: string; data: Record<string, unknown> }> {
+    try {
+      return await this.makeRequest<{ code: number; desc: string; data: Record<string, unknown> }>(
+        'GET',
+        `/domains/${id}`,
+      );
+    } catch (error) {
+      if (error instanceof OpenProviderApiError) {
+        throw error;
+      }
+      throw new OpenProviderApiError(0, 'Failed to get domain', error as Error);
     }
   }
 

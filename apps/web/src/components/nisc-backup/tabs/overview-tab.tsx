@@ -330,8 +330,8 @@ export function NiscBackupOverviewTab({
         >
           <div className="divide-y divide-border">
             <PairRow>
-              <LimitCell label="Version" value={system?.version ?? "—"} />
-              <LimitCell label="Tier" value={system?.tier ?? "—"} />
+              <LimitCell label="Version" value={system?.version ?? ""} />
+              <LimitCell label="Tier" value={system?.tier ?? ""} />
             </PairRow>
             <PairRow>
               <div className="space-y-1 px-4 py-3">

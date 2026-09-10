@@ -192,7 +192,7 @@ export default function DomainsPortfolioPage() {
             {domain.clientEmail ? ` · ${domain.clientEmail}` : ""}
           </CleanListCell>
         ),
-        expiry: <CleanListCell>{expiry ? `Expires ${expiry}` : "—"}</CleanListCell>,
+        expiry: <CleanListCell>{expiry ? `Expires ${expiry}` : ""}</CleanListCell>,
         status: <DomainStatusBadge status={domain.status} />,
       },
       actions: (() => {

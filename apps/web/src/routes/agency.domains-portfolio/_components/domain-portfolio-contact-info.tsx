@@ -4,8 +4,10 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { authClient } from "@/lib/auth-client";
 import { trpc } from "@/utils/trpc";
 import type { DomainPortfolio } from "./domain-portfolio-card";
+import { DomainContactEditDialog } from "./domain-contact-edit-dialog";
 
 export type KenicRegistrantInfo = {
   handle?: string;
@@ -15,7 +17,7 @@ export type KenicRegistrantInfo = {
   voice?: string;
   fax?: string;
   address?: {
-    street?: string;
+    street?: string | string[];
     city?: string;
     state?: string;
     postcode?: string;
@@ -149,11 +151,12 @@ function ContactField({
 }
 
 function ContactAddressBlock({ address }: { address: NonNullable<PortfolioContactRow["address"]> }) {
+  const street = Array.isArray(address.street) ? address.street.filter(Boolean).join(" ") : address.street;
   return (
     <p className="text-sm text-muted-foreground leading-relaxed">
-      {address.street && (
+      {street && (
         <span>
-          {address.street}
+          {street}
           <br />
         </span>
       )}
@@ -180,14 +183,23 @@ interface DomainPortfolioContactInfoProps {
   domain: DomainPortfolio;
   source?: "kenic" | "openprovider";
   registrantInfo?: KenicRegistrantInfo | null;
+  canEdit?: boolean;
+  onContactUpdated?: () => void | Promise<void>;
 }
 
 export function DomainPortfolioContactInfo({
   domain,
   source,
   registrantInfo,
+  canEdit = false,
+  onContactUpdated,
 }: DomainPortfolioContactInfoProps) {
   const [showAll, setShowAll] = React.useState(false);
+  const [editOpen, setEditOpen] = React.useState(false);
+  const { data: session } = authClient.useSession();
+  const isSuperAdmin =
+    (session?.user as { role?: string } | undefined)?.role === "AGENCY_SUPER_ADMIN";
+  const showEdit = canEdit && isSuperAdmin;
   const isKenic = source === "kenic";
 
   const ownerHandle = domain.ownerHandle;
@@ -259,17 +271,29 @@ export function DomainPortfolioContactInfo({
   return (
     <Card>
       <CardContent className="p-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 gap-2">
           <h3 className="font-semibold text-sm">Contact information</h3>
-          {hasExpandableDetails && (
-            <Button
-              variant="link"
-              className="p-0 h-auto text-primary text-xs"
-              onClick={() => setShowAll(!showAll)}
-            >
-              {showAll ? "Hide" : "View all"}
-            </Button>
-          )}
+          <div className="flex items-center gap-3">
+            {showEdit && (
+              <Button
+                variant="link"
+                className="p-0 h-auto text-primary text-xs"
+                onClick={() => setEditOpen(true)}
+                disabled={isLoadingOp}
+              >
+                Edit
+              </Button>
+            )}
+            {hasExpandableDetails && (
+              <Button
+                variant="link"
+                className="p-0 h-auto text-primary text-xs"
+                onClick={() => setShowAll(!showAll)}
+              >
+                {showAll ? "Hide" : "View all"}
+              </Button>
+            )}
+          </div>
         </div>
 
         {isLoadingOp ? (
@@ -385,6 +409,18 @@ export function DomainPortfolioContactInfo({
           </div>
         )}
       </CardContent>
+      {showEdit && (
+        <DomainContactEditDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          domain={domain}
+          source={source}
+          registrantInfo={registrantInfo}
+          opCustomer={!isKenic ? (ownerQuery.data?.data as OpenProviderCustomerRecord | undefined) : undefined}
+          opCustomerLoading={!isKenic && ownerQuery.isLoading}
+          onUpdated={onContactUpdated}
+        />
+      )}
     </Card>
   );
 }

@@ -3,6 +3,8 @@ export type Item = {
 	itemDescription: string;
 	amount?: number;
 	qty?: number;
+	/** Optional billing cycle for the item */
+	billingCycle?: string;
 };
 
 export type YourDetails = {

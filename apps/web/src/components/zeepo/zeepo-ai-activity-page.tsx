@@ -440,7 +440,7 @@ export function ZeepoAiActivityPage() {
             value={formatInt(summary.tokensDebited)}
             hint={
               surface === "support_fab"
-                ? "Never billed — Live AI is Nisc-paid"
+                ? "Never billed  Live AI is Nisc-paid"
                 : "Debited from wallets"
             }
             icon={Coins}

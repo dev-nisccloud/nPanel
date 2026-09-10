@@ -87,7 +87,7 @@ export function HostingDataTable() {
     const hasLinked = Boolean(linked);
     const isSuspended = isHostingSubscriptionSuspended(subscription.status);
     const customerLabel = linked
-      ? linked.teamName || linked.userName || "—"
+      ? linked.teamName || linked.userName || ""
       : null;
     const expiry = formatExpiryDate(linked?.expiryDate);
 

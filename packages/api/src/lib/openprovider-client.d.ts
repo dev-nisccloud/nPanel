@@ -97,6 +97,18 @@ export declare class OpenProviderClient {
      */
     searchDomains(params?: OpenProviderDomainSearchRequest): Promise<OpenProviderDomainSearchResponse>;
     /**
+     * Trade a domain to a new owner (TLDs that do not allow owner update).
+     */
+    tradeDomain(params: import('../types/openprovider').OpenProviderDomainTradeRequest): Promise<import('../types/openprovider').OpenProviderDomainTradeResponse>;
+    /**
+     * Retrieve a domain by OpenProvider id.
+     */
+    getDomain(id: number): Promise<{
+        code: number;
+        desc: string;
+        data: Record<string, unknown>;
+    }>;
+    /**
      * Update domain attributes
      */
     updateDomain(id: number, params: OpenProviderDomainUpdateRequest): Promise<OpenProviderDomainUpdateResponse>;

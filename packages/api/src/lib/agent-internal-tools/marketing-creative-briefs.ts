@@ -1,6 +1,6 @@
 /**
  * Creative brief submission for Zeepo AI.
- * Agency design work is fulfilled by the creatives team — the AI submits a brief when context needs new assets.
+ * Agency design work is fulfilled by the creatives team  the AI submits a brief when context needs new assets.
  */
 import { randomUUID } from "node:crypto";
 import { eq } from "@npanel/db";

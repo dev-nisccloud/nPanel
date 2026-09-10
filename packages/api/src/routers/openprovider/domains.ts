@@ -4,6 +4,8 @@ import { router, publicProcedure, protectedProcedure } from '../../trpc';
 import { createOpenProviderClient, OpenProviderApiError } from '../../lib/openprovider-client';
 import { submitTransferFoaConfirmation } from '../../lib/openprovider-transfer-foa';
 import { getRedisClient } from '../../lib/redis';
+import { updateContactProcedure } from './update-contact';
+import { assertAgencySuperAdmin } from '../../lib/domain-transfer-access';
 import type { 
   OpenProviderDomainCheckRequest,
   OpenProviderDomainRegistrationRequest,
@@ -862,7 +864,13 @@ export const openProviderDomainsRouter = router({
    */
   update: protectedProcedure
     .input(DomainUpdateRequestSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      const wantsContactChange = Boolean(
+        input.owner_handle || input.admin_handle || input.tech_handle || input.billing_handle,
+      );
+      if (wantsContactChange) {
+        await assertAgencySuperAdmin(ctx.session.user.id);
+      }
       try {
         const client = createOpenProviderClient();
         
@@ -1591,4 +1599,9 @@ export const openProviderDomainsRouter = router({
         });
       }
     }),
+
+  /**
+   * Agency: update a contact handle, or replace the owner (create handle + update/trade).
+   */
+  updateContact: updateContactProcedure,
 });

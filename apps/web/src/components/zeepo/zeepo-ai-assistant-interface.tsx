@@ -679,7 +679,7 @@ export function ZeepoAiAssistantInterface() {
           </div>
         </div>
 
-        {/* Sample prompt tabs — temporarily hidden
+        {/* Sample prompt tabs  temporarily hidden
         <div
           className={cn(
             "mt-3 w-full shrink-0 sm:mt-4",

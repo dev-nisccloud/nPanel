@@ -76,7 +76,7 @@ export function HostingDataTable() {
           <CleanListCell>
             {subscribed || expires
               ? `${subscribed ? `Subscribed ${subscribed}` : ""}${subscribed && expires ? " · " : ""}${expires ? `Expires ${expires}` : ""}`
-              : "—"}
+              : ""}
           </CleanListCell>
         ),
         status: (

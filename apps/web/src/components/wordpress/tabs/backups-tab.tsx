@@ -173,7 +173,7 @@ export function WordPressBackupsTab({ installationId }: { installationId: string
                     size: <CleanListCell>{formatSize(b.fileSize)}</CleanListCell>,
                     date: (
                       <CleanListCell>
-                        {b.createdAt ? new Date(b.createdAt).toLocaleString() : "—"}
+                        {b.createdAt ? new Date(b.createdAt).toLocaleString() : ""}
                       </CleanListCell>
                     ),
                   }}

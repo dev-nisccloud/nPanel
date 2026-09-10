@@ -68,7 +68,7 @@ export function UpdateQuotationButton({ quotationId }: UpdateQuotationButtonProp
 				price: String(item.amount ?? 0),
 				discount: null,
 				total: String((item.amount ?? 0) * (item.qty ?? 1)),
-				metadata: null,
+				metadata: (item.billingCycle && item.billingCycle !== "__unset__") ? { billingCycle: item.billingCycle } : null,
 			}));
 
 			const fromDetails = {

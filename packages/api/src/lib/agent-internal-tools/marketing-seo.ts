@@ -1,5 +1,5 @@
 /**
- * SEO tools for Zeepo AI — SEO Suite snapshots + SEO Reports.
+ * SEO tools for Zeepo AI  SEO Suite snapshots + SEO Reports.
  * Reads stored project/rank/audit/backlink data; does not trigger paid vendor recrawls.
  */
 import { and, desc, eq, ilike, inArray, isNull, or, sql } from "@npanel/db";
