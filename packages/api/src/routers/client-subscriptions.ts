@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, type SQL, desc, eq, gte, ilike, inArray, lte, or, sql } from "@npanel/db";
+import { and, type SQL, desc, eq, gte, ilike, inArray, isNull, lte, or, sql } from "@npanel/db";
 import { db } from "@npanel/db";
 import { user as userTable } from "@npanel/db/schema/auth";
 import {
@@ -710,6 +710,8 @@ export const clientSubscriptionsRouter = router({
                     offset: z.number().int().min(0).default(0),
                     search: z.string().optional(),
                     productFilter: z.enum(["hosting"]).optional(),
+                    teamId: z.string().uuid().optional(),
+                    unassignedOnly: z.boolean().optional(),
                 })
                 .optional()
         )
@@ -748,6 +750,11 @@ export const clientSubscriptionsRouter = router({
             const whereParts: SQL[] = [];
             if (productIdFilter) whereParts.push(inArray(niscClientSubscription.productId, productIdFilter));
             if (readScope) whereParts.push(readScope);
+            if (input?.unassignedOnly) {
+                whereParts.push(isNull(niscClientSubscription.teamId));
+            } else if (input?.teamId) {
+                whereParts.push(eq(niscClientSubscription.teamId, input.teamId));
+            }
 
             const subs = await db.query.niscClientSubscription.findMany({
                 where: whereParts.length ? and(...whereParts) : undefined,

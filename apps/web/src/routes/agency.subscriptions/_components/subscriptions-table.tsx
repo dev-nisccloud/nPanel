@@ -1,27 +1,17 @@
 "use client";
 
 import * as React from "react";
-import { RefreshCw, Search, Eye, Pencil, MoreHorizontal, Trash2 } from "lucide-react";
+import { RefreshCw, Pencil, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CleanListCell } from "@/components/ui/clean-list";
 import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
+	SearchableCleanList,
+	type SearchableCleanListItem,
+} from "@/components/ui/searchable-clean-list";
+import { ViewDetailsButton } from "@/components/ui/list-row-actions";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { captureEvent } from "@/lib/posthog";
@@ -29,7 +19,7 @@ import { authClient } from "@/lib/auth-client";
 import { SubscriptionDeleteDialog } from "./subscription-delete-dialog";
 
 function getBillingCycleDisplayName(cycle: string | null): string {
-	if (!cycle) return "- ";
+	if (!cycle) return "—";
 	const m: Record<string, string> = {
 		MONTHLY: "Monthly",
 		YEARLY: "Yearly",
@@ -40,10 +30,10 @@ function getBillingCycleDisplayName(cycle: string | null): string {
 	return m[cycle] ?? cycle;
 }
 
-function formatDate(v: string | Date | null | undefined): string {
-	if (!v) return "- ";
+function formatDate(v: string | Date | null | undefined): string | null {
+	if (!v) return null;
 	const d = v instanceof Date ? v : new Date(v);
-	return Number.isNaN(d.getTime()) ? "- " : d.toLocaleDateString();
+	return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString();
 }
 
 function getStatusBadgeClass(status: string): string {
@@ -75,17 +65,20 @@ function displayServiceName(
 	return subscriptionName?.trim() ? `${base} (${subscriptionName})` : base;
 }
 
-function organizationName(teamName: string | null): string {
-	return teamName ?? "- ";
-}
-
 export interface SubscriptionsTableProps {
 	/** Optional: if provided, View link will use this instead of navigation */
 	onViewSubscription?: (subscriptionId: string) => void;
 	onEditSubscription?: (subscriptionId: string) => void;
+	teamId?: string;
+	unassignedOnly?: boolean;
 }
 
-export function SubscriptionsTable({ onViewSubscription, onEditSubscription }: SubscriptionsTableProps) {
+export function SubscriptionsTable({
+	onViewSubscription,
+	onEditSubscription,
+	teamId,
+	unassignedOnly,
+}: SubscriptionsTableProps) {
 	const navigate = useNavigate();
 	const [searchQuery, setSearchQuery] = React.useState("");
 	const [deleteSubscriptionId, setDeleteSubscriptionId] = React.useState<string | null>(null);
@@ -113,6 +106,8 @@ export function SubscriptionsTable({ onViewSubscription, onEditSubscription }: S
 	} = trpc.clientSubscriptions.listForAgency.useQuery({
 		limit: 200,
 		offset: 0,
+		teamId,
+		unassignedOnly,
 	});
 
 	const filtered = React.useMemo(() => {
@@ -147,181 +142,104 @@ export function SubscriptionsTable({ onViewSubscription, onEditSubscription }: S
 		[onViewSubscription, navigate],
 	);
 
-	if (isLoading) {
-		return (
-			<div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-				<Table>
-					<TableHeader>
-						<TableRow>
-							<TableHead className="pl-6">Service Name</TableHead>
-							<TableHead>Organization / User</TableHead>
-							<TableHead>Billing cycle</TableHead>
-							<TableHead>Subscription date</TableHead>
-							<TableHead>Expiry date</TableHead>
-							<TableHead>Status</TableHead>
-							<TableHead className="w-12" />
-						</TableRow>
-					</TableHeader>
-					<TableBody>
-						{[...Array(5)].map((_, i) => (
-							<TableRow key={i}>
-								<TableCell className="pl-6">
-									<Skeleton className="h-4 w-40" />
-								</TableCell>
-								<TableCell>
-									<Skeleton className="h-4 w-28" />
-								</TableCell>
-								<TableCell>
-									<Skeleton className="h-4 w-20" />
-								</TableCell>
-								<TableCell>
-									<Skeleton className="h-4 w-24" />
-								</TableCell>
-								<TableCell>
-									<Skeleton className="h-4 w-24" />
-								</TableCell>
-								<TableCell>
-									<Skeleton className="h-4 w-20" />
-								</TableCell>
-								<TableCell />
-							</TableRow>
-						))}
-					</TableBody>
-				</Table>
-			</div>
-		);
-	}
+	const items: SearchableCleanListItem[] = filtered.map((sub) => {
+		const subscribed = formatDate(sub.subscriptionDate);
+		const expires = formatDate(sub.expiryDate);
 
-	if (isError) {
-		return (
-			<div className="overflow-hidden rounded-lg border bg-card">
-				<div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-					<p className="text-sm text-muted-foreground mb-4">
-						{(error as unknown as Error)?.message ?? "An error occurred while loading subscriptions"}
-					</p>
-					<Button onClick={() => refetch()} variant="outline">
-						Try Again
-					</Button>
-				</div>
-			</div>
-		);
-	}
-
-	if (!list?.length) {
-		return (
-			<div className="overflow-hidden rounded-lg border bg-card">
-				<div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-					<p className="text-lg font-semibold mb-1">No subscriptions found</p>
-					<p className="text-sm text-muted-foreground">
-						Subscriptions will appear here when you create them (e.g. from Domains portfolio).
-					</p>
-				</div>
-			</div>
-		);
-	}
+		return {
+			key: sub.id,
+			title: (
+				<span className="text-primary hover:underline">
+					{displayServiceName(sub.productName, sub.productPlanName, sub.subscriptionName, sub.billingCycle)}
+				</span>
+			),
+			description: (
+				<Badge variant="outline" className={getStatusBadgeClass(sub.status)}>
+					{sub.status.replace(/_/g, " ")}
+				</Badge>
+			),
+			cells: {
+				billing: <CleanListCell>{getBillingCycleDisplayName(sub.billingCycle)}</CleanListCell>,
+				dates: (
+					<div className="flex min-w-0 flex-col gap-0.5">
+						<p className="truncate text-sm font-medium text-foreground">
+							{subscribed ? `Subscribed ${subscribed}` : "—"}
+						</p>
+						<CleanListCell>
+							{expires ? `Expires ${expires}` : "—"}
+						</CleanListCell>
+					</div>
+				),
+			},
+			onClick: () => handleViewSubscription(sub.id),
+			actions: (
+				<>
+					<ViewDetailsButton onClick={() => handleViewSubscription(sub.id)} />
+					{onEditSubscription ? (
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							className="h-7 px-2.5 text-xs"
+							onClick={() => onEditSubscription(sub.id)}
+						>
+							<Pencil className="mr-1 h-3.5 w-3.5" />
+							Edit
+						</Button>
+					) : null}
+					{isSuperAdmin ? (
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							className="h-7 px-2.5 text-xs text-destructive hover:text-destructive"
+							onClick={() => setDeleteSubscriptionId(sub.id)}
+						>
+							<Trash2 className="mr-1 h-3.5 w-3.5" />
+							Delete
+						</Button>
+					) : null}
+				</>
+			),
+		};
+	});
 
 	return (
 		<>
-			<div className="flex items-center justify-between gap-4">
-				<div className="relative flex-1 max-w-sm">
-					<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-					<Input
-						type="text"
-						placeholder="Search by service, organization, user, status..."
-						value={searchQuery}
-						onChange={(e) => setSearchQuery(e.target.value)}
-						className="pl-9"
-					/>
-				</div>
-				<Button variant="outline" size="icon" onClick={() => refetch()} disabled={isFetching} title="Refresh">
-					<RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-				</Button>
-			</div>
-			<div className="mt-6">
-				<div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-					<Table>
-						<TableHeader>
-							<TableRow>
-								<TableHead className="pl-6">Service Name</TableHead>
-								<TableHead>Organization</TableHead>
-								<TableHead>Billing cycle</TableHead>
-								<TableHead>Subscription date</TableHead>
-								<TableHead>Expiry date</TableHead>
-								<TableHead>Status</TableHead>
-							<TableHead className="w-12" />
-						</TableRow>
-					</TableHeader>
-					<TableBody>
-						{filtered.length === 0 ? (
-							<TableRow>
-								<TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-									No subscriptions match &quot;{searchQuery}&quot;
-								</TableCell>
-							</TableRow>
-						) : (
-							filtered.map((sub) => (
-								<TableRow key={sub.id}>
-									<TableCell
-										className="pl-6 cursor-pointer font-medium hover:underline"
-										onClick={() => handleViewSubscription(sub.id)}
-									>
-										{displayServiceName(sub.productName, sub.productPlanName, sub.subscriptionName, sub.billingCycle)}
-									</TableCell>
-									<TableCell>{organizationName(sub.teamName)}</TableCell>
-									<TableCell>{getBillingCycleDisplayName(sub.billingCycle)}</TableCell>
-									<TableCell>{formatDate(sub.subscriptionDate)}</TableCell>
-									<TableCell>{formatDate(sub.expiryDate)}</TableCell>
-									<TableCell>
-										<Badge variant="outline" className={getStatusBadgeClass(sub.status)}>
-											{sub.status}
-										</Badge>
-									</TableCell>
-									<TableCell onClick={(e) => e.stopPropagation()}>
-										<DropdownMenu>
-											<DropdownMenuTrigger asChild>
-												<Button
-													variant="ghost"
-													size="icon"
-													className="h-8 w-8"
-													onClick={(e) => e.stopPropagation()}
-												>
-													<MoreHorizontal className="h-4 w-4" />
-													<span className="sr-only">Open menu</span>
-												</Button>
-											</DropdownMenuTrigger>
-											<DropdownMenuContent align="end" className="w-40" onClick={(e) => e.stopPropagation()}>
-												<DropdownMenuItem onSelect={() => handleViewSubscription(sub.id)}>
-													<Eye className="mr-2 h-4 w-4" />
-													View
-												</DropdownMenuItem>
-												{onEditSubscription ? (
-													<DropdownMenuItem onSelect={() => onEditSubscription(sub.id)}>
-														<Pencil className="mr-2 h-4 w-4" />
-														Edit
-													</DropdownMenuItem>
-												) : null}
-												{isSuperAdmin ? (
-													<>
-														<DropdownMenuSeparator />
-														<DropdownMenuItem
-															className="text-destructive focus:text-destructive"
-															onSelect={() => setDeleteSubscriptionId(sub.id)}
-														>
-															<Trash2 className="mr-2 h-4 w-4" />
-															Delete
-														</DropdownMenuItem>
-													</>
-												) : null}
-											</DropdownMenuContent>
-										</DropdownMenu>
-									</TableCell>
-								</TableRow>
-							))
-						)}
-						</TableBody>
-					</Table>
-				</div>
-			</div>
+			<SearchableCleanList
+				items={items}
+				searchQuery={searchQuery}
+				onSearchChange={setSearchQuery}
+				totalCount={list?.length ?? 0}
+				isLoading={isLoading}
+				isError={isError}
+				error={(error as Error) ?? null}
+				onRetry={() => refetch()}
+				searchPlaceholder="Search by service, organization, status..."
+				errorTitle="Failed to load subscriptions"
+				emptyMessage={
+					searchQuery.trim()
+						? `No subscriptions match "${searchQuery}"`
+						: "No subscriptions found. They will appear here when you create them."
+				}
+				columns={[
+					{ key: "name", label: "Service" },
+					{ key: "billing", label: "Billing", className: "w-28", hideBelow: "@lg" },
+					{ key: "dates", label: "Dates", className: "w-56", hideBelow: "@xl" },
+					{ key: "actions", label: "Actions", align: "end" },
+				]}
+				toolbarActions={
+					<Button
+						variant="outline"
+						size="icon"
+						onClick={() => refetch()}
+						disabled={isFetching}
+						title="Refresh"
+					>
+						<RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+					</Button>
+				}
+			/>
 			<SubscriptionDeleteDialog
 				open={deleteSubscriptionId != null}
 				subscriptionName={deleteTargetName}

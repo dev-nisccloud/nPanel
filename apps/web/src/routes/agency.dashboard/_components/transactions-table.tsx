@@ -1,44 +1,31 @@
 "use client";
 
 import * as React from "react";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { CleanList, CleanListCell, CleanListRow } from "@/components/ui/clean-list";
+import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/utils/trpc";
 import { paymentTransactionUiSchema, type PaymentTransactionUI } from "./schemas";
 
 function TransactionsTableSkeleton() {
   return (
-    <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="pl-6">Reference</TableHead>
-            <TableHead>Gateway</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Amount</TableHead>
-            <TableHead>Date</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {Array.from({ length: 5 }).map((_, i) => (
-            <TableRow key={i}>
-              <TableCell className="pl-6"><Skeleton className="h-4 w-32" /></TableCell>
-              <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-              <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-              <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-              <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+    <div className="overflow-hidden rounded-xl border bg-card">
+      <div className="flex items-center gap-3 border-b bg-muted/40 px-4 py-2">
+        <Skeleton className="h-3 w-16" />
+        <Skeleton className="ml-auto h-3 w-14" />
+      </div>
+      <div className="divide-y">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="flex items-center justify-between gap-3 px-4 py-3.5">
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-3 w-32 max-w-full" />
+            </div>
+            <Skeleton className="h-4 w-20" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -90,8 +77,15 @@ function getGatewayDisplayText(gateway: PaymentTransactionUI["gateway"]) {
   }
 }
 
+function getStatusBadgeClass(status: PaymentTransactionUI["status"]) {
+  if (status === "SUCCESS") {
+    return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800";
+  }
+  return "";
+}
+
 export function TransactionsTable() {
-  const { data, isLoading, isError } = trpc.paymentTransactions.list.useQuery({
+  const { data, isLoading, isError, refetch } = trpc.paymentTransactions.list.useQuery({
     limit: 50,
     offset: 0,
   });
@@ -102,16 +96,15 @@ export function TransactionsTable() {
 
   if (isError || !data) {
     return (
-      <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-        <div className="flex flex-col items-center justify-center py-8 text-center">
-          <p className="text-sm text-muted-foreground">Failed to load transactions</p>
-        </div>
+      <div className="flex flex-col items-center justify-center rounded-xl border bg-card py-8 text-center">
+        <p className="mb-4 text-sm text-muted-foreground">Failed to load transactions</p>
+        <Button variant="outline" size="sm" onClick={() => refetch()}>
+          Try again
+        </Button>
       </div>
     );
   }
 
-  // Transform API data to UI schema
-  // Schema handles date string to Date conversion automatically via preprocess
   const transactions: PaymentTransactionUI[] = data.transactions.map((transaction) =>
     paymentTransactionUiSchema.parse({
       id: transaction.id,
@@ -134,51 +127,57 @@ export function TransactionsTable() {
   );
 
   return (
-    <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="pl-6">Reference</TableHead>
-            <TableHead>Gateway</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Amount</TableHead>
-            <TableHead>Date</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {transactions.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                No transactions found
-              </TableCell>
-            </TableRow>
-          ) : (
-            transactions.map((transaction) => (
-              <TableRow key={transaction.id}>
-                <TableCell className="pl-6 font-medium">
-                  {transaction.accountReference || transaction.receiptNumber || transaction.id.slice(0, 8)}
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline">{getGatewayDisplayText(transaction.gateway)}</Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={getStatusBadgeVariant(transaction.status)}>
-                    {getStatusDisplayText(transaction.status)}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  {transaction.currency} {parseFloat(transaction.amount).toLocaleString()}
-                </TableCell>
-                <TableCell>
-                  {transaction.processedAt
-                    ? new Date(transaction.processedAt).toLocaleDateString()
-                    : new Date(transaction.initiatedAt).toLocaleDateString()}
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </div>
+    <CleanList
+      emptyMessage="No transactions found"
+      columns={[
+        { key: "reference", label: "Reference" },
+        { key: "gateway", label: "Gateway", className: "w-32", hideBelow: "@lg" },
+        { key: "amount", label: "Amount", className: "w-40", hideBelow: "@xl" },
+      ]}
+    >
+      {transactions.map((transaction) => {
+        const dateValue = transaction.processedAt
+          ? new Date(transaction.processedAt)
+          : new Date(transaction.initiatedAt);
+
+        return (
+          <CleanListRow
+            key={transaction.id}
+            title={
+              transaction.accountReference ||
+              transaction.receiptNumber ||
+              transaction.id.slice(0, 8)
+            }
+            description={
+              <Badge
+                variant={
+                  transaction.status === "SUCCESS"
+                    ? "outline"
+                    : getStatusBadgeVariant(transaction.status)
+                }
+                className={getStatusBadgeClass(transaction.status)}
+              >
+                {getStatusDisplayText(transaction.status)}
+              </Badge>
+            }
+            cells={{
+              gateway: (
+                <CleanListCell>{getGatewayDisplayText(transaction.gateway)}</CleanListCell>
+              ),
+              amount: (
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {transaction.currency} {parseFloat(transaction.amount).toLocaleString()}
+                  </p>
+                  <CleanListCell>
+                    {Number.isNaN(dateValue.getTime()) ? "—" : dateValue.toLocaleDateString()}
+                  </CleanListCell>
+                </div>
+              ),
+            }}
+          />
+        );
+      })}
+    </CleanList>
   );
 }

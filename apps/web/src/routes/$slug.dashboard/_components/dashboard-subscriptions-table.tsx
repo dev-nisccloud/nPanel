@@ -2,17 +2,10 @@
 
 import * as React from "react";
 import { useLocation } from "react-router";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CleanList, CleanListCell, CleanListRow } from "@/components/ui/clean-list";
+import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/utils/trpc";
 import { Package, CheckCircle2, XCircle, AlertCircle, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,51 +13,52 @@ import type { DashboardSubscriptionRow } from "./dashboard-subscriptions-schema"
 
 function SubscriptionsTableSkeleton() {
   return (
-    <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Plan Name</TableHead>
-            <TableHead>Plan Type</TableHead>
-            <TableHead>Registration Date</TableHead>
-            <TableHead>Expiry / Renewal Date</TableHead>
-            <TableHead>Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {Array.from({ length: 5 }).map((_, i) => (
-            <TableRow key={i}>
-              <TableCell><Skeleton className="h-4 w-36" /></TableCell>
-              <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-              <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-              <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-              <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+    <div className="overflow-hidden rounded-xl border bg-card">
+      <div className="flex items-center gap-3 border-b bg-muted/40 px-4 py-2">
+        <Skeleton className="h-3 w-16" />
+        <Skeleton className="ml-auto h-3 w-14" />
+      </div>
+      <div className="divide-y">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="flex items-center justify-between gap-3 px-4 py-3.5">
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-3 w-32 max-w-full" />
+            </div>
+            <Skeleton className="h-4 w-20" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
 function formatDate(value: Date | string | null | undefined) {
-  if (!value) return "- ";
+  if (!value) return null;
   const d = value instanceof Date ? value : new Date(value);
-  return Number.isNaN(d.getTime()) ? "- " : d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+  return Number.isNaN(d.getTime())
+    ? null
+    : d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
 }
 
 function StatusBadge({ status }: { status: string }) {
   const isActive = status === "ACTIVE";
   const isSuspendedOrExpired = status === "SUSPENDED" || status === "EXPIRED";
-  const Icon = isActive ? CheckCircle2 : isSuspendedOrExpired ? XCircle : status === "PENDING" ? Clock : AlertCircle;
+  const Icon = isActive
+    ? CheckCircle2
+    : isSuspendedOrExpired
+      ? XCircle
+      : status === "PENDING"
+        ? Clock
+        : AlertCircle;
 
   return (
     <Badge
       variant={isActive ? "default" : isSuspendedOrExpired ? "destructive" : "outline"}
       className={cn(
-        "flex items-center gap-1 w-fit",
-        isActive && "bg-green-600 hover:bg-green-600/90 text-white border-green-600",
-        isSuspendedOrExpired && "bg-red-600 hover:bg-red-600/90 text-white border-red-600"
+        "flex w-fit items-center gap-1",
+        isActive && "border-green-600 bg-green-600 text-white hover:bg-green-600/90",
+        isSuspendedOrExpired && "border-red-600 bg-red-600 text-white hover:bg-red-600/90",
       )}
     >
       <Icon className="h-3 w-3" />
@@ -95,9 +89,17 @@ function toDashboardRow(
     status: string;
   }
 ): DashboardSubscriptionRow {
-  const subDate = sub.subscriptionDate ? (sub.subscriptionDate instanceof Date ? sub.subscriptionDate : new Date(sub.subscriptionDate)) : null;
+  const subDate = sub.subscriptionDate
+    ? sub.subscriptionDate instanceof Date
+      ? sub.subscriptionDate
+      : new Date(sub.subscriptionDate)
+    : null;
   const nextDate = sub.nextRenewalDate ?? sub.expiryDate;
-  const nextRenewal = nextDate ? (nextDate instanceof Date ? nextDate : new Date(nextDate)) : null;
+  const nextRenewal = nextDate
+    ? nextDate instanceof Date
+      ? nextDate
+      : new Date(nextDate)
+    : null;
   const label = displayServiceName(sub.productName, sub.productPlanName, sub.subscriptionName ?? null);
   return {
     id: sub.id,
@@ -135,61 +137,53 @@ export function DashboardSubscriptionsTable() {
 
   if (isError) {
     return (
-      <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <Package className="h-12 w-12 text-muted-foreground mb-4" />
-          <span className="text-sm font-medium mb-1 block">Failed to load subscriptions</span>
-          <span className="text-sm text-muted-foreground mb-4 block">
-            {error?.message ?? "Something went wrong. Please try again."}
-          </span>
-          <Button variant="outline" size="sm" onClick={() => refetch()}>
-            Try again
-          </Button>
-        </div>
+      <div className="flex flex-col items-center justify-center rounded-xl border bg-card py-12 text-center">
+        <Package className="mb-4 h-12 w-12 text-muted-foreground" />
+        <span className="mb-1 block text-sm font-medium">Failed to load subscriptions</span>
+        <span className="mb-4 block text-sm text-muted-foreground">
+          {error?.message ?? "Something went wrong. Please try again."}
+        </span>
+        <Button variant="outline" size="sm" onClick={() => refetch()}>
+          Try again
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Plan Name</TableHead>
-            <TableHead>Plan Type</TableHead>
-            <TableHead>Registration Date</TableHead>
-            <TableHead>Expiry / Renewal Date</TableHead>
-            <TableHead>Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {subscriptions.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={5} className="text-center py-12">
-                <div className="flex flex-col items-center">
-                  <Package className="h-10 w-10 text-muted-foreground mb-2" />
-                  <span className="text-sm font-medium text-muted-foreground">No subscriptions found</span>
-                  <span className="text-xs text-muted-foreground mt-1">
-                    Subscriptions for your company will appear here.
-                  </span>
+    <CleanList
+      emptyMessage="No subscriptions found. Subscriptions for your company will appear here."
+      columns={[
+        { key: "name", label: "Service" },
+        { key: "planType", label: "Plan type", className: "w-40", hideBelow: "@lg" },
+        { key: "dates", label: "Dates", className: "w-56", hideBelow: "@xl" },
+      ]}
+    >
+      {subscriptions.map((sub) => {
+        const subscribed = formatDate(sub.subscriptionDate);
+        const renews = formatDate(sub.nextRenewalDate);
+
+        return (
+          <CleanListRow
+            key={sub.id}
+            title={sub.planName ?? "—"}
+            description={<StatusBadge status={sub.status} />}
+            cells={{
+              planType: <CleanListCell>{sub.planType ?? "—"}</CleanListCell>,
+              dates: (
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {subscribed ? `Subscribed ${subscribed}` : "—"}
+                  </p>
+                  <CleanListCell>
+                    {renews ? `Expires ${renews}` : "—"}
+                  </CleanListCell>
                 </div>
-              </TableCell>
-            </TableRow>
-          ) : (
-            subscriptions.map((sub) => (
-              <TableRow key={sub.id}>
-                <TableCell className="font-medium">{sub.planName ?? "- "}</TableCell>
-                <TableCell>{sub.planType ?? "- "}</TableCell>
-                <TableCell>{formatDate(sub.subscriptionDate)}</TableCell>
-                <TableCell>{formatDate(sub.nextRenewalDate)}</TableCell>
-                <TableCell>
-                  <StatusBadge status={sub.status} />
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </div>
+              ),
+            }}
+          />
+        );
+      })}
+    </CleanList>
   );
 }

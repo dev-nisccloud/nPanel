@@ -1,70 +1,21 @@
 "use client";
 
 import * as React from "react";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { RefreshCw } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CleanListCell } from "@/components/ui/clean-list";
+import {
+  SearchableCleanList,
+  type SearchableCleanListItem,
+} from "@/components/ui/searchable-clean-list";
+import { ViewDetailsButton } from "@/components/ui/list-row-actions";
 import { trpc } from "@/utils/trpc";
-import { Eye } from "lucide-react";
 import {
   paymentTransactionUiSchema,
   type PaymentTransactionUI,
 } from "@/routes/agency.dashboard/_components/schemas";
-
-function TransactionsTableSkeleton() {
-  return (
-    <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="pl-4">Reference</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>Gateway</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Amount</TableHead>
-            <TableHead className="pr-4">Date</TableHead>
-            <TableHead className="pr-4 w-[80px]">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {Array.from({ length: 5 }).map((_, i) => (
-            <TableRow key={i}>
-              <TableCell className="pl-4">
-                <Skeleton className="h-4 w-32" />
-              </TableCell>
-              <TableCell>
-                <Skeleton className="h-4 w-24" />
-              </TableCell>
-              <TableCell>
-                <Skeleton className="h-4 w-20" />
-              </TableCell>
-              <TableCell>
-                <Skeleton className="h-4 w-20" />
-              </TableCell>
-              <TableCell>
-                <Skeleton className="h-4 w-24" />
-              </TableCell>
-              <TableCell className="pr-4">
-                <Skeleton className="h-4 w-24" />
-              </TableCell>
-              <TableCell className="pr-4">
-                <Skeleton className="h-4 w-16" />
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  );
-}
 
 function getStatusBadgeVariant(status: PaymentTransactionUI["status"]) {
   switch (status) {
@@ -113,17 +64,30 @@ function getGatewayDisplayText(gateway: PaymentTransactionUI["gateway"]) {
   }
 }
 
+function getStatusBadgeClass(status: PaymentTransactionUI["status"]) {
+  if (status === "SUCCESS") {
+    return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800";
+  }
+  return "";
+}
+
 export function TransactionsTable({
-  searchQuery,
   onViewTransaction,
+  teamId,
+  unassignedOnly,
 }: {
-  searchQuery?: string;
   onViewTransaction?: (id: string) => void;
+  teamId?: string;
+  unassignedOnly?: boolean;
 }) {
-  const { data, isLoading, isError } = trpc.paymentTransactions.list.useQuery({
-    limit: 50,
-    offset: 0,
-  });
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const { data, isLoading, isError, error, refetch, isFetching } =
+    trpc.paymentTransactions.list.useQuery({
+      limit: 200,
+      offset: 0,
+      teamId,
+      unassignedOnly,
+    });
 
   const transactions: PaymentTransactionUI[] = React.useMemo(() => {
     if (!data?.transactions) return [];
@@ -135,6 +99,7 @@ export function TransactionsTable({
             userId: t.userId,
             teamId: t.teamId,
             userName: t.userName ?? null,
+            teamName: t.teamName ?? null,
             gateway: t.gateway,
             status: t.status,
             amount: t.amount,
@@ -154,125 +119,114 @@ export function TransactionsTable({
       })
       .filter((t): t is PaymentTransactionUI => t != null);
 
-    if (!searchQuery?.trim()) return parsed;
+    if (!searchQuery.trim()) return parsed;
     const q = searchQuery.toLowerCase().trim();
     return parsed.filter((t) => {
       const ref =
-        t.accountReference ||
-        t.receiptNumber ||
-        t.id.slice(0, 8) ||
-        "";
+        t.accountReference || t.receiptNumber || t.id.slice(0, 8) || "";
       const desc = t.transactionDesc || "";
       const amt = t.amount || "";
+      const name = t.userName || "";
       return (
         ref.toLowerCase().includes(q) ||
         desc.toLowerCase().includes(q) ||
         amt.includes(q) ||
+        name.toLowerCase().includes(q) ||
         t.gateway.toLowerCase().includes(q) ||
         t.status.toLowerCase().includes(q)
       );
     });
   }, [data?.transactions, searchQuery]);
 
-  if (isLoading) {
-    return <TransactionsTableSkeleton />;
-  }
+  const items: SearchableCleanListItem[] = transactions.map((transaction) => {
+    const reference =
+      transaction.accountReference ||
+      transaction.receiptNumber ||
+      transaction.id.slice(0, 8);
+    const dateValue = transaction.processedAt
+      ? new Date(transaction.processedAt)
+      : new Date(transaction.initiatedAt);
+    const amountLabel = `${transaction.currency} ${parseFloat(transaction.amount).toLocaleString()}`;
 
-  if (isError || !data) {
-    return (
-      <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-        <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
-          <p className="text-sm text-muted-foreground">
-            Failed to load transactions
-          </p>
-        </div>
-      </div>
-    );
-  }
+    return {
+      key: transaction.id,
+      title: <span className="text-primary hover:underline">{reference}</span>,
+      description: (
+        <Badge
+          variant={
+            transaction.status === "SUCCESS"
+              ? "outline"
+              : getStatusBadgeVariant(transaction.status)
+          }
+          className={getStatusBadgeClass(transaction.status)}
+        >
+          {getStatusDisplayText(transaction.status)}
+        </Badge>
+      ),
+      cells: {
+        customer: (
+          <CleanListCell className="text-sm font-medium text-foreground">
+            {transaction.userName ?? "—"}
+          </CleanListCell>
+        ),
+        gateway: (
+          <CleanListCell>
+            {getGatewayDisplayText(transaction.gateway)}
+          </CleanListCell>
+        ),
+        amount: (
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-foreground">{amountLabel}</p>
+            <CleanListCell>
+              {Number.isNaN(dateValue.getTime()) ? "—" : dateValue.toLocaleDateString()}
+            </CleanListCell>
+          </div>
+        ),
+      },
+      onClick: onViewTransaction
+        ? () => onViewTransaction(transaction.id)
+        : undefined,
+      actions: onViewTransaction ? (
+        <ViewDetailsButton onClick={() => onViewTransaction(transaction.id)} />
+      ) : undefined,
+    };
+  });
 
   return (
-    <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="pl-4">Reference</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>Gateway</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Amount</TableHead>
-            <TableHead className="pr-4">Date</TableHead>
-            <TableHead className="pr-4 w-[80px]">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {transactions.length === 0 ? (
-            <TableRow>
-              <TableCell
-                colSpan={7}
-                className="text-center py-8 px-4 text-muted-foreground"
-              >
-                {searchQuery?.trim()
-                  ? `No transactions match "${searchQuery}"`
-                  : "No transactions found"}
-              </TableCell>
-            </TableRow>
-          ) : (
-            transactions.map((transaction) => (
-              <TableRow key={transaction.id}>
-                <TableCell
-                  className="pl-4 font-medium cursor-pointer hover:bg-muted/50 transition-colors"
-                  onClick={() => onViewTransaction?.(transaction.id)}
-                >
-                  {transaction.accountReference ||
-                    transaction.receiptNumber ||
-                    transaction.id.slice(0, 8)}
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {transaction.userName ?? "- "}
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline">
-                    {getGatewayDisplayText(transaction.gateway)}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={transaction.status === "SUCCESS" ? "outline" : getStatusBadgeVariant(transaction.status)}
-                    className={
-                      transaction.status === "SUCCESS"
-                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800"
-                        : ""
-                    }
-                  >
-                    {getStatusDisplayText(transaction.status)}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  {transaction.currency}{" "}
-                  {parseFloat(transaction.amount).toLocaleString()}
-                </TableCell>
-                <TableCell className="pr-4">
-                  {transaction.processedAt
-                    ? new Date(transaction.processedAt).toLocaleDateString()
-                    : new Date(transaction.initiatedAt).toLocaleDateString()}
-                </TableCell>
-                <TableCell className="pr-4">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8"
-                    onClick={() => onViewTransaction?.(transaction.id)}
-                  >
-                    <Eye className="h-4 w-4 mr-1" />
-                    View
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </div>
+    <SearchableCleanList
+      items={items}
+      searchQuery={searchQuery}
+      onSearchChange={setSearchQuery}
+      totalCount={data?.transactions.length ?? 0}
+      isLoading={isLoading}
+      isError={isError}
+      error={(error as Error) ?? null}
+      onRetry={() => refetch()}
+      searchPlaceholder="Search by reference, name, amount, gateway..."
+      errorTitle="Failed to load transactions"
+      emptyMessage={
+        searchQuery.trim()
+          ? `No transactions match "${searchQuery}"`
+          : "No transactions found"
+      }
+      columns={[
+        { key: "reference", label: "Reference" },
+        { key: "customer", label: "Name", className: "w-44", hideBelow: "@lg" },
+        { key: "gateway", label: "Gateway", className: "w-32", hideBelow: "@xl" },
+        { key: "amount", label: "Amount", className: "w-40", hideBelow: "@2xl" },
+        { key: "actions", label: "Actions", align: "end" },
+      ]}
+      toolbarActions={
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => refetch()}
+          disabled={isFetching}
+          title="Refresh"
+        >
+          <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+        </Button>
+      }
+    />
   );
 }
-

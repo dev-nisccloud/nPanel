@@ -2,26 +2,23 @@
 
 import * as React from "react";
 import { useLocation } from "react-router";
-import { RefreshCw, Search, Eye } from "lucide-react";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
+import { RefreshCw } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
+import { CleanListCell } from "@/components/ui/clean-list";
+import {
+	SearchableCleanList,
+	type SearchableCleanListItem,
+} from "@/components/ui/searchable-clean-list";
+import { ViewDetailsButton } from "@/components/ui/list-row-actions";
 import { trpc } from "@/utils/trpc";
 import { isProgressTrackedOneTime } from "@/routes/agency.subscriptions/_components/zeepo-subscription";
 
-function formatDate(v: string | Date | null | undefined): string {
-	if (!v) return "- ";
+function formatDate(v: string | Date | null | undefined): string | null {
+	if (!v) return null;
 	const d = v instanceof Date ? v : new Date(v);
-	return Number.isNaN(d.getTime()) ? "- " : d.toLocaleDateString();
+	return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString();
 }
 
 function getStatusBadgeClass(status: string): string {
@@ -91,154 +88,84 @@ export function CustomerSubscriptionsTable({ onViewSubscription }: CustomerSubsc
 		return null;
 	}
 
-	if (isLoading) {
-		return (
-			<div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-				<Table>
-					<TableHeader>
-						<TableRow>
-							<TableHead className="pl-6">Service Name</TableHead>
-							<TableHead>Subscription date</TableHead>
-							<TableHead>Expiry date</TableHead>
-							<TableHead>Progress</TableHead>
-							<TableHead>Status</TableHead>
-							<TableHead className="w-12" />
-						</TableRow>
-					</TableHeader>
-					<TableBody>
-						{[...Array(5)].map((_, i) => (
-							<TableRow key={i}>
-								<TableCell className="pl-6">
-									<Skeleton className="h-4 w-40" />
-								</TableCell>
-								<TableCell>
-									<Skeleton className="h-4 w-24" />
-								</TableCell>
-								<TableCell>
-									<Skeleton className="h-4 w-24" />
-								</TableCell>
-								<TableCell>
-									<Skeleton className="h-4 w-16" />
-								</TableCell>
-								<TableCell>
-									<Skeleton className="h-4 w-20" />
-								</TableCell>
-								<TableCell />
-							</TableRow>
-						))}
-					</TableBody>
-				</Table>
-			</div>
-		);
-	}
+	const items: SearchableCleanListItem[] = filtered.map((sub) => {
+		const subscribed = formatDate(sub.subscriptionDate);
+		const expires = formatDate(sub.expiryDate);
+		const showProgress = isProgressTrackedOneTime(sub.billingCycle, sub.productId);
 
-	if (isError) {
-		return (
-			<div className="overflow-hidden rounded-lg border bg-card">
-				<div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-					<p className="text-sm text-muted-foreground mb-4">
-						{(error as unknown as Error)?.message ?? "An error occurred while loading subscriptions"}
-					</p>
-					<Button onClick={() => refetch()} variant="outline">
-						Try Again
-					</Button>
-				</div>
-			</div>
-		);
-	}
-
-	if (!list?.length) {
-		return (
-			<div className="overflow-hidden rounded-lg border bg-card">
-				<div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-					<p className="text-lg font-semibold mb-1">No subscriptions found</p>
-					<p className="text-sm text-muted-foreground">
-						Your company&apos;s subscriptions will appear here (e.g. from Domains or other services).
-					</p>
-				</div>
-			</div>
-		);
-	}
+		return {
+			key: sub.id,
+			title: (
+				<span className="text-primary hover:underline">
+					{displayServiceName(
+						sub.productName,
+						sub.productPlanName,
+						sub.subscriptionName,
+						sub.billingCycle,
+					)}
+				</span>
+			),
+			description: (
+				<Badge variant="outline" className={getStatusBadgeClass(sub.status)}>
+					{sub.status.replace(/_/g, " ")}
+				</Badge>
+			),
+			cells: {
+				dates: (
+					<div className="flex min-w-0 flex-col gap-0.5">
+						<p className="truncate text-sm font-medium text-foreground">
+							{subscribed ? `Subscribed ${subscribed}` : "—"}
+						</p>
+						<CleanListCell>
+							{expires ? `Expires ${expires}` : "—"}
+						</CleanListCell>
+					</div>
+				),
+				progress: (
+					<CleanListCell>{showProgress ? `${sub.progressPercent ?? 0}%` : "—"}</CleanListCell>
+				),
+			},
+			onClick: onViewSubscription ? () => onViewSubscription(sub.id) : undefined,
+			actions: onViewSubscription ? (
+				<ViewDetailsButton onClick={() => onViewSubscription(sub.id)} />
+			) : undefined,
+		};
+	});
 
 	return (
-		<>
-			<div className="flex items-center justify-between gap-4">
-				<div className="relative flex-1 max-w-sm">
-					<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-					<Input
-						type="text"
-						placeholder="Search by service name or status..."
-						value={searchQuery}
-						onChange={(e) => setSearchQuery(e.target.value)}
-						className="pl-9"
-					/>
-				</div>
-				<Button variant="outline" size="icon" onClick={() => refetch()} disabled={isFetching} title="Refresh">
+		<SearchableCleanList
+			items={items}
+			searchQuery={searchQuery}
+			onSearchChange={setSearchQuery}
+			totalCount={list?.length ?? 0}
+			isLoading={isLoading}
+			isError={isError}
+			error={(error as Error) ?? null}
+			onRetry={() => refetch()}
+			searchPlaceholder="Search by service name or status..."
+			errorTitle="Failed to load subscriptions"
+			emptyMessage={
+				searchQuery.trim()
+					? `No subscriptions match "${searchQuery}"`
+					: "No subscriptions found. Your company's subscriptions will appear here."
+			}
+			columns={[
+				{ key: "name", label: "Service" },
+				{ key: "dates", label: "Dates", className: "w-56", hideBelow: "@lg" },
+				{ key: "progress", label: "Progress", className: "w-24", hideBelow: "@xl" },
+				{ key: "actions", label: "Actions", align: "end" },
+			]}
+			toolbarActions={
+				<Button
+					variant="outline"
+					size="icon"
+					onClick={() => refetch()}
+					disabled={isFetching}
+					title="Refresh"
+				>
 					<RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
 				</Button>
-			</div>
-			<div className="mt-6">
-				<div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-					<Table>
-						<TableHeader>
-							<TableRow>
-								<TableHead className="pl-6">Service Name</TableHead>
-								<TableHead>Subscription date</TableHead>
-								<TableHead>Expiry date</TableHead>
-								<TableHead>Progress</TableHead>
-								<TableHead>Status</TableHead>
-								<TableHead className="w-24">Actions</TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{filtered.length === 0 ? (
-								<TableRow>
-									<TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-										No subscriptions match &quot;{searchQuery}&quot;
-									</TableCell>
-								</TableRow>
-							) : (
-								filtered.map((sub) => (
-									<TableRow key={sub.id}>
-										<TableCell className="pl-6 font-medium">
-											{displayServiceName(
-												sub.productName,
-												sub.productPlanName,
-												sub.subscriptionName,
-												sub.billingCycle,
-											)}
-										</TableCell>
-										<TableCell>{formatDate(sub.subscriptionDate)}</TableCell>
-										<TableCell>{formatDate(sub.expiryDate)}</TableCell>
-										<TableCell>
-											{isProgressTrackedOneTime(sub.billingCycle, sub.productId)
-												? `${sub.progressPercent ?? 0}%`
-												: "- "}
-										</TableCell>
-										<TableCell>
-											<Badge variant="outline" className={getStatusBadgeClass(sub.status)}>
-												{sub.status}
-											</Badge>
-										</TableCell>
-										<TableCell onClick={(e) => e.stopPropagation()}>
-											{onViewSubscription ? (
-												<Button
-													variant="ghost"
-													size="sm"
-													onClick={() => onViewSubscription(sub.id)}
-												>
-													<Eye className="mr-2 h-4 w-4" />
-													View
-												</Button>
-											) : null}
-										</TableCell>
-									</TableRow>
-								))
-							)}
-						</TableBody>
-					</Table>
-				</div>
-			</div>
-		</>
+			}
+		/>
 	);
 }
