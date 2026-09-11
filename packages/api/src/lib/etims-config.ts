@@ -23,8 +23,7 @@ export function buildBaseUrl(isSandbox: boolean): string {
     if (isSandbox) {
         return trimUrl(
             process.env.ETIMS_SANDBOX_BASE_URL ?? process.env.ETIMS_BASE_URL,
-            // Classic OSCU sandbox (worked pre-2ffc841e). Dev Platform: sbx.kra.go.ke/etims-oscu/api/v1
-            'https://etims-api-sbx.kra.go.ke/etims-api',
+            'https://sbx.kra.go.ke/etims-oscu/api/v1',
         );
     }
     return trimUrl(

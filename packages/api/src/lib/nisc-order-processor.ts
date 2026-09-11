@@ -40,6 +40,7 @@ import {
 } from "./nisc-subscription-dates";
 import { processHivelocityOrderItem } from "./hivelocity-nisc-processor";
 import { HIVELOCITY_SERVICE_TYPES } from "../routers/nisc-service-orders-schemas";
+import { isRenewalOrderItem, processNiscOrderRenewalItem } from "./nisc-order-renewal";
 
 /** Build a serializable error-details object for provisioningErrorDetails (exact provider response for debugging). */
 function buildProvisioningErrorDetails(err: unknown): Record<string, unknown> {
@@ -260,6 +261,37 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 		});
 
 		try {
+			if (isRenewalOrderItem(item)) {
+				await niscLog("processor_item_branch", {
+					niscOrderId,
+					orderItemId: item.id,
+					branch: "renewal",
+					serviceType,
+				});
+				const result = await processNiscOrderRenewalItem({
+					order,
+					item,
+					serviceType,
+				});
+				await db
+					.update(niscOrderItem)
+					.set({
+						status: "PROVISIONED",
+						niscClientSubscriptionId: result.subscriptionId,
+						updatedAt: now,
+					})
+					.where(eq(niscOrderItem.id, item.id));
+				await niscLog("processor_item_success", {
+					niscOrderId,
+					orderItemId: item.id,
+					branch: "renewal",
+					subscriptionId: result.subscriptionId,
+					rawResponse: result.rawResponse,
+				});
+				hasSuccess = true;
+				continue;
+			}
+
 			if (PLESK_SERVICE_TYPES.includes(serviceType)) {
 				await niscLog("processor_item_branch", {
 					niscOrderId,

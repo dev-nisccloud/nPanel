@@ -12,12 +12,10 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import type { InvoiceTeamSummary } from "@npanel/api/routers/invoicing/schemas";
+import { formatInvoiceDate } from "@/lib/invoice-date";
 
-const formatDate = (value: string | Date | null | undefined) => {
-	if (!value) return "";
-	const d = value instanceof Date ? value : new Date(value);
-	return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString();
-};
+const formatDate = (value: string | Date | null | undefined) =>
+	formatInvoiceDate(value, "");
 
 export interface InvoiceTeamsTableProps {
 	teams: InvoiceTeamSummary[];

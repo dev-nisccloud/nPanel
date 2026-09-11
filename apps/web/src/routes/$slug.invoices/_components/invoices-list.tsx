@@ -29,6 +29,7 @@ import {
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { captureEvent } from "@/lib/posthog";
+import { formatInvoiceDate } from "@/lib/invoice-date";
 import type { InvoiceSummary } from "@/routes/agency.invoicing/api/schemas";
 import type { InvoiceDetail } from "@/routes/agency.invoices/create/api/schemas";
 import { buildInvoicePdfDetails } from "@npanel/api/agency-invoice-pdf/build-invoice-pdf-details";
@@ -69,16 +70,8 @@ const formatCurrency = (amount: string | null | undefined, currency: string) => 
 	}).format(numeric);
 };
 
-const formatDate = (value: string | Date | null | undefined) => {
-	if (!value) {
-		return "- ";
-	}
-	const date = value instanceof Date ? value : new Date(value);
-	if (Number.isNaN(date.getTime())) {
-		return "- ";
-	}
-	return date.toLocaleDateString();
-};
+const formatDate = (value: string | Date | null | undefined) =>
+	formatInvoiceDate(value, "- ");
 
 // Font registration state (same as in downloadInvoiceButton)
 let fontsRegistered = false;

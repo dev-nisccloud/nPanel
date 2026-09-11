@@ -1,0 +1,114 @@
+{
+  "info": {
+    "name": "nPanel eTIMS OSCU (Postman → ngrok)",
+    "description": "Queries = GET with ?input=. Mutations = POST with JSON body. See docs/kra-etims-oscu-postman-verification.md",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0 getConfiguration",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "ngrok-skip-browser-warning", "value": "1" }
+        ],
+        "url": "{{npanelUrl}}/trpc/etims.auth.getConfiguration"
+      }
+    },
+    {
+      "name": "1 initializeDevice",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "ngrok-skip-browser-warning", "value": "1" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tin\": \"P600004455A\",\n  \"bhfId\": \"00\",\n  \"dvcSrlNo\": \"KRACUO100069163\",\n  \"isSandbox\": true\n}"
+        },
+        "url": "{{npanelUrl}}/trpc/etims.initialization.initializeDevice"
+      }
+    },
+    {
+      "name": "2 getCodeList",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "ngrok-skip-browser-warning", "value": "1" }
+        ],
+        "url": "{{npanelUrl}}/trpc/etims.data.getCodeList?input={\"lastReqDt\":\"{{lastReqDt}}\"}"
+      }
+    },
+    {
+      "name": "3 getItemClassList",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "ngrok-skip-browser-warning", "value": "1" }
+        ],
+        "url": "{{npanelUrl}}/trpc/etims.data.getItemClassList?input={\"lastReqDt\":\"{{lastReqDt}}\"}"
+      }
+    },
+    {
+      "name": "4 getItemList",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "ngrok-skip-browser-warning", "value": "1" }
+        ],
+        "url": "{{npanelUrl}}/trpc/etims.items.getItemList?input={\"lastReqDt\":\"{{lastReqDt}}\"}"
+      }
+    },
+    {
+      "name": "5 getImportedItems",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "ngrok-skip-browser-warning", "value": "1" }
+        ],
+        "url": "{{npanelUrl}}/trpc/etims.imports.getImportedItems?input={\"lastReqDt\":\"{{lastReqDt}}\"}"
+      }
+    },
+    {
+      "name": "7 getPurchaseTransactions",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "ngrok-skip-browser-warning", "value": "1" }
+        ],
+        "url": "{{npanelUrl}}/trpc/etims.purchases.getPurchaseTransactions?input={\"lastReqDt\":\"{{lastReqDt}}\"}"
+      }
+    },
+    {
+      "name": "12 getBranchList",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "ngrok-skip-browser-warning", "value": "1" }
+        ],
+        "url": "{{npanelUrl}}/trpc/etims.branch.getBranchList?input={\"lastReqDt\":\"{{lastReqDt}}\"}"
+      }
+    },
+    {
+      "name": "14 getStockMovements",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "ngrok-skip-browser-warning", "value": "1" }
+        ],
+        "url": "{{npanelUrl}}/trpc/etims.stock.getStockMovements?input={\"lastReqDt\":\"{{lastReqDt}}\"}"
+      }
+    },
+    {
+      "name": "15 getNoticeList",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "ngrok-skip-browser-warning", "value": "1" }
+        ],
+        "url": "{{npanelUrl}}/trpc/etims.data.getNoticeList?input={\"lastReqDt\":\"{{lastReqDt}}\"}"
+      }
+    }
+  ]
+}

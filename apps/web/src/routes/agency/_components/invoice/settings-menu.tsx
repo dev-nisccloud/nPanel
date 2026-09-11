@@ -15,6 +15,7 @@ import { useFormContext } from "react-hook-form";
 import { SelectCurrency } from "@/components/npanel-ui/select-currency";
 
 const dateFormats = [
+  { value: "dd-MM-yyyy", label: "DD-MM-YYYY" },
   { value: "dd/MM/yyyy", label: "DD/MM/YYYY" },
   { value: "MM/dd/yyyy", label: "MM/DD/YYYY" },
   { value: "yyyy-MM-dd", label: "YYYY-MM-DD" },

@@ -16,7 +16,7 @@ export const InvoiceTermsPreview: React.FC<
   const formatDate = (date?: string | Date) => {
     if (!date) return "";
     const dateObj = typeof date === "string" ? new Date(date) : date;
-    return format(dateObj, "do MMM yyyy");
+    return format(dateObj, "dd-MM-yyyy");
   };
 
   return (

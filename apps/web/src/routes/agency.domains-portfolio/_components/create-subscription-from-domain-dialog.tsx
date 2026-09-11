@@ -44,7 +44,7 @@ export function CreateSubscriptionFromDomainDialog({
   const { data: domainsProductId, isLoading: isLoadingProduct } =
     trpc.clientSubscriptions.getDomainsProductId.useQuery(undefined, { enabled: open });
 
-  const { data: teams = [], isLoading: isLoadingTeams } = trpc.teams.getUserTeams.useQuery(
+  const { data: teams = [], isLoading: isLoadingTeams } = trpc.teams.getAll.useQuery(
     undefined,
     { enabled: open }
   );
@@ -76,7 +76,14 @@ export function CreateSubscriptionFromDomainDialog({
   }, [open]);
 
   const teamItems: ComboboxItem[] = React.useMemo(
-    () => teams.map((t) => ({ id: t.id, label: t.name })),
+    () =>
+      [...teams]
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((t) => ({
+          id: t.id,
+          label: t.name,
+          keywords: [t.slug],
+        })),
     [teams]
   );
 
@@ -183,6 +190,7 @@ export function CreateSubscriptionFromDomainDialog({
                     searchPlaceholder="Search organizations..."
                     emptyResults="No organizations found"
                     disabled={isSubmitting}
+                    inDialog
                   />
                 )}
               </div>

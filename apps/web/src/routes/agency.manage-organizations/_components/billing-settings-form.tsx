@@ -125,21 +125,21 @@ export function BillingSettingsForm({
 	};
 
 	return (
-		<div className="space-y-4">
-			<div className="flex items-center justify-between">
-				<h3 className="text-lg font-semibold">
+		<div className="min-w-0 w-full space-y-4">
+			<div className="flex items-center justify-between gap-2">
+				<h3 className="text-lg font-semibold truncate">
 					{initialData ? "Edit Billing Settings" : "Add Billing Settings"}
 				</h3>
 			</div>
 
 			<Form {...form}>
-				<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-					<div className="grid grid-cols-2 gap-4">
+				<form onSubmit={form.handleSubmit(onSubmit)} className="min-w-0 space-y-4">
+					<div className="grid grid-cols-1 gap-4 min-w-0">
 						<FormField
 							control={form.control}
 							name="legalName"
 							render={({ field }) => (
-								<FormItem>
+								<FormItem className="min-w-0">
 									<FormLabel>Legal Name *</FormLabel>
 									<FormControl>
 										<Input placeholder="Company Legal Name" {...field} />
@@ -153,7 +153,7 @@ export function BillingSettingsForm({
 							control={form.control}
 							name="billingEmail"
 							render={({ field }) => (
-								<FormItem>
+								<FormItem className="min-w-0">
 									<FormLabel>Billing Email *</FormLabel>
 									<FormControl>
 										<Input type="email" placeholder="billing@example.com" {...field} />
@@ -167,7 +167,7 @@ export function BillingSettingsForm({
 							control={form.control}
 							name="billingPhone"
 							render={({ field }) => (
-								<FormItem>
+								<FormItem className="min-w-0">
 									<FormLabel>Billing Phone</FormLabel>
 									<FormControl>
 										<Input
@@ -186,7 +186,7 @@ export function BillingSettingsForm({
 							control={form.control}
 							name="addressLine1"
 							render={({ field }) => (
-								<FormItem>
+								<FormItem className="min-w-0">
 									<FormLabel>Address Line 1 *</FormLabel>
 									<FormControl>
 										<Input placeholder="Street Address" {...field} />
@@ -200,7 +200,7 @@ export function BillingSettingsForm({
 							control={form.control}
 							name="addressLine2"
 							render={({ field }) => (
-								<FormItem>
+								<FormItem className="min-w-0">
 									<FormLabel>Address Line 2</FormLabel>
 									<FormControl>
 										<Input
@@ -218,7 +218,7 @@ export function BillingSettingsForm({
 							control={form.control}
 							name="city"
 							render={({ field }) => (
-								<FormItem>
+								<FormItem className="min-w-0">
 									<FormLabel>City *</FormLabel>
 									<FormControl>
 										<Input placeholder="City" {...field} />
@@ -232,7 +232,7 @@ export function BillingSettingsForm({
 							control={form.control}
 							name="state"
 							render={({ field }) => (
-								<FormItem>
+								<FormItem className="min-w-0">
 									<FormLabel>State/Province</FormLabel>
 									<FormControl>
 										<Input
@@ -250,7 +250,7 @@ export function BillingSettingsForm({
 							control={form.control}
 							name="country"
 							render={({ field }) => (
-								<FormItem>
+								<FormItem className="min-w-0">
 									<FormLabel>Country *</FormLabel>
 									<FormControl>
 										<Input placeholder="Country" {...field} />
@@ -264,7 +264,7 @@ export function BillingSettingsForm({
 							control={form.control}
 							name="postalCode"
 							render={({ field }) => (
-								<FormItem>
+								<FormItem className="min-w-0">
 									<FormLabel>Postal Code</FormLabel>
 									<FormControl>
 										<Input
@@ -282,7 +282,7 @@ export function BillingSettingsForm({
 							control={form.control}
 							name="taxId"
 							render={({ field }) => (
-								<FormItem>
+								<FormItem className="min-w-0">
 									<FormLabel>Tax ID</FormLabel>
 									<FormControl>
 										<Input
@@ -301,7 +301,7 @@ export function BillingSettingsForm({
 						control={form.control}
 						name="additionalNotes"
 						render={({ field }) => (
-							<FormItem>
+							<FormItem className="min-w-0">
 								<FormLabel>Additional Notes</FormLabel>
 								<FormControl>
 									<Textarea
@@ -317,7 +317,7 @@ export function BillingSettingsForm({
 						)}
 					/>
 
-					<div className="flex items-center justify-end gap-2 pt-4">
+					<div className="flex flex-wrap items-center justify-end gap-2 pt-4">
 						<Button
 							type="button"
 							variant="outline"

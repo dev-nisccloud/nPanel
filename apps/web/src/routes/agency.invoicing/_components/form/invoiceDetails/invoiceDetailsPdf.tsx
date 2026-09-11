@@ -18,18 +18,20 @@ function LineItemDescriptionCell({
   const body = lines.length > 0 ? lines : [text];
 
   return (
-    <View style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
+    <View style={{ width: "100%", minWidth: 0 }}>
       {body.map((line, index) => (
-        <Text
+        <View
           key={`${index}-${line.slice(0, 24)}`}
           wrap
           style={{
-            ...lineStyle,
-            ...(index > 0 ? { marginTop: compactLineItems ? 2 : 4 } : {}),
+            width: "100%",
+            marginTop: index > 0 ? (compactLineItems ? 2 : 4) : 0,
           }}
         >
-          {line}
-        </Text>
+          <Text wrap style={{ ...lineStyle, width: "100%" }}>
+            {line}
+          </Text>
+        </View>
       ))}
     </View>
   );
@@ -125,11 +127,13 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
               ...borderStyle,
             }}
           >
-            <LineItemDescriptionCell
-              text={itemDescription ?? ""}
-              lineStyle={lineText}
-              compactLineItems={!!compactLineItems}
-            />
+            <View style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
+              <LineItemDescriptionCell
+                text={itemDescription ?? ""}
+                lineStyle={lineText}
+                compactLineItems={!!compactLineItems}
+              />
+            </View>
             <View
               style={{
                 flex: 1,

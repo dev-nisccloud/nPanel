@@ -90,7 +90,14 @@ export function LinkKenicDomainToTeamDialog({
   }, [open]);
 
   const teamItems: ComboboxItem[] = React.useMemo(
-    () => teams.map((t) => ({ id: t.id, label: t.name })),
+    () =>
+      [...teams]
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((t) => ({
+          id: t.id,
+          label: t.name,
+          keywords: [t.slug],
+        })),
     [teams],
   );
 
@@ -153,6 +160,7 @@ export function LinkKenicDomainToTeamDialog({
                   searchPlaceholder="Search organizations..."
                   emptyResults="No organizations found"
                   disabled={isSubmitting}
+                  inDialog
                 />
               )}
             </div>

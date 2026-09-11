@@ -4,7 +4,7 @@
 import type { InvoiceDetail } from "../routers/invoicing/schemas";
 import { extractEtimsFiscalFieldsFromInvoice } from "../lib/etims-fiscal-fields";
 import { resolveInvoiceEtimsVerificationUrl } from "../lib/etims-receipt-url";
-import { formatInvoiceLineItemForPdf } from "../lib/nisc-order-invoice-line-items";
+import { formatInvoiceLineItemForPdf, normalizeStoredInvoicePeriodDescription } from "../lib/nisc-order-invoice-line-items";
 import type {
 	YourDetails,
 	CompanyDetails,
@@ -54,21 +54,38 @@ export function buildInvoicePdfDetails(invoice: InvoiceDetail): {
 		companyTaxId: customerDetails?.taxId as string | undefined,
 	};
 
+	const invoiceMeta =
+		invoice.metadata && typeof invoice.metadata === "object"
+			? (invoice.metadata as Record<string, unknown>)
+			: {};
+	const invoiceSource = typeof invoiceMeta.source === "string" ? invoiceMeta.source : null;
+
 	const invoiceDetails: InvoiceItemDetails = {
 		note: invoice.note ?? undefined,
 		discount: invoice.discount ?? undefined,
 		taxRate: invoice.taxPercentage != null ? String(invoice.taxPercentage) : undefined,
 		items: (invoice.lineItems ?? []).map((li) => {
-			const billingCycle = (li.metadata as { billingCycle?: string } | null)?.billingCycle;
+			const lineMeta =
+				li.metadata && typeof li.metadata === "object"
+					? (li.metadata as Record<string, unknown>)
+					: {};
+			const billingCycle = lineMeta.billingCycle;
+			const description = normalizeStoredInvoicePeriodDescription(li.description, {
+				invoiceSource,
+				lineSource: typeof lineMeta.source === "string" ? lineMeta.source : null,
+			});
 			return {
 				id: li.id,
 				itemDescription: formatInvoiceLineItemForPdf(
 					li.name || "Service",
-					li.description,
+					description,
 				),
 				amount: li.price != null ? Number(li.price) : undefined,
 				qty: li.quantity ?? undefined,
-				billingCycle: (billingCycle && billingCycle !== '__unset__') ? billingCycle : undefined,
+				billingCycle:
+					typeof billingCycle === "string" && billingCycle !== "__unset__"
+						? billingCycle
+						: undefined,
 			};
 		}),
 		currency: invoice.currency ?? "KES",

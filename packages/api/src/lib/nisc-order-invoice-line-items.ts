@@ -4,7 +4,7 @@
  * Domains use Transfer / Registration / Renewal; subscription services use Subscription (or Renewal).
  */
 import type { NiscOrderItemForInvoice } from "../schemas/nisc-order-invoice";
-import { formatNiscDate } from "./nisc-datetime-format";
+import { formatInvoiceDate } from "./nisc-datetime-format";
 
 export type InvoiceLineItemAction = "Transfer" | "Registration" | "Renewal" | "Subscription";
 
@@ -14,7 +14,7 @@ export type NiscOrderInvoiceLineItemCopy = {
 };
 
 function formatDateForInvoice(d: Date): string {
-	return formatNiscDate(d);
+	return formatInvoiceDate(d);
 }
 
 export function addBillingCycleToDate(start: Date, billingCycle: string | null | undefined): Date | null {
@@ -178,17 +178,45 @@ function resolveIdentifier(item: NiscOrderItemForInvoice): string {
 	return "";
 }
 
-function formatSubscriptionPeriod(
+export function formatInvoiceSubscriptionPeriod(
 	subscriptionStart: Date,
 	billingCycle: string | null | undefined,
+	action: InvoiceLineItemAction = "Subscription",
 ): string {
 	const startStr = formatDateForInvoice(subscriptionStart);
 	const expiry = addBillingCycleToDate(subscriptionStart, billingCycle);
 	const cycle = billingCycleLabel(billingCycle);
 	if (expiry) {
-		return `Subscription: ${startStr} – ${formatDateForInvoice(expiry)} (${cycle})`;
+		return `${action}: ${startStr} – ${formatDateForInvoice(expiry)} (${cycle})`;
 	}
-	return `Subscription: ${startStr} – (${cycle})`;
+	return `${action}: ${startStr} – (${cycle})`;
+}
+
+function formatSubscriptionPeriod(
+	subscriptionStart: Date,
+	billingCycle: string | null | undefined,
+	action: InvoiceLineItemAction = "Subscription",
+): string {
+	return formatInvoiceSubscriptionPeriod(subscriptionStart, billingCycle, action);
+}
+
+/** Renewal cron line copy: `{product name} - {subscription name}` plus renewal period dates. */
+export function buildRenewalReminderInvoiceLineCopy(input: {
+	productName: string;
+	subscriptionName?: string | null;
+	periodStart: Date;
+	billingCycle: string | null | undefined;
+}): NiscOrderInvoiceLineItemCopy {
+	const product = input.productName.trim() || "Service";
+	const subscriptionName = input.subscriptionName?.trim();
+	return {
+		name: subscriptionName ? `${product} - ${subscriptionName}` : product,
+		description: formatInvoiceSubscriptionPeriod(
+			input.periodStart,
+			input.billingCycle,
+			"Renewal",
+		),
+	};
 }
 
 /**
@@ -204,7 +232,7 @@ export function buildNiscOrderInvoiceLineItemCopy(
 	const action = resolveInvoiceLineItemAction(item.description, item.product.serviceType, {
 		subscriptionBased: !isDomain,
 	});
-	const subscription = formatSubscriptionPeriod(subscriptionStart, item.billingCycle);
+	const subscription = formatSubscriptionPeriod(subscriptionStart, item.billingCycle, action);
 
 	if (isDomain) {
 		const name = bracket ? `${bracket} Domain - ${action}` : `Domain - ${action}`;
@@ -239,7 +267,29 @@ export function buildNiscOrderInvoiceLineItemCopy(
 
 /** PDF / preview line text: title and subscription on separate lines for wrapping. */
 export function formatInvoiceLineItemForPdf(name: string, description?: string | null): string {
-	const desc = description?.trim();
+	const desc = normalizeStoredInvoicePeriodDescription(description)?.trim();
 	if (!desc) return name;
 	return `${name}\n${desc}`;
+}
+
+/**
+ * Display-time cleanup for stored invoice period copy:
+ * 4-digit years, and "Renewal" when the invoice is a subscription renewal.
+ */
+export function normalizeStoredInvoicePeriodDescription(
+	description: string | null | undefined,
+	context?: { invoiceSource?: string | null; lineSource?: string | null },
+): string | null {
+	if (!description?.trim()) return description ?? null;
+	let desc = description.replace(
+		/\b(\d{2})-(\d{2})-(\d{2})\b/g,
+		(_m, dd: string, mm: string, yy: string) => `${dd}-${mm}-20${yy}`,
+	);
+	const source = `${context?.invoiceSource ?? ""} ${context?.lineSource ?? ""}`.toLowerCase();
+	const isRenewal =
+		source.includes("renewal") || source.includes("subscription-renewal-reminder");
+	if (isRenewal && /^Subscription:/i.test(desc)) {
+		desc = `Renewal:${desc.slice(desc.indexOf(":") + 1)}`;
+	}
+	return desc;
 }

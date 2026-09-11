@@ -146,7 +146,7 @@ export function RevenueSection() {
                           <td className="px-4 py-2.5 font-mono text-xs">{inv.invoiceNumber ?? "-"}</td>
                           <td className="px-4 py-2.5 font-medium truncate max-w-[160px]">{inv.teamName ?? "-"}</td>
                           <td className="px-4 py-2.5 font-mono font-semibold">{fmtKes(inv.amount)}</td>
-                          <td className="px-4 py-2.5 text-xs">{inv.dueDate ? format(inv.dueDate, "MMM dd, yyyy") : "-"}</td>
+                          <td className="px-4 py-2.5 text-xs">{inv.dueDate ? format(inv.dueDate, "dd-MM-yyyy") : "-"}</td>
                           <td className="px-4 py-2.5"><StatusBadge status={inv.status} /></td>
                           <td className="px-4 py-2.5 font-mono text-red-600">{inv.daysOverdue > 0 ? `${inv.daysOverdue}d` : "-"}</td>
                         </tr>

@@ -38,6 +38,7 @@ import {
 	prepareInvoiceEmailDelivery,
 	sendInvoiceReminderEmail,
 } from "../../lib/invoice-email-delivery";
+import { formatInvoiceDate } from "../../lib/nisc-datetime-format";
 import {
 	processInvoiceKraSync,
 	type InvoiceKraSyncResult,
@@ -47,6 +48,11 @@ import {
 	kraStatusLabel,
 } from "../../lib/invoice-kra-status";
 import { sanitizeInvoiceDetailForCustomer } from "../../lib/invoice-customer-view";
+import { fulfillPaidInvoiceRenewals } from "../../lib/invoice-renewal-fulfillment";
+import {
+	applySuccessfulPaymentToInvoice,
+	invoiceIdFromPaymentMetadata,
+} from "../../lib/invoice-apply-gateway-payment";
 import {
 	sanitizeCreditNoteDetailForCustomer,
 } from "../../lib/credit-note-customer-view";
@@ -86,6 +92,7 @@ import {
 	nullableStringSchema,
 	submitInvoiceSchema,
 	updatePaymentInputSchema,
+	applyCheckoutPaymentInputSchema,
 } from "./schemas";
 import type { CreditNoteDetail, InvoiceDetail } from "./schemas";
 
@@ -1357,7 +1364,7 @@ export const invoicingRouter = router({
 		.output(invoiceDetailSchema)
 		.mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
-			await ensureInvoiceMutationAccess(db, user.id, user.role, input.invoiceId);
+			await ensureInvoiceAccess(db, user.id, user.role, input.invoiceId);
 
 			const invRows = await db
 				.select({
@@ -1454,7 +1461,123 @@ export const invoicingRouter = router({
 				});
 			});
 
+			if (nowPaidInFull) {
+				try {
+					const fulfillment = await fulfillPaidInvoiceRenewals(input.invoiceId, user.id);
+					if (!fulfillment.ok || !fulfillment.skipped) {
+						await logInvoiceActivity(db, {
+							invoiceId: input.invoiceId,
+							userId: user.id,
+							action: "RENEWAL_FULFILLMENT",
+							description: fulfillment.ok
+								? `Invoice paid; renewal order ${fulfillment.orderNumber} (${fulfillment.status}).`
+								: `Invoice paid; renewal fulfillment failed: ${fulfillment.error}`,
+							metadata: fulfillment,
+						});
+					}
+				} catch (err) {
+					const message = err instanceof Error ? err.message : String(err);
+					await logInvoiceActivity(db, {
+						invoiceId: input.invoiceId,
+						userId: user.id,
+						action: "RENEWAL_FULFILLMENT",
+						description: `Invoice paid; renewal fulfillment failed: ${message}`,
+						metadata: { ok: false, error: message },
+					});
+				}
+			}
+
 			const updated = await fetchInvoiceDetail(db, input.invoiceId);
+			return mapInvoiceDetail({
+				...updated,
+				lineItems: updated.lineItems.map((item) => ({
+					id: item.id,
+					invoiceId: item.invoiceId,
+					position: item.position,
+					name: item.name,
+					description: item.description,
+					quantity: item.quantity,
+					unit: item.unit,
+					price: item.price,
+					discount: item.discount,
+					total: item.total,
+					...(item.metadata !== undefined && { metadata: item.metadata }),
+					createdAt: item.createdAt,
+					updatedAt: item.updatedAt,
+				})),
+				transactions: updated.transactions.map((transaction) => ({
+					id: transaction.id,
+					invoiceId: transaction.invoiceId,
+					reference: transaction.reference,
+					providerReference: transaction.providerReference,
+					status: transaction.status,
+					method: transaction.method,
+					amount: transaction.amount,
+					currency: transaction.currency,
+					paidAt: transaction.paidAt,
+					notes: transaction.notes,
+					metadata: transaction.metadata,
+					balanceBefore: transaction.balanceBefore,
+					balanceAfter: transaction.balanceAfter,
+					recordedBy: transaction.recordedBy,
+					createdAt: transaction.createdAt,
+					updatedAt: transaction.updatedAt,
+					activityLogs: transaction.activityLogs,
+				})),
+				creditNote: updated.creditNote
+					? creditNoteOutputSchema.parse({
+						...updated.creditNote,
+						activityLogs: updated.creditNote.activityLogs,
+					})
+					: null,
+				activityLogs: updated.activityLogs,
+			});
+		}),
+
+	applyCheckoutPayment: protectedProcedure
+		.input(applyCheckoutPaymentInputSchema)
+		.output(invoiceDetailSchema)
+		.mutation(async ({ ctx, input }) => {
+			const user = await getAuthenticatedUser(ctx);
+			const [pay] = await db
+				.select({
+					id: paymentTransaction.id,
+					status: paymentTransaction.status,
+					metadata: paymentTransaction.metadata,
+					userId: paymentTransaction.userId,
+					teamId: paymentTransaction.teamId,
+					checkoutRequestId: paymentTransaction.checkoutRequestId,
+				})
+				.from(paymentTransaction)
+				.where(eq(paymentTransaction.checkoutRequestId, input.checkoutRequestId))
+				.limit(1);
+			if (!pay) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Payment not found." });
+			}
+			const invoiceId = invoiceIdFromPaymentMetadata(pay.metadata);
+			if (!invoiceId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This payment is not linked to an invoice.",
+				});
+			}
+			await ensureInvoiceAccess(db, user.id, user.role, invoiceId);
+			if (pay.status !== "SUCCESS") {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Payment is not complete yet.",
+				});
+			}
+
+			const result = await applySuccessfulPaymentToInvoice(pay.id);
+			if (!result.ok) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: result.error,
+				});
+			}
+
+			const updated = await fetchInvoiceDetail(db, invoiceId);
 			return mapInvoiceDetail({
 				...updated,
 				lineItems: updated.lineItems.map((item) => ({
@@ -2309,11 +2432,7 @@ export const invoicingRouter = router({
 
 			const formatDate = (date: Date | null | undefined): string => {
 				if (!date) return "N/A";
-				return new Date(date).toLocaleDateString("en-US", {
-					year: "numeric",
-					month: "long",
-					day: "numeric",
-				});
+				return formatInvoiceDate(date) || "N/A";
 			};
 
 			const emailHtml = await renderInvoiceDeliveryEmail({

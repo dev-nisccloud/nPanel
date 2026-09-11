@@ -9,10 +9,9 @@ import {
 } from "../routers/nisc-service-orders-schemas";
 import {
 	resolveHostingServiceLabel,
-	addBillingCycleToDate,
+	formatInvoiceSubscriptionPeriod,
 	type NiscOrderInvoiceLineItemCopy,
 } from "./nisc-order-invoice-line-items";
-import { formatNiscDate } from "./nisc-datetime-format";
 
 const HIVELOCITY_SERVICE_TYPES = new Set([
 	"vps_hosting",
@@ -52,30 +51,11 @@ export function isHivelocityOrderItem(item: {
 	return parseHivelocityInvoiceLinesFromMetadata(item.metadata) != null;
 }
 
-function billingCycleLabel(billingCycle: string | null | undefined): string {
-	switch (billingCycle) {
-		case "MONTHLY":
-			return "1 month";
-		case "YEARLY":
-			return "1 year";
-		case "BIENNIALLY":
-			return "2 years";
-		default:
-			return "1 year";
-	}
-}
-
 function formatSubscriptionPeriod(
 	subscriptionStart: Date,
 	billingCycle: string | null | undefined,
 ): string {
-	const startStr = formatNiscDate(subscriptionStart);
-	const expiry = addBillingCycleToDate(subscriptionStart, billingCycle);
-	const cycle = billingCycleLabel(billingCycle);
-	if (expiry) {
-		return `Subscription: ${startStr} – ${formatNiscDate(expiry)} (${cycle})`;
-	}
-	return `Subscription: ${startStr} – (${cycle})`;
+	return formatInvoiceSubscriptionPeriod(subscriptionStart, billingCycle);
 }
 
 function readHostname(metadata: unknown): string {

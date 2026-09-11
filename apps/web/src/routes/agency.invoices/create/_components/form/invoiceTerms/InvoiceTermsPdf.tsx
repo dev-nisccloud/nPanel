@@ -37,7 +37,7 @@ export const InvoiceTermsPdf: React.FC<InvoiceTerms> = ({
             {issueDate
               ? format(
                   typeof issueDate === "string" ? new Date(issueDate) : issueDate,
-                  "do MMM yyyy"
+                  "dd-MM-yyyy"
                 )
               : "-"}
           </Text>
@@ -48,7 +48,7 @@ export const InvoiceTermsPdf: React.FC<InvoiceTerms> = ({
             {dueDate
               ? format(
                   typeof dueDate === "string" ? new Date(dueDate) : dueDate,
-                  "do MMM yyyy"
+                  "dd-MM-yyyy"
                 )
               : "-"}
           </Text>
