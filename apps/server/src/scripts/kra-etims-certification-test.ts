@@ -1,36 +1,37 @@
 /**
- * KRA eTIMS Developer Platform  Automated App Test runner
+ * DEPRECATED for KRA manual verification.
  *
- * Calls every certification test-case endpoint step-by-step via our EtimsOscuClient,
- * logs the EXACT unaltered KRA response, and writes results to JSON.
+ * KRA asked us to run OSCU functions one-at-a-time in Postman (not this sequential runner).
+ * Guide + mocks: docs/kra-etims-oscu-postman-verification.md
+ * Environment:  docs/postman/kra-etims-oscu-sandbox.postman_environment.json
  *
- * Prerequisites:
+ * This file remains only as a local experiment harness. Do not use it for the
+ * High Level OSCU/VSCU Verification Checklist.
+ *
+ * Prerequisites (if you still run it):
  *   1. Start Automated App Test on the KRA Developer Portal first
- *   2. Device already initialized in nPanel (cmcKey in DB) OR step 1 will init
- *   3. Prefer apps/server/.env.etims-certification (portal session), else .env
+ *   2. Phase 1: OSCU init (integrator PIN, no cmcKey) → capture cmcKey
+ *   3. Phase 2: remaining OSCU calls use that PIN + the captured cmcKey
+ *   4. Env: apps/server/.env.etims-certification ONLY
  *
  * Run from apps/server:
  *   bun run etims:certification
- *   bun run src/scripts/write-etims-cert-env.ts   # refresh cert env from .env + portal stamps
  *
  * Optional:
  *   SKIP_INIT=1          skip re-initialization
  *   ONLY=selectCodeList  run a single step by endpointKey
  *
- * Cert-env identity overrides (ETIMS_CERT_*):
+ * Cert-env identity (ETIMS_CERT_*):
  *   TIN, BHF_ID, DEVICE_SERIAL, CMC_KEY, APP_TEST_PIN, SANDBOX
  */
-import { config } from "dotenv";
-import { existsSync } from "node:fs";
+import {
+    buildCertClientConfig,
+    fetchCmcKeyFromCertDb,
+} from "./load-etims-cert-env";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { db } from "@npanel/db";
-import { eTimsConfiguration } from "@npanel/db/schema/etims";
-import {
-    buildClientConfigFromEnv,
-    getEtimsClient,
-} from "@npanel/api/lib/etims-config";
+import { getEtimsClient } from "@npanel/api/lib/etims-client";
 import type {
     EtimsEndpointKey,
     EtimsOscuHeaders,
@@ -38,14 +39,6 @@ import type {
 } from "@npanel/api/lib/etims-client";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const SERVER_ROOT = path.resolve(__dirname, "../..");
-const CERT_ENV = path.join(SERVER_ROOT, ".env.etims-certification");
-const DEFAULT_ENV = path.join(SERVER_ROOT, ".env");
-// Load default first, then cert env overrides so portal session wins.
-config({ path: DEFAULT_ENV });
-if (existsSync(CERT_ENV)) {
-    config({ path: CERT_ENV, override: true });
-}
 
 const LAST_REQ_DT = "20180101000000";
 const OUT_DIR = path.resolve(__dirname, "../../.etims-certification");
@@ -76,7 +69,10 @@ type KraItem = {
 };
 
 type RunContext = {
+    /** Application Test Pin — used as OSCU `tin` for init and every consecutive call */
     tin: string;
+    /** Integrator PIN from the portal (customer TIN when it differs from the test PIN) */
+    integratorPin: string;
     bhfId: string;
     dvcSrlNo: string;
     cmcKey: string;
@@ -126,6 +122,12 @@ function nowParts() {
 
 function oscuFrom(ctx: RunContext): EtimsOscuHeaders {
     return { tin: ctx.tin, bhfId: ctx.bhfId, cmcKey: ctx.cmcKey };
+}
+
+/** Customer PIN must differ from the session tin (Application Test Pin). */
+function customerTin(ctx: RunContext): string {
+    if (ctx.integratorPin && ctx.integratorPin !== ctx.tin) return ctx.integratorPin;
+    return "P052377334H";
 }
 
 function lastReq(ctx: RunContext) {
@@ -546,10 +548,7 @@ const STEPS: Step[] = [
             bhfId: ctx.bhfId,
             cmcKey: ctx.cmcKey,
             custNo: "CUST001",
-            custTin:
-                ctx.tin === ctx.appTestPin
-                    ? "P052377334H"
-                    : ctx.appTestPin || ctx.tin,
+            custTin: customerTin(ctx),
             custNm: "Automated Test Customer",
             adrs: "Nairobi",
             telNo: "0700000000",
@@ -754,13 +753,8 @@ const STEPS: Step[] = [
             // Session invcNo must start at 1; trdInvcNo can be a unique trade reference
             // so we do not collide with historical production invoices (e.g. invcNo=1 credit note).
             const trdInvcNo = `CERT${String(Date.now()).slice(-10)}`;
-            const custTin =
-                ctx.tin === ctx.appTestPin
-                    ? "P052377334H"
-                    : ctx.appTestPin || null;
-            const custNm = custTin
-                ? "Automated Test Customer"
-                : "Walk-in Customer";
+            const custTin = customerTin(ctx);
+            const custNm = "Automated Test Customer";
             return {
                 tin: ctx.tin,
                 bhfId: ctx.bhfId,
@@ -808,7 +802,7 @@ const STEPS: Step[] = [
                 modrNm: "Admin",
                 receipt: {
                     custTin,
-                    custMblNo: ctx.appTestPin ? "0700000000" : null,
+                    custMblNo: "0700000000",
                     rcptPbctDt: cfmDt,
                     trdeNm: null,
                     adrs: null,
@@ -990,51 +984,32 @@ type DeviceConfig = {
     kraPin: string;
     branchId: string;
     deviceSerialNumber: string;
-    cmcKey: string | null;
     isSandbox: boolean;
     source: string;
 };
 
 /**
- * Prefer .env.etims-certification identity; fall back to DB for missing fields (esp. cmcKey).
+ * Identity comes only from .env.etims-certification.
+ * cmcKey is obtained from OSCU initialization, not from the DB.
  */
 async function loadDeviceConfig(): Promise<DeviceConfig> {
-    const [row] = await db.select().from(eTimsConfiguration).limit(1);
-
-    const tin = process.env.ETIMS_CERT_TIN?.trim() || row?.kraPin;
-    const branchId = process.env.ETIMS_CERT_BHF_ID?.trim() || row?.branchId;
-    const serial =
-        process.env.ETIMS_CERT_DEVICE_SERIAL?.trim() ||
-        row?.deviceSerialNumber;
-    const cmcKey =
-        process.env.ETIMS_CERT_CMC_KEY?.trim() || row?.cmcKey || null;
-    const isSandbox =
-        process.env.ETIMS_CERT_SANDBOX !== undefined
-            ? process.env.ETIMS_CERT_SANDBOX !== "false"
-            : (row?.isSandbox ?? true);
+    const tin = process.env.ETIMS_CERT_TIN?.trim() ?? "";
+    const branchId = process.env.ETIMS_CERT_BHF_ID?.trim() ?? "";
+    const serial = process.env.ETIMS_CERT_DEVICE_SERIAL?.trim() ?? "";
+    const isSandbox = process.env.ETIMS_CERT_SANDBOX !== "false";
 
     if (!tin || !branchId || !serial) {
         throw new Error(
-            "Missing TIN / branch / serial. Set ETIMS_CERT_* in .env.etims-certification or initialize the device in Settings.",
+            "Missing TIN / branch / serial in .env.etims-certification.",
         );
     }
 
-    const fromCert = Boolean(
-        process.env.ETIMS_CERT_TIN ||
-            process.env.ETIMS_CERT_BHF_ID ||
-            process.env.ETIMS_CERT_DEVICE_SERIAL,
-    );
     return {
         kraPin: tin,
         branchId,
         deviceSerialNumber: serial,
-        cmcKey,
         isSandbox,
-        source: fromCert
-            ? existsSync(CERT_ENV)
-                ? ".env.etims-certification (+ DB cmcKey if unset)"
-                : "ETIMS_CERT_* env (+ DB)"
-            : "DB etims_configuration",
+        source: ".env.etims-certification",
     };
 }
 
@@ -1046,14 +1021,21 @@ async function main() {
     console.log("Ensure the Developer Portal Automated App Test session is ACTIVE.\n");
 
     const cfg = await loadDeviceConfig();
+    const appTestPin = process.env.ETIMS_CERT_APP_TEST_PIN?.trim() || "";
+    if (!appTestPin) {
+        throw new Error(
+            "ETIMS_CERT_APP_TEST_PIN is required in .env.etims-certification — OSCU init uses this PIN as tin.",
+        );
+    }
     const ctx: RunContext = {
-        tin: cfg.kraPin,
+        tin: appTestPin,
+        integratorPin: cfg.kraPin,
         bhfId: cfg.branchId,
         dvcSrlNo: cfg.deviceSerialNumber,
-        cmcKey: cfg.cmcKey ?? "",
+        cmcKey: "",
         isSandbox: cfg.isSandbox,
-        appTestPin: process.env.ETIMS_CERT_APP_TEST_PIN?.trim() || "",
-        tisName: process.env.ETIMS_CERT_TIS_NAME?.trim() || "nPanel",
+        appTestPin,
+        tisName: process.env.ETIMS_CERT_TIS_NAME?.trim() || "nPanel 2",
         tisVersion: process.env.ETIMS_CERT_TIS_VERSION?.trim() || "1.0.0",
         kraItems: [],
         itemClsOptions: [],
@@ -1067,24 +1049,35 @@ async function main() {
         results: {},
     };
 
-    if (!ctx.cmcKey && skipInit) {
-        throw new Error("No cmcKey in DB/cert-env and SKIP_INIT=1  cannot continue.");
+    if (skipInit) {
+        ctx.cmcKey = await fetchCmcKeyFromCertDb(cfg.deviceSerialNumber);
+        if (!ctx.cmcKey) {
+            throw new Error("SKIP_INIT=1 but no cmcKey in DB — run init first.");
+        }
+        console.log("SKIP_INIT=1 — reusing DB cmcKey with Application Test Pin.\n");
     }
 
     console.log(`config source: ${cfg.source}`);
-    console.log(`TIN=${ctx.tin}  bhfId=${ctx.bhfId}  serial=${ctx.dvcSrlNo}`);
     console.log(
-        `sandbox=${ctx.isSandbox}  invcNo=${ctx.invcNo}  appTestPin=${ctx.appTestPin || "(none)"}`,
+        `OSCU tin=${ctx.tin} (Application Test Pin)  integratorPin=${ctx.integratorPin}`,
+    );
+    console.log(`bhfId=${ctx.bhfId}  serial=${ctx.dvcSrlNo}`);
+    console.log(
+        skipInit
+            ? `sandbox=${ctx.isSandbox}  invcNo=${ctx.invcNo}  cmcKey=from DB`
+            : `sandbox=${ctx.isSandbox}  invcNo=${ctx.invcNo}  cmcKey=from OSCU init`,
     );
     console.log(`TIS=${ctx.tisName} v${ctx.tisVersion}`);
     console.log(
         `Apigee=${(process.env.ETIMS_APIGEE_APP_ID ?? "").slice(0, 12)}…\n`,
     );
     console.log(
-        "Mocks are built from KRA selectItemList / selectItemClsList (UI Products flow).\n",
+        skipInit
+            ? "Remaining OSCU calls use Application Test Pin + DB cmcKey.\n"
+            : "Phase 1: initialize independently. Phase 2: test PIN + captured cmcKey.\n",
     );
 
-    const client = getEtimsClient(buildClientConfigFromEnv(ctx.isSandbox));
+    const client = getEtimsClient(buildCertClientConfig());
     await mkdir(OUT_DIR, { recursive: true });
 
     const summary: Array<{
@@ -1145,6 +1138,10 @@ async function main() {
                 resultCd: null,
                 ok: false,
             });
+            if (step.endpointKey === "selectInitOsdcInfo") {
+                console.error("   OSCU initialization failed. Stopping; later requests will not run.\n");
+                break;
+            }
             continue;
         }
 
@@ -1246,14 +1243,27 @@ async function main() {
 
         ctx.results[step.endpointKey] = raw;
 
-        // Capture cmcKey from init without mutating the logged response
+        // Capture cmcKey from init; later steps must not run without it.
         if (step.endpointKey === "selectInitOsdcInfo") {
             const key = extractCmcKey(raw.bodyJson);
             if (key) {
                 ctx.cmcKey = key;
-                console.log(`   cmcKey captured (${key.slice(0, 8)}…)`);
-            } else if (!ctx.cmcKey) {
-                console.warn("   WARN: init did not return cmcKey  later steps may fail");
+                console.log(`   cmcKey captured (${key.slice(0, 8)}…) — remaining requests use test PIN + this key`);
+            }
+            if (!ctx.cmcKey) {
+                console.error(
+                    "   OSCU initialization did not return cmcKey. Stopping; later requests will not run.\n",
+                );
+                summary.push({
+                    testCase: step.testCase,
+                    kraLabel: step.kraLabel,
+                    endpointKey: step.endpointKey,
+                    kraPath: raw.kraPath,
+                    statusCode: raw.statusCode,
+                    resultCd: resultCdOf(raw),
+                    ok: false,
+                });
+                break;
             }
         }
 

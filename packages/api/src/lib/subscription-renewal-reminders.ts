@@ -12,7 +12,13 @@ import {
 } from "@npanel/db/schema/products";
 import { teamBillingSettings } from "@npanel/db/schema/teams";
 import { renderServiceRenewalReminderEmail } from "./email-templates";
-import { sendEmail } from "./email";
+import { sendEmail, sendEmailWithPdf } from "./email";
+import {
+	buildRenewalInvoicePdf,
+	ensureSubscriptionRenewalInvoice,
+	serializeRenewalInvoiceResult,
+	type RenewalInvoiceEnsureResult,
+} from "./subscription-renewal-invoice";
 
 /** Subscriptions with expiry (or next renewal) on/before this many days from now are reminded. */
 export const RENEWAL_REMINDER_WINDOW_DAYS = 7;
@@ -58,6 +64,136 @@ type SubMetadata = {
 };
 
 type ItemInsert = typeof agencyCronJobRunItem.$inferInsert;
+
+type DueSubscriptionRow = Awaited<ReturnType<typeof fetchDueSubscriptions>>[number];
+
+type ItemEmailSnapshot = {
+	to: string;
+	subject: string;
+	html: string;
+	fromEmail?: string | null;
+	fromName?: string | null;
+	replyTo?: string | null;
+	sesMessageId?: string | null;
+	invoiceId?: string | null;
+	invoiceNumber?: string | null;
+	attachmentFilename?: string | null;
+};
+
+/** JSON-safe dump of unknown values (AWS SES errors, skip context, etc.). */
+function serializeUnknown(value: unknown, seen = new WeakSet<object>(), depth = 0): unknown {
+	if (value == null || typeof value === "boolean" || typeof value === "number") {
+		return value;
+	}
+	if (typeof value === "string") return value;
+	if (typeof value === "bigint") return value.toString();
+	if (typeof value === "symbol" || typeof value === "function") return String(value);
+	if (value instanceof Date) return value.toISOString();
+	if (typeof value !== "object") return String(value);
+	if (seen.has(value)) return "[Circular]";
+	if (depth > 6) return "[MaxDepth]";
+	seen.add(value);
+
+	if (value instanceof Error) {
+		const extra: Record<string, unknown> = {
+			name: value.name,
+			message: value.message,
+			stack: value.stack ?? null,
+		};
+		for (const key of Object.getOwnPropertyNames(value)) {
+			if (key === "name" || key === "message" || key === "stack") continue;
+			try {
+				extra[key] = serializeUnknown(
+					(value as unknown as Record<string, unknown>)[key],
+					seen,
+					depth + 1,
+				);
+			} catch {
+				extra[key] = "[Unserializable]";
+			}
+		}
+		return extra;
+	}
+
+	if (Array.isArray(value)) {
+		return value.map((entry) => serializeUnknown(entry, seen, depth + 1));
+	}
+
+	const out: Record<string, unknown> = {};
+	for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+		out[key] = serializeUnknown(nested, seen, depth + 1);
+	}
+	return out;
+}
+
+function hoursSince(iso: string | undefined, now: Date): number | null {
+	if (!iso) return null;
+	const at = new Date(iso);
+	if (Number.isNaN(at.getTime())) return null;
+	return (now.getTime() - at.getTime()) / (60 * 60 * 1000);
+}
+
+function itemContext(
+	row: DueSubscriptionRow,
+	due: Date | null | undefined,
+	now: Date,
+	lastRenewalReminderAt: string | undefined,
+): Record<string, unknown> {
+	return {
+		evaluatedAt: now.toISOString(),
+		subscriptionId: row.id,
+		teamId: row.teamId,
+		status: row.status,
+		billingEmail: row.billingEmail?.trim() || null,
+		productId: row.productId,
+		agreedPrice: row.agreedPrice,
+		billingCycle: row.billingCycle,
+		expiryDate: row.expiryDate ? new Date(row.expiryDate).toISOString() : null,
+		nextRenewalDate: row.nextRenewalDate
+			? new Date(row.nextRenewalDate).toISOString()
+			: null,
+		dueDate: due ? new Date(due).toISOString() : null,
+		dueDateSource: row.expiryDate
+			? "expiryDate"
+			: row.nextRenewalDate
+				? "nextRenewalDate"
+				: null,
+		lastRenewalReminderAt: lastRenewalReminderAt ?? null,
+		dedupeHours: RENEWAL_REMINDER_DEDUPE_HOURS,
+		reminderWindowDays: RENEWAL_REMINDER_WINDOW_DAYS,
+	};
+}
+
+async function ensureInvoiceForDueRow(
+	row: DueSubscriptionRow,
+	due: Date | null | undefined,
+	createdBy: string | null,
+): Promise<RenewalInvoiceEnsureResult> {
+	if (!due) {
+		return {
+			ok: false,
+			skipped: true,
+			reasonCode: "no_due_date",
+			reasonMessage:
+				"Invoice skipped: subscription has neither expiryDate nor nextRenewalDate.",
+		};
+	}
+	return ensureSubscriptionRenewalInvoice({
+		subscriptionId: row.id,
+		teamId: row.teamId,
+		userId: row.userId,
+		createdBy,
+		productId: row.productId,
+		productName: row.productName ?? "Service",
+		serviceType: row.serviceType,
+		subscriptionName: row.name,
+		primaryDomain: row.primaryDomain,
+		agreedPrice: row.agreedPrice,
+		agreedCurrency: row.agreedCurrency,
+		billingCycle: row.billingCycle,
+		periodStart: due,
+	});
+}
 
 function startOfUtcDay(d: Date): Date {
 	return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
@@ -245,6 +381,17 @@ export async function processSubscriptionRenewalReminders(
 		const serviceNameLabel = planName ? `${productName} - ${planName}` : productName;
 		const subscriptionName = row.name ?? null;
 		const due = row.expiryDate ?? row.nextRenewalDate;
+		const lastReminderAt =
+			typeof metadata.lastRenewalReminderAt === "string"
+				? metadata.lastRenewalReminderAt
+				: undefined;
+		const context = itemContext(row, due, now, lastReminderAt);
+		const actorId =
+			opts.triggeredByUserId ??
+			row.recordedBy ??
+			row.subscribedBy ??
+			row.userId ??
+			null;
 
 		const baseItem = {
 			id: crypto.randomUUID(),
@@ -255,36 +402,88 @@ export async function processSubscriptionRenewalReminders(
 			expiryDate: due ?? null,
 		};
 
+		let invoiceResult: RenewalInvoiceEnsureResult;
+		try {
+			invoiceResult = await ensureInvoiceForDueRow(row, due, actorId);
+		} catch (err) {
+			invoiceResult = {
+				ok: false,
+				skipped: true,
+				reasonCode: "invoice_creation_failed",
+				reasonMessage: err instanceof Error ? err.message : String(err),
+			};
+			console.error(
+				`[subscription-renewal-reminders] invoice failed for ${row.id}:`,
+				err,
+			);
+		}
+		const invoiceLog = serializeRenewalInvoiceResult(invoiceResult);
+
 		if (!row.billingEmail?.trim()) {
+			const skipReason = "no_billing_email";
+			const detail =
+				"Skipped: team billing email is missing. No reminder was sent.";
 			batch.skipped += 1;
 			itemRows.push({
 				...baseItem,
 				outcome: "skipped",
-				skipReason: "no_billing_email",
+				skipReason,
+				metadata: {
+					detail,
+					skipReason,
+					context,
+					invoice: invoiceLog,
+				},
 			});
 			continue;
 		}
 
 		if (wasRemindedRecently(metadata, now)) {
+			const skipReason = "recently_reminded";
+			const hoursAgo = hoursSince(lastReminderAt, now);
+			const detail = `Skipped: already reminded at ${lastReminderAt ?? "unknown"}${
+				hoursAgo != null ? ` (${hoursAgo.toFixed(1)}h ago)` : ""
+			}. Dedupe window is ${RENEWAL_REMINDER_DEDUPE_HOURS} hours.`;
 			batch.skipped += 1;
 			itemRows.push({
 				...baseItem,
 				outcome: "skipped",
-				skipReason: "recently_reminded",
+				skipReason,
 				emailTo: row.billingEmail.trim(),
+				metadata: {
+					detail,
+					skipReason,
+					lastRenewalReminderAt: lastReminderAt ?? null,
+					hoursSinceLastReminder: hoursAgo,
+					dedupeHours: RENEWAL_REMINDER_DEDUPE_HOURS,
+					context,
+					invoice: invoiceLog,
+				},
 			});
 			continue;
 		}
 
 		if (!due) {
+			const skipReason = "no_due_date";
+			const detail =
+				"Skipped: subscription has neither expiryDate nor nextRenewalDate.";
 			batch.skipped += 1;
 			itemRows.push({
 				...baseItem,
 				outcome: "skipped",
-				skipReason: "no_due_date",
+				skipReason,
+				emailTo: row.billingEmail.trim(),
+				metadata: {
+					detail,
+					skipReason,
+					context,
+					invoice: invoiceLog,
+				},
 			});
 			continue;
 		}
+
+		let emailSnapshot: ItemEmailSnapshot | null = null;
 
 		try {
 			const isDomain = productName.toLowerCase().includes("domain");
@@ -295,6 +494,13 @@ export async function processSubscriptionRenewalReminders(
 				? new Date(row.subscriptionDate).toLocaleDateString()
 				: " ";
 			const expiryDateStr = new Date(due).toLocaleDateString();
+			const template = {
+				serviceName: serviceNameLabel,
+				subscriptionName: subscriptionName ?? null,
+				subscriptionDate: subscriptionDateStr,
+				expiryDate: expiryDateStr,
+				gracePeriodText,
+			};
 
 			const html = await renderServiceRenewalReminderEmail({
 				serviceName: serviceNameLabel,
@@ -306,11 +512,46 @@ export async function processSubscriptionRenewalReminders(
 
 			const subject = `Renewal reminder: ${subscriptionName ?? serviceNameLabel}`;
 			const emailTo = row.billingEmail.trim();
-			await sendEmail({
-				to: emailTo,
-				subject,
-				html,
-			});
+			emailSnapshot = { to: emailTo, subject, html };
+
+			let sent: {
+				id?: string;
+				fromEmail?: string;
+				fromName?: string;
+				replyTo?: string | null;
+			};
+			let invoiceAttached = false;
+			let pdfFilename: string | null = null;
+
+			if (invoiceResult.ok) {
+				const pdf = await buildRenewalInvoicePdf(invoiceResult.invoiceId);
+				pdfFilename = pdf.filename;
+				emailSnapshot.invoiceId = invoiceResult.invoiceId;
+				emailSnapshot.invoiceNumber = invoiceResult.invoiceNumber;
+				emailSnapshot.attachmentFilename = pdf.filename;
+				sent = await sendEmailWithPdf({
+					to: emailTo,
+					subject,
+					html,
+					attachmentFilename: pdf.filename,
+					attachment: pdf.buffer,
+				});
+				invoiceAttached = true;
+			} else {
+				sent = await sendEmail({
+					to: emailTo,
+					subject,
+					html,
+				});
+			}
+
+			emailSnapshot = {
+				...emailSnapshot,
+				fromEmail: sent.fromEmail,
+				fromName: sent.fromName,
+				replyTo: sent.replyTo,
+				sesMessageId: sent.id ?? null,
+			};
 
 			const sentAt = now.toISOString();
 			const nextMetadata: SubMetadata = {
@@ -325,12 +566,6 @@ export async function processSubscriptionRenewalReminders(
 					updatedAt: new Date(),
 				})
 				.where(eq(niscClientSubscription.id, row.id));
-
-			const actorId =
-				opts.triggeredByUserId ??
-				row.recordedBy ??
-				row.subscribedBy ??
-				row.userId;
 
 			if (actorId) {
 				await db.insert(niscClientSubscriptionActivityLog).values({
@@ -351,6 +586,11 @@ export async function processSubscriptionRenewalReminders(
 						source: opts.source ?? existing.source,
 						automated: true,
 						runId,
+						sesMessageId: sent.id ?? null,
+						invoiceId: invoiceResult.ok ? invoiceResult.invoiceId : null,
+						invoiceNumber: invoiceResult.ok ? invoiceResult.invoiceNumber : null,
+						invoiceAttached,
+						attachmentFilename: pdfFilename,
 					},
 					ipAddress: null,
 					userAgent: null,
@@ -363,7 +603,15 @@ export async function processSubscriptionRenewalReminders(
 				outcome: "sent",
 				emailTo,
 				subject,
-				metadata: { sentAt },
+				metadata: {
+					sentAt,
+					sesMessageId: sent.id ?? null,
+					email: emailSnapshot,
+					template,
+					context,
+					invoice: invoiceLog,
+					invoiceAttached,
+				},
 			});
 		} catch (err) {
 			const error = err instanceof Error ? err.message : String(err);
@@ -373,7 +621,15 @@ export async function processSubscriptionRenewalReminders(
 				...baseItem,
 				outcome: "failed",
 				emailTo: row.billingEmail.trim(),
+				subject: emailSnapshot?.subject ?? null,
 				error,
+				metadata: {
+					detail: error,
+					error: serializeUnknown(err),
+					attemptedEmail: emailSnapshot,
+					context,
+					invoice: invoiceLog,
+				},
 			});
 			console.error(
 				`[subscription-renewal-reminders] failed for ${row.id}:`,
@@ -461,8 +717,14 @@ async function fetchDueSubscriptions(
 			subscriptionDate: niscClientSubscription.subscriptionDate,
 			expiryDate: niscClientSubscription.expiryDate,
 			nextRenewalDate: niscClientSubscription.nextRenewalDate,
+			billingCycle: niscClientSubscription.billingCycle,
+			agreedPrice: niscClientSubscription.agreedPrice,
+			agreedCurrency: niscClientSubscription.agreedCurrency,
+			productId: niscClientSubscription.productId,
+			primaryDomain: niscClientSubscription.primaryDomain,
 			metadata: niscClientSubscription.metadata,
 			productName: niscProduct.name,
+			serviceType: niscProduct.serviceType,
 			planName: niscProductPlan.name,
 			billingEmail: teamBillingSettings.billingEmail,
 		})

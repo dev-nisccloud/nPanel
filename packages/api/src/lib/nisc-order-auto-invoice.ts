@@ -36,7 +36,7 @@ import { COMPANY_LOGO_URL } from "./company-branding";
 import { invoicePaymentMethodFromGateway, mapGatewayPaymentToInvoiceTransaction } from "./invoice-payment-method";
 import { computeInvoicePaymentState, parseInvoiceMoney } from "./invoice-payment-state";
 
-const FROM_DETAILS = {
+export const NISC_INVOICE_FROM_DETAILS = {
 	name: "Nisc Cloud Limited",
 	email: "accounts@nisccloud.com",
 	address: "P.O BOX 21615 - 00505",
@@ -46,7 +46,7 @@ const FROM_DETAILS = {
 	logoUrl: COMPANY_LOGO_URL,
 };
 
-const BANK_PAYMENT_DETAILS = {
+export const NISC_INVOICE_BANK_PAYMENT_DETAILS = {
 	paymentMethod: "BANK_TRANSFER",
 	method: "BANK_TRANSFER",
 	bankName: "Absa Bank Plc",
@@ -57,7 +57,7 @@ const BANK_PAYMENT_DETAILS = {
 	swiftCode: "BARCKENX",
 };
 
-function paymentDetailsForPaidOrder(gateway: string | null | undefined) {
+export function paymentDetailsForPaidOrder(gateway: string | null | undefined) {
 	const method = invoicePaymentMethodFromGateway(gateway);
 	if (method === "MPESA") {
 		return { paymentMethod: "MPESA", method: "MPESA" };
@@ -69,7 +69,7 @@ function paymentDetailsForPaidOrder(gateway: string | null | undefined) {
 		return { paymentMethod: "OTHER", method: "OTHER" };
 	}
 	// Unpaid / unknown: keep bank instructions for settlement.
-	return { ...BANK_PAYMENT_DETAILS };
+	return { ...NISC_INVOICE_BANK_PAYMENT_DETAILS };
 }
 
 const TAX_PERCENTAGE = NISC_ORDER_VAT_PERCENTAGE;
@@ -180,7 +180,7 @@ export async function createInvoiceForNiscOrder(
 		amountPaid: paymentState.amountPaid,
 		amountRemaining: paymentState.amountRemaining,
 		creditBalance: paymentState.creditBalance,
-		fromDetails: FROM_DETAILS,
+		fromDetails: NISC_INVOICE_FROM_DETAILS,
 		customerDetails,
 		paymentDetails,
 		template: { logoUrl: COMPANY_LOGO_URL },

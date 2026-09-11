@@ -1,9 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { History, Loader2, RefreshCw } from "lucide-react";
+import { ChevronDown, History, Loader2, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
 	Sheet,
 	SheetContent,
@@ -54,6 +59,321 @@ function outcomeBadgeClass(outcome: string): string {
 		default:
 			return "";
 	}
+}
+
+type CronItemMeta = {
+	detail?: unknown;
+	skipReason?: unknown;
+	sentAt?: unknown;
+	sesMessageId?: unknown;
+	email?: unknown;
+	attemptedEmail?: unknown;
+	template?: unknown;
+	error?: unknown;
+	context?: unknown;
+	invoice?: unknown;
+	invoiceAttached?: unknown;
+	lastRenewalReminderAt?: unknown;
+	hoursSinceLastReminder?: unknown;
+	dedupeHours?: unknown;
+	[key: string]: unknown;
+};
+
+type EmailSnapshot = {
+	to?: unknown;
+	subject?: unknown;
+	html?: unknown;
+	fromEmail?: unknown;
+	fromName?: unknown;
+	replyTo?: unknown;
+	sesMessageId?: unknown;
+};
+
+function asRecord(value: unknown): CronItemMeta {
+	if (value && typeof value === "object" && !Array.isArray(value)) {
+		return value as CronItemMeta;
+	}
+	return {};
+}
+
+function asEmailSnapshot(value: unknown): EmailSnapshot | null {
+	if (value && typeof value === "object" && !Array.isArray(value)) {
+		return value as EmailSnapshot;
+	}
+	return null;
+}
+
+function asString(value: unknown): string | null {
+	return typeof value === "string" && value.trim() ? value : null;
+}
+
+function stringifyPayload(value: unknown): string {
+	try {
+		return JSON.stringify(value, null, 2);
+	} catch {
+		return String(value);
+	}
+}
+
+function metadataForDisplay(meta: CronItemMeta): unknown {
+	const clone: CronItemMeta = { ...meta };
+	for (const key of ["email", "attemptedEmail"] as const) {
+		const snap = asEmailSnapshot(clone[key]);
+		if (!snap) continue;
+		const html = asString(snap.html);
+		clone[key] = {
+			...snap,
+			html: html ? `[html ${html.length} characters]` : snap.html,
+		};
+	}
+	return clone;
+}
+
+function JsonBlock({ value, className }: { value: unknown; className?: string }) {
+	if (value == null) return null;
+	return (
+		<pre
+			className={cn(
+				"max-h-56 overflow-auto rounded-md bg-muted/50 p-2 font-mono text-[11px] leading-relaxed whitespace-pre-wrap break-words",
+				className,
+			)}
+		>
+			{stringifyPayload(value)}
+		</pre>
+	);
+}
+
+function EmailPreview({
+	snapshot,
+	fallbackLabel,
+}: {
+	snapshot: EmailSnapshot | null;
+	fallbackLabel: string;
+}) {
+	const html = asString(snapshot?.html);
+	if (!html) {
+		return (
+			<p className="text-xs text-muted-foreground">{fallbackLabel}</p>
+		);
+	}
+
+	const fromName = asString(snapshot?.fromName);
+	const fromEmail = asString(snapshot?.fromEmail);
+	const from =
+		fromName && fromEmail
+			? `${fromName} <${fromEmail}>`
+			: fromEmail ?? fromName;
+
+	return (
+		<div className="space-y-2">
+			<div className="grid gap-1 text-[11px] text-muted-foreground">
+				{from ? <p>From: {from}</p> : null}
+				{asString(snapshot?.to) ? <p>To: {asString(snapshot?.to)}</p> : null}
+				{asString(snapshot?.subject) ? (
+					<p>Subject: {asString(snapshot?.subject)}</p>
+				) : null}
+				{asString(snapshot?.sesMessageId) ? (
+					<p className="break-all">SES: {asString(snapshot?.sesMessageId)}</p>
+				) : null}
+			</div>
+			<div className="overflow-hidden rounded-md border bg-white">
+				<iframe
+					title="Sent renewal reminder email"
+					className="h-[360px] w-full bg-white"
+					sandbox=""
+					srcDoc={html}
+				/>
+			</div>
+		</div>
+	);
+}
+
+function CronRunItemCard({
+	item,
+}: {
+	item: {
+		id: string;
+		outcome: string;
+		subscriptionName: string | null;
+		productName: string | null;
+		subscriptionId: string | null;
+		emailTo: string | null;
+		subject: string | null;
+		skipReason: string | null;
+		error: string | null;
+		expiryDate: Date | string | null;
+		createdAt: Date | string;
+		metadata: unknown;
+	};
+}) {
+	const meta = asRecord(item.metadata);
+	const sentEmail = asEmailSnapshot(meta.email);
+	const attemptedEmail = asEmailSnapshot(meta.attemptedEmail);
+	const invoice = asRecord(meta.invoice);
+	const invoiceNumber = asString(invoice.invoiceNumber);
+	const invoiceSkip = asString(invoice.reasonMessage);
+	const lineName = asString(invoice.lineName);
+	const lineDescription = asString(invoice.lineDescription);
+	const skipDetail = asString(meta.detail);
+	const sesMessageId =
+		asString(meta.sesMessageId) ?? asString(sentEmail?.sesMessageId);
+
+	return (
+		<div className="rounded-md border px-3 py-2 space-y-2">
+			<div className="flex items-center justify-between gap-2">
+				<p className="text-sm font-medium truncate">
+					{item.subscriptionName ??
+						item.productName ??
+						item.subscriptionId ??
+						"Subscription"}
+				</p>
+				<Badge
+					variant="outline"
+					className={cn(
+						"capitalize text-[10px] shrink-0",
+						outcomeBadgeClass(item.outcome),
+					)}
+				>
+					{item.outcome}
+				</Badge>
+			</div>
+
+			<div className="grid gap-0.5 text-xs text-muted-foreground">
+				{item.productName ? <p>Service: {item.productName}</p> : null}
+				{item.subscriptionId ? (
+					<p className="break-all">Subscription ID: {item.subscriptionId}</p>
+				) : null}
+				{item.expiryDate ? <p>Due: {formatWhen(item.expiryDate)}</p> : null}
+				{item.emailTo ? <p>To: {item.emailTo}</p> : null}
+				{item.subject ? <p>Subject: {item.subject}</p> : null}
+				{sesMessageId ? (
+					<p className="break-all">SES message ID: {sesMessageId}</p>
+				) : null}
+				{item.createdAt ? <p>Logged: {formatWhen(item.createdAt)}</p> : null}
+				{invoiceNumber ? (
+					<p>
+						Invoice: {invoiceNumber}
+						{invoice.created === true
+							? " (created)"
+							: invoice.created === false
+								? " (existing)"
+								: ""}
+						{meta.invoiceAttached === true ? " · attached to email" : ""}
+					</p>
+				) : invoiceSkip ? (
+					<p>Invoice: {invoiceSkip}</p>
+				) : null}
+				{lineName ? <p>{lineName}</p> : null}
+				{lineDescription ? <p>{lineDescription}</p> : null}
+			</div>
+
+			{item.outcome === "skipped" ? (
+				<div className="space-y-1">
+					<p className="text-xs">
+						Skip:{" "}
+						{(item.skipReason ?? asString(meta.skipReason) ?? "unknown").replaceAll(
+							"_",
+							" ",
+						)}
+					</p>
+					{skipDetail ? (
+						<p className="text-xs text-muted-foreground whitespace-pre-wrap">
+							{skipDetail}
+						</p>
+					) : null}
+					{Object.keys(meta).length > 0 ? (
+						<div className="space-y-1">
+							<p className="text-[11px] font-medium text-muted-foreground">
+								Full result
+							</p>
+							<JsonBlock value={metadataForDisplay(meta)} />
+						</div>
+					) : null}
+				</div>
+			) : null}
+
+			{item.outcome === "failed" ? (
+				<div className="space-y-1">
+					<p className="text-xs text-destructive whitespace-pre-wrap">
+						{item.error ?? skipDetail ?? "Send failed"}
+					</p>
+					{Object.keys(meta).length > 0 || item.error ? (
+						<div className="space-y-1">
+							<p className="text-[11px] font-medium text-muted-foreground">
+								Full result
+							</p>
+							<JsonBlock
+								value={
+									Object.keys(meta).length > 0
+										? metadataForDisplay(meta)
+										: { error: item.error }
+								}
+								className="bg-destructive/5"
+							/>
+						</div>
+					) : null}
+					{attemptedEmail?.html ? (
+						<Collapsible className="group">
+							<CollapsibleTrigger asChild>
+								<Button
+									type="button"
+									variant="ghost"
+									size="sm"
+									className="h-7 px-2 text-xs"
+								>
+									<ChevronDown className="h-3.5 w-3.5 transition-transform group-data-[state=open]:rotate-180" />
+									Attempted email
+								</Button>
+							</CollapsibleTrigger>
+							<CollapsibleContent className="pt-2">
+								<EmailPreview
+									snapshot={attemptedEmail}
+									fallbackLabel="HTML was not captured for this failure."
+								/>
+							</CollapsibleContent>
+						</Collapsible>
+					) : null}
+				</div>
+			) : null}
+
+			{item.outcome === "sent" ? (
+				<div className="space-y-1">
+					{asString(meta.sentAt) ? (
+						<p className="text-xs text-muted-foreground">
+							Sent at: {formatWhen(asString(meta.sentAt))}
+						</p>
+					) : null}
+					<Collapsible className="group">
+						<CollapsibleTrigger asChild>
+							<Button
+								type="button"
+								variant="ghost"
+								size="sm"
+								className="h-7 px-2 text-xs"
+							>
+								<ChevronDown className="h-3.5 w-3.5 transition-transform group-data-[state=open]:rotate-180" />
+								View sent email
+							</Button>
+						</CollapsibleTrigger>
+						<CollapsibleContent className="pt-2 space-y-2">
+							<EmailPreview
+								snapshot={sentEmail}
+								fallbackLabel="Email HTML was not stored for this run. New runs keep the exact message."
+							/>
+							{meta.template != null ? (
+								<div className="space-y-1">
+									<p className="text-[11px] font-medium text-muted-foreground">
+										Template inputs
+									</p>
+									<JsonBlock value={meta.template} />
+								</div>
+							) : null}
+						</CollapsibleContent>
+					</Collapsible>
+				</div>
+			) : null}
+		</div>
+	);
 }
 
 export function RenewalReminderCronMonitor() {
@@ -112,7 +432,7 @@ export function RenewalReminderCronMonitor() {
 					</Badge>
 				</Button>
 			</SheetTrigger>
-			<SheetContent className="w-full sm:max-w-2xl flex flex-col p-0 gap-0">
+			<SheetContent className="w-full sm:max-w-3xl flex flex-col p-0 gap-0">
 				<SheetHeader className="px-6 pt-6 pb-4 space-y-1">
 					<div className="flex items-start justify-between gap-3 pr-8">
 						<div>
@@ -312,43 +632,7 @@ export function RenewalReminderCronMonitor() {
 												</p>
 											) : (
 												runDetailQuery.data.items.map((item) => (
-													<div
-														key={item.id}
-														className="rounded-md border px-3 py-2 space-y-1"
-													>
-														<div className="flex items-center justify-between gap-2">
-															<p className="text-sm font-medium truncate">
-																{item.subscriptionName ??
-																	item.productName ??
-																	item.subscriptionId ??
-																	"Subscription"}
-															</p>
-															<Badge
-																variant="outline"
-																className={cn(
-																	"capitalize text-[10px] shrink-0",
-																	outcomeBadgeClass(item.outcome),
-																)}
-															>
-																{item.outcome}
-															</Badge>
-														</div>
-														{item.emailTo ? (
-															<p className="text-xs text-muted-foreground truncate">
-																To: {item.emailTo}
-															</p>
-														) : null}
-														{item.skipReason ? (
-															<p className="text-xs text-muted-foreground">
-																Skip: {item.skipReason.replaceAll("_", " ")}
-															</p>
-														) : null}
-														{item.error ? (
-															<p className="text-xs text-destructive">
-																{item.error}
-															</p>
-														) : null}
-													</div>
+													<CronRunItemCard key={item.id} item={item} />
 												))
 											)}
 										</div>

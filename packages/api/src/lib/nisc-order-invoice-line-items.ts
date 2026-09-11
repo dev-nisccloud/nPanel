@@ -178,7 +178,7 @@ function resolveIdentifier(item: NiscOrderItemForInvoice): string {
 	return "";
 }
 
-function formatSubscriptionPeriod(
+export function formatInvoiceSubscriptionPeriod(
 	subscriptionStart: Date,
 	billingCycle: string | null | undefined,
 ): string {
@@ -189,6 +189,28 @@ function formatSubscriptionPeriod(
 		return `Subscription: ${startStr} – ${formatDateForInvoice(expiry)} (${cycle})`;
 	}
 	return `Subscription: ${startStr} – (${cycle})`;
+}
+
+function formatSubscriptionPeriod(
+	subscriptionStart: Date,
+	billingCycle: string | null | undefined,
+): string {
+	return formatInvoiceSubscriptionPeriod(subscriptionStart, billingCycle);
+}
+
+/** Renewal cron line copy: `{product name} - {subscription name}` plus period dates. */
+export function buildRenewalReminderInvoiceLineCopy(input: {
+	productName: string;
+	subscriptionName?: string | null;
+	periodStart: Date;
+	billingCycle: string | null | undefined;
+}): NiscOrderInvoiceLineItemCopy {
+	const product = input.productName.trim() || "Service";
+	const subscriptionName = input.subscriptionName?.trim();
+	return {
+		name: subscriptionName ? `${product} - ${subscriptionName}` : product,
+		description: formatInvoiceSubscriptionPeriod(input.periodStart, input.billingCycle),
+	};
 }
 
 /**

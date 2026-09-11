@@ -4,20 +4,10 @@
  * Pre-cert: legacy host + /select* paths + NO apigee_app_id
  * Post-cert: DEV host + /initialize paths + apigee_app_id
  *
- *   bun run src/scripts/kra-etims-probe-unique-result.ts
+ *   bun run etims:certification:probe
  */
-import { config } from "dotenv";
-import { existsSync } from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fetchCmcKeyFromCertDb } from "./load-etims-cert-env";
 import { request } from "undici";
-import { db } from "@npanel/db";
-import { eTimsConfiguration } from "@npanel/db/schema/etims";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-config({ path: path.join(root, ".env") });
-const certEnv = path.join(root, ".env.etims-certification");
-if (existsSync(certEnv)) config({ path: certEnv, override: true });
 
 const PRE_PATHS = {
     init: "/selectInitOsdcInfo",
@@ -120,14 +110,13 @@ type Variant = {
 };
 
 async function main() {
-    const [row] = await db.select().from(eTimsConfiguration).limit(1);
-    if (!row?.cmcKey) throw new Error("DB needs cmcKey");
-
-    const tin = process.env.ETIMS_CERT_TIN?.trim() || row.kraPin;
-    const bhfId = process.env.ETIMS_CERT_BHF_ID?.trim() || row.branchId || "01";
-    const serial =
-        process.env.ETIMS_CERT_DEVICE_SERIAL?.trim() || row.deviceSerialNumber;
-    const cmcKey = row.cmcKey;
+    const tin = process.env.ETIMS_CERT_TIN?.trim() ?? "";
+    const bhfId = process.env.ETIMS_CERT_BHF_ID?.trim() || "01";
+    const serial = process.env.ETIMS_CERT_DEVICE_SERIAL?.trim() ?? "";
+    if (!tin || !serial) {
+        throw new Error("Missing ETIMS_CERT_TIN / ETIMS_CERT_DEVICE_SERIAL in .env.etims-certification");
+    }
+    const cmcKey = await fetchCmcKeyFromCertDb(serial);
     const apigee = (process.env.ETIMS_APIGEE_APP_ID ?? "").trim();
     const consumerKey = (process.env.ETIMS_CONSUMER_KEY ?? "").trim();
     const consumerSecret = (process.env.ETIMS_CONSUMER_SECRET ?? "").trim();
