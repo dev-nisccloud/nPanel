@@ -1,12 +1,13 @@
 import * as crypto from "node:crypto";
 import { z } from "zod";
-import { and, count, desc, eq, inArray } from "@npanel/db";
+import { and, count, desc, eq, inArray, isNotNull } from "@npanel/db";
 import { protectedProcedure, publicProcedure, router } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { db } from "@npanel/db";
 import { user } from "@npanel/db/schema/auth";
 import { userActivityLog } from "@npanel/db/schema/auth-extras";
 import { hostingSubscription } from "@npanel/db/schema/hosting";
+import { niscClientSubscription } from "@npanel/db/schema/products";
 import { team, teamInvite, teamMember } from "@npanel/db/schema/teams";
 import { renderTeamInviteEmail } from "../lib/email-templates";
 import { getSesClient, sendSesRawEmail } from "../lib/ses-client";
@@ -746,6 +747,7 @@ export const teamsRouter = router({
           createdAt: z.date(),
           updatedAt: z.date(),
           memberCount: z.number(),
+          subscriptionCount: z.number(),
         }),
       ),
     )
@@ -774,6 +776,21 @@ export const teamsRouter = router({
         .groupBy(teamMember.teamId);
       const countByTeam = new Map(countRows.map((r) => [r.teamId, Number(r.n)]));
 
+      const subscriptionCountRows = await db
+        .select({
+          teamId: niscClientSubscription.teamId,
+          n: count(niscClientSubscription.id),
+        })
+        .from(niscClientSubscription)
+        .where(isNotNull(niscClientSubscription.teamId))
+        .groupBy(niscClientSubscription.teamId);
+      const subscriptionCountByTeam = new Map<string, number>();
+      for (const row of subscriptionCountRows) {
+        if (row.teamId) {
+          subscriptionCountByTeam.set(row.teamId, Number(row.n));
+        }
+      }
+
       return teamsList.map((t) => ({
         id: t.id,
         name: t.name,
@@ -785,6 +802,7 @@ export const teamsRouter = router({
         createdAt: t.createdAt,
         updatedAt: t.updatedAt,
         memberCount: countByTeam.get(t.id) ?? 0,
+        subscriptionCount: subscriptionCountByTeam.get(t.id) ?? 0,
       }));
     }),
 
@@ -987,6 +1005,8 @@ export const teamsRouter = router({
         createdById: z.string(),
         createdAt: z.date(),
         updatedAt: z.date(),
+        createdByName: z.string().nullable(),
+        createdByEmail: z.string().nullable(),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -1006,7 +1026,24 @@ export const teamsRouter = router({
         });
       }
 
-      const [teamRow] = await db.select().from(team).where(eq(team.id, input.teamId)).limit(1);
+      const [teamRow] = await db
+        .select({
+          id: team.id,
+          name: team.name,
+          slug: team.slug,
+          baseCurrency: team.baseCurrency,
+          logoUrl: team.logoUrl,
+          isActive: team.isActive,
+          createdById: team.createdById,
+          createdAt: team.createdAt,
+          updatedAt: team.updatedAt,
+          createdByName: user.name,
+          createdByEmail: user.email,
+        })
+        .from(team)
+        .leftJoin(user, eq(team.createdById, user.id))
+        .where(eq(team.id, input.teamId))
+        .limit(1);
 
       if (!teamRow) {
         throw new TRPCError({
@@ -1015,7 +1052,11 @@ export const teamsRouter = router({
         });
       }
 
-      return teamRow;
+      return {
+        ...teamRow,
+        createdByName: teamRow.createdByName ?? null,
+        createdByEmail: teamRow.createdByEmail ?? null,
+      };
     }),
 
   getMembers: protectedProcedure
@@ -1028,6 +1069,8 @@ export const teamsRouter = router({
           role: z.enum(["OWNER", "ADMIN", "MEMBER", "VIEWER"]),
           createdAt: z.date(),
           updatedAt: z.date(),
+          userName: z.string().nullable(),
+          userEmail: z.string().nullable(),
         }),
       ),
     )
@@ -1048,11 +1091,18 @@ export const teamsRouter = router({
         });
       }
 
-      const members = await db
-        .select()
-        .from(teamMember)
-        .where(eq(teamMember.teamId, input.teamId))
-        .orderBy(desc(teamMember.createdAt));
+      const members = await db.query.teamMember.findMany({
+        where: eq(teamMember.teamId, input.teamId),
+        orderBy: [desc(teamMember.createdAt)],
+        with: {
+          user: {
+            columns: {
+              name: true,
+              email: true,
+            },
+          },
+        },
+      });
 
       return members.map((m) => ({
         id: m.id,
@@ -1060,6 +1110,8 @@ export const teamsRouter = router({
         role: m.role as "OWNER" | "ADMIN" | "MEMBER" | "VIEWER",
         createdAt: m.createdAt,
         updatedAt: m.updatedAt,
+        userName: m.user?.name ?? null,
+        userEmail: m.user?.email ?? null,
       }));
     }),
 
@@ -1073,6 +1125,8 @@ export const teamsRouter = router({
           role: z.enum(["OWNER", "ADMIN", "MEMBER", "VIEWER"]),
           status: z.enum(["PENDING", "ACCEPTED", "DECLINED", "EXPIRED", "CANCELLED"]),
           invitedById: z.string(),
+          invitedByName: z.string().nullable(),
+          invitedByEmail: z.string().nullable(),
           expiresAt: z.date(),
           acceptedAt: z.date().nullable(),
           createdAt: z.date(),
@@ -1098,8 +1152,21 @@ export const teamsRouter = router({
       }
 
       const invites = await db
-        .select()
+        .select({
+          id: teamInvite.id,
+          email: teamInvite.email,
+          role: teamInvite.role,
+          status: teamInvite.status,
+          invitedById: teamInvite.invitedById,
+          expiresAt: teamInvite.expiresAt,
+          acceptedAt: teamInvite.acceptedAt,
+          createdAt: teamInvite.createdAt,
+          updatedAt: teamInvite.updatedAt,
+          invitedByName: user.name,
+          invitedByEmail: user.email,
+        })
         .from(teamInvite)
+        .leftJoin(user, eq(teamInvite.invitedById, user.id))
         .where(eq(teamInvite.teamId, input.teamId))
         .orderBy(desc(teamInvite.createdAt));
 
@@ -1109,6 +1176,8 @@ export const teamsRouter = router({
         role: inv.role as "OWNER" | "ADMIN" | "MEMBER" | "VIEWER",
         status: inv.status as "PENDING" | "ACCEPTED" | "DECLINED" | "EXPIRED" | "CANCELLED",
         invitedById: inv.invitedById,
+        invitedByName: inv.invitedByName ?? null,
+        invitedByEmail: inv.invitedByEmail ?? null,
         expiresAt: inv.expiresAt,
         acceptedAt: inv.acceptedAt,
         createdAt: inv.createdAt,

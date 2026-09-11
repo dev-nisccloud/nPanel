@@ -245,6 +245,9 @@ function CronRunItemCard({
 				) : null}
 				{item.expiryDate ? <p>Due: {formatWhen(item.expiryDate)}</p> : null}
 				{item.emailTo ? <p>To: {item.emailTo}</p> : null}
+				{asString(meta.recipientSource) === "team_owners" ? (
+					<p>Recipients: team owners (first owner on the invoice)</p>
+				) : null}
 				{item.subject ? <p>Subject: {item.subject}</p> : null}
 				{sesMessageId ? (
 					<p className="break-all">SES message ID: {sesMessageId}</p>

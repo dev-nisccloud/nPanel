@@ -30,7 +30,7 @@ export function BillingSettingsTab({ teamId }: BillingSettingsTabProps) {
 
 	const { data: billingSettings, isLoading } = trpc.teamBilling.getByTeam.useQuery(
 		{ teamId },
-		{ enabled: !!teamId }
+		{ enabled: Boolean(teamId) }
 	);
 
 	const deleteMutation = trpc.teamBilling.delete.useMutation({
@@ -108,10 +108,10 @@ export function BillingSettingsTab({ teamId }: BillingSettingsTabProps) {
 
 	return (
 		<>
-			<div className="space-y-4">
-				<div className="flex items-center justify-between">
+			<div className="space-y-4 min-w-0">
+				<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 					<h3 className="text-lg font-semibold">Billing Information</h3>
-					<div className="flex items-center gap-2">
+					<div className="flex flex-wrap items-center gap-2">
 						<Button size="sm" variant="outline" onClick={() => setIsEditMode(true)}>
 							<Edit className="mr-2 h-4 w-4" />
 							Edit
@@ -129,15 +129,15 @@ export function BillingSettingsTab({ teamId }: BillingSettingsTabProps) {
 				</div>
 
 				<div className="border rounded-lg p-4 space-y-4">
-					<div className="grid grid-cols-2 gap-4">
+					<div className="grid grid-cols-1 gap-4 min-w-0">
 						<div className="space-y-2">
 							<div className="text-sm text-muted-foreground">Legal Name</div>
-							<p className="text-sm font-medium">{billingSettings.legalName}</p>
+							<p className="text-sm font-medium break-words">{billingSettings.legalName}</p>
 						</div>
 
 						<div className="space-y-2">
 							<div className="text-sm text-muted-foreground">Billing Email</div>
-							<p className="text-sm font-medium">{billingSettings.billingEmail}</p>
+							<p className="text-sm font-medium break-all">{billingSettings.billingEmail}</p>
 						</div>
 
 						{billingSettings.billingPhone && (
@@ -149,13 +149,13 @@ export function BillingSettingsTab({ teamId }: BillingSettingsTabProps) {
 
 						<div className="space-y-2">
 							<div className="text-sm text-muted-foreground">Address Line 1</div>
-							<p className="text-sm font-medium">{billingSettings.addressLine1}</p>
+							<p className="text-sm font-medium break-words">{billingSettings.addressLine1}</p>
 						</div>
 
 						{billingSettings.addressLine2 && (
 							<div className="space-y-2">
 								<div className="text-sm text-muted-foreground">Address Line 2</div>
-								<p className="text-sm font-medium">{billingSettings.addressLine2}</p>
+								<p className="text-sm font-medium break-words">{billingSettings.addressLine2}</p>
 							</div>
 						)}
 
@@ -191,9 +191,9 @@ export function BillingSettingsTab({ teamId }: BillingSettingsTabProps) {
 						)}
 
 						{billingSettings.additionalNotes && (
-							<div className="space-y-2 col-span-2">
+							<div className="space-y-2 min-w-0">
 								<div className="text-sm text-muted-foreground">Additional Notes</div>
-								<p className="text-sm font-medium">{billingSettings.additionalNotes}</p>
+								<p className="text-sm font-medium break-words">{billingSettings.additionalNotes}</p>
 							</div>
 						)}
 					</div>

@@ -14,6 +14,7 @@ import { sendEmail } from "@npanel/api/lib/email";
 import { renderPaymentReceiptEmail } from "@npanel/api/lib/email-templates";
 import { randomUUID } from "node:crypto";
 import { claimWebhookEvent } from "@npanel/api/lib/webhook-idempotency";
+import { applySuccessfulPaymentToInvoiceSafe } from "@npanel/api/lib/invoice-apply-gateway-payment";
 
 /**
  * M-Pesa Webhook Handler
@@ -92,6 +93,7 @@ export async function handleMpesaWebhook(c: Context) {
           })
           .where(eq(paymentTransaction.id, transaction.id));
       }
+      await applySuccessfulPaymentToInvoiceSafe(transaction.id);
       return c.json({
         ResultCode: 0,
         ResultDesc: "Already processed",
@@ -143,6 +145,8 @@ export async function handleMpesaWebhook(c: Context) {
           userAgent: req.headers.get("user-agent") || null,
           createdAt: now,
         });
+
+        await applySuccessfulPaymentToInvoiceSafe(transaction.id);
 
         // Async email sending
         try {

@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { captureEvent } from "@/lib/posthog";
+import { formatInvoiceDate } from "@/lib/invoice-date";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -375,7 +376,7 @@ function InvoicesTab({ clientId }: { clientId: string }) {
             {inv.status}
           </Badge>,
           inv.amount ? `${inv.currency} ${inv.amount}` : "-",
-          <span key="due" className="text-xs text-muted-foreground">{fmt(inv.dueDate)}</span>,
+          <span key="due" className="text-xs text-muted-foreground">{formatInvoiceDate(inv.dueDate)}</span>,
         ])}
       />
     </SettingsSection>

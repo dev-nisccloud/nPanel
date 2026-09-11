@@ -113,6 +113,7 @@ async function findExistingRenewalInvoice(
 ): Promise<{
 	invoiceId: string;
 	invoiceNumber: string;
+	lineId: string | null;
 	lineName: string | null;
 	lineDescription: string | null;
 	billingPeriodEnd: string | null;
@@ -138,6 +139,7 @@ async function findExistingRenewalInvoice(
 
 	const [line] = await db
 		.select({
+			id: invoiceLineItem.id,
 			name: invoiceLineItem.name,
 			description: invoiceLineItem.description,
 		})
@@ -156,6 +158,7 @@ async function findExistingRenewalInvoice(
 	return {
 		invoiceId: row.id,
 		invoiceNumber: row.invoiceNumber,
+		lineId: line?.id ?? null,
 		lineName: line?.name ?? null,
 		lineDescription: line?.description ?? null,
 		billingPeriodEnd,
@@ -191,6 +194,19 @@ export async function ensureSubscriptionRenewalInvoice(
 			periodStart: input.periodStart,
 			billingCycle: cycle,
 		});
+		if (
+			existing.lineId &&
+			(existing.lineName !== copy.name || existing.lineDescription !== copy.description)
+		) {
+			await db
+				.update(invoiceLineItem)
+				.set({
+					name: copy.name,
+					description: copy.description,
+					updatedAt: new Date(),
+				})
+				.where(eq(invoiceLineItem.id, existing.lineId));
+		}
 		const periodEnd = cycle
 			? (addBillingCycleToDate(input.periodStart, cycle)
 					?.toISOString()
@@ -204,8 +220,8 @@ export async function ensureSubscriptionRenewalInvoice(
 			invoiceNumber: existing.invoiceNumber,
 			billingPeriodStart,
 			billingPeriodEnd: existing.billingPeriodEnd ?? periodEnd,
-			lineName: existing.lineName ?? copy.name,
-			lineDescription: existing.lineDescription ?? copy.description,
+			lineName: copy.name,
+			lineDescription: copy.description,
 		};
 	}
 
@@ -281,7 +297,8 @@ export async function ensureSubscriptionRenewalInvoice(
 	});
 	const dueDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-	const billing = billingResolution.resolved.billing;
+	const { billing, source: billingSource, recipientEmails } =
+		billingResolution.resolved;
 	const customerDetails = {
 		name: billing.legalName,
 		email: billing.billingEmail,
@@ -319,6 +336,13 @@ export async function ensureSubscriptionRenewalInvoice(
 		billingPeriodEnd,
 		billingCycle,
 		productId: input.productId,
+		billingSource,
+		recipientEmails:
+			recipientEmails && recipientEmails.length > 0
+				? recipientEmails
+				: billing.billingEmail?.trim()
+					? [billing.billingEmail.trim()]
+					: [],
 	};
 
 	await db.insert(invoice).values({

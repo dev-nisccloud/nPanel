@@ -60,7 +60,7 @@ export const InvoiceDetailsPreview: React.FC<
           key={index}
         >
           <div className="min-w-0">
-            <p className="text-xs font-medium text-gray-600 break-words whitespace-normal">
+            <p className="text-xs font-medium text-gray-600 break-words whitespace-pre-wrap">
               {itemDescription}
             </p>
             {billingCycle && (

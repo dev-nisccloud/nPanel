@@ -39,7 +39,7 @@ const mockDefaultSettings: Partial<InvoiceFormValues> = {
     includeQr: false,
     taxRate: 0,
     vatRate: 0,
-    dateFormat: "MM/dd/yyyy",
+    dateFormat: "dd-MM-yyyy",
     deliveryType: "create",
     locale: "en-US",
     timezone: "UTC",

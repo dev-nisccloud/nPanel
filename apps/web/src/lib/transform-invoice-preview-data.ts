@@ -1,5 +1,6 @@
 import type { InvoiceDetail } from "@/routes/agency.invoices/create/api/schemas";
 import { DEFAULT_INVOICE_LOGO } from "@/routes/agency.invoices/create/constants";
+import { formatInvoiceLineItemForPdf, normalizeStoredInvoicePeriodDescription } from "@npanel/api/lib/nisc-order-invoice-line-items";
 import { resolveInvoiceEtimsVerificationUrl } from "@npanel/api/agency-invoice-pdf/build-invoice-pdf-details";
 import type {
 	YourDetails,
@@ -44,12 +45,31 @@ export function transformInvoiceToPreviewData(invoice: InvoiceDetail): {
 		companyTaxId: customerDetails?.taxId as string | undefined,
 	};
 
-	const items: Item[] = invoice.lineItems.map((lineItem) => ({
-		id: lineItem.id,
-		itemDescription: lineItem.name?.trim() || lineItem.description?.trim() || "",
-		amount: lineItem.price ? parseFloat(lineItem.price) : undefined,
-		qty: lineItem.quantity || undefined,
-	}));
+	const invoiceMeta =
+		invoice.metadata && typeof invoice.metadata === "object"
+			? (invoice.metadata as Record<string, unknown>)
+			: {};
+	const invoiceSource = typeof invoiceMeta.source === "string" ? invoiceMeta.source : null;
+
+	const items: Item[] = invoice.lineItems.map((lineItem) => {
+		const lineMeta =
+			lineItem.metadata && typeof lineItem.metadata === "object"
+				? (lineItem.metadata as Record<string, unknown>)
+				: {};
+		const description = normalizeStoredInvoicePeriodDescription(lineItem.description, {
+			invoiceSource,
+			lineSource: typeof lineMeta.source === "string" ? lineMeta.source : null,
+		});
+		return {
+			id: lineItem.id,
+			itemDescription: formatInvoiceLineItemForPdf(
+				lineItem.name?.trim() || "Service",
+				description,
+			),
+			amount: lineItem.price ? parseFloat(lineItem.price) : undefined,
+			qty: lineItem.quantity || undefined,
+		};
+	});
 
 	const invoiceDetails: InvoiceItemDetails = {
 		note: invoice.note || undefined,

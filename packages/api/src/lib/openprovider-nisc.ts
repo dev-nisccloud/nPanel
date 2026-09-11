@@ -15,11 +15,15 @@ import {
 } from "./openprovider-client";
 import { agreedPriceIncVatFromExVat } from "./convert-price";
 import { niscLog } from "./nisc-order-logger";
+import { splitDomainNameExtension } from "./domain-contact-edit";
 import {
 	resolveDomainBillingCycle,
 	resolveDomainRegistrationPeriodYears,
 } from "./nisc-subscription-dates";
-import type { OpenProviderCustomerRequest } from "../types/openprovider";
+import type {
+	OpenProviderCustomerRequest,
+	OpenProviderDomainRenewalRequest,
+} from "../types/openprovider";
 
 /**
  * Strip IP addresses from nameservers that are not in-bailiwick for the domain being registered.
@@ -1164,4 +1168,77 @@ async function createDomainSubscription(
 
 	if (!sub) throw new Error("Failed to create OpenProvider domain subscription");
 	return sub;
+}
+
+/**
+ * Renew an existing domain at OpenProvider (POST /domains/{id}/renew).
+ * @see https://docs.openprovider.com/doc — period is years unless the TLD specifies otherwise.
+ */
+export async function renewOpenProviderDomain(params: {
+	openProviderId: number | null;
+	domainName: string | null;
+	periodYears: number;
+	orderId: string;
+	orderItemId: string;
+}): Promise<{
+	openProviderId: number;
+	expirationDate: string | null;
+	renewalDate: string | null;
+	rawResponse: unknown;
+}> {
+	const client = createOpenProviderClient();
+	const authResponse = await client.authenticate({
+		username: process.env.OPENPROVIDER_USERNAME!,
+		password: process.env.OPENPROVIDER_PASSWORD!,
+		ip: process.env.OPENPROVIDER_IP,
+	});
+	logOpenProviderResponse({
+		orderId: params.orderId,
+		orderItemId: params.orderItemId,
+		call: "auth",
+		rawResponse: authResponse,
+	});
+
+	let domainId = params.openProviderId;
+	if (!domainId && params.domainName?.trim()) {
+		const { name, extension } = splitDomainNameExtension(params.domainName);
+		const found = await findDomainInAccount(client, name, extension);
+		logOpenProviderResponse({
+			orderId: params.orderId,
+			orderItemId: params.orderItemId,
+			call: "searchDomains_renew",
+			rawResponse: found,
+		});
+		if (found) domainId = found.id;
+	}
+	if (!domainId) {
+		throw new Error(
+			"OpenProvider domain id is missing; cannot renew without a stored openProviderId or a matching domain in the account.",
+		);
+	}
+
+	const period = Math.min(10, Math.max(1, Math.floor(params.periodYears) || 1));
+	const renewalRequest: OpenProviderDomainRenewalRequest = { period };
+	const response = await client.renewDomain(domainId, renewalRequest);
+	logOpenProviderResponse({
+		orderId: params.orderId,
+		orderItemId: params.orderItemId,
+		call: "renewDomain",
+		rawResponse: response,
+	});
+	if (response.code !== 0) {
+		throw new OpenProviderApiError(
+			response.code,
+			response.desc || "OpenProvider domain renew failed",
+			undefined,
+			response,
+		);
+	}
+
+	return {
+		openProviderId: domainId,
+		expirationDate: response.data?.expiration_date ?? null,
+		renewalDate: response.data?.renewal_date ?? null,
+		rawResponse: response,
+	};
 }

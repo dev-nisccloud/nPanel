@@ -1,9 +1,10 @@
 /**
  * Resolve billing details for Nisc order invoices.
- * Orders with a team: company billing settings first, then team owners (role OWNER),
+ * Orders with a team: company billing settings first, then the earliest team owner
+ * (role OWNER, else team creator) for invoice customer details, emailed to all owners,
  * then order user profile fallback. Orders without a team: user profile only.
  */
-import { and, db, eq } from "@npanel/db";
+import { and, asc, db, eq } from "@npanel/db";
 import { user as userTable } from "@npanel/db/schema/auth";
 import { userProfile } from "@npanel/db/schema/auth-extras";
 import { team, teamBillingSettings, teamMember } from "@npanel/db/schema/teams";
@@ -92,24 +93,118 @@ function profileToBillingSettings(
 	};
 }
 
-async function getTeamOwnerUsers(teamId: string) {
+export type TeamOwnerUser = {
+	userId: string;
+	email: string | null;
+	name: string | null;
+	createdAt: Date;
+};
+
+/** Deduped emails, preserving first-seen (earliest owner) order. */
+export function uniqueOwnerEmails(emails: Array<string | null | undefined>): string[] {
+	const seen = new Set<string>();
+	const out: string[] = [];
+	for (const raw of emails) {
+		const email = raw?.trim();
+		if (!email) continue;
+		const key = email.toLowerCase();
+		if (seen.has(key)) continue;
+		seen.add(key);
+		out.push(email);
+	}
+	return out;
+}
+
+/**
+ * Team owners, earliest membership first. If nobody has role OWNER, falls back
+ * to the team creator (`createdById`) so the original owner is still used.
+ */
+export async function listTeamOwnerUsers(teamId: string): Promise<TeamOwnerUser[]> {
 	const rows = await db
 		.select({
 			userId: teamMember.userId,
 			email: userTable.email,
 			name: userTable.name,
+			createdAt: teamMember.createdAt,
 		})
 		.from(teamMember)
 		.innerJoin(userTable, eq(teamMember.userId, userTable.id))
-		.where(and(eq(teamMember.teamId, teamId), eq(teamMember.role, "OWNER")));
-	return rows.filter((r) => r.email?.trim());
+		.where(and(eq(teamMember.teamId, teamId), eq(teamMember.role, "OWNER")))
+		.orderBy(asc(teamMember.createdAt), asc(teamMember.id));
+
+	if (rows.length > 0) return rows;
+
+	const teamRow = await db.query.team.findFirst({
+		where: eq(team.id, teamId),
+		columns: { createdById: true },
+	});
+	if (!teamRow?.createdById) return [];
+
+	const creator = await db.query.user.findFirst({
+		where: eq(userTable.id, teamRow.createdById),
+		columns: { id: true, email: true, name: true, createdAt: true },
+	});
+	if (!creator) return [];
+	return [
+		{
+			userId: creator.id,
+			email: creator.email,
+			name: creator.name,
+			createdAt: creator.createdAt,
+		},
+	];
+}
+
+async function billingFromFirstOwner(
+	owner: TeamOwnerUser,
+	teamId: string,
+): Promise<TeamBillingSettings> {
+	const userRow = await db.query.user.findFirst({
+		where: eq(userTable.id, owner.userId),
+		columns: { name: true, email: true },
+	});
+	const profile = await db.query.userProfile.findFirst({
+		where: eq(userProfile.userId, owner.userId),
+	});
+	const fromProfile = profileToBillingSettings(
+		{
+			name: userRow?.name || owner.name || "",
+			email: userRow?.email?.trim() || owner.email?.trim() || "",
+		},
+		profile ?? null,
+	);
+	if (isTeamBillingComplete(fromProfile)) return fromProfile;
+
+	const teamRow = await db.query.team.findFirst({
+		where: eq(team.id, teamId),
+		columns: { name: true },
+	});
+	const profileName = [profile?.firstName, profile?.lastName].filter(Boolean).join(" ").trim();
+
+	return {
+		legalName:
+			fromProfile.legalName?.trim() ||
+			profileName ||
+			owner.name?.trim() ||
+			teamRow?.name?.trim() ||
+			"Customer",
+		billingEmail: fromProfile.billingEmail?.trim() || owner.email?.trim() || "",
+		billingPhone: fromProfile.billingPhone ?? null,
+		addressLine1: fromProfile.addressLine1?.trim() || "Not provided",
+		addressLine2: fromProfile.addressLine2 ?? null,
+		city: fromProfile.city?.trim() || "Not provided",
+		state: fromProfile.state ?? null,
+		country: fromProfile.country?.trim() || "KE",
+		postalCode: fromProfile.postalCode ?? null,
+		taxId: fromProfile.taxId ?? null,
+	};
 }
 
 async function resolveTeamOwnerBilling(teamId: string): Promise<
 	| { ok: true; resolved: ResolvedNiscOrderBilling }
 	| { ok: false; reasonCode: NiscInvoiceSkipReasonCode; reasonMessage: string }
 > {
-	const owners = await getTeamOwnerUsers(teamId);
+	const owners = await listTeamOwnerUsers(teamId);
 	if (owners.length === 0) {
 		return {
 			ok: false,
@@ -119,47 +214,17 @@ async function resolveTeamOwnerBilling(teamId: string): Promise<
 		};
 	}
 
-	const recipientEmails = [
-		...new Set(owners.map((o) => o.email!.trim()).filter(Boolean)),
-	];
-
-	for (const owner of owners) {
-		const profileResult = await resolveUserProfileBilling(owner.userId);
-		if (profileResult.ok) {
-			return {
-				ok: true,
-				resolved: {
-					billing: profileResult.resolved.billing,
-					source: "team_owners",
-					recipientEmails,
-				},
-			};
-		}
-	}
-
-	const teamRow = await db.query.team.findFirst({
-		where: eq(team.id, teamId),
-		columns: { name: true },
-	});
+	const recipientEmails = uniqueOwnerEmails(owners.map((o) => o.email));
 	const primary = owners[0]!;
-	const profileName = primary.name?.trim() || "Customer";
-	const minimalBilling: TeamBillingSettings = {
-		legalName: teamRow?.name?.trim() || profileName,
-		billingEmail: primary.email!.trim(),
-		billingPhone: null,
-		addressLine1: "Not provided",
-		addressLine2: null,
-		city: "Not provided",
-		state: null,
-		country: "KE",
-		postalCode: null,
-		taxId: null,
-	};
+	let billing = await billingFromFirstOwner(primary, teamId);
+	if (!billing.billingEmail?.trim() && recipientEmails[0]) {
+		billing = { ...billing, billingEmail: recipientEmails[0] };
+	}
 
 	return {
 		ok: true,
 		resolved: {
-			billing: minimalBilling,
+			billing,
 			source: "team_owners",
 			recipientEmails,
 		},

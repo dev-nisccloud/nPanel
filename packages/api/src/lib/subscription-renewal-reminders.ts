@@ -1,4 +1,4 @@
-import { and, asc, db, desc, eq, inArray, isNotNull, isNull, lte, ne, or, sql } from "@npanel/db";
+import { and, asc, db, desc, eq, inArray, sql } from "@npanel/db";
 import {
 	AGENCY_CRON_JOB_KEYS,
 	agencyCronJobRun,
@@ -14,22 +14,26 @@ import { teamBillingSettings } from "@npanel/db/schema/teams";
 import { renderServiceRenewalReminderEmail } from "./email-templates";
 import { sendEmail, sendEmailWithPdf } from "./email";
 import {
+	listTeamOwnerUsers,
+	uniqueOwnerEmails,
+} from "./nisc-order-invoice-billing";
+import {
 	buildRenewalInvoicePdf,
 	ensureSubscriptionRenewalInvoice,
 	serializeRenewalInvoiceResult,
 	type RenewalInvoiceEnsureResult,
 } from "./subscription-renewal-invoice";
+import { isTerminalSubscriptionStatus } from "./nisc-subscription-renewal-apply";
+import { computeSubscriptionExpiryFromBillingCycle } from "./nisc-subscription-dates";
 
 /** Subscriptions with expiry (or next renewal) on/before this many days from now are reminded. */
 export const RENEWAL_REMINDER_WINDOW_DAYS = 7;
 
-/** Skip re-sending if a cron/manual reminder was sent within this window. */
+/** After expiry, scheduled runs skip if a reminder was already sent within this window. */
 export const RENEWAL_REMINDER_DEDUPE_HOURS = 23;
 
 /** Treat RUNNING runs with no heartbeat older than this as stale. */
 export const RENEWAL_REMINDER_STALE_MS = 15 * 60 * 1000;
-
-const ELIGIBLE_STATUSES = ["ACTIVE", "PENDING", "EXPIRED", "SUSPENDED"] as const;
 
 const BATCH_DEFAULT = 25;
 
@@ -65,10 +69,11 @@ type SubMetadata = {
 
 type ItemInsert = typeof agencyCronJobRunItem.$inferInsert;
 
-type DueSubscriptionRow = Awaited<ReturnType<typeof fetchDueSubscriptions>>[number];
+type DueSubscriptionRow = Awaited<ReturnType<typeof fetchSubscriptionsForCron>>[number];
 
 type ItemEmailSnapshot = {
 	to: string;
+	cc?: string[];
 	subject: string;
 	html: string;
 	fromEmail?: string | null;
@@ -79,6 +84,30 @@ type ItemEmailSnapshot = {
 	invoiceNumber?: string | null;
 	attachmentFilename?: string | null;
 };
+
+type ReminderRecipients = {
+	to: string;
+	cc: string[];
+	source: "team_billing" | "team_owners";
+};
+
+async function resolveReminderRecipients(
+	row: DueSubscriptionRow,
+): Promise<ReminderRecipients | null> {
+	const billingEmail = row.billingEmail?.trim() || "";
+	if (billingEmail) {
+		return { to: billingEmail, cc: [], source: "team_billing" };
+	}
+	if (!row.teamId) return null;
+	const owners = await listTeamOwnerUsers(row.teamId);
+	const emails = uniqueOwnerEmails(owners.map((o) => o.email));
+	if (emails.length === 0) return null;
+	return {
+		to: emails[0]!,
+		cc: emails.slice(1),
+		source: "team_owners",
+	};
+}
 
 /** JSON-safe dump of unknown values (AWS SES errors, skip context, etc.). */
 function serializeUnknown(value: unknown, seen = new WeakSet<object>(), depth = 0): unknown {
@@ -138,6 +167,7 @@ function itemContext(
 	due: Date | null | undefined,
 	now: Date,
 	lastRenewalReminderAt: string | undefined,
+	extra?: Record<string, unknown>,
 ): Record<string, unknown> {
 	return {
 		evaluatedAt: now.toISOString(),
@@ -161,6 +191,7 @@ function itemContext(
 		lastRenewalReminderAt: lastRenewalReminderAt ?? null,
 		dedupeHours: RENEWAL_REMINDER_DEDUPE_HOURS,
 		reminderWindowDays: RENEWAL_REMINDER_WINDOW_DAYS,
+		...extra,
 	};
 }
 
@@ -212,13 +243,138 @@ function parseMetadata(raw: unknown): SubMetadata {
 	return {};
 }
 
+function hasNoInvoiceFlag(metadata: SubMetadata): boolean {
+	return metadata.noInvoice === true;
+}
+
+function isOneTimeBillingCycle(cycle: string | null | undefined): boolean {
+	return (cycle ?? "").trim().toUpperCase() === "ONE_TIME";
+}
+
+function sameInstant(a: Date | null | undefined, b: Date | null | undefined): boolean {
+	if (!a && !b) return true;
+	if (!a || !b) return false;
+	return a.getTime() === b.getTime();
+}
+
+function reconcileSubscriptionPeriodDates(input: {
+	expiryDate: Date | null;
+	nextRenewalDate: Date | null;
+	subscriptionDate: Date | null;
+	billingCycle: string | null;
+}): {
+	expiryDate: Date | null;
+	nextRenewalDate: Date | null;
+	reasons: string[];
+} {
+	let expiry = input.expiryDate ? new Date(input.expiryDate) : null;
+	let next = input.nextRenewalDate ? new Date(input.nextRenewalDate) : null;
+	const reasons: string[] = [];
+
+	if (!expiry && !next && input.subscriptionDate) {
+		const computed = computeSubscriptionExpiryFromBillingCycle(
+			new Date(input.subscriptionDate),
+			input.billingCycle,
+		);
+		if (computed) {
+			expiry = computed;
+			next = computed;
+			reasons.push("backfilled_from_billing_cycle");
+		}
+	}
+
+	if (expiry && !next) {
+		next = expiry;
+		reasons.push("next_renewal_mirrored_expiry");
+	} else if (!expiry && next) {
+		expiry = next;
+		reasons.push("expiry_mirrored_next_renewal");
+	} else if (expiry && next && expiry.getTime() !== next.getTime()) {
+		next = expiry;
+		reasons.push("next_renewal_aligned_to_expiry");
+	}
+
+	return { expiryDate: expiry, nextRenewalDate: next, reasons };
+}
+
+async function writeSubscriptionActivity(opts: {
+	subscriptionId: string;
+	userId: string | null;
+	action: string;
+	description: string;
+	metadata: Record<string, unknown>;
+}) {
+	if (!opts.userId) return;
+	await db.insert(niscClientSubscriptionActivityLog).values({
+		id: crypto.randomUUID(),
+		subscriptionId: opts.subscriptionId,
+		userId: opts.userId,
+		action: opts.action,
+		description: opts.description,
+		metadata: opts.metadata,
+		ipAddress: null,
+		userAgent: null,
+	});
+}
+
+function parseReminderAt(iso: string | undefined): Date | null {
+	if (!iso) return null;
+	const at = new Date(iso);
+	return Number.isNaN(at.getTime()) ? null : at;
+}
+
 function wasRemindedRecently(metadata: SubMetadata, now: Date): boolean {
-	const raw = metadata.lastRenewalReminderAt;
-	if (!raw || typeof raw !== "string") return false;
-	const at = new Date(raw);
-	if (Number.isNaN(at.getTime())) return false;
+	const at = parseReminderAt(
+		typeof metadata.lastRenewalReminderAt === "string"
+			? metadata.lastRenewalReminderAt
+			: undefined,
+	);
+	if (!at) return false;
 	const ageMs = now.getTime() - at.getTime();
 	return ageMs >= 0 && ageMs < RENEWAL_REMINDER_DEDUPE_HOURS * 60 * 60 * 1000;
+}
+
+/** Scheduled cadence only. Manual runs never use this. */
+function scheduledReminderSkip(
+	due: Date,
+	lastReminderAt: string | undefined,
+	now: Date,
+): { skipReason: string; detail: string } | null {
+	const today = startOfUtcDay(now).getTime();
+	const expiryDay = startOfUtcDay(due).getTime();
+	const lastAt = parseReminderAt(lastReminderAt);
+
+	if (expiryDay > today) {
+		const windowStart = addUtcDays(
+			startOfUtcDay(due),
+			-RENEWAL_REMINDER_WINDOW_DAYS,
+		).getTime();
+		if (lastAt && lastAt.getTime() >= windowStart) {
+			return {
+				skipReason: "wait_until_expiry",
+				detail: `Already reminded at ${lastAt.toISOString()}; next scheduled send is expiry day.`,
+			};
+		}
+		return null;
+	}
+
+	if (expiryDay === today) {
+		if (lastAt && lastAt.getTime() >= today) {
+			return {
+				skipReason: "recently_reminded",
+				detail: `Already reminded on expiry day at ${lastAt.toISOString()}.`,
+			};
+		}
+		return null;
+	}
+
+	if (lastAt && wasRemindedRecently({ lastRenewalReminderAt: lastReminderAt }, now)) {
+		return {
+			skipReason: "recently_reminded",
+			detail: `Already reminded at ${lastAt.toISOString()}.`,
+		};
+	}
+	return null;
 }
 
 function buildSummary(counts: {
@@ -295,9 +451,10 @@ async function markRunFailed(runId: string, error: string) {
 }
 
 /**
- * Scan client subscriptions that are expired or due within {@link RENEWAL_REMINDER_WINDOW_DAYS}
- * and send renewal reminder emails to team billing addresses.
- * Persists run + per-subscription item logs.
+ * Scan every client subscription: sync dates (expiry is canonical; next renewal mirrors it;
+ * missing dates are backfilled from subscription date + billing cycle), set ACTIVE/EXPIRED
+ * from those dates, and send renewal reminder emails for rows expired or due within
+ * {@link RENEWAL_REMINDER_WINDOW_DAYS}. Persists run + per-subscription item logs.
  */
 export async function processSubscriptionRenewalReminders(
 	opts: SubscriptionRenewalRemindersPayload = {},
@@ -351,9 +508,9 @@ export async function processSubscriptionRenewalReminders(
 	const windowEnd = addUtcDays(startOfUtcDay(now), RENEWAL_REMINDER_WINDOW_DAYS + 1);
 	const dueDateExpr = sql`coalesce(${niscClientSubscription.expiryDate}, ${niscClientSubscription.nextRenewalDate})`;
 
-	let rows: Awaited<ReturnType<typeof fetchDueSubscriptions>>;
+	let rows: Awaited<ReturnType<typeof fetchSubscriptionsForCron>>;
 	try {
-		rows = await fetchDueSubscriptions(dueDateExpr, windowEnd, limit, offset);
+		rows = await fetchSubscriptionsForCron(dueDateExpr, limit, offset);
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
 		await markRunFailed(runId, message);
@@ -380,12 +537,10 @@ export async function processSubscriptionRenewalReminders(
 		const planName = row.planName ?? null;
 		const serviceNameLabel = planName ? `${productName} - ${planName}` : productName;
 		const subscriptionName = row.name ?? null;
-		const due = row.expiryDate ?? row.nextRenewalDate;
 		const lastReminderAt =
 			typeof metadata.lastRenewalReminderAt === "string"
 				? metadata.lastRenewalReminderAt
 				: undefined;
-		const context = itemContext(row, due, now, lastReminderAt);
 		const actorId =
 			opts.triggeredByUserId ??
 			row.recordedBy ??
@@ -399,8 +554,205 @@ export async function processSubscriptionRenewalReminders(
 			subscriptionId: row.id,
 			subscriptionName,
 			productName: serviceNameLabel,
-			expiryDate: due ?? null,
+			expiryDate: row.expiryDate ?? row.nextRenewalDate ?? null,
 		};
+
+		if (isOneTimeBillingCycle(row.billingCycle)) {
+			const skipReason = "one_time";
+			const detail = "Skipped: one-time subscription is not renewed by cron.";
+			batch.skipped += 1;
+			itemRows.push({
+				...baseItem,
+				outcome: "skipped",
+				skipReason,
+				metadata: {
+					detail,
+					skipReason,
+					context: itemContext(row, null, now, lastReminderAt),
+				},
+			});
+			continue;
+		}
+
+		if (hasNoInvoiceFlag(metadata)) {
+			const skipReason = "no_invoice";
+			const detail =
+				"Skipped: subscription is marked noInvoice (complimentary / signup grant). Dates and status were left unchanged.";
+			batch.skipped += 1;
+			itemRows.push({
+				...baseItem,
+				outcome: "skipped",
+				skipReason,
+				metadata: {
+					detail,
+					skipReason,
+					context: itemContext(
+						row,
+						row.expiryDate ?? row.nextRenewalDate,
+						now,
+						lastReminderAt,
+					),
+				},
+			});
+			continue;
+		}
+
+		const previousStatus = row.status;
+		const reconciled = reconcileSubscriptionPeriodDates({
+			expiryDate: row.expiryDate,
+			nextRenewalDate: row.nextRenewalDate,
+			subscriptionDate: row.subscriptionDate,
+			billingCycle: row.billingCycle,
+		});
+		const datesChanged =
+			!sameInstant(row.expiryDate, reconciled.expiryDate) ||
+			!sameInstant(row.nextRenewalDate, reconciled.nextRenewalDate);
+
+		if (datesChanged) {
+			await db
+				.update(niscClientSubscription)
+				.set({
+					expiryDate: reconciled.expiryDate,
+					nextRenewalDate: reconciled.nextRenewalDate,
+					updatedAt: now,
+				})
+				.where(eq(niscClientSubscription.id, row.id));
+			row.expiryDate = reconciled.expiryDate;
+			row.nextRenewalDate = reconciled.nextRenewalDate;
+			await writeSubscriptionActivity({
+				subscriptionId: row.id,
+				userId: actorId,
+				action: "UPDATE",
+				description: "Synced subscription dates from expiry / billing cycle (cron)",
+				metadata: {
+					reasons: reconciled.reasons,
+					expiryDate: reconciled.expiryDate?.toISOString() ?? null,
+					nextRenewalDate: reconciled.nextRenewalDate?.toISOString() ?? null,
+				},
+			});
+		}
+
+		const due = row.expiryDate ?? row.nextRenewalDate;
+		baseItem.expiryDate = due ?? null;
+		const context = itemContext(row, due, now, lastReminderAt, {
+			dateReasons: reconciled.reasons,
+			datesChanged,
+			previousStatus,
+		});
+
+		const canMutateStatus =
+			!isTerminalSubscriptionStatus(row.status) &&
+			(row.status ?? "").toUpperCase() !== "PENDING";
+
+		if (canMutateStatus && due) {
+			const pastDue = due.getTime() < startOfUtcDay(now).getTime();
+			if (pastDue && row.status !== "EXPIRED") {
+				await db
+					.update(niscClientSubscription)
+					.set({ status: "EXPIRED", updatedAt: now })
+					.where(eq(niscClientSubscription.id, row.id));
+				row.status = "EXPIRED";
+				context.status = "EXPIRED";
+				await writeSubscriptionActivity({
+					subscriptionId: row.id,
+					userId: actorId,
+					action: "EXPIRE",
+					description: "Marked expired because the due date has passed (cron)",
+					metadata: {
+						dueDate: due.toISOString(),
+						previousStatus,
+					},
+				});
+			} else if (!pastDue && row.status === "EXPIRED") {
+				await db
+					.update(niscClientSubscription)
+					.set({ status: "ACTIVE", updatedAt: now })
+					.where(eq(niscClientSubscription.id, row.id));
+				row.status = "ACTIVE";
+				context.status = "ACTIVE";
+				await writeSubscriptionActivity({
+					subscriptionId: row.id,
+					userId: actorId,
+					action: "UPDATE",
+					description: "Marked active because the due date is still in the future (cron)",
+					metadata: {
+						dueDate: due.toISOString(),
+						previousStatus,
+					},
+				});
+			}
+		}
+
+		if (isTerminalSubscriptionStatus(row.status)) {
+			const skipReason = "terminal_status";
+			const detail = `Skipped: subscription status is ${row.status}. Dates stay the source of truth; cancelled/upgraded/downgraded subscriptions are not invoiced.`;
+			batch.skipped += 1;
+			itemRows.push({
+				...baseItem,
+				outcome: "skipped",
+				skipReason,
+				metadata: {
+					detail,
+					skipReason,
+					context: { ...context, status: row.status },
+				},
+			});
+			continue;
+		}
+
+		if ((row.status ?? "").toUpperCase() === "PENDING") {
+			const skipReason = "pending_status";
+			const detail =
+				"Skipped: pending subscriptions are not invoiced until they become active.";
+			batch.skipped += 1;
+			itemRows.push({
+				...baseItem,
+				outcome: "skipped",
+				skipReason,
+				metadata: {
+					detail,
+					skipReason,
+					context,
+				},
+			});
+			continue;
+		}
+
+		if (!due) {
+			const skipReason = "no_due_date";
+			const detail =
+				"Skipped: subscription has neither expiryDate nor nextRenewalDate, and dates could not be derived from billing cycle.";
+			batch.skipped += 1;
+			itemRows.push({
+				...baseItem,
+				outcome: "skipped",
+				skipReason,
+				metadata: {
+					detail,
+					skipReason,
+					context,
+				},
+			});
+			continue;
+		}
+
+		if (due.getTime() > windowEnd.getTime()) {
+			const skipReason = "not_due";
+			const detail = `Skipped: due date is after the ${RENEWAL_REMINDER_WINDOW_DAYS}-day reminder window. Dates and status were still synced.`;
+			batch.skipped += 1;
+			itemRows.push({
+				...baseItem,
+				outcome: "skipped",
+				skipReason,
+				metadata: {
+					detail,
+					skipReason,
+					context,
+					windowEnd: windowEnd.toISOString(),
+				},
+			});
+			continue;
+		}
 
 		let invoiceResult: RenewalInvoiceEnsureResult;
 		try {
@@ -418,11 +770,18 @@ export async function processSubscriptionRenewalReminders(
 			);
 		}
 		const invoiceLog = serializeRenewalInvoiceResult(invoiceResult);
+		const recipients = await resolveReminderRecipients(row);
+		const emailToDisplay = recipients
+			? [recipients.to, ...recipients.cc].join(", ")
+			: null;
+		const isManualRun =
+			opts.source === "manual" || existing.source === "manual";
+		const invoiceCreatedThisRun = invoiceResult.ok && invoiceResult.created;
 
-		if (!row.billingEmail?.trim()) {
+		if (!recipients) {
 			const skipReason = "no_billing_email";
 			const detail =
-				"Skipped: team billing email is missing. No reminder was sent.";
+				"Skipped: no team billing email, and no team owners (or team creator) with an email address.";
 			batch.skipped += 1;
 			itemRows.push({
 				...baseItem,
@@ -438,44 +797,25 @@ export async function processSubscriptionRenewalReminders(
 			continue;
 		}
 
-		if (wasRemindedRecently(metadata, now)) {
-			const skipReason = "recently_reminded";
-			const hoursAgo = hoursSince(lastReminderAt, now);
-			const detail = `Skipped: already reminded at ${lastReminderAt ?? "unknown"}${
-				hoursAgo != null ? ` (${hoursAgo.toFixed(1)}h ago)` : ""
-			}. Dedupe window is ${RENEWAL_REMINDER_DEDUPE_HOURS} hours.`;
+		// Manual Run now always sends. Scheduled: one email in the 7 days before
+		// expiry, then again on expiry day. Never skip after minting a new invoice.
+		const scheduledSkip =
+			!isManualRun && !invoiceCreatedThisRun
+				? scheduledReminderSkip(due, lastReminderAt, now)
+				: null;
+		if (scheduledSkip) {
 			batch.skipped += 1;
 			itemRows.push({
 				...baseItem,
 				outcome: "skipped",
-				skipReason,
-				emailTo: row.billingEmail.trim(),
+				skipReason: scheduledSkip.skipReason,
+				emailTo: emailToDisplay,
 				metadata: {
-					detail,
-					skipReason,
+					detail: scheduledSkip.detail,
+					skipReason: scheduledSkip.skipReason,
 					lastRenewalReminderAt: lastReminderAt ?? null,
-					hoursSinceLastReminder: hoursAgo,
-					dedupeHours: RENEWAL_REMINDER_DEDUPE_HOURS,
-					context,
-					invoice: invoiceLog,
-				},
-			});
-			continue;
-		}
-
-		if (!due) {
-			const skipReason = "no_due_date";
-			const detail =
-				"Skipped: subscription has neither expiryDate nor nextRenewalDate.";
-			batch.skipped += 1;
-			itemRows.push({
-				...baseItem,
-				outcome: "skipped",
-				skipReason,
-				emailTo: row.billingEmail.trim(),
-				metadata: {
-					detail,
-					skipReason,
+					hoursSinceLastReminder: hoursSince(lastReminderAt, now),
+					recipientSource: recipients.source,
 					context,
 					invoice: invoiceLog,
 				},
@@ -511,8 +851,14 @@ export async function processSubscriptionRenewalReminders(
 			});
 
 			const subject = `Renewal reminder: ${subscriptionName ?? serviceNameLabel}`;
-			const emailTo = row.billingEmail.trim();
-			emailSnapshot = { to: emailTo, subject, html };
+			const emailTo = recipients.to;
+			const emailCc = recipients.cc;
+			emailSnapshot = {
+				to: emailTo,
+				cc: emailCc.length > 0 ? emailCc : undefined,
+				subject,
+				html,
+			};
 
 			let sent: {
 				id?: string;
@@ -522,6 +868,7 @@ export async function processSubscriptionRenewalReminders(
 			};
 			let invoiceAttached = false;
 			let pdfFilename: string | null = null;
+			const ccArg = emailCc.length > 0 ? emailCc : undefined;
 
 			if (invoiceResult.ok) {
 				const pdf = await buildRenewalInvoicePdf(invoiceResult.invoiceId);
@@ -531,6 +878,7 @@ export async function processSubscriptionRenewalReminders(
 				emailSnapshot.attachmentFilename = pdf.filename;
 				sent = await sendEmailWithPdf({
 					to: emailTo,
+					cc: ccArg,
 					subject,
 					html,
 					attachmentFilename: pdf.filename,
@@ -540,6 +888,7 @@ export async function processSubscriptionRenewalReminders(
 			} else {
 				sent = await sendEmail({
 					to: emailTo,
+					cc: ccArg,
 					subject,
 					html,
 				});
@@ -573,9 +922,11 @@ export async function processSubscriptionRenewalReminders(
 					subscriptionId: row.id,
 					userId: actorId,
 					action: "SEND_RENEWAL_REMINDER",
-					description: `Sent renewal reminder email to ${emailTo} (cron)`,
+					description: `Sent renewal reminder email to ${emailToDisplay} (cron)`,
 					metadata: {
 						to: emailTo,
+						cc: emailCc,
+						recipientSource: recipients.source,
 						subject,
 						serviceName: serviceNameLabel,
 						subscriptionName: subscriptionName ?? null,
@@ -601,7 +952,7 @@ export async function processSubscriptionRenewalReminders(
 			itemRows.push({
 				...baseItem,
 				outcome: "sent",
-				emailTo,
+				emailTo: emailToDisplay,
 				subject,
 				metadata: {
 					sentAt,
@@ -611,6 +962,7 @@ export async function processSubscriptionRenewalReminders(
 					context,
 					invoice: invoiceLog,
 					invoiceAttached,
+					recipientSource: recipients.source,
 				},
 			});
 		} catch (err) {
@@ -620,13 +972,14 @@ export async function processSubscriptionRenewalReminders(
 			itemRows.push({
 				...baseItem,
 				outcome: "failed",
-				emailTo: row.billingEmail.trim(),
+				emailTo: emailToDisplay,
 				subject: emailSnapshot?.subject ?? null,
 				error,
 				metadata: {
 					detail: error,
 					error: serializeUnknown(err),
 					attemptedEmail: emailSnapshot,
+					recipientSource: recipients.source,
 					context,
 					invoice: invoiceLog,
 				},
@@ -699,9 +1052,8 @@ export async function processSubscriptionRenewalReminders(
 	return { ...batch, status: finalStatus };
 }
 
-async function fetchDueSubscriptions(
+async function fetchSubscriptionsForCron(
 	dueDateExpr: ReturnType<typeof sql>,
-	windowEnd: Date,
 	limit: number,
 	offset: number,
 ) {
@@ -738,21 +1090,7 @@ async function fetchDueSubscriptions(
 			teamBillingSettings,
 			eq(teamBillingSettings.teamId, niscClientSubscription.teamId),
 		)
-		.where(
-			and(
-				inArray(niscClientSubscription.status, [...ELIGIBLE_STATUSES]),
-				or(
-					isNull(niscClientSubscription.billingCycle),
-					ne(niscClientSubscription.billingCycle, "ONE_TIME"),
-				),
-				or(
-					isNotNull(niscClientSubscription.expiryDate),
-					isNotNull(niscClientSubscription.nextRenewalDate),
-				),
-				lte(dueDateExpr, windowEnd),
-			),
-		)
-		.orderBy(asc(dueDateExpr), asc(niscClientSubscription.id))
+		.orderBy(sql`${dueDateExpr} ASC NULLS LAST`, asc(niscClientSubscription.id))
 		.limit(limit)
 		.offset(offset);
 }

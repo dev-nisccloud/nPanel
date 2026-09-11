@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { trpc } from "@/utils/trpc";
 import { invoiceUiSchema, type InvoiceUI } from "@/routes/agency.dashboard/_components/schemas";
 import { FileText } from "lucide-react";
+import { formatInvoiceDate } from "@/lib/invoice-date";
 
 function InvoicesTableSkeleton() {
   return (
@@ -191,9 +192,7 @@ export function DashboardInvoicesTable() {
                     : "- "}
                 </TableCell>
                 <TableCell>
-                  {invoice.dueDate
-                    ? new Date(invoice.dueDate).toLocaleDateString()
-                    : "- "}
+                  {formatInvoiceDate(invoice.dueDate, "- ")}
                 </TableCell>
               </TableRow>
             ))

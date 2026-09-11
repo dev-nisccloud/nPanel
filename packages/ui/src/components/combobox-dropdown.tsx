@@ -4,7 +4,7 @@ import { Check, ChevronsUpDown } from "lucide-react";
 import * as React from "react";
 
 import { cn } from "@npanel/ui/lib/utils/index";
-import { Button, buttonVariants } from "@npanel/ui/components/button";
+import { buttonVariants } from "@npanel/ui/components/button";
 import {
   Command,
   CommandEmpty,
@@ -19,6 +19,8 @@ export type ComboboxItem = {
   id: string;
   label: string;
   disabled?: boolean;
+  /** Extra strings included in client-side search (e.g. slug, email). */
+  keywords?: string[];
 };
 
 type Props<T> = {
@@ -42,6 +44,14 @@ type Props<T> = {
   /** Render popover inside the nearest open dialog so search inputs stay interactive in sheets. */
   inDialog?: boolean;
 };
+
+function itemMatchesQuery<T extends ComboboxItem>(item: T, query: string) {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  if (item.label.toLowerCase().includes(q)) return true;
+  if (item.id.toLowerCase().includes(q)) return true;
+  return item.keywords?.some((keyword) => keyword.toLowerCase().includes(q)) ?? false;
+}
 
 export function ComboboxDropdown<T extends ComboboxItem>({
   headless,
@@ -70,32 +80,44 @@ export function ComboboxDropdown<T extends ComboboxItem>({
 
   const selectedItem = incomingSelectedItem ?? internalSelectedItem;
 
+  const handleOpenChange = React.useCallback((nextOpen: boolean) => {
+    setOpen(nextOpen);
+    if (!nextOpen) setInputValue("");
+  }, []);
+
   React.useEffect(() => {
-    if (!inDialog || !open) {
+    if (!open) {
       setPortalContainer(null);
       return;
     }
-    const dialog =
-      triggerRef.current?.closest('[role="dialog"]') ??
-      document.querySelector('[role="dialog"]');
-    setPortalContainer(dialog instanceof HTMLElement ? dialog : null);
+    const fromTrigger = triggerRef.current?.closest("[role='dialog']");
+    if (fromTrigger instanceof HTMLElement) {
+      setPortalContainer(fromTrigger);
+      return;
+    }
+    if (inDialog) {
+      const dialog = document.querySelector("[role='dialog']");
+      setPortalContainer(dialog instanceof HTMLElement ? dialog : null);
+      return;
+    }
+    setPortalContainer(null);
   }, [inDialog, open]);
 
-  const filteredItems = items.filter((item) =>
-    item.label.toLowerCase().includes(inputValue.toLowerCase()),
+  const filteredItems = React.useMemo(
+    () => items.filter((item) => itemMatchesQuery(item, inputValue)),
+    [items, inputValue],
   );
 
   const showCreate = onCreate && Boolean(inputValue) && !filteredItems.length;
 
   const inputRef = React.useRef<HTMLInputElement>(null);
 
-  // Auto-focus input when popover opens
   React.useEffect(() => {
-    if (open && inputRef.current) {
-      setTimeout(() => {
-        (inputRef.current as HTMLInputElement | null)?.focus();
-      }, 100);
-    }
+    if (!open) return;
+    const frame = window.requestAnimationFrame(() => {
+      inputRef.current?.focus();
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [open]);
 
   const Component = (
@@ -114,45 +136,47 @@ export function ComboboxDropdown<T extends ComboboxItem>({
         />
       </div>
 
-      <CommandList className="max-h-[225px] overflow-y-auto scrollbar-thin overflow-x-hidden p-1">
+      <CommandList
+        className="max-h-[min(18rem,var(--available-height,18rem))] overflow-y-auto overscroll-contain scrollbar-thin overflow-x-hidden p-1"
+        onWheel={(e) => e.stopPropagation()}
+      >
         <CommandEmpty className="py-6 text-center text-xs text-muted-foreground">
           {emptyResults ?? "No item found"}
         </CommandEmpty>
 
-        <CommandGroup>
-          {items
-            .filter((item) => item.label.toLowerCase().includes(inputValue.toLowerCase()))
-            .map((item) => {
-              const isChecked = selectedItem?.id === item.id;
+        <CommandGroup className="overflow-visible p-0">
+          {filteredItems.map((item) => {
+            const isChecked = selectedItem?.id === item.id;
 
-              return (
-                <CommandItem
-                  disabled={item.disabled}
-                  className={cn("cursor-pointer rounded-lg mx-1 my-0.5", className)}
-                  key={item.id}
-                  value={item.id}
-                  onSelect={() => {
-                    onSelect(item);
-                    setInternalSelectedItem(item);
-                    setOpen(false);
-                  }}
-                >
-                  {renderListItem ? (
-                    renderListItem({ isChecked, item })
-                  ) : (
-                    <>
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          isChecked ? "opacity-100" : "opacity-0",
-                        )}
-                      />
-                      {item.label}
-                    </>
-                  )}
-                </CommandItem>
-              );
-            })}
+            return (
+              <CommandItem
+                disabled={item.disabled}
+                className={cn("cursor-pointer rounded-lg mx-1 my-0.5", className)}
+                key={item.id}
+                value={`${item.label} ${item.id}`}
+                keywords={item.keywords}
+                onSelect={() => {
+                  onSelect(item);
+                  setInternalSelectedItem(item);
+                  handleOpenChange(false);
+                }}
+              >
+                {renderListItem ? (
+                  renderListItem({ isChecked, item })
+                ) : (
+                  <>
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        isChecked ? "opacity-100" : "opacity-0",
+                      )}
+                    />
+                    {item.label}
+                  </>
+                )}
+              </CommandItem>
+            );
+          })}
 
           {showCreate && (
             <CommandItem
@@ -161,8 +185,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
               className="rounded-lg mx-1 my-0.5"
               onSelect={() => {
                 onCreate(inputValue);
-                setOpen(false);
-                setInputValue("");
+                handleOpenChange(false);
               }}
             >
               {renderOnCreate ? renderOnCreate(inputValue) : null}
@@ -178,7 +201,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger
         ref={triggerRef}
         disabled={disabled}
@@ -207,7 +230,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
         className="p-0 rounded-xl overflow-hidden border-border/40 shadow-2xl bg-popover"
         {...popoverProps}
         style={{
-          width: "var(--radix-popover-trigger-width)",
+          width: "var(--anchor-width, var(--radix-popover-trigger-width, 100%))",
           pointerEvents: "auto",
           ...popoverProps?.style,
         }}

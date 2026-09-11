@@ -4,11 +4,12 @@ import { CleanList, CleanListCell, CleanListRow } from "@/components/ui/clean-li
 import { Badge } from "@/components/ui/badge";
 import { ViewDetailsButton } from "@/components/ui/list-row-actions";
 import type { InvoiceTransaction } from "@/routes/agency.invoices/create/api/schemas";
+import { formatInvoiceDate } from "@/lib/invoice-date";
 
 function formatDate(v: string | Date | null | undefined): string | null {
 	if (!v) return null;
-	const d = v instanceof Date ? v : new Date(v);
-	return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString();
+	const formatted = formatInvoiceDate(v, "");
+	return formatted || null;
 }
 
 function formatCurrency(amount: string | null | undefined, currency: string): string {

@@ -457,6 +457,11 @@ export const updatePaymentInputSchema = z.object({
 });
 export type UpdatePaymentInput = z.infer<typeof updatePaymentInputSchema>;
 
+export const applyCheckoutPaymentInputSchema = z.object({
+	checkoutRequestId: z.string().min(1),
+});
+export type ApplyCheckoutPaymentInput = z.infer<typeof applyCheckoutPaymentInputSchema>;
+
 /**
  * Schema for next invoice number response
  */

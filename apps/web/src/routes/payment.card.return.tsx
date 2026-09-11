@@ -25,6 +25,7 @@ export default function CardPaymentReturnPage() {
 	>("polling");
 	const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 	const [orderNumber, setOrderNumber] = React.useState<string | null>(null);
+	const [invoiceReturnPath, setInvoiceReturnPath] = React.useState<string | null>(null);
 	const createStartedRef = React.useRef(false);
 
 	const statusQuery = trpc.paymentGateway.jenga.getPaymentStatus.useQuery(
@@ -41,6 +42,17 @@ export default function CardPaymentReturnPage() {
 			},
 		},
 	);
+
+	const applyInvoicePayment = trpc.invoicing.applyCheckoutPayment.useMutation({
+		onSuccess: () => {
+			setPhase("success");
+			toast.success("Payment confirmed.");
+		},
+		onError: (err) => {
+			setErrorMessage(err.message || "Failed to apply payment to invoice.");
+			setPhase("failed");
+		},
+	});
 
 	const createOrder = trpc.niscServiceOrders.createFromJengaPayment.useMutation({
 		onSuccess: (data: unknown) => {
@@ -89,9 +101,20 @@ export default function CardPaymentReturnPage() {
 		if (status === "SUCCESS" && !createStartedRef.current) {
 			createStartedRef.current = true;
 			setPhase("creating");
+			const invoiceId = statusQuery.data?.data?.invoiceId;
+			const returnPath = statusQuery.data?.data?.invoiceReturnPath;
+			if (invoiceId) {
+				if (typeof returnPath === "string" && returnPath.startsWith("/")) {
+					setInvoiceReturnPath(returnPath);
+				} else {
+					setInvoiceReturnPath(`/agency/invoices/${invoiceId}`);
+				}
+				applyInvoicePayment.mutate({ checkoutRequestId: orderReference });
+				return;
+			}
 			createOrder.mutate({ orderReference });
 		}
-	}, [statusQuery.data, phase, orderReference, createOrder]);
+	}, [statusQuery.data, phase, orderReference, createOrder, applyInvoicePayment]);
 
 	if (sessionPending) {
 		return (
@@ -137,7 +160,9 @@ export default function CardPaymentReturnPage() {
 					<Spinner variant="ellipsis" size={48} className="mx-auto text-primary" />
 					<p className="font-medium text-foreground">
 						{phase === "creating"
-							? "Payment confirmed  creating your order…"
+							? invoiceReturnPath
+								? "Payment confirmed  updating your invoice…"
+								: "Payment confirmed  creating your order…"
 							: "Confirming card payment…"}
 					</p>
 					<p className="text-xs text-muted-foreground">
@@ -154,7 +179,9 @@ export default function CardPaymentReturnPage() {
 						<p className="text-sm text-muted-foreground">Order {orderNumber}</p>
 					) : null}
 					<p className="text-xs text-muted-foreground">Reference: {orderReference}</p>
-					<Button onClick={() => navigate("/")}>Continue</Button>
+					<Button onClick={() => navigate(invoiceReturnPath || "/")}>
+						{invoiceReturnPath ? "Back to invoice" : "Continue"}
+					</Button>
 				</>
 			)}
 
