@@ -21,6 +21,7 @@ import {
 	isTerminalResultCode,
 	isProcessingResultCode,
 } from "./error-codes";
+import { applySuccessfulPaymentToInvoiceSafe } from "../../../lib/invoice-apply-gateway-payment";
 
 const isAgencyUserRole = (role: string | null | undefined) =>
 	role === "AGENCY_USER" || role === "AGENCY_ADMIN" || role === "AGENCY_SUPER_ADMIN";
@@ -214,6 +215,9 @@ export const mpesaRouter = router({
 						phoneNumber: input.phoneNumber,
 						status: response.ResponseCode === "0" ? "PROCESSING" : "PENDING",
 						rawResponse: JSON.parse(JSON.stringify(response)),
+						metadata: input.invoiceId
+							? { invoiceId: input.invoiceId, source: "invoice" }
+							: null,
 						initiatedAt: now,
 						createdAt: now,
 						updatedAt: now,
@@ -580,6 +584,9 @@ export const mpesaRouter = router({
 								userAgent: null,
 								createdAt: now,
 						});
+						if (isSuccess) {
+							await applySuccessfulPaymentToInvoiceSafe(dbTransaction.id);
+						}
 					}
 
 					if (isProcessingResultCode(resultCode)) {

@@ -10,6 +10,7 @@ import {
 	paymentTransactionActivityLog,
 } from "@npanel/db/schema/payment-transactions";
 import type { JengaCallbackQuery, JengaIpnPayload, JengaPaymentMetadata } from "./types";
+import { applySuccessfulPaymentToInvoiceSafe } from "../../../lib/invoice-apply-gateway-payment";
 
 type ApplyResult =
 	| { ok: true; alreadyTerminal: boolean; transactionId: string; status: string }
@@ -39,6 +40,9 @@ export async function applyJengaCallbackUpdate(
 	}
 
 	if (transaction.status === "SUCCESS" || transaction.status === "FAILED") {
+		if (transaction.status === "SUCCESS") {
+			await applySuccessfulPaymentToInvoiceSafe(transaction.id);
+		}
 		return {
 			ok: true,
 			alreadyTerminal: true,
@@ -86,6 +90,10 @@ export async function applyJengaCallbackUpdate(
 		userAgent: null,
 		createdAt: now,
 	});
+
+	if (isPaid) {
+		await applySuccessfulPaymentToInvoiceSafe(transaction.id);
+	}
 
 	return {
 		ok: true,
@@ -139,6 +147,9 @@ export async function applyJengaIpnUpdate(payload: JengaIpnPayload): Promise<App
 		) {
 			// fall through
 		} else {
+			if (transaction.status === "SUCCESS") {
+				await applySuccessfulPaymentToInvoiceSafe(transaction.id);
+			}
 			return {
 				ok: true,
 				alreadyTerminal: true,
@@ -191,6 +202,10 @@ export async function applyJengaIpnUpdate(payload: JengaIpnPayload): Promise<App
 		userAgent: null,
 		createdAt: now,
 	});
+
+	if (isSuccess) {
+		await applySuccessfulPaymentToInvoiceSafe(transaction.id);
+	}
 
 	return {
 		ok: true,

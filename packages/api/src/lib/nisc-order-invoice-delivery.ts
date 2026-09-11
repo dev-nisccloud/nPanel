@@ -14,7 +14,7 @@ import { sanitizeInvoicePdfFilename } from "./invoice-pdf-data";
 import { renderInvoiceSuccessEmail } from "./email-templates";
 import { sendEmailWithPdf } from "./email";
 import { niscLog } from "./nisc-order-logger";
-import { formatNiscDateTime } from "./nisc-datetime-format";
+import { formatInvoiceDate } from "./nisc-datetime-format";
 import { getNormalizedPublicAppUrl, joinPublicAppPath } from "./public-app-url";
 import {
 	resolveNiscOrderInvoiceBilling,
@@ -45,7 +45,7 @@ export type NiscOrderInvoiceDeliveryResult =
 
 function formatInvoiceEmailDate(value: Date | null | undefined): string {
 	if (!value) return "N/A";
-	return formatNiscDateTime(value);
+	return formatInvoiceDate(value) || "N/A";
 }
 
 export type CreateAndEmailNiscOrderInvoiceInput = {

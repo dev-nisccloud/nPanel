@@ -16,6 +16,7 @@ import {
 	buildDomainCreateXml,
 	buildDomainInfoXml,
 	buildDomainUpdateXml,
+	buildDomainRenewXml,
 	type ContactCreateParams,
 	type ContactCreatePostalInfo,
 	type DomainCreateParams,
@@ -578,6 +579,107 @@ export async function setKenicTransferLock(
 		if (updateResult.code !== EPP_CODE_SUCCESS && updateResult.code !== "1001") {
 			throw new Error(`KENIC transfer lock update failed: ${updateResult.msg}`);
 		}
+	} finally {
+		socket?.destroy();
+	}
+}
+
+function eppDateOnly(value: string): string {
+	return value.trim().slice(0, 10);
+}
+
+/**
+ * Renew a .ke domain at KENIC via EPP domain:renew (RFC 5731 §3.2.3).
+ * Reads current expiry with domain:info, then renews with that curExpDate.
+ */
+export async function renewKenicDomain(params: {
+	domainName: string;
+	periodYears: number;
+	orderId?: string;
+	orderItemId?: string;
+}): Promise<{ success: true; domain: string; exDate: string | null; rawResponse: unknown }> {
+	let socket;
+	try {
+		const config = getKenicEppConfig(true);
+		socket = await createConnection(config);
+		await readFrame(socket);
+
+		sendFrame(socket, buildLoginXml(config.username, config.password));
+		const loginBuf = await readFrame(socket);
+		const loginParsed = parser.parse(loginBuf.toString("utf8")) as Record<string, unknown>;
+		const loginResult = getEppResult(loginParsed);
+		if (loginResult.code !== EPP_CODE_SUCCESS) {
+			sendFrame(socket, buildLogoutXml());
+			await readFrame(socket);
+			throw new Error(`KENIC EPP login failed: ${loginResult.msg}`);
+		}
+
+		sendFrame(socket, buildDomainInfoXml(params.domainName));
+		const infoBuf = await readFrame(socket);
+		const infoXmlStr = infoBuf.toString("utf8");
+		const infoParsed = parser.parse(infoXmlStr) as Record<string, unknown>;
+		const infoResult = getEppResult(infoParsed);
+		if (infoResult.code !== EPP_CODE_SUCCESS) {
+			sendFrame(socket, buildLogoutXml());
+			await readFrame(socket);
+			throw new Error(`KENIC domain info failed: ${infoResult.msg}`);
+		}
+
+		const infData = getResData(infoParsed)?.["domain:infData"] as Record<string, unknown> | undefined;
+		const rawEx = infData?.["domain:exDate"];
+		const curExpDate =
+			typeof rawEx === "string" && rawEx.trim() ? eppDateOnly(rawEx) : null;
+		if (!curExpDate) {
+			sendFrame(socket, buildLogoutXml());
+			await readFrame(socket);
+			throw new Error("KENIC domain info did not return an expiry date (required for renew).");
+		}
+
+		const renewXml = buildDomainRenewXml({
+			domain: params.domainName,
+			curExpDate,
+			periodYears: params.periodYears,
+		});
+		sendFrame(socket, renewXml);
+		const renewBuf = await readFrame(socket);
+		const renewXmlStr = renewBuf.toString("utf8");
+		const renewParsed = parser.parse(renewXmlStr) as Record<string, unknown>;
+		const renewResult = getEppResult(renewParsed);
+
+		if (params.orderId && params.orderItemId) {
+			void niscLog("processor_api_raw_response", {
+				niscOrderId: params.orderId,
+				orderItemId: params.orderItemId,
+				provider: "kenic",
+				call: "domainRenew",
+				rawResponse: {
+					info: { code: infoResult.code, msg: infoResult.msg, raw: infoXmlStr },
+					renew: { code: renewResult.code, msg: renewResult.msg, raw: renewXmlStr },
+				},
+			});
+		}
+
+		if (renewResult.code !== EPP_CODE_SUCCESS && renewResult.code !== "1001") {
+			sendFrame(socket, buildLogoutXml());
+			await readFrame(socket);
+			throw new Error(`KENIC domain renew failed: ${renewResult.msg}`);
+		}
+
+		const renData = getResData(renewParsed)?.["domain:renData"] as Record<string, unknown> | undefined;
+		const name = (renData?.["domain:name"] as string) ?? params.domainName;
+		const exDateRaw = renData?.["domain:exDate"];
+		const exDate =
+			typeof exDateRaw === "string" && exDateRaw.trim() ? exDateRaw.trim() : null;
+
+		sendFrame(socket, buildLogoutXml());
+		await readFrame(socket);
+
+		return {
+			success: true,
+			domain: name,
+			exDate,
+			rawResponse: { code: renewResult.code, msg: renewResult.msg, raw: renewXmlStr },
+		};
 	} finally {
 		socket?.destroy();
 	}

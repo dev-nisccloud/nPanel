@@ -1,6 +1,6 @@
 /** Subscriptions with expiry (or next renewal) on/before this many days from now are reminded. */
 export declare const RENEWAL_REMINDER_WINDOW_DAYS = 7;
-/** Skip re-sending if a cron/manual reminder was sent within this window. */
+/** After expiry, scheduled runs skip if a reminder was already sent within this window. */
 export declare const RENEWAL_REMINDER_DEDUPE_HOURS = 23;
 /** Treat RUNNING runs with no heartbeat older than this as stale. */
 export declare const RENEWAL_REMINDER_STALE_MS: number;
@@ -44,8 +44,8 @@ export declare function createRenewalReminderRun(opts: {
     qstashMessageId?: string | null;
 }): Promise<string>;
 /**
- * Scan client subscriptions that are expired or due within {@link RENEWAL_REMINDER_WINDOW_DAYS}
- * and send renewal reminder emails to team billing addresses.
+ * Scan every client subscription: sync dates, set ACTIVE/EXPIRED from those dates,
+ * and send renewal reminder emails for rows expired or due within {@link RENEWAL_REMINDER_WINDOW_DAYS}.
  * Persists run + per-subscription item logs.
  */
 export declare function processSubscriptionRenewalReminders(opts?: SubscriptionRenewalRemindersPayload): Promise<SubscriptionRenewalRemindersResult>;

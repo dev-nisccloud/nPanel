@@ -37,7 +37,7 @@ export const invoiceTemplateSchema = z.object({
   includeQr: z.boolean().optional(),
   taxRate: z.number().min(0).max(100).optional(),
   vatRate: z.number().min(0).max(100).optional(),
-  dateFormat: z.enum(["dd/MM/yyyy", "MM/dd/yyyy", "yyyy-MM-dd", "dd.MM.yyyy"]).optional(),
+  dateFormat: z.enum(["dd-MM-yyyy", "dd/MM/yyyy", "MM/dd/yyyy", "yyyy-MM-dd", "dd.MM.yyyy"]).optional(),
   deliveryType: z.enum(["create", "create_and_send", "scheduled"]).optional(),
   locale: z.string().optional(),
   timezone: z.string().optional(),

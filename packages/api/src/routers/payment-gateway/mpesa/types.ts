@@ -41,6 +41,8 @@ export const StkPushRequestSchema = z.object({
 	checkoutTotalIncVat: z.number().positive().optional(),
 	/** For agency users creating payment for a customer - transaction will be created for this user instead of the initiating agency user */
 	billedForUserId: z.string().optional(),
+	/** When set, a successful payment is applied to this invoice instead of creating a new order. */
+	invoiceId: z.string().optional(),
 });
 
 export type StkPushRequest = z.infer<typeof StkPushRequestSchema>;

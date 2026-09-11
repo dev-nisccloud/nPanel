@@ -124,10 +124,7 @@ export default function SubscriptionsIndexPage() {
 								<AlertDialogHeader>
 									<AlertDialogTitle>Run renewal reminder emails?</AlertDialogTitle>
 									<AlertDialogDescription>
-										Scans all subscriptions that are expired or due within 7 days and
-										sends reminder emails to each team&apos;s billing address. Already
-										reminded in the last day are skipped. This is the same job that
-										runs daily at 00:00 UTC.
+										This will send reminder emails now.
 									</AlertDialogDescription>
 								</AlertDialogHeader>
 								<AlertDialogFooter>

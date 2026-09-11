@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useParams, useNavigate, useLocation, Outlet } from "react-router";
-import { ArrowLeft, Download, FileText } from "lucide-react";
+import { ArrowLeft, Download, DollarSign, FileText } from "lucide-react";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/utils/trpc";
@@ -13,6 +13,8 @@ import { transformInvoiceToPreviewData } from "@/lib/transform-invoice-preview-d
 import { InvoicePaymentSummary } from "@/routes/agency.invoices/$id/_components/invoice-payment-summary";
 import { InvoiceTransactionsSection } from "@/routes/agency.invoices/$id/_components/invoice-transactions-section";
 import { InvoiceTransactionViewSheet } from "@/routes/agency.invoices/$id/_components/invoice-transaction-view-sheet";
+import { InvoicePayDialog } from "@/components/invoice-pay-dialog";
+import { resolveInvoicePaymentTotals } from "@/lib/invoice-payment-totals";
 import type { InvoiceTransaction } from "@/routes/agency.invoices/create/api/schemas";
 
 // Font registration state
@@ -108,6 +110,7 @@ export default function InvoiceViewPage() {
 
 	const invoicesPath = teamSlug ? `/${teamSlug}/invoices` : "/agency/invoices";
 	const [isDownloading, setIsDownloading] = React.useState(false);
+	const [updatePaymentOpen, setUpdatePaymentOpen] = React.useState(false);
 	const [transactionSheetOpen, setTransactionSheetOpen] = React.useState(false);
 	const [viewingTransaction, setViewingTransaction] = React.useState<InvoiceTransaction | null>(null);
 
@@ -171,6 +174,7 @@ export default function InvoiceViewPage() {
 
 	const previewData = transformInvoiceToPreviewData(invoice);
 	const existingCreditNoteId = invoice.creditNote?.id;
+	const paymentTotals = resolveInvoicePaymentTotals(invoice);
 	const paymentDetails = {
 		...previewData.paymentDetails,
 		etimsVerificationUrl: undefined,
@@ -199,6 +203,18 @@ export default function InvoiceViewPage() {
 						</div>
 					</div>
 					<div className="flex items-center gap-2">
+						<Button
+							onClick={() => setUpdatePaymentOpen(true)}
+							disabled={
+								paymentTotals.remaining <= 0 ||
+								isDownloading ||
+								invoice.status === "CANCELLED" ||
+								invoice.status === "WRITTEN_OFF"
+							}
+						>
+							<DollarSign className="mr-2 h-4 w-4" />
+							Pay now
+						</Button>
 						{existingCreditNoteId ? (
 							<Button
 								variant="outline"
@@ -264,6 +280,19 @@ export default function InvoiceViewPage() {
 					/>
 				</div>
 			</div>
+			<InvoicePayDialog
+				open={updatePaymentOpen}
+				onOpenChange={setUpdatePaymentOpen}
+				invoiceId={invoice.id}
+				invoiceNumber={invoice.invoiceNumber ?? null}
+				invoiceAmount={invoice.amount ?? null}
+				remainingAmount={paymentTotals.remaining}
+				currency={invoice.currency ?? "KES"}
+				teamId={invoice.teamId}
+				customerUserId={invoice.customerId}
+				invoiceReturnPath={`/${teamSlug}/invoices/${invoice.id}`}
+				showManual={false}
+			/>
 			<InvoiceTransactionViewSheet
 				transaction={viewingTransaction}
 				invoiceNumber={invoice.invoiceNumber}

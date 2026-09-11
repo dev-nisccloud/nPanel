@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/utils/trpc";
 import { invoiceUiSchema, type InvoiceUI } from "./schemas";
 import { Link } from "react-router";
+import { formatInvoiceDate } from "@/lib/invoice-date";
 function InvoicesTableSkeleton() {
   return (
     <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
@@ -160,9 +161,7 @@ export function InvoicesTable() {
                     : "- "}
                 </TableCell>
                 <TableCell>
-                  {invoice.dueDate
-                    ? new Date(invoice.dueDate).toLocaleDateString()
-                    : "- "}
+                  {formatInvoiceDate(invoice.dueDate, "- ")}
                 </TableCell>
               </TableRow>
             ))

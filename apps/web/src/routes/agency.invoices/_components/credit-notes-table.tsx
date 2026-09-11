@@ -18,6 +18,7 @@ import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { registerFonts } from "./invoices-list";
 import type { CreditNoteSummary } from "@npanel/api/routers/invoicing/schemas";
+import { formatInvoiceDate } from "@/lib/invoice-date";
 
 const formatCurrency = (amount: string | null | undefined, currency: string) => {
 	if (!amount) return "-";
@@ -32,11 +33,8 @@ const formatCurrency = (amount: string | null | undefined, currency: string) => 
 		: amount;
 };
 
-const formatDate = (value: string | Date | null | undefined) => {
-	if (!value) return "-";
-	const d = value instanceof Date ? value : new Date(value);
-	return Number.isNaN(d.getTime()) ? "-" : d.toLocaleDateString();
-};
+const formatDate = (value: string | Date | null | undefined) =>
+	formatInvoiceDate(value, "-");
 
 const statusVariant = (status: string) => {
 	switch (status) {

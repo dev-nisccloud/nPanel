@@ -29,7 +29,7 @@ import { toast } from "@/components/ui/sonner";
 import { PreviewDetails } from "@/routes/agency.invoices/create/_components/form/previewDetails";
 import { transformInvoiceToPreviewData } from "@/lib/transform-invoice-preview-data";
 import { captureEvent } from "@/lib/posthog";
-import { UpdatePaymentDialog } from "./agency.invoices/$id/_components/update-payment-dialog";
+import { InvoicePayDialog } from "@/components/invoice-pay-dialog";
 import { InvoiceKraStatusPanel, canSendInvoiceEmail } from "./agency.invoices/$id/_components/invoice-kra-status-panel";
 import { IssueCreditNoteDialog } from "./agency.invoices/$id/_components/issue-credit-note-dialog";
 import { InvoicePaymentSummary } from "./agency.invoices/$id/_components/invoice-payment-summary";
@@ -620,6 +620,19 @@ export default function InvoiceViewPage() {
 					</div>
 				</div>
 				<div className="flex items-center gap-2">
+					<Button
+						onClick={() => setUpdatePaymentOpen(true)}
+						disabled={
+							paymentTotals.remaining <= 0 ||
+							isDownloading ||
+							isSending ||
+							invoice.status === "CANCELLED" ||
+							invoice.status === "WRITTEN_OFF"
+						}
+					>
+						<DollarSign className="mr-2 h-4 w-4" />
+						Pay now
+					</Button>
 					{existingCreditNoteId ? (
 						<Button
 							variant="outline"
@@ -645,14 +658,6 @@ export default function InvoiceViewPage() {
 							Issue credit note
 						</Button>
 					)}
-					<Button
-						onClick={() => setUpdatePaymentOpen(true)}
-						disabled={paymentTotals.remaining <= 0 || isDownloading || isSending}
-						variant="outline"
-					>
-						<DollarSign className="mr-2 h-4 w-4" />
-						Update payment
-					</Button>
 					<Button
 						onClick={() => setMarkUnpaidConfirmOpen(true)}
 						disabled={invoice.status === "OVERDUE" || isDownloading || isSending}
@@ -704,12 +709,18 @@ export default function InvoiceViewPage() {
 				</div>
 			</div>
 
-			<UpdatePaymentDialog
+			<InvoicePayDialog
 				open={updatePaymentOpen}
 				onOpenChange={setUpdatePaymentOpen}
 				invoiceId={invoice.id}
+				invoiceNumber={invoice.invoiceNumber ?? null}
 				invoiceAmount={invoice.amount ?? null}
+				remainingAmount={paymentTotals.remaining}
 				currency={invoice.currency ?? "KES"}
+				teamId={invoice.teamId}
+				customerUserId={invoice.customerId}
+				invoiceReturnPath={`/agency/invoices/${invoice.id}`}
+				showManual
 			/>
 
 			<AlertDialog open={markUnpaidConfirmOpen} onOpenChange={setMarkUnpaidConfirmOpen}>

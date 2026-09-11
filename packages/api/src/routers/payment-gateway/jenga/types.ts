@@ -57,7 +57,7 @@ export const jengaOrderReferenceSchema = z
 	.regex(/^[a-zA-Z0-9]+$/, "Order reference must be alphanumeric");
 
 export const jengaOrderIntentSchema = z.object({
-	source: z.enum(["buy_now", "global_buy_now", "storefront"]),
+	source: z.enum(["buy_now", "global_buy_now", "storefront", "invoice"]),
 	/** Where to send the browser after Jenga (path on returnOrigin). */
 	returnPath: z.string().optional(),
 	/** Origin of the app that started checkout (window.location.origin). */
@@ -73,6 +73,8 @@ export const jengaOrderIntentSchema = z.object({
 	productId: z.string().optional(),
 	billingCycle: z.string().optional(),
 	primaryDomain: z.string().optional(),
+	invoiceId: z.string().optional(),
+	invoiceReturnPath: z.string().optional(),
 });
 
 export const initiateCardPaymentInputSchema = jengaCustomerFieldsSchema.extend({
@@ -166,7 +168,7 @@ export const jengaIpnPayloadSchema = z.object({
 export type JengaIpnPayload = z.infer<typeof jengaIpnPayloadSchema>;
 
 export type JengaPaymentMetadata = {
-	source?: "buy_now" | "global_buy_now" | "storefront";
+	source?: "buy_now" | "global_buy_now" | "storefront" | "invoice";
 	returnPath?: string;
 	/** Origin of the app that started checkout  used for post-Jenga redirect */
 	returnOrigin?: string;
@@ -190,4 +192,6 @@ export type JengaPaymentMetadata = {
 	productId?: string;
 	billingCycle?: string;
 	primaryDomain?: string;
+	invoiceId?: string;
+	invoiceReturnPath?: string;
 };

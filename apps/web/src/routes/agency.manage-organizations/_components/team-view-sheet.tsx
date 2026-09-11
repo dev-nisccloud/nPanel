@@ -1,7 +1,23 @@
 "use client";
 
 import * as React from "react";
-import { Building2, Users, Mail, Calendar, Globe, UserPlus, CheckCircle2, XCircle, Clock, Ban, MoreHorizontal, UserMinus, Trash2, XIcon } from "lucide-react";
+import { useNavigate } from "react-router";
+import {
+    Building2,
+    Users,
+    Mail,
+    Calendar,
+    Globe,
+    UserPlus,
+    CheckCircle2,
+    XCircle,
+    Clock,
+    Ban,
+    MoreHorizontal,
+    UserMinus,
+    Trash2,
+    XIcon,
+} from "lucide-react";
 import {
     Sheet,
     SheetClose,
@@ -13,7 +29,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -34,7 +49,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/sonner";
 import { trpc } from "@/utils/trpc";
-import { useUsersLookup } from "@/hooks/use-user-lookup";
 import { InviteMemberDialog } from "./invite-member-dialog";
 import { AddMemberDialog } from "./add-member-dialog";
 import { BillingSettingsTab } from "./billing-settings-tab";
@@ -45,11 +59,64 @@ interface TeamViewSheetProps {
     teamId: string;
 }
 
+function getBillingCycleDisplayName(cycle: string | null | undefined): string {
+    if (!cycle) return "—";
+    const labels: Record<string, string> = {
+        MONTHLY: "Monthly",
+        YEARLY: "Yearly",
+        BIENNIALLY: "Biennially",
+        CUSTOM: "Custom",
+        ONE_TIME: "One-time",
+    };
+    return labels[cycle] ?? cycle;
+}
+
+function formatDate(value: string | Date | null | undefined): string {
+    if (!value) return "—";
+    const date = value instanceof Date ? value : new Date(value);
+    return Number.isNaN(date.getTime()) ? "—" : date.toLocaleDateString();
+}
+
+function formatDateTime(value: string | Date | null | undefined): string {
+    if (!value) return "—";
+    const date = value instanceof Date ? value : new Date(value);
+    return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString();
+}
+
+function displayServiceName(
+    productName: string,
+    productPlanName: string | null,
+    subscriptionName: string | null,
+    billingCycle?: string | null,
+): string {
+    if (billingCycle === "ONE_TIME" && subscriptionName?.trim()) {
+        return subscriptionName.trim();
+    }
+    const base = productPlanName?.trim() ? `${productName} - ${productPlanName}` : productName;
+    return subscriptionName?.trim() ? `${base} (${subscriptionName})` : base;
+}
+
+function getStatusBadgeClass(status: string): string {
+    const statusColors: Record<string, string> = {
+        ACTIVE: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200 border-green-200 dark:border-green-800",
+        PENDING: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800",
+        SUSPENDED: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-200 border-orange-200 dark:border-orange-800",
+        CANCELLED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200 border-red-200 dark:border-red-800",
+        EXPIRED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200 border-red-200 dark:border-red-800",
+        PROCESSING: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200 border-blue-200 dark:border-blue-800",
+        FAILED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200 border-red-200 dark:border-red-800",
+        UPGRADED: "bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-200",
+        DOWNGRADED: "bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-200",
+    };
+    return statusColors[status] ?? "";
+}
+
 export function TeamViewSheet({
     open,
     onOpenChange,
     teamId,
 }: TeamViewSheetProps) {
+    const navigate = useNavigate();
     const [isInviteDialogOpen, setIsInviteDialogOpen] = React.useState(false);
     const [isAddMemberDialogOpen, setIsAddMemberDialogOpen] = React.useState(false);
     const [removeMemberDialog, setRemoveMemberDialog] = React.useState<{
@@ -86,29 +153,11 @@ export function TeamViewSheet({
         { enabled: open && !!teamId }
     );
 
-    const { data: subscriptions, isLoading: isLoadingSubscriptions } = trpc.teams.getHostingSubscriptions.useQuery(
-        { teamId },
-        { enabled: open && !!teamId }
-    );
-
-    // Get all user IDs for lookup
-    const userIds = React.useMemo(() => {
-        const ids: string[] = [];
-        if (team?.createdById) ids.push(team.createdById);
-        if (members) {
-            members.forEach((m) => {
-                if (m.userId) ids.push(m.userId);
-            });
-        }
-        if (invites) {
-            invites.forEach((inv) => {
-                if (inv.invitedById) ids.push(inv.invitedById);
-            });
-        }
-        return Array.from(new Set(ids));
-    }, [team, members, invites]);
-
-    const { usersMap, isLoading: isLoadingUsers } = useUsersLookup(userIds);
+    const { data: subscriptions, isLoading: isLoadingSubscriptions } =
+        trpc.clientSubscriptions.listForAgency.useQuery(
+            { teamId, limit: 200, offset: 0 },
+            { enabled: open && !!teamId }
+        );
 
     const utils = trpc.useUtils();
 
@@ -120,6 +169,7 @@ export function TeamViewSheet({
     const handleAddMemberSuccess = () => {
         void utils.teams.getMembers.invalidate({ teamId });
         void utils.teams.getInvites.invalidate({ teamId });
+        void utils.teams.getAll.invalidate();
         setIsAddMemberDialogOpen(false);
     };
 
@@ -132,6 +182,7 @@ export function TeamViewSheet({
         onSuccess: () => {
             toast.success("Member removed successfully");
             utils.teams.getMembers.invalidate({ teamId });
+            utils.teams.getAll.invalidate();
             setRemoveMemberDialog({ open: false, memberId: null, memberName: "" });
         },
         onError: (error) => {
@@ -198,21 +249,21 @@ export function TeamViewSheet({
         );
     };
 
-    const creator = team ? usersMap.get(team.createdById) : null;
+    const creatorLabel = team?.createdByName || team?.createdByEmail || "Unknown";
 
     if (!open) return null;
 
     return (
         <>
             <Sheet open={open} onOpenChange={onOpenChange}>
-                <SheetContent className="w-full sm:max-w-2xl p-0 flex flex-col">
-                    <SheetHeader className="p-6 border-b flex flex-row items-center justify-between space-y-0">
-                        <div className="flex items-center gap-4">
-                            <div className="p-2 bg-primary/10 rounded-full">
+                <SheetContent size="wide" className="w-full min-w-0 overflow-x-hidden p-0 flex flex-col">
+                    <SheetHeader className="p-6 border-b flex flex-row items-center justify-between gap-3 space-y-0 min-w-0">
+                        <div className="flex min-w-0 items-center gap-4">
+                            <div className="p-2 bg-primary/10 rounded-full shrink-0">
                                 <Building2 className="h-6 w-6 text-primary" />
                             </div>
-                            <div>
-                                <SheetTitle className="flex items-center gap-2">
+                            <div className="min-w-0">
+                                <SheetTitle className="truncate">
                                     {isLoadingTeam ? "Loading Organization..." : team?.name || "Organization Details"}
                                 </SheetTitle>
                                 <SheetDescription>
@@ -227,8 +278,8 @@ export function TeamViewSheet({
                         </SheetClose>
                     </SheetHeader>
 
-                    <ScrollArea className="flex-1 min-h-0 pr-4">
-                        <div className="px-6 py-6 space-y-6">
+                    <ScrollArea className="flex-1 min-h-0 min-w-0 overflow-x-hidden" viewportClassName="overflow-x-hidden">
+                        <div className="min-w-0 px-6 py-6 space-y-6">
                             {isLoadingTeam ? (
                                 <div className="flex items-center justify-center py-12">
                                     <Spinner size={32} />
@@ -242,16 +293,15 @@ export function TeamViewSheet({
                                 </div>
                             ) : (
                                 <>
-                                    {/* Overview Card */}
-                                    <Card>
+                                    <Card className="min-w-0 overflow-hidden">
                                         <CardHeader>
                                             <CardTitle className="text-lg flex items-center gap-2">
                                                 <Building2 className="h-5 w-5" />
                                                 Organization Overview
                                             </CardTitle>
-                                            <CardDescription>Basic organization identification</CardDescription>
+                                            <CardDescription>From organization record</CardDescription>
                                         </CardHeader>
-                                        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6 min-w-0">
                                             <div className="space-y-1">
                                                 <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Organization Name</span>
                                                 <p className="text-sm font-medium">{team.name}</p>
@@ -276,29 +326,27 @@ export function TeamViewSheet({
                                             </div>
                                             <div className="space-y-1">
                                                 <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Created By</span>
-                                                <p className="text-sm font-medium">
-                                                    {isLoadingUsers ? "Loading..." : creator?.name || creator?.email || "Unknown"}
-                                                </p>
+                                                <p className="text-sm font-medium">{creatorLabel}</p>
+                                                {team.createdByEmail && team.createdByName ? (
+                                                    <p className="text-xs text-muted-foreground">{team.createdByEmail}</p>
+                                                ) : null}
                                             </div>
                                             <div className="space-y-1">
                                                 <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Created At</span>
-                                                <p className="text-sm font-medium">
-                                                    {new Date(team.createdAt).toLocaleString()}
-                                                </p>
+                                                <p className="text-sm font-medium">{formatDateTime(team.createdAt)}</p>
                                             </div>
                                         </CardContent>
                                     </Card>
 
-                                    {/* Members Card */}
-                                    <Card>
-                                        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                                    <Card className="min-w-0 overflow-hidden">
+                                        <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between min-w-0">
                                             <div>
                                                 <CardTitle className="text-lg flex items-center gap-2">
                                                     <Users className="h-5 w-5" />
                                                     Organization Members
                                                 </CardTitle>
                                                 <CardDescription>
-                                                    Add existing users directly (no email invite)
+                                                    Members of this organization
                                                 </CardDescription>
                                             </div>
                                             <Button size="sm" onClick={() => setIsAddMemberDialogOpen(true)}>
@@ -307,7 +355,7 @@ export function TeamViewSheet({
                                             </Button>
                                         </CardHeader>
                                         <CardContent>
-                                            {isLoadingMembers || isLoadingUsers ? (
+                                            {isLoadingMembers ? (
                                                 <div className="flex items-center justify-center py-6">
                                                     <Spinner size={24} />
                                                 </div>
@@ -319,14 +367,17 @@ export function TeamViewSheet({
                                             ) : (
                                                 <div className="grid gap-3">
                                                     {members.map((member) => {
-                                                        const user = usersMap.get(member.userId);
-                                                        const memberName = user?.name || user?.email || "Unknown";
+                                                        const memberName = member.userName || member.userEmail || "Unknown";
                                                         return (
                                                             <div key={member.id} className="p-3 border rounded-lg flex items-center justify-between bg-muted/20">
                                                                 <div className="space-y-0.5">
                                                                     <p className="text-sm font-semibold">{memberName}</p>
-                                                                    {user?.email && <p className="text-xs text-muted-foreground">{user.email}</p>}
-                                                                    <p className="text-[10px] text-muted-foreground">Joined: {new Date(member.createdAt).toLocaleDateString()}</p>
+                                                                    {member.userEmail ? (
+                                                                        <p className="text-xs text-muted-foreground">{member.userEmail}</p>
+                                                                    ) : null}
+                                                                    <p className="text-[10px] text-muted-foreground">
+                                                                        Joined: {formatDate(member.createdAt)}
+                                                                    </p>
                                                                 </div>
                                                                 <div className="flex items-center gap-2">
                                                                     <Badge variant="outline" className="text-[10px]">{member.role}</Badge>
@@ -358,16 +409,15 @@ export function TeamViewSheet({
                                         </CardContent>
                                     </Card>
 
-                                    {/* Invitations Card */}
-                                    <Card>
-                                        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                                    <Card className="min-w-0 overflow-hidden">
+                                        <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between min-w-0">
                                             <div>
                                                 <CardTitle className="text-lg flex items-center gap-2">
                                                     <Mail className="h-5 w-5" />
-                                                    Active Invitations
+                                                    Invitations
                                                 </CardTitle>
                                                 <CardDescription>
-                                                    Email invite when the person does not have an account yet
+                                                    Email invites for this organization
                                                 </CardDescription>
                                             </div>
                                             <Button size="sm" onClick={() => setIsInviteDialogOpen(true)}>
@@ -376,26 +426,26 @@ export function TeamViewSheet({
                                             </Button>
                                         </CardHeader>
                                         <CardContent>
-                                            {isLoadingInvites || isLoadingUsers ? (
+                                            {isLoadingInvites ? (
                                                 <div className="flex items-center justify-center py-6">
                                                     <Spinner size={24} />
                                                 </div>
                                             ) : !invites || invites.length === 0 ? (
                                                 <div className="flex flex-col items-center justify-center py-6 text-center text-muted-foreground">
                                                     <Mail className="h-10 w-10 mb-2 opacity-20" />
-                                                    <p>No pending invitations.</p>
+                                                    <p>No invitations for this organization.</p>
                                                 </div>
                                             ) : (
                                                 <div className="grid gap-3">
                                                     {invites.map((invite) => {
-                                                        const inviter = usersMap.get(invite.invitedById);
+                                                        const inviterLabel = invite.invitedByName || invite.invitedByEmail || "Unknown";
                                                         return (
                                                             <div key={invite.id} className="p-3 border rounded-lg bg-muted/20">
                                                                 <div className="flex items-center justify-between mb-2">
                                                                     <div className="space-y-0.5">
                                                                         <p className="text-sm font-semibold">{invite.email}</p>
                                                                         <p className="text-[10px] text-muted-foreground">
-                                                                            Invited by: {inviter?.name || inviter?.email || "Unknown"}
+                                                                            Invited by: {inviterLabel}
                                                                         </p>
                                                                     </div>
                                                                     <div className="flex items-center gap-2">
@@ -423,7 +473,7 @@ export function TeamViewSheet({
                                                                 </div>
                                                                 <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
                                                                     <span className="flex items-center gap-1 font-medium italic"><Globe className="h-2 w-2" /> Role: {invite.role}</span>
-                                                                    <span className="flex items-center gap-1"><Calendar className="h-2 w-2" /> Expires: {new Date(invite.expiresAt).toLocaleDateString()}</span>
+                                                                    <span className="flex items-center gap-1"><Calendar className="h-2 w-2" /> Expires: {formatDate(invite.expiresAt)}</span>
                                                                 </div>
                                                             </div>
                                                         );
@@ -433,14 +483,13 @@ export function TeamViewSheet({
                                         </CardContent>
                                     </Card>
 
-                                    {/* Subscriptions Card */}
-                                    <Card>
+                                    <Card className="min-w-0 overflow-hidden">
                                         <CardHeader>
                                             <CardTitle className="text-lg flex items-center gap-2">
                                                 <Globe className="h-5 w-5" />
-                                                Hosting Subscriptions
+                                                Subscriptions
                                             </CardTitle>
-                                            <CardDescription>Associated service plans</CardDescription>
+                                            <CardDescription>Nisc subscriptions linked to this organization</CardDescription>
                                         </CardHeader>
                                         <CardContent>
                                             {isLoadingSubscriptions ? (
@@ -450,48 +499,64 @@ export function TeamViewSheet({
                                             ) : !subscriptions || subscriptions.length === 0 ? (
                                                 <div className="flex flex-col items-center justify-center py-6 text-center text-muted-foreground">
                                                     <Globe className="h-10 w-10 mb-2 opacity-20" />
-                                                    <p>No hosting plans found.</p>
+                                                    <p>No subscriptions found.</p>
                                                 </div>
                                             ) : (
                                                 <div className="grid gap-3">
                                                     {subscriptions.map((subscription) => (
-                                                        <div key={subscription.id} className="p-3 border rounded-lg space-y-3 bg-muted/20">
-                                                            <div className="flex items-center justify-between">
-                                                                <div className="space-y-0.5">
-                                                                    <p className="text-sm font-semibold">{subscription.primaryDomain || "No domain linked"}</p>
-                                                                    <p className="text-[10px] text-muted-foreground uppercase">{subscription.hostingType}</p>
+                                                        <button
+                                                            key={subscription.id}
+                                                            type="button"
+                                                            className="p-3 border rounded-lg space-y-3 bg-muted/20 text-left hover:bg-muted/40 transition-colors"
+                                                            onClick={() => {
+                                                                onOpenChange(false);
+                                                                void navigate(`/agency/subscriptions?subscriptionId=${subscription.id}`);
+                                                            }}
+                                                        >
+                                                            <div className="flex items-center justify-between gap-2">
+                                                                <div className="space-y-0.5 min-w-0">
+                                                                    <p className="text-sm font-semibold truncate">
+                                                                        {displayServiceName(
+                                                                            subscription.productName,
+                                                                            subscription.productPlanName,
+                                                                            subscription.subscriptionName,
+                                                                            subscription.billingCycle,
+                                                                        )}
+                                                                    </p>
+                                                                    {subscription.primaryDomain ? (
+                                                                        <p className="text-[10px] text-muted-foreground truncate">
+                                                                            {subscription.primaryDomain}
+                                                                        </p>
+                                                                    ) : null}
                                                                 </div>
-                                                                <Badge variant={subscription.autoRenew ? "default" : "secondary"} className="text-[10px]">
-                                                                    {subscription.autoRenew ? "Auto Renew" : "Manual"}
+                                                                <Badge variant="outline" className={`text-[10px] shrink-0 ${getStatusBadgeClass(subscription.status)}`}>
+                                                                    {subscription.status.replace(/_/g, " ")}
                                                                 </Badge>
                                                             </div>
                                                             <div className="grid grid-cols-2 gap-4 text-[11px]">
                                                                 <div>
                                                                     <p className="text-muted-foreground">Cycle</p>
-                                                                    <p className="font-medium">{subscription.billingCycle}</p>
+                                                                    <p className="font-medium">{getBillingCycleDisplayName(subscription.billingCycle)}</p>
                                                                 </div>
-                                                                {subscription.nextRenewalDate && (
-                                                                    <div>
-                                                                        <p className="text-muted-foreground">Renewal</p>
-                                                                        <p className="font-medium text-blue-600">{new Date(subscription.nextRenewalDate).toLocaleDateString()}</p>
-                                                                    </div>
-                                                                )}
+                                                                <div>
+                                                                    <p className="text-muted-foreground">Expires</p>
+                                                                    <p className="font-medium">{formatDate(subscription.expiryDate)}</p>
+                                                                </div>
                                                             </div>
-                                                        </div>
+                                                        </button>
                                                     ))}
                                                 </div>
                                             )}
                                         </CardContent>
                                     </Card>
 
-                                    {/* Billing Settings Card */}
-                                    <Card>
+                                    <Card className="min-w-0 overflow-hidden">
                                         <CardHeader>
                                             <CardTitle className="text-lg flex items-center gap-2">
                                                 <Building2 className="h-5 w-5" />
                                                 Billing Configuration
                                             </CardTitle>
-                                            <CardDescription>Organization financial settings</CardDescription>
+                                            <CardDescription>Organization billing settings</CardDescription>
                                         </CardHeader>
                                         <CardContent>
                                             <BillingSettingsTab teamId={teamId} />

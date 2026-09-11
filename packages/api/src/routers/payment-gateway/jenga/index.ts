@@ -96,6 +96,8 @@ export const jengaRouter = router({
 				productId: input.orderIntent?.productId,
 				billingCycle: input.orderIntent?.billingCycle,
 				primaryDomain: input.orderIntent?.primaryDomain,
+				invoiceId: input.orderIntent?.invoiceId,
+				invoiceReturnPath: input.orderIntent?.invoiceReturnPath,
 			};
 
 			const extraData = JSON.stringify({
@@ -271,6 +273,8 @@ export const jengaRouter = router({
 					receiptNumber: transaction.receiptNumber,
 					gatewayMessage: transaction.gatewayMessage,
 					source: metadata?.source,
+					invoiceId: metadata?.invoiceId ?? null,
+					invoiceReturnPath: metadata?.invoiceReturnPath ?? null,
 					orderIntent: metadata
 						? {
 								items: metadata.items,

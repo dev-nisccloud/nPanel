@@ -16,10 +16,9 @@ export const etimsInitializationRouter = router({
     /**
      * Initialize the OSCU device with KRA and obtain the cmcKey.
      *
-     * Correct endpoint: POST /selectInitOsdcInfo
-     * Headers:  Authorization: Bearer <token>  (NO tin/bhfId/cmcKey yet)
+     * Gava Connect sandbox: POST https://sbx.kra.go.ke/etims-oscu/api/v1/initialize
+     * Headers:  Authorization + apigee_app_id + tin + bhfId (no cmcKey yet)
      * Body:     { tin, bhfId, dvcSrlNo }
-     * Response: { resultCd: "000", data: { info: { cmcKey, ... } } }
      */
     initializeDevice: etimsProcedure
         .input(z.object({
@@ -43,6 +42,9 @@ export const etimsInitializationRouter = router({
             // Build client from env (DB record may not exist yet)
             const clientConfig = buildClientConfigFromEnv(input.isSandbox);
             const client = getEtimsClient(clientConfig);
+            const kraInitUrl = `${clientConfig.baseUrl.replace(/\/+$/, "")}${
+                /etims-oscu/i.test(clientConfig.baseUrl) ? "/initialize" : "/selectInitOsdcInfo"
+            }`;
 
             // Clear any cached token - initialization must use a fresh one
             await client.clearToken();
@@ -119,6 +121,7 @@ export const etimsInitializationRouter = router({
                 return {
                     success: true,
                     cmcKey,
+                    kraInitUrl,
                     configId: existing.id,
                     info: info ?? null,
                     reusedExistingCmcKey: !info?.cmcKey,
@@ -136,6 +139,7 @@ export const etimsInitializationRouter = router({
             return {
                 success: true,
                 cmcKey,
+                kraInitUrl,
                 configId: newId,
                 info: info ?? null,
                 reusedExistingCmcKey: false,

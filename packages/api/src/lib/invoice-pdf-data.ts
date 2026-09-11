@@ -4,6 +4,7 @@
  */
 import type { InvoiceDetail } from "../routers/invoicing/schemas";
 import { COMPANY_LOGO_URL } from "./company-branding";
+import { formatInvoiceDate } from "./nisc-datetime-format";
 
 export type InvoiceForPdfData = Pick<
 	InvoiceDetail,
@@ -65,13 +66,6 @@ export interface InvoicePdfRenderData {
 	swiftCode?: string;
 }
 
-function formatPdfDate(value: Date | string | null | undefined): string {
-	if (!value) return "N/A";
-	const d = value instanceof Date ? value : new Date(value);
-	if (Number.isNaN(d.getTime())) return "N/A";
-	return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-}
-
 function formatMoney(currency: string, amount: string): string {
 	const n = Number.parseFloat(amount);
 	if (Number.isNaN(n)) return `${currency} ${amount}`;
@@ -115,8 +109,8 @@ export function convertInvoiceDetailToPdfRenderData(invoice: InvoiceForPdfData):
 		customerCountry: customer.country ? String(customer.country) : undefined,
 		customerTaxId: customer.taxId ? String(customer.taxId) : undefined,
 		invoiceNumber: invoice.invoiceNumber ?? "Invoice",
-		issueDate: formatPdfDate(invoice.issueDate),
-		dueDate: formatPdfDate(invoice.dueDate),
+		issueDate: formatInvoiceDate(invoice.issueDate) || "N/A",
+		dueDate: formatInvoiceDate(invoice.dueDate) || "N/A",
 		currency,
 		lineItems,
 		subtotal: invoice.subtotal ?? "0",

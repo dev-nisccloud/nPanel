@@ -211,7 +211,12 @@ export async function sendEmail({
       });
 
       console.log("Email sent successfully via SES:", res.MessageId);
-      return { id: res.MessageId };
+      return {
+        id: res.MessageId,
+        fromEmail,
+        fromName,
+        replyTo,
+      };
     } catch (err) {
       lastError = err;
       const msg = err instanceof Error ? err.message : String(err);
@@ -291,7 +296,12 @@ export async function sendEmailWithPdf({
       });
 
       console.log("Email with PDF sent successfully via SES:", res.MessageId);
-      return { id: res.MessageId };
+      return {
+        id: res.MessageId,
+        fromEmail,
+        fromName,
+        replyTo,
+      };
     } catch (err) {
       lastError = err;
       const msg = err instanceof Error ? err.message : String(err);

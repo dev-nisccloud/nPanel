@@ -380,6 +380,33 @@ export function buildDomainInfoXml(domain: string, authInfo?: string): string {
 </epp>`;
 }
 
+/**
+ * Build EPP domain:renew command (RFC 5731 §3.2.3).
+ * curExpDate is required so repeated renews cannot stack accidentally.
+ */
+export function buildDomainRenewXml(params: {
+	domain: string;
+	curExpDate: string;
+	periodYears?: number;
+}): string {
+	const period =
+		params.periodYears != null && params.periodYears > 0
+			? `\n        <domain:period unit="y">${params.periodYears}</domain:period>`
+			: "";
+	return `<?xml version="1.0" encoding="UTF-8"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0" xmlns:domain="urn:ietf:params:xml:ns:domain-1.0">
+  <command>
+    <renew>
+      <domain:renew>
+        <domain:name>${escapeXml(params.domain)}</domain:name>
+        <domain:curExpDate>${escapeXml(params.curExpDate)}</domain:curExpDate>${period}
+      </domain:renew>
+    </renew>
+    <clTRID>${escapeXml(clTrId())}</clTRID>
+  </command>
+</epp>`;
+}
+
 export interface ContactUpdateParams {
 	id: string;
 	postalInfo?: ContactCreatePostalInfo;

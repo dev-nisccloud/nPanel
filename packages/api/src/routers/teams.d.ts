@@ -106,6 +106,7 @@ export declare const teamsRouter: import("@trpc/server").TRPCBuiltRouter<{
             createdAt: Date;
             updatedAt: Date;
             memberCount: number;
+            subscriptionCount: number;
         }[];
         meta: object;
     }>;
@@ -166,6 +167,8 @@ export declare const teamsRouter: import("@trpc/server").TRPCBuiltRouter<{
             createdById: string;
             createdAt: Date;
             updatedAt: Date;
+            createdByName: string | null;
+            createdByEmail: string | null;
         };
         meta: object;
     }>;
@@ -179,6 +182,8 @@ export declare const teamsRouter: import("@trpc/server").TRPCBuiltRouter<{
             role: "MEMBER" | "OWNER" | "ADMIN" | "VIEWER";
             createdAt: Date;
             updatedAt: Date;
+            userName: string | null;
+            userEmail: string | null;
         }[];
         meta: object;
     }>;
@@ -192,6 +197,8 @@ export declare const teamsRouter: import("@trpc/server").TRPCBuiltRouter<{
             role: "MEMBER" | "OWNER" | "ADMIN" | "VIEWER";
             status: "PENDING" | "ACCEPTED" | "DECLINED" | "EXPIRED" | "CANCELLED";
             invitedById: string;
+            invitedByName: string | null;
+            invitedByEmail: string | null;
             expiresAt: Date;
             acceptedAt: Date | null;
             createdAt: Date;

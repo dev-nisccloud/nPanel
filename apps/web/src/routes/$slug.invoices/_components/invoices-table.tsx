@@ -31,6 +31,7 @@ import { toast } from "@/components/ui/sonner";
 import { captureEvent } from "@/lib/posthog";
 import { registerFonts } from "./invoices-list";
 import type { InvoiceSummary } from "@/routes/agency.invoices/create/api/schemas";
+import { formatInvoiceDate } from "@/lib/invoice-date";
 
 const formatCurrency = (amount: string | null | undefined, currency: string) => {
 	if (!amount) return "- ";
@@ -38,11 +39,8 @@ const formatCurrency = (amount: string | null | undefined, currency: string) => 
 	return Number.isFinite(n) ? new Intl.NumberFormat("en-US", { style: "currency", currency }).format(n) : amount;
 };
 
-const formatDate = (value: string | Date | null | undefined) => {
-	if (!value) return "- ";
-	const d = value instanceof Date ? value : new Date(value);
-	return Number.isNaN(d.getTime()) ? "- " : d.toLocaleDateString();
-};
+const formatDate = (value: string | Date | null | undefined) =>
+	formatInvoiceDate(value, "- ");
 
 interface InvoiceRowActionsProps {
 	invoice: InvoiceSummary;
