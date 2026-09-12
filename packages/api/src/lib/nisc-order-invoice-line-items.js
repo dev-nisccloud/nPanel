@@ -192,8 +192,23 @@ export function buildNiscOrderInvoiceLineItemCopy(item, subscriptionStart) {
 }
 /** PDF / preview line text: title and subscription on separate lines for wrapping. */
 export function formatInvoiceLineItemForPdf(name, description) {
-    const desc = description?.trim();
+    const desc = normalizeStoredInvoicePeriodDescription(description)?.trim();
     if (!desc)
         return name;
     return `${name}\n${desc}`;
+}
+/**
+ * Display-time cleanup for stored invoice period copy:
+ * 4-digit years, and "Renewal" when the invoice is a subscription renewal.
+ */
+export function normalizeStoredInvoicePeriodDescription(description, context) {
+    if (!description?.trim())
+        return description ?? null;
+    let desc = description.replace(/\b(\d{2})-(\d{2})-(\d{2})\b/g, (_m, dd, mm, yy) => `${dd}-${mm}-20${yy}`);
+    const source = `${context?.invoiceSource ?? ""} ${context?.lineSource ?? ""}`.toLowerCase();
+    const isRenewal = source.includes("renewal") || source.includes("subscription-renewal-reminder");
+    if (isRenewal && /^Subscription:/i.test(desc)) {
+        desc = `Renewal:${desc.slice(desc.indexOf(":") + 1)}`;
+    }
+    return desc;
 }

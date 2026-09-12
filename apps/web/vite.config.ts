@@ -79,6 +79,10 @@ export default defineConfig(async (config) => {
         devOptions: { enabled: true },
       }),
     ],
+    // Prefer source over stale sibling .js next to .ts in workspace packages.
+    resolve: {
+      extensions: [".mts", ".ts", ".tsx", ".mjs", ".js", ".jsx", ".json"],
+    },
     // Required so sentryOnBuildEnd can upload source maps
     sentryConfig,
     server: {

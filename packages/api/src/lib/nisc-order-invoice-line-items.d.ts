@@ -43,3 +43,11 @@ export declare function buildNiscOrderInvoiceLineItemCopy(item: NiscOrderItemFor
 }, subscriptionStart: Date): NiscOrderInvoiceLineItemCopy;
 /** PDF / preview line text: title and subscription on separate lines for wrapping. */
 export declare function formatInvoiceLineItemForPdf(name: string, description?: string | null): string;
+/**
+ * Display-time cleanup for stored invoice period copy:
+ * 4-digit years, and "Renewal" when the invoice is a subscription renewal.
+ */
+export declare function normalizeStoredInvoicePeriodDescription(description: string | null | undefined, context?: {
+    invoiceSource?: string | null;
+    lineSource?: string | null;
+}): string | null;
