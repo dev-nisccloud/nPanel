@@ -138,6 +138,7 @@ export function CustomerSubscriptionViewSheet({
 						<Skeleton className="h-24 w-full rounded-lg" />
 					</div>
 				) : sub ? (
+					<>
 					<ScrollArea className="flex-1 min-h-0 px-6 pr-4 pb-6">
 						<div className="space-y-6">
 							{/* Overview */}
@@ -237,6 +238,7 @@ export function CustomerSubscriptionViewSheet({
 							/>
 						</SheetFooter>
 						) : null}
+					</>
 				) : (
 					<div className="flex-1 flex items-center justify-center px-6 py-12 text-sm text-muted-foreground">
 						Subscription not found
