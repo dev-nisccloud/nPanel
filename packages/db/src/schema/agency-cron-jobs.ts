@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+  boolean,
   index,
   integer,
   jsonb,
@@ -115,6 +116,36 @@ export const agencyCronJobRunItemRelations = relations(
       references: [niscClientSubscription.id],
     }),
   }),
+);
+
+export const agencyCronJobSetting = pgTable("agency_cron_job_setting", {
+  jobKey: text("job_key").primaryKey(),
+  enabled: boolean("enabled").notNull().default(true),
+  updatedByUserId: text("updated_by_user_id").references(() => user.id, {
+    onDelete: "set null",
+  }),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const agencyCronJobActivity = pgTable(
+  "agency_cron_job_activity",
+  {
+    id: text("id").primaryKey(),
+    jobKey: text("job_key").notNull(),
+    /** enabled | disabled */
+    action: text("action").notNull(),
+    userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+  },
+  (table) => [
+    index("agency_cron_job_activity_jobKey_idx").on(table.jobKey),
+    index("agency_cron_job_activity_createdAt_idx").on(table.createdAt),
+    index("agency_cron_job_activity_jobKey_createdAt_idx").on(
+      table.jobKey,
+      table.createdAt,
+    ),
+  ],
 );
 
 export const AGENCY_CRON_JOB_KEYS = {

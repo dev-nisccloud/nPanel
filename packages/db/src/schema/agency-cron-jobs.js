@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { index, integer, jsonb, pgTable, text, timestamp, } from "drizzle-orm/pg-core";
+import { boolean, index, integer, jsonb, pgTable, text, timestamp, } from "drizzle-orm/pg-core";
 import { user } from "./auth";
 import { niscClientSubscription } from "./products";
 /**
@@ -87,6 +87,26 @@ export const agencyCronJobRunItemRelations = relations(agencyCronJobRunItem, ({ 
         references: [niscClientSubscription.id],
     }),
 }));
+export const agencyCronJobSetting = pgTable("agency_cron_job_setting", {
+    jobKey: text("job_key").primaryKey(),
+    enabled: boolean("enabled").notNull().default(true),
+    updatedByUserId: text("updated_by_user_id").references(() => user.id, {
+        onDelete: "set null",
+    }),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+export const agencyCronJobActivity = pgTable("agency_cron_job_activity", {
+    id: text("id").primaryKey(),
+    jobKey: text("job_key").notNull(),
+    action: text("action").notNull(),
+    userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    metadata: jsonb("metadata").$type(),
+}, (table) => [
+    index("agency_cron_job_activity_jobKey_idx").on(table.jobKey),
+    index("agency_cron_job_activity_createdAt_idx").on(table.createdAt),
+    index("agency_cron_job_activity_jobKey_createdAt_idx").on(table.jobKey, table.createdAt),
+]);
 export const AGENCY_CRON_JOB_KEYS = {
     SUBSCRIPTION_RENEWAL_REMINDERS: "subscription-renewal-reminders",
 };

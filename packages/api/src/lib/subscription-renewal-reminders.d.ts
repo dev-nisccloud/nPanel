@@ -5,6 +5,25 @@ export declare const RENEWAL_REMINDER_DEDUPE_HOURS = 23;
 /** Treat RUNNING runs with no heartbeat older than this as stale. */
 export declare const RENEWAL_REMINDER_STALE_MS: number;
 export declare const SUBSCRIPTION_RENEWAL_REMINDERS_JOB_KEY: "subscription-renewal-reminders";
+export declare const RENEWAL_REMINDER_CRON_DISABLED_MESSAGE = "Cron is off";
+export declare function isRenewalReminderCronEnabled(): Promise<boolean>;
+export declare function getRenewalReminderCronSetting(): Promise<{
+    enabled: boolean;
+    updatedAt: Date | null;
+    updatedByUserId: string | null;
+}>;
+export declare function setRenewalReminderCronEnabled(enabled: boolean, userId: string): Promise<{
+    enabled: boolean;
+    changed: boolean;
+}>;
+export declare function listRenewalReminderCronActivity(limit?: number): Promise<{
+    id: string;
+    action: string;
+    createdAt: Date;
+    userId: string | null;
+    userName: string | null;
+    userEmail: string | null;
+}[]>;
 export type SubscriptionRenewalRemindersPayload = {
     offset?: number;
     limit?: number;

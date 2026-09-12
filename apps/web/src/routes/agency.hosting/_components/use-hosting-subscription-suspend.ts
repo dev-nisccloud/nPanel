@@ -29,6 +29,10 @@ export function useHostingSubscriptionSuspend(options?: {
   const invalidateSubscriptions = React.useCallback(() => {
     void utils.plesk.subscriptions.getAll.invalidate();
     void utils.hosting.getDetailWithSubscription.invalidate();
+    void utils.clientSubscriptions.getAll.invalidate();
+    void utils.clientSubscriptions.listForAgency.invalidate();
+    void utils.clientSubscriptions.getPleskSubscriptionIdsWithLinkedSubscription.invalidate();
+    void utils.clientSubscriptions.getLinkedHostingCustomersByPleskIds.invalidate();
   }, [utils]);
 
   const suspendMutation = trpc.plesk.subscriptionsSuspend.suspend.useMutation({

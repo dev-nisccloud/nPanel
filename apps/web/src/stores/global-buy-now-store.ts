@@ -12,6 +12,16 @@ export interface DomainBundleCheckoutContext {
 	domains: DomainSearchResult[];
 }
 
+/** Paid catalog upgrade of an existing nisc client subscription. */
+export interface ProductUpgradeContext {
+	subscriptionId: string;
+	/** Catalog plan the subscription is currently on, when known. */
+	currentPlanId?: string | null;
+	/** Only show catalog plans with a higher sortOrder than this. */
+	minSortOrder: number;
+	primaryDomain?: string | null;
+}
+
 export interface ProductContext {
 	productId: string;
 	productName: string;
@@ -20,6 +30,8 @@ export interface ProductContext {
 	/** When buying a domain bundle, pass bundle pricing and all domains in the bundle */
 	domainBundle?: DomainBundleCheckoutContext | null;
 	teamId?: string;
+	/** When set, checkout is an upgrade of this subscription (higher catalog plans only). */
+	upgrade?: ProductUpgradeContext;
 }
 
 /** Context for domain transfer checkout: pay then createFromPayment with domain_transfer item (fire-and-forget). */

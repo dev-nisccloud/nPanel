@@ -25,6 +25,7 @@ import { useHostingDetailBatched } from "./use-hosting-detail-batched";
 import { getStatusDisplayText, getStatusBadgeVariant } from "./hosting-utils";
 import { CreateSubscriptionForHostingDialog } from "./create-subscription-for-hosting-dialog";
 import { HostingSubscriptionActionMenu } from "./hosting-subscription-action-menu";
+import { PleskLinkedSubscriptionUpgradeButton } from "@/routes/agency.subscriptions/_components/subscription-upgrade-button";
 import { HostingSubscriptionSuspendDialog } from "./hosting-subscription-suspend-dialog";
 import { useHostingSubscriptionSuspend } from "./use-hosting-subscription-suspend";
 import { trpc } from "@/utils/trpc";
@@ -225,6 +226,11 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
 
           <div className="flex items-center gap-2">
             {getStatusBadge(hostingData.gen_info.status ?? 0)}
+            <PleskLinkedSubscriptionUpgradeButton
+              pleskSubscriptionId={hostingData.id ?? subscriptionId}
+              domain={hostingData.gen_info.name}
+              onUpgraded={() => refetch()}
+            />
             <HostingSubscriptionActionMenu
               subscriptionId={Number(subscriptionId)}
               subscriptionName={hostingData.gen_info.name || `Subscription ${hostingData.id}`}

@@ -2,6 +2,10 @@
 
 import * as React from "react";
 import { HelpCircle, Check, Receipt, CreditCard } from "lucide-react";
+import {
+  PlanOptionWithFeatures,
+  resolvePlanFeatureDisplay,
+} from "@/components/plan-option-with-features";
 import { cn } from "@/lib/utils";
 import { computeCeilVatTotals, paymentTotalString } from "@npanel/api/lib/convert-price";
 import { domainBillingCycleFromYears } from "@npanel/api/lib/nisc-domain-billing-cycle";
@@ -327,6 +331,7 @@ export function GlobalBuyNowDialog() {
   const isCartMode = mode === "cart";
   const isTransferMode = mode === "transfer";
   const ctx = productContext;
+  const isUpgradeMode = Boolean(ctx?.upgrade?.subscriptionId);
   const isDomainBundle = Boolean(ctx?.domainBundle?.domains?.length);
   const bundleCtx = ctx?.domainBundle ?? null;
   const hasDomain = !!ctx?.domain?.domain;
@@ -366,7 +371,7 @@ export function GlobalBuyNowDialog() {
   const emailFromPrice = getMinYearlyFromPlans(emailHostingPricing?.plans ?? []);
 
   const isCustomerDomainCheckout = isDomainProduct && !isAgencySide;
-  const needsRegistrantStep = isAgencySide || isCustomerDomainCheckout;
+  const needsRegistrantStep = !isUpgradeMode && (isAgencySide || isCustomerDomainCheckout);
 
   const userInfoQuery = trpc.userProfile.getUserInfo.useQuery(undefined, {
     enabled: open && (needsRegistrantStep || currentStep === "payment"),
@@ -470,11 +475,45 @@ export function GlobalBuyNowDialog() {
       additionalNotes: teamBilling.additionalNotes ?? null,
     };
   }, [teamBilling]);
-  const { data: planSelectionProduct } = trpc.products.getById.useQuery(
-    { id: planSelectionProductId ?? "", includePlans: true },
-    { enabled: !!planSelectionProductId && currentStep === "plan-selection" }
+  const catalogProductId =
+    planSelectionProductId ?? (isUpgradeMode && open ? ctx?.productId ?? null : null);
+  const {
+    data: planSelectionProduct,
+    isPending: isPlanCatalogPending,
+    isFetching: isPlanCatalogFetching,
+    isError: isPlanCatalogError,
+  } = trpc.products.getById.useQuery(
+    { id: catalogProductId ?? "", includePlans: true },
+    {
+      enabled: !!catalogProductId,
+      staleTime: 60_000,
+      refetchOnWindowFocus: false,
+    },
   );
-  const plans = (planSelectionProduct as { plans?: Array<{ id: string; name: string; price: string | null; currency: string; billingCycle: string | null }> })?.plans ?? [];
+  const isPlanCatalogLoading =
+    !!catalogProductId &&
+    (isPlanCatalogPending || (isPlanCatalogFetching && !planSelectionProduct));
+  const productFeatureCatalog =
+    (planSelectionProduct as { features?: Array<{ key: string; label: string; description?: string }> } | undefined)
+      ?.features ?? [];
+  const allCatalogPlans = (planSelectionProduct as {
+    plans?: Array<{
+      id: string;
+      name: string;
+      description?: string | null;
+      price: string | null;
+      currency: string;
+      billingCycle: string | null;
+      sortOrder?: number;
+      planFeatures?: Array<{ key: string; available: boolean; valueOverride?: string }>;
+    }>;
+  })?.plans ?? [];
+  const plans = isUpgradeMode
+    ? allCatalogPlans.filter((plan) => {
+        if (ctx?.upgrade?.currentPlanId && plan.id === ctx.upgrade.currentPlanId) return false;
+        return (plan.sortOrder ?? 0) > (ctx?.upgrade?.minSortOrder ?? -1);
+      })
+    : allCatalogPlans;
 
   const displayCurrency = isTransferMode && transferContext
     ? transferContext.currency
@@ -897,6 +936,30 @@ export function GlobalBuyNowDialog() {
     selectedUpsellPlans,
   ]);
 
+  const buildUpgradeOrderItems = React.useCallback(() => {
+    if (!ctx?.upgrade?.subscriptionId || !selectedMainPlan) return [];
+    const str = (n: number) => (Number.isFinite(n) ? String(n) : "0");
+    const price = isAgencyUser
+      ? parsePriceOverrideInput(priceOverrideByKey[`main-plan:${selectedMainPlan.planId}`]) ??
+        selectedMainPlan.price
+      : selectedMainPlan.price;
+    const primaryDomain = ctx.upgrade.primaryDomain?.trim();
+    return [
+      {
+        productId: selectedMainPlan.productId,
+        productPlanId: selectedMainPlan.planId,
+        billingCycle: selectedMainPlan.billingCycle,
+        ...(primaryDomain ? { primaryDomain } : {}),
+        description: "upgrade",
+        itemPrice: str(price),
+        itemSubtotal: str(price),
+        metadata: {
+          upgradeFromSubscriptionId: ctx.upgrade.subscriptionId,
+        },
+      },
+    ];
+  }, [ctx, isAgencyUser, priceOverrideByKey, selectedMainPlan]);
+
   // Create order on payment success - called from poll callback to avoid useEffect latency
   const triggerOrderFromPayment = React.useCallback(
     (checkoutRequestIdParam: string) => {
@@ -1016,6 +1079,19 @@ export function GlobalBuyNowDialog() {
         });
         return;
       }
+      if (isUpgradeMode) {
+        const upgradeItems = buildUpgradeOrderItems();
+        if (upgradeItems.length === 0) return;
+        createOrderFromPayment.mutate({
+          checkoutRequestId: checkoutRequestIdParam,
+          items: upgradeItems,
+          currency: selectedMainPlan?.currency ?? displayCurrency,
+          ...((checkoutTeamId ?? ctx?.teamId)
+            ? { teamId: checkoutTeamId ?? ctx?.teamId }
+            : {}),
+        });
+        return;
+      }
       const orderItems = buildDomainProductOrderItems();
       if (orderItems.length === 0) return;
       const billedForUserId =
@@ -1051,6 +1127,9 @@ export function GlobalBuyNowDialog() {
       registrantType,
       selectedExistingCustomerId,
       buildDomainProductOrderItems,
+      isUpgradeMode,
+      buildUpgradeOrderItems,
+      selectedMainPlan,
     ]
   );
 
@@ -1651,6 +1730,10 @@ export function GlobalBuyNowDialog() {
   const handleBack = () => {
     if (currentStep === "hosting-upsell") setCurrentStep("product");
     else if (currentStep === "plan-selection") {
+      if (isUpgradeMode) {
+        close();
+        return;
+      }
       if (isSelectingMainProductPlan) {
         setPlanSelectionProductId(null);
         setPlanSelectionProductName("");
@@ -1835,11 +1918,16 @@ export function GlobalBuyNowDialog() {
       setCurrentStep(isAgencySide ? "registrant_info" : "review");
     } else if (isCartMode) {
       setCurrentStep(isAgencySide ? "registrant_info" : "review");
+    } else if (isUpgradeMode && ctx?.productId) {
+      setPlanSelectionProductId(ctx.productId);
+      setPlanSelectionProductName(ctx.productName);
+      setIsSelectingMainProductPlan(true);
+      setCurrentStep("plan-selection");
     } else {
       setCurrentStep("product");
     }
     hasInitializedStepRef.current = true;
-  }, [open, isCartMode, isTransferMode, isAgencySide]);
+  }, [open, isCartMode, isTransferMode, isAgencySide, isUpgradeMode, ctx?.productId, ctx?.productName]);
 
   React.useEffect(() => {
     if (!open) {
@@ -2022,11 +2110,24 @@ export function GlobalBuyNowDialog() {
           <BuyNowStepBody>
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Choose a plan for <span className="font-medium text-foreground">{planSelectionProductName}</span>
+                {isUpgradeMode
+                  ? "Choose a higher-priced plan. Downgrades are not available."
+                  : <>Choose a plan for <span className="font-medium text-foreground">{planSelectionProductName}</span></>}
               </p>
-              {plans.length === 0 ? (
+              {isPlanCatalogLoading ? (
+                <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-12">
+                  <Spinner className="size-6" />
+                  <p className="text-sm text-muted-foreground">Loading plans and features…</p>
+                </div>
+              ) : isPlanCatalogError ? (
+                <div className="rounded-xl border border-dashed border-destructive/40 py-8 text-center text-sm text-destructive">
+                  Unable to load plans. Close and try again.
+                </div>
+              ) : plans.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border py-8 text-center text-sm text-muted-foreground">
-                  No plans available.
+                  {isUpgradeMode
+                    ? "No higher-priced plans are available."
+                    : "No plans available."}
                 </div>
               ) : (
                 <div className="space-y-2.5">
@@ -2041,61 +2142,46 @@ export function GlobalBuyNowDialog() {
                     const months = cycle === "MONTHLY" ? 1 : cycle === "YEARLY" ? 12 : 24;
                     const displayTotal = monthlyPrice * months;
                     return (
-                      <button
+                      <PlanOptionWithFeatures
                         key={plan.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedPlanId(plan.id);
+                        plan={{
+                          id: plan.id,
+                          name: plan.name,
+                          description: plan.description,
+                          features: resolvePlanFeatureDisplay(productFeatureCatalog, plan.planFeatures),
+                        }}
+                        selected={isSelected}
+                        onSelect={(planId) => {
+                          setSelectedPlanId(planId);
                           setSelectedBillingCycle(planCycle);
                         }}
-                        className={cn(
-                          "w-full text-left rounded-xl border-2 p-3.5 transition-all",
-                          isSelected
-                            ? "border-primary bg-primary/5"
-                            : "border-border/80 bg-card hover:border-primary/40",
-                        )}
+                        priceLabel={`${formatPrice(monthlyPrice, plan.currency)}/mo`}
                       >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1">
-                            <span className="text-sm font-semibold text-foreground">{plan.name}</span>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {formatPrice(monthlyPrice, plan.currency)}/mo
+                        {isSelected ? (
+                          <div className="space-y-2 px-3.5 pb-3">
+                            <div onClick={(e) => e.stopPropagation()}>
+                              <Select
+                                value={cycle}
+                                onValueChange={(v: HostingBillingCycle) =>
+                                  setSelectedBillingCycle(v)
+                                }
+                              >
+                                <SelectTrigger className="w-32 h-8 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="MONTHLY">Monthly</SelectItem>
+                                  <SelectItem value="YEARLY">Yearly</SelectItem>
+                                  <SelectItem value="BIENNIALLY">Every 2 years</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <p className="text-xs font-medium text-foreground">
+                              {formatPrice(displayTotal, plan.currency)} total
                             </p>
-                            {isSelected && (
-                              <div className="mt-2" onClick={(e) => e.stopPropagation()}>
-                                <Select
-                                  value={cycle}
-                                  onValueChange={(v: HostingBillingCycle) =>
-                                    setSelectedBillingCycle(v)
-                                  }
-                                >
-                                  <SelectTrigger className="w-32 h-8 text-xs">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="MONTHLY">Monthly</SelectItem>
-                                    <SelectItem value="YEARLY">Yearly</SelectItem>
-                                    <SelectItem value="BIENNIALLY">Every 2 years</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            )}
                           </div>
-                          <div
-                            className={cn(
-                              "flex size-5 shrink-0 items-center justify-center rounded-full border-2",
-                              isSelected ? "border-primary bg-primary" : "border-muted-foreground/40",
-                            )}
-                          >
-                            {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
-                          </div>
-                        </div>
-                        {isSelected && (
-                          <p className="text-xs font-medium text-foreground mt-2 pt-2 border-t border-border/60">
-                            {formatPrice(displayTotal, plan.currency)} total
-                          </p>
-                        )}
-                      </button>
+                        ) : null}
+                      </PlanOptionWithFeatures>
                     );
                   })}
                 </div>
@@ -2305,7 +2391,10 @@ export function GlobalBuyNowDialog() {
                   <div className="bg-muted/50 rounded-lg p-4 flex flex-col gap-1">
                     <div className="flex justify-between gap-4">
                       <div>
-                        <div className="font-medium">{selectedMainPlan.productName} · {selectedMainPlan.planName}</div>
+                        <div className="font-medium">
+                          {isUpgradeMode ? "Upgrade · " : ""}
+                          {selectedMainPlan.productName} · {selectedMainPlan.planName}
+                        </div>
                         <div className="text-sm text-muted-foreground">{hostingBillingCycleLabel(selectedMainPlan.billingCycle)}</div>
                       </div>
                       <div className="font-semibold shrink-0">
@@ -2904,6 +2993,7 @@ export function GlobalBuyNowDialog() {
     }
     if (effectiveStep === "hosting-upsell") return "Add cloud hosting";
     if (effectiveStep === "plan-selection") {
+      if (isUpgradeMode) return `Upgrade ${ctx?.productName ?? "subscription"}`;
       if (upsellBrowseTarget) {
         return upsellBrowseTarget.hostingType === "web" ? "Website hosting plans" : "Email hosting plans";
       }
@@ -2939,7 +3029,9 @@ export function GlobalBuyNowDialog() {
             {effectiveStep === "hosting-upsell" &&
               "Add website or email hosting for your domain, or skip to checkout."}
             {effectiveStep === "plan-selection" &&
-              (upsellBrowseTarget
+              (isUpgradeMode
+                ? "Select a higher plan, then pay. The invoice will show this as an upgrade."
+                : upsellBrowseTarget
                 ? "Compare plans and pick the billing period that works for you."
                 : "Choose a plan to continue.")}
             {effectiveStep === "review" && "Review and proceed to checkout."}
@@ -3004,7 +3096,10 @@ export function GlobalBuyNowDialog() {
               <Button variant="ghost" onClick={handleBack}>
                 Back
               </Button>
-              <Button disabled={!selectedPlanId} onClick={addSelectedPlanToUpsell}>
+              <Button
+                disabled={!selectedPlanId || (!upsellBrowseTarget && isPlanCatalogLoading)}
+                onClick={addSelectedPlanToUpsell}
+              >
                 {upsellBrowseTarget ? "Add to order" : "Continue"}
               </Button>
             </>

@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { DetailCardTabsTrigger, DETAIL_TABS_LIST_CLASS } from "@/components/ui/detail-card-tabs";
 import { useCanTeamPermission } from "@/contexts/team-permissions-context";
+import { PleskLinkedSubscriptionUpgradeButton } from "@/routes/agency.subscriptions/_components/subscription-upgrade-button";
 
 import { HostingOverview } from "@/components/hosting/hosting-overview";
 import { DnsTable } from "@/components/hosting/dns";
@@ -174,6 +175,12 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
 
           <div className="flex items-center gap-2">
             {getStatusBadge(hostingData.gen_info.status ?? 0)}
+            <PleskLinkedSubscriptionUpgradeButton
+              pleskSubscriptionId={hostingData.id ?? subscriptionId}
+              teamSlug={teamSlug}
+              domain={hostingData.gen_info.name}
+              onUpgraded={() => refetch()}
+            />
           </div>
         </div>
 

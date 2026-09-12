@@ -26,6 +26,7 @@ import {
 	Eye
 } from "lucide-react";
 import { useTeamAdAccountAccess } from "./$slug.ad-campaigns/_components/use-team-ad-account-access";
+import { TeamProductUpgradeButton } from "@/routes/agency.subscriptions/_components/subscription-upgrade-button";
 
 export default function MetaAdsAccountDetailPage() {
 	const params = useParams();
@@ -280,6 +281,10 @@ export default function MetaAdsAccountDetailPage() {
 										{account.status}
 									</Badge>
 								)}
+								<TeamProductUpgradeButton
+									teamSlug={teamSlug}
+									productNameIncludes={["media buying"]}
+								/>
 							</div>
 							<div className="flex items-center gap-4 text-sm text-muted-foreground">
 								<span className="flex items-center gap-1.5 font-medium">

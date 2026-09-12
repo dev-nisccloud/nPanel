@@ -51,6 +51,8 @@ export function resolveInvoiceLineItemAction(description, serviceType, options) 
         return "Transfer";
     if (desc === "renewal")
         return "Renewal";
+    if (desc === "upgrade")
+        return "Upgrade";
     if (options?.subscriptionBased)
         return "Subscription";
     if (desc === "registration")
@@ -185,9 +187,10 @@ export function buildNiscOrderInvoiceLineItemCopy(item, subscriptionStart) {
         return { name, description: subscription };
     }
     const planSuffix = item.productPlan?.name?.trim() ? ` - ${item.productPlan.name.trim()}` : "";
+    const actionSuffix = action === "Upgrade" || action === "Renewal" ? ` - ${action}` : "";
     const name = bracket
-        ? `${bracket} ${item.product.name}${planSuffix}`
-        : `${item.product.name}${planSuffix}`;
+        ? `${bracket} ${item.product.name}${planSuffix}${actionSuffix}`
+        : `${item.product.name}${planSuffix}${actionSuffix}`;
     return { name, description: subscription };
 }
 /** PDF / preview line text: title and subscription on separate lines for wrapping. */
@@ -209,6 +212,9 @@ export function normalizeStoredInvoicePeriodDescription(description, context) {
     const isRenewal = source.includes("renewal") || source.includes("subscription-renewal-reminder");
     if (isRenewal && /^Subscription:/i.test(desc)) {
         desc = `Renewal:${desc.slice(desc.indexOf(":") + 1)}`;
+    }
+    if (source.includes("upgrade") && /^Subscription:/i.test(desc)) {
+        desc = `Upgrade:${desc.slice(desc.indexOf(":") + 1)}`;
     }
     return desc;
 }
