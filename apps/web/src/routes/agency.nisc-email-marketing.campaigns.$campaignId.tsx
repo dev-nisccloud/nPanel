@@ -70,6 +70,7 @@ import { trpc } from "@/utils/trpc";
 import { format } from "date-fns";
 import { DownloadNiscEmReportButton } from "./agency.nisc-email-marketing/campaigns/_components/report/download-button";
 import { useNiscEmailMarketingRoute } from "@/components/nisc-email-marketing/nisc-email-marketing-route-context";
+import { TeamProductUpgradeButton } from "@/routes/agency.subscriptions/_components/subscription-upgrade-button";
 
 function getEventTypeLabel(type: string): string {
 	const labels: Record<string, string> = {
@@ -499,6 +500,12 @@ export default function CampaignDetailPage() {
 					</div>
 					<div className="flex items-center gap-2">
 						{getStatusBadge(campaign.status)}
+						{route.teamSlug ? (
+							<TeamProductUpgradeButton
+								teamSlug={route.teamSlug}
+								productNameIncludes={["email marketing"]}
+							/>
+						) : null}
 						{summary && bounceBreakdown && topClickedLinks && reportData ? (
 							<DownloadNiscEmReportButton
 								campaign={reportData.campaign}

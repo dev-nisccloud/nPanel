@@ -1,9 +1,12 @@
 import { and, asc, db, desc, eq, inArray, sql } from "@npanel/db";
 import {
 	AGENCY_CRON_JOB_KEYS,
+	agencyCronJobActivity,
 	agencyCronJobRun,
 	agencyCronJobRunItem,
+	agencyCronJobSetting,
 } from "@npanel/db/schema/agency-cron-jobs";
+import { user } from "@npanel/db/schema/auth";
 import {
 	niscClientSubscription,
 	niscClientSubscriptionActivityLog,
@@ -39,6 +42,8 @@ const BATCH_DEFAULT = 25;
 
 export const SUBSCRIPTION_RENEWAL_REMINDERS_JOB_KEY =
 	AGENCY_CRON_JOB_KEYS.SUBSCRIPTION_RENEWAL_REMINDERS;
+
+export const RENEWAL_REMINDER_CRON_DISABLED_MESSAGE = "Cron is off";
 
 export type SubscriptionRenewalRemindersPayload = {
 	offset?: number;
@@ -436,6 +441,87 @@ export async function createRenewalReminderRun(opts: {
 	return id;
 }
 
+export async function isRenewalReminderCronEnabled(): Promise<boolean> {
+	const row = await db.query.agencyCronJobSetting.findFirst({
+		where: eq(agencyCronJobSetting.jobKey, SUBSCRIPTION_RENEWAL_REMINDERS_JOB_KEY),
+		columns: { enabled: true },
+	});
+	return row?.enabled ?? true;
+}
+
+export async function getRenewalReminderCronSetting(): Promise<{
+	enabled: boolean;
+	updatedAt: Date | null;
+	updatedByUserId: string | null;
+}> {
+	const row = await db.query.agencyCronJobSetting.findFirst({
+		where: eq(agencyCronJobSetting.jobKey, SUBSCRIPTION_RENEWAL_REMINDERS_JOB_KEY),
+		columns: {
+			enabled: true,
+			updatedAt: true,
+			updatedByUserId: true,
+		},
+	});
+	return {
+		enabled: row?.enabled ?? true,
+		updatedAt: row?.updatedAt ?? null,
+		updatedByUserId: row?.updatedByUserId ?? null,
+	};
+}
+
+export async function setRenewalReminderCronEnabled(
+	enabled: boolean,
+	userId: string,
+): Promise<{ enabled: boolean; changed: boolean }> {
+	const current = await getRenewalReminderCronSetting();
+	if (current.enabled === enabled && current.updatedAt) {
+		return { enabled: current.enabled, changed: false };
+	}
+	const now = new Date();
+	await db
+		.insert(agencyCronJobSetting)
+		.values({
+			jobKey: SUBSCRIPTION_RENEWAL_REMINDERS_JOB_KEY,
+			enabled,
+			updatedByUserId: userId,
+			updatedAt: now,
+		})
+		.onConflictDoUpdate({
+			target: agencyCronJobSetting.jobKey,
+			set: {
+				enabled,
+				updatedByUserId: userId,
+				updatedAt: now,
+			},
+		});
+	await db.insert(agencyCronJobActivity).values({
+		id: crypto.randomUUID(),
+		jobKey: SUBSCRIPTION_RENEWAL_REMINDERS_JOB_KEY,
+		action: enabled ? "enabled" : "disabled",
+		userId,
+		createdAt: now,
+		metadata: { previousEnabled: current.enabled },
+	});
+	return { enabled, changed: true };
+}
+
+export async function listRenewalReminderCronActivity(limit = 40) {
+	return db
+		.select({
+			id: agencyCronJobActivity.id,
+			action: agencyCronJobActivity.action,
+			createdAt: agencyCronJobActivity.createdAt,
+			userId: agencyCronJobActivity.userId,
+			userName: user.name,
+			userEmail: user.email,
+		})
+		.from(agencyCronJobActivity)
+		.leftJoin(user, eq(user.id, agencyCronJobActivity.userId))
+		.where(eq(agencyCronJobActivity.jobKey, SUBSCRIPTION_RENEWAL_REMINDERS_JOB_KEY))
+		.orderBy(desc(agencyCronJobActivity.createdAt))
+		.limit(Math.min(100, Math.max(1, limit)));
+}
+
 async function markRunFailed(runId: string, error: string) {
 	const now = new Date();
 	await db
@@ -461,6 +547,33 @@ export async function processSubscriptionRenewalReminders(
 ): Promise<SubscriptionRenewalRemindersResult> {
 	const offset = Math.max(0, opts.offset ?? 0);
 	const limit = Math.min(200, Math.max(1, opts.limit ?? BATCH_DEFAULT));
+	if (!(await isRenewalReminderCronEnabled())) {
+		if (opts.runId) {
+			await markRunFailed(opts.runId, RENEWAL_REMINDER_CRON_DISABLED_MESSAGE);
+			return {
+				runId: opts.runId,
+				scanned: 0,
+				sent: 0,
+				skipped: 0,
+				failed: 0,
+				errors: [],
+				hasMore: false,
+				nextOffset: offset,
+				status: "failed",
+			};
+		}
+		return {
+			runId: "",
+			scanned: 0,
+			sent: 0,
+			skipped: 0,
+			failed: 0,
+			errors: [],
+			hasMore: false,
+			nextOffset: offset,
+			status: "disabled",
+		};
+	}
 	const now = new Date();
 	const logicalSource =
 		opts.source === "continuation"

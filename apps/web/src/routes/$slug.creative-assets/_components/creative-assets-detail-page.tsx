@@ -31,6 +31,7 @@ import { ManagePermissionsSheet } from "./manage-permissions-sheet";
 import { Globe, Lock, Archive, ArchiveRestore, Check, X } from "lucide-react";
 import { useUserName } from "./use-user-names";
 import { captureEvent } from "@/lib/posthog";
+import { TeamProductUpgradeButton } from "@/routes/agency.subscriptions/_components/subscription-upgrade-button";
 
 interface CreativeAssetsDetailPageProps {
   assetId: string;
@@ -319,6 +320,10 @@ export function CreativeAssetsDetailPage({
           </div>
 
           <div className="flex items-center gap-2">
+            <TeamProductUpgradeButton
+              teamSlug={teamSlug}
+              productNameIncludes={["creative"]}
+            />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon">

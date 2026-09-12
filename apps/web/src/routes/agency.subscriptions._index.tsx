@@ -15,6 +15,7 @@ import {
 	AlertDialogTitle,
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/sonner";
 import { trpc } from "@/utils/trpc";
 import { captureEvent } from "@/lib/posthog";
@@ -59,6 +60,17 @@ export default function SubscriptionsIndexPage() {
 			),
 		[list],
 	);
+
+	const cronStatus = trpc.clientSubscriptions.getRenewalReminderCronStatus.useQuery();
+	const cronEnabled = cronStatus.data?.enabled ?? true;
+	const setCronEnabled = trpc.clientSubscriptions.setRenewalReminderCronEnabled.useMutation({
+		onSuccess: (data) => {
+			void utils.clientSubscriptions.getRenewalReminderCronStatus.invalidate();
+			void utils.clientSubscriptions.listRenewalReminderCronActivity.invalidate();
+			toast.success(data.enabled ? "Cron is on" : "Cron is off");
+		},
+		onError: (e) => toast.error(e.message),
+	});
 
 	const runRenewalCron = trpc.clientSubscriptions.runRenewalReminderCron.useMutation({
 		onSuccess: (data) => {
@@ -105,12 +117,24 @@ export default function SubscriptionsIndexPage() {
 					</div>
 					<div className="flex flex-wrap items-center gap-2">
 						<RenewalReminderCronMonitor />
+						<div className="flex items-center gap-2 rounded-md border px-2 py-1">
+							<Switch
+								checked={cronEnabled}
+								loading={setCronEnabled.isPending}
+								onCheckedChange={(checked) =>
+									setCronEnabled.mutate({ enabled: checked })
+								}
+								aria-label={cronEnabled ? "Cron on" : "Cron off"}
+							/>
+							<span className="text-sm">{cronEnabled ? "On" : "Off"}</span>
+						</div>
 						<AlertDialog open={runCronOpen} onOpenChange={setRunCronOpen}>
 							<AlertDialogTrigger asChild>
 								<Button
 									size="sm"
 									variant="outline"
-									disabled={runRenewalCron.isPending}
+									disabled={runRenewalCron.isPending || !cronEnabled}
+									title={!cronEnabled ? "Cron is off" : undefined}
 								>
 									{runRenewalCron.isPending ? (
 										<Loader2 className="mr-2 h-4 w-4 animate-spin" />

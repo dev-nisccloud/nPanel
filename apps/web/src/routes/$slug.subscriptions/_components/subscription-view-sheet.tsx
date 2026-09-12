@@ -5,6 +5,7 @@ import {
 	Sheet,
 	SheetContent,
 	SheetDescription,
+	SheetFooter,
 	SheetHeader,
 	SheetTitle,
 } from "@/components/npanel-ui/sheet";
@@ -12,6 +13,10 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Package, Building2 } from "lucide-react";
+import {
+	SubscriptionUpgradeButton,
+	subscriptionHasNoUpgradeOption,
+} from "@/routes/agency.subscriptions/_components/subscription-upgrade-button";
 import { trpc } from "@/utils/trpc";
 import { captureEvent } from "@/lib/posthog";
 import {
@@ -97,6 +102,12 @@ export function CustomerSubscriptionViewSheet({
 	const subscriptionName = sub?.name ?? null;
 	const teamName = sub?.team?.name ?? null;
 	const isOneTime = isProgressTrackedOneTime(sub?.billingCycle, sub?.productId);
+	const showUpgrade = !subscriptionHasNoUpgradeOption({
+		billingCycle: sub?.billingCycle,
+		serviceType: sub?.product?.serviceType,
+		productId: sub?.productId,
+		productName: sub?.product?.name,
+	});
 
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>
@@ -214,6 +225,18 @@ export function CustomerSubscriptionViewSheet({
 							) : null}
 						</div>
 					</ScrollArea>
+						{showUpgrade ? (
+						<SheetFooter className="flex-shrink-0 flex-wrap gap-2 px-6 py-4 border-t bg-muted/30">
+							<SubscriptionUpgradeButton
+								subscriptionId={sub.id}
+								teamSlug={teamSlug}
+								billingCycle={sub.billingCycle}
+								serviceType={sub.product?.serviceType}
+								productId={sub.productId}
+								productName={sub.product?.name}
+							/>
+						</SheetFooter>
+						) : null}
 				) : (
 					<div className="flex-1 flex items-center justify-center px-6 py-12 text-sm text-muted-foreground">
 						Subscription not found

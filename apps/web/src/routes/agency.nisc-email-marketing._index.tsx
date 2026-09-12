@@ -5,6 +5,7 @@ import { Link } from "react-router";
 import { Mail, Send, Users, Globe, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNiscEmailMarketingRoute } from "@/components/nisc-email-marketing/nisc-email-marketing-route-context";
+import { TeamProductUpgradeButton } from "@/routes/agency.subscriptions/_components/subscription-upgrade-button";
 
 export default function NiscEmailMarketingHubPage() {
 	const route = useNiscEmailMarketingRoute();
@@ -39,15 +40,23 @@ export default function NiscEmailMarketingHubPage() {
 	return (
 		<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
 			<div className="w-full max-w-7xl mx-auto space-y-6">
-				<div className="flex flex-col gap-2">
-					<div className="flex items-center gap-2 text-muted-foreground">
-						<Mail className="h-4 w-4" />
-						<span className="text-xs">Nisc Email Marketing</span>
+				<div className="flex items-start justify-between gap-4">
+					<div className="flex flex-col gap-2">
+						<div className="flex items-center gap-2 text-muted-foreground">
+							<Mail className="h-4 w-4" />
+							<span className="text-xs">Nisc Email Marketing</span>
+						</div>
+						<h1 className="text-base font-semibold tracking-tight">Email Marketing</h1>
+						<p className="text-xs text-muted-foreground">
+							Campaigns, audiences, AI email builder, and sending domains.
+						</p>
 					</div>
-					<h1 className="text-base font-semibold tracking-tight">Email Marketing</h1>
-					<p className="text-xs text-muted-foreground">
-						Campaigns, audiences, AI email builder, and sending domains.
-					</p>
+					{route.teamSlug ? (
+						<TeamProductUpgradeButton
+							teamSlug={route.teamSlug}
+							productNameIncludes={["email marketing"]}
+						/>
+					) : null}
 				</div>
 
 				<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

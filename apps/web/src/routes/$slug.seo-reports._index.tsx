@@ -7,6 +7,7 @@ import { trpc } from "@/utils/trpc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SeoSearchConsoleView } from "./$slug.seo-reports/_components/seo-search-console-view";
 import { SeoGa4View } from "./$slug.seo-reports/_components/seo-ga4-view";
+import { TeamProductUpgradeButton } from "@/routes/agency.subscriptions/_components/subscription-upgrade-button";
 
 export default function TeamSeoReportsPage() {
   const { slug: teamSlug } = useParams();
@@ -44,11 +45,17 @@ export default function TeamSeoReportsPage() {
   return (
     <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6 text-foreground">
       <div className="w-full max-w-7xl mx-auto">
-        <div className="flex flex-col gap-2 mb-6">
-          <h1 className="text-base font-semibold tracking-tight">SEO Reports</h1>
-          <p className="text-sm text-muted-foreground">
-            Track the results of your managed SEO - rankings, traffic, and conversions from Google Search and Analytics.
-          </p>
+        <div className="flex items-start justify-between gap-4 mb-6">
+          <div className="flex flex-col gap-2">
+            <h1 className="text-base font-semibold tracking-tight">SEO Reports</h1>
+            <p className="text-sm text-muted-foreground">
+              Track the results of your managed SEO - rankings, traffic, and conversions from Google Search and Analytics.
+            </p>
+          </div>
+          <TeamProductUpgradeButton
+            teamSlug={teamSlug}
+            productNameIncludes={["seo"]}
+          />
         </div>
 
         <Tabs defaultValue="search-console" className="w-full">

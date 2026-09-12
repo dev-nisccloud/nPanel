@@ -718,6 +718,49 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 		mediaBuyingPlansData?.plans,
 	]);
 
+	const hostingCatalogProductId = isWebHosting
+		? webHostingPlansData?.plans?.[0]?.productId ?? null
+		: isEmailHosting
+			? emailHostingPlansData?.plans?.[0]?.productId ?? null
+			: isWordpress
+				? wordpressPlansData?.plans?.[0]?.productId ?? null
+				: null;
+	const domainLookup = validateDomainName(watchedPrimaryDomain ?? "");
+	const pleskPlanMatch = trpc.clientSubscriptions.matchCatalogPlanForPleskWebspace.useQuery(
+		{
+			domain: domainLookup.ok ? domainLookup.normalized : "",
+			productId: hostingCatalogProductId ?? "",
+		},
+		{
+			enabled:
+				open &&
+				!!hostingCatalogProductId &&
+				domainLookup.ok &&
+				(isWebHosting || isEmailHosting || isWordpress),
+			staleTime: 60_000,
+			refetchOnWindowFocus: false,
+		},
+	);
+	const appliedPleskPlanKeyRef = React.useRef("");
+
+	React.useEffect(() => {
+		appliedPleskPlanKeyRef.current = "";
+	}, [watchedServiceProduct, watchedPrimaryDomain]);
+
+	React.useEffect(() => {
+		if (pleskPlanMatch.isFetching || !pleskPlanMatch.data?.matchedPlanId) return;
+		const key = `${watchedServiceProduct}:${domainLookup.ok ? domainLookup.normalized : ""}`;
+		if (appliedPleskPlanKeyRef.current === key) return;
+		appliedPleskPlanKeyRef.current = key;
+		form.setValue("planId", pleskPlanMatch.data.matchedPlanId);
+	}, [
+		pleskPlanMatch.data,
+		pleskPlanMatch.isFetching,
+		watchedServiceProduct,
+		domainLookup,
+		form,
+	]);
+
 	const loadingPlans =
 		(isZeepo && loadingZeepoPlans) ||
 		(isNiscEm && loadingNiscEmPlans) ||
@@ -726,7 +769,8 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 		(isWordpress && loadingWordpressPlans) ||
 		(isSeo && loadingSeoPlans) ||
 		(isCreatives && loadingCreativesPlans) ||
-		(isMediaBuying && loadingMediaBuyingPlans);
+		(isMediaBuying && loadingMediaBuyingPlans) ||
+		pleskPlanMatch.isFetching;
 
 	const selectedPlan = React.useMemo(
 		() => planOptions.find((p) => p.id === watchedPlanId) ?? null,
@@ -1569,6 +1613,13 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 													{!loadingPlans && planOptions.length === 0 ? (
 														<FormDescription className="text-destructive">
 															No active plans found for this product.
+														</FormDescription>
+													) : null}
+													{!loadingPlans && pleskPlanMatch.data?.plesk?.planName ? (
+														<FormDescription>
+															{pleskPlanMatch.data.matchedPlanId
+																? `Matched Plesk plan: ${pleskPlanMatch.data.plesk.planName}`
+																: `Plesk plan “${pleskPlanMatch.data.plesk.planName}” is not linked in the catalog. Choose the closest plan.`}
 														</FormDescription>
 													) : null}
 													<FormMessage />

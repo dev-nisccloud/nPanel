@@ -41,6 +41,7 @@ import {
 import { processHivelocityOrderItem } from "./hivelocity-nisc-processor";
 import { HIVELOCITY_SERVICE_TYPES } from "../routers/nisc-service-orders-schemas";
 import { isRenewalOrderItem, processNiscOrderRenewalItem } from "./nisc-order-renewal";
+import { isUpgradeOrderItem, processNiscOrderUpgradeItem } from "./nisc-order-upgrade";
 
 /** Build a serializable error-details object for provisioningErrorDetails (exact provider response for debugging). */
 function buildProvisioningErrorDetails(err: unknown): Record<string, unknown> {
@@ -289,6 +290,61 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 					rawResponse: result.rawResponse,
 				});
 				hasSuccess = true;
+				continue;
+			}
+
+			if (isUpgradeOrderItem(item)) {
+				await niscLog("processor_item_branch", {
+					niscOrderId,
+					orderItemId: item.id,
+					branch: "upgrade",
+					serviceType,
+				});
+				try {
+					const result = await processNiscOrderUpgradeItem({
+						order,
+						item,
+						serviceType,
+					});
+					await db
+						.update(niscOrderItem)
+						.set({
+							status: "PROVISIONED",
+							niscClientSubscriptionId: result.subscriptionId,
+							updatedAt: now,
+						})
+						.where(eq(niscOrderItem.id, item.id));
+					await niscLog("processor_item_success", {
+						niscOrderId,
+						orderItemId: item.id,
+						branch: "upgrade",
+						subscriptionId: result.subscriptionId,
+						pleskSwitched: result.pleskSwitched,
+						rawResponse: result.rawResponse,
+					});
+					hasSuccess = true;
+				} catch (err) {
+					const message = err instanceof Error ? err.message : String(err);
+					const errorDetails = buildProvisioningErrorDetails(err);
+					await db
+						.update(niscOrderItem)
+						.set({
+							status: "FAILED",
+							provisioningError: message,
+							provisioningErrorDetails: errorDetails,
+							updatedAt: now,
+						})
+						.where(eq(niscOrderItem.id, item.id));
+					await niscLog("processor_item_failed", {
+						niscOrderId,
+						orderItemId: item.id,
+						branch: "upgrade",
+						error: message,
+						errorDetails,
+					});
+					hasFailure = true;
+					failureReasons.push(`Item ${item.product.name}: ${message}`);
+				}
 				continue;
 			}
 
