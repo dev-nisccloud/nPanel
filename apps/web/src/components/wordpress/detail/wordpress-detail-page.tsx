@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import {
   ArrowLeft,
   LayoutDashboard,
@@ -23,6 +23,7 @@ import { WordPressOverview } from "@/components/wordpress/wordpress-overview";
 import { WordPressPlugins } from "@/routes/$slug.wordpress/_components/wordpress-plugins";
 import { WordPressThemes } from "@/routes/$slug.wordpress/_components/wordpress-themes";
 import { useCanTeamPermission } from "@/contexts/team-permissions-context";
+import { WpLinkedSubscriptionUpgradeButton } from "@/routes/agency.subscriptions/_components/subscription-upgrade-button";
 
 interface TabDef {
   value: string;
@@ -128,6 +129,8 @@ export function WordPressDetailPage({
     useWordPressDetailBatched(installationId);
   const [activeTab, setActiveTab] = React.useState("overview");
   const { can } = useCanTeamPermission();
+  const { pathname } = useLocation();
+  const teamSlug = pathname.startsWith("/agency/") ? null : pathname.split("/")[1];
   const visibleTabs = TABS.filter((tab) => can(tab.permissionKey));
   React.useEffect(() => {
     if (!visibleTabs.some((tab) => tab.value === activeTab) && visibleTabs[0]) {
@@ -168,7 +171,14 @@ export function WordPressDetailPage({
               <p className="text-xs text-muted-foreground">WordPress installation</p>
             </div>
           </div>
-          <WpInstallationStatusBadge status={wp.status} />
+          <div className="flex items-center gap-2 shrink-0">
+            <WpInstallationStatusBadge status={wp.status} />
+            <WpLinkedSubscriptionUpgradeButton
+              installationId={typeof wp.id === "number" ? wp.id : Number(installationId)}
+              teamSlug={teamSlug}
+              onUpgraded={() => refetch()}
+            />
+          </div>
         </div>
 
         <div className="mt-8">

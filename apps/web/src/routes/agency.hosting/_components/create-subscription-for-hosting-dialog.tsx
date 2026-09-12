@@ -22,9 +22,9 @@ import {
 } from "@/components/ui/select";
 import { ComboboxDropdown, type ComboboxItem } from "@npanel/ui/components/combobox-dropdown";
 import { DatePicker } from "@/components/npanel-ui/date-picker";
+import { PlanOptionWithFeatures } from "@/components/plan-option-with-features";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
-import { useHostingSubscriptionById } from "./use-hosting-subscription-by-id";
 import { captureEvent } from "@/lib/posthog";
 
 function addBillingPeriod(
@@ -37,6 +37,17 @@ function addBillingPeriod(
   else if (cycle === "BIENNIALLY") next.setFullYear(next.getFullYear() + 2);
   else next.setFullYear(next.getFullYear() + 1);
   return next;
+}
+
+function hostingTypeFromServiceType(
+  serviceType?: string | null,
+): "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" {
+  const value = serviceType?.trim().toLowerCase() ?? "";
+  if (value === "email_hosting") return "EMAIL_HOSTING";
+  if (value.includes("reseller")) return "RESELLER_HOSTING";
+  if (value.includes("vps")) return "VPS_HOSTING";
+  if (value.includes("dedicated")) return "DEDICATED_HOSTING";
+  return "WEB_HOSTING";
 }
 
 interface CreateSubscriptionForHostingDialogProps {
@@ -58,6 +69,7 @@ export function CreateSubscriptionForHostingDialog({
 }: CreateSubscriptionForHostingDialogProps) {
   const [selectedTeamId, setSelectedTeamId] = React.useState("");
   const [selectedProductId, setSelectedProductId] = React.useState("");
+  const [selectedPlanId, setSelectedPlanId] = React.useState("");
   const [name, setName] = React.useState("");
   const [providerCost, setProviderCost] = React.useState("");
   const [providerCostCurrency, setProviderCostCurrency] = React.useState("KES");
@@ -73,26 +85,32 @@ export function CreateSubscriptionForHostingDialog({
   const [hostingType, setHostingType] = React.useState<"WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING">("WEB_HOSTING");
   const [primaryDomain, setPrimaryDomain] = React.useState("");
   const [pleskFilterId, setPleskFilterId] = React.useState("");
-  const [pleskOwnerId, setPleskOwnerId] = React.useState("");
-  const [pleskFtpLogin, setPleskFtpLogin] = React.useState("");
-  const [pleskFtpPassword, setPleskFtpPassword] = React.useState("");
+  const [preparedKey, setPreparedKey] = React.useState("");
 
   const pleskIdStr = pleskSubscriptionId != null ? String(pleskSubscriptionId) : "";
-  const { data: pleskDetail } = useHostingSubscriptionById(pleskIdStr);
-  const pleskAppliedRef = React.useRef<string | null>(null);
-  React.useEffect(() => {
-    pleskAppliedRef.current = null;
-  }, [pleskIdStr]);
-
   const utils = trpc.useUtils();
-
-  const { data: products = [], isLoading: isLoadingProducts } =
-    trpc.products.getAll.useQuery({ isActive: true }, { enabled: open });
 
   const { data: teams = [], isLoading: isLoadingTeams } = trpc.teams.getAll.useQuery(
     undefined,
     { enabled: open }
   );
+
+  const catalogPrepare = trpc.clientSubscriptions.matchCatalogPlanForPleskWebspace.useQuery(
+    { pleskSubscriptionId: pleskIdStr },
+    {
+      enabled: open && !!pleskIdStr,
+      staleTime: 60_000,
+      refetchOnWindowFocus: false,
+    },
+  );
+
+  const catalogProducts = catalogPrepare.data?.products ?? [];
+  const matchedProductId = catalogPrepare.data?.matchedProductId ?? null;
+  const matchedPlanId = catalogPrepare.data?.matchedPlanId ?? null;
+  const pleskPlanName = catalogPrepare.data?.plesk?.planName ?? null;
+  const selectedCatalogProduct =
+    catalogProducts.find((product) => product.id === selectedProductId) ?? null;
+  const catalogPlans = selectedCatalogProduct?.plans ?? [];
 
   const createMutation = trpc.clientSubscriptions.create.useMutation({
     onSuccess: () => {
@@ -120,6 +138,7 @@ export function CreateSubscriptionForHostingDialog({
   function resetForm() {
     setSelectedTeamId("");
     setSelectedProductId("");
+    setSelectedPlanId("");
     setName("");
     setProviderCost("");
     setProviderCostCurrency("KES");
@@ -133,45 +152,83 @@ export function CreateSubscriptionForHostingDialog({
     setHostingType("WEB_HOSTING");
     setPrimaryDomain("");
     setPleskFilterId("");
-    setPleskOwnerId("");
-    setPleskFtpLogin("");
-    setPleskFtpPassword("");
+    setPreparedKey("");
   }
 
   React.useEffect(() => {
     if (!open) {
       resetForm();
-      pleskAppliedRef.current = null;
-    } else if (subscriptionNameProp) {
-      setName(subscriptionNameProp);
+      return;
     }
-  }, [open, subscriptionNameProp]);
+    setName(subscriptionNameProp ?? "");
+    setPrimaryDomain(subscriptionNameProp ?? "");
+    setPleskFilterId(pleskIdStr);
+  }, [open, subscriptionNameProp, pleskIdStr]);
 
-  // Prefill from Plesk when detail loads. Run only once per pleskDetail.id to avoid infinite loop (pleskDetail may be new ref each render).
   React.useEffect(() => {
-    if (!open || !pleskDetail) return;
-    const detailId = String(pleskDetail.id ?? "");
-    if (pleskAppliedRef.current === detailId) return;
-    pleskAppliedRef.current = detailId;
+    if (!open || !catalogPrepare.data || catalogPrepare.isFetching) return;
+    const nextKey = `${pleskIdStr}:${catalogPrepare.data.matchedProductId ?? ""}:${catalogPrepare.data.matchedPlanId ?? ""}`;
+    if (preparedKey === nextKey) return;
+    setPreparedKey(nextKey);
 
-    setName(pleskDetail.gen_info?.name ?? subscriptionNameProp ?? "");
-    setPrimaryDomain(pleskDetail.gen_info?.name ?? "");
-    setPleskFilterId(detailId);
-    setPleskOwnerId(pleskDetail.gen_info?.["owner-login"] ?? "");
-    const props = pleskDetail.hosting?.vrt_hst?.property ?? [];
-    const arr = Array.isArray(props) ? props : [props];
-    const ftpLogin = arr.find((p: { name?: string }) => p?.name === "ftp_login");
-    const ftpPassword = arr.find((p: { name?: string }) => p?.name === "ftp_password");
-    setPleskFtpLogin(ftpLogin && "value" in ftpLogin ? String(ftpLogin.value) : "");
-    setPleskFtpPassword(ftpPassword && "value" in ftpPassword ? String(ftpPassword.value) : "");
-    if (pleskDetail.gen_info?.["cr_date"]) {
-      const subDate = new Date(pleskDetail.gen_info["cr_date"]);
-      setSubscriptionDate(subDate);
-      setExpiryDate(addBillingPeriod(subDate, billingCycle));
+    const nextProductId =
+      catalogPrepare.data.matchedProductId ??
+      catalogPrepare.data.products[0]?.id ??
+      "";
+    const nextProduct =
+      catalogPrepare.data.products.find((product) => product.id === nextProductId) ??
+      catalogPrepare.data.products[0] ??
+      null;
+    const nextPlanId =
+      (nextProduct?.plans.some((plan) => plan.id === catalogPrepare.data.matchedPlanId)
+        ? catalogPrepare.data.matchedPlanId
+        : null) ??
+      (nextProduct?.plans.length === 1 ? nextProduct.plans[0]?.id : "") ??
+      "";
+    const nextPlan = nextProduct?.plans.find((plan) => plan.id === nextPlanId) ?? null;
+
+    setSelectedProductId(nextProductId);
+    setSelectedPlanId(nextPlanId);
+    if (nextProduct) setHostingType(hostingTypeFromServiceType(nextProduct.serviceType));
+    if (nextPlan?.price) {
+      setAgreedPrice(nextPlan.price);
+      setAgreedCurrency(nextPlan.currency ?? "KES");
     }
-  }, [open, pleskDetail, subscriptionNameProp, billingCycle]);
+    const cycle = nextPlan?.billingCycle?.toUpperCase();
+    if (cycle === "MONTHLY" || cycle === "YEARLY" || cycle === "BIENNIALLY" || cycle === "CUSTOM") {
+      setBillingCycle(cycle);
+      setExpiryDate(addBillingPeriod(subscriptionDate, cycle));
+    }
+  }, [open, catalogPrepare.data, catalogPrepare.isFetching, pleskIdStr, preparedKey, subscriptionDate]);
 
-  // When subscription date or billing cycle changes, update expiry date from subscription date + billing period
+  const applyPlanDefaults = React.useCallback(
+    (planId: string) => {
+      setSelectedPlanId(planId);
+      const plan = catalogPlans.find((item) => item.id === planId);
+      if (plan?.price) {
+        setAgreedPrice(plan.price);
+        setAgreedCurrency(plan.currency ?? "KES");
+      }
+      const cycle = plan?.billingCycle?.toUpperCase();
+      if (cycle === "MONTHLY" || cycle === "YEARLY" || cycle === "BIENNIALLY" || cycle === "CUSTOM") {
+        setBillingCycle(cycle);
+        setExpiryDate(addBillingPeriod(subscriptionDate, cycle));
+      }
+    },
+    [catalogPlans, subscriptionDate],
+  );
+
+  const handleProductChange = (productId: string) => {
+    setSelectedProductId(productId);
+    const product = catalogProducts.find((item) => item.id === productId);
+    if (product) setHostingType(hostingTypeFromServiceType(product.serviceType));
+    const nextPlanId =
+      (product?.plans.some((plan) => plan.id === matchedPlanId) ? matchedPlanId : null) ??
+      (product?.plans.length === 1 ? product.plans[0]?.id : "") ??
+      "";
+    applyPlanDefaults(nextPlanId ?? "");
+  };
+
   const handleSubscriptionDateChange = React.useCallback(
     (date: Date | undefined) => {
       if (!date) return;
@@ -189,8 +246,8 @@ export function CreateSubscriptionForHostingDialog({
   );
 
   const productItems: ComboboxItem[] = React.useMemo(
-    () => products.map((p) => ({ id: p.id, label: p.name })),
-    [products]
+    () => catalogProducts.map((product) => ({ id: product.id, label: product.name })),
+    [catalogProducts]
   );
   const teamItems: ComboboxItem[] = React.useMemo(
     () => teams.map((t) => ({ id: t.id, label: t.name })),
@@ -213,8 +270,14 @@ export function CreateSubscriptionForHostingDialog({
       return;
     }
 
+    if (catalogPlans.length > 0 && !selectedPlanId) {
+      toast.error("Please select a plan");
+      return;
+    }
+
     createMutation.mutate({
       productId: selectedProductId,
+      productPlanId: selectedPlanId || undefined,
       name: name.trim() || undefined,
       teamId: selectedTeamId,
       status: "ACTIVE",
@@ -232,9 +295,6 @@ export function CreateSubscriptionForHostingDialog({
       hostingType,
       primaryDomain: primaryDomain || undefined,
       pleskFilterId: pleskFilterId || undefined,
-      pleskOwnerId: pleskOwnerId || undefined,
-      pleskFtpLogin: pleskFtpLogin || undefined,
-      pleskFtpPassword: pleskFtpPassword || undefined,
       serviceRefs:
         pleskSubscriptionId != null
           ? { pleskSubscriptionId: String(pleskSubscriptionId) }
@@ -242,13 +302,16 @@ export function CreateSubscriptionForHostingDialog({
     });
   };
 
-  const isLoadingOptions = isLoadingTeams;
-  const hasSelection = !!selectedTeamId;
+  const isPreparing =
+    open &&
+    (isLoadingTeams ||
+      (!!pleskIdStr && (catalogPrepare.isPending || catalogPrepare.isFetching) && !catalogPrepare.data));
+  const prepareFailed = !!pleskIdStr && catalogPrepare.isError && !catalogPrepare.data;
   const isSubmitting = createMutation.isPending;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create subscription</DialogTitle>
           <DialogDescription>
@@ -256,28 +319,71 @@ export function CreateSubscriptionForHostingDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {isPreparing ? (
+          <div className="flex flex-col items-center justify-center gap-3 py-16">
+            <Spinner size={28} />
+            <p className="text-sm text-muted-foreground">Loading products, plans, and features…</p>
+          </div>
+        ) : prepareFailed ? (
+          <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {catalogPrepare.error?.message ?? "Unable to load catalog plans for this hosting subscription."}
+          </div>
+        ) : catalogProducts.length === 0 ? (
+          <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            No active hosting products found. Add products in Service Plans first.
+          </div>
+        ) : (
+          <>
         <div className="space-y-4 py-4">
-          {isLoadingProducts ? (
-            <div className="flex items-center justify-center py-8">
-              <Spinner size={24} />
-            </div>
-          ) : productItems.length === 0 ? (
-            <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              No active products found. Add products in Service Plans first.
-            </div>
-          ) : (
-            <>
               <div className="space-y-2">
                 <Label htmlFor="hosting-product">Product *</Label>
                 <ComboboxDropdown
                   items={productItems}
                   selectedItem={selectedProduct}
-                  onSelect={(item) => setSelectedProductId(item.id)}
+                  onSelect={(item) => handleProductChange(item.id)}
                   placeholder="Select a product..."
                   searchPlaceholder="Search products..."
                   emptyResults="No products found"
                   disabled={isSubmitting}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Plan *</Label>
+                {catalogPlans.length === 0 ? (
+                  <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                    No active plans found for this product.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {catalogPlans.map((plan) => (
+                      <PlanOptionWithFeatures
+                        key={plan.id}
+                        plan={{
+                          id: plan.id,
+                          name: plan.name,
+                          features: plan.features,
+                          badge: matchedPlanId === plan.id ? "Plesk match" : null,
+                        }}
+                        selected={selectedPlanId === plan.id}
+                        onSelect={applyPlanDefaults}
+                        disabled={isSubmitting}
+                        priceLabel={
+                          plan.price
+                            ? `${plan.currency ?? "KES"} ${plan.price}`
+                            : undefined
+                        }
+                      />
+                    ))}
+                  </div>
+                )}
+                {pleskPlanName ? (
+                  <p className="text-xs text-muted-foreground">
+                    {matchedPlanId
+                      ? `Matched Plesk plan: ${pleskPlanName}`
+                      : `Plesk plan “${pleskPlanName}” is not linked in the catalog. Choose the closest plan.`}
+                  </p>
+                ) : null}
               </div>
 
               <div className="space-y-2">
@@ -294,21 +400,15 @@ export function CreateSubscriptionForHostingDialog({
 
               <div className="space-y-2">
                 <Label>Organization *</Label>
-                {isLoadingOptions ? (
-                  <div className="flex h-10 items-center justify-center rounded-md border">
-                    <Spinner size={18} />
-                  </div>
-                ) : (
-                  <ComboboxDropdown
-                    items={teamItems}
-                    selectedItem={selectedTeam}
-                    onSelect={(item) => setSelectedTeamId(item.id)}
-                    placeholder="Select an organization..."
-                    searchPlaceholder="Search organizations..."
-                    emptyResults="No organizations found"
-                    disabled={isSubmitting}
-                  />
-                )}
+                <ComboboxDropdown
+                  items={teamItems}
+                  selectedItem={selectedTeam}
+                  onSelect={(item) => setSelectedTeamId(item.id)}
+                  placeholder="Select an organization..."
+                  searchPlaceholder="Search organizations..."
+                  emptyResults="No organizations found"
+                  disabled={isSubmitting}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -430,11 +530,8 @@ export function CreateSubscriptionForHostingDialog({
                   {submitError}
                 </div>
               )}
-            </>
-          )}
         </div>
 
-        {productItems.length > 0 && (
           <div className="flex justify-end gap-2 border-t pt-4">
             <Button
               type="button"
@@ -447,7 +544,12 @@ export function CreateSubscriptionForHostingDialog({
             <Button
               type="button"
               onClick={handleSubmit}
-              disabled={isSubmitting || !selectedProductId || !hasSelection}
+              disabled={
+                isSubmitting ||
+                !selectedProductId ||
+                !selectedTeamId ||
+                (catalogPlans.length > 0 && !selectedPlanId)
+              }
             >
               {isSubmitting ? (
                 <>
@@ -459,9 +561,9 @@ export function CreateSubscriptionForHostingDialog({
               )}
             </Button>
           </div>
+          </>
         )}
       </DialogContent>
     </Dialog>
   );
 }
-

@@ -24,6 +24,7 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { toast } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
 import { useTeamAdAccountAccess } from "./$slug.ad-campaigns/_components/use-team-ad-account-access";
+import { TeamProductUpgradeButton } from "@/routes/agency.subscriptions/_components/subscription-upgrade-button";
 
 /** Format customer ID with dashes for display (XXXXXXXXXX -> XXX-XXX-XXXX) */
 function formatCustomerIdDisplay(customerId: string): string {
@@ -247,6 +248,10 @@ export default function GoogleAdsAccountPage() {
 										{account.status}
 									</Badge>
 								)}
+								<TeamProductUpgradeButton
+									teamSlug={teamSlug}
+									productNameIncludes={["media buying"]}
+								/>
 							</div>
 							<div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
 								<div className="flex items-center gap-1.5 font-medium">
@@ -263,7 +268,7 @@ export default function GoogleAdsAccountPage() {
 								</div>
 							</div>
 						</div>
-						<div className="flex items-center" />
+						<div className="flex items-center gap-2" />
 					</div>
 				</div>
 

@@ -6,7 +6,7 @@
 import type { NiscOrderItemForInvoice } from "../schemas/nisc-order-invoice";
 import { formatInvoiceDate } from "./nisc-datetime-format";
 
-export type InvoiceLineItemAction = "Transfer" | "Registration" | "Renewal" | "Subscription";
+export type InvoiceLineItemAction = "Transfer" | "Registration" | "Renewal" | "Upgrade" | "Subscription";
 
 export type NiscOrderInvoiceLineItemCopy = {
 	name: string;
@@ -71,6 +71,7 @@ export function resolveInvoiceLineItemAction(
 	const desc = (description ?? "").trim().toLowerCase();
 	if (desc === "transfer" || serviceType === "domain_transfer") return "Transfer";
 	if (desc === "renewal") return "Renewal";
+	if (desc === "upgrade") return "Upgrade";
 	if (options?.subscriptionBased) return "Subscription";
 	if (desc === "registration") return "Registration";
 	return "Registration";
@@ -259,9 +260,10 @@ export function buildNiscOrderInvoiceLineItemCopy(
 	}
 
 	const planSuffix = item.productPlan?.name?.trim() ? ` - ${item.productPlan.name.trim()}` : "";
+	const actionSuffix = action === "Upgrade" || action === "Renewal" ? ` - ${action}` : "";
 	const name = bracket
-		? `${bracket} ${item.product.name}${planSuffix}`
-		: `${item.product.name}${planSuffix}`;
+		? `${bracket} ${item.product.name}${planSuffix}${actionSuffix}`
+		: `${item.product.name}${planSuffix}${actionSuffix}`;
 	return { name, description: subscription };
 }
 
@@ -290,6 +292,9 @@ export function normalizeStoredInvoicePeriodDescription(
 		source.includes("renewal") || source.includes("subscription-renewal-reminder");
 	if (isRenewal && /^Subscription:/i.test(desc)) {
 		desc = `Renewal:${desc.slice(desc.indexOf(":") + 1)}`;
+	}
+	if (source.includes("upgrade") && /^Subscription:/i.test(desc)) {
+		desc = `Upgrade:${desc.slice(desc.indexOf(":") + 1)}`;
 	}
 	return desc;
 }

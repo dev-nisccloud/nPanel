@@ -12,12 +12,23 @@ import {
 	niscProduct,
 	niscProductPlan,
 } from "@npanel/db/schema/products";
+import { hostingSubscription } from "@npanel/db/schema/hosting";
 import {
 	ensureOneTimeServicesProduct,
 	ONE_TIME_PROGRESS_STATUSES,
 } from "../lib/one-time-services";
 import { team, teamMember } from "@npanel/db/schema/teams";
 import { protectedProcedure, router } from "../trpc";
+import {
+	getPleskWebspaceId,
+	isHigherCatalogPlan,
+	matchCatalogPlanByServiceDetails,
+	NON_CATALOG_UPGRADE_SERVICE_TYPES,
+	PLESK_UPGRADE_SERVICE_TYPES,
+	resolveCurrentCatalogPlanFromDb,
+	toCatalogPlanIdentity,
+} from "../lib/subscription-upgrade";
+import { loadPleskWebspacePlan } from "../lib/plesk/switch-subscription";
 import { getTeamLiveDomainsSummary } from "../lib/team-live-domains-summary";
 import { CREATIVES_DESIGN_PRODUCT_ID } from "../lib/creatives-design-billing";
 import { NISC_SEO_REPORTS_PRODUCT_ID } from "../lib/seo-reports-billing";
@@ -285,6 +296,106 @@ const getSubscriptionByIdInputSchema = z.object({
     teamSlug: z.string().optional(),
     includeRenewals: z.boolean().default(false),
     includeCommissions: z.boolean().default(false),
+});
+
+const subscriptionUpgradeAccessInputSchema = z.object({
+    subscriptionId: z.string(),
+    teamSlug: z.string().optional(),
+});
+
+const upgradePlanOptionSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    description: z.string().nullable(),
+    price: z.string().nullable(),
+    currency: z.string().nullable(),
+    billingCycle: billingCycleSchema.nullable(),
+    pricingModel: pricingModelSchema,
+    isPopular: z.boolean(),
+    isRecommended: z.boolean(),
+});
+
+const listUpgradePlansOutputSchema = z.object({
+    upgradeable: z.boolean(),
+    reason: z.string().nullable(),
+    currentPlan: z
+        .object({
+            id: z.string(),
+            name: z.string(),
+            price: z.string().nullable(),
+            currency: z.string().nullable(),
+            billingCycle: billingCycleSchema.nullable(),
+        })
+        .nullable(),
+    currentPrice: z.string().nullable(),
+    currentCurrency: z.string().nullable(),
+    currentPlanId: z.string().nullable(),
+    minSortOrder: z.number(),
+    productId: z.string(),
+    productName: z.string(),
+    teamId: z.string().nullable(),
+    primaryDomain: z.string().nullable(),
+    requiresPleskSwitch: z.boolean(),
+    plans: z.array(upgradePlanOptionSchema),
+});
+
+const listUpgradePlansByPleskOutputSchema = listUpgradePlansOutputSchema.extend({
+    subscriptionId: z.string().nullable(),
+});
+
+const catalogPlanFeatureRowSchema = z.object({
+    key: z.string(),
+    label: z.string(),
+    description: z.string().optional(),
+    available: z.boolean(),
+    value: z.string().nullable(),
+});
+
+const matchCatalogPlanOutputSchema = z.object({
+    plesk: z
+        .object({
+            planId: z.string().nullable(),
+            planGuid: z.string().nullable(),
+            planName: z.string().nullable(),
+        })
+        .nullable(),
+    matchedProductId: z.string().nullable(),
+    matchedPlanId: z.string().nullable(),
+    products: z.array(
+        z.object({
+            id: z.string(),
+            name: z.string(),
+            serviceType: z.string(),
+            features: z.array(
+                z.object({
+                    key: z.string(),
+                    label: z.string(),
+                    description: z.string().optional(),
+                }),
+            ),
+            plans: z.array(
+                z.object({
+                    id: z.string(),
+                    name: z.string(),
+                    price: z.string().nullable(),
+                    currency: z.string().nullable(),
+                    billingCycle: z.string().nullable(),
+                    sortOrder: z.number(),
+                    features: z.array(catalogPlanFeatureRowSchema),
+                }),
+            ),
+        }),
+    ),
+    plans: z.array(
+        z.object({
+            id: z.string(),
+            name: z.string(),
+            price: z.string().nullable(),
+            currency: z.string().nullable(),
+            billingCycle: z.string().nullable(),
+            sortOrder: z.number(),
+        }),
+    ),
 });
 
 // --- Renewal schema ----------------------------------------------------------
@@ -611,7 +722,13 @@ async function isTeamMember(teamId: string, userId: string) {
         .from(teamMember)
         .where(and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)))
         .limit(1);
-    return !!m;
+    if (m) return true;
+    const [owned] = await db
+        .select({ id: team.id })
+        .from(team)
+        .where(and(eq(team.id, teamId), eq(team.createdById, userId)))
+        .limit(1);
+    return !!owned;
 }
 
 const isAgencyUserRole = (role: string | null | undefined) =>
@@ -621,11 +738,14 @@ const isAgencySuperAdminRole = (role: string | null | undefined) =>
     role === "AGENCY_SUPER_ADMIN";
 
 async function getMemberTeamIds(userId: string) {
-    const memberships = await db
-        .select({ teamId: teamMember.teamId })
-        .from(teamMember)
-        .where(eq(teamMember.userId, userId));
-    return memberships.map((m) => m.teamId);
+    const [memberships, owned] = await Promise.all([
+        db
+            .select({ teamId: teamMember.teamId })
+            .from(teamMember)
+            .where(eq(teamMember.userId, userId)),
+        db.select({ teamId: team.id }).from(team).where(eq(team.createdById, userId)),
+    ]);
+    return [...new Set([...memberships, ...owned].map((row) => row.teamId))];
 }
 
 async function buildSubscriptionReadScope(userId: string, role: string | null | undefined) {
@@ -645,8 +765,14 @@ async function canReadSubscription(
 ) {
     if (isAgencyUserRole(role)) return true;
     if (subscription.userId === userId) return true;
-    if (subscription.teamId) return isTeamMember(subscription.teamId, userId);
-    return false;
+    if (!subscription.teamId) return false;
+    if (await isTeamMember(subscription.teamId, userId)) return true;
+    const [ownedTeam] = await db
+        .select({ id: team.id })
+        .from(team)
+        .where(and(eq(team.id, subscription.teamId), eq(team.createdById, userId)))
+        .limit(1);
+    return !!ownedTeam;
 }
 
 async function canAssignTeamSubscription(params: {
@@ -665,6 +791,290 @@ function canMutateSubscription(
 ) {
     if (isAgencyUserRole(role)) return true;
     return subscription.userId === userId || subscription.recordedBy === userId;
+}
+
+async function assertTeamSlugMatchesSubscription(
+    subscription: { teamId?: string | null },
+    teamSlug: string | undefined,
+    userId: string,
+    role: string | null | undefined,
+) {
+    if (!teamSlug) return;
+    const slugTeamId = await getTeamIdBySlug(teamSlug);
+    if (!slugTeamId) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Team not found" });
+    }
+    if (!isAgencyUserRole(role) && !(await isTeamMember(slugTeamId, userId))) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "You do not have access to this team",
+        });
+    }
+    if (subscription.teamId !== slugTeamId) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "You do not have access to this subscription",
+        });
+    }
+}
+
+async function loadSubscriptionForUpgrade(params: {
+    subscriptionId: string;
+    teamSlug?: string;
+    userId: string;
+    role: string | null | undefined;
+}) {
+    const sub = await db.query.niscClientSubscription.findFirst({
+        where: eq(niscClientSubscription.id, params.subscriptionId),
+        with: {
+            product: true,
+            productPlan: true,
+        },
+    });
+    if (!sub) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
+    }
+    const canRead = await canReadSubscription(sub, params.userId, params.role);
+    if (!canRead) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "You do not have access to this subscription",
+        });
+    }
+    await assertTeamSlugMatchesSubscription(sub, params.teamSlug, params.userId, params.role);
+    return sub;
+}
+
+async function findLinkedNiscSubscriptionIdByPlesk(params: {
+	pleskSubscriptionId: string | number;
+	domain?: string | null;
+}): Promise<string | null> {
+	const idStr = String(params.pleskSubscriptionId).trim();
+	const [direct] = await db
+		.select({ id: niscClientSubscription.id })
+		.from(niscClientSubscription)
+		.where(
+			or(
+				eq(niscClientSubscription.pleskFilterId, idStr),
+				sql`(${niscClientSubscription.serviceRefs}->>'pleskSubscriptionId') = ${idStr}`,
+			),
+		)
+		.limit(1);
+	if (direct) return direct.id;
+
+	const [viaHosting] = await db
+		.select({ id: niscClientSubscription.id })
+		.from(niscClientSubscription)
+		.innerJoin(
+			hostingSubscription,
+			eq(niscClientSubscription.hostingSubscriptionId, hostingSubscription.id),
+		)
+		.where(eq(hostingSubscription.pleskFilterId, idStr))
+		.limit(1);
+	if (viaHosting) return viaHosting.id;
+
+	const domainNorm = params.domain
+		?.trim()
+		.toLowerCase()
+		.replace(/^www\./, "")
+		.replace(/\.$/, "");
+	if (!domainNorm) return null;
+
+	const [byDomain] = await db
+		.select({ id: niscClientSubscription.id })
+		.from(niscClientSubscription)
+		.where(
+			or(
+				sql`lower(regexp_replace(coalesce(${niscClientSubscription.primaryDomain}, ''), '^www\\.', '')) = ${domainNorm}`,
+				sql`lower(regexp_replace(coalesce(${niscClientSubscription.name}, ''), '^www\\.', '')) = ${domainNorm}`,
+			),
+		)
+		.limit(1);
+	return byDomain?.id ?? null;
+}
+
+function isCatalogUpgradeableStatus(status: string): boolean {
+    return status === "ACTIVE" || status === "PENDING" || status === "EXPIRED" || status === "SUSPENDED";
+}
+
+const HOSTING_CATALOG_SERVICE_TYPES = new Set([
+    "web_hosting",
+    "website_hosting",
+    "email_hosting",
+    "wordpress_hosting",
+]);
+
+function parseProductFeatureCatalog(raw: unknown): Array<{
+    key: string;
+    label: string;
+    description?: string;
+}> {
+    if (!Array.isArray(raw)) return [];
+    return raw.flatMap((item) => {
+        if (!item || typeof item !== "object") return [];
+        const rec = item as Record<string, unknown>;
+        if (typeof rec.key !== "string" || typeof rec.label !== "string") return [];
+        return [
+            {
+                key: rec.key,
+                label: rec.label,
+                ...(typeof rec.description === "string" ? { description: rec.description } : {}),
+            },
+        ];
+    });
+}
+
+function resolvePlanFeatureRows(
+    productFeatures: Array<{ key: string; label: string; description?: string }>,
+    planFeatures: unknown,
+): Array<{
+    key: string;
+    label: string;
+    description?: string;
+    available: boolean;
+    value: string | null;
+}> {
+    const declared = new Map<string, { available: boolean; valueOverride?: string | null }>();
+    if (Array.isArray(planFeatures)) {
+        for (const item of planFeatures) {
+            if (!item || typeof item !== "object") continue;
+            const rec = item as Record<string, unknown>;
+            if (typeof rec.key !== "string") continue;
+            declared.set(rec.key, {
+                available: Boolean(rec.available),
+                valueOverride: typeof rec.valueOverride === "string" ? rec.valueOverride : null,
+            });
+        }
+    }
+    return productFeatures.map((feature) => {
+        const match = declared.get(feature.key);
+        return {
+            key: feature.key,
+            label: feature.label,
+            ...(feature.description ? { description: feature.description } : {}),
+            available: Boolean(match?.available),
+            value: match?.valueOverride ?? null,
+        };
+    });
+}
+
+async function buildListUpgradePlansResult(
+    sub: Awaited<ReturnType<typeof loadSubscriptionForUpgrade>>,
+): Promise<z.infer<typeof listUpgradePlansOutputSchema>> {
+    const catalogPlans = await db
+        .select()
+        .from(niscProductPlan)
+        .where(
+            and(
+                eq(niscProductPlan.productId, sub.productId),
+                eq(niscProductPlan.isActive, true),
+            ),
+        );
+
+    const serviceType = sub.product?.serviceType ?? "";
+    const webspaceId = getPleskWebspaceId(sub);
+    const requiresPleskSwitch =
+        PLESK_UPGRADE_SERVICE_TYPES.has(serviceType) && webspaceId != null;
+    const currentCatalogPlan = await resolveCurrentCatalogPlanFromDb(catalogPlans, sub);
+    const resolvedCurrentPlan = currentCatalogPlan
+        ? catalogPlans.find((plan) => plan.id === currentCatalogPlan.id) ?? sub.productPlan
+        : sub.productPlan;
+
+    const empty = (reason: string): z.infer<typeof listUpgradePlansOutputSchema> => ({
+        upgradeable: false,
+        reason,
+        currentPlan: resolvedCurrentPlan
+            ? {
+                    id: resolvedCurrentPlan.id,
+                    name: resolvedCurrentPlan.name,
+                    price: resolvedCurrentPlan.price ?? null,
+                    currency: resolvedCurrentPlan.currency ?? null,
+                    billingCycle: coerceEnumOrNull(resolvedCurrentPlan.billingCycle, billingCycleSchema.options),
+                }
+            : null,
+        currentPrice: sub.agreedPrice ?? resolvedCurrentPlan?.price ?? null,
+        currentCurrency: sub.agreedCurrency ?? resolvedCurrentPlan?.currency ?? null,
+        currentPlanId: currentCatalogPlan?.id ?? sub.productPlanId ?? null,
+        minSortOrder: currentCatalogPlan?.sortOrder ?? -1,
+        productId: sub.productId,
+        productName: sub.product?.name ?? "",
+        teamId: sub.teamId ?? null,
+        primaryDomain: sub.primaryDomain ?? null,
+        requiresPleskSwitch: false,
+        plans: [],
+    });
+
+    if (sub.billingCycle === "ONE_TIME") {
+        return empty("One-time services cannot be upgraded");
+    }
+    if (!isCatalogUpgradeableStatus(sub.status)) {
+        return empty("This subscription status cannot be upgraded");
+    }
+    if (NON_CATALOG_UPGRADE_SERVICE_TYPES.has(serviceType)) {
+        return empty("This service uses a separate upgrade flow");
+    }
+
+    const plans = catalogPlans
+        .filter((plan) => isHigherCatalogPlan(toCatalogPlanIdentity(plan), currentCatalogPlan))
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .map((plan) => ({
+            id: plan.id,
+            name: plan.name,
+            description: plan.description ?? null,
+            price: plan.price ?? null,
+            currency: plan.currency ?? null,
+            billingCycle: coerceEnumOrNull(plan.billingCycle, billingCycleSchema.options),
+            pricingModel: pricingModelSchema.safeParse(plan.pricingModel).success
+                ? (plan.pricingModel as z.infer<typeof pricingModelSchema>)
+                : "FIXED",
+            isPopular: Boolean(plan.isPopular),
+            isRecommended: Boolean(plan.isRecommended),
+        }));
+
+    return {
+        upgradeable: plans.length > 0,
+        reason: plans.length > 0 ? null : "Already on the highest plan",
+        currentPlan: resolvedCurrentPlan
+            ? {
+                    id: resolvedCurrentPlan.id,
+                    name: resolvedCurrentPlan.name,
+                    price: resolvedCurrentPlan.price ?? null,
+                    currency: resolvedCurrentPlan.currency ?? null,
+                    billingCycle: coerceEnumOrNull(resolvedCurrentPlan.billingCycle, billingCycleSchema.options),
+                }
+            : null,
+        currentPrice: sub.agreedPrice ?? resolvedCurrentPlan?.price ?? null,
+        currentCurrency: sub.agreedCurrency ?? resolvedCurrentPlan?.currency ?? null,
+        currentPlanId: currentCatalogPlan?.id ?? sub.productPlanId ?? null,
+        minSortOrder: currentCatalogPlan?.sortOrder ?? -1,
+        productId: sub.productId,
+        productName: sub.product?.name ?? "",
+        teamId: sub.teamId ?? null,
+        primaryDomain: sub.primaryDomain ?? null,
+        requiresPleskSwitch,
+        plans,
+    };
+}
+
+function emptyUpgradePlansByPlesk(
+    reason: string,
+): z.infer<typeof listUpgradePlansByPleskOutputSchema> {
+    return {
+        subscriptionId: null,
+        upgradeable: false,
+        reason,
+        currentPlan: null,
+        currentPrice: null,
+        currentCurrency: null,
+        currentPlanId: null,
+        minSortOrder: -1,
+        productId: "",
+        productName: "",
+        teamId: null,
+        primaryDomain: null,
+        requiresPleskSwitch: false,
+        plans: [],
+    };
 }
 
 // ============================================================================
@@ -1914,6 +2324,216 @@ export const clientSubscriptionsRouter = router({
                 )
                 .limit(1);
             return { hasLinked: !!sub };
+        }),
+
+    /** Resolve the nisc client subscription id linked to a Plesk webspace (hosting / email detail pages). */
+    getLinkedIdByPleskId: protectedProcedure
+        .input(
+            z.object({
+                pleskSubscriptionId: z.union([z.string(), z.number()]),
+                teamSlug: z.string().optional(),
+                domain: z.string().optional(),
+            }),
+        )
+        .output(z.object({ subscriptionId: z.string().nullable() }))
+        .query(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view subscriptions",
+                });
+            }
+            const subscriptionId = await findLinkedNiscSubscriptionIdByPlesk({
+                pleskSubscriptionId: input.pleskSubscriptionId,
+                domain: input.domain,
+            });
+            if (!subscriptionId) return { subscriptionId: null };
+            const [row] = await db
+                .select({
+                    id: niscClientSubscription.id,
+                    userId: niscClientSubscription.userId,
+                    teamId: niscClientSubscription.teamId,
+                })
+                .from(niscClientSubscription)
+                .where(eq(niscClientSubscription.id, subscriptionId))
+                .limit(1);
+            if (!row) return { subscriptionId: null };
+            const teamId = input.teamSlug ? await getTeamIdBySlug(input.teamSlug) : null;
+            const canRead = await canReadSubscription(row, session.user.id, session.user.role);
+            if (canRead) return { subscriptionId: row.id };
+            if (teamId && row.teamId === teamId && (await isTeamMember(teamId, session.user.id))) {
+                return { subscriptionId: row.id };
+            }
+            if (row.teamId) {
+                const [ownedTeam] = await db
+                    .select({ id: team.id })
+                    .from(team)
+                    .where(and(eq(team.id, row.teamId), eq(team.createdById, session.user.id)))
+                    .limit(1);
+                if (ownedTeam) return { subscriptionId: row.id };
+            }
+            return { subscriptionId: null };
+        }),
+
+    /**
+     * Live Plesk plan for a webspace, matched to catalog plans.
+     * When productId is omitted, all hosting catalog products/plans/features are returned.
+     */
+    matchCatalogPlanForPleskWebspace: protectedProcedure
+        .input(
+            z.object({
+                pleskSubscriptionId: z.union([z.string(), z.number()]).optional(),
+                domain: z.string().optional(),
+                productId: z.string().min(1).optional(),
+            }).refine(
+                (value) =>
+                    String(value.pleskSubscriptionId ?? "").trim() !== "" ||
+                    Boolean(value.domain?.trim()),
+                { message: "pleskSubscriptionId or domain is required" },
+            ),
+        )
+        .output(matchCatalogPlanOutputSchema)
+        .query(async ({ input }) => {
+            const parsedId = Number.parseInt(String(input.pleskSubscriptionId ?? "").trim(), 10);
+            const domain = input.domain
+                ?.trim()
+                .toLowerCase()
+                .replace(/^www\./, "")
+                .replace(/\.$/, "");
+
+            const products = input.productId
+                ? await db
+                    .select()
+                    .from(niscProduct)
+                    .where(eq(niscProduct.id, input.productId))
+                    .limit(1)
+                : (await db
+                    .select()
+                    .from(niscProduct)
+                    .where(eq(niscProduct.isActive, true)))
+                    .filter(
+                        (product) =>
+                            HOSTING_CATALOG_SERVICE_TYPES.has(product.serviceType) ||
+                            /hosting/i.test(product.name),
+                    );
+
+            if (input.productId && products.length === 0) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Product not found" });
+            }
+
+            const productIds = products.map((product) => product.id);
+            const catalogPlans = productIds.length
+                ? await db
+                    .select()
+                    .from(niscProductPlan)
+                    .where(
+                        and(
+                            inArray(niscProductPlan.productId, productIds),
+                            eq(niscProductPlan.isActive, true),
+                        ),
+                    )
+                    .orderBy(niscProductPlan.sortOrder)
+                : [];
+
+            const plesk = await loadPleskWebspacePlan({
+                ...(Number.isFinite(parsedId) && parsedId > 0 ? { id: parsedId } : {}),
+                ...(domain ? { name: domain } : {}),
+            });
+            const matched = plesk
+                ? matchCatalogPlanByServiceDetails(
+                    catalogPlans.map((plan) => ({
+                        id: plan.id,
+                        name: plan.name,
+                        sortOrder: plan.sortOrder,
+                        billingCycle: plan.billingCycle,
+                        pleskServicePlanId: plan.pleskServicePlanId,
+                        pleskFilterId: plan.pleskFilterId,
+                    })),
+                    {
+                        pleskPlanId: plesk.planId,
+                        pleskPlanGuid: plesk.planGuid,
+                        pleskPlanName: plesk.planName,
+                    },
+                )
+                : null;
+            const matchedPlan = matched
+                ? catalogPlans.find((plan) => plan.id === matched.id) ?? null
+                : null;
+
+            const productsOut = products.map((product) => {
+                const productFeatures = parseProductFeatureCatalog(product.features);
+                const plans = catalogPlans
+                    .filter((plan) => plan.productId === product.id)
+                    .map((plan) => ({
+                        id: plan.id,
+                        name: plan.name,
+                        price: plan.price ?? null,
+                        currency: plan.currency ?? null,
+                        billingCycle: plan.billingCycle ?? null,
+                        sortOrder: plan.sortOrder,
+                        features: resolvePlanFeatureRows(productFeatures, plan.planFeatures),
+                    }));
+                return {
+                    id: product.id,
+                    name: product.name,
+                    serviceType: product.serviceType,
+                    features: productFeatures,
+                    plans,
+                };
+            });
+
+            const selectedProduct =
+                productsOut.find((product) => product.id === matchedPlan?.productId) ??
+                productsOut[0] ??
+                null;
+
+            return {
+                plesk: plesk
+                    ? {
+                            planId: plesk.planId,
+                            planGuid: plesk.planGuid,
+                            planName: plesk.planName,
+                        }
+                    : null,
+                matchedProductId: matchedPlan?.productId ?? null,
+                matchedPlanId: matchedPlan?.id ?? null,
+                products: productsOut,
+                plans: (selectedProduct?.plans ?? []).map((plan) => ({
+                    id: plan.id,
+                    name: plan.name,
+                    price: plan.price,
+                    currency: plan.currency,
+                    billingCycle: plan.billingCycle,
+                    sortOrder: plan.sortOrder,
+                })),
+            };
+        }),
+
+    /** Resolve the nisc client subscription id linked to a WordPress Toolkit installation. */
+    getLinkedIdByWpInstallationId: protectedProcedure
+        .input(z.object({ installationId: z.number().int().positive() }))
+        .output(z.object({ subscriptionId: z.string().nullable() }))
+        .query(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view subscriptions",
+                });
+            }
+            const readScope = await buildSubscriptionReadScope(session.user.id, session.user.role);
+            const [sub] = await db
+                .select({ id: niscClientSubscription.id })
+                .from(niscClientSubscription)
+                .where(
+                    and(
+                        eq(niscClientSubscription.wpInstallationId, input.installationId),
+                        readScope ?? sql`true`,
+                    ),
+                )
+                .limit(1);
+            return { subscriptionId: sub?.id ?? null };
         }),
 
     /** Return Plesk subscription ids that already have a linked NiscClientSubscription (for batch check on hosting list). */
@@ -3343,6 +3963,75 @@ export const clientSubscriptionsRouter = router({
             });
 
             return mapSubscription(updated);
+        }),
+
+    /** Higher catalog plans for the same product, ranked by sortOrder. Downgrades are never returned. */
+    listUpgradePlans: protectedProcedure
+        .input(subscriptionUpgradeAccessInputSchema)
+        .output(listUpgradePlansOutputSchema)
+        .query(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view upgrade plans",
+                });
+            }
+
+            const sub = await loadSubscriptionForUpgrade({
+                subscriptionId: input.subscriptionId,
+                teamSlug: input.teamSlug,
+                userId: session.user.id,
+                role: session.user.role,
+            });
+
+            return buildListUpgradePlansResult(sub);
+        }),
+
+    /** Hosting details: resolve the linked subscription and its upgrade options in one DB round-trip. */
+    listUpgradePlansByPleskId: protectedProcedure
+        .input(
+            z.object({
+                pleskSubscriptionId: z.union([z.string(), z.number()]),
+                teamSlug: z.string().optional(),
+                domain: z.string().optional(),
+            }),
+        )
+        .output(listUpgradePlansByPleskOutputSchema)
+        .query(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view upgrade plans",
+                });
+            }
+
+            const subscriptionId = await findLinkedNiscSubscriptionIdByPlesk({
+                pleskSubscriptionId: input.pleskSubscriptionId,
+                domain: input.domain,
+            });
+            if (!subscriptionId) {
+                return emptyUpgradePlansByPlesk("No linked subscription found");
+            }
+
+            try {
+                const sub = await loadSubscriptionForUpgrade({
+                    subscriptionId,
+                    teamSlug: input.teamSlug,
+                    userId: session.user.id,
+                    role: session.user.role,
+                });
+                return {
+                    subscriptionId: sub.id,
+                    ...(await buildListUpgradePlansResult(sub)),
+                };
+            } catch (error) {
+                if (error instanceof TRPCError && (error.code === "FORBIDDEN" || error.code === "NOT_FOUND")) {
+                    return emptyUpgradePlansByPlesk("No linked subscription found");
+                }
+                throw error;
+            }
         }),
 
     /** Cancel a subscription */

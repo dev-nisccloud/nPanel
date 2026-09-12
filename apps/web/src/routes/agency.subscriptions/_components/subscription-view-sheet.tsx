@@ -38,6 +38,10 @@ import {
 	type SubscriptionStatusConfirmAction,
 } from "./subscription-status-confirm-dialog";
 import { SubscriptionDeleteDialog } from "./subscription-delete-dialog";
+import {
+	SubscriptionUpgradeButton,
+	subscriptionHasNoUpgradeOption,
+} from "./subscription-upgrade-button";
 import { captureEvent } from "@/lib/posthog";
 import {
 	isOneTimeService,
@@ -172,6 +176,12 @@ export function SubscriptionViewSheet({
 	const teamName = sub?.team?.name ?? null;
 	const isOneTime = isProgressTrackedOneTime(sub?.billingCycle, sub?.productId);
 	const isZeepoAi = isZeepoAiProduct(sub?.productId);
+	const showUpgrade = !subscriptionHasNoUpgradeOption({
+		billingCycle: sub?.billingCycle,
+		serviceType: sub?.product?.serviceType,
+		productId: sub?.productId,
+		productName: sub?.product?.name,
+	});
 
 	const isSuspended = sub?.status === "SUSPENDED";
 	const canReactivate = isSuspended;
@@ -363,6 +373,15 @@ export function SubscriptionViewSheet({
 						</ScrollArea>
 
 						<SheetFooter className="flex-shrink-0 flex-wrap gap-2 px-6 py-4 border-t bg-muted/30">
+							{showUpgrade ? (
+								<SubscriptionUpgradeButton
+									subscriptionId={sub.id}
+									billingCycle={sub.billingCycle}
+									serviceType={sub.product?.serviceType}
+									productId={sub.productId}
+									productName={sub.product?.name}
+								/>
+							) : null}
 							{canSuspend && (
 								<Button
 									variant={hostingServiceId ? "destructive" : "outline"}

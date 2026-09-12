@@ -2,6 +2,7 @@ import { XMLParser } from 'fast-xml-parser';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { sendPleskXmlRequest } from '../../lib/plesk/xml-client';
+import { syncLocalHostingStatusAfterPlesk } from '../../lib/plesk/sync-hosting-suspend-status';
 import { protectedProcedure, router } from '../../trpc';
 /**
  * Plesk webspace status values (objectStatus / plesk_common.xsd).
@@ -120,10 +121,17 @@ export const subscriptionsSuspendRouter = router({
         id: z.number(),
         suspendedBy: suspendBySchema.optional(),
     }))
-        .mutation(async ({ input }) => {
+        .mutation(async ({ ctx, input }) => {
         try {
             const status = statusForSuspendBy(input.suspendedBy ?? 'admin');
-            return await setSubscriptionStatus(input.id, status);
+            const result = await setSubscriptionStatus(input.id, status);
+            const local = await syncLocalHostingStatusAfterPlesk({
+                pleskSubscriptionId: input.id,
+                pleskStatus: status,
+                action: "suspend",
+                userId: ctx.session.user.id,
+            });
+            return { ...result, ...local };
         }
         catch (error) {
             if (error instanceof TRPCError)
@@ -140,9 +148,16 @@ export const subscriptionsSuspendRouter = router({
      */
     unsuspend: protectedProcedure
         .input(z.object({ id: z.number() }))
-        .mutation(async ({ input }) => {
+        .mutation(async ({ ctx, input }) => {
         try {
-            return await setSubscriptionStatus(input.id, PLESK_WEBSPACE_STATUS.ACTIVE);
+            const result = await setSubscriptionStatus(input.id, PLESK_WEBSPACE_STATUS.ACTIVE);
+            const local = await syncLocalHostingStatusAfterPlesk({
+                pleskSubscriptionId: input.id,
+                pleskStatus: PLESK_WEBSPACE_STATUS.ACTIVE,
+                action: "unsuspend",
+                userId: ctx.session.user.id,
+            });
+            return { ...result, ...local };
         }
         catch (error) {
             if (error instanceof TRPCError)

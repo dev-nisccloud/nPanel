@@ -22,6 +22,7 @@ import {
 	AlertTriangle
 } from "lucide-react";
 import { useTeamAdAccountAccess } from "./$slug.ad-campaigns/_components/use-team-ad-account-access";
+import { TeamProductUpgradeButton } from "@/routes/agency.subscriptions/_components/subscription-upgrade-button";
 
 export default function LinkedInAdsAccountDetailPage() {
 	const params = useParams();
@@ -269,16 +270,22 @@ export default function LinkedInAdsAccountDetailPage() {
 						</p>
 					</div>
 				</div>
-				<Button
-					variant="outline"
-					size="icon"
-					onClick={() => {
-						refetchAccount();
-					}}
-					title="Refresh account"
-				>
-					<RefreshCw className="h-4 w-4" />
-				</Button>
+				<div className="flex items-center gap-2">
+					<TeamProductUpgradeButton
+						teamSlug={teamSlug}
+						productNameIncludes={["media buying"]}
+					/>
+					<Button
+						variant="outline"
+						size="icon"
+						onClick={() => {
+							refetchAccount();
+						}}
+						title="Refresh account"
+					>
+						<RefreshCw className="h-4 w-4" />
+					</Button>
+				</div>
 			</div>
 
 			{/* Performance Metrics Overview */}

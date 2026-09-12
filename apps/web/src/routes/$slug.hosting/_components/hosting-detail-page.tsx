@@ -27,6 +27,7 @@ import { getStatusDisplayText, getStatusBadgeVariant } from "./hosting-utils";
 import { HostingBackupRestoreTab } from "@/components/nisc-backup/hosting-backup-restore-tab";
 import { resolveHostingNiscBackupUsername } from "@/components/nisc-backup/resolve-hosting-nisc-backup-username";
 import { useCanTeamPermission } from "@/contexts/team-permissions-context";
+import { PleskLinkedSubscriptionUpgradeButton } from "@/routes/agency.subscriptions/_components/subscription-upgrade-button";
 
 interface HostingDetailPageProps {
   subscriptionId: string;
@@ -228,6 +229,12 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
 
           <div className="flex items-center gap-2">
             {getStatusBadge(hostingData.gen_info.status ?? 0)}
+            <PleskLinkedSubscriptionUpgradeButton
+              pleskSubscriptionId={hostingData.id ?? subscriptionId}
+              teamSlug={teamSlug}
+              domain={hostingData.gen_info.name}
+              onUpgraded={() => refetch()}
+            />
           </div>
         </div>
 
