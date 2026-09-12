@@ -404,6 +404,11 @@ export function RenewalReminderCronMonitor() {
 		{ enabled: open && !!selectedRunId },
 	);
 
+	const activityQuery = trpc.clientSubscriptions.listRenewalReminderCronActivity.useQuery(
+		{ limit: 40 },
+		{ enabled: open },
+	);
+
 	React.useEffect(() => {
 		if (!selectedRunId && runsQuery.data?.runs[0]?.id) {
 			setSelectedRunId(runsQuery.data.runs[0].id);
@@ -411,11 +416,14 @@ export function RenewalReminderCronMonitor() {
 	}, [runsQuery.data?.runs, selectedRunId]);
 
 	const status = statusQuery.data;
-	const liveLabel = status?.isRunning
-		? "Running"
-		: status?.isStale
-			? "Stale"
-			: "Idle";
+	const liveLabel =
+		status?.enabled === false
+			? "Off"
+			: status?.isRunning
+				? "Running"
+				: status?.isStale
+					? "Stale"
+					: "Idle";
 
 	return (
 		<Sheet open={open} onOpenChange={setOpen}>
@@ -452,6 +460,7 @@ export function RenewalReminderCronMonitor() {
 							onClick={() => {
 								void statusQuery.refetch();
 								void runsQuery.refetch();
+								void activityQuery.refetch();
 								if (selectedRunId) void runDetailQuery.refetch();
 							}}
 						>
@@ -505,6 +514,28 @@ export function RenewalReminderCronMonitor() {
 						{status?.schedule.error ? (
 							<p className="text-xs text-destructive">{status.schedule.error}</p>
 						) : null}
+					</div>
+					<div className="rounded-lg border p-3 space-y-1.5 sm:col-span-2">
+						<p className="text-xs font-medium text-muted-foreground">On / off log</p>
+						{activityQuery.isLoading ? (
+							<p className="text-xs text-muted-foreground">Loading…</p>
+						) : (activityQuery.data?.items.length ?? 0) === 0 ? (
+							<p className="text-xs text-muted-foreground">None</p>
+						) : (
+							<div className="max-h-28 overflow-auto space-y-1">
+								{activityQuery.data?.items.map((item) => (
+									<p key={item.id} className="text-xs">
+										<span className="text-muted-foreground">
+											{formatWhen(item.createdAt)}
+										</span>
+										{" · "}
+										{item.action}
+										{" · "}
+										{item.userName ?? item.userEmail ?? item.userId ?? "—"}
+									</p>
+								))}
+							</div>
+						)}
 					</div>
 				</div>
 

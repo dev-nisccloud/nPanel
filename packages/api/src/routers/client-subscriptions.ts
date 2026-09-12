@@ -3932,8 +3932,17 @@ export const clientSubscriptionsRouter = router({
                 attachQstashMessageId,
                 createRenewalReminderRun,
                 findActiveRenewalReminderRun,
+                isRenewalReminderCronEnabled,
                 processSubscriptionRenewalReminders,
+                RENEWAL_REMINDER_CRON_DISABLED_MESSAGE,
             } = await import("../lib/subscription-renewal-reminders");
+
+            if (!(await isRenewalReminderCronEnabled())) {
+                throw new TRPCError({
+                    code: "PRECONDITION_FAILED",
+                    message: RENEWAL_REMINDER_CRON_DISABLED_MESSAGE,
+                });
+            }
 
             const active = await findActiveRenewalReminderRun();
             if (active && !active.isStale && !input?.force) {
@@ -4049,6 +4058,7 @@ export const clientSubscriptionsRouter = router({
     getRenewalReminderCronStatus: protectedProcedure
         .output(
             z.object({
+                enabled: z.boolean(),
                 isRunning: z.boolean(),
                 isStale: z.boolean(),
                 activeRunId: z.string().nullable(),
@@ -4094,6 +4104,7 @@ export const clientSubscriptionsRouter = router({
 
             const {
                 findActiveRenewalReminderRun,
+                getRenewalReminderCronSetting,
                 SUBSCRIPTION_RENEWAL_REMINDERS_JOB_KEY,
             } = await import("../lib/subscription-renewal-reminders");
             const { getSubscriptionRenewalRemindersScheduleStatus } = await import(
@@ -4101,7 +4112,7 @@ export const clientSubscriptionsRouter = router({
             );
             const { agencyCronJobRun } = await import("@npanel/db/schema/agency-cron-jobs");
 
-            const [active, schedule, latest] = await Promise.all([
+            const [active, schedule, latest, setting] = await Promise.all([
                 findActiveRenewalReminderRun(),
                 getSubscriptionRenewalRemindersScheduleStatus(),
                 db.query.agencyCronJobRun.findFirst({
@@ -4124,11 +4135,13 @@ export const clientSubscriptionsRouter = router({
                         triggeredByUserId: true,
                     },
                 }),
+                getRenewalReminderCronSetting(),
             ]);
 
             const isRunning = Boolean(active && !active.isStale);
 
             return {
+                enabled: setting.enabled,
                 isRunning,
                 isStale: Boolean(active?.isStale),
                 activeRunId: active?.id ?? null,
@@ -4256,6 +4269,49 @@ export const clientSubscriptionsRouter = router({
                 .limit(500);
 
             return { run, items };
+        }),
+
+    setRenewalReminderCronEnabled: protectedProcedure
+        .input(z.object({ enabled: z.boolean() }))
+        .mutation(async ({ ctx, input }) => {
+            if (!ctx.session?.user?.id) {
+                throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
+            }
+            if (!isAgencyUserRole(ctx.session.user.role)) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Only agency users can change the renewal reminder cron",
+                });
+            }
+            const { setRenewalReminderCronEnabled } = await import(
+                "../lib/subscription-renewal-reminders"
+            );
+            return setRenewalReminderCronEnabled(input.enabled, ctx.session.user.id);
+        }),
+
+    listRenewalReminderCronActivity: protectedProcedure
+        .input(
+            z
+                .object({
+                    limit: z.number().int().min(1).max(100).optional().default(40),
+                })
+                .optional(),
+        )
+        .query(async ({ ctx, input }) => {
+            if (!ctx.session?.user?.id) {
+                throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
+            }
+            if (!isAgencyUserRole(ctx.session.user.role)) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Only agency users can view renewal reminder cron activity",
+                });
+            }
+            const { listRenewalReminderCronActivity } = await import(
+                "../lib/subscription-renewal-reminders"
+            );
+            const items = await listRenewalReminderCronActivity(input?.limit ?? 40);
+            return { items };
         }),
 
     /** Agency super admin: current Zeepo AI token balance for a subscription. */

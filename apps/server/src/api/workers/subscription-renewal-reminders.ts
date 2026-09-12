@@ -5,6 +5,7 @@ import {
 } from "@npanel/api/lib/qstash/subscription-renewal-reminders";
 import {
 	markRenewalReminderContinuationFailed,
+	isRenewalReminderCronEnabled,
 	processSubscriptionRenewalReminders,
 	type SubscriptionRenewalRemindersPayload,
 } from "@npanel/api/lib/subscription-renewal-reminders";
@@ -31,6 +32,10 @@ export async function handleSubscriptionRenewalReminders(c: Context) {
 		}
 	} catch {
 		body = {};
+	}
+
+	if (!(await isRenewalReminderCronEnabled())) {
+		return c.json({ ok: true, skipped: true, reason: "disabled" });
 	}
 
 	const source = body.source ?? "schedule";
