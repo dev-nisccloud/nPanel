@@ -1,7 +1,6 @@
 import { CompanyDetailsPreview } from "@/routes/agency.invoices/create/_components/form/companyDetails/companyDetailsPreview";
 import { InvoiceDetailsPreview } from "@/routes/agency.invoices/create/_components/form/invoiceDetails/invoiceDetailsPreview";
 import { InvoiceTermsPreview } from "@/routes/agency.invoices/create/_components/form/invoiceTerms/InvoiceTermsPreview";
-import { PaymentDetailsPreview } from "@/routes/agency.invoices/create/_components/form/paymentDetails/paymentDetailsPreview";
 import { InvoiceHeaderPreview } from "@/routes/agency.invoices/create/_components/form/header/invoiceHeaderPreview";
 import { EtimsFiscalFooterPreview } from "@/routes/agency.invoices/create/_components/form/etimsFiscalFooterPreview";
 import { ChevronDown } from "lucide-react";
@@ -18,7 +17,6 @@ export const PreviewDetails = ({
   yourDetails,
   companyDetails,
   invoiceDetails,
-  paymentDetails,
   invoiceTerms,
   etimsFiscal,
   onClick,
@@ -27,17 +25,41 @@ export const PreviewDetails = ({
   yourDetails: YourDetails;
   companyDetails: CompanyDetails;
   invoiceDetails: InvoiceItemDetails;
-  paymentDetails: PaymentDetails;
+  paymentDetails?: PaymentDetails;
   invoiceTerms: InvoiceTerms;
   etimsFiscal?: EtimsFiscalFields | null;
   onClick?: (step: string) => void;
   documentTitle?: string;
-}) => (
+}) => {
+  const title = documentTitle ?? "Invoice";
+  const isCreditNote = title.toLowerCase().includes("credit");
+  const taxPercentage =
+    invoiceDetails.taxPercentage ??
+    (invoiceDetails.taxRate != null && String(invoiceDetails.taxRate).trim() !== ""
+      ? Number(invoiceDetails.taxRate)
+      : undefined);
+
+  return (
   <div className="overflow-x-auto overflow-y-visible">
     <div className="w-[595px] min-h-[842px] bg-white rounded-2xl border border-dashed justify-center items-center">
-      <InvoiceHeaderPreview {...yourDetails} onClick={onClick} title={documentTitle} />
+      <InvoiceHeaderPreview {...yourDetails} onClick={onClick} title={title} />
+
+      {isCreditNote ? (
+        <div className="px-10 pb-3 text-[11px] text-gray-700">
+          {invoiceTerms.originalCuInvoiceNo ? (
+            <p className="mb-1 font-semibold uppercase">
+              Original CU invoice no.#: {invoiceTerms.originalCuInvoiceNo}
+            </p>
+          ) : null}
+          <p className="font-semibold uppercase">
+            Credit note is approved only for original sales receipt
+          </p>
+          {invoiceTerms.buyerPin ? (
+            <p className="mt-1 text-gray-600">Buyer PIN: {invoiceTerms.buyerPin}</p>
+          ) : null}
+        </div>
+      ) : null}
       
-      {/* Bill To section on left, Invoice number and dates on right */}
       <div className="border-b grid grid-cols-2 justify-between border-dashed">
         <div
           className="py-4 px-10 border-r border-dashed cursor-pointer relative group"
@@ -58,17 +80,17 @@ export const PreviewDetails = ({
         </div>
       </div>
       
-      {/* Invoice details and payment details remain the same */}
       <div className="flex flex-col justify-between">
         <div className="border-b justify-between border-dashed">
-          <InvoiceDetailsPreview {...invoiceDetails} onClick={onClick} />
-        </div>
-        <div className="">
-          <PaymentDetailsPreview {...paymentDetails} onClick={onClick} />
+          <InvoiceDetailsPreview
+            {...invoiceDetails}
+            taxPercentage={taxPercentage}
+            onClick={onClick}
+          />
         </div>
         {etimsFiscal ? <EtimsFiscalFooterPreview etimsFiscal={etimsFiscal} /> : null}
       </div>
     </div>
   </div>
-);
-
+  );
+};

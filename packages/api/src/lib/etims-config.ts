@@ -49,8 +49,8 @@ export function buildTokenUrl(isSandbox: boolean): string {
 }
 
 /**
- * Build EtimsClientConfig from environment variables (no DB).
- * Used during device initialization before the DB record exists.
+ * Build EtimsClientConfig from the live process env (apps/server/.env).
+ * Certification/test OAuth lives in .env.etims-certification and is not read here.
  */
 export function buildClientConfigFromEnv(isSandbox: boolean): EtimsClientConfig {
     const consumerKey = process.env.ETIMS_CONSUMER_KEY ?? '';

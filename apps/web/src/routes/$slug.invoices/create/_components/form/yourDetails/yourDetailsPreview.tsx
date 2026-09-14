@@ -51,7 +51,7 @@ export const YourDetailsPreview: React.FC<YourDetails> = ({
       ) : (
         <div className="rounded-md bg-neutral-100 h-4 w-3/6 animate-pulse my-2" />
       )}
-      {yourTaxId && <p>Tax ID:{yourTaxId}</p>}
+      {yourTaxId && <p>PIN: {yourTaxId}</p>}
     </div>
   </div>
 );

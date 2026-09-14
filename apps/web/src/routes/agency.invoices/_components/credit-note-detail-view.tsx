@@ -156,14 +156,6 @@ export function CreditNoteDetailView({
 	const pdfMeta = buildCreditNotePdfDetails(creditNote);
 	const kraSynced = isInvoiceKraSynced(creditNote.kraStatus);
 	const etimsFiscal = creditNote.etimsFiscal ?? pdfMeta.etimsFiscal;
-	const paymentDetails = {
-		...pdfMeta.paymentDetails,
-		etimsVerificationUrl:
-			pdfMeta.paymentDetails.etimsVerificationUrl ??
-			creditNote.etimsFiscal?.verificationUrl ??
-			creditNote.kraVerificationUrl ??
-			undefined,
-	};
 
 	return (
 		<div className="@container/main flex flex-col gap-4 md:gap-6 py-6">
@@ -234,7 +226,6 @@ export function CreditNoteDetailView({
 					yourDetails={pdfMeta.yourDetails}
 					companyDetails={pdfMeta.companyDetails}
 					invoiceDetails={pdfMeta.invoiceDetails}
-					paymentDetails={paymentDetails}
 					invoiceTerms={pdfMeta.invoiceTerms}
 					etimsFiscal={etimsFiscal}
 					documentTitle={pdfMeta.documentTitle}

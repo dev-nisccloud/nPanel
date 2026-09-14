@@ -12,6 +12,8 @@ import {
     Eye,
     ExternalLink,
     FileMinus,
+    Download,
+    Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,6 +62,7 @@ import {
     type EtimsSaleRecord,
 } from "./agency.kra-etims/sales/_components/etims-sale-utils";
 import { ViewETimsSaleSheet } from "./agency.kra-etims/sales/_components/view-etims-sale-sheet";
+import { useEtimsReceiptDownload } from "./agency.kra-etims/sales/_components/download-etims-receipt";
 import { buildEtimsReceiptVerifyUrl, extractRcptSign } from "@/lib/etims-receipt-url";
 
 export default function ETimsSalesPage() {
@@ -302,6 +305,14 @@ export default function ETimsSalesPage() {
         return Array.isArray(list) ? list.map((item: Record<string, unknown>) => normalizeSalesListItem(item)) : [];
     }, [salesData]);
 
+    const etimsCfg = (etimsConfig as { config?: { kraPin?: string; branchId?: string; isSandbox?: boolean } } | undefined)?.config;
+    const { download: downloadReceipt, downloadingInvcNo } = useEtimsReceiptDownload({
+        kraPin: etimsCfg?.kraPin,
+        branchId: selectedBhfId ?? etimsCfg?.branchId,
+        isSandbox: etimsCfg?.isSandbox,
+        salesList: invoices,
+    });
+
     const filterBySearch = React.useCallback((list: any[]) => {
         if (!searchQuery.trim()) return list;
         const query = searchQuery.toLowerCase().trim();
@@ -466,6 +477,8 @@ export default function ETimsSalesPage() {
                 }}
                 sale={viewingRecord}
                 onVerifyKra={(record) => openKraVerify(record)}
+                downloading={viewingRecord != null && downloadingInvcNo === viewingRecord.invcNo}
+                onDownload={(record) => downloadReceipt(record)}
                 onIssueCreditNote={(record) => {
                     setIsViewOpen(false);
                     requestCreditNote(toCreditNoteSale(record));
@@ -775,6 +788,17 @@ export default function ETimsSalesPage() {
                                                                 </Button>
                                                             </DropdownMenuTrigger>
                                                             <DropdownMenuContent align="end">
+                                                                <DropdownMenuItem
+                                                                    disabled={downloadingInvcNo === invoice.invcNo}
+                                                                    onClick={() => downloadReceipt(invoice)}
+                                                                >
+                                                                    {downloadingInvcNo === invoice.invcNo ? (
+                                                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                                    ) : (
+                                                                        <Download className="mr-2 h-4 w-4" />
+                                                                    )}
+                                                                    Download invoice
+                                                                </DropdownMenuItem>
                                                                 <DropdownMenuItem onClick={() => requestCreditNote(toCreditNoteSale(invoice))}>
                                                                     <FileMinus className="mr-2 h-4 w-4" />
                                                                     Issue credit note
@@ -893,6 +917,17 @@ export default function ETimsSalesPage() {
                                                                 </Button>
                                                             </DropdownMenuTrigger>
                                                             <DropdownMenuContent align="end">
+                                                                <DropdownMenuItem
+                                                                    disabled={downloadingInvcNo === invoice.invcNo}
+                                                                    onClick={() => downloadReceipt(invoice)}
+                                                                >
+                                                                    {downloadingInvcNo === invoice.invcNo ? (
+                                                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                                    ) : (
+                                                                        <Download className="mr-2 h-4 w-4" />
+                                                                    )}
+                                                                    Download credit note
+                                                                </DropdownMenuItem>
                                                                 <DropdownMenuItem onClick={() => openViewSale(invoice)}>
                                                                     <Eye className="mr-2 h-4 w-4" /> View credit note
                                                                 </DropdownMenuItem>

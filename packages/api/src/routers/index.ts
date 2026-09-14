@@ -94,6 +94,7 @@ import { emailBuilderRouter } from "./email-builder";
 import { emailBuilderLibraryRouter } from "./email-builder-library";
 import { aiRouter } from "./ai";
 import { etimsRouter } from "./etims";
+import { etimsCertRouter } from "./etims-cert";
 import { reportsRouter } from "./reports";
 import { niscReportsRouter } from "./nisc-reports";
 import { productsRouter } from "./products";
@@ -302,8 +303,10 @@ export const appRouter = router({
 	emailBuilderLibrary: emailBuilderLibraryRouter,
 	// Live AI Assistant
 	ai: aiRouter,
-	// eTIMS Integration
+	// eTIMS Integration (live nPanel app: apps/server/.env + DB)
 	etims: etimsRouter,
+	// Isolated Gava Connect cert surface: .env.etims-certification only, no DB / Redis
+	etimsCert: etimsCertRouter,
 	// Reports & Analytics
 	reports: reportsRouter,
 	// Nisc Cloud Sales Reporting (new   comprehensive live-query system)

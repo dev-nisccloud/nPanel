@@ -15,8 +15,8 @@ export declare function buildBaseUrl(isSandbox: boolean): string;
  */
 export declare function buildTokenUrl(isSandbox: boolean): string;
 /**
- * Build EtimsClientConfig from environment variables (no DB).
- * Used during device initialization before the DB record exists.
+ * Build EtimsClientConfig from the live process env (apps/server/.env).
+ * Certification/test OAuth lives in .env.etims-certification and is not read here.
  */
 export declare function buildClientConfigFromEnv(isSandbox: boolean): EtimsClientConfig;
 /**

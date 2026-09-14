@@ -16,6 +16,11 @@ export interface EtimsClientConfig {
      * Defaults to consumerKey when omitted.
      */
     apigeeAppId?: string;
+    /**
+     * Isolated cert client: OAuth token stays in this process only.
+     * Never read/write the shared Redis key used by the live nPanel app.
+     */
+    memoryTokenOnly?: boolean;
 }
 
 export interface EtimsOscuHeaders {
@@ -43,6 +48,43 @@ export class EtimsApiError extends Error {
         this.resultMsg = resultMsg;
         this.response = response;
     }
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
+
+/** Gava wraps OSCU errors as HTTP 400 + responseHeader.customerMessage "Validation failed". The useful text is debugMessage. */
+export function kraGatewayErrorMessage(
+    endpointKey: string,
+    statusCode: number,
+    bodyJson: unknown,
+    bodyText: string,
+): string {
+    const root = asRecord(bodyJson) ?? {};
+    const wrapped = asRecord(root.responseBody);
+    const data = wrapped ?? root;
+    const header = asRecord(root.responseHeader) ?? asRecord(data.responseHeader);
+    const parts: string[] = [];
+    const push = (value: unknown) => {
+        if (typeof value !== 'string') return;
+        const trimmed = value.trim();
+        if (!trimmed || parts.includes(trimmed)) return;
+        parts.push(trimmed);
+    };
+    push(data.resultMsg);
+    push(data.errorMessage);
+    push(header?.customerMessage);
+    push(header?.debugMessage);
+    if (header?.errors != null) {
+        try {
+            push(JSON.stringify(header.errors));
+        } catch {
+            /* ignore */
+        }
+    }
+    return `eTIMS API (${endpointKey}) HTTP ${statusCode}: ${parts.join(' — ') || bodyText}`;
 }
 
 // ─────────────────────────────────────────────
@@ -159,50 +201,53 @@ export class EtimsOscuClient {
     // ───────────────────────
 
     /**
-     * Get a valid OAuth access token, using Redis as the primary cache
-     * and an in-memory fallback. Never fetches more than once per TTL.
+     * Get a valid OAuth access token.
+     * Live app: Redis then in-memory. Isolated cert client: in-memory only.
      */
+    private redisTokenCacheEnabled(): boolean {
+        return this.config.memoryTokenOnly !== true;
+    }
+
     async getToken(forceRefresh = false): Promise<string> {
         if (!forceRefresh) {
-            // 1. Try Redis first
-            const redis = getRedisClient();
-            if (redis) {
-                try {
-                    const cached = await redis.get<{ token: string; expiresAt: number }>(REDIS_TOKEN_KEY);
-                    if (cached && Date.now() < cached.expiresAt * 1000) {
-                        return cached.token;
+            if (this.redisTokenCacheEnabled()) {
+                const redis = getRedisClient();
+                if (redis) {
+                    try {
+                        const cached = await redis.get<{ token: string; expiresAt: number }>(REDIS_TOKEN_KEY);
+                        if (cached && Date.now() < cached.expiresAt * 1000) {
+                            return cached.token;
+                        }
+                    } catch {
+                        // Redis failure → fall through to in-memory
                     }
-                } catch {
-                    // Redis failure → fall through to in-memory
                 }
             }
 
-            // 2. Try in-memory cache
             if (this.memToken && this.memTokenExpiresAt && Date.now() < this.memTokenExpiresAt * 1000) {
                 return this.memToken;
             }
         }
 
-        // 3. Fetch fresh token
         const tokenData = await this.fetchToken();
         const expiresIn = parseInt(tokenData.expires_in ?? '3600', 10);
         const expiresAt = Math.floor(Date.now() / 1000) + expiresIn - TOKEN_BUFFER_SECS;
 
-        // Persist in-memory
         this.memToken = tokenData.access_token;
         this.memTokenExpiresAt = expiresAt;
 
-        // Persist to Redis (best-effort)
-        const redis = getRedisClient();
-        if (redis) {
-            try {
-                await redis.set(
-                    REDIS_TOKEN_KEY,
-                    { token: tokenData.access_token, expiresAt },
-                    { ex: expiresIn - TOKEN_BUFFER_SECS }
-                );
-            } catch {
-                // Redis write failure is non-fatal; we still have the in-memory cache
+        if (this.redisTokenCacheEnabled()) {
+            const redis = getRedisClient();
+            if (redis) {
+                try {
+                    await redis.set(
+                        REDIS_TOKEN_KEY,
+                        { token: tokenData.access_token, expiresAt },
+                        { ex: expiresIn - TOKEN_BUFFER_SECS }
+                    );
+                } catch {
+                    // Redis write failure is non-fatal; we still have the in-memory cache
+                }
             }
         }
 
@@ -212,6 +257,7 @@ export class EtimsOscuClient {
     async clearToken(): Promise<void> {
         this.memToken = null;
         this.memTokenExpiresAt = null;
+        if (!this.redisTokenCacheEnabled()) return;
         const redis = getRedisClient();
         if (redis) {
             try { await redis.del(REDIS_TOKEN_KEY); } catch { /* non-fatal */ }
@@ -404,11 +450,7 @@ export class EtimsOscuClient {
         }
 
         if (statusCode !== 200) {
-            const msg = (data as { resultMsg?: string }).resultMsg
-                ?? (data as { errorMessage?: string }).errorMessage
-                ?? (data as { responseHeader?: { customerMessage?: string } }).responseHeader?.customerMessage
-                ?? bodyText;
-            throw new Error(`eTIMS API (${endpointKey}) HTTP ${statusCode}: ${msg}`);
+            throw new Error(kraGatewayErrorMessage(endpointKey, statusCode, bodyJson, bodyText));
         }
 
         // Validate KRA business result code
@@ -661,16 +703,27 @@ export class EtimsOscuClient {
 
 let _singleton: EtimsOscuClient | null = null;
 
+/** Dedicated client that does not share the live-app singleton or Redis token. */
+export function createEtimsClient(config: EtimsClientConfig): EtimsOscuClient {
+    return new EtimsOscuClient(config);
+}
+
 /**
  * Get (or create) the module-level eTIMS client singleton.
- * All routers must use this instead of `new EtimsOscuClient(...)` to share the token cache.
+ * Live routers must use this instead of `new EtimsOscuClient(...)` to share the token cache.
  */
 export function getEtimsClient(config: EtimsClientConfig): EtimsOscuClient {
     if (!_singleton) {
         _singleton = new EtimsOscuClient(config);
     } else {
         const prev = (_singleton as unknown as { config: EtimsClientConfig }).config;
-        if (prev.tokenUrl !== config.tokenUrl || prev.baseUrl !== config.baseUrl) {
+        if (
+            prev.tokenUrl !== config.tokenUrl ||
+            prev.baseUrl !== config.baseUrl ||
+            prev.consumerKey !== config.consumerKey ||
+            prev.consumerSecret !== config.consumerSecret ||
+            (prev.apigeeAppId ?? "") !== (config.apigeeAppId ?? "")
+        ) {
             _singleton.clearToken().catch(() => undefined);
             _singleton = new EtimsOscuClient(config);
         }

@@ -4,6 +4,7 @@ import type { Style } from "@react-pdf/types";
 import { currencyList } from "@/lib/currency";
 import { pdfTypography, pdfUtils } from "@/lib/pdfStyles";
 import type { InvoiceItemDetails, Item } from "@/routes/agency.invoicing/types";
+import { buildTisReceiptTotals, formatTisMoney } from "@npanel/api/agency-invoice-pdf/tis-receipt-totals";
 
 function LineItemDescriptionCell({
   text,
@@ -68,14 +69,12 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
         ? roundMoney2(Number(item.amount))
         : item.amount,
   }));
-  const subtotal = roundMoney2(calculateTotalAmount(itemsNormalized));
-  const discountAmount = roundMoney2(
-    subtotal - (discount ? +discount : 0)
-  );
-  const taxAmount = roundMoney2(
-    discountAmount * ((taxRate ? +taxRate : 0) / 100)
-  );
-  const totalAmount = roundMoney2(discountAmount + taxAmount);
+  const totals = buildTisReceiptTotals({
+    items: itemsNormalized,
+    discount,
+    taxRate,
+  });
+  const symbol = currencyDetails?.currencySymbol ?? "";
 
   return (
     <View>
@@ -190,21 +189,12 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
               ...pdfUtils.borderBottom,
             }}
           >
-            <Text style={{ ...totalsText, flex: 1 }}>
-              Subtotal
-            </Text>
-            <Text
-              style={{
-                ...totalsText,
-                flex: 1,
-                textAlign: "right",
-              }}
-            >
-              {currencyDetails?.currencySymbol}
-              {formatPdfMoney(subtotal)}
+            <Text style={{ ...totalsText, flex: 1 }}>Total before discount</Text>
+            <Text style={{ ...totalsText, flex: 1, textAlign: "right" }}>
+              {symbol} {formatTisMoney(totals.totalBeforeDiscount)}
             </Text>
           </View>
-          {discount && (
+          {totals.discountAwarded ? (
             <View
               style={{
                 marginHorizontal: 40,
@@ -213,45 +203,51 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
                 ...pdfUtils.borderBottom,
               }}
             >
-              <Text style={{ ...totalsText, flex: 1 }}>
-                Discount
-              </Text>
-              <Text
-                style={{
-                  ...totalsText,
-                  flex: 1,
-                  textAlign: "right",
-                }}
-              >
-                {currencyDetails?.currencySymbol}
-                {discount ? formatPdfMoney(+discount) : ""}
+              <Text style={{ ...totalsText, flex: 1 }}>Total discount awarded</Text>
+              <Text style={{ ...totalsText, flex: 1, textAlign: "right" }}>
+                ({formatTisMoney(totals.discountAwarded)})
               </Text>
             </View>
-          )}
-          {taxRate && (
-            <View
-              style={{
-                marginHorizontal: 40,
-                paddingVertical: compactLineItems ? 5 : 14,
-                ...pdfUtils.flexRowItemCenter,
-                ...pdfUtils.borderBottom,
-              }}
-            >
-              <Text style={{ ...totalsText, flex: 1 }}>
-                Tax ({taxRate})%
-              </Text>
-              <Text
-                style={{
-                  ...totalsText,
-                  flex: 1,
-                  textAlign: "right",
-                }}
-              >
-                {currencyDetails?.currencySymbol}
-                {formatPdfMoney(taxAmount)}
-              </Text>
-            </View>
-          )}
+          ) : null}
+          <View
+            style={{
+              marginHorizontal: 40,
+              paddingVertical: compactLineItems ? 5 : 14,
+              ...pdfUtils.flexRowItemCenter,
+              ...pdfUtils.borderBottom,
+            }}
+          >
+            <Text style={{ ...totalsText, flex: 1 }}>Sub total</Text>
+            <Text style={{ ...totalsText, flex: 1, textAlign: "right" }}>
+              {symbol} {formatTisMoney(totals.subTotal)}
+            </Text>
+          </View>
+          <View
+            style={{
+              marginHorizontal: 40,
+              paddingVertical: compactLineItems ? 5 : 14,
+              ...pdfUtils.flexRowItemCenter,
+              ...pdfUtils.borderBottom,
+            }}
+          >
+            <Text style={{ ...totalsText, flex: 1 }}>VAT</Text>
+            <Text style={{ ...totalsText, flex: 1, textAlign: "right" }}>
+              {symbol} {formatTisMoney(totals.vat)}
+            </Text>
+          </View>
+          <View
+            style={{
+              marginHorizontal: 40,
+              paddingVertical: compactLineItems ? 5 : 14,
+              ...pdfUtils.flexRowItemCenter,
+              ...pdfUtils.borderBottom,
+            }}
+          >
+            <Text style={{ ...totalsText, flex: 1 }}>Total</Text>
+            <Text style={{ ...totalsText, flex: 1, textAlign: "right", fontWeight: "bold" }}>
+              {symbol} {formatTisMoney(totals.total)}
+            </Text>
+          </View>
           <View
             style={{
               marginHorizontal: 40,
@@ -259,34 +255,45 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
               ...pdfUtils.flexRowItemCenter,
             }}
           >
-            <Text style={{ ...totalsText, flex: 1 }}>
-              Amount
+            <Text style={{ ...totalsText, flex: 1 }}>Items Number</Text>
+            <Text style={{ ...totalsText, flex: 1, textAlign: "right" }}>
+              {totals.itemCount}
             </Text>
-            <Text
-              style={{
-                ...totalsText,
-                flex: 1,
-                textAlign: "right",
-                fontWeight: "bold",
-                flexWrap: "wrap",
-              }}
-            >
-              {currencyDetails?.currencySymbol}
-              {formatPdfMoney(totalAmount)}
-            </Text>
+          </View>
+          <View
+            style={{
+              marginHorizontal: 40,
+              marginTop: compactLineItems ? 6 : 10,
+              borderWidth: 1,
+              borderStyle: "solid",
+              borderColor: "#9ca3af",
+            }}
+          >
+            <View style={{ ...pdfUtils.flexRowItemCenter, borderBottomWidth: 1, borderBottomStyle: "solid", borderBottomColor: "#9ca3af" }}>
+              <Text style={{ ...totalsText, fontSize: compactLineItems ? 7 : 8, flex: 1.1, padding: 4 }}>Rate</Text>
+              <Text style={{ ...totalsText, fontSize: compactLineItems ? 7 : 8, flex: 1.4, padding: 4, textAlign: "right" }}>Taxable Amount</Text>
+              <Text style={{ ...totalsText, fontSize: compactLineItems ? 7 : 8, flex: 1, padding: 4, textAlign: "right" }}>VAT</Text>
+            </View>
+            {totals.taxTable.map((row) => (
+              <View
+                key={row.band}
+                style={{ ...pdfUtils.flexRowItemCenter, borderBottomWidth: 1, borderBottomStyle: "solid", borderBottomColor: "#e5e7eb" }}
+              >
+                <Text style={{ ...totalsText, fontSize: compactLineItems ? 7 : 8, flex: 1.1, padding: 4 }}>{row.rateLabel}</Text>
+                <Text style={{ ...totalsText, fontSize: compactLineItems ? 7 : 8, flex: 1.4, padding: 4, textAlign: "right" }}>
+                  {symbol} {formatTisMoney(row.taxable)}
+                </Text>
+                <Text style={{ ...totalsText, fontSize: compactLineItems ? 7 : 8, flex: 1, padding: 4, textAlign: "right" }}>
+                  {symbol} {formatTisMoney(row.vat)}
+                </Text>
+              </View>
+            ))}
           </View>
         </View>
       </View>
     </View>
   );
 };
-
-const calculateTotalAmount = (items: Item[]): number =>
-  items.reduce((total, item) => {
-    const quantity = item.qty ? +item.qty : 1;
-    const amount = item.amount ? +item.amount : 0;
-    return total + quantity * amount;
-  }, 0);
 
 const roundMoney2 = (n: number): number =>
   Math.round((Number(n) + Number.EPSILON) * 100) / 100;

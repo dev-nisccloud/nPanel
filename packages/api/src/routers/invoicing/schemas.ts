@@ -75,6 +75,18 @@ export const etimsFiscalFieldsSchema = z.object({
 	sdcDateTime: nullableStringSchema,
 	sdcDateTimeDisplay: nullableStringSchema,
 	verificationUrl: nullableStringSchema,
+	sdcId: nullableStringSchema,
+	receiptLabel: nullableStringSchema,
+	cuInvoiceNo: nullableStringSchema,
+	intrlDataDashed: nullableStringSchema,
+	rcptSignDashed: nullableStringSchema,
+	scuDate: nullableStringSchema,
+	scuTime: nullableStringSchema,
+	tisReceiptNumber: nullableStringSchema,
+	tisDate: nullableStringSchema,
+	tisTime: nullableStringSchema,
+	originalCuInvoiceNo: nullableStringSchema,
+	itemCount: z.number().int().min(0).nullable().optional(),
 });
 export type EtimsFiscalFieldsType = z.infer<typeof etimsFiscalFieldsSchema>;
 
@@ -259,6 +271,7 @@ export const creditNoteDetailSchema = creditNoteOutputSchema.extend({
 	taxPercentage: z.coerce.number().min(0).max(100).optional().nullable(),
 	note: nullableStringSchema,
 	etimsFiscal: etimsFiscalFieldsSchema.nullable().optional(),
+	originalCuInvoiceNo: nullableStringSchema,
 });
 export type CreditNoteDetail = z.infer<typeof creditNoteDetailSchema>;
 

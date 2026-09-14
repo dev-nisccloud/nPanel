@@ -10,6 +10,7 @@ import { toast } from "@/components/ui/sonner";
 import { captureEvent } from "@/lib/posthog";
 import { PreviewDetails } from "@/routes/agency.invoices/create/_components/form/previewDetails";
 import { transformInvoiceToPreviewData } from "@/lib/transform-invoice-preview-data";
+import { buildInvoicePdfDetails } from "@npanel/api/agency-invoice-pdf/build-invoice-pdf-details";
 import { InvoicePaymentSummary } from "@/routes/agency.invoices/$id/_components/invoice-payment-summary";
 import { InvoiceTransactionsSection } from "@/routes/agency.invoices/$id/_components/invoice-transactions-section";
 import { InvoiceTransactionViewSheet } from "@/routes/agency.invoices/$id/_components/invoice-transaction-view-sheet";
@@ -173,12 +174,9 @@ export default function InvoiceViewPage() {
 	}
 
 	const previewData = transformInvoiceToPreviewData(invoice);
+	const pdfMeta = buildInvoicePdfDetails(invoice);
 	const existingCreditNoteId = invoice.creditNote?.id;
 	const paymentTotals = resolveInvoicePaymentTotals(invoice);
-	const paymentDetails = {
-		...previewData.paymentDetails,
-		etimsVerificationUrl: undefined,
-	};
 
 	return (
 		<>
@@ -275,8 +273,8 @@ export default function InvoiceViewPage() {
 						yourDetails={previewData.yourDetails}
 						companyDetails={previewData.companyDetails}
 						invoiceDetails={previewData.invoiceDetails}
-						paymentDetails={paymentDetails}
 						invoiceTerms={previewData.invoiceTerms}
+						etimsFiscal={invoice.etimsFiscal ?? pdfMeta.etimsFiscal}
 					/>
 				</div>
 			</div>

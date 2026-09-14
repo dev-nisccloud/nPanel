@@ -45,7 +45,7 @@ export const CompanyDetailsPreview: React.FC<CompanyDetails> = ({
       ) : (
         <div className="rounded-md bg-neutral-100 h-4 w-3/6 animate-pulse my-2" />
       )}
-      {companyTaxId && <p>Tax ID:{companyTaxId}</p>}
+      {companyTaxId && <p>PIN: {companyTaxId}</p>}
     </div>
   </div>
 );

@@ -1,19 +1,41 @@
 import React from "react";
 import { currencyList } from "@/lib/currency";
 import { ChevronDown } from "lucide-react";
-import type { InvoiceItemDetails, Item } from "@/routes/agency.invoices/create/types";
+import type { InvoiceItemDetails } from "@/routes/agency.invoices/create/types";
+import {
+  buildTisReceiptTotals,
+  formatTisMoney,
+  tisCreditNoteBandLines,
+} from "@npanel/api/agency-invoice-pdf/tis-receipt-totals";
 
 export const InvoiceDetailsPreview: React.FC<
   InvoiceItemDetails & { onClick?: (step: string) => void }
-> = ({ note, discount, taxPercentage, items, currency = "KES", onClick }) => {
+> = ({
+  note,
+  discount,
+  taxPercentage,
+  taxRate,
+  items,
+  currency = "KES",
+  negateAmounts = false,
+  taxBuckets,
+  onClick,
+}) => {
   const currencyType = currency;
   const currencyDetails = currencyList.find(
     (currency) => currency.value.toLowerCase() === currencyType.toLowerCase()
   )?.details;
-  const subtotal = calculateTotalAmount(items);
-  const discountAmount = subtotal - (discount ? +discount : 0);
-  const taxAmount = discountAmount * ((taxPercentage || 0) / 100);
-  const totalAmount = roundTotalIfExceeds(discountAmount + taxAmount);
+  const symbol = currencyDetails?.currencySymbol ?? "";
+  const tax = taxPercentage ?? (taxRate != null && String(taxRate).trim() !== "" ? Number(taxRate) : undefined);
+  const totals = buildTisReceiptTotals({
+    items,
+    discount,
+    taxRate: tax,
+    taxBuckets,
+  });
+  const sign = negateAmounts ? -1 : 1;
+
+  const money = (n: number) => `${symbol} ${formatTisMoney(sign * n)}`;
 
   return (
     <div
@@ -74,11 +96,11 @@ export const InvoiceDetailsPreview: React.FC<
               {qty || "-"}
             </p>
             <p className="text-xs font-medium text-gray-600 break-words">
-              {amount != null ? formatMoney(amount) : ""}
+              {amount != null ? formatTisMoney(sign * amount) : ""}
             </p>
             <p className="text-xs font-medium text-gray-600 text-right break-words">
               {currencyDetails?.currencySymbol}
-              {amount != null && <>&nbsp;{formatMoney((qty ? qty : 1) * amount)}</>}
+              {amount != null && <>&nbsp;{formatTisMoney(sign * (qty ? qty : 1) * amount)}</>}
             </p>
           </div>
         </div>
@@ -97,77 +119,79 @@ export const InvoiceDetailsPreview: React.FC<
           <div />
         )}
         <div>
-          <div className="flex justify-between items-center mx-10 border-b border-dashed py-3 gap-4">
-            <p className="text-xs font-medium text-gray-600 flex-shrink-0">
-              Subtotal
-            </p>
-            <p className="text-xs font-medium text-gray-600 text-right break-words">
-              {currencyDetails?.currencySymbol}&nbsp;{formatMoney(subtotal)}
-            </p>
-          </div>
-          {discount && (
-            <div className="flex justify-between items-center mx-10 border-b border-dashed py-3 gap-4">
-              <p className="text-xs font-medium text-gray-600 flex-shrink-0">
-                Discount
-              </p>
-              <p className="text-xs font-medium text-gray-600 text-right break-words">
-                {currencyDetails?.currencySymbol}&nbsp;{discount ? formatMoney(+discount) : ""}
-              </p>
-            </div>
+          {negateAmounts ? (
+            <>
+              <PreviewTotalsRow label="Total" value={money(totals.total)} bold />
+              {tisCreditNoteBandLines(totals).map((band) => (
+                <React.Fragment key={band.taxableLabel}>
+                  <PreviewTotalsRow label={band.taxableLabel} value={money(band.taxable)} />
+                  <PreviewTotalsRow label={band.taxLabel} value={money(band.vat)} />
+                </React.Fragment>
+              ))}
+              <PreviewTotalsRow label="Total Tax" value={money(totals.vat)} />
+              <PreviewTotalsRow label="Items Number" value={String(totals.itemCount)} last />
+            </>
+          ) : (
+            <>
+              <PreviewTotalsRow label="Total before discount" value={money(totals.totalBeforeDiscount)} />
+              {totals.discountAwarded ? (
+                <PreviewTotalsRow
+                  label="Total discount awarded"
+                  value={`(${formatTisMoney(totals.discountAwarded)})`}
+                />
+              ) : null}
+              <PreviewTotalsRow label="Sub total" value={money(totals.subTotal)} />
+              <PreviewTotalsRow label="VAT" value={money(totals.vat)} />
+              <PreviewTotalsRow label="Total" value={money(totals.total)} bold />
+              <PreviewTotalsRow label="Items Number" value={String(totals.itemCount)} />
+              <table className="mx-10 mt-2 w-[calc(100%-5rem)] border-collapse border border-gray-400 text-[10px] text-gray-600">
+                <thead>
+                  <tr>
+                    <th className="border border-gray-300 px-2 py-1 text-left font-medium">Rate</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right font-medium">Taxable Amount</th>
+                    <th className="border border-gray-300 px-2 py-1 text-right font-medium">VAT</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {totals.taxTable.map((row) => (
+                    <tr key={row.band}>
+                      <td className="border border-gray-300 px-2 py-1">{row.rateLabel}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{money(row.taxable)}</td>
+                      <td className="border border-gray-300 px-2 py-1 text-right">{money(row.vat)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
           )}
-          {taxPercentage && (
-            <div className="flex justify-between items-center mx-10 border-b border-dashed py-3 gap-4">
-              <p className="text-xs font-medium text-gray-600 flex-shrink-0">
-                Tax ({taxPercentage})%
-              </p>
-              <p className="text-xs font-medium text-gray-600 text-right break-words">
-                {currencyDetails?.currencySymbol}&nbsp;{formatMoney(taxAmount)}
-              </p>
-            </div>
-          )}
-          <div className="flex justify-between items-center px-10 py-3 gap-4">
-            <div className="flex-shrink-0">
-              <p className="text-xs font-medium text-gray-600">
-                Amount
-              </p>
-            </div>
-            <p className="text-sm font-semibold text-gray-700 text-right break-words">
-              <span>{currencyDetails?.currencySymbol}</span>
-              <span>&nbsp;{formatMoney(totalAmount)}</span>
-            </p>
-          </div>
         </div>
       </div>
     </div>
   );
 };
 
-const calculateTotalAmount = (items: Item[]): number =>
-  items.reduce((total, item) => {
-    const quantity = item.qty ? +item.qty : 1;
-    const amount = item.amount ? +item.amount : 0;
-    return total + quantity * amount;
-  }, 0);
-
-const formatMoney = (value: number): string => {
-  const n = Number(value);
-  if (!Number.isFinite(n)) return "";
-  return new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(n);
-};
-
-/**
- * Rounds the total amount to 2 decimal places only if it exceeds 2 decimal places
- */
-const roundTotalIfExceeds = (amount: number): number => {
-  const decimalPlaces = (amount.toString().split('.')[1] || '').length;
-  if (decimalPlaces > 2) {
-    return Math.round(amount * 100) / 100;
-  }
-  return amount;
-};
+function PreviewTotalsRow({
+  label,
+  value,
+  bold,
+  last,
+}: {
+  label: string;
+  value: string;
+  bold?: boolean;
+  last?: boolean;
+}) {
+  return (
+    <div className={`flex justify-between items-center mx-10 py-3 gap-4 ${last ? "" : "border-b border-dashed"}`}>
+      <p className={`text-xs font-medium text-gray-600 flex-shrink-0 ${bold ? "font-semibold" : ""}`}>
+        {label}
+      </p>
+      <p className={`text-xs text-gray-600 text-right break-words ${bold ? "text-sm font-semibold text-gray-700" : ""}`}>
+        {value}
+      </p>
+    </div>
+  );
+}
 
 const formatBillingCycle = (cycle: string): string => {
   const cycleMap: Record<string, string> = {

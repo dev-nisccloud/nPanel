@@ -16,7 +16,8 @@ export type AgencyInvoicePdfPageProps = {
 	yourDetails: YourDetails;
 	companyDetails: CompanyDetails;
 	invoiceDetails: InvoiceItemDetails;
-	paymentDetails: PaymentDetails;
+	/** Kept for caller compatibility; bank/M-Pesa is no longer printed (KRA SCU footer occupies this space). */
+	paymentDetails?: PaymentDetails;
 	invoiceTerms: InvoiceTerms;
 	etimsFiscal: EtimsFiscalFields | null;
 	qrCodeDataUrl?: string;
@@ -30,7 +31,6 @@ export function AgencyInvoicePdfPage({
 	yourDetails,
 	companyDetails,
 	invoiceDetails,
-	paymentDetails,
 	invoiceTerms,
 	etimsFiscal,
 	qrCodeDataUrl,
@@ -43,15 +43,13 @@ export function AgencyInvoicePdfPage({
 			size="A4"
 			style={hasFiscalFooter ? pdfContainers.pageWithEtimsFooter : pdfContainers.page}
 		>
-			{etimsFiscal ? <EtimsFiscalFooterPdf fields={etimsFiscal} /> : null}
+			{etimsFiscal ? (
+				<EtimsFiscalFooterPdf fields={etimsFiscal} qrCodeDataUrl={qrCodeDataUrl} />
+			) : null}
 			<PdfDetails
 				companyDetails={companyDetails}
 				invoiceDetails={invoiceDetails}
 				invoiceTerms={invoiceTerms}
-				paymentDetails={{
-					...paymentDetails,
-					qrCodeDataUrl,
-				}}
 				yourDetails={yourDetails}
 				documentTitle={documentTitle}
 			/>

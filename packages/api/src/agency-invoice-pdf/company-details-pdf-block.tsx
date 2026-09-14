@@ -39,7 +39,7 @@ function buildBillToBody(input: PdfCompanyDetailsFields): string {
     cityLine || null,
     input.companyCountry,
     input.companyTaxId != null && String(input.companyTaxId).trim() !== ""
-      ? `Tax ID: ${input.companyTaxId}`
+      ? `PIN: ${input.companyTaxId}`
       : null,
   ];
   return parts
