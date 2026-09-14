@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ExternalLink, FileMinus, User, Receipt, Calculator } from "lucide-react";
+import { ExternalLink, FileMinus, User, Receipt, Calculator, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -46,12 +46,16 @@ export function ViewETimsSaleSheet({
     open,
     onOpenChange,
     sale,
+    downloading,
+    onDownload,
     onVerifyKra,
     onIssueCreditNote,
 }: {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     sale: EtimsSaleRecord | null;
+    downloading?: boolean;
+    onDownload?: (sale: EtimsSaleRecord) => void;
     onVerifyKra?: (sale: EtimsSaleRecord) => void;
     onIssueCreditNote?: (sale: EtimsSaleRecord) => void;
 }) {
@@ -267,6 +271,22 @@ export function ViewETimsSaleSheet({
 
                 <SheetFooter className="mt-8 flex-col gap-2 sm:flex-row sm:justify-between">
                     <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                        {onDownload ? (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full sm:w-auto"
+                                disabled={downloading}
+                                onClick={() => onDownload(sale)}
+                            >
+                                {downloading ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Download className="mr-2 h-4 w-4" />
+                                )}
+                                {creditNote ? "Download credit note" : "Download invoice"}
+                            </Button>
+                        ) : null}
                         {!creditNote && onIssueCreditNote ? (
                             <Button
                                 type="button"

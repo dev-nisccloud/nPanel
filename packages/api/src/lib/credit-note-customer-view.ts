@@ -1,15 +1,14 @@
 import type { CreditNoteDetail, CreditNote } from "../routers/invoicing/schemas";
 import { extractEtimsFiscalFieldsFromCreditNote } from "./etims-fiscal-fields";
-import { isInvoiceKraSynced } from "./invoice-kra-status";
+import {
+	resolveInvoiceEtimsVerificationUrl,
+	type EtimsReceiptUrlSource,
+} from "./etims-receipt-url";
 
 export function resolveCreditNoteEtimsVerificationUrl(
-	creditNote: Pick<CreditNoteDetail, "kraStatus" | "kraVerificationUrl" | "kraQrCode">,
+	creditNote: EtimsReceiptUrlSource,
 ): string | undefined {
-	const url = creditNote.kraVerificationUrl ?? creditNote.kraQrCode;
-	const trimmed = url?.trim();
-	if (trimmed) return trimmed;
-	if (!isInvoiceKraSynced(creditNote.kraStatus)) return undefined;
-	return undefined;
+	return resolveInvoiceEtimsVerificationUrl(creditNote);
 }
 
 /** Strip KRA admin fields from credit note payloads embedded on invoices. */

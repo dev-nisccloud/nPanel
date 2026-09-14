@@ -1,384 +1,354 @@
-# KRA eTIMS OSCU verification — Postman against nPanel
+# Gava Connect OSCU — Postman runbook
 
-KRA asked us to run each OSCU function **one request at a time**. You hit **this nPanel API**, not KRA.
+One file. Run **top to bottom**. Isolated cert tree **`etimsCert.*`** (reads `apps/server/.env.etims-certification` only — not live `.env`, not the DB, not Redis).
 
-- **API host:** [https://loverlike-cinderella-signatureless.ngrok-free.dev](https://loverlike-cinderella-signatureless.ngrok-free.dev) (ngrok tunnel to the server on port **8050**)
-- **KRA sandbox (Gava Connect):** `https://sbx.kra.go.ke/etims-oscu/api/v1/{path_suffix}` — nPanel calls this after your Postman request. Token URL stays `https://sbx.kra.go.ke/v1/token/generate`
-- After **initialize**, nPanel stores `cmcKey` and sends `tin` / `bhfId` / `cmcKey` to KRA for you
+Leave **`etims.*`** for real nPanel Settings / invoices.
 
-Do **not** run `bun run etims:certification` for this checklist.
-
-Set `ETIMS_CERTIFICATION_PUBLIC=1` on the server so Postman does not need a session cookie.
+Restart the API after pulling this so `etimsCert` is mounted.
 
 ---
 
-## Postman setup
+## How to send
 
-**Base URL**
+**Host:** [https://loverlike-cinderella-signatureless.ngrok-free.dev](https://loverlike-cinderella-signatureless.ngrok-free.dev)
 
-```
-https://loverlike-cinderella-signatureless.ngrok-free.dev
-```
-
-Environment variable `npanelUrl` is that same value.
-
-**tRPC method split** (this is why POST failed on getCodeList)
-
-| Kind | HTTP | How to send input |
+| Kind | HTTP | Input |
 |---|---|---|
-| **Query** (`get*` lists, `getConfiguration`) | **GET** | Query param `input` = JSON. No body. |
-| **Mutation** (`initializeDevice`, `save*`, `send*`) | **POST** | Raw JSON body. No `{ "json": ... }` wrapper. |
+| Lookup (`get*`, `lookup*`) | **GET** | Put JSON on the URL as `?input={...}`. No body. |
+| Save (`initializeDevice`, `save*`, `send*`, `confirm*`) | **POST** | Raw JSON body. No `{ "json": ... }` wrapper. |
 
-Every request still needs header `ngrok-skip-browser-warning: 1`. POST also needs `Content-Type: application/json`.
+Every request:
 
-GET lookup URL:
-
-```
-https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etims.data.getCodeList?input={"lastReqDt":"20180101000000"}
-```
-
-POST mutation URL (unchanged):
-
-```
-https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etims.initialization.initializeDevice
-```
-
-Identity used **inside nPanel → KRA** (from init + DB, not from Postman headers).
-
-Sandbox testing uses **`ETIMS_CERT_APP_TEST_PIN` only**. Do **not** send the integrator/cert PIN (`ETIMS_CERT_TIN` / `P052377334H`) on init, sales, customers, or any other request.
-
-| Field | Value |
+| Header | Value |
 |---|---|
-| Application Test Pin (`tin` and customer PIN) | `P600004455A` |
-| Branch | `00` |
-| Device serial | `KRACUO100069163` |
+| `ngrok-skip-browser-warning` | `1` |
+| `Content-Type` | `application/json` on **POST** only |
+
+Pass: `resultCd` `000`. Empty lookup `001` is also a pass. Init `902` = already installed. Sandbox often returns `data: null` (no `cmcKey`). Still a pass if nPanel reuses a **cert-local** key (POST body, `ETIMS_CERT_CMC_KEY`, or `apps/server/.etims-certification/session.json`). Never the live DB.
+
+Do **not** send integrator PIN `P052377334H` as `tin`. OSCU `tin` / customer PIN is Application Test Pin **`P600004480A`**.
+
+Copy as you go: leaf `itemClsCd` from step 3 (`clsB` example `1010150100`), `invcNo` (start 1), `sarNo` (start 1), sale `intrlData` / `rcptSign` / `sdcDateTime`.
+
+Dates below are **2026-09-14** Africa/Nairobi. If you run later, change every `20260914` / `20260914120000`.
+
+Gava Connect **lists** composition and stock master earlier than this. Ignore that list. Stock I/O is **before** composition and master.
 
 ---
 
-## 0. Confirm API is up
+## 0 — Confirm cert env
 
-**GET** `https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etims.auth.getConfiguration`
+**GET** (no `input`, no body)
 
-No body. Expect `isInitialized` in the result.
+```
+https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.auth.getConfiguration
+```
+
+Expect `config.kraPin` = `P600004480A`, `branchId` = `00`, `usesDatabase` = `false`. `isInitialized` is `false` until step 1. `hasReusableCmcKey` is `true` once a cert-local key exists (env or session file).
 
 ---
 
-## 1. Device initialization
+## 1 — OSCU initialization
 
-**Checklist:** authenticate on eTIMS using **Application Test Pin, device serial, branch ID** (not the integrator/cert PIN).
+**POST**
 
-**POST** `https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etims.initialization.initializeDevice`
-
-nPanel then calls Gava Connect `POST https://sbx.kra.go.ke/etims-oscu/api/v1/initialize` (no `cmcKey` yet).
+```
+https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.initialization.initializeDevice
+```
 
 ```json
 {
-  "tin": "P600004455A",
+  "tin": "P600004480A",
   "bhfId": "00",
   "dvcSrlNo": "KRACUO100069163",
   "isSandbox": true
 }
 ```
 
-**Stop until this succeeds.** The result must include `kraInitUrl` ending in `/etims-oscu/api/v1/initialize` (not `etims-api-sbx`). Copy `cmcKey` (nPanel also saves it). Later steps use that stored key automatically. Restart the nPanel server after changing `.env` so this URL is picked up.
+Body is optional (`{}` uses the cert file). `kraInitUrl` must end in `/etims-oscu/api/v1/initialize`. Still **POST this to KRA** so Gava scores init.
+
+**`000`:** KRA returns `cmcKey`. nPanel stores it in memory and `apps/server/.etims-certification/session.json` (not `etims_configuration`).
+
+**`902` + `data: null`:** expected on a device that is already installed. Reuse order: POST `cmcKey` → `ETIMS_CERT_CMC_KEY` in `.env.etims-certification` → session file → memory. Response should be `success: true`, `reusedExistingCmcKey: true`.
+
+First time you hit 902 with no stored key, send the known key once:
+
+```json
+{
+  "tin": "P600004480A",
+  "bhfId": "00",
+  "dvcSrlNo": "KRACUO100069163",
+  "isSandbox": true,
+  "cmcKey": "PASTE_PRIOR_000_CMC_KEY"
+}
+```
+
+Restart the API after this code change, then POST init again.
+
+**Stop until this succeeds.**
 
 ---
 
-## Lookups (GET, same `input`)
+## 2 — Look up list of code
 
-tRPC **queries** must be **GET**. Put the JSON on the query string as `input` (Params tab in Postman: key `input`, value `{"lastReqDt":"20180101000000"}`). Do not POST these.
+**GET**
 
-Example:
+```
+https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.data.getCodeList?input={"lastReqDt":"20180101000000"}
+```
 
-**GET** `https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etims.data.getCodeList?input={"lastReqDt":"20180101000000"}`
-
-| # | Checklist | GET path | KRA (Gava Connect) |
-|---|---|---|---|
-| 2 | Get code list | `/trpc/etims.data.getCodeList` | `/selectCodeList` |
-| 3 | Get item classification | `/trpc/etims.data.getItemClassList` | `/selectItemClass` |
-| 4 prep | Existing items | `/trpc/etims.items.getItemList` | `/itemInfo` |
-| 5 | Get imported items | `/trpc/etims.imports.getImportedItems` | `/importedItemInfo` |
-| 7 | Get purchases (want 3) | `/trpc/etims.purchases.getPurchaseTransactions` | `/getPurchaseTransactionInfo` |
-| 12 | Branch list (want 3 named branches) | `/trpc/etims.branch.getBranchList` | `/branchList` |
-| 14 | Receive stock from HQ | `/trpc/etims.stock.getStockMovements` | `/selectStockMoveLists` |
-| 15 | Get notices | `/trpc/etims.data.getNoticeList` | `/selectNoticeList` |
-
-Tax codes for items/sales: **A exempt, B 16%, C zero-rated, D non-VAT**. Skip **E (8%)** — struck through on KRA’s sheet.
-
-From step 3, copy four leaf `itemClsCd` values (`clsA`–`clsD`).
+No body. Expect code catalog (`000` / `001`).
 
 ---
 
-## 4. Send item information
+## 3 — Look up item classification
 
-**POST** `https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etims.items.saveItem`
+**GET**
 
-nPanel → KRA `/saveItem`. Create four goods (A/B/C/D) plus a composition child. `itemCd` = `KE` + `1` + `NT` + `BA` + 7-digit seq.
+```
+https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.data.getItemClassList?input={"lastReqDt":"20180101000000"}
+```
+
+No body. Copy four **leaf** 10-digit `itemClsCd` values for tax A / B / C / D. Skip E.
+
+Replace every `PUT_CLS_B_HERE` below with the tax-B leaf (often `1010150100`). Use matching classes for A/C/D items.
+
+---
+
+## 4 — Look up branch list
+
+**GET**
+
+```
+https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.branch.getBranchList?input={"lastReqDt":"20180101000000"}
+```
+
+No body. Expect named branches.
+
+---
+
+## 5 — Look up notices list
+
+**GET** (dashboard scores this path, not `getNoticeList`)
+
+```
+https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.data.getNotices?input={"lastReqDt":"20180101000000"}
+```
+
+No body.
+
+---
+
+## 6 — Save customer branch
+
+**POST**
+
+```
+https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.branch.saveCustomer
+```
+
+```json
+{
+  "customer": {
+    "custNo": "CUST001",
+    "custTin": "P600004480A",
+    "custNm": "Application Test Customer",
+    "adrs": "Nairobi",
+    "telNo": "0700000000",
+    "email": "cert@nisccloud.com",
+    "faxNo": null,
+    "useYn": "Y",
+    "remark": "OSCU verification",
+    "regrId": "Admin",
+    "regrNm": "Admin",
+    "modrId": "Admin",
+    "modrNm": "Admin"
+  }
+}
+```
+
+---
+
+## 7 — Save branch user account
+
+**POST**
+
+```
+https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.branch.saveBranchUser
+```
+
+```json
+{
+  "user": {
+    "userId": "npuser01",
+    "userNm": "nPanel Cert User",
+    "pwd": "CertPass123!",
+    "adrs": "Nairobi",
+    "cntc": "0700000001",
+    "authCd": "1",
+    "remark": "OSCU verification",
+    "useYn": "Y",
+    "regrId": "Admin",
+    "regrNm": "Admin",
+    "modrId": "Admin",
+    "modrNm": "Admin"
+  }
+}
+```
+
+---
+
+## 8 — Save branch insurances
+
+**POST**
+
+```
+https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.branch.saveBranchInsurance
+```
+
+```json
+{
+  "insurance": {
+    "isrccCd": "ISRCC01",
+    "isrccNm": "Test Insurance Co",
+    "isrcRt": 10,
+    "useYn": "Y",
+    "regrId": "Admin",
+    "regrNm": "Admin",
+    "modrId": "Admin",
+    "modrNm": "Admin"
+  }
+}
+```
+
+---
+
+## 9 — Look up product list
+
+**GET**
+
+```
+https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.items.getItemList?input={"lastReqDt":"20180101000000"}
+```
+
+No body. Empty `001` / “no search result” is OK before save item.
+
+---
+
+## 10 — Save item (parent, tax B)
+
+**POST** — goods, not a service. `itemTyCd` must be `"1"` or `"2"` or stock I/O will fail.
+
+```
+https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.items.saveItem
+```
 
 ```json
 {
   "item": {
-      "itemCd": "KE1NTBA0000001",
-      "itemClsCd": "PUT_CLS_B_HERE",
-      "itemTyCd": "3",
-      "itemNm": "nPanel Cert VAT16",
-      "itemStdNm": "nPanel Cert VAT16",
-      "orgnNatCd": "KE",
-      "pkgUnitCd": "NT",
-      "qtyUnitCd": "BA",
-      "taxTyCd": "B",
-      "btchNo": null,
-      "bcd": "NPB0001",
-      "dftPrc": 1000,
-      "grpPrcL1": 1000,
-      "grpPrcL2": 1000,
-      "grpPrcL3": 1000,
-      "grpPrcL4": 1000,
-      "grpPrcL5": 0,
-      "addInfo": null,
-      "sftyQty": 0,
-      "isrcAplcbYn": "N",
-      "useYn": "Y",
-      "regrId": "Admin",
-      "regrNm": "Admin",
-      "modrId": "Admin",
-      "modrNm": "Admin"
+    "itemCd": "KE1NTBA0000001",
+    "itemClsCd": "PUT_CLS_B_HERE",
+    "itemTyCd": "1",
+    "itemNm": "nPanel Cert VAT16",
+    "itemStdNm": "nPanel Cert VAT16",
+    "orgnNatCd": "KE",
+    "pkgUnitCd": "NT",
+    "qtyUnitCd": "BA",
+    "taxTyCd": "B",
+    "btchNo": null,
+    "bcd": "NPB0001",
+    "dftPrc": 1000,
+    "grpPrcL1": 1000,
+    "grpPrcL2": 1000,
+    "grpPrcL3": 1000,
+    "grpPrcL4": 1000,
+    "grpPrcL5": 0,
+    "addInfo": null,
+    "sftyQty": 0,
+    "isrcAplcbYn": "N",
+    "useYn": "Y",
+    "regrId": "Admin",
+    "regrNm": "Admin",
+    "modrId": "Admin",
+    "modrNm": "Admin"
   }
 }
 ```
 
-`itemTyCd` `"1"` = raw, `"2"` = finished, `"3"` = service. Use `"1"` if you will stock/compose; `"3"` if sales-only.
+### 10b — Save item (child, tax A)
 
-Repeat with `taxTyCd` A/C/D and matching classification. Save `itemCdB` / child code.
+Same URL. Change `itemCd` to `KE1NTBA0000002`, `taxTyCd` to `A`, `itemClsCd` to the tax-A leaf, `itemNm` / `bcd` accordingly. `itemTyCd` stays `"1"`.
 
 ---
 
-## 6. Convert imported item
+## 11 — Save stock in/out
 
-Skip if step 5 was empty (`001`).
+**POST** — **before** composition and stock master.
 
-**POST** `https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etims.imports.confirmImportedItem`
-
-```json
-{
-  "item": {
-      "taskCd": "FROM_STEP_5",
-      "dclDe": "FROM_STEP_5",
-      "itemSeq": 1,
-      "hsCd": "FROM_STEP_5",
-      "itemClsCd": "PUT_CLS_B_HERE",
-      "itemCd": "KE1NTBA0000001",
-      "imptItemSttsCd": "3",
-      "modrId": "Admin",
-      "modrNm": "Admin",
-      "remark": "OSCU verification convert"
-  }
-}
 ```
-
----
-
-## 8. Confirm purchase (send 3 times)
-
-**POST** `https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etims.purchases.sendPurchaseTransaction`
-
-Change `invcNo` / `spplrInvcNo` each time (101, 102, 103) or use KRA’s queued invoices from step 7.
-
-```json
-{
-  "purchase": {
-      "spplrTin": "P052100681P",
-      "invcNo": 101,
-      "orgInvcNo": 0,
-      "spplrBhfId": "00",
-      "spplrNm": "NAMIRI TECHNOLOGY LIMITED",
-      "spplrInvcNo": 101,
-      "regTyCd": "M",
-      "pchsTyCd": "N",
-      "rcptTyCd": "P",
-      "pmtTyCd": "01",
-      "pchsSttsCd": "02",
-      "cfmDt": "20260911110000",
-      "pchsDt": "20260911",
-      "wrhsDt": null,
-      "cnclReqDt": null,
-      "cnclDt": null,
-      "rfdDt": null,
-      "totItemCnt": 1,
-      "taxblAmtA": 0, "taxblAmtB": 1000, "taxblAmtC": 0, "taxblAmtD": 0, "taxblAmtE": 0,
-      "taxRtA": 0, "taxRtB": 16, "taxRtC": 0, "taxRtD": 0, "taxRtE": 0,
-      "taxAmtA": 0, "taxAmtB": 160, "taxAmtC": 0, "taxAmtD": 0, "taxAmtE": 0,
-      "totTaxblAmt": 1000,
-      "totTaxAmt": 160,
-      "totAmt": 1160,
-      "remark": "purchase 1 of 3",
-      "regrId": "Admin",
-      "regrNm": "Admin",
-      "modrId": "Admin",
-      "modrNm": "Admin",
-      "itemList": [
-        {
-          "itemSeq": 1,
-          "itemCd": "KE1NTBA0000001",
-          "itemClsCd": "PUT_CLS_B_HERE",
-          "itemNm": "nPanel Cert VAT16",
-          "bcd": null,
-          "pkgUnitCd": "NT",
-          "pkg": 1,
-          "qtyUnitCd": "BA",
-          "qty": 1,
-          "prc": 1160,
-          "splyAmt": 1160,
-          "dcRt": 0,
-          "dcAmt": 0,
-          "taxblAmt": 1000,
-          "taxTyCd": "B",
-          "taxAmt": 160,
-          "totAmt": 1160
-        }
-      ]
-  }
-}
+https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.stock.sendStockIO
 ```
-
-`splyAmt` must equal `prc * qty`. Dates: a few minutes behind KRA.
-
----
-
-## 9. Sales + credit notes
-
-**POST** `https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etims.sales.sendSalesTransaction`  
-**Credit notes:** `https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etims.sales.sendCreditNote`
-
-nPanel → KRA `/sendSalesTransaction`. Keep incrementing `invcNo`. Taxpayer `tin` and customer PIN are both `ETIMS_CERT_APP_TEST_PIN` (`P600004455A`).
-
-### Sale (tax B, one line) — duplicate/edit for other variants
-
-```json
-{
-  "transaction": {
-      "trdInvcNo": "NP1",
-      "invcNo": 1,
-      "orgInvcNo": 0,
-      "custTin": "P600004455A",
-      "custNm": "Application Test Customer",
-      "salesTyCd": "N",
-      "rcptTyCd": "S",
-      "pmtTyCd": "01",
-      "salesSttsCd": "02",
-      "cfmDt": "20260911110000",
-      "salesDt": "20260911",
-      "stockRlsDt": "20260911110000",
-      "cnclReqDt": null,
-      "cnclDt": null,
-      "rfdDt": null,
-      "rfdRsnCd": null,
-      "totItemCnt": 1,
-      "taxblAmtA": 0, "taxblAmtB": 1000, "taxblAmtC": 0, "taxblAmtD": 0, "taxblAmtE": 0,
-      "taxRtA": 0, "taxRtB": 16, "taxRtC": 0, "taxRtD": 0, "taxRtE": 0,
-      "taxAmtA": 0, "taxAmtB": 160, "taxAmtC": 0, "taxAmtD": 0, "taxAmtE": 0,
-      "totTaxblAmt": 1000,
-      "totTaxAmt": 160,
-      "totAmt": 1160,
-      "prchrAcptcYn": "N",
-      "remark": "OSCU verification sale",
-      "regrId": "Admin",
-      "regrNm": "Admin",
-      "modrId": "Admin",
-      "modrNm": "Admin",
-      "receipt": {
-        "custTin": "P600004455A",
-        "custMblNo": "0700000000",
-        "rcptPbctDt": "20260911110000",
-        "trdeNm": "nPanel 2",
-        "adrs": "Nairobi",
-        "topMsg": null,
-        "btmMsg": null,
-        "prchrAcptcYn": "N"
-      },
-      "itemList": [
-        {
-          "itemSeq": 1,
-          "itemCd": "KE1NTBA0000001",
-          "itemClsCd": "PUT_CLS_B_HERE",
-          "itemNm": "nPanel Cert VAT16",
-          "bcd": null,
-          "pkgUnitCd": "NT",
-          "pkg": 1,
-          "qtyUnitCd": "BA",
-          "qty": 1,
-          "prc": 1160,
-          "splyAmt": 1160,
-          "dcRt": 0,
-          "dcAmt": 0,
-          "taxTyCd": "B",
-          "taxblAmt": 1000,
-          "taxAmt": 160,
-          "totAmt": 1160
-        }
-      ]
-  }
-}
-```
-
-| Variant | What to change |
-|---|---|
-| **9a** ×2 | Four lines A+B+C+D. Totals: taxbl 4000, tax 160, tot 4160. Save first `invcNo`. |
-| **9b** | Two invoices **per** tax A, B, C, D (eight sales, one tax each). |
-| **9c** | Two B lines, `dcRt` 10 / `dcAmt` 100 each (after discount: taxbl 900, tax 144, tot 1044 per line). |
-| **9d** full CN | Path `sendCreditNote`. Same lines as 9a. `rcptTyCd` `R`, `orgInvcNo` = 9a, `rfdDt`, `rfdRsnCd` `"01"`, new `invcNo`. |
-| **9e** partial CN | Credit **one** 9a line only. |
-| **9f** over-value CN | Same as 9d with **higher** totals. Expect KRA reject — that is the test. |
-
-Copy `intrlData` / `rcptSign` from successful sales for test 19.
-
----
-
-## 10. Stock in/out
-
-**POST** `https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etims.stock.sendStockIO`
 
 ```json
 {
   "stockData": {
-      "sarNo": 1,
-      "orgSarNo": 0,
-      "regTyCd": "M",
-      "custTin": null,
-      "custNm": null,
-      "custBhfId": null,
-      "sarTyCd": "06",
-      "ocrnDt": "20260911",
-      "totItemCnt": 1,
-      "totTaxblAmt": 10000,
-      "totTaxAmt": 1600,
-      "totAmt": 11600,
-      "remark": "stock in",
-      "regrId": "Admin",
-      "regrNm": "Admin",
-      "modrId": "Admin",
-      "modrNm": "Admin",
-      "itemList": [
-        {
-          "itemSeq": 1,
-          "itemCd": "KE1NTBA0000001",
-          "itemClsCd": "PUT_CLS_B_HERE",
-          "itemNm": "nPanel Cert VAT16",
-          "bcd": null,
-          "pkgUnitCd": "NT",
-          "pkg": 1,
-          "qtyUnitCd": "BA",
-          "qty": 10,
-          "itemExprDt": null,
-          "prc": 1160,
-          "splyAmt": 11600,
-          "totDcAmt": 0,
-          "taxblAmt": 10000,
-          "taxTyCd": "B",
-          "taxAmt": 1600,
-          "totAmt": 11600
-        }
-      ]
+    "sarNo": 1,
+    "orgSarNo": 0,
+    "regTyCd": "M",
+    "custTin": null,
+    "custNm": null,
+    "custBhfId": null,
+    "sarTyCd": "06",
+    "ocrnDt": "20260914",
+    "totItemCnt": 2,
+    "totTaxblAmt": 20000,
+    "totTaxAmt": 1600,
+    "totAmt": 21600,
+    "remark": "stock in for composition",
+    "regrId": "Admin",
+    "regrNm": "Admin",
+    "modrId": "Admin",
+    "modrNm": "Admin",
+    "itemList": [
+      {
+        "itemSeq": 1,
+        "itemCd": "KE1NTBA0000001",
+        "itemClsCd": "PUT_CLS_B_HERE",
+        "itemNm": "nPanel Cert VAT16",
+        "bcd": null,
+        "pkgUnitCd": "NT",
+        "pkg": 1,
+        "qtyUnitCd": "BA",
+        "qty": 10,
+        "itemExprDt": null,
+        "prc": 1160,
+        "splyAmt": 11600,
+        "totDcAmt": 0,
+        "taxblAmt": 10000,
+        "taxTyCd": "B",
+        "taxAmt": 1600,
+        "totAmt": 11600
+      },
+      {
+        "itemSeq": 2,
+        "itemCd": "KE1NTBA0000002",
+        "itemClsCd": "PUT_CLS_A_HERE",
+        "itemNm": "nPanel Cert Exempt",
+        "bcd": null,
+        "pkgUnitCd": "NT",
+        "pkg": 1,
+        "qtyUnitCd": "BA",
+        "qty": 10,
+        "itemExprDt": null,
+        "prc": 1000,
+        "splyAmt": 10000,
+        "totDcAmt": 0,
+        "taxblAmt": 10000,
+        "taxTyCd": "A",
+        "taxAmt": 0,
+        "totAmt": 10000
+      }
+    ]
   }
 }
 ```
@@ -387,183 +357,468 @@ If KRA says expected `sarNo`, retry with that number.
 
 ---
 
-## 11. Stock inventory
+## 12 — Save item composition
 
-**POST** `https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etims.stock.saveStockMaster`
+**POST** — fails `Insufficient Stock` if you skipped step 11.
 
-```json
-{
-  "stockMaster": {
-      "itemCd": "KE1NTBA0000001",
-      "rsdQty": 10,
-      "regrId": "Admin",
-      "regrNm": "Admin",
-      "modrId": "Admin",
-      "modrNm": "Admin"
-  }
-}
 ```
-
----
-
-## 13. Branch user
-
-**POST** `https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etims.branch.saveBranchUser`
-
-```json
-{
-  "user": {
-      "userId": "npuser01",
-      "userNm": "nPanel Cert User",
-      "pwd": "CertPass123!",
-      "adrs": "Nairobi",
-      "cntc": "0700000001",
-      "authCd": "1",
-      "remark": "OSCU verification",
-      "useYn": "Y",
-      "regrId": "Admin",
-      "regrNm": "Admin",
-      "modrId": "Admin",
-      "modrNm": "Admin"
-  }
-}
+https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.items.saveItemComposition
 ```
-
----
-
-## 16. Branch insurance
-
-**POST** `https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etims.branch.saveBranchInsurance`
-
-```json
-{
-  "insurance": {
-      "isrccCd": "ISRCC01",
-      "isrccNm": "Test Insurance Co",
-      "isrcRt": 10,
-      "useYn": "Y",
-      "regrId": "Admin",
-      "regrNm": "Admin",
-      "modrId": "Admin",
-      "modrNm": "Admin"
-  }
-}
-```
-
----
-
-## 17. Item composition
-
-**POST** `https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etims.items.saveItemComposition`
 
 ```json
 {
   "composition": {
-      "itemCd": "KE1NTBA0000001",
-      "cpstItemCd": "KE1NTBA0000002",
-      "cpstQty": 1,
-      "regrId": "Admin",
-      "regrNm": "Admin",
-      "modrId": "Admin",
-      "modrNm": "Admin"
+    "itemCd": "KE1NTBA0000001",
+    "cpstItemCd": "KE1NTBA0000002",
+    "cpstQty": 1,
+    "regrId": "Admin",
+    "regrNm": "Admin",
+    "modrId": "Admin",
+    "modrNm": "Admin"
   }
 }
 ```
 
 ---
 
-## 18. Customer (Application Test Pin)
+## 13 — Look up imported item list
 
-**POST** `https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etims.branch.saveCustomer`
+**GET**
+
+```
+https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.imports.getImportedItems?input={"lastReqDt":"20180101000000"}
+```
+
+No body. Empty `001` → skip step 14.
+
+---
+
+## 14 — Update imported items
+
+**POST** — copy `taskCd`, `dclDe`, `hsCd`, `itemSeq` from step 13. Skip if 13 was empty.
+
+```
+https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.imports.confirmImportedItem
+```
 
 ```json
 {
-  "customer": {
-      "custNo": "CUST001",
-      "custTin": "P600004455A",
-      "custNm": "Application Test Customer",
-      "adrs": "Nairobi",
-      "telNo": "0700000000",
-      "email": "cert@nisccloud.com",
-      "faxNo": null,
-      "useYn": "Y",
-      "remark": "OSCU verification",
-      "regrId": "Admin",
-      "regrNm": "Admin",
-      "modrId": "Admin",
-      "modrNm": "Admin"
+  "item": {
+    "taskCd": "FROM_STEP_13",
+    "dclDe": "FROM_STEP_13",
+    "itemSeq": 1,
+    "hsCd": "FROM_STEP_13",
+    "itemClsCd": "PUT_CLS_B_HERE",
+    "itemCd": "KE1NTBA0000001",
+    "imptItemSttsCd": "3",
+    "modrId": "Admin",
+    "modrNm": "Admin",
+    "remark": "OSCU verification convert"
   }
 }
 ```
 
 ---
 
-## 19. Invoice contents
+## 15 — Save sales transaction
 
-Not a Postman path. Open the signed invoice in nPanel and tick PIN, QR, CU number, date, tax rate, description, SCU ID, internal data, amounts, supplier PIN, discount (9c), credit note (9d/9e), original invoice ref, non-fiscal data.
+**POST**
+
+```
+https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.sales.sendSalesTransaction
+```
+
+```json
+{
+  "transaction": {
+    "trdInvcNo": "NP1",
+    "invcNo": 1,
+    "orgInvcNo": 0,
+    "custTin": "P600004480A",
+    "custNm": "Application Test Customer",
+    "salesTyCd": "N",
+    "rcptTyCd": "S",
+    "pmtTyCd": "01",
+    "salesSttsCd": "02",
+    "cfmDt": "20260914120000",
+    "salesDt": "20260914",
+    "stockRlsDt": "20260914120000",
+    "cnclReqDt": null,
+    "cnclDt": null,
+    "rfdDt": null,
+    "rfdRsnCd": null,
+    "totItemCnt": 1,
+    "taxblAmtA": 0,
+    "taxblAmtB": 1000,
+    "taxblAmtC": 0,
+    "taxblAmtD": 0,
+    "taxblAmtE": 0,
+    "taxRtA": 0,
+    "taxRtB": 16,
+    "taxRtC": 0,
+    "taxRtD": 0,
+    "taxRtE": 0,
+    "taxAmtA": 0,
+    "taxAmtB": 160,
+    "taxAmtC": 0,
+    "taxAmtD": 0,
+    "taxAmtE": 0,
+    "totTaxblAmt": 1000,
+    "totTaxAmt": 160,
+    "totAmt": 1160,
+    "prchrAcptcYn": "N",
+    "remark": "OSCU verification sale",
+    "regrId": "Admin",
+    "regrNm": "Admin",
+    "modrId": "Admin",
+    "modrNm": "Admin",
+    "receipt": {
+      "custTin": "P600004480A",
+      "custMblNo": "0700000000",
+      "rcptPbctDt": "20260914120000",
+      "trdeNm": "nPanel 4",
+      "adrs": "Nairobi",
+      "topMsg": null,
+      "btmMsg": null,
+      "prchrAcptcYn": "N"
+    },
+    "itemList": [
+      {
+        "itemSeq": 1,
+        "itemCd": "KE1NTBA0000001",
+        "itemClsCd": "PUT_CLS_B_HERE",
+        "itemNm": "nPanel Cert VAT16",
+        "bcd": null,
+        "pkgUnitCd": "NT",
+        "pkg": 1,
+        "qtyUnitCd": "BA",
+        "qty": 1,
+        "prc": 1160,
+        "splyAmt": 1160,
+        "dcRt": 0,
+        "dcAmt": 0,
+        "taxTyCd": "B",
+        "taxblAmt": 1000,
+        "taxAmt": 160,
+        "totAmt": 1160
+      }
+    ]
+  }
+}
+```
+
+`splyAmt` must equal `prc * qty`. `prc` is VAT-inclusive. Copy `intrlData`, `rcptSign`, `sdcDateTime` from the response.
+
+Checklist extras (same URL, new `invcNo` each time): mixed A+B+C+D; two invoices per tax A/B/C/D; discount `dcRt` 10 / `dcAmt` 100.
 
 ---
 
-## Run order (Gava Connect dashboard)
+## 16 — Look up purchases-sales list
 
-Follow this order — it is what the dashboard scores:
+**GET**
 
-1. Init — **done**
-2. Code list — **done**
-3. Item classification — **done**
-4. **Branch list** `GET etims.branch.getBranchList` → `/branchList` (`/selectBhfList`)
-5. Notices `GET etims.data.getNotices` → `/selectNotices` (not `getNoticeList`)
-6. Save customer `POST etims.branch.saveCustomer` → `/branchSendCustomerInfo`
-7. Save branch user `POST etims.branch.saveBranchUser` → `/branchUserAccount`
-8. Save branch insurance `POST etims.branch.saveBranchInsurance` → `/branchInsuranceInfo`
-9. Product list `GET etims.items.getItemList` → `/itemInfo`
-10. Save item `POST etims.items.saveItem`
-11. Save item composition `POST etims.items.saveItemComposition`
-12. Imported items `GET etims.imports.getImportedItems`
-13. Update imported item `POST etims.imports.confirmImportedItem`
-14. Save sales `POST etims.sales.sendSalesTransaction`
-15. Purchase list `GET etims.purchases.getPurchaseTransactions`
-16. Save purchase `POST etims.purchases.sendPurchaseTransaction`
-17. Save stock master `POST etims.stock.saveStockMaster`
-18. Stock movements `GET etims.stock.getStockMovements`
-19. Save stock I/O `POST etims.stock.sendStockIO`
-20. Invoice details `GET etims.sales.getInvoiceDetails?input={"invcNo":1}`
-21. Sales list `GET etims.sales.getSalesTransactions`
-22. Customer list `GET etims.data.getCustomerList`
-23. Taxpayer info `GET etims.data.getTaxPayerInfo`
+```
+https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.purchases.getPurchaseTransactions?input={"lastReqDt":"20180101000000"}
+```
+
+No body. Ignore queued rows for the integrator PIN.
 
 ---
 
-## Path cheat sheet
+## 17 — Save purchases information
 
-| GET `https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/...` |
-|---|
-| `etims.auth.getConfiguration` |
-| `etims.data.getCodeList?input={"lastReqDt":"20180101000000"}` |
-| `etims.data.getItemClassList?input={"lastReqDt":"20180101000000"}` |
-| `etims.branch.getBranchList?input={"lastReqDt":"20180101000000"}` |
-| `etims.data.getNotices?input={"lastReqDt":"20180101000000"}` |
-| `etims.data.getNoticeList?input={"lastReqDt":"20180101000000"}` |
-| `etims.items.getItemList?input={"lastReqDt":"20180101000000"}` |
-| `etims.imports.getImportedItems?input={"lastReqDt":"20180101000000"}` |
-| `etims.purchases.getPurchaseTransactions?input={"lastReqDt":"20180101000000"}` |
-| `etims.stock.getStockMovements?input={"lastReqDt":"20180101000000"}` |
-| `etims.sales.getSalesTransactions?input={"lastReqDt":"20180101000000"}` |
-| `etims.sales.getInvoiceDetails?input={"invcNo":1}` |
-| `etims.data.getCustomerList?input={"lastReqDt":"20180101000000"}` |
-| `etims.data.getTaxPayerInfo?input={"lastReqDt":"20180101000000"}` |
+**POST** — `invcNo` is the next unused session number (`2` if sale used `1`).
 
-| POST `https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/...` (JSON body) |
-|---|
-| `etims.initialization.initializeDevice` |
-| `etims.items.saveItem` |
-| `etims.items.saveItemComposition` |
-| `etims.imports.confirmImportedItem` |
-| `etims.purchases.sendPurchaseTransaction` |
-| `etims.sales.sendSalesTransaction` |
-| `etims.sales.sendCreditNote` |
-| `etims.stock.sendStockIO` |
-| `etims.stock.saveStockMaster` |
-| `etims.branch.saveCustomer` |
-| `etims.branch.saveBranchUser` |
-| `etims.branch.saveBranchInsurance` |
+```
+https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.purchases.sendPurchaseTransaction
+```
+
+```json
+{
+  "purchase": {
+    "spplrTin": "P600004480A",
+    "invcNo": 2,
+    "orgInvcNo": 0,
+    "spplrBhfId": "00",
+    "spplrNm": "Application Test Supplier",
+    "spplrInvcNo": 2,
+    "regTyCd": "M",
+    "pchsTyCd": "N",
+    "rcptTyCd": "P",
+    "pmtTyCd": "01",
+    "pchsSttsCd": "02",
+    "cfmDt": "20260914120000",
+    "pchsDt": "20260914",
+    "wrhsDt": null,
+    "cnclReqDt": null,
+    "cnclDt": null,
+    "rfdDt": null,
+    "totItemCnt": 1,
+    "taxblAmtA": 0,
+    "taxblAmtB": 1000,
+    "taxblAmtC": 0,
+    "taxblAmtD": 0,
+    "taxblAmtE": 0,
+    "taxRtA": 0,
+    "taxRtB": 16,
+    "taxRtC": 0,
+    "taxRtD": 0,
+    "taxRtE": 0,
+    "taxAmtA": 0,
+    "taxAmtB": 160,
+    "taxAmtC": 0,
+    "taxAmtD": 0,
+    "taxAmtE": 0,
+    "totTaxblAmt": 1000,
+    "totTaxAmt": 160,
+    "totAmt": 1160,
+    "remark": "purchase 1 of 3",
+    "regrId": "Admin",
+    "regrNm": "Admin",
+    "modrId": "Admin",
+    "modrNm": "Admin",
+    "itemList": [
+      {
+        "itemSeq": 1,
+        "itemCd": "KE1NTBA0000001",
+        "itemClsCd": "PUT_CLS_B_HERE",
+        "itemNm": "nPanel Cert VAT16",
+        "bcd": null,
+        "pkgUnitCd": "NT",
+        "pkg": 1,
+        "qtyUnitCd": "BA",
+        "qty": 1,
+        "prc": 1160,
+        "splyAmt": 1160,
+        "dcRt": 0,
+        "dcAmt": 0,
+        "taxblAmt": 1000,
+        "taxTyCd": "B",
+        "taxAmt": 160,
+        "totAmt": 1160
+      }
+    ]
+  }
+}
+```
+
+Send three times if the checklist asks for three (`invcNo` / `spplrInvcNo` 2, 3, 4).
+
+---
+
+## 18 — Save stock-master information
+
+**POST** — after step 11. Isolated cert does not seed I/O from the DB.
+
+```
+https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.stock.saveStockMaster
+```
+
+```json
+{
+  "stockMaster": {
+    "itemCd": "KE1NTBA0000001",
+    "rsdQty": 10,
+    "regrId": "Admin",
+    "regrNm": "Admin",
+    "modrId": "Admin",
+    "modrNm": "Admin"
+  }
+}
+```
+
+Repeat for `KE1NTBA0000002` if you I/O’d the child.
+
+---
+
+## 19 — Look up stock movement
+
+**GET**
+
+```
+https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.stock.getStockMovements?input={"lastReqDt":"20180101000000"}
+```
+
+No body.
+
+---
+
+## 20 — Look up invoice details
+
+**GET**
+
+```
+https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.sales.getInvoiceDetails?input={"invcNo":1}
+```
+
+No body. Use the sale `invcNo` from step 15.
+
+---
+
+## 21 — Look up transaction sales list
+
+**GET**
+
+```
+https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.sales.getSalesTransactions?input={"lastReqDt":"20180101000000"}
+```
+
+No body.
+
+---
+
+## 22 — Look up customer list
+
+**GET**
+
+```
+https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.data.getCustomerList?input={"lastReqDt":"20180101000000"}
+```
+
+No body.
+
+---
+
+## 23 — Look up tax payer info
+
+**GET**
+
+```
+https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.data.getTaxPayerInfo?input={"lastReqDt":"20180101000000"}
+```
+
+No body.
+
+---
+
+## 24 — Look up customer by PIN (OSCU extra)
+
+**GET**
+
+```
+https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.data.lookupCustomer?input={"custmTin":"P600004480A"}
+```
+
+No body. Not on the Gava dashboard.
+
+---
+
+## 25 — Look up notice list (spec path)
+
+**GET** — dashboard already scored step 5 (`getNotices`).
+
+```
+https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.data.getNoticeList?input={"lastReqDt":"20180101000000"}
+```
+
+No body.
+
+---
+
+## 26 — Save credit note (Go Live)
+
+**POST** — `rfdDt` must be after the original sale `sdcDateTime`. New `invcNo` (e.g. `5` if purchases used 2–4).
+
+```
+https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.sales.sendCreditNote
+```
+
+```json
+{
+  "transaction": {
+    "trdInvcNo": "NP-CN1",
+    "invcNo": 5,
+    "orgInvcNo": 1,
+    "custTin": "P600004480A",
+    "custNm": "Application Test Customer",
+    "salesTyCd": "N",
+    "rcptTyCd": "R",
+    "pmtTyCd": "01",
+    "salesSttsCd": "02",
+    "cfmDt": "20260914123000",
+    "salesDt": "20260914",
+    "stockRlsDt": "20260914123000",
+    "cnclReqDt": null,
+    "cnclDt": null,
+    "rfdDt": "20260914123000",
+    "rfdRsnCd": "06",
+    "totItemCnt": 1,
+    "taxblAmtA": 0,
+    "taxblAmtB": 1000,
+    "taxblAmtC": 0,
+    "taxblAmtD": 0,
+    "taxblAmtE": 0,
+    "taxRtA": 0,
+    "taxRtB": 16,
+    "taxRtC": 0,
+    "taxRtD": 0,
+    "taxRtE": 0,
+    "taxAmtA": 0,
+    "taxAmtB": 160,
+    "taxAmtC": 0,
+    "taxAmtD": 0,
+    "taxAmtE": 0,
+    "totTaxblAmt": 1000,
+    "totTaxAmt": 160,
+    "totAmt": 1160,
+    "prchrAcptcYn": "N",
+    "remark": "OSCU verification credit note",
+    "regrId": "Admin",
+    "regrNm": "Admin",
+    "modrId": "Admin",
+    "modrNm": "Admin",
+    "receipt": {
+      "custTin": "P600004480A",
+      "custMblNo": "0700000000",
+      "rcptPbctDt": "20260914123000",
+      "trdeNm": "nPanel 4",
+      "adrs": "Nairobi",
+      "topMsg": null,
+      "btmMsg": null,
+      "prchrAcptcYn": "N"
+    },
+    "itemList": [
+      {
+        "itemSeq": 1,
+        "itemCd": "KE1NTBA0000001",
+        "itemClsCd": "PUT_CLS_B_HERE",
+        "itemNm": "nPanel Cert VAT16",
+        "bcd": null,
+        "pkgUnitCd": "NT",
+        "pkg": 1,
+        "qtyUnitCd": "BA",
+        "qty": 1,
+        "prc": 1160,
+        "splyAmt": 1160,
+        "dcRt": 0,
+        "dcAmt": 0,
+        "taxTyCd": "B",
+        "taxblAmt": 1000,
+        "taxAmt": 160,
+        "totAmt": 1160
+      }
+    ]
+  }
+}
+```
+
+Over-value credit note (higher totals than the original) is expected to **fail**.
+
+---
+
+## Invoice contents (not tRPC)
+
+After a signed sale, open the nPanel invoice and confirm PIN, QR, CU number, date, tax, description, SCU ID, internal data, amounts, supplier PIN, discount, credit note, original invoice ref.
+
+---
+
+## If it fails
+
+| Symptom | Fix |
+|---|---|
+| tRPC error on a lookup | Use **GET** with `?input=` — do not POST |
+| Hit `/trpc/etims.`… | Wrong tree. Use **`etimsCert`** |
+| `Stock IO is empty` | Step 11 before 18 |
+| `Insufficient Stock` on composition | Step 11 before 12 |
+| `901 It is not valid device` | Application Test Pin + `bhfId` matching the portal |
+| Init URL is `etims-api-sbx` | Cert file `ETIMS_SANDBOX_BASE_URL` must be `https://sbx.kra.go.ke/etims-oscu/api/v1`, then restart |

@@ -1,10 +1,8 @@
 /**
  * KRA public receipt verification URL.
  *
- * Per KRA TIS for OSCU/VSCU Technical Specifications v2.0, the QR code links to:
- *   https://etims.kra.go.ke/common/link/etims/receipt/indexEtimsReceiptData?{KRA-PIN}{BHF-ID}{RcpSignature}
- *
- * Sandbox uses the etims-sbx host (same path).
+ * Spec sample: `https://etims.kra.go.ke/common/link/etims/receipt/indexEtimsReceiptData?{KRA-PIN+BHF-ID+RcpSignture}`
+ * Query = PIN + branch + receipt signature with no separators. Sandbox uses etims-sbx.
  */
 export function buildEtimsReceiptVerifyUrl(params: {
     tin: string;

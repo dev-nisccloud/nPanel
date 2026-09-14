@@ -1,5 +1,5 @@
 import type { CreditNoteDetail, InvoiceDetail } from "../routers/invoicing/schemas";
-import { extractEtimsFiscalFieldsFromInvoice } from "../lib/etims-fiscal-fields";
+import { extractEtimsFiscalFieldsFromCreditNote, ensureEtimsPrintFields } from "../lib/etims-fiscal-fields";
 import { resolveCreditNoteEtimsVerificationUrl } from "../lib/credit-note-customer-view";
 import { buildInvoicePdfDetails } from "./build-invoice-pdf-details";
 import type {
@@ -35,19 +35,42 @@ export function buildCreditNotePdfDetails(creditNote: CreditNoteDetail): {
 	} as unknown as InvoiceDetail;
 
 	const pdfData = buildInvoicePdfDetails(invoiceLike);
-	const verificationUrl = resolveCreditNoteEtimsVerificationUrl(creditNote);
+	const buyerPin =
+		pdfData.invoiceTerms.buyerPin ??
+		((creditNote.customerDetails as Record<string, unknown> | null)?.taxId as string | undefined);
+	const originalCuInvoiceNo =
+		creditNote.originalCuInvoiceNo ?? creditNote.etimsFiscal?.originalCuInvoiceNo ?? null;
+	const verificationUrl =
+		resolveCreditNoteEtimsVerificationUrl(creditNote) ??
+		creditNote.etimsFiscal?.verificationUrl ??
+		creditNote.kraVerificationUrl ??
+		undefined;
+
+	const etimsFiscal =
+		extractEtimsFiscalFieldsFromCreditNote(creditNote, {
+			tisReceiptNumber: creditNote.creditNumber,
+			tisIssuedAt: creditNote.issuedAt,
+			originalCuInvoiceNo,
+			itemCount: pdfData.invoiceDetails.items.length,
+		}) ??
+		ensureEtimsPrintFields(creditNote.etimsFiscal, {
+			isCreditNote: true,
+			tisReceiptNumber: creditNote.creditNumber,
+			tisIssuedAt: creditNote.issuedAt,
+			originalCuInvoiceNo,
+			itemCount: pdfData.invoiceDetails.items.length,
+		});
 
 	return {
 		...pdfData,
-		paymentDetails: {
-			...pdfData.paymentDetails,
-			etimsVerificationUrl:
-				verificationUrl ??
-				creditNote.etimsFiscal?.verificationUrl ??
-				creditNote.kraVerificationUrl ??
-				undefined,
+		invoiceDetails: {
+			...pdfData.invoiceDetails,
+			negateAmounts: true,
 		},
-		etimsFiscal: creditNote.etimsFiscal ?? extractEtimsFiscalFieldsFromInvoice(invoiceLike),
+		paymentDetails: {
+			etimsVerificationUrl: etimsFiscal?.verificationUrl ?? verificationUrl,
+		},
+		etimsFiscal,
 		invoiceTerms: {
 			invoiceNumber: creditNote.creditNumber ?? undefined,
 			issueDate: creditNote.issuedAt ?? undefined,
@@ -56,6 +79,8 @@ export function buildCreditNotePdfDetails(creditNote: CreditNoteDetail): {
 				creditNote.originalInvoiceNumber ?? creditNote.invoiceNumber ?? undefined,
 			numberLabel: "CREDIT NOTE NO",
 			showDueDate: false,
+			originalCuInvoiceNo: originalCuInvoiceNo ?? undefined,
+			buyerPin,
 		},
 		documentTitle: "Credit Note",
 	};

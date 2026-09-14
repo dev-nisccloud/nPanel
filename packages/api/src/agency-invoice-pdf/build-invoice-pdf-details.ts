@@ -2,7 +2,7 @@
  * Same PDF props as agency invoice details page (`buildInvoicePdfDetails` in agency.invoices.$id.tsx).
  */
 import type { InvoiceDetail } from "../routers/invoicing/schemas";
-import { extractEtimsFiscalFieldsFromInvoice } from "../lib/etims-fiscal-fields";
+import { ensureEtimsPrintFields, extractEtimsFiscalFieldsFromInvoice } from "../lib/etims-fiscal-fields";
 import { resolveInvoiceEtimsVerificationUrl } from "../lib/etims-receipt-url";
 import { formatInvoiceLineItemForPdf, normalizeStoredInvoicePeriodDescription } from "../lib/nisc-order-invoice-line-items";
 import type {
@@ -15,6 +15,7 @@ import type {
 } from "./types";
 
 import { COMPANY_LOGO_URL } from "../lib/company-branding";
+import { taxBucketsFromKraPayload } from "./tis-receipt-totals";
 
 export { COMPANY_LOGO_URL } from "../lib/company-branding";
 export { resolveInvoiceEtimsVerificationUrl } from "../lib/etims-receipt-url";
@@ -29,7 +30,6 @@ export function buildInvoicePdfDetails(invoice: InvoiceDetail): {
 } {
 	const fromDetails = (invoice.fromDetails as Record<string, unknown> | null) ?? {};
 	const customerDetails = (invoice.customerDetails as Record<string, unknown> | null) ?? {};
-	const paymentDetails = (invoice.paymentDetails as Record<string, unknown> | null) ?? {};
 
 	const yourDetails: YourDetails = {
 		yourName: fromDetails?.name as string | undefined,
@@ -90,63 +90,36 @@ export function buildInvoicePdfDetails(invoice: InvoiceDetail): {
 		}),
 		currency: invoice.currency ?? "KES",
 		compactLineItems: true,
+		taxBuckets:
+			taxBucketsFromKraPayload(invoice.kraSyncPayload) ??
+			taxBucketsFromKraPayload(invoice.kraSyncResponse) ??
+			undefined,
 	};
 
 	const invoiceTerms: InvoiceTerms = {
 		invoiceNumber: invoice.invoiceNumber ?? undefined,
 		issueDate: invoice.issueDate ?? undefined,
 		dueDate: invoice.dueDate ?? undefined,
+		buyerPin: (customerDetails?.taxId as string | undefined) ?? undefined,
 	};
 
-	const paymentMethodApi = paymentDetails?.paymentMethod;
-	let paymentMethod: "bank" | "mpesa" | "cheque" | undefined;
-	if (
-		paymentMethodApi === "BANK_TRANSFER" ||
-		paymentMethodApi === "bank_transfer" ||
-		paymentMethodApi === "bank"
-	) {
-		paymentMethod = "bank";
-	} else if (paymentMethodApi === "MPESA" || paymentMethodApi === "mpesa") {
-		paymentMethod = "mpesa";
-	} else if (paymentMethodApi === "CHEQUE" || paymentMethodApi === "cheque") {
-		paymentMethod = "cheque";
-	}
-	if (!paymentMethod) paymentMethod = "mpesa";
+	const etimsFiscal =
+		extractEtimsFiscalFieldsFromInvoice(invoice, {
+			tisReceiptNumber: invoice.invoiceNumber,
+			tisIssuedAt: invoice.issueDate,
+			itemCount: invoiceDetails.items.length,
+		}) ??
+		ensureEtimsPrintFields(
+			(invoice as InvoiceDetail & { etimsFiscal?: EtimsFiscalFields | null }).etimsFiscal,
+			{
+				tisReceiptNumber: invoice.invoiceNumber,
+				tisIssuedAt: invoice.issueDate,
+				itemCount: invoiceDetails.items.length,
+			},
+		);
 
 	const paymentDetailsFormatted: PaymentDetails = {
-		paymentMethod,
-		currency: invoice.currency || "KES",
-		etimsVerificationUrl: resolveInvoiceEtimsVerificationUrl(invoice),
-		bankName: paymentMethod === "bank" ? (paymentDetails?.bankName as string | undefined) : undefined,
-		accountNumber:
-			paymentMethod === "bank" ? (paymentDetails?.accountNumber as string | undefined) : undefined,
-		accountName:
-			paymentMethod === "bank" ? (paymentDetails?.accountName as string | undefined) : undefined,
-		branchName:
-			paymentMethod === "bank" ? (paymentDetails?.branchName as string | undefined) : undefined,
-		branchCode:
-			paymentMethod === "bank" ? (paymentDetails?.branchCode as string | undefined) : undefined,
-		swiftCode: paymentMethod === "bank" ? (paymentDetails?.swiftCode as string | undefined) : undefined,
-		mpesaPaybillNumber:
-			paymentMethod === "mpesa"
-				? ((paymentDetails?.mpesaPaybillNumber as string | undefined) || "303030")
-				: undefined,
-		mpesaAccountNumber:
-			paymentMethod === "mpesa"
-				? ((paymentDetails?.mpesaAccountNumber as string | undefined) || "2052676528")
-				: undefined,
-		mpesaInstructions:
-			paymentMethod === "mpesa"
-				? ((paymentDetails?.mpesaInstructions as string | undefined) || "Absa Bank Kenya")
-				: undefined,
-		chequeDeliveryAddress:
-			paymentMethod === "cheque"
-				? (paymentDetails?.chequeDeliveryAddress as string | undefined)
-				: undefined,
-		chequeInstructions:
-			paymentMethod === "cheque"
-				? (paymentDetails?.chequeInstructions as string | undefined)
-				: undefined,
+		etimsVerificationUrl: etimsFiscal?.verificationUrl ?? resolveInvoiceEtimsVerificationUrl(invoice),
 	};
 
 	return {
@@ -155,8 +128,6 @@ export function buildInvoicePdfDetails(invoice: InvoiceDetail): {
 		invoiceDetails,
 		paymentDetails: paymentDetailsFormatted,
 		invoiceTerms,
-		etimsFiscal:
-			(invoice as InvoiceDetail & { etimsFiscal?: EtimsFiscalFields | null }).etimsFiscal ??
-			extractEtimsFiscalFieldsFromInvoice(invoice),
+		etimsFiscal,
 	};
 }

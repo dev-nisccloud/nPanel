@@ -1,7 +1,8 @@
 /**
  * Sole env loader for eTIMS certification / probe scripts.
- * KRA credentials come from apps/server/.env.etims-certification only.
- * cmcKey is reused from etims_configuration (DATABASE_URL from .env).
+ * Loads apps/server/.env.etims-certification only — never the live app .env OAuth.
+ * DATABASE_URL is read from apps/server/.env solely to look up a stored cmcKey
+ * when SKIP_INIT=1 (do not use SKIP_INIT if the cert app is not the live app).
  */
 import { config } from "dotenv";
 import { existsSync, readFileSync } from "node:fs";

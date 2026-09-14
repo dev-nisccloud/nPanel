@@ -1,3 +1,5 @@
+import type { TisTaxBand } from "./tis-receipt-totals";
+
 export type Item = {
   id?: string;
   itemDescription: string;
@@ -39,6 +41,10 @@ export type InvoiceItemDetails = {
   currency?: string;
   /** Smaller, bold line typography (e.g. cron-generated media buying PDFs). */
   compactLineItems?: boolean;
+  /** Credit notes: print line totals and grand total as negative (TIS NC sample). */
+  negateAmounts?: boolean;
+  /** A–E taxable/VAT from the KRA sales payload when the invoice is synced. */
+  taxBuckets?: Record<TisTaxBand, { taxable: number; vat: number }>;
 };
 
 export type PaymentMethod = "bank" | "mpesa" | "cheque";
@@ -76,6 +82,10 @@ export type InvoiceTerms = {
   numberLabel?: string;
   /** When false, due date row is hidden (credit notes) */
   showDueDate?: boolean;
+  /** KRA SCU receipt number of the original sale (credit notes). */
+  originalCuInvoiceNo?: string;
+  /** Buyer PIN printed near the credit-note header. */
+  buyerPin?: string;
 };
 
 export type { EtimsFiscalFields } from "../lib/etims-fiscal-fields";
