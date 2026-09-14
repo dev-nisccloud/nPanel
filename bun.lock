@@ -43,6 +43,14 @@
         "typescript": "^5.9.3",
       },
     },
+    "apps/kra-etims-oscu": {
+      "name": "kra-etims-oscu",
+      "version": "1.0.0",
+      "devDependencies": {
+        "@types/bun": "catalog:",
+        "typescript": "^5",
+      },
+    },
     "apps/nisc-payment-gateway-wp": {
       "name": "nisc-payment-gateway-wp",
       "version": "0.1.10",
@@ -3455,6 +3463,8 @@
     "keyv": ["keyv@4.5.4", "", { "dependencies": { "json-buffer": "3.0.1" } }, "sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw=="],
 
     "kleur": ["kleur@4.1.5", "", {}, "sha512-o+NO+8WrRiQEE4/7nwRJhN1HWpVmJm511pBHUxPLtp0BUISzlBplORYSmTclCnJvQq2tKu/sgl3xVpkc7ZWuQQ=="],
+
+    "kra-etims-oscu": ["kra-etims-oscu@workspace:apps/kra-etims-oscu"],
 
     "kysely": ["kysely@0.28.12", "", {}, "sha512-kWiueDWXhbCchgiotwXkwdxZE/6h56IHAeFWg4euUfW0YsmO9sxbAxzx1KLLv2lox15EfuuxHQvgJ1qIfZuHGw=="],
 
