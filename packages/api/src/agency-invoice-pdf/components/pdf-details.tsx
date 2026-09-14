@@ -1,15 +1,13 @@
-import { View } from "@react-pdf/renderer";
+import { Text, View } from "@react-pdf/renderer";
 import { InvoiceHeaderPdf } from "./invoice-header-pdf";
 import { InvoiceTermsPdf } from "./invoice-terms-pdf";
 import { CompanyDetailsPdf } from "./company-details-pdf";
 import { InvoiceDetailsPdf } from "./invoice-details-pdf";
-import { PaymentDetailsPdf } from "./payment-details-pdf";
 import { pdfUtils } from "../pdf-styles";
 import type {
 	YourDetails,
 	CompanyDetails,
 	InvoiceItemDetails,
-	PaymentDetails,
 	InvoiceTerms,
 } from "../types";
 
@@ -17,22 +15,39 @@ export const PdfDetails = ({
   yourDetails,
   companyDetails,
   invoiceDetails,
-  paymentDetails,
   invoiceTerms,
   documentTitle,
 }: {
   yourDetails: YourDetails;
   companyDetails: CompanyDetails;
   invoiceDetails: InvoiceItemDetails;
-  paymentDetails: PaymentDetails & { qrCodeDataUrl?: string };
   invoiceTerms: InvoiceTerms;
   documentTitle?: string;
-}) => (
+}) => {
+  const isCreditNote = (documentTitle ?? "").toLowerCase().includes("credit");
+
+  return (
   <View>
-    {/* New header: Logo on left, From on right, then document title separator */}
     <InvoiceHeaderPdf {...yourDetails} documentTitle={documentTitle} />
+
+    {isCreditNote ? (
+      <View style={{ paddingHorizontal: 40, paddingBottom: 8 }}>
+        {invoiceTerms.originalCuInvoiceNo ? (
+          <Text style={{ fontSize: 9, fontWeight: "bold", color: "#111827", marginBottom: 4 }}>
+            ORIGINAL CU INVOICE NO.#: {invoiceTerms.originalCuInvoiceNo}
+          </Text>
+        ) : null}
+        <Text style={{ fontSize: 8, fontWeight: "bold", color: "#111827", textTransform: "uppercase" }}>
+          Credit note is approved only for original sales receipt
+        </Text>
+        {invoiceTerms.buyerPin ? (
+          <Text style={{ fontSize: 9, color: "#374151", marginTop: 4 }}>
+            Buyer PIN: {invoiceTerms.buyerPin}
+          </Text>
+        ) : null}
+      </View>
+    ) : null}
     
-    {/* Bill To section on left, Invoice number and dates on right */}
     <View
       style={{
         display: "flex",
@@ -68,18 +83,9 @@ export const PdfDetails = ({
       </View>
     </View>
     
-    {/* Invoice details and payment details remain the same */}
-    <View>
-      <View style={pdfUtils.borderBottom}>
-        <InvoiceDetailsPdf {...invoiceDetails} />
-      </View>
-      <View>
-        <PaymentDetailsPdf
-          {...paymentDetails}
-          compactLineItems={invoiceDetails.compactLineItems}
-        />
-      </View>
+    <View style={pdfUtils.borderBottom}>
+      <InvoiceDetailsPdf {...invoiceDetails} />
     </View>
   </View>
-);
-
+  );
+};

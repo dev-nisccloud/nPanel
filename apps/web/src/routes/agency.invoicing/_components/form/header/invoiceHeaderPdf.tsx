@@ -71,7 +71,7 @@ export const InvoiceHeaderPdf: React.FC<YourDetails> = ({
           {yourCountry && (
             <Text style={{ marginBottom: 2 }}>{yourCountry}</Text>
           )}
-          {yourTaxId && <Text>Tax ID:{yourTaxId}</Text>}
+          {yourTaxId && <Text>PIN: {yourTaxId}</Text>}
         </View>
       </View>
     </View>

@@ -55,8 +55,12 @@ export type InvoiceItemDetails = {
   note?: string;
   discount?: string;
   taxPercentage?: number;
+  taxRate?: string;
   items: Item[];
   currency?: string;
+  compactLineItems?: boolean;
+  negateAmounts?: boolean;
+  taxBuckets?: Record<"A" | "B" | "C" | "D" | "E", { taxable: number; vat: number }>;
 };
 
 export type PaymentMethod = "bank" | "mpesa" | "cheque";
@@ -90,5 +94,7 @@ export type InvoiceTerms = {
   originalInvoiceNumber?: string;
   numberLabel?: string;
   showDueDate?: boolean;
+  originalCuInvoiceNo?: string;
+  buyerPin?: string;
 };
 

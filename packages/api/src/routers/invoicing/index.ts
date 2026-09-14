@@ -33,6 +33,11 @@ import {
 	buildInvoiceKraUpdateFields,
 	mapInvoiceKraDetailFields,
 } from "../../lib/invoice-kra-db-fields";
+import { buildCuInvoiceNo, extractSdcIdFromKraBody } from "../../lib/etims-scu-print";
+import {
+	extractEtimsFiscalFieldsFromCreditNote,
+	extractEtimsFiscalFieldsFromInvoice,
+} from "../../lib/etims-fiscal-fields";
 import { scheduleInvoiceKraSyncAfterCreate } from "../../lib/qstash/invoice-kra-sync-worker";
 import {
 	prepareInvoiceEmailDelivery,
@@ -489,6 +494,15 @@ function buildInvoiceUpdateData(
 	return data;
 }
 
+function buildOriginalCuInvoiceNo(inv: Record<string, unknown> | null | undefined): string | null {
+	if (!inv) return null;
+	const sdcId = extractSdcIdFromKraBody(inv.kraSyncResponse);
+	const curRcptNo =
+		(typeof inv.kraReceiptNumber === "string" && inv.kraReceiptNumber.trim()) ||
+		null;
+	return buildCuInvoiceNo({ sdcId, curRcptNo, receiptLabel: "NS" });
+}
+
 function mapInvoiceDetail(invoice: any): InvoiceDetail {
 	const lineItems = invoice.lineItems.map((item: any) =>
 		invoiceLineItemOutputSchema.parse({
@@ -622,6 +636,12 @@ function mapInvoiceDetail(invoice: any): InvoiceDetail {
 		...(invoice.topBlock !== undefined && { topBlock: invoice.topBlock }),
 		...(invoice.bottomBlock !== undefined && { bottomBlock: invoice.bottomBlock }),
 		...mapInvoiceKraDetailFields(invoice),
+		etimsFiscal: extractEtimsFiscalFieldsFromInvoice({
+			...invoice,
+			invoiceNumber: invoice.invoiceNumber,
+			issueDate: invoice.issueDate,
+			lineItems,
+		}),
 	});
 }
 
@@ -1109,7 +1129,15 @@ function mapCreditNoteDetail(raw: {
 		subtotal: inv.subtotal,
 		tax: inv.tax,
 		taxPercentage: inv.taxPercentage ?? null,
+		originalCuInvoiceNo: buildOriginalCuInvoiceNo(inv),
 		...mapCreditNoteKraDetailFields(cn as Parameters<typeof mapCreditNoteKraDetailFields>[0]),
+		etimsFiscal: extractEtimsFiscalFieldsFromCreditNote({
+			...cn,
+			creditNumber: cn.creditNumber,
+			issuedAt: cn.issuedAt,
+			lineItems,
+			originalCuInvoiceNo: buildOriginalCuInvoiceNo(inv),
+		}),
 	});
 }
 
@@ -1357,6 +1385,27 @@ export const invoicingRouter = router({
 			return isAgencyUser(user.role)
 				? mapped
 				: sanitizeInvoiceDetailForCustomer(mapped);
+		}),
+
+	getByKraInvoiceNumber: protectedProcedure
+		.input(z.object({ kraInvoiceNumber: z.string().min(1) }))
+		.output(invoiceDetailSchema.nullable())
+		.query(async ({ ctx, input }) => {
+			const user = await getAuthenticatedUser(ctx);
+			if (!isAgencyUser(user.role)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only agency users can look up invoices by KRA number.",
+				});
+			}
+			const row = await db.query.invoice.findFirst({
+				where: eq(invoice.kraInvoiceNumber, input.kraInvoiceNumber),
+				columns: { id: true },
+			});
+			if (!row) return null;
+			await ensureInvoiceAccess(db, user.id, user.role, row.id);
+			const invoiceDetail = await fetchInvoiceDetail(db, row.id);
+			return mapInvoiceDetail(invoiceDetail);
 		}),
 
 	updatePayment: protectedProcedure
@@ -2660,6 +2709,26 @@ export const invoicingRouter = router({
 			return isAgencyUser(user.role)
 				? detail
 				: sanitizeCreditNoteDetailForCustomer(detail);
+		}),
+
+	getCreditNoteByKraInvoiceNumber: protectedProcedure
+		.input(z.object({ kraInvoiceNumber: z.string().min(1) }))
+		.output(creditNoteDetailSchema.nullable())
+		.query(async ({ ctx, input }) => {
+			const user = await getAuthenticatedUser(ctx);
+			if (!isAgencyUser(user.role)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only agency users can look up credit notes by KRA number.",
+				});
+			}
+			const row = await db.query.creditNote.findFirst({
+				where: eq(creditNote.kraInvoiceNumber, input.kraInvoiceNumber),
+				columns: { id: true },
+			});
+			if (!row) return null;
+			await ensureCreditNoteAccess(db, user.id, user.role, row.id);
+			return fetchCreditNoteDetail(db, row.id);
 		}),
 
 	issueCreditNote: protectedProcedure

@@ -102,7 +102,7 @@ export const pdfContainers = StyleSheet.create({
     pageWithEtimsFooter: {
         fontFamily: "Geist",
         paddingTop: 28,
-        paddingBottom: 72,
+        paddingBottom: 200,
         paddingLeft: 0,
         paddingRight: 0,
     },

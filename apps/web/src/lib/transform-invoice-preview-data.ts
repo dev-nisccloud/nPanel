@@ -2,6 +2,7 @@ import type { InvoiceDetail } from "@/routes/agency.invoices/create/api/schemas"
 import { DEFAULT_INVOICE_LOGO } from "@/routes/agency.invoices/create/constants";
 import { formatInvoiceLineItemForPdf, normalizeStoredInvoicePeriodDescription } from "@npanel/api/lib/nisc-order-invoice-line-items";
 import { resolveInvoiceEtimsVerificationUrl } from "@npanel/api/agency-invoice-pdf/build-invoice-pdf-details";
+import { taxBucketsFromKraPayload } from "@npanel/api/agency-invoice-pdf/tis-receipt-totals";
 import type {
 	YourDetails,
 	CompanyDetails,
@@ -75,8 +76,13 @@ export function transformInvoiceToPreviewData(invoice: InvoiceDetail): {
 		note: invoice.note || undefined,
 		discount: invoice.discount || undefined,
 		taxPercentage: invoice.taxPercentage || undefined,
+		taxRate: invoice.taxPercentage != null ? String(invoice.taxPercentage) : undefined,
 		items,
 		currency: invoice.currency || "KES",
+		taxBuckets:
+			taxBucketsFromKraPayload((invoice as { kraSyncPayload?: unknown }).kraSyncPayload) ??
+			taxBucketsFromKraPayload((invoice as { kraSyncResponse?: unknown }).kraSyncResponse) ??
+			undefined,
 	};
 
 	const paymentDetailsData = invoice.paymentDetails as Record<string, unknown> | null;
@@ -97,10 +103,7 @@ export function transformInvoiceToPreviewData(invoice: InvoiceDetail): {
 	const paymentDetails: PaymentDetails = {
 		paymentMethod,
 		currency: invoice.currency || "KES",
-		etimsVerificationUrl:
-			invoice.kraVerificationUrl?.trim() ||
-			invoice.kraQrCode?.trim() ||
-			resolveInvoiceEtimsVerificationUrl(invoice),
+		etimsVerificationUrl: resolveInvoiceEtimsVerificationUrl(invoice),
 		bankName: paymentMethod === "bank" ? (paymentDetailsData?.bankName as string | undefined) : undefined,
 		accountNumber:
 			paymentMethod === "bank" ? (paymentDetailsData?.accountNumber as string | undefined) : undefined,

@@ -78,7 +78,7 @@ export const InvoiceHeaderPreview: React.FC<
           ) : (
             <div className="rounded-md bg-neutral-100 h-4 w-3/6 ml-auto animate-pulse my-2" />
           )}
-          {yourTaxId && <p>Tax ID:{yourTaxId}</p>}
+          {yourTaxId && <p>PIN: {yourTaxId}</p>}
         </div>
       </div>
     </div>

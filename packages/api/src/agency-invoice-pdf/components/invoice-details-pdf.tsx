@@ -4,6 +4,12 @@ import type { Style } from "@react-pdf/types";
 import { currencyList } from "../currency-map";
 import { pdfTypography, pdfUtils } from "../pdf-styles";
 import type { InvoiceItemDetails, Item } from "../types";
+import {
+  buildTisReceiptTotals,
+  formatTisMoney,
+  tisCreditNoteBandLines,
+  type TisReceiptTotals,
+} from "../tis-receipt-totals";
 
 const hasLineAmount = (amount: unknown): amount is number =>
   amount !== undefined && amount !== null && `${amount}` !== "";
@@ -47,6 +53,8 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
   items,
   currency = "KES",
   compactLineItems = false,
+  negateAmounts = false,
+  taxBuckets,
 }) => {
   const lineText = compactLineItems
     ? pdfTypography.itemLineCompact
@@ -62,6 +70,7 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
   const currencyDetails = currencyList.find(
     (currency) => currency.value.toLowerCase() === currencyType.toLowerCase()
   )?.details;
+  const symbol = currencyDetails?.currencySymbol ?? "";
   const itemsNormalized: Item[] = items.map((item) => ({
     ...item,
     amount:
@@ -71,14 +80,13 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
         ? roundMoney2(Number(item.amount))
         : item.amount,
   }));
-  const subtotal = roundMoney2(calculateTotalAmount(itemsNormalized));
-  const discountAmount = roundMoney2(
-    subtotal - (discount ? +discount : 0)
-  );
-  const taxAmount = roundMoney2(
-    discountAmount * ((taxRate ? +taxRate : 0) / 100)
-  );
-  const totalAmount = roundMoney2(discountAmount + taxAmount);
+  const totals = buildTisReceiptTotals({
+    items: itemsNormalized,
+    discount,
+    taxRate,
+    taxBuckets,
+  });
+  const sign = negateAmounts ? -1 : 1;
 
   return (
     <View>
@@ -160,7 +168,7 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
                   flexWrap: "wrap",
                 }}
               >
-                {hasLineAmount(amount) ? formatPdfMoney(Number(amount)) : ""}
+                {hasLineAmount(amount) ? formatPdfMoney(sign * Number(amount)) : ""}
               </Text>
               <Text
                 wrap
@@ -172,7 +180,7 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
                 }}
               >
                 {currencyDetails?.currencySymbol}
-                {hasLineAmount(amount) && ` ${formatPdfMoney((qty ? +qty : 1) * Number(amount))}`}
+                {hasLineAmount(amount) && ` ${formatPdfMoney(sign * (qty ? +qty : 1) * Number(amount))}`}
               </Text>
             </View>
           </View>
@@ -188,111 +196,182 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
           )}
         </View>
         <View style={{ flex: 1 }}>
-          <View
-            style={{
-              marginHorizontal: 40,
-              paddingVertical: compactLineItems ? 5 : 14,
-              ...pdfUtils.flexRowItemCenter,
-              ...pdfUtils.borderBottom,
-            }}
-          >
-            <Text style={{ ...totalsText, flex: 1 }}>
-              Subtotal
-            </Text>
-            <Text
-              wrap
-              style={{
-                ...totalsText,
-                flex: 1,
-                textAlign: "right",
-              }}
-            >
-              {currencyDetails?.currencySymbol} {formatPdfMoney(subtotal)}
-            </Text>
-          </View>
-          {discount && (
-            <View
-              style={{
-                marginHorizontal: 40,
-                paddingVertical: compactLineItems ? 5 : 14,
-                ...pdfUtils.flexRowItemCenter,
-                ...pdfUtils.borderBottom,
-              }}
-            >
-              <Text style={{ ...totalsText, flex: 1 }}>
-                Discount
-              </Text>
-              <Text
-                wrap
-                style={{
-                  ...totalsText,
-                  flex: 1,
-                  textAlign: "right",
-                }}
-              >
-                {currencyDetails?.currencySymbol} {discount ? formatPdfMoney(+discount) : ""}
-              </Text>
-            </View>
-          )}
-          {taxRate && (
-            <View
-              style={{
-                marginHorizontal: 40,
-                paddingVertical: compactLineItems ? 5 : 14,
-                ...pdfUtils.flexRowItemCenter,
-                ...pdfUtils.borderBottom,
-              }}
-            >
-              <Text style={{ ...totalsText, flex: 1 }}>
-                Tax ({taxRate})%
-              </Text>
-              <Text
-                wrap
-                style={{
-                  ...totalsText,
-                  flex: 1,
-                  textAlign: "right",
-                }}
-              >
-                {currencyDetails?.currencySymbol} {formatPdfMoney(taxAmount)}
-              </Text>
-            </View>
-          )}
-          <View
-            style={{
-              marginHorizontal: 40,
-              paddingVertical: compactLineItems ? 5 : 14,
-              ...pdfUtils.flexRowItemCenter,
-            }}
-          >
-            <Text style={{ ...totalsText, flex: 1 }}>
-              Amount
-            </Text>
-            <Text
-              wrap
-              style={{
-                ...totalsText,
-                flex: 1,
-                textAlign: "right",
-                fontWeight: "bold",
-                flexWrap: "wrap",
-              }}
-            >
-              {currencyDetails?.currencySymbol} {formatPdfMoney(totalAmount)}
-            </Text>
-          </View>
+          <TisTotalsBlock
+            totals={totals}
+            symbol={symbol}
+            sign={sign}
+            negateAmounts={negateAmounts}
+            compactLineItems={compactLineItems}
+            totalsText={totalsText}
+          />
         </View>
       </View>
     </View>
   );
 };
 
-const calculateTotalAmount = (items: Item[]): number =>
-  items.reduce((total, item) => {
-    const quantity = item.qty ? +item.qty : 1;
-    const amount = hasLineAmount(item.amount) ? +item.amount : 0;
-    return total + quantity * amount;
-  }, 0);
+function money(symbol: string, n: number): string {
+  return `${symbol} ${formatTisMoney(n)}`;
+}
+
+function TotalsRow({
+  label,
+  value,
+  compactLineItems,
+  totalsText,
+  bold,
+  border = true,
+}: {
+  label: string;
+  value: string;
+  compactLineItems: boolean;
+  totalsText: Style;
+  bold?: boolean;
+  border?: boolean;
+}) {
+  return (
+    <View
+      style={{
+        marginHorizontal: 40,
+        paddingVertical: compactLineItems ? 5 : 14,
+        ...pdfUtils.flexRowItemCenter,
+        ...(border ? pdfUtils.borderBottom : {}),
+      }}
+    >
+      <Text style={{ ...totalsText, flex: 1 }}>{label}</Text>
+      <Text
+        wrap
+        style={{
+          ...totalsText,
+          flex: 1,
+          textAlign: "right",
+          fontWeight: bold ? "bold" : totalsText.fontWeight,
+          flexWrap: "wrap",
+        }}
+      >
+        {value}
+      </Text>
+    </View>
+  );
+}
+
+function TisTotalsBlock({
+  totals,
+  symbol,
+  sign,
+  negateAmounts,
+  compactLineItems,
+  totalsText,
+}: {
+  totals: TisReceiptTotals;
+  symbol: string;
+  sign: number;
+  negateAmounts: boolean;
+  compactLineItems: boolean;
+  totalsText: Style;
+}) {
+  const row = (label: string, amount: number, opts?: { bold?: boolean; border?: boolean; parens?: boolean; count?: boolean }) => (
+    <TotalsRow
+      key={label}
+      label={label}
+      value={
+        opts?.count
+          ? String(amount)
+          : opts?.parens
+            ? `(${formatTisMoney(Math.abs(amount))})`
+            : money(symbol, sign * amount)
+      }
+      compactLineItems={compactLineItems}
+      totalsText={totalsText}
+      bold={opts?.bold}
+      border={opts?.border}
+    />
+  );
+
+  if (negateAmounts) {
+    const bands = tisCreditNoteBandLines(totals);
+    return (
+      <View>
+        {row("Total", totals.total)}
+        {bands.map((band) => (
+          <View key={band.taxableLabel}>
+            {row(band.taxableLabel, band.taxable)}
+            {row(band.taxLabel, band.vat)}
+          </View>
+        ))}
+        {row("Total Tax", totals.vat)}
+        {row("Items Number", totals.itemCount, { border: false, count: true })}
+      </View>
+    );
+  }
+
+  return (
+    <View>
+      {row("Total before discount", totals.totalBeforeDiscount)}
+      {totals.discountAwarded
+        ? row("Total discount awarded", totals.discountAwarded, { parens: true })
+        : null}
+      {row("Sub total", totals.subTotal)}
+      {row("VAT", totals.vat)}
+      {row("Total", totals.total, { bold: true })}
+      {row("Items Number", totals.itemCount, { count: true })}
+      <TisTaxTablePdf
+        totals={totals}
+        symbol={symbol}
+        sign={sign}
+        compactLineItems={compactLineItems}
+        totalsText={totalsText}
+      />
+    </View>
+  );
+}
+
+function TisTaxTablePdf({
+  totals,
+  symbol,
+  sign,
+  compactLineItems,
+  totalsText,
+}: {
+  totals: TisReceiptTotals;
+  symbol: string;
+  sign: number;
+  compactLineItems: boolean;
+  totalsText: Style;
+}) {
+  const cell = { ...totalsText, fontSize: compactLineItems ? 7 : 8 };
+  return (
+    <View
+      style={{
+        marginHorizontal: 40,
+        marginTop: compactLineItems ? 6 : 10,
+        borderWidth: 1,
+        borderStyle: "solid",
+        borderColor: "#9ca3af",
+      }}
+    >
+      <View style={{ ...pdfUtils.flexRowItemCenter, borderBottomWidth: 1, borderBottomStyle: "solid", borderBottomColor: "#9ca3af" }}>
+        <Text style={{ ...cell, flex: 1.1, padding: 4 }}>Rate</Text>
+        <Text style={{ ...cell, flex: 1.4, padding: 4, textAlign: "right" }}>Taxable Amount</Text>
+        <Text style={{ ...cell, flex: 1, padding: 4, textAlign: "right" }}>VAT</Text>
+      </View>
+      {totals.taxTable.map((row) => (
+        <View
+          key={row.band}
+          style={{ ...pdfUtils.flexRowItemCenter, borderBottomWidth: 1, borderBottomStyle: "solid", borderBottomColor: "#e5e7eb" }}
+        >
+          <Text style={{ ...cell, flex: 1.1, padding: 4 }}>{row.rateLabel}</Text>
+          <Text style={{ ...cell, flex: 1.4, padding: 4, textAlign: "right" }}>
+            {money(symbol, sign * row.taxable)}
+          </Text>
+          <Text style={{ ...cell, flex: 1, padding: 4, textAlign: "right" }}>
+            {money(symbol, sign * row.vat)}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
 
 const roundMoney2 = (n: number): number =>
   Math.round((Number(n) + Number.EPSILON) * 100) / 100;
