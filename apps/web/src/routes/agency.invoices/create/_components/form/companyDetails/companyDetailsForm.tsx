@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFormContext } from "react-hook-form";
 import { trpc } from "@/utils/trpc";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import {
@@ -145,13 +145,13 @@ export const CompanyDetailsForm = () => {
 	}, [billingSettings, billingComplete]);
 
 	return (
-		<div className="pt-24 space-y-6">
+		<div className="space-y-6">
 			<div>
 				<p className="text-2xl font-semibold pb-3">Organization Billing (Bill To)</p>
 				<p className="pb-4 text-xs font-medium text-neutral-500">
 					Choose the organization to invoice. Billing details are sourced from the organization&apos;s billing settings.
 				</p>
-				<Popover open={teamPickerOpen} onOpenChange={setTeamPickerOpen}>
+				<Popover modal open={teamPickerOpen} onOpenChange={setTeamPickerOpen}>
 					<PopoverTrigger asChild>
 						<Button
 							variant="outline"
@@ -163,34 +163,42 @@ export const CompanyDetailsForm = () => {
 							<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 						</Button>
 					</PopoverTrigger>
-					<PopoverContent className="w-full p-0" align="start">
+					<PopoverContent
+						className="w-[var(--radix-popover-trigger-width)] p-0 z-[100]"
+						align="start"
+						side="bottom"
+						sideOffset={4}
+						collisionPadding={16}
+					>
 						<Command>
 							<CommandInput placeholder="Search organizations..." />
-							<CommandEmpty>No organizations found.</CommandEmpty>
-							<CommandGroup>
-								{teams.map((team) => (
-									<CommandItem
-										key={team.id}
-										value={team.id}
-										onSelect={() => {
-											form.setValue("teamId", team.id, { shouldDirty: true });
-											setTeamPickerOpen(false);
-										}}
-									>
-										<span className="flex items-center justify-between w-full">
-											<div>
-												<p className="font-medium">{team.name}</p>
-												<p className="text-xs text-muted-foreground">{team.slug}</p>
-											</div>
-											{team.id === selectedOrganizationId ? (
-												<Check className="h-4 w-4 opacity-100" />
-											) : (
-												<Check className="h-4 w-4 opacity-0" />
-											)}
-										</span>
-									</CommandItem>
-								))}
-							</CommandGroup>
+							<CommandList className="max-h-64 overflow-y-auto">
+								<CommandEmpty>No organizations found.</CommandEmpty>
+								<CommandGroup>
+									{teams.map((team) => (
+										<CommandItem
+											key={team.id}
+											value={`${team.name} ${team.slug}`}
+											onSelect={() => {
+												form.setValue("teamId", team.id, { shouldDirty: true });
+												setTeamPickerOpen(false);
+											}}
+										>
+											<span className="flex items-center justify-between w-full">
+												<div>
+													<p className="font-medium">{team.name}</p>
+													<p className="text-xs text-muted-foreground">{team.slug}</p>
+												</div>
+												{team.id === selectedOrganizationId ? (
+													<Check className="h-4 w-4 opacity-100" />
+												) : (
+													<Check className="h-4 w-4 opacity-0" />
+												)}
+											</span>
+										</CommandItem>
+									))}
+								</CommandGroup>
+							</CommandList>
 						</Command>
 					</PopoverContent>
 				</Popover>

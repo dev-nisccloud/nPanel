@@ -2317,6 +2317,7 @@ export const invoicingRouter = router({
 							logoUrl: companyLogoUrl,
 						};
 
+				const invoiceStatus = input.status ?? "DRAFT";
 				const invoiceData = buildInvoiceData({
 					...input,
 					invoiceNumber,
@@ -2325,7 +2326,9 @@ export const invoicingRouter = router({
 					token,
 					createdBy: user.id,
 					updatedBy: user.id,
-					status: "DRAFT", // Saved only; send from invoice details when verified
+					status: invoiceStatus,
+					sentAt: invoiceStatus === "SENT" ? new Date().toISOString() : input.sentAt,
+					paidAt: invoiceStatus === "PAID" ? new Date().toISOString() : input.paidAt,
 				});
 
 				const now = new Date();
@@ -2372,6 +2375,12 @@ export const invoicingRouter = router({
 
 				savedInvoice = await fetchInvoiceDetail(tx, invoiceId);
 			});
+
+			const createdStatus = input.status ?? "DRAFT";
+			const hasManualSignature = Boolean(input.kraSignature?.trim());
+			if (!hasManualSignature) {
+				void scheduleInvoiceKraSyncAfterCreate(invoiceId, { status: createdStatus });
+			}
 
 			return mapInvoiceDetail(savedInvoice);
 		}),

@@ -21,18 +21,23 @@ const heading = {
 	letterSpacing: 0.4,
 };
 
-function Row({ k, v }: { k: string; v: string }) {
+function display(value: string | null | undefined): string {
+	const v = value?.trim();
+	return v ? v : "—";
+}
+
+function Row({ k, v }: { k: string; v: string | null | undefined }) {
 	return (
 		<Text style={muted} wrap>
 			<Text style={label}>{k}: </Text>
-			<Text>{v}</Text>
+			<Text>{display(v)}</Text>
 		</Text>
 	);
 }
 
 /**
  * KRA TIS spec v2.0 SCU Information + TIS Information block.
- * Replaces bank/M-Pesa payment details on fiscal invoices and credit notes.
+ * Labels always print; values are "—" when not yet provided.
  */
 export const EtimsFiscalFooterPdf: React.FC<EtimsFiscalFooterPdfProps> = ({
 	fields,
@@ -41,10 +46,7 @@ export const EtimsFiscalFooterPdf: React.FC<EtimsFiscalFooterPdfProps> = ({
 }) => {
 	const internal = fields.intrlDataDashed ?? fields.intrlData;
 	const signature = fields.rcptSignDashed ?? fields.rcptSign;
-	const scuDate = fields.scuDate;
-	const scuTime = fields.scuTime;
-	const cuId = fields.sdcId;
-	const invoiceNo = fields.cuInvoiceNo;
+	const counter = `${display(fields.curRcptNo)}/${display(fields.totRcptNo)} ${display(fields.receiptLabel)}`;
 
 	return (
 		<View
@@ -63,34 +65,27 @@ export const EtimsFiscalFooterPdf: React.FC<EtimsFiscalFooterPdfProps> = ({
 			<View style={{ flexDirection: "row", alignItems: "flex-start" }}>
 				<View style={{ flex: 1, paddingRight: qrCodeDataUrl ? 12 : 0 }}>
 					<Text style={heading}>SCU Information</Text>
-					{scuDate || scuTime ? (
-						<Text style={muted}>
-							{scuDate ? <Text style={label}>Date: </Text> : null}
-							{scuDate ? <Text>{scuDate}    </Text> : null}
-							{scuTime ? <Text style={label}>Time: </Text> : null}
-							{scuTime ? <Text>{scuTime}</Text> : null}
+					<Text style={muted}>
+						<Text style={label}>Date: </Text>
+						<Text>{display(fields.scuDate)}    </Text>
+						<Text style={label}>Time: </Text>
+						<Text>{display(fields.scuTime)}</Text>
+					</Text>
+					<Row k="CU ID" v={fields.sdcId} />
+					<Row k="CU INVOICE NO." v={fields.cuInvoiceNo} />
+					<Row k="Receipt Counter" v={counter} />
+					<View style={{ marginTop: 2 }}>
+						<Text style={label}>Internal Data:</Text>
+						<Text style={muted} wrap>
+							{display(internal)}
 						</Text>
-					) : fields.sdcDateTimeDisplay ? (
-						<Row k="Date" v={fields.sdcDateTimeDisplay} />
-					) : null}
-					{cuId ? <Row k="CU ID" v={cuId} /> : null}
-					{invoiceNo ? <Row k="Invoice No." v={invoiceNo} /> : null}
-					{internal ? (
-						<View style={{ marginTop: 2 }}>
-							<Text style={label}>Internal Data:</Text>
-							<Text style={muted} wrap>
-								{internal}
-							</Text>
-						</View>
-					) : null}
-					{signature ? (
-						<View style={{ marginTop: 2 }}>
-							<Text style={label}>Receipt Signature:</Text>
-							<Text style={muted} wrap>
-								{signature}
-							</Text>
-						</View>
-					) : null}
+					</View>
+					<View style={{ marginTop: 2 }}>
+						<Text style={label}>Receipt Signature:</Text>
+						<Text style={muted} wrap>
+							{display(signature)}
+						</Text>
+					</View>
 				</View>
 				{qrCodeDataUrl ? (
 					<View style={{ width: 72, alignItems: "center" }}>
@@ -109,17 +104,13 @@ export const EtimsFiscalFooterPdf: React.FC<EtimsFiscalFooterPdfProps> = ({
 				}}
 			>
 				<Text style={heading}>TIS Information</Text>
-				{fields.tisReceiptNumber ? (
-					<Row k="Receipt Number" v={fields.tisReceiptNumber} />
-				) : null}
-				{fields.tisDate || fields.tisTime ? (
-					<Text style={muted}>
-						{fields.tisDate ? <Text style={label}>Date: </Text> : null}
-						{fields.tisDate ? <Text>{fields.tisDate}    </Text> : null}
-						{fields.tisTime ? <Text style={label}>Time: </Text> : null}
-						{fields.tisTime ? <Text>{fields.tisTime}</Text> : null}
-					</Text>
-				) : null}
+				<Row k="Receipt Number" v={fields.tisReceiptNumber} />
+				<Text style={muted}>
+					<Text style={label}>Date: </Text>
+					<Text>{display(fields.tisDate)}    </Text>
+					<Text style={label}>Time: </Text>
+					<Text>{display(fields.tisTime)}</Text>
+				</Text>
 			</View>
 		</View>
 	);
