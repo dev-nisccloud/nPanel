@@ -16,7 +16,7 @@ export const UserInputForm = () => {
       <div className={step === "1" ? "block" : "hidden"}>
         <YourDetailsForm />
       </div>
-      <div className={step === "2" ? "block" : "hidden"}>
+      <div className={step === "2" ? "block pt-24" : "hidden"}>
         <CompanyDetailsForm />
       </div>
       <div className={step === "3" ? "block" : "hidden"}>

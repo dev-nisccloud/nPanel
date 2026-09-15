@@ -45,6 +45,14 @@ export default function InvoicingPage() {
       issueDate: "",
       dueDate: "",
       currency: "KES",
+      invoiceStatus: "DRAFT",
+      scuSdcId: "",
+      scuDate: "",
+      scuTime: "",
+      scuCurRcptNo: "",
+      scuTotRcptNo: "",
+      scuIntrlData: "",
+      scuRcptSign: "",
     },
   });
 

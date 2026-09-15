@@ -4,6 +4,7 @@ import { EtimsFiscalFooterPdf } from "./components/etims-fiscal-footer-pdf";
 import { PdfDetails } from "./components/pdf-details";
 import { pdfContainers } from "./pdf-styles";
 import type { EtimsFiscalFields } from "./types";
+import { emptyEtimsFiscalFields } from "../lib/etims-fiscal-fields";
 import type {
 	YourDetails,
 	CompanyDetails,
@@ -36,16 +37,18 @@ export function AgencyInvoicePdfPage({
 	qrCodeDataUrl,
 	documentTitle,
 }: AgencyInvoicePdfPageProps) {
-	const hasFiscalFooter = Boolean(etimsFiscal);
+	const isCreditNote = (documentTitle ?? "").toLowerCase().includes("credit");
+	const fiscal = etimsFiscal ?? emptyEtimsFiscalFields({
+		tisReceiptNumber: invoiceTerms.invoiceNumber ?? null,
+		tisIssuedAt: invoiceTerms.issueDate ?? null,
+		originalCuInvoiceNo: invoiceTerms.originalCuInvoiceNo ?? null,
+		itemCount: invoiceDetails.items.length,
+		isCreditNote,
+	});
 
 	return (
-		<Page
-			size="A4"
-			style={hasFiscalFooter ? pdfContainers.pageWithEtimsFooter : pdfContainers.page}
-		>
-			{etimsFiscal ? (
-				<EtimsFiscalFooterPdf fields={etimsFiscal} qrCodeDataUrl={qrCodeDataUrl} />
-			) : null}
+		<Page size="A4" style={pdfContainers.pageWithEtimsFooter}>
+			<EtimsFiscalFooterPdf fields={fiscal} qrCodeDataUrl={qrCodeDataUrl} />
 			<PdfDetails
 				companyDetails={companyDetails}
 				invoiceDetails={invoiceDetails}

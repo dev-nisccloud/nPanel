@@ -1,19 +1,20 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Document, Font, Page } from "@react-pdf/renderer";
-import { CheckCircle2, Send, LoaderIcon } from "lucide-react";
-import { PdfDetails } from "../pdfDetails";
+import { Document, Font } from "@react-pdf/renderer";
 import { useData } from "../../../hooks/useData";
-import { pdfContainers } from "@/lib/pdfStyles";
 import { pdf } from "@react-pdf/renderer";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import QRCodeUtil from "qrcode";
 import { trpc } from "@/utils/trpc";
 import { useFormContext } from "react-hook-form";
 import { toast } from "@/components/ui/sonner";
 import { useNavigate } from "react-router";
 import { captureEvent } from "@/lib/posthog";
+import { InvoiceStatusSelect } from "../invoice-status-select";
+import { buildKraPersistFieldsFromManual } from "@npanel/api/lib/etims-fiscal-fields";
+import { AgencyInvoicePdfPage } from "@npanel/api/agency-invoice-pdf/agency-invoice-pdf-page";
+import { useInvoiceEtimsFiscalPreview } from "../../../hooks/useEtimsFiscalPreview";
 
 // Font registration state
 let fontsRegistered = false;
@@ -111,6 +112,7 @@ export const DownloadInvoiceButton = () => {
     paymentDetails,
     yourDetails,
   } = useData();
+  const etimsFiscal = useInvoiceEtimsFiscalPreview();
 
   const submitInvoiceMutation = trpc.invoicing.submitInvoice.useMutation({
     onSuccess: (data) => {
@@ -124,8 +126,11 @@ export const DownloadInvoiceButton = () => {
       // This ensures when user navigates to create a new invoice, they get the latest number
       utils.invoicing.getNextInvoiceNumber.invalidate();
       
-      toast.success("Invoice saved successfully", {
-        description: "You can review and send it to the customer from the invoice details page when ready.",
+      toast.success("Invoice saved", {
+        description:
+          data.status === "DRAFT"
+            ? "Saved as draft. You can send it from the invoice details page when ready."
+            : `Saved with status ${data.status.replaceAll("_", " ").toLowerCase()}.`,
       });
       // Redirect to invoices list after a short delay
       setTimeout(() => {
@@ -156,11 +161,11 @@ export const DownloadInvoiceButton = () => {
       // Ensure fonts are registered before generating PDF
       await registerFonts();
       
-      // Generate QR code data URL if qrCodeValue exists
       let qrCodeDataUrl: string | undefined;
-      if (paymentDetails.qrCodeValue) {
+      const etimsUrl = etimsFiscal.verificationUrl?.trim();
+      if (etimsUrl) {
         try {
-          qrCodeDataUrl = await QRCodeUtil.toDataURL(paymentDetails.qrCodeValue, {
+          qrCodeDataUrl = await QRCodeUtil.toDataURL(etimsUrl, {
             width: 120,
             margin: 1,
           });
@@ -169,21 +174,16 @@ export const DownloadInvoiceButton = () => {
         }
       }
 
-      // Generate PDF
       const blob = await pdf(
         <Document>
-          <Page size="A4" style={pdfContainers.page}>
-            <PdfDetails
-              companyDetails={companyDetails}
-              invoiceDetails={invoiceDetails}
-              invoiceTerms={invoiceTerms}
-              paymentDetails={{
-                ...paymentDetails,
-                qrCodeDataUrl,
-              }}
-              yourDetails={yourDetails}
-            />
-          </Page>
+          <AgencyInvoicePdfPage
+            companyDetails={companyDetails}
+            invoiceDetails={invoiceDetails}
+            invoiceTerms={invoiceTerms}
+            yourDetails={yourDetails}
+            etimsFiscal={etimsFiscal}
+            qrCodeDataUrl={qrCodeDataUrl}
+          />
         </Document>
       ).toBlob();
 
@@ -274,6 +274,27 @@ export const DownloadInvoiceButton = () => {
         taxId: companyDetails.companyTaxId,
       };
 
+      const values = form.getValues() as Record<string, string | undefined>;
+      const invoiceStatus = (values.invoiceStatus || "DRAFT") as
+        | "DRAFT"
+        | "SENT"
+        | "PARTIALLY_PAID"
+        | "PAID"
+        | "OVERDUE"
+        | "CANCELLED"
+        | "WRITTEN_OFF";
+      const kraFields = buildKraPersistFieldsFromManual({
+        sdcId: values.scuSdcId,
+        sdcDate: values.scuDate,
+        sdcTime: values.scuTime,
+        curRcptNo: values.scuCurRcptNo,
+        totRcptNo: values.scuTotRcptNo,
+        intrlData: values.scuIntrlData,
+        rcptSign: values.scuRcptSign,
+        tin: yourDetails.yourTaxId,
+        bhfId: "00",
+      });
+
       // Submit invoice
       await submitInvoiceMutation.mutateAsync({
         invoiceNumber: invoiceTerms.invoiceNumber || undefined,
@@ -294,6 +315,8 @@ export const DownloadInvoiceButton = () => {
         paymentDetails: paymentDetailsJson as any,
         pdfBase64,
         billingEmail: companyDetails.email,
+        status: invoiceStatus,
+        ...(kraFields ?? {}),
       });
     } catch (e) {
       console.error(e);
@@ -306,8 +329,14 @@ export const DownloadInvoiceButton = () => {
       <div className="text-center max-w-xl mx-auto">
         <h1 className="text-3xl font-semibold pb-4">Your invoice is ready</h1>
         <p className="text-neutral-500 text-base pb-6">
-          Review the details carefully before submitting. The invoice will be saved to the database. You can send it to the customer from the invoice details page when you&apos;re ready.
+          Choose the invoice status, then submit. The KRA SCU layout is applied on the preview
+          even when SCU fields are still empty. You can enter SCU details on Invoice terms for
+          backdated receipts.
         </p>
+        <div className="mx-auto mb-6 max-w-xs text-left">
+          <label className="mb-2 block text-sm font-medium text-gray-900">Invoice status</label>
+          <InvoiceStatusSelect />
+        </div>
         <Button
           disabled={status === "submitting" || status === "submitted"}
           onClick={handleSubmitInvoice}

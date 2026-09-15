@@ -1,66 +1,71 @@
 import type { EtimsFiscalFields } from "@npanel/api/lib/etims-fiscal-fields";
+import { ChevronDown } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
 type EtimsFiscalFooterPreviewProps = {
 	etimsFiscal: EtimsFiscalFields;
+	onClick?: (step: string) => void;
 };
 
-function Row({ label, value }: { label: string; value: string }) {
+function display(value: string | null | undefined): string {
+	const v = value?.trim();
+	return v ? v : "—";
+}
+
+function Row({ label, value }: { label: string; value: string | null | undefined }) {
 	return (
 		<p className="break-words">
 			<span className="font-semibold text-gray-700">{label}: </span>
-			<span>{value}</span>
+			<span>{display(value)}</span>
 		</p>
 	);
 }
 
-export function EtimsFiscalFooterPreview({ etimsFiscal }: EtimsFiscalFooterPreviewProps) {
+export function EtimsFiscalFooterPreview({
+	etimsFiscal,
+	onClick,
+}: EtimsFiscalFooterPreviewProps) {
 	const internal = etimsFiscal.intrlDataDashed ?? etimsFiscal.intrlData;
 	const signature = etimsFiscal.rcptSignDashed ?? etimsFiscal.rcptSign;
 	const qrValue = etimsFiscal.verificationUrl?.trim();
+	const counter = `${display(etimsFiscal.curRcptNo)}/${display(etimsFiscal.totRcptNo)} ${display(etimsFiscal.receiptLabel)}`;
 
 	return (
-		<div className="border-t border-gray-900 px-10 py-3 text-[10px] leading-relaxed text-gray-600">
+		<div
+			className="border-t border-gray-900 px-10 py-3 text-[10px] leading-relaxed text-gray-600 cursor-pointer relative group"
+			onClick={() => onClick && onClick("5")}
+		>
+			{!!onClick && (
+				<>
+					<ChevronDown className="animate-pulse w-5 h-5 text-orange-500 rotate-[135deg] group-hover:block hidden absolute top-0 left-0" />
+					<ChevronDown className="animate-pulse w-5 h-5 text-orange-500 -rotate-[135deg] group-hover:block hidden absolute top-0 right-0" />
+					<ChevronDown className="animate-pulse w-5 h-5 text-orange-500 rotate-45 group-hover:block hidden absolute bottom-0 left-0" />
+					<ChevronDown className="animate-pulse w-5 h-5 text-orange-500 -rotate-45 group-hover:block hidden absolute bottom-0 right-0 " />
+				</>
+			)}
 			<div className="flex items-start gap-3">
 				<div className="min-w-0 flex-1">
 					<p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-gray-900">
 						SCU Information
 					</p>
-					{etimsFiscal.scuDate || etimsFiscal.scuTime ? (
-						<p>
-							{etimsFiscal.scuDate ? (
-								<>
-									<span className="font-semibold text-gray-700">Date: </span>
-									{etimsFiscal.scuDate}
-									{"    "}
-								</>
-							) : null}
-							{etimsFiscal.scuTime ? (
-								<>
-									<span className="font-semibold text-gray-700">Time: </span>
-									{etimsFiscal.scuTime}
-								</>
-							) : null}
-						</p>
-					) : etimsFiscal.sdcDateTimeDisplay ? (
-						<Row label="Date" value={etimsFiscal.sdcDateTimeDisplay} />
-					) : null}
-					{etimsFiscal.sdcId ? <Row label="CU ID" value={etimsFiscal.sdcId} /> : null}
-					{etimsFiscal.cuInvoiceNo ? (
-						<Row label="Invoice No." value={etimsFiscal.cuInvoiceNo} />
-					) : null}
-					{internal ? (
-						<div className="mt-1">
-							<p className="font-semibold text-gray-700">Internal Data:</p>
-							<p className="break-all">{internal}</p>
-						</div>
-					) : null}
-					{signature ? (
-						<div className="mt-1">
-							<p className="font-semibold text-gray-700">Receipt Signature:</p>
-							<p className="break-all">{signature}</p>
-						</div>
-					) : null}
+					<p>
+						<span className="font-semibold text-gray-700">Date: </span>
+						{display(etimsFiscal.scuDate)}
+						{"    "}
+						<span className="font-semibold text-gray-700">Time: </span>
+						{display(etimsFiscal.scuTime)}
+					</p>
+					<Row label="CU ID" value={etimsFiscal.sdcId} />
+					<Row label="CU INVOICE NO." value={etimsFiscal.cuInvoiceNo} />
+					<Row label="Receipt Counter" value={counter} />
+					<div className="mt-1">
+						<p className="font-semibold text-gray-700">Internal Data:</p>
+						<p className="break-all">{display(internal)}</p>
+					</div>
+					<div className="mt-1">
+						<p className="font-semibold text-gray-700">Receipt Signature:</p>
+						<p className="break-all">{display(signature)}</p>
+					</div>
 				</div>
 				{qrValue ? (
 					<div className="shrink-0">
@@ -72,26 +77,14 @@ export function EtimsFiscalFooterPreview({ etimsFiscal }: EtimsFiscalFooterPrevi
 				<p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-gray-900">
 					TIS Information
 				</p>
-				{etimsFiscal.tisReceiptNumber ? (
-					<Row label="Receipt Number" value={etimsFiscal.tisReceiptNumber} />
-				) : null}
-				{etimsFiscal.tisDate || etimsFiscal.tisTime ? (
-					<p>
-						{etimsFiscal.tisDate ? (
-							<>
-								<span className="font-semibold text-gray-700">Date: </span>
-								{etimsFiscal.tisDate}
-								{"    "}
-							</>
-						) : null}
-						{etimsFiscal.tisTime ? (
-							<>
-								<span className="font-semibold text-gray-700">Time: </span>
-								{etimsFiscal.tisTime}
-							</>
-						) : null}
-					</p>
-				) : null}
+				<Row label="Receipt Number" value={etimsFiscal.tisReceiptNumber} />
+				<p>
+					<span className="font-semibold text-gray-700">Date: </span>
+					{display(etimsFiscal.tisDate)}
+					{"    "}
+					<span className="font-semibold text-gray-700">Time: </span>
+					{display(etimsFiscal.tisTime)}
+				</p>
 			</div>
 		</div>
 	);

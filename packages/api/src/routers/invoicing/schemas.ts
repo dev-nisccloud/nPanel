@@ -68,7 +68,7 @@ export const nullableDateInputSchema = z
 
 /** KRA eTIMS fiscal footer + verification URL (customer-safe when synced). */
 export const etimsFiscalFieldsSchema = z.object({
-	rcptSign: z.string(),
+	rcptSign: nullableStringSchema,
 	intrlData: nullableStringSchema,
 	curRcptNo: nullableStringSchema,
 	totRcptNo: nullableStringSchema,
