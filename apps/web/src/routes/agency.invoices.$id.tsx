@@ -39,12 +39,25 @@ import { isInvoiceKraSynced } from "@npanel/api/lib/invoice-kra-status";
 import { buildInvoicePdfDetails } from "@npanel/api/agency-invoice-pdf/build-invoice-pdf-details";
 import { resolveInvoicePaymentTotals } from "@/lib/invoice-payment-totals";
 import type { InvoiceDetail, InvoiceTransaction } from "@/routes/agency.invoices/create/api/schemas";
+import type { EtimsFiscalFields } from "@npanel/api/lib/etims-fiscal-fields";
 import { FormProvider, useForm } from "react-hook-form";
 import { YourDetailsForm } from "@/routes/agency.invoices/create/_components/form/yourDetails/yourDetailsForm";
 import { CompanyDetailsForm } from "@/routes/agency.invoices/create/_components/form/companyDetails/companyDetailsForm";
 import { InvoiceDetailsForm } from "@/routes/agency.invoices/create/_components/form/invoiceDetails/invoiceDetailsForm";
 import { PaymentDetailsForm } from "@/routes/agency.invoices/create/_components/form/paymentDetails/paymentDetailsForm";
 import { InvoiceTermsForm } from "@/routes/agency.invoices/create/_components/form/invoiceTerms/invoiceTermsForm";
+import {
+	INVOICE_STATUS_OPTIONS,
+	type InvoiceStatusOption,
+} from "@/routes/agency.invoices/create/_components/form/invoice-status-select";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import { buildKraPersistFieldsFromManual } from "@npanel/api/lib/etims-fiscal-fields";
 
 let fontsRegistered = false;
 let fontsRegistering = false;
@@ -170,6 +183,14 @@ type InvoiceEditorFormValues = {
 	invoiceNo: string;
 	issueDate: string;
 	dueDate: string;
+	invoiceStatus: "DRAFT" | "SENT" | "PARTIALLY_PAID" | "PAID" | "OVERDUE" | "CANCELLED" | "WRITTEN_OFF";
+	scuSdcId: string;
+	scuDate: string;
+	scuTime: string;
+	scuCurRcptNo: string;
+	scuTotRcptNo: string;
+	scuIntrlData: string;
+	scuRcptSign: string;
 };
 
 function toDateInputValue(value: string | Date | null | undefined) {
@@ -179,7 +200,21 @@ function toDateInputValue(value: string | Date | null | undefined) {
 	return d.toISOString().slice(0, 10);
 }
 
-function buildInvoiceEditorDefaults(invoice: InvoiceDetail): InvoiceEditorFormValues {
+/** Convert printed `dd/mm/yyyy` SCU date back to an ISO date for the editor. */
+function toScuDateInput(value: string) {
+	const m = value.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+	if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+	return toDateInputValue(value);
+}
+
+function buildInvoiceEditorDefaults(
+	invoice: InvoiceDetail & {
+		etimsFiscal?: EtimsFiscalFields | null;
+		kraVerifiedDate?: Date | string | null;
+		kraReceiptNumber?: string | null;
+		kraSignature?: string | null;
+	},
+): InvoiceEditorFormValues {
 	const fromDetails = (invoice.fromDetails as any) ?? {};
 	const customerDetails = (invoice.customerDetails as any) ?? {};
 	const paymentDetails = (invoice.paymentDetails as any) ?? {};
@@ -236,6 +271,16 @@ function buildInvoiceEditorDefaults(invoice: InvoiceDetail): InvoiceEditorFormVa
 		invoiceNo: String(invoice.invoiceNumber ?? ""),
 		issueDate: toDateInputValue(invoice.issueDate),
 		dueDate: toDateInputValue(invoice.dueDate),
+		invoiceStatus: (invoice.status as InvoiceEditorFormValues["invoiceStatus"]) || "DRAFT",
+		scuSdcId: String(invoice.etimsFiscal?.sdcId ?? ""),
+		scuDate: invoice.etimsFiscal?.scuDate
+			? toScuDateInput(invoice.etimsFiscal.scuDate)
+			: toDateInputValue(invoice.kraVerifiedDate),
+		scuTime: String(invoice.etimsFiscal?.scuTime ?? ""),
+		scuCurRcptNo: String(invoice.etimsFiscal?.curRcptNo ?? invoice.kraReceiptNumber ?? ""),
+		scuTotRcptNo: String(invoice.etimsFiscal?.totRcptNo ?? ""),
+		scuIntrlData: String(invoice.etimsFiscal?.intrlData ?? ""),
+		scuRcptSign: String(invoice.etimsFiscal?.rcptSign ?? invoice.kraSignature ?? ""),
 	};
 }
 
@@ -316,6 +361,14 @@ export default function InvoiceViewPage() {
 			invoiceNo: "",
 			issueDate: "",
 			dueDate: "",
+			invoiceStatus: "DRAFT",
+			scuSdcId: "",
+			scuDate: "",
+			scuTime: "",
+			scuCurRcptNo: "",
+			scuTotRcptNo: "",
+			scuIntrlData: "",
+			scuRcptSign: "",
 		},
 	});
 
@@ -352,6 +405,19 @@ export default function InvoiceViewPage() {
 		if (!invoice?.customerEmail) return;
 		setSendToEmail(invoice.customerEmail);
 	}, [invoice?.customerEmail]);
+
+	const updateStatusMutation = trpc.invoicing.updateStatus.useMutation({
+		onSuccess: (data) => {
+			toast.success("Invoice status updated", {
+				description: `Status is now ${String(data.status).replaceAll("_", " ").toLowerCase()}.`,
+			});
+			utils.invoicing.getById.invalidate({ id: invoiceId });
+			utils.invoicing.list.invalidate();
+		},
+		onError: (error) => {
+			toast.error("Failed to update status", { description: error.message ?? "An error occurred." });
+		},
+	});
 
 	const markUnpaidMutation = trpc.invoicing.updateStatus.useMutation({
 		onSuccess: () => {
@@ -588,10 +654,22 @@ export default function InvoiceViewPage() {
 		} else if (editStep === "4") {
 			Object.assign(payloadBase, { paymentDetails: paymentDetailsJson as any });
 		} else if (editStep === "5") {
+			const kraFields = buildKraPersistFieldsFromManual({
+				sdcId: values.scuSdcId,
+				sdcDate: values.scuDate,
+				sdcTime: values.scuTime,
+				curRcptNo: values.scuCurRcptNo,
+				totRcptNo: values.scuTotRcptNo,
+				intrlData: values.scuIntrlData,
+				rcptSign: values.scuRcptSign,
+				tin: values.yourTaxId,
+				bhfId: "00",
+			});
 			Object.assign(payloadBase, {
 				invoiceNumber: values.invoiceNo || null,
 				issueDate: values.issueDate ? new Date(values.issueDate).toISOString() : null,
 				dueDate: values.dueDate ? new Date(values.dueDate).toISOString() : null,
+				...(kraFields ?? {}),
 			});
 		}
 
@@ -614,9 +692,30 @@ export default function InvoiceViewPage() {
 						<h1 className="text-base font-semibold tracking-tight">
 							Invoice {invoice.invoiceNumber || "View"}
 						</h1>
-						<p className="text-xs text-muted-foreground">
-							View invoice details and preview
-						</p>
+						<div className="flex items-center gap-2">
+							<p className="text-xs text-muted-foreground">Status</p>
+							<Select
+								value={invoice.status}
+								onValueChange={(status) =>
+									updateStatusMutation.mutate({
+										id: invoice.id,
+										status: status as InvoiceStatusOption,
+									})
+								}
+								disabled={updateStatusMutation.isPending}
+							>
+								<SelectTrigger className="h-8 w-[160px]">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{INVOICE_STATUS_OPTIONS.map((option) => (
+										<SelectItem key={option.value} value={option.value}>
+											{option.label}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
 					</div>
 				</div>
 				<div className="flex items-center gap-2">

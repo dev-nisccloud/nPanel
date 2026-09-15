@@ -43,10 +43,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useCurrencyConversion } from "@/routes/$slug.domains/_components/use-currency-conversion";
-import { Document, Font, Page, pdf } from "@react-pdf/renderer";
-import QRCodeUtil from "qrcode";
-import { PdfDetails } from "@/routes/agency.invoicing/_components/form/pdfDetails";
-import { pdfContainers } from "@/lib/pdfStyles";
+import { Document, Font, pdf } from "@react-pdf/renderer";
+import { AgencyInvoicePdfPage } from "@npanel/api/agency-invoice-pdf/agency-invoice-pdf-page";
+import { emptyEtimsFiscalFields } from "@npanel/api/lib/etims-fiscal-fields";
 import type { DateRange } from "react-day-picker";
 import { toTimeRange } from "./media-buying-eom/date-range";
 
@@ -1785,18 +1784,6 @@ export function MediaBuyingEomTotalSpendInvoicesFlow({
                     paymentDetailsJson.qrCodeValue = invoiceDefaults.qrCodeValue;
                   }
 
-                  let qrCodeDataUrl: string | undefined;
-                  if (invoiceDefaults.qrCodeValue) {
-                    try {
-                      qrCodeDataUrl = await QRCodeUtil.toDataURL(invoiceDefaults.qrCodeValue, {
-                        width: 120,
-                        margin: 1,
-                      });
-                    } catch {
-                      qrCodeDataUrl = undefined;
-                    }
-                  }
-
                   const buildPlatform = async (
                     platform: "meta" | "google" | "linkedin",
                     platformLabel: string,
@@ -1861,54 +1848,55 @@ export function MediaBuyingEomTotalSpendInvoicesFlow({
                       dueDate,
                     };
 
+                    const etimsFiscal = emptyEtimsFiscalFields({
+                      tisReceiptNumber: invoiceNumber,
+                      tisIssuedAt: issueDate,
+                      itemCount: lineItems.length,
+                    });
+
                     const blob = await pdf(
                       <Document>
-                        <Page size="A4" style={pdfContainers.page}>
-                          <PdfDetails
-                            yourDetails={{
-                              yourName: invoiceDefaults.yourName,
-                              yourAddress: invoiceDefaults.yourAddress,
-                              yourCity: invoiceDefaults.yourCity,
-                              yourState: invoiceDefaults.yourState,
-                              yourCountry: invoiceDefaults.yourCountry,
-                              yourLogo: COMPANY_LOGO_URL,
-                              yourEmail: invoiceDefaults.yourEmail,
-                              yourTaxId: invoiceDefaults.yourTaxId,
-                              yourZip: invoiceDefaults.yourZip,
-                            }}
-                            companyDetails={{
-                              companyName: customerDetails.name,
-                              companyAddress: customerDetails.address,
-                              companyCity: customerDetails.city,
-                              companyState: customerDetails.state,
-                              companyCountry: customerDetails.country,
-                              companyTaxId: customerDetails.taxId,
-                              companyZip: customerDetails.zip,
-                              email: customerDetails.email,
-                            }}
-                            invoiceDetails={{
-                              note: invoiceDefaults.note,
-                              discount: invoiceDefaults.discount,
-                              taxRate: String(taxRatePercent),
-                              items: lineItems.map((li) => ({
-                                itemDescription: li.name,
-                                amount: Number(li.price),
-                                qty: li.quantity,
-                              })),
-                              currency: "KES",
-                              compactLineItems: true,
-                            }}
-                            paymentDetails={{
-                              ...(paymentDetailsJson as any),
-                              qrCodeDataUrl,
-                            }}
-                            invoiceTerms={{
-                              invoiceNumber: invoiceTerms.invoiceNumber,
-                              issueDate: invoiceTerms.issueDate,
-                              dueDate: invoiceTerms.dueDate,
-                            }}
-                          />
-                        </Page>
+                        <AgencyInvoicePdfPage
+                          yourDetails={{
+                            yourName: invoiceDefaults.yourName,
+                            yourAddress: invoiceDefaults.yourAddress,
+                            yourCity: invoiceDefaults.yourCity,
+                            yourState: invoiceDefaults.yourState,
+                            yourCountry: invoiceDefaults.yourCountry,
+                            yourLogo: COMPANY_LOGO_URL,
+                            yourEmail: invoiceDefaults.yourEmail,
+                            yourTaxId: invoiceDefaults.yourTaxId,
+                            yourZip: invoiceDefaults.yourZip,
+                          }}
+                          companyDetails={{
+                            companyName: customerDetails.name,
+                            companyAddress: customerDetails.address,
+                            companyCity: customerDetails.city,
+                            companyState: customerDetails.state,
+                            companyCountry: customerDetails.country,
+                            companyTaxId: customerDetails.taxId,
+                            companyZip: customerDetails.zip,
+                            email: customerDetails.email,
+                          }}
+                          invoiceDetails={{
+                            note: invoiceDefaults.note,
+                            discount: invoiceDefaults.discount,
+                            taxRate: String(taxRatePercent),
+                            items: lineItems.map((li) => ({
+                              itemDescription: li.name,
+                              amount: Number(li.price),
+                              qty: li.quantity,
+                            })),
+                            currency: "KES",
+                            compactLineItems: true,
+                          }}
+                          invoiceTerms={{
+                            invoiceNumber: invoiceTerms.invoiceNumber,
+                            issueDate: invoiceTerms.issueDate,
+                            dueDate: invoiceTerms.dueDate,
+                          }}
+                          etimsFiscal={etimsFiscal}
+                        />
                       </Document>
                     ).toBlob();
 

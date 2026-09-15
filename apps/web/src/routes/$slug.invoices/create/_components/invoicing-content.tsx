@@ -3,13 +3,14 @@
 import { useFormContext } from "react-hook-form";
 import { UserInputForm } from "./form/userInputForm";
 import { FormSteps } from "./form/step/fromSteps";
-import { PreviewDetails } from "./form/previewDetails";
+import { PreviewDetails } from "@/routes/agency.invoices/create/_components/form/previewDetails";
 import { useData } from "../hooks/useData";
+import { useInvoiceEtimsFiscalPreview } from "@/routes/agency.invoices/create/hooks/useEtimsFiscalPreview";
 
 export const InvoicingContent = () => {
   const form = useFormContext();
   const { companyDetails, yourDetails, invoiceDetails, paymentDetails, invoiceTerms } = useData();
-  const step = form.watch("step");
+  const etimsFiscal = useInvoiceEtimsFiscalPreview();
 
   const handleStepClick = (newStep: string) => {
     form.setValue("step", newStep);
@@ -26,7 +27,7 @@ export const InvoicingContent = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="flex flex-col gap-6">
           <UserInputForm />
-          {step !== "6" && <FormSteps />}
+          <FormSteps />
         </div>
         <div className="hidden lg:block sticky top-6 h-fit">
           <PreviewDetails
@@ -35,6 +36,7 @@ export const InvoicingContent = () => {
             invoiceDetails={invoiceDetails}
             paymentDetails={paymentDetails}
             invoiceTerms={invoiceTerms}
+            etimsFiscal={etimsFiscal}
             onClick={handleStepClick}
           />
         </div>

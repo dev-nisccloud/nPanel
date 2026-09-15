@@ -5,6 +5,7 @@ import { useFormContext } from "react-hook-form";
 import { useEffect } from "react";
 import { trpc } from "@/utils/trpc";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { ScuInformationFields } from "@/routes/agency.invoices/create/_components/form/invoiceTerms/scuInformationFields";
 
 export const InvoiceTermsForm = () => {
   const { setValue, watch } = useFormContext();
@@ -55,6 +56,7 @@ export const InvoiceTermsForm = () => {
       </div>
       <DateInput label="Issue date" variableName="issueDate" />
       <DateInput label="Due date" variableName="dueDate" />
+      <ScuInformationFields />
     </div>
   );
 };

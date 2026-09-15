@@ -1,6 +1,12 @@
 import type { CreditNoteDetail, InvoiceDetail } from "../routers/invoicing/schemas";
-import { isInvoiceKraSynced } from "./invoice-kra-status";
-import { extractRcptSignFromKraResponse, isEtimsReceiptVerifyUrl, resolveInvoiceEtimsVerificationUrl } from "./etims-receipt-url";
+import type { InvoiceKraStatus } from "./invoice-kra-status";
+import {
+	buildEtimsReceiptVerifyUrl,
+	extractRcptSignFromKraResponse,
+	isEtimsReceiptVerifyUrl,
+	parseKraSdcDateTime,
+	resolveInvoiceEtimsVerificationUrl,
+} from "./etims-receipt-url";
 import {
 	buildCuInvoiceNo,
 	dashEvery4,
@@ -11,7 +17,7 @@ import {
 } from "./etims-scu-print";
 
 export type EtimsFiscalFields = {
-	rcptSign: string;
+	rcptSign: string | null;
 	intrlData: string | null;
 	curRcptNo: string | null;
 	totRcptNo: string | null;
@@ -65,9 +71,74 @@ export function formatKraSdcDateTimeDisplay(value: string | null | undefined): s
 	return `${parts.date} ${parts.time}`;
 }
 
+export type ManualScuParts = {
+	sdcId?: string | null;
+	sdcDate?: string | Date | null;
+	sdcTime?: string | null;
+	sdcDateTime?: string | null;
+	curRcptNo?: string | null;
+	totRcptNo?: string | null;
+	intrlData?: string | null;
+	rcptSign?: string | null;
+	verificationUrl?: string | null;
+	tin?: string | null;
+	bhfId?: string | null;
+	isSandbox?: boolean;
+};
+
+/** Combine a calendar date + clock into KRA `yyyyMMddHHmmss`. */
+export function combineScuDateTime(
+	date?: string | Date | null,
+	time?: string | null,
+): string | null {
+	if (typeof date === "string" && /^\d{14}$/.test(date.trim())) return date.trim();
+	let year = "";
+	let month = "";
+	let day = "";
+	if (date instanceof Date && !Number.isNaN(date.getTime())) {
+		year = String(date.getFullYear());
+		month = String(date.getMonth() + 1).padStart(2, "0");
+		day = String(date.getDate()).padStart(2, "0");
+	} else if (typeof date === "string" && date.trim()) {
+		const parsed = new Date(date);
+		if (Number.isNaN(parsed.getTime())) return null;
+		year = String(parsed.getFullYear());
+		month = String(parsed.getMonth() + 1).padStart(2, "0");
+		day = String(parsed.getDate()).padStart(2, "0");
+	} else {
+		return null;
+	}
+	let hh = "00";
+	let mm = "00";
+	let ss = "00";
+	const clock = time?.trim();
+	if (clock) {
+		const parts = clock.split(":");
+		hh = (parts[0] ?? "00").padStart(2, "0").slice(0, 2);
+		mm = (parts[1] ?? "00").padStart(2, "0").slice(0, 2);
+		ss = (parts[2] ?? "00").padStart(2, "0").slice(0, 2);
+	}
+	return `${year}${month}${day}${hh}${mm}${ss}`;
+}
+
+export function hasManualScuInput(parts: ManualScuParts | null | undefined): boolean {
+	if (!parts) return false;
+	return Boolean(
+		stringOrNull(parts.sdcId) ||
+			stringOrNull(parts.sdcDateTime) ||
+			parts.sdcDate ||
+			stringOrNull(parts.sdcTime) ||
+			stringOrNull(parts.curRcptNo) ||
+			stringOrNull(parts.totRcptNo) ||
+			stringOrNull(parts.intrlData) ||
+			stringOrNull(parts.rcptSign) ||
+			stringOrNull(parts.verificationUrl),
+	);
+}
+
 function assembleFiscalFields(
 	base: {
-		rcptSign: string;
+		rcptSign: string | null;
 		intrlData: string | null;
 		curRcptNo: string | null;
 		totRcptNo: string | null;
@@ -91,6 +162,7 @@ function assembleFiscalFields(
 		}),
 		intrlDataDashed: dashEvery4(base.intrlData),
 		rcptSignDashed: dashEvery4(base.rcptSign),
+		rcptSign: stringOrNull(base.rcptSign),
 		scuDate: scu?.date ?? null,
 		scuTime: scu?.time ?? null,
 		tisReceiptNumber: extras?.tisReceiptNumber?.trim() || null,
@@ -101,9 +173,86 @@ function assembleFiscalFields(
 	};
 }
 
+export function emptyEtimsFiscalFields(extras?: EtimsFiscalExtractExtras): EtimsFiscalFields {
+	return assembleFiscalFields(
+		{
+			rcptSign: null,
+			intrlData: null,
+			curRcptNo: null,
+			totRcptNo: null,
+			sdcDateTime: null,
+			verificationUrl: null,
+			sdcId: extras?.sdcId ?? null,
+		},
+		extras,
+	);
+}
+
+/** Build SCU/TIS print fields from typed manual entry (backdated invoices). */
+export function buildEtimsFiscalFieldsFromManual(
+	parts: ManualScuParts,
+	extras?: EtimsFiscalExtractExtras,
+): EtimsFiscalFields {
+	const rcptSign = stringOrNull(parts.rcptSign)?.replace(/[-\s]/g, "") ?? null;
+	const sdcDateTime =
+		stringOrNull(parts.sdcDateTime) ?? combineScuDateTime(parts.sdcDate ?? null, parts.sdcTime);
+	const tin = stringOrNull(parts.tin);
+	const verificationUrl =
+		stringOrNull(parts.verificationUrl) ??
+		(rcptSign && tin
+			? buildEtimsReceiptVerifyUrl({
+					tin,
+					bhfId: stringOrNull(parts.bhfId) || "00",
+					rcptSign,
+					isSandbox: parts.isSandbox,
+				})
+			: null);
+	return assembleFiscalFields(
+		{
+			rcptSign,
+			intrlData: stringOrNull(parts.intrlData),
+			curRcptNo: stringOrNull(parts.curRcptNo),
+			totRcptNo: stringOrNull(parts.totRcptNo),
+			sdcDateTime,
+			verificationUrl: verificationUrl ?? null,
+			sdcId: stringOrNull(parts.sdcId) ?? extras?.sdcId ?? null,
+		},
+		extras,
+	);
+}
+
+export function buildKraPersistFieldsFromManual(parts: ManualScuParts): {
+	kraSignature: string | null;
+	kraReceiptNumber: string | null;
+	kraVerificationUrl: string | null;
+	kraQrCode: string | null;
+	kraVerifiedDate: Date | null;
+	kraStatus?: InvoiceKraStatus;
+	kraSyncResponse: Record<string, string | null>;
+} | null {
+	if (!hasManualScuInput(parts)) return null;
+	const fiscal = buildEtimsFiscalFieldsFromManual(parts);
+	return {
+		kraSignature: fiscal.rcptSign,
+		kraReceiptNumber: fiscal.curRcptNo,
+		kraVerificationUrl: fiscal.verificationUrl,
+		kraQrCode: fiscal.verificationUrl,
+		kraVerifiedDate: parseKraSdcDateTime(fiscal.sdcDateTime),
+		...(fiscal.rcptSign ? { kraStatus: "SYNCED" as const } : {}),
+		kraSyncResponse: {
+			sdcId: fiscal.sdcId,
+			sdcDateTime: fiscal.sdcDateTime,
+			intrlData: fiscal.intrlData,
+			curRcptNo: fiscal.curRcptNo,
+			totRcptNo: fiscal.totRcptNo,
+			rcptSign: fiscal.rcptSign,
+		},
+	};
+}
+
 /**
- * Mandatory KRA eTIMS receipt fields for printing on customer invoices.
- * Returns null when the invoice is not KRA-synced or fiscal data is missing.
+ * KRA eTIMS receipt fields for printing. Always returns a TIS/SCU block;
+ * SCU values are null when they were not captured yet (preview / backdated).
  */
 export function extractEtimsFiscalFieldsFromInvoice(
 	invoice: Pick<
@@ -123,19 +272,12 @@ export function extractEtimsFiscalFieldsFromInvoice(
 		lineItems?: unknown[] | null;
 	},
 	extras?: EtimsFiscalExtractExtras,
-): EtimsFiscalFields | null {
-	if (!isInvoiceKraSynced(invoice.kraStatus)) {
-		return null;
-	}
-
+): EtimsFiscalFields {
 	const body = readKraResponseBody(invoice.kraSyncResponse);
 	const rcptSign =
 		stringOrNull(invoice.kraSignature) ??
-		extractRcptSignFromKraResponse(invoice.kraSyncResponse);
-
-	if (!rcptSign) {
-		return null;
-	}
+		extractRcptSignFromKraResponse(invoice.kraSyncResponse) ??
+		stringOrNull(body?.rcptSign);
 
 	const intrlData = stringOrNull(body?.intrlData);
 	const curRcptNo = stringOrNull(body?.curRcptNo) ?? stringOrNull(invoice.kraReceiptNumber);
@@ -161,7 +303,10 @@ export function extractEtimsFiscalFieldsFromInvoice(
 			totRcptNo,
 			sdcDateTime,
 			verificationUrl: resolveInvoiceEtimsVerificationUrl(invoice) ?? null,
-			sdcId: extras?.sdcId ?? extractSdcIdFromKraBody(invoice.kraSyncResponse),
+			sdcId:
+				extras?.sdcId ??
+				extractSdcIdFromKraBody(invoice.kraSyncResponse) ??
+				stringOrNull(body?.sdcId),
 		},
 		{
 			...extras,
@@ -176,8 +321,8 @@ export function extractEtimsFiscalFieldsFromInvoice(
 export function ensureEtimsPrintFields(
 	fields: EtimsFiscalFields | null | undefined,
 	extras?: EtimsFiscalExtractExtras,
-): EtimsFiscalFields | null {
-	if (!fields?.rcptSign) return null;
+): EtimsFiscalFields {
+	if (!fields) return emptyEtimsFiscalFields(extras);
 	const next = assembleFiscalFields(
 		{
 			rcptSign: fields.rcptSign,
@@ -229,7 +374,7 @@ export function extractEtimsFiscalFieldsFromCreditNote(
 		originalCuInvoiceNo?: string | null;
 	},
 	extras?: EtimsFiscalExtractExtras,
-): EtimsFiscalFields | null {
+): EtimsFiscalFields {
 	return extractEtimsFiscalFieldsFromInvoice(
 		creditNote as Pick<
 			InvoiceDetail,

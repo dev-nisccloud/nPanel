@@ -122,7 +122,7 @@ export function InvoiceKraStatusPanel({
 					) : null}
 					<p>
 						<span className="text-muted-foreground">Receipt Signature: </span>
-						{etimsFiscal.rcptSign}
+						{etimsFiscal.rcptSign ?? "—"}
 					</p>
 					{etimsFiscal.curRcptNo ? (
 						<p>

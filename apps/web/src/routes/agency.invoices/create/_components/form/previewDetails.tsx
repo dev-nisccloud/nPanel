@@ -5,6 +5,7 @@ import { InvoiceHeaderPreview } from "@/routes/agency.invoices/create/_component
 import { EtimsFiscalFooterPreview } from "@/routes/agency.invoices/create/_components/form/etimsFiscalFooterPreview";
 import { ChevronDown } from "lucide-react";
 import type { EtimsFiscalFields } from "@npanel/api/lib/etims-fiscal-fields";
+import { emptyEtimsFiscalFields } from "@npanel/api/lib/etims-fiscal-fields";
 import type {
   YourDetails,
   CompanyDetails,
@@ -88,7 +89,19 @@ export const PreviewDetails = ({
             onClick={onClick}
           />
         </div>
-        {etimsFiscal ? <EtimsFiscalFooterPreview etimsFiscal={etimsFiscal} /> : null}
+        <EtimsFiscalFooterPreview
+          etimsFiscal={
+            etimsFiscal ??
+            emptyEtimsFiscalFields({
+              tisReceiptNumber: invoiceTerms.invoiceNumber ?? null,
+              tisIssuedAt: invoiceTerms.issueDate ?? null,
+              originalCuInvoiceNo: invoiceTerms.originalCuInvoiceNo ?? null,
+              itemCount: invoiceDetails.items?.length ?? 0,
+              isCreditNote,
+            })
+          }
+          onClick={onClick}
+        />
       </div>
     </div>
   </div>
