@@ -400,6 +400,13 @@
       "when": 1789201112520,
       "tag": "0056_aromatic_bulldozer",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1789738259939,
+      "tag": "0057_hard_madrox",
+      "breakpoints": true
     }
   ]
 }

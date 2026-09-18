@@ -253,7 +253,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 | Support & Utils | `ipRecords` | 1 |
 | Support & Utils | `notifications` | 9 |
 | Support & Utils | `objectStorage` | 4 |
-| Support & Utils | `pagespeedInsights` | 1 |
+| Support & Utils | `pagespeedInsights` | 2 |
 | Support & Utils | `seoReports` | 7 |
 | Support & Utils | `tickets` | 11 |
 | Support & Utils | `webDesignQuotes` | 2 |
@@ -1167,9 +1167,10 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>pagespeedInsights</code>  1 procedures (Support & Utils)</summary>
+<summary><code>pagespeedInsights</code>  2 procedures (Support & Utils)</summary>
 
 - `trpc.pagespeedInsights.getPageSpeed`
+- `trpc.pagespeedInsights.runPageSpeed`
 
 </details>
 
@@ -1483,7 +1484,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 | `ipRecords` | PROTECTED_ONLY | 0 | 1 | 0 |
 | `notifications` | PROTECTED_ONLY | 0 | 9 | 0 |
 | `objectStorage` | PROTECTED_ONLY | 0 | 4 | 0 |
-| `pagespeedInsights` | PROTECTED_ONLY | 0 | 1 | 0 |
+| `pagespeedInsights` | PROTECTED_ONLY | 0 | 2 | 0 |
 | `seoReports` | PROTECTED_ONLY | 0 | 7 | 0 |
 | `tickets` | PROTECTED_ONLY | 0 | 11 | 0 |
 | `webDesignQuotes` | PROTECTED_ONLY | 0 | 2 | 0 |

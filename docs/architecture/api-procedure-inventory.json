@@ -1591,11 +1591,12 @@
       "domain": "Support & Utils",
       "access": "PROTECTED_ONLY",
       "publicCount": 0,
-      "protectedCount": 1,
+      "protectedCount": 2,
       "etimsCount": 0,
       "publicProcedures": [],
       "protectedProcedures": [
-        "getPageSpeed"
+        "getPageSpeed",
+        "runPageSpeed"
       ],
       "etimsProcedures": []
     },

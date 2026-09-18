@@ -7,8 +7,13 @@ export declare const pagespeedInsightsRouter: import("@trpc/server").TRPCBuiltRo
     getPageSpeed: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             url: string;
-            strategy?: "desktop" | "mobile" | undefined;
-            forceRefresh?: boolean | undefined;
+        };
+        output: any;
+        meta: object;
+    }>;
+    runPageSpeed: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            url: string;
         };
         output: any;
         meta: object;
