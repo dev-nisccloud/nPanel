@@ -6,6 +6,7 @@ import {
 	ArrowRight,
 	Building2,
 	CheckCircle2,
+	Mail,
 	ShieldCheck,
 	UserRound,
 	X,
@@ -23,12 +24,14 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchMfaStatus } from "@/lib/mfa-auth";
+import { authClient } from "@/lib/auth-client";
 import { isRegistrantProfileComplete } from "@/lib/profile-completion";
 import { isTeamBillingComplete } from "@/lib/team-billing-completion";
 import { cn } from "@/lib/utils";
+import { toast } from "@/components/ui/sonner";
 import { trpc } from "@/utils/trpc";
 
-type SetupStepId = "profile" | "billing" | "mfa";
+type SetupStepId = "email" | "profile" | "billing" | "mfa";
 
 interface StepConfig {
 	id: SetupStepId;
@@ -36,7 +39,9 @@ interface StepConfig {
 	description: string;
 	icon: React.ElementType;
 	ctaText: string;
-	href: string;
+	href?: string;
+	onAction?: () => void;
+	actionPending?: boolean;
 	completed: boolean;
 }
 
@@ -51,6 +56,7 @@ export function DashboardSetupTodos() {
 	const [dismissed, setDismissed] = React.useState(false);
 	const [mfaEnabled, setMfaEnabled] = React.useState(false);
 	const [mfaLoading, setMfaLoading] = React.useState(true);
+	const [isSendingVerification, setIsSendingVerification] = React.useState(false);
 
 	React.useEffect(() => {
 		let cancelled = false;
@@ -109,8 +115,49 @@ export function DashboardSetupTodos() {
 
 	const profileComplete = isRegistrantProfileComplete(userInfo?.profile);
 	const billingComplete = isTeamBillingComplete(billingSettings);
+	const emailVerified = Boolean(userInfo?.emailVerified);
+
+	const sendVerificationEmail = async () => {
+		const email = userInfo?.email?.trim();
+		if (!email || isSendingVerification) return;
+		try {
+			setIsSendingVerification(true);
+			const result = await authClient.sendVerificationEmail({
+				email,
+				callbackURL: `/${teamSlug}/dashboard`,
+			});
+			if (result.error) {
+				throw new Error(result.error.message || "Failed to send verification email");
+			}
+			toast.success("Verification email sent", {
+				description: "Check your inbox and follow the link to verify your account.",
+			});
+		} catch (error) {
+			toast.error("Could not send verification email", {
+				description: error instanceof Error ? error.message : "Please try again.",
+			});
+		} finally {
+			setIsSendingVerification(false);
+		}
+	};
 
 	const steps: StepConfig[] = [
+		{
+			id: "email",
+			title: "Verify your email",
+			description:
+				"Confirm your email address so we can send invoices, domain notices, and account alerts.",
+			icon: Mail,
+			ctaText: emailVerified
+				? "View profile"
+				: isSendingVerification
+					? "Sending..."
+					: "Send verification email",
+			href: emailVerified ? `/${teamSlug}/my-profile` : undefined,
+			onAction: emailVerified ? undefined : () => void sendVerificationEmail(),
+			actionPending: isSendingVerification,
+			completed: emailVerified,
+		},
 		{
 			id: "profile",
 			title: "Complete profile information",
@@ -173,8 +220,8 @@ export function DashboardSetupTodos() {
 						<Skeleton className="mt-4 h-2 w-full" />
 					</CardHeader>
 					<CardContent>
-						<div className="grid gap-3 @lg/onboarding:grid-cols-3">
-							{[1, 2, 3].map((i) => (
+						<div className="grid gap-3 @md/onboarding:grid-cols-2 @2xl/onboarding:grid-cols-4">
+							{[1, 2, 3, 4].map((i) => (
 								<Skeleton key={i} className="h-36 w-full rounded-lg" />
 							))}
 						</div>
@@ -224,7 +271,7 @@ export function DashboardSetupTodos() {
 				</CardHeader>
 
 				<CardContent className="space-y-3">
-					<div className="grid gap-3 @lg/onboarding:grid-cols-3">
+					<div className="grid gap-3 @md/onboarding:grid-cols-2 @2xl/onboarding:grid-cols-4">
 						{steps.map((step) => (
 							<div
 								key={step.id}
@@ -261,17 +308,30 @@ export function DashboardSetupTodos() {
 										</div>
 
 										<div className="flex items-center gap-2 pt-1">
-											<Button
-												asChild
-												size="sm"
-												variant={step.completed ? "outline" : "default"}
-												className="h-8 text-xs"
-											>
-												<Link to={step.href}>
+											{step.href ? (
+												<Button
+													asChild
+													size="sm"
+													variant={step.completed ? "outline" : "default"}
+													className="h-8 text-xs"
+												>
+													<Link to={step.href}>
+														{step.ctaText}
+														<ArrowRight className="ml-1.5 h-3 w-3" />
+													</Link>
+												</Button>
+											) : (
+												<Button
+													size="sm"
+													variant="default"
+													className="h-8 text-xs"
+													onClick={step.onAction}
+													disabled={step.actionPending}
+												>
 													{step.ctaText}
 													<ArrowRight className="ml-1.5 h-3 w-3" />
-												</Link>
-											</Button>
+												</Button>
+											)}
 										</div>
 									</div>
 								</div>
@@ -283,7 +343,7 @@ export function DashboardSetupTodos() {
 						<div className="mt-4 rounded-lg bg-green-50 p-4 text-center dark:bg-green-950/20">
 							<CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-green-600 dark:text-green-400" />
 							<p className="text-sm font-medium text-green-900 dark:text-green-100">
-								All set! Your profile, billing, and security are ready.
+								All set! Your email, profile, billing, and security are ready.
 							</p>
 						</div>
 					)}
