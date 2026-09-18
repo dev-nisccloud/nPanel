@@ -66,8 +66,8 @@ export function getHivelocityDefaultHostnameDnsSetup() {
 		summary:
 			`This is not wildcard DNS. Each default hostname (e.g. mpkxfyu852t7fgki-vps.${domain}) gets its own A record to that server's unique IP after provisioning.`,
 		checklist: [
-			`Confirm ${domain} DNS is hosted in OpenProvider / nPanel and API credentials (OPENPROVIDER_*) work in production.`,
-			`Ensure ${domain} nameservers are authoritative for the OpenProvider zone you edit via API.`,
+			`Confirm ${domain} DNS is hosted in OP / nPanel and API credentials (OPENPROVIDER_*) work in production.`,
+			`Ensure ${domain} nameservers are authoritative for the OP zone you edit via API.`,
 			`Add ${domain} to the agency domain portfolio with DNS management enabled.`,
 			"Do not add *.nisccloud.com wildcard A - each server has a different IP.",
 			"Smoke-test: create then delete a temporary A record (e.g. hv-dns-test) to verify the zone is writable.",

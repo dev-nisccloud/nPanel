@@ -5,6 +5,7 @@ import {
   resolveReauthRequired,
 } from "@npanel/auth/session-security";
 import { isImpersonatedSession } from "@npanel/auth/impersonation";
+import { keepParkedAgencySessionAlive } from "@npanel/auth/parked-agency-session";
 import { resolveClientIp } from "@npanel/auth/session-policy";
 import {
   getRequestBrowserOrigin,
@@ -256,6 +257,16 @@ export async function createContext({
   const impersonating = isImpersonatedSession(
     session?.session as { impersonatedBy?: string | null } | undefined,
   );
+  if (impersonating) {
+    const actorId = (
+      session?.session as { impersonatedBy?: string | null } | undefined
+    )?.impersonatedBy;
+    if (typeof actorId === "string" && actorId.length > 0) {
+      void keepParkedAgencySessionAlive({ actorUserId: actorId }).catch((error) =>
+        console.error("[api][context] Failed to refresh parked agency session:", error),
+      );
+    }
+  }
   if (
     typeof sessionUserId === "string" &&
     sessionUserId.length > 0 &&

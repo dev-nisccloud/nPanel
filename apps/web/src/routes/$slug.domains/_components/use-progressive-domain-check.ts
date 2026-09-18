@@ -24,6 +24,17 @@ import {
   applyMarginToPrice,
   resolveMarginForDomain,
 } from "@/lib/tld-margin";
+import {
+  CUSTOMER_DOMAIN_ERROR_MESSAGE,
+  sanitizeDomainProviderMessage,
+} from "@npanel/api/lib/domain-provider-copy";
+
+function customerDomainError(message: string): string {
+  return (
+    sanitizeDomainProviderMessage(message, "customer") ??
+    CUSTOMER_DOMAIN_ERROR_MESSAGE
+  );
+}
 
 interface AISuggestion {
   name: string;
@@ -267,7 +278,9 @@ export function useProgressiveDomainCheck() {
           
         } catch (error) {
           console.error(`Error checking domains for ${suggestion.name}:`, error);
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          const errorMessage = customerDomainError(
+            error instanceof Error ? error.message : "Unknown error",
+          );
           toast.error(`Failed to check domains for ${suggestion.name}: ${errorMessage}`);
           
           // Create fallback results
@@ -293,7 +306,9 @@ export function useProgressiveDomainCheck() {
         }
         
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to check domains';
+        const errorMessage = customerDomainError(
+          error instanceof Error ? error.message : "Failed to check domains",
+        );
         toast.error(`Failed to check domains for ${suggestion.name}: ${errorMessage}`);
         setSuggestionErrors(prev => ({
           ...prev,

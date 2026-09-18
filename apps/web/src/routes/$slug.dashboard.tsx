@@ -1,42 +1,35 @@
 import { useEffect } from "react";
 
 import { captureEvent } from "@/lib/posthog";
-import { SectionCards } from "./$slug.dashboard/_components/section-cards";
-import { DashboardPromoSection } from "./$slug.dashboard/_components/dashboard-promo-section";
+import { DashboardZeepoHero } from "./$slug.dashboard/_components/dashboard-zeepo-hero";
 import { DashboardSetupTodos } from "./$slug.dashboard/_components/dashboard-setup-todos";
-import { DashboardTabs } from "./$slug.dashboard/_components/dashboard-tabs";
+import { NeedsAttention } from "./$slug.dashboard/_components/needs-attention";
+import { AccountSnapshot } from "./$slug.dashboard/_components/account-snapshot";
+import { GetStarted } from "./$slug.dashboard/_components/get-started";
+import { RecentActivity } from "./$slug.dashboard/_components/recent-activity";
+import { DashboardPromoSection } from "./$slug.dashboard/_components/dashboard-promo-section";
+import { useCustomerDashboardMetrics } from "./$slug.dashboard/_components/use-customer-dashboard-metrics";
 
 export default function DashboardPage() {
-  useEffect(() => {
-    captureEvent("dashboard_viewed", { user_type: "customer" });
-  }, []);
+	const metrics = useCustomerDashboardMetrics();
 
-  return (
-    <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
-      <div className="w-full max-w-7xl mx-auto">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-base font-semibold tracking-tight">Dashboard</h1>
-          <p className="text-xs text-muted-foreground">
-            Overview of your company&apos;s key metrics and activities
-          </p>
-        </div>
+	useEffect(() => {
+		captureEvent("dashboard_viewed", { user_type: "customer" });
+	}, []);
 
-        <div className="mt-6">
-          <DashboardSetupTodos />
-        </div>
-
-        <div className="mt-6">
-          <SectionCards />
-        </div>
-
-        <div className="mt-6">
-          <DashboardPromoSection />
-        </div>
-
-        <div className="mt-6">
-          <DashboardTabs />
-        </div>
-      </div>
-    </div>
-  );
+	return (
+		<div className="@container/main flex flex-col gap-8 px-4 py-6 md:gap-10 md:px-6 md:py-8 lg:px-8">
+			<div className="mx-auto flex w-full max-w-7xl flex-col gap-8 md:gap-10">
+				<DashboardZeepoHero />
+				<DashboardSetupTodos />
+				<NeedsAttention metrics={metrics} />
+				<AccountSnapshot metrics={metrics} />
+				<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+					<GetStarted />
+					<RecentActivity />
+				</div>
+				<DashboardPromoSection />
+			</div>
+		</div>
+	);
 }

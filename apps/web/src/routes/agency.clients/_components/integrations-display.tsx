@@ -32,7 +32,7 @@ export function IntegrationsDisplay({ userId }: IntegrationsDisplayProps) {
       OPENPROVIDER: "secondary",
       KENIC: "outline",
     };
-    return <Badge variant={variants[platform] ?? "outline"}>{platform}</Badge>;
+    return <Badge variant={variants[platform] ?? "outline"}>{platform === "OPENPROVIDER" ? "OP" : platform === "KENIC" ? "KC" : platform}</Badge>;
   };
 
   const getStatusIcon = (isActive: boolean, isCreated: boolean) => {
@@ -139,7 +139,7 @@ export function IntegrationsDisplay({ userId }: IntegrationsDisplayProps) {
             <div className="flex items-center gap-3">
               {getPlatformBadge(integration.platform)}
               <CardTitle className="text-base">
-                {integration.platform === "PLESK" ? "Plesk" : integration.platform === "OPENPROVIDER" ? "OpenProvider" : "Kenic"} Integration
+                {integration.platform === "PLESK" ? "Plesk" : integration.platform === "OPENPROVIDER" ? "OP" : "KC"} Integration
               </CardTitle>
             </div>
             <div className="flex items-center gap-2">

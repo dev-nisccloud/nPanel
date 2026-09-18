@@ -50,10 +50,10 @@ export function DashboardPromoSection() {
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <Card>
-        <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0 pb-2">
-          <div className="space-y-1.5">
-            <h2 className="text-lg font-semibold leading-tight tracking-tight">
+      <Card className="gap-0 overflow-hidden py-0">
+        <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0 border-b px-5 py-4">
+          <div className="space-y-1">
+            <h2 className="text-base font-semibold leading-tight tracking-tight">
               Recommended for you
             </h2>
             <p className="text-sm text-muted-foreground">
@@ -67,7 +67,7 @@ export function DashboardPromoSection() {
           </CollapsibleTrigger>
         </CardHeader>
         <CollapsibleContent>
-          <CardContent className="pt-0">
+          <CardContent className="px-5 py-4">
             {isLoading ? (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {Array.from({ length: 3 }).map((_, i) => (

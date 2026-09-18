@@ -54,7 +54,8 @@ export default function TldsPage() {
           error?.data?.httpStatus === 429 ||
           error?.message?.includes("429") ||
           error?.message?.includes("rate limit") ||
-          error?.message?.includes("OpenProvider API Error 299");
+          error?.message?.includes("OpenProvider API Error 299") ||
+          error?.message?.includes("OP API Error 299");
 
         // Don't retry rate limit errors immediately - they need exponential backoff
         if (isRateLimit) {
@@ -76,7 +77,8 @@ export default function TldsPage() {
           error?.data?.httpStatus === 429 ||
           error?.message?.includes("429") ||
           error?.message?.includes("rate limit") ||
-          error?.message?.includes("OpenProvider API Error 299");
+          error?.message?.includes("OpenProvider API Error 299") ||
+          error?.message?.includes("OP API Error 299");
 
         if (isRateLimit) {
           // Exponential backoff for rate limits: 5s, 10s
@@ -127,7 +129,8 @@ export default function TldsPage() {
       error.data?.httpStatus === 429 ||
       error.message?.includes("429") ||
       error.message?.includes("rate limit") ||
-      error.message?.includes("OpenProvider API Error 299"));
+      error.message?.includes("OpenProvider API Error 299") ||
+      error.message?.includes("OP API Error 299"));
 
   const isServiceUnavailableError =
     error &&

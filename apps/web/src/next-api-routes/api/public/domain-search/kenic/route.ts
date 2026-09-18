@@ -13,10 +13,12 @@ export async function POST(request: Request) {
 
 		return Response.json(result);
 	} catch (error) {
+		console.error("Public domain search error:", error);
 		return Response.json(
 			{
 				success: false,
-				error: error instanceof Error ? error.message : "Unknown error",
+				error:
+					"An error occurred. Please try again or contact support about your issue.",
 			},
 			{ status: 500 },
 		);

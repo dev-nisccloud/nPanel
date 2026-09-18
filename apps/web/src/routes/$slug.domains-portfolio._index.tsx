@@ -18,6 +18,10 @@ import {
   formatDomainDate,
 } from "@/components/domains/domains-portfolio-list";
 import { trpc } from "@/utils/trpc";
+import {
+  CUSTOMER_DOMAIN_ERROR_MESSAGE,
+  sanitizeDomainProviderMessage,
+} from "@npanel/api/lib/domain-provider-copy";
 
 /** Map listForTeamDomains item to DomainPortfolio-like shape for list rows. */
 function toDisplayItem(sub: {
@@ -85,7 +89,9 @@ export default function DomainsPortfolioPage() {
         <div className="mx-auto w-full max-w-7xl">
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <p className="mb-4 text-destructive">
-              {error.message || "Failed to load domains portfolio"}
+              {sanitizeDomainProviderMessage(error.message, "customer") ||
+                error.message ||
+                CUSTOMER_DOMAIN_ERROR_MESSAGE}
             </p>
             <Button onClick={() => refetch()} variant="outline">
               Try Again

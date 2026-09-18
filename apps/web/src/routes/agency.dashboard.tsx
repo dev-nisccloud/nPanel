@@ -1,34 +1,33 @@
 import { useEffect } from "react";
 
 import { captureEvent } from "@/lib/posthog";
-import { MetricCards } from "./agency.dashboard/_components/metric-cards";
-import { DashboardCharts } from "./agency.dashboard/_components/dashboard-charts";
+import { DashboardZeepoHero } from "./agency.dashboard/_components/dashboard-zeepo-hero";
+import { NeedsAttention } from "./agency.dashboard/_components/needs-attention";
+import { OperationsSnapshot } from "./agency.dashboard/_components/operations-snapshot";
+import { GetStarted } from "./agency.dashboard/_components/get-started";
+import { RecentActivity } from "./agency.dashboard/_components/recent-activity";
+import { EmailMarketingChart } from "./agency.dashboard/_components/email-marketing-chart";
+import { useAgencyDashboardMetrics } from "./agency.dashboard/_components/use-agency-dashboard-metrics";
 
 export default function DashboardPage() {
-  useEffect(() => {
-    captureEvent("agency_dashboard_viewed");
-  }, []);
+	const metrics = useAgencyDashboardMetrics();
 
-  return (
-    <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
-      <div className="w-full max-w-7xl mx-auto">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-base font-semibold tracking-tight">Dashboard</h1>
-          <p className="text-xs text-muted-foreground">
-            Overview of your agency's key metrics and activities
-          </p>
-        </div>
+	useEffect(() => {
+		captureEvent("agency_dashboard_viewed");
+	}, []);
 
-        {/* Metric Cards */}
-        <div className="mt-6">
-          <MetricCards />
-        </div>
-
-        {/* Charts */}
-        <div className="mt-6">
-          <DashboardCharts />
-        </div>
-      </div>
-    </div>
-  );
+	return (
+		<div className="@container/main flex flex-col gap-8 px-4 py-6 md:gap-10 md:px-6 md:py-8 lg:px-8">
+			<div className="mx-auto flex w-full max-w-7xl flex-col gap-8 md:gap-10">
+				<DashboardZeepoHero />
+				<NeedsAttention metrics={metrics} />
+				<OperationsSnapshot metrics={metrics} />
+				<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+					<GetStarted />
+					<RecentActivity />
+				</div>
+				<EmailMarketingChart />
+			</div>
+		</div>
+	);
 }

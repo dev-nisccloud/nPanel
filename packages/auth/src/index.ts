@@ -26,6 +26,12 @@ import {
 } from "./session-enforcement";
 import { invalidateSessionCache } from "./session-cache";
 import {
+  PARKED_AGENCY_SESSION_TTL_SEC,
+  ensureParkedAgencySession,
+  keepParkedAgencySessionAlive,
+  parseAdminSessionCookieValue,
+} from "./parked-agency-session";
+import {
   ensurePendingMfaSession,
   handleIpAnomaly,
   maybeNotifyNewSignIn,
@@ -62,6 +68,76 @@ import { isImpersonatedSession } from "./impersonation";
 
 function resolveRequestIp(headers: Headers | null | undefined): string | null {
   return resolveClientIp(headers);
+}
+
+function isImpersonateUserPath(path: string): boolean {
+  return path === "/admin/impersonate-user" || path.endsWith("/admin/impersonate-user");
+}
+
+function isStopImpersonatingPath(path: string): boolean {
+  return (
+    path === "/admin/stop-impersonating" || path.endsWith("/admin/stop-impersonating")
+  );
+}
+
+type AdminSessionCookieCtx = {
+  getSignedCookie?: (
+    name: string,
+    secret: string,
+  ) => Promise<string | false | null | undefined>;
+  setSignedCookie?: (
+    name: string,
+    value: string,
+    secret: string,
+    attributes: Record<string, unknown>,
+  ) => Promise<unknown>;
+  context: {
+    secret: string;
+    authCookies?: {
+      sessionToken?: { name: string; attributes: Record<string, unknown> };
+    };
+    createAuthCookie?: (name: string) => {
+      name: string;
+      attributes: Record<string, unknown>;
+    };
+  };
+};
+
+function adminSessionCookieName(ctx: AdminSessionCookieCtx): string | null {
+  const created = ctx.context.createAuthCookie?.("admin_session");
+  if (created?.name) return created.name;
+  return null;
+}
+
+async function readAdminSessionCookie(
+  ctx: AdminSessionCookieCtx,
+): Promise<ReturnType<typeof parseAdminSessionCookieValue>> {
+  const name = adminSessionCookieName(ctx);
+  if (!name || typeof ctx.getSignedCookie !== "function") return null;
+  try {
+    const raw = await ctx.getSignedCookie(name, ctx.context.secret);
+    return parseAdminSessionCookieValue(raw);
+  } catch {
+    return null;
+  }
+}
+
+async function writeAdminSessionCookie(
+  ctx: AdminSessionCookieCtx,
+  value: { token: string; dontRememberMe?: string },
+): Promise<void> {
+  const name = adminSessionCookieName(ctx);
+  if (!name || typeof ctx.setSignedCookie !== "function") return;
+  const attributes = {
+    ...(ctx.context.authCookies?.sessionToken?.attributes ?? {}),
+    maxAge: PARKED_AGENCY_SESSION_TTL_SEC,
+  };
+  await ctx.setSignedCookie(
+    name,
+    `${value.token}:${value.dontRememberMe ?? ""}`,
+    ctx.context.secret,
+    attributes,
+  );
 }
 
 const resolvedTrustedOrigins = (() => {
@@ -330,6 +406,68 @@ export const auth = betterAuth<BetterAuthOptions>({
           }
         }
       }
+
+      // Better Auth restores the parked agency session from the admin_session
+      // cookie. Idle TTL would otherwise expire that cookie/row while the actor
+      // is still impersonating. Revive it before stop-impersonating runs.
+      if (isStopImpersonatingPath(ctx.path)) {
+        try {
+          const sessionCookieName = ctx.context.authCookies?.sessionToken?.name;
+          const currentToken =
+            sessionCookieName && typeof ctx.getSignedCookie === "function"
+              ? await ctx.getSignedCookie(sessionCookieName, ctx.context.secret)
+              : null;
+          if (typeof currentToken === "string" && currentToken.length > 0) {
+            const currentRows = await db
+              .select({
+                impersonatedBy: session.impersonatedBy,
+              })
+              .from(session)
+              .where(eq(session.token, currentToken))
+              .limit(1);
+            const actorId = currentRows[0]?.impersonatedBy;
+            if (typeof actorId === "string" && actorId.length > 0) {
+              const adminCookie = await readAdminSessionCookie(ctx);
+              const parked = await ensureParkedAgencySession({
+                actorUserId: actorId,
+                sessionToken: adminCookie?.token ?? null,
+                ipAddress: resolveRequestIp(ctx.headers),
+                userAgent: ctx.headers?.get("user-agent") ?? null,
+              });
+              const cookiePayload = `${parked.token}:${adminCookie?.dontRememberMe ?? ""}`;
+              const adminCookieName = adminSessionCookieName(ctx);
+              await writeAdminSessionCookie(ctx, {
+                token: parked.token,
+                dontRememberMe: adminCookie?.dontRememberMe ?? "",
+              });
+              // Before hooks receive a shallow copy of ctx. Return the patched
+              // reader so the stop-impersonating handler sees the revived token
+              // even when the browser dropped the expired admin_session cookie.
+              if (adminCookieName && typeof ctx.getSignedCookie === "function") {
+                const originalGetSignedCookie = ctx.getSignedCookie.bind(ctx) as (
+                  name: string,
+                  secret: string,
+                  ...rest: unknown[]
+                ) => Promise<string | false | null | undefined>;
+                return {
+                  context: {
+                    getSignedCookie: async (
+                      name: string,
+                      secret: string,
+                      ...rest: unknown[]
+                    ) => {
+                      if (name === adminCookieName) return cookiePayload;
+                      return originalGetSignedCookie(name, secret, ...rest);
+                    },
+                  },
+                };
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Failed to keep parked agency session for return:", error);
+        }
+      }
     }),
     after: createAuthMiddleware(async (ctx) => {
       const isSignOut =
@@ -360,9 +498,7 @@ export const auth = betterAuth<BetterAuthOptions>({
         }
       }
 
-      const isImpersonatePath =
-        ctx.path === "/admin/impersonate-user" ||
-        ctx.path.endsWith("/admin/impersonate-user");
+      const isImpersonatePath = isImpersonateUserPath(ctx.path);
       if (isImpersonatePath && newSessionIsImpersonation && ctx.context.newSession) {
         const impersonatedSession = ctx.context.newSession.session as {
           id?: string;
@@ -372,6 +508,34 @@ export const auth = betterAuth<BetterAuthOptions>({
         const actorId = impersonatedSession.impersonatedBy;
         const targetUserId = impersonatedSession.userId;
         if (actorId && targetUserId) {
+          try {
+            const sessionCookieName = ctx.context.authCookies?.sessionToken?.name;
+            const originalAgencyToken =
+              sessionCookieName && typeof ctx.getSignedCookie === "function"
+                ? await ctx.getSignedCookie(sessionCookieName, ctx.context.secret)
+                : null;
+            const adminCookie = await readAdminSessionCookie(ctx);
+            const parkedToken =
+              (typeof originalAgencyToken === "string" && originalAgencyToken.length > 0
+                ? originalAgencyToken
+                : null) ??
+              adminCookie?.token ??
+              null;
+            const parked = await keepParkedAgencySessionAlive({
+              actorUserId: actorId,
+              sessionToken: parkedToken,
+              force: true,
+            });
+            if (parked) {
+              await writeAdminSessionCookie(ctx, {
+                token: parked.token,
+                dontRememberMe: adminCookie?.dontRememberMe ?? "",
+              });
+            }
+          } catch (error) {
+            console.error("Failed to keep parked agency session alive:", error);
+          }
+
           void db
             .insert(userActivityLog)
             .values({
@@ -393,9 +557,7 @@ export const auth = betterAuth<BetterAuthOptions>({
         }
       }
 
-      const isStopImpersonatePath =
-        ctx.path === "/admin/stop-impersonating" ||
-        ctx.path.endsWith("/admin/stop-impersonating");
+      const isStopImpersonatePath = isStopImpersonatingPath(ctx.path);
       if (isStopImpersonatePath) {
         const prior = ctx.context.session?.session as
           | { impersonatedBy?: string; userId?: string; id?: string }
@@ -491,6 +653,30 @@ export const auth = betterAuth<BetterAuthOptions>({
               }
             }
             return;
+          }
+
+          if (!softFail) {
+            const currentSession = ctx.context.session?.session as
+              | { impersonatedBy?: string | null }
+              | undefined;
+            const actorId = currentSession?.impersonatedBy;
+            if (typeof actorId === "string" && actorId.length > 0) {
+              try {
+                const adminCookie = await readAdminSessionCookie(ctx);
+                const parked = await keepParkedAgencySessionAlive({
+                  actorUserId: actorId,
+                  sessionToken: adminCookie?.token ?? null,
+                });
+                if (parked?.extended) {
+                  await writeAdminSessionCookie(ctx, {
+                    token: parked.token,
+                    dontRememberMe: adminCookie?.dontRememberMe ?? "",
+                  });
+                }
+              } catch (error) {
+                console.error("Failed to refresh parked agency session:", error);
+              }
+            }
           }
 
           if (lifetime.ipAnomaly && lifetime.userId && !softFail) {

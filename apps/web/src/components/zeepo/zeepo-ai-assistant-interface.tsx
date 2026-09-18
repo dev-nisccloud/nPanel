@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { ChevronRight, Clock, FileText, Globe, History, ImageIcon, Paperclip, Search, Send, Server, Trash2, X } from "lucide-react";
+import { ChevronRight, Clock, History, Paperclip, Search, Send, Trash2, X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -28,6 +28,7 @@ import { UploadProgressRing } from "@/components/upload-progress-ring";
 import { ZeepoMascot } from "@/components/zeepo/zeepo-mascot";
 import { useAppFileUpload } from "@/hooks/use-app-file-upload";
 import { startViewTransitionNavigate } from "@/routes/_agency.zeepo-ai-agent/nav-state";
+import { ZEEPO_AI_CAPABILITY_SHORTCUTS } from "@/components/zeepo/zeepo-ai-capabilities";
 import {
   useZeepoAiRoute,
   zeepoAiCreateSessionInput,
@@ -55,42 +56,6 @@ type PendingFile = {
   name: string;
   mimeType: string;
 };
-
-const ZEEPO_AI_CAPABILITY_SHORTCUTS = [
-  {
-    id: "image",
-    label: "Create an image",
-    starter: "Create an image of ",
-    icon: ImageIcon,
-  },
-  {
-    id: "document",
-    label: "Write a document",
-    starter: "Write a document about ",
-    icon: FileText,
-  },
-  {
-    id: "domain",
-    label: "Check a domain",
-    starter: "Check domain availability for ",
-    icon: Globe,
-  },
-  {
-    id: "search",
-    label: "Search the web",
-    starter: "Search the web for ",
-    icon: Search,
-    enableSearch: true,
-    compactHide: true,
-  },
-  {
-    id: "hosting",
-    label: "Find hosting",
-    starter: "Help me find a hosting plan for ",
-    icon: Server,
-    compactHide: true,
-  },
-] as const;
 
 function getTimeGreeting(date = new Date()): "Hello" | "Good morning" | "Good afternoon" | "Good evening" {
   const hour = date.getHours();
