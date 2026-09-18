@@ -141,7 +141,7 @@ export async function GET(request: Request) {
           success: false,
           error: {
             code: 408,
-            message: 'Request timeout - Openprovider API is responding slowly. Please try again.',
+            message: 'Request timeout - OP API is responding slowly. Please try again.',
             retry_after: 30, // Suggest retry after 30 seconds
           },
         },
@@ -286,7 +286,7 @@ export async function POST(request: Request) {
           success: false,
           error: {
             code: 408,
-            message: 'Request timeout - Openprovider API is responding slowly. Please try again.',
+            message: 'Request timeout - OP API is responding slowly. Please try again.',
             retry_after: 30, // Suggest retry after 30 seconds
           },
         },

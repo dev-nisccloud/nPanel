@@ -260,14 +260,14 @@ export default function DomainsPortfolioPage() {
         <div className="flex flex-col gap-2">
           <h1 className="text-base font-semibold tracking-tight">Domains Portfolio</h1>
           <p className="text-xs text-muted-foreground">
-            Manage and monitor all domains registered through your agency - OpenProvider
-            (international TLDs) and KENIC (.ke and sub-TLDs).
+            Manage and monitor all domains registered through your agency — OP
+            (international TLDs) and KC (.ke and sub-TLDs).
           </p>
         </div>
 
         {hasOpError && !hasKenicError ? (
           <div className="flex items-center gap-2 rounded-md border border-yellow-300 bg-yellow-50 px-3 py-2 text-xs text-yellow-800 dark:border-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300">
-            <span>OpenProvider domains could not be loaded.</span>
+            <span>OP domains could not be loaded.</span>
             <Button
               variant="link"
               size="sm"
@@ -280,7 +280,7 @@ export default function DomainsPortfolioPage() {
         ) : null}
         {hasKenicError && !hasOpError ? (
           <div className="flex items-center gap-2 rounded-md border border-yellow-300 bg-yellow-50 px-3 py-2 text-xs text-yellow-800 dark:border-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300">
-            <span>KENIC domains could not be loaded.</span>
+            <span>KC domains could not be loaded.</span>
             <Button
               variant="link"
               size="sm"

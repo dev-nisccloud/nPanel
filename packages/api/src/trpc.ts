@@ -1,11 +1,23 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import { logBuffer } from "./lib/log-buffer";
 import { checkRateLimit, resolveProcedureRateLimit } from "./lib/rate-limit";
+import {
+  domainProviderAudienceFromContext,
+  sanitizeDomainProviderMessage,
+} from "./lib/domain-provider-copy";
 import type { Context } from "./context";
 
 export type { Context } from "./context";
 
-export const t = initTRPC.context<Context>().create();
+export const t = initTRPC.context<Context>().create({
+  errorFormatter({ shape, ctx }) {
+    const audience = domainProviderAudienceFromContext(ctx);
+    return {
+      ...shape,
+      message: sanitizeDomainProviderMessage(shape.message, audience) ?? shape.message,
+    };
+  },
+});
 
 export const router = t.router;
 

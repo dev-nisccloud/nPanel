@@ -12,6 +12,17 @@ import { trpc } from "@/utils/trpc";
 import { cn } from "@/lib/utils";
 import type { DomainPortfolio } from "./domain-portfolio-card";
 import { captureEvent } from "@/lib/posthog";
+import {
+  CUSTOMER_DOMAIN_ERROR_MESSAGE,
+  sanitizeDomainProviderMessage,
+} from "@npanel/api/lib/domain-provider-copy";
+
+function customerDomainError(message: string | undefined): string {
+  return (
+    sanitizeDomainProviderMessage(message, "customer") ??
+    CUSTOMER_DOMAIN_ERROR_MESSAGE
+  );
+}
 
 interface NameserversTabProps {
   domain: DomainPortfolio;
@@ -34,7 +45,7 @@ export function NameserversTab({ domain }: NameserversTabProps) {
       window.location.reload();
     },
     onError: (error) => {
-      toast.error("Failed to update nameservers", { description: error.message });
+      toast.error("Failed to update nameservers", { description: customerDomainError(error.message) });
     },
   });
 
@@ -46,7 +57,7 @@ export function NameserversTab({ domain }: NameserversTabProps) {
       window.location.reload();
     },
     onError: (error) => {
-      toast.error("Failed to update nameservers", { description: error.message });
+      toast.error("Failed to update nameservers", { description: customerDomainError(error.message) });
     },
   });
 

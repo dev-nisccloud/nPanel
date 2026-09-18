@@ -59,7 +59,7 @@ export function DomainSourceBadge({
       <Badge
         variant="outline"
         className="text-xs border-orange-300 text-orange-700 dark:border-orange-600 dark:text-orange-400"
-        title="KENIC"
+        title="KC"
       >
         KC
       </Badge>
@@ -69,7 +69,7 @@ export function DomainSourceBadge({
     <Badge
       variant="outline"
       className="text-xs border-blue-300 text-blue-700 dark:border-blue-600 dark:text-blue-400"
-      title="OpenProvider"
+      title="OP"
     >
       OP
     </Badge>

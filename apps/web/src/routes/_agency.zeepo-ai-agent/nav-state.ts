@@ -1,3 +1,5 @@
+import { flushSync } from "react-dom";
+
 export type ZeepoComposeHandoffState = {
   initialMessage?: string;
   initialSkillId?: string;
@@ -38,7 +40,11 @@ export function startViewTransitionNavigate(navigate: () => void) {
     "startViewTransition" in document &&
     typeof document.startViewTransition === "function"
   ) {
-    document.startViewTransition(() => navigate());
+    document.startViewTransition(() => {
+      flushSync(() => {
+        navigate();
+      });
+    });
     return;
   }
   navigate();

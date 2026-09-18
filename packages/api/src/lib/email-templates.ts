@@ -555,7 +555,7 @@ export async function renderOpenProviderVerifyEmail({
   return `<div style="font-family:sans-serif;max-width:600px;">
   <p>Hi ${escapeHtml(recipientName ?? "Customer")},</p>
   <p>To complete your domain purchase for <strong>${escapeHtml(domainName ?? "")}</strong>, please verify your email address.</p>
-  <p>OpenProvider has sent a verification email to this address. Click the link in that email to verify and complete your domain registration.</p>
+  <p>We have sent a verification email to this address. Click the link in that email to verify and complete your domain registration.</p>
   <p><img src="${placeholderImageUrl}" alt="Nisc" width="120" height="60" style="display:block;margin:1em 0;" /></p>
   <p>If you did not request this, you can ignore this message.</p>
 </div>`;

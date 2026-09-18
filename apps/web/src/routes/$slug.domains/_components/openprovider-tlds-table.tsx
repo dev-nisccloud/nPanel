@@ -129,6 +129,7 @@ function useTldsBatchFetch() {
                              errorMessage.includes('rate limit') || 
                              errorMessage.includes('Too Many Requests') ||
                              errorMessage.includes('OpenProvider API Error 299') ||
+                             errorMessage.includes('OP API Error 299') ||
                              errorMessage.includes('Access denied') ||
                              errorMessage.includes('10005') ||
                              errorMessage.includes('4007');
@@ -167,15 +168,17 @@ function useTldsBatchFetch() {
         
         // OpenProvider-specific error handling
         if (message.includes('429') || message.includes('rate limit') || message.includes('Too Many Requests')) {
-          errorMessage = 'OpenProvider rate limit exceeded. Please wait 5 minutes before trying again.';
-        } else if (message.includes('OpenProvider API Error 299') || message.includes('10005')) {
-          errorMessage = 'OpenProvider API access denied due to excessive identical calls. Please wait 5 minutes.';
+          errorMessage = 'An error occurred. Please try again or contact support about your issue.';
+        } else if (message.includes('OpenProvider API Error 299') || message.includes('OP API Error 299') || message.includes('10005')) {
+          errorMessage = 'An error occurred. Please try again or contact support about your issue.';
         } else if (message.includes('4007')) {
-          errorMessage = 'OpenProvider API temporarily blocked due to excessive use. Please wait 5 minutes.';
+          errorMessage = 'An error occurred. Please try again or contact support about your issue.';
         } else if (message.includes('Too many consecutive rate limit errors')) {
-          errorMessage = 'Multiple rate limit errors encountered. Please wait 5 minutes before trying again.';
+          errorMessage = 'Multiple rate limit errors encountered. Please wait a few minutes before trying again.';
         } else {
-          errorMessage = message;
+          errorMessage = /open[\s-]?provider|kenic/i.test(message)
+            ? 'An error occurred. Please try again or contact support about your issue.'
+            : message;
         }
       }
       

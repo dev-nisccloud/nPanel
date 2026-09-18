@@ -166,7 +166,7 @@ export function LinkKenicDomainToTeamDialog({
             </div>
 
             <div className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-              This updates the existing Domains subscription for this KENIC domain. It does not create
+              This updates the existing Domains subscription for this KC domain. It does not create
               a new subscription.
             </div>
 
