@@ -115,7 +115,7 @@ export function AddIntegrationDialog({
     }
     
     if (platform === "OPENPROVIDER" && isOpenProviderIntegrated) {
-      toast.info("OpenProvider is already integrated for this client");
+      toast.info("OP is already integrated for this client");
       return;
     }
     
@@ -128,7 +128,7 @@ export function AddIntegrationDialog({
     }
     
     if (platform === "OPENPROVIDER" && !canConnectOpenProvider) {
-      toast.error("Complete profile information is required for OpenProvider integration. Please complete the profile first.");
+      toast.error("Complete profile information is required for OP integration. Please complete the profile first.");
       return;
     }
     
@@ -229,7 +229,7 @@ export function AddIntegrationDialog({
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">OpenProvider</p>
+                  <p className="font-medium">OP</p>
                   <p className="text-sm text-muted-foreground">Domain registration platform integration</p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -256,7 +256,7 @@ export function AddIntegrationDialog({
               <>Complete user and profile information is required before connecting integrations.</>
             )}
             {(canConnectPlesk || isPleskIntegrated) && (!canConnectOpenProvider && !isOpenProviderIntegrated) && (
-              <>Complete profile information (first name, last name, address, city, country, postal code, phone) is required for OpenProvider integration.</>
+              <>Complete profile information (first name, last name, address, city, country, postal code, phone) is required for OP integration.</>
             )}
             {(!canConnectPlesk && !isPleskIntegrated) && (canConnectOpenProvider || isOpenProviderIntegrated) && (
               <>User name and email are required for Plesk integration.</>
@@ -272,10 +272,10 @@ export function AddIntegrationDialog({
               <>Both platforms are already integrated. You cannot add duplicate integrations.</>
             )}
             {isPleskIntegrated && !isOpenProviderIntegrated && (
-              <>Plesk is already integrated. Only OpenProvider can be added.</>
+              <>Plesk is already integrated. Only OP can be added.</>
             )}
             {!isPleskIntegrated && isOpenProviderIntegrated && (
-              <>OpenProvider is already integrated. Only Plesk can be added.</>
+              <>OP is already integrated. Only Plesk can be added.</>
             )}
           </AlertDescription>
         </Alert>
@@ -306,10 +306,10 @@ export function AddIntegrationDialog({
           <Card>
             <CardHeader>
               <CardTitle className="text-sm">
-                {selectedPlatform === "PLESK" ? "Plesk" : "OpenProvider"} Customer Data
+                {selectedPlatform === "PLESK" ? "Plesk" : "OP"} Customer Data
               </CardTitle>
               <CardDescription>
-                This data will be sent to {selectedPlatform === "PLESK" ? "Plesk" : "OpenProvider"} when you click Connect
+                This data will be sent to {selectedPlatform === "PLESK" ? "Plesk" : "OP"} when you click Connect
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -326,7 +326,7 @@ export function AddIntegrationDialog({
   const renderConnectingStep = () => (
     <div className="flex flex-col items-center justify-center py-12 space-y-4">
       <Spinner size={32} />
-      <p className="text-sm font-medium">Connecting to {selectedPlatform === "PLESK" ? "Plesk" : "OpenProvider"}...</p>
+      <p className="text-sm font-medium">Connecting to {selectedPlatform === "PLESK" ? "Plesk" : "OP"}...</p>
       <p className="text-xs text-muted-foreground">Please wait while we create the integration</p>
     </div>
   );

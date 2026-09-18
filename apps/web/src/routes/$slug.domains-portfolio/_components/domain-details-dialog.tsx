@@ -57,6 +57,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CreateSubscriptionFromDomainDialog } from "./create-subscription-from-domain-dialog";
 import type { DomainPortfolio } from "./domain-portfolio-card";
 import { captureEvent } from "@/lib/posthog";
+import {
+  CUSTOMER_DOMAIN_ERROR_MESSAGE,
+  sanitizeDomainProviderMessage,
+} from "@npanel/api/lib/domain-provider-copy";
+
+function customerDomainError(message: string | undefined): string {
+  return (
+    sanitizeDomainProviderMessage(message, "customer") ??
+    CUSTOMER_DOMAIN_ERROR_MESSAGE
+  );
+}
 
 interface DomainDetailsDialogProps {
   open: boolean;
@@ -208,7 +219,7 @@ function OverviewTab({ domain }: { domain: DomainPortfolio }) {
     },
     onError: (error) => {
       toast.error("Failed to update nameservers", {
-        description: error.message,
+        description: customerDomainError(error.message),
       });
     },
   });
@@ -788,7 +799,7 @@ function DnsRecordsTab({ domain }: { domain: DomainPortfolio }) {
     },
     onError: (error) => {
       toast.error("Failed to update DNS record", {
-        description: error.message,
+        description: customerDomainError(error.message),
       });
     },
   });
@@ -800,7 +811,7 @@ function DnsRecordsTab({ domain }: { domain: DomainPortfolio }) {
     },
     onError: (error) => {
       toast.error("Failed to delete DNS record", {
-        description: error.message,
+        description: customerDomainError(error.message),
       });
     },
   });
@@ -814,7 +825,7 @@ function DnsRecordsTab({ domain }: { domain: DomainPortfolio }) {
     },
     onError: (error) => {
       toast.error("Failed to add DNS record", {
-        description: error.message,
+        description: customerDomainError(error.message),
       });
     },
   });

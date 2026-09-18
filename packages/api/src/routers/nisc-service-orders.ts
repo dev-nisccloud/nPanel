@@ -35,6 +35,10 @@ import { isZeepoAiAgentProduct } from "../lib/zeepo-agent-order-provisioning";
 import { resolveActiveNiscProductById } from "../lib/planless-product-resolver";
 import { resolveDomainBillingCycle } from "../lib/nisc-subscription-dates";
 import {
+	domainProviderAudienceFromContext,
+	sanitizeDomainProviderMessage,
+} from "../lib/domain-provider-copy";
+import {
 	ensureOneTimeServicesProduct,
 	NISC_ONE_TIME_SERVICES_PRODUCT_ID,
 } from "../lib/one-time-services";
@@ -264,6 +268,7 @@ export const niscServiceOrdersRouter = router({
 			]);
 			const total = Number(totalRow[0]?.c ?? 0);
 
+			const audience = domainProviderAudienceFromContext(ctx);
 			return {
 				orders: orders.map((o) => ({
 					id: o.id,
@@ -275,7 +280,7 @@ export const niscServiceOrdersRouter = router({
 					total: o.total,
 					currency: o.currency,
 					notes: o.notes,
-					failureReason: o.failureReason,
+					failureReason: sanitizeDomainProviderMessage(o.failureReason, audience) ?? o.failureReason,
 					invoiceId: o.invoiceId,
 					invoiceNumber: o.invoiceNumber,
 					metadata: o.metadata,
@@ -294,7 +299,8 @@ export const niscServiceOrdersRouter = router({
 						itemPrice: i.itemPrice,
 						itemSubtotal: i.itemSubtotal,
 						status: i.status,
-						provisioningError: i.provisioningError,
+						provisioningError:
+							sanitizeDomainProviderMessage(i.provisioningError, audience) ?? i.provisioningError,
 						niscClientSubscriptionId: i.niscClientSubscriptionId,
 					})),
 				})),
@@ -343,7 +349,19 @@ export const niscServiceOrdersRouter = router({
 				});
 			}
 
-			return order;
+			const audience = domainProviderAudienceFromContext(ctx);
+			return {
+				...order,
+				failureReason:
+					sanitizeDomainProviderMessage(order.failureReason, audience) ?? order.failureReason,
+				orderItems: order.orderItems.map((item) => ({
+					...item,
+					provisioningError:
+						sanitizeDomainProviderMessage(item.provisioningError, audience) ??
+						item.provisioningError,
+				})),
+				processingLogs: audience === "customer" ? [] : order.processingLogs,
+			};
 		}),
 
 	create: protectedProcedure

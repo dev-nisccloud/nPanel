@@ -20,6 +20,10 @@ import {
 	checkDomainTransferEligibility,
 	type TransferStatus,
 } from "../lib/domain-transfer-check";
+import {
+	domainProviderAudienceFromContext,
+	sanitizeDomainProviderMessage,
+} from "../lib/domain-provider-copy";
 
 export type { TransferStatus };
 
@@ -200,7 +204,14 @@ export const domainTransferRouter = router({
 	 */
 	checkTransfer: publicProcedure
 		.input(checkTransferInputSchema)
-		.mutation(async ({ input }) => checkDomainTransferEligibility(input.domain)),
+		.mutation(async ({ ctx, input }) => {
+			const result = await checkDomainTransferEligibility(input.domain);
+			const audience = domainProviderAudienceFromContext(ctx);
+			return {
+				...result,
+				error: sanitizeDomainProviderMessage(result.error, audience) ?? null,
+			};
+		}),
 
 	/**
 	 * Initiate domain transfer: save to DB (DomainTransferRequest) then send to provider (KENIC or OpenProvider).
