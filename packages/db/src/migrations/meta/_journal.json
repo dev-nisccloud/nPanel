@@ -407,6 +407,13 @@
       "when": 1789738259939,
       "tag": "0057_hard_madrox",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1790144463431,
+      "tag": "0058_silent_matthew_murdock",
+      "breakpoints": true
     }
   ]
 }

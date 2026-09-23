@@ -46,10 +46,10 @@ export function useCustomerDashboardMetrics() {
 	const invoices = invoicesQuery.data?.invoices ?? [];
 	const invoicesTotal = invoicesQuery.data?.total ?? 0;
 	const invoicesPaid = invoices.filter((invoice) => invoice.status === "PAID").length;
-	const invoicesUnpaid = invoices.filter(
-		(invoice) => !SETTLED_INVOICE_STATUSES.has(invoice.status),
-	).length;
 	const invoicesOverdue = invoices.filter((invoice) => invoice.status === "OVERDUE").length;
+	const invoicesUnpaid = invoices.filter(
+		(invoice) => !SETTLED_INVOICE_STATUSES.has(invoice.status) && invoice.status !== "OVERDUE",
+	).length;
 
 	return {
 		teamSlug,
@@ -59,6 +59,7 @@ export function useCustomerDashboardMetrics() {
 			active: domainsQuery.data?.active ?? null,
 			expired: domainsQuery.data?.expired ?? null,
 			isLoading: domainsQuery.isLoading,
+			isError: domainsQuery.isError,
 		},
 		invoices: {
 			total: invoicesQuery.isLoading ? null : invoicesTotal,
@@ -66,18 +67,21 @@ export function useCustomerDashboardMetrics() {
 			unpaid: invoicesQuery.isLoading ? null : invoicesUnpaid,
 			overdue: invoicesQuery.isLoading ? null : invoicesOverdue,
 			isLoading: teamQuery.isLoading || invoicesQuery.isLoading,
+			isError: invoicesQuery.isError,
 		},
 		hosting: {
 			total: hostingQuery.data?.total ?? null,
 			active: hostingQuery.data?.active ?? null,
 			inactive: hostingQuery.data?.other ?? null,
 			isLoading: hostingQuery.isLoading,
+			isError: hostingQuery.isError,
 		},
 		subscriptions: {
 			total: subscriptionsQuery.data?.total ?? null,
 			active: subscriptionsQuery.data?.active ?? null,
 			other: subscriptionsQuery.data?.other ?? null,
 			isLoading: subscriptionsQuery.isLoading,
+			isError: subscriptionsQuery.isError,
 		},
 	};
 }

@@ -4,8 +4,7 @@ import { captureEvent } from "@/lib/posthog";
 import { DashboardZeepoHero } from "./$slug.dashboard/_components/dashboard-zeepo-hero";
 import { DashboardSetupTodos } from "./$slug.dashboard/_components/dashboard-setup-todos";
 import { NeedsAttention } from "./$slug.dashboard/_components/needs-attention";
-import { AccountSnapshot } from "./$slug.dashboard/_components/account-snapshot";
-import { GetStarted } from "./$slug.dashboard/_components/get-started";
+import { DashboardMetricsGrid } from "./$slug.dashboard/_components/dashboard-metrics-grid";
 import { RecentActivity } from "./$slug.dashboard/_components/recent-activity";
 import { DashboardPromoSection } from "./$slug.dashboard/_components/dashboard-promo-section";
 import { useCustomerDashboardMetrics } from "./$slug.dashboard/_components/use-customer-dashboard-metrics";
@@ -23,11 +22,8 @@ export default function DashboardPage() {
 				<DashboardZeepoHero />
 				<DashboardSetupTodos />
 				<NeedsAttention metrics={metrics} />
-				<AccountSnapshot metrics={metrics} />
-				<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-					<GetStarted />
-					<RecentActivity />
-				</div>
+				<DashboardMetricsGrid metrics={metrics} />
+				<RecentActivity />
 				<DashboardPromoSection />
 			</div>
 		</div>

@@ -155,9 +155,14 @@ function DashboardZeepoHeroInner() {
 
 	return (
 		<section className="mx-auto flex w-full max-w-2xl flex-col items-center text-center">
-			<h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-				{greeting}! Where do you want to get started?
-			</h1>
+			<div className="flex flex-col items-center gap-1.5">
+				<h1 className="text-3xl font-bold leading-[1.15] tracking-tight text-foreground sm:text-4xl">
+					{greeting}!
+				</h1>
+				<p className="text-sm leading-snug text-muted-foreground sm:text-base">
+					Where do you want to get started?
+				</p>
+			</div>
 
 			<div
 				className={cn(
