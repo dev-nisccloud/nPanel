@@ -103,14 +103,17 @@ function DashboardZeepoHeroInner() {
 	};
 
 	return (
-		<section className="mx-auto flex w-full max-w-2xl flex-col items-center text-center">
-			<h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-				{greeting}! Where do you want to get started?
-			</h1>
+		<section className="flex h-full flex-col rounded-xl border bg-card p-5 text-left">
+			<div className="flex flex-col gap-1">
+				<h2 className="text-base font-semibold text-foreground">{greeting}</h2>
+				<p className="text-sm text-muted-foreground">
+					Ask Zeepo about clients, tickets, domains, or hosting. The chat opens on its own page.
+				</p>
+			</div>
 
 			<div
 				className={cn(
-					"zeepo-ai-compose-surface zeepo-composer-shell zeepo-floating-dock-shadow zeepo-composer-glow mt-6 w-full overflow-hidden rounded-2xl border border-border/70 bg-card text-left",
+					"zeepo-ai-compose-surface zeepo-composer-shell mt-4 w-full overflow-hidden rounded-xl border border-border/70 bg-background text-left",
 					isHandingOff && "pointer-events-none opacity-70",
 				)}
 			>
@@ -166,7 +169,7 @@ function DashboardZeepoHeroInner() {
 				</div>
 			</div>
 
-			<div className="mt-4 flex w-full flex-wrap items-center justify-center gap-2">
+			<div className="mt-4 flex w-full flex-wrap items-center gap-2">
 				{ZEEPO_AI_CAPABILITY_SHORTCUTS.map((item) => {
 					const Icon = item.icon;
 					const selected = inputValue.startsWith(item.starter);

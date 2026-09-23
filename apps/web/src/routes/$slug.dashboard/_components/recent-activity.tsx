@@ -3,12 +3,17 @@
 import { Link, useLocation } from "react-router";
 import { ArrowUpRight } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+	RecentActivityEmpty,
+	RecentActivityGrid,
+	RecentActivitySkeleton,
+	RecentActivityStatusBadge,
+	RecentActivityTile,
+} from "@/components/dashboard/recent-activity-tiles";
 import { formatInvoiceDate } from "@/lib/invoice-date";
-import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 import { invoiceUiSchema } from "@/routes/agency.dashboard/_components/schemas";
 import type { DashboardSubscriptionRow } from "./dashboard-subscriptions-schema";
@@ -24,36 +29,18 @@ function getInvoiceStatusLabel(status: string) {
 	}
 }
 
-function getInvoiceStatusVariant(status: string) {
-	switch (status) {
-		case "PAID":
-			return "default" as const;
-		case "OVERDUE":
-		case "CANCELLED":
-		case "WRITTEN_OFF":
-			return "destructive" as const;
-		case "PARTIALLY_PAID":
-		case "DRAFT":
-			return "secondary" as const;
-		default:
-			return "outline" as const;
-	}
+function invoiceTone(status: string): "positive" | "negative" | "muted" | "default" {
+	if (status === "PAID") return "positive";
+	if (status === "OVERDUE" || status === "CANCELLED" || status === "WRITTEN_OFF") return "negative";
+	if (status === "DRAFT" || status === "PARTIALLY_PAID") return "muted";
+	return "default";
 }
 
-function RecentListSkeleton() {
-	return (
-		<div className="divide-y">
-			{Array.from({ length: 5 }).map((_, index) => (
-				<div key={index} className="flex items-center justify-between gap-3 px-5 py-3.5">
-					<div className="min-w-0 flex-1 space-y-1.5">
-						<Skeleton className="h-4 w-40" />
-						<Skeleton className="h-3 w-24" />
-					</div>
-					<Skeleton className="h-4 w-16" />
-				</div>
-			))}
-		</div>
-	);
+function formatMoney(currency: string, amount: string | null | undefined) {
+	if (!amount) return "—";
+	const value = parseFloat(amount);
+	if (Number.isNaN(value)) return "—";
+	return `${currency} ${value.toLocaleString()}`;
 }
 
 function displayServiceName(
@@ -71,13 +58,8 @@ function RecentInvoices({ teamSlug, teamId }: { teamSlug: string; teamId: string
 		{ enabled: Boolean(teamId) },
 	);
 
-	if (isLoading || !teamId) return <RecentListSkeleton />;
-
-	if (isError || !data) {
-		return (
-			<p className="px-5 py-8 text-center text-sm text-muted-foreground">Failed to load invoices</p>
-		);
-	}
+	if (isLoading || !teamId) return <RecentActivitySkeleton />;
+	if (isError || !data) return <RecentActivityEmpty message="Failed to load invoices" />;
 
 	const invoices = data.invoices.map((invoice) =>
 		invoiceUiSchema.parse({
@@ -94,39 +76,27 @@ function RecentInvoices({ teamSlug, teamId }: { teamSlug: string; teamId: string
 		}),
 	);
 
-	if (invoices.length === 0) {
-		return <p className="px-5 py-8 text-center text-sm text-muted-foreground">No invoices yet</p>;
-	}
+	if (invoices.length === 0) return <RecentActivityEmpty message="No invoices yet" />;
 
 	return (
-		<div className="divide-y">
+		<RecentActivityGrid>
 			{invoices.map((invoice) => (
-				<Link
+				<RecentActivityTile
 					key={invoice.id}
-					to={`/${teamSlug}/invoices/${invoice.id}`}
-					className="flex items-center justify-between gap-3 px-5 py-3.5 transition-colors hover:bg-muted/50"
-				>
-					<div className="min-w-0">
-						<p className="truncate text-sm font-medium">
-							{invoice.invoiceNumber || `Invoice ${invoice.id.slice(0, 8)}`}
-						</p>
-						<p className="truncate text-xs text-muted-foreground">
-							{formatInvoiceDate(invoice.dueDate, "No due date")}
-						</p>
-					</div>
-					<div className="flex shrink-0 flex-col items-end gap-1">
-						<p className="text-sm font-medium tabular-nums">
-							{invoice.amount
-								? `${invoice.currency} ${parseFloat(invoice.amount).toLocaleString()}`
-								: "—"}
-						</p>
-						<Badge variant={getInvoiceStatusVariant(invoice.status)} className="text-[10px]">
-							{getInvoiceStatusLabel(invoice.status)}
-						</Badge>
-					</div>
-				</Link>
+					href={`/${teamSlug}/invoices/${invoice.id}`}
+					title={invoice.invoiceNumber || `Invoice ${invoice.id.slice(0, 8)}`}
+					subtitle={invoice.customerName || invoice.customerEmail || "Invoice"}
+					amount={formatMoney(invoice.currency, invoice.amount)}
+					meta={`Due ${formatInvoiceDate(invoice.dueDate, "no date")}`}
+					badge={
+						<RecentActivityStatusBadge
+							label={getInvoiceStatusLabel(invoice.status)}
+							tone={invoiceTone(invoice.status)}
+						/>
+					}
+				/>
 			))}
-		</div>
+		</RecentActivityGrid>
 	);
 }
 
@@ -136,15 +106,8 @@ function RecentSubscriptions({ teamSlug }: { teamSlug: string }) {
 		{ enabled: Boolean(teamSlug), staleTime: 5 * 60 * 1000 },
 	);
 
-	if (isLoading) return <RecentListSkeleton />;
-
-	if (isError || !data) {
-		return (
-			<p className="px-5 py-8 text-center text-sm text-muted-foreground">
-				Failed to load subscriptions
-			</p>
-		);
-	}
+	if (isLoading) return <RecentActivitySkeleton />;
+	if (isError || !data) return <RecentActivityEmpty message="Failed to load subscriptions" />;
 
 	const subscriptions: DashboardSubscriptionRow[] = data.slice(0, 6).map((sub) => {
 		const nextDate = sub.nextRenewalDate ?? sub.expiryDate;
@@ -158,44 +121,46 @@ function RecentSubscriptions({ teamSlug }: { teamSlug: string }) {
 		};
 	});
 
-	if (subscriptions.length === 0) {
-		return (
-			<p className="px-5 py-8 text-center text-sm text-muted-foreground">No subscriptions yet</p>
-		);
-	}
+	if (subscriptions.length === 0) return <RecentActivityEmpty message="No subscriptions yet" />;
 
 	return (
-		<div className="divide-y">
+		<RecentActivityGrid>
 			{subscriptions.map((sub) => {
 				const isActive = sub.status === "ACTIVE";
 				const isProblem = sub.status === "SUSPENDED" || sub.status === "EXPIRED";
 				return (
-					<Link
+					<RecentActivityTile
 						key={sub.id}
-						to={`/${teamSlug}/subscriptions`}
-						className="flex items-center justify-between gap-3 px-5 py-3.5 transition-colors hover:bg-muted/50"
-					>
-						<div className="min-w-0">
-							<p className="truncate text-sm font-medium">{sub.planName}</p>
-							<p className="truncate text-xs text-muted-foreground">
-								{sub.nextRenewalDate
-									? `Expires ${formatInvoiceDate(sub.nextRenewalDate)}`
-									: sub.planType}
-							</p>
-						</div>
-						<Badge
-							variant={isActive ? "default" : isProblem ? "destructive" : "outline"}
-							className={cn(
-								"text-[10px]",
-								isActive &&
-									"border-green-600 bg-green-600 text-white hover:bg-green-600/90",
-							)}
-						>
-							{sub.status.replace(/_/g, " ")}
-						</Badge>
-					</Link>
+						href={`/${teamSlug}/subscriptions`}
+						title={sub.planName}
+						subtitle={sub.planType}
+						meta={
+							sub.nextRenewalDate
+								? `Expires ${formatInvoiceDate(sub.nextRenewalDate)}`
+								: undefined
+						}
+						badge={
+							<RecentActivityStatusBadge
+								label={sub.status.replace(/_/g, " ")}
+								tone={isActive ? "positive" : isProblem ? "negative" : "muted"}
+							/>
+						}
+					/>
 				);
 			})}
+		</RecentActivityGrid>
+	);
+}
+
+function ViewAllLink({ href, label }: { href: string; label: string }) {
+	return (
+		<div className="flex justify-end border-t px-4 py-3">
+			<Button variant="ghost" size="sm" asChild>
+				<Link to={href}>
+					{label}
+					<ArrowUpRight className="size-3.5" />
+				</Link>
+			</Button>
 		</div>
 	);
 }
@@ -225,27 +190,11 @@ export function RecentActivity() {
 				<CardContent className="p-0">
 					<TabsContent value="invoices" className="mt-0">
 						<RecentInvoices teamSlug={teamSlug} teamId={teamData?.id} />
-						<div className="border-t px-5 py-3">
-							<Link
-								to={`/${teamSlug}/invoices`}
-								className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-							>
-								View all invoices
-								<ArrowUpRight className="size-3.5" />
-							</Link>
-						</div>
+						<ViewAllLink href={`/${teamSlug}/invoices`} label="View all invoices" />
 					</TabsContent>
 					<TabsContent value="subscriptions" className="mt-0">
 						<RecentSubscriptions teamSlug={teamSlug} />
-						<div className="border-t px-5 py-3">
-							<Link
-								to={`/${teamSlug}/subscriptions`}
-								className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-							>
-								View all subscriptions
-								<ArrowUpRight className="size-3.5" />
-							</Link>
-						</div>
+						<ViewAllLink href={`/${teamSlug}/subscriptions`} label="View all subscriptions" />
 					</TabsContent>
 				</CardContent>
 			</Tabs>

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { RefreshCw, ExternalLink, AlertCircle } from "lucide-react";
+import { RefreshCw, AlertCircle } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 
 import { Button } from "@/components/ui/button";
@@ -276,11 +276,32 @@ function MetricRow({
   );
 }
 
+type PageSpeedSiteResult = {
+  desktop?: PageSpeedData | null;
+  mobile?: PageSpeedData | null;
+  desktopError?: string;
+  mobileError?: string;
+  cached?: boolean;
+};
+
+function toastPageSpeedError(error: {
+  data?: { code?: string };
+  message?: string;
+} | null | undefined) {
+  if (!error) return;
+  if (error.data?.code === "TOO_MANY_REQUESTS") {
+    toast.error("Rate limit exceeded. Please try again later.");
+  } else if (error.data?.code === "UNAUTHORIZED") {
+    toast.error("PageSpeed Insights API authentication failed.");
+  } else {
+    toast.error(formatPageSpeedErrorMessage(error.message));
+  }
+}
+
 export function PageSpeedInsightsCard({ domainName }: PageSpeedInsightsCardProps) {
-  const [forceRefreshMobile, setForceRefreshMobile] = React.useState(false);
-  const [forceRefreshDesktop, setForceRefreshDesktop] = React.useState(false);
   const [selectedStrategy, setSelectedStrategy] =
     React.useState<Strategy>("mobile");
+  const utils = trpc.useUtils();
 
   const domainUrl = React.useMemo(() => {
     if (!domainName) return null;
@@ -300,86 +321,54 @@ export function PageSpeedInsightsCard({ domainName }: PageSpeedInsightsCardProps
     }
   }, [domainName]);
 
-  const mobileQuery = trpc.pagespeedInsights.getPageSpeed.useQuery(
-    {
-      url: domainUrl || "",
-      strategy: "mobile",
-      forceRefresh: forceRefreshMobile,
-    },
+  const pageSpeedQuery = trpc.pagespeedInsights.getPageSpeed.useQuery(
+    { url: domainUrl || "" },
     {
       enabled: !!domainUrl,
-      staleTime: 5 * 60 * 1000,
+      staleTime: Infinity,
       gcTime: 30 * 60 * 1000,
-      retry: 3,
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 8000),
+      refetchOnWindowFocus: false,
+      retry: false,
     },
   );
 
-  const desktopQuery = trpc.pagespeedInsights.getPageSpeed.useQuery(
-    {
-      url: domainUrl || "",
-      strategy: "desktop",
-      forceRefresh: forceRefreshDesktop,
-    },
-    {
-      enabled: !!domainUrl,
-      staleTime: 5 * 60 * 1000,
-      gcTime: 30 * 60 * 1000,
-      retry: 3,
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 8000),
-    },
-  );
-
-  React.useEffect(() => {
-    const currentError = mobileQuery.error || desktopQuery.error;
-    if (!currentError) return;
-    if (currentError.data?.code === "TOO_MANY_REQUESTS") {
-      toast.error("Rate limit exceeded. Please try again later.");
-    } else if (currentError.data?.code === "UNAUTHORIZED") {
-      toast.error("PageSpeed Insights API authentication failed.");
-    } else {
-      toast.error(formatPageSpeedErrorMessage(currentError.message));
-    }
-  }, [mobileQuery.error, desktopQuery.error]);
-
-  const runStrategy = React.useCallback(
-    (strategy: Strategy) => {
-      captureEvent("pagespeed_test_run", {
-        url: domainUrl || "",
-        device: strategy,
-      });
-      if (strategy === "mobile") {
-        setForceRefreshMobile(true);
-        void mobileQuery.refetch().finally(() => setForceRefreshMobile(false));
-      } else {
-        setForceRefreshDesktop(true);
-        void desktopQuery.refetch().finally(() => setForceRefreshDesktop(false));
+  const runPageSpeed = trpc.pagespeedInsights.runPageSpeed.useMutation({
+    onSuccess: (data) => {
+      if (!domainUrl) return;
+      utils.pagespeedInsights.getPageSpeed.setData({ url: domainUrl }, data);
+      if (data.desktopError || data.mobileError) {
+        toast.error(
+          formatPageSpeedErrorMessage(data.desktopError || data.mobileError),
+        );
       }
     },
-    [domainUrl, mobileQuery, desktopQuery],
-  );
+    onError: (error) => {
+      toastPageSpeedError(error);
+    },
+  });
+
+  React.useEffect(() => {
+    toastPageSpeedError(pageSpeedQuery.error);
+  }, [pageSpeedQuery.error]);
 
   const handleRunBoth = React.useCallback(() => {
-    runStrategy("desktop");
-    runStrategy("mobile");
-  }, [runStrategy]);
+    if (!domainUrl || runPageSpeed.isPending) return;
+    captureEvent("pagespeed_test_run", {
+      url: domainUrl,
+      device: "both",
+    });
+    runPageSpeed.mutate({ url: domainUrl });
+  }, [domainUrl, runPageSpeed]);
 
-  const isRefreshing =
-    mobileQuery.isFetching ||
-    desktopQuery.isFetching ||
-    forceRefreshMobile ||
-    forceRefreshDesktop;
-
-  const hasAnyData = !!(mobileQuery.data || desktopQuery.data);
-  const bothFailed =
-    !!mobileQuery.error &&
-    !!desktopQuery.error &&
-    !hasAnyData &&
-    !isRefreshing;
+  const result = pageSpeedQuery.data as PageSpeedSiteResult | undefined;
+  const isRefreshing = runPageSpeed.isPending;
+  const isLoading = pageSpeedQuery.isLoading && !result;
+  const hasAnyData = !!(result?.desktop || result?.mobile);
+  const bothFailed = !!pageSpeedQuery.error && !hasAnyData && !isRefreshing;
 
   if (!domainUrl) return null;
 
-  if (!hasAnyData && (mobileQuery.isLoading || desktopQuery.isLoading)) {
+  if (!hasAnyData && (isLoading || isRefreshing)) {
     return (
       <Card className="overflow-hidden py-0 gap-0">
         <CardHeader className="flex flex-row items-center justify-between border-b bg-muted/30 px-4 py-3">
@@ -423,64 +412,40 @@ export function PageSpeedInsightsCard({ domainName }: PageSpeedInsightsCardProps
             <RefreshCw
               className={cn("mr-2 h-3.5 w-3.5", isRefreshing && "animate-spin")}
             />
-            Run speed test
+            Run again
           </Button>
         </CardHeader>
         <CardContent className="flex flex-col items-center justify-center gap-3 px-4 py-10 text-center">
           <AlertCircle className="h-7 w-7 text-muted-foreground" />
           <p className="max-w-sm text-sm text-muted-foreground">
-            {formatPageSpeedErrorMessage(
-              mobileQuery.error?.message || desktopQuery.error?.message,
-            )}
+            {formatPageSpeedErrorMessage(pageSpeedQuery.error?.message)}
           </p>
         </CardContent>
       </Card>
     );
   }
 
-  const desktop = desktopQuery.data as PageSpeedData | undefined;
-  const mobile = mobileQuery.data as PageSpeedData | undefined;
+  const desktop = result?.desktop ?? undefined;
+  const mobile = result?.mobile ?? undefined;
   const active = selectedStrategy === "mobile" ? mobile : desktop;
-  const activeLoading =
-    selectedStrategy === "mobile"
-      ? mobileQuery.isLoading || mobileQuery.isFetching
-      : desktopQuery.isLoading || desktopQuery.isFetching;
+  const activeLoading = (isLoading || isRefreshing) && !active;
 
   return (
     <Card className="overflow-hidden py-0 gap-0">
       <CardHeader className="flex flex-row items-center justify-between gap-3 border-b bg-muted/30 px-4 py-3">
         <CardTitle className="text-sm font-semibold">Performance</CardTitle>
-        <div className="flex items-center gap-1.5">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleRunBoth}
-            disabled={isRefreshing}
-          >
-            <RefreshCw
-              className={cn("mr-2 h-3.5 w-3.5", isRefreshing && "animate-spin")}
-            />
-            Run speed test
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            title="Open Google PageSpeed Insights"
-            aria-label="Open Google PageSpeed Insights"
-            onClick={() =>
-              window.open(
-                `https://pagespeed.web.dev/report?url=${encodeURIComponent(domainUrl)}`,
-                "_blank",
-                "noopener,noreferrer",
-              )
-            }
-          >
-            <ExternalLink className="h-3.5 w-3.5" />
-          </Button>
-        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleRunBoth}
+          disabled={isRefreshing}
+        >
+          <RefreshCw
+            className={cn("mr-2 h-3.5 w-3.5", isRefreshing && "animate-spin")}
+          />
+          Run again
+        </Button>
       </CardHeader>
 
       <CardContent className="p-0">
@@ -489,16 +454,16 @@ export function PageSpeedInsightsCard({ domainName }: PageSpeedInsightsCardProps
           <StrategySummary
             label="Desktop"
             data={desktop}
-            loading={desktopQuery.isLoading || desktopQuery.isFetching}
-            error={!!desktopQuery.error && !desktop}
+            loading={(isLoading || isRefreshing) && !desktop}
+            error={!!result?.desktopError && !desktop}
             selected={selectedStrategy === "desktop"}
             onSelect={() => setSelectedStrategy("desktop")}
           />
           <StrategySummary
             label="Mobile"
             data={mobile}
-            loading={mobileQuery.isLoading || mobileQuery.isFetching}
-            error={!!mobileQuery.error && !mobile}
+            loading={(isLoading || isRefreshing) && !mobile}
+            error={!!result?.mobileError && !mobile}
             selected={selectedStrategy === "mobile"}
             onSelect={() => setSelectedStrategy("mobile")}
           />

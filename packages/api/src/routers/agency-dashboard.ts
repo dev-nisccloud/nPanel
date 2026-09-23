@@ -1,15 +1,149 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, count, eq, inArray, isNotNull, or } from "@npanel/db";
+import { and, count, desc, eq, gte, inArray, lt } from "@npanel/db";
 import { db } from "@npanel/db";
 import { user } from "@npanel/db/schema/auth";
 import { metaAdsAccount } from "@npanel/db/schema/meta-ads";
 import { googleAdsAccount } from "@npanel/db/schema/google-ads";
 import { socialMediaIntegration } from "@npanel/db/schema/social-media-marketing";
-import { niscClientSubscription, niscProduct } from "@npanel/db/schema/products";
+import { pleskServerMetricSnapshot } from "@npanel/db/schema/plesk-server-metrics";
 import { protectedProcedure, router } from "../trpc";
 import { sendPleskXmlRequest } from "../lib/plesk/xml-client";
+import { fetchPleskServerStats, type PleskServerStatSnapshot } from "../lib/plesk/server-stats";
 import { XMLParser } from "fast-xml-parser";
+
+const PLESK_SNAPSHOT_HOST_KEY = "default";
+const PLESK_SNAPSHOT_MIN_INTERVAL_MS = 5 * 60 * 1000;
+const PLESK_SNAPSHOT_RETENTION_DAYS = 14;
+const PLESK_SNAPSHOT_HISTORY_DAYS = 7;
+const PLESK_SNAPSHOT_HISTORY_LIMIT = 2200;
+
+function snapshotRowFromLive(id: string, live: PleskServerStatSnapshot) {
+  return {
+    id,
+    hostKey: PLESK_SNAPSHOT_HOST_KEY,
+    capturedAt: new Date(),
+    hostname: live.hostname,
+    cpu: live.cpu,
+    uptimeSeconds: live.uptimeSeconds,
+    insideVz: live.insideVz,
+    pleskVersion: live.pleskVersion,
+    pleskOs: live.pleskOs,
+    load1: live.load1,
+    load5: live.load5,
+    load15: live.load15,
+    memTotal: live.memTotal,
+    memUsed: live.memUsed,
+    memFree: live.memFree,
+    memShared: live.memShared,
+    memBuffer: live.memBuffer,
+    memCached: live.memCached,
+    swapTotal: live.swapTotal,
+    swapUsed: live.swapUsed,
+    swapFree: live.swapFree,
+    diskDevices: live.diskDevices,
+    objects: live.objects,
+    createdAt: new Date(),
+  };
+}
+
+type ServerMetricsHistoryPoint = {
+  capturedAt: Date;
+  load1: number | null;
+  load5: number | null;
+  load15: number | null;
+  memUsed: number | null;
+  memTotal: number | null;
+  swapUsed: number | null;
+  swapTotal: number | null;
+};
+
+async function loadServerMetrics(opts: { persist: boolean; force: boolean }) {
+  let live: PleskServerStatSnapshot | null = null;
+  let unavailable = false;
+  let reason: "unreachable" | "auth" | "empty" | "parse" | null = null;
+
+  try {
+    const fetched = await fetchPleskServerStats();
+    live = fetched.snapshot;
+    unavailable = fetched.unavailable;
+    reason = fetched.reason;
+  } catch (error) {
+    console.error("Error fetching Plesk server stats:", error);
+    unavailable = true;
+    reason = "empty";
+  }
+
+  if (opts.persist && live) {
+    try {
+      const [latestStored] = await db
+        .select({ capturedAt: pleskServerMetricSnapshot.capturedAt })
+        .from(pleskServerMetricSnapshot)
+        .where(eq(pleskServerMetricSnapshot.hostKey, PLESK_SNAPSHOT_HOST_KEY))
+        .orderBy(desc(pleskServerMetricSnapshot.capturedAt))
+        .limit(1);
+
+      const shouldInsert =
+        opts.force ||
+        !latestStored?.capturedAt ||
+        Date.now() - latestStored.capturedAt.getTime() >= PLESK_SNAPSHOT_MIN_INTERVAL_MS;
+
+      if (shouldInsert) {
+        await db
+          .insert(pleskServerMetricSnapshot)
+          .values(snapshotRowFromLive(crypto.randomUUID(), live));
+
+        const cutoff = new Date(
+          Date.now() - PLESK_SNAPSHOT_RETENTION_DAYS * 24 * 60 * 60 * 1000,
+        );
+        await db
+          .delete(pleskServerMetricSnapshot)
+          .where(lt(pleskServerMetricSnapshot.capturedAt, cutoff));
+      }
+    } catch (error) {
+      console.error("Error persisting Plesk server snapshot:", error);
+    }
+  }
+
+  let history: ServerMetricsHistoryPoint[] = [];
+
+  try {
+    const since = new Date(
+      Date.now() - PLESK_SNAPSHOT_HISTORY_DAYS * 24 * 60 * 60 * 1000,
+    );
+    const rows = await db
+      .select({
+        capturedAt: pleskServerMetricSnapshot.capturedAt,
+        load1: pleskServerMetricSnapshot.load1,
+        load5: pleskServerMetricSnapshot.load5,
+        load15: pleskServerMetricSnapshot.load15,
+        memUsed: pleskServerMetricSnapshot.memUsed,
+        memTotal: pleskServerMetricSnapshot.memTotal,
+        swapUsed: pleskServerMetricSnapshot.swapUsed,
+        swapTotal: pleskServerMetricSnapshot.swapTotal,
+      })
+      .from(pleskServerMetricSnapshot)
+      .where(
+        and(
+          eq(pleskServerMetricSnapshot.hostKey, PLESK_SNAPSHOT_HOST_KEY),
+          gte(pleskServerMetricSnapshot.capturedAt, since),
+        ),
+      )
+      .orderBy(desc(pleskServerMetricSnapshot.capturedAt))
+      .limit(PLESK_SNAPSHOT_HISTORY_LIMIT);
+
+    history = rows.reverse();
+  } catch (error) {
+    console.error("Error loading Plesk server snapshot history:", error);
+  }
+
+  return {
+    latest: live,
+    history,
+    unavailable,
+    reason,
+  };
+}
 
 const AGENCY_ROLES = ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"] as const;
 
@@ -281,5 +415,43 @@ export const agencyDashboardRouter = router({
         inactive: 0,
       };
     }
+  }),
+
+  /**
+   * Live Plesk server snapshot plus stored history for dashboard charts.
+   * Persists a row at most every 5 minutes and drops readings older than 14 days.
+   */
+  getServerMetrics: protectedProcedure
+    .input(
+      z
+        .object({
+          persist: z.boolean().optional(),
+        })
+        .optional(),
+    )
+    .query(async ({ ctx, input }) => {
+      const sessionUser = ctx.session?.user;
+      if (!sessionUser?.id) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in." });
+      }
+
+      assertAgencyDashboardAccess((sessionUser as { role?: string })?.role);
+
+      return loadServerMetrics({
+        persist: input?.persist !== false,
+        force: false,
+      });
+    }),
+
+  /** Pull a fresh Plesk reading, always persist it, and return the updated series. */
+  refreshServerMetrics: protectedProcedure.mutation(async ({ ctx }) => {
+    const sessionUser = ctx.session?.user;
+    if (!sessionUser?.id) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in." });
+    }
+
+    assertAgencyDashboardAccess((sessionUser as { role?: string })?.role);
+
+    return loadServerMetrics({ persist: true, force: true });
   }),
 });
