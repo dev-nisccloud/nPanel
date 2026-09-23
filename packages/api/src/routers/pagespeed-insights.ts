@@ -1,10 +1,12 @@
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { db, eq } from "@npanel/db";
+import {
+  pagespeedInsightCache,
+  type PageSpeedFormattedResult,
+} from "@npanel/db/schema/pagespeed-insights";
 import { protectedProcedure, router } from '../trpc';
-
-// Simple in-memory cache (can be upgraded to Redis later)
-const cache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
 
 /**
  * Google raised the PSI API max analysis window to 120s (2021-03-02 release notes).
@@ -33,25 +35,16 @@ const PSI_BACKOFF_MAX_MS = 8_000;
 const PSI_API_ENDPOINT =
   "https://pagespeedonline.googleapis.com/pagespeedonline/v5/runPagespeed";
 
-function getCacheKey(url: string, strategy: 'mobile' | 'desktop'): string {
-  return `pagespeed:${url}:${strategy}`;
-}
-
-function getCachedData(key: string): any | null {
-  const cached = cache.get(key);
-  if (!cached) return null;
-
-  const now = Date.now();
-  if (now - cached.timestamp > CACHE_TTL) {
-    cache.delete(key);
-    return null;
+function normalizeSiteUrl(rawUrl: string): string {
+  const parsed = new URL(rawUrl);
+  const host = parsed.hostname.replace(/\.$/, "").toLowerCase();
+  if (!host) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Invalid URL format",
+    });
   }
-
-  return cached.data;
-}
-
-function setCachedData(key: string, data: any): void {
-  cache.set(key, { data, timestamp: Date.now() });
+  return `https://${host}`;
 }
 
 function sleep(ms: number): Promise<void> {
@@ -289,7 +282,7 @@ async function callPageSpeedAPI(url: string, strategy: 'mobile' | 'desktop'): Pr
 /**
  * Extract and format performance metrics from API response
  */
-function formatPageSpeedData(apiResponse: any) {
+function formatPageSpeedData(apiResponse: any): PageSpeedFormattedResult {
   const lighthouse = apiResponse.lighthouseResult;
   const categories = lighthouse?.categories || {};
   const audits = lighthouse?.audits || {};
@@ -382,50 +375,176 @@ function formatPageSpeedData(apiResponse: any) {
   };
 }
 
+function toErrorMessage(error: unknown): string {
+  if (error instanceof TRPCError) return error.message;
+  if (error instanceof Error) return error.message;
+  return "Failed to fetch PageSpeed Insights data";
+}
+
+type PageSpeedSiteResult = {
+  siteUrl: string;
+  cached: boolean;
+  capturedAt: string | null;
+  desktop: PageSpeedFormattedResult | null;
+  mobile: PageSpeedFormattedResult | null;
+  desktopError?: string;
+  mobileError?: string;
+};
+
+function hasCachedStrategies(row: {
+  desktop: PageSpeedFormattedResult | null;
+  mobile: PageSpeedFormattedResult | null;
+} | undefined): boolean {
+  return Boolean(row?.desktop || row?.mobile);
+}
+
+async function getCachedRow(siteUrl: string) {
+  const [row] = await db
+    .select()
+    .from(pagespeedInsightCache)
+    .where(eq(pagespeedInsightCache.siteUrl, siteUrl))
+    .limit(1);
+  return row;
+}
+
+async function saveSiteResults(params: {
+  siteUrl: string;
+  desktop: PageSpeedFormattedResult | null;
+  mobile: PageSpeedFormattedResult | null;
+}): Promise<Date> {
+  const now = new Date();
+  const inserted = await db
+    .insert(pagespeedInsightCache)
+    .values({
+      id: randomUUID(),
+      siteUrl: params.siteUrl,
+      desktop: params.desktop,
+      mobile: params.mobile,
+      capturedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .onConflictDoUpdate({
+      target: pagespeedInsightCache.siteUrl,
+      set: {
+        desktop: params.desktop,
+        mobile: params.mobile,
+        capturedAt: now,
+        updatedAt: now,
+      },
+    })
+    .returning({ capturedAt: pagespeedInsightCache.capturedAt });
+
+  return inserted[0]?.capturedAt ?? now;
+}
+
+async function fetchLiveBoth(url: string): Promise<{
+  desktop: PageSpeedFormattedResult | null;
+  mobile: PageSpeedFormattedResult | null;
+  desktopError?: string;
+  mobileError?: string;
+}> {
+  const [desktopSettled, mobileSettled] = await Promise.allSettled([
+    callPageSpeedAPI(url, "desktop").then(formatPageSpeedData),
+    callPageSpeedAPI(url, "mobile").then(formatPageSpeedData),
+  ]);
+
+  const desktop =
+    desktopSettled.status === "fulfilled" ? desktopSettled.value : null;
+  const mobile =
+    mobileSettled.status === "fulfilled" ? mobileSettled.value : null;
+
+  return {
+    desktop,
+    mobile,
+    desktopError:
+      desktopSettled.status === "rejected"
+        ? toErrorMessage(desktopSettled.reason)
+        : undefined,
+    mobileError:
+      mobileSettled.status === "rejected"
+        ? toErrorMessage(mobileSettled.reason)
+        : undefined,
+  };
+}
+
+async function loadPageSpeed(
+  rawUrl: string,
+  forceRefresh: boolean,
+): Promise<PageSpeedSiteResult> {
+  const siteUrl = normalizeSiteUrl(rawUrl);
+  const existing = await getCachedRow(siteUrl);
+
+  if (!forceRefresh && hasCachedStrategies(existing)) {
+    return {
+      siteUrl,
+      cached: true,
+      capturedAt: existing?.capturedAt?.toISOString() ?? null,
+      desktop: existing?.desktop ?? null,
+      mobile: existing?.mobile ?? null,
+    };
+  }
+
+  const live = await fetchLiveBoth(siteUrl);
+  const desktop = live.desktop ?? existing?.desktop ?? null;
+  const mobile = live.mobile ?? existing?.mobile ?? null;
+
+  if (!desktop && !mobile) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: live.desktopError || live.mobileError || "Failed to get PageSpeed Insights data",
+    });
+  }
+
+  const capturedAt = await saveSiteResults({ siteUrl, desktop, mobile });
+
+  return {
+    siteUrl,
+    cached: false,
+    capturedAt: capturedAt.toISOString(),
+    desktop,
+    mobile,
+    desktopError: live.desktopError,
+    mobileError: live.mobileError,
+  };
+}
+
+const pageSpeedInput = z.object({
+  url: z.string().url("Invalid URL format"),
+});
+
 export const pagespeedInsightsRouter = router({
   getPageSpeed: protectedProcedure
-    .input(z.object({
-      url: z.string().url('Invalid URL format'),
-      strategy: z.enum(['mobile', 'desktop']).default('mobile'),
-      forceRefresh: z.boolean().optional().default(false),
-    }))
+    .input(pageSpeedInput)
     .query(async ({ input }) => {
       try {
-        const { url, strategy, forceRefresh } = input;
-        const cacheKey = getCacheKey(url, strategy);
-
-        // Check cache first (unless force refresh)
-        if (!forceRefresh) {
-          const cached = getCachedData(cacheKey);
-          if (cached) {
-            return {
-              ...cached,
-              cached: true,
-            };
-          }
-        }
-
-        // Call Google API
-        const apiResponse = await callPageSpeedAPI(url, strategy);
-
-        // Format the response
-        const formattedData = formatPageSpeedData(apiResponse);
-
-        // Cache the result
-        setCachedData(cacheKey, formattedData);
-
-        return {
-          ...formattedData,
-          cached: false,
-        };
+        return await loadPageSpeed(input.url, false);
       } catch (error) {
-        console.error('PageSpeed Insights API Error:', error);
+        console.error("PageSpeed Insights API Error:", error);
         if (error instanceof TRPCError) {
           throw error;
         }
         throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: `Failed to get PageSpeed Insights data: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Failed to get PageSpeed Insights data: ${error instanceof Error ? error.message : "Unknown error"}`,
+          cause: error,
+        });
+      }
+    }),
+
+  runPageSpeed: protectedProcedure
+    .input(pageSpeedInput)
+    .mutation(async ({ input }) => {
+      try {
+        return await loadPageSpeed(input.url, true);
+      } catch (error) {
+        console.error("PageSpeed Insights API Error:", error);
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Failed to get PageSpeed Insights data: ${error instanceof Error ? error.message : "Unknown error"}`,
           cause: error,
         });
       }

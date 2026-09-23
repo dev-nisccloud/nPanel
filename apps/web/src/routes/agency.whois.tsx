@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "react-router";
 import {
 	Activity,
 	AlertCircle,
@@ -680,8 +681,10 @@ const EXAMPLE_DOMAINS = ["google.com", "safaricom.co.ke", "cloudflare.com", "bbc
 
 export default function WhoisCheckerPage() {
 	const inputRef = React.useRef<HTMLInputElement>(null);
-	const [inputValue, setInputValue] = React.useState("");
-	const [queriedDomain, setQueriedDomain] = React.useState<string | null>(null);
+	const [searchParams] = useSearchParams();
+	const initialDomain = sanitizeDomainInput(searchParams.get("domain") ?? "");
+	const [inputValue, setInputValue] = React.useState(initialDomain);
+	const [queriedDomain, setQueriedDomain] = React.useState<string | null>(initialDomain || null);
 
 	const { data, isLoading, isFetching, isError, error } = trpc.whois.lookup.useQuery(
 		{ domain: queriedDomain ?? "" },

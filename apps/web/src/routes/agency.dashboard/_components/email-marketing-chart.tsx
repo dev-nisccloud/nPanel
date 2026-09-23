@@ -1,11 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
+import { Area, AreaChart, XAxis } from "recharts";
 import { format, subDays } from "date-fns";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+	type ChartConfig,
+	ChartContainer,
+	ChartTooltip,
+	ChartTooltipContent,
+} from "@/components/ui/chart";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,37 +18,24 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { trpc } from "@/utils/trpc";
 
 const emailChartConfigBase = {
-	sent: { label: "Sent", color: "#64748b" },
+	sent: { label: "Sent", color: "#6366f1" },
 	delivered: { label: "Delivered", color: "#10b981" },
-	opened: { label: "Opened", color: "#059669" },
-	clicked: { label: "Clicked", color: "#0f172a" },
+	opened: { label: "Opened", color: "#f59e0b" },
+	clicked: { label: "Clicked", color: "#ec4899" },
 	bounced: { label: "Bounced", color: "#ef4444" },
 	complained: { label: "Complained", color: "#f97316" },
-	unknown: { label: "Unknown", color: "#334155" },
+	unknown: { label: "Unknown", color: "#64748b" },
 } satisfies ChartConfig;
 
 export function EmailMarketingChart() {
 	const isMobile = useIsMobile();
 	const [timeRange, setTimeRange] = React.useState("30d");
-	const [clickedColor, setClickedColor] = React.useState("#0f172a");
 
 	React.useEffect(() => {
 		if (isMobile) setTimeRange("7d");
 	}, [isMobile]);
 
-	React.useEffect(() => {
-		const raw = getComputedStyle(document.documentElement).getPropertyValue("--primary").trim();
-		if (!raw) return;
-		setClickedColor(raw.startsWith("#") ? raw : `hsl(${raw})`);
-	}, []);
-
-	const emailChartConfig = React.useMemo(
-		() => ({
-			...emailChartConfigBase,
-			clicked: { ...emailChartConfigBase.clicked, color: clickedColor },
-		}),
-		[clickedColor],
-	);
+	const emailChartConfig = emailChartConfigBase;
 
 	const fromDate = React.useMemo(() => {
 		const days = timeRange === "7d" ? 7 : 30;
@@ -127,11 +119,20 @@ export function EmailMarketingChart() {
 
 	if (!hasActivity) return null;
 
+	const totals = chartData.reduce(
+		(sum, day) => ({
+			sent: sum.sent + day.sent,
+			delivered: sum.delivered + day.delivered,
+			opened: sum.opened + day.opened,
+			clicked: sum.clicked + day.clicked,
+		}),
+		{ sent: 0, delivered: 0, opened: 0, clicked: 0 },
+	);
+
 	return (
-		<Card>
-			<CardHeader>
-				<CardTitle>Email marketing</CardTitle>
-				<CardDescription>Campaign performance</CardDescription>
+		<Card className="h-full gap-0 py-0">
+			<CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 px-5 py-4">
+				<CardTitle className="text-sm">Email marketing</CardTitle>
 				<div className="flex items-center justify-end">
 					<ToggleGroup
 						type="single"
@@ -164,76 +165,54 @@ export function EmailMarketingChart() {
 					</Select>
 				</div>
 			</CardHeader>
-			<CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
-				<ChartContainer config={emailChartConfig} className="aspect-auto h-[250px] w-full">
-					<AreaChart data={chartData}>
+			<CardContent className="px-5 pb-4">
+				<div className="grid grid-cols-4 gap-3 pb-2">
+					{(
+						[
+							["Sent", totals.sent],
+							["Delivered", totals.delivered],
+							["Opened", totals.opened],
+							["Clicked", totals.clicked],
+						] as const
+					).map(([label, value]) => (
+						<div key={label}>
+							<p className="text-[11px] text-muted-foreground">{label}</p>
+							<p className="text-sm font-medium tabular-nums">{value.toLocaleString()}</p>
+						</div>
+					))}
+				</div>
+				<ChartContainer config={emailChartConfig} className="aspect-auto h-[140px] w-full">
+					<AreaChart data={chartData} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
 						<defs>
-							<linearGradient id="fillSent" x1="0" y1="0" x2="0" y2="1">
-								<stop offset="5%" stopColor="var(--color-sent)" stopOpacity={1.0} />
-								<stop offset="95%" stopColor="var(--color-sent)" stopOpacity={0.1} />
-							</linearGradient>
-							<linearGradient id="fillDelivered" x1="0" y1="0" x2="0" y2="1">
-								<stop offset="5%" stopColor="var(--color-delivered)" stopOpacity={0.9} />
-								<stop offset="95%" stopColor="var(--color-delivered)" stopOpacity={0.1} />
-							</linearGradient>
-							<linearGradient id="fillOpened" x1="0" y1="0" x2="0" y2="1">
-								<stop offset="5%" stopColor="var(--color-opened)" stopOpacity={0.8} />
-								<stop offset="95%" stopColor="var(--color-opened)" stopOpacity={0.1} />
-							</linearGradient>
-							<linearGradient id="fillClicked" x1="0" y1="0" x2="0" y2="1">
-								<stop offset="5%" stopColor="var(--color-clicked)" stopOpacity={0.8} />
-								<stop offset="95%" stopColor="var(--color-clicked)" stopOpacity={0.1} />
-							</linearGradient>
-							<linearGradient id="fillBounced" x1="0" y1="0" x2="0" y2="1">
-								<stop offset="5%" stopColor="var(--color-bounced)" stopOpacity={0.8} />
-								<stop offset="95%" stopColor="var(--color-bounced)" stopOpacity={0.1} />
-							</linearGradient>
-							<linearGradient id="fillComplained" x1="0" y1="0" x2="0" y2="1">
-								<stop offset="5%" stopColor="var(--color-complained)" stopOpacity={0.8} />
-								<stop offset="95%" stopColor="var(--color-complained)" stopOpacity={0.1} />
-							</linearGradient>
-							<linearGradient id="fillUnknown" x1="0" y1="0" x2="0" y2="1">
-								<stop offset="5%" stopColor="var(--color-unknown)" stopOpacity={0.75} />
-								<stop offset="95%" stopColor="var(--color-unknown)" stopOpacity={0.1} />
+							<linearGradient id="email-sent-fill" x1="0" y1="0" x2="0" y2="1">
+								<stop offset="0%" stopColor="#6366f1" stopOpacity={0.18} />
+								<stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
 							</linearGradient>
 						</defs>
-						<CartesianGrid vertical={false} />
-						<XAxis
-							dataKey="date"
-							tickLine={false}
-							axisLine={false}
-							tickMargin={8}
-							minTickGap={32}
-							tickFormatter={(value) => {
-								const date = new Date(value);
-								return date.toLocaleDateString("en-US", {
-									month: "short",
-									day: "numeric",
-								});
-							}}
-						/>
+						<XAxis dataKey="date" hide />
 						<ChartTooltip
 							cursor={false}
-							defaultIndex={isMobile ? -1 : 10}
 							content={
 								<ChartTooltipContent
-									labelFormatter={(value) => {
-										return new Date(value).toLocaleDateString("en-US", {
+									labelFormatter={(value) =>
+										new Date(value).toLocaleDateString("en-US", {
 											month: "short",
 											day: "numeric",
-										});
-									}}
-									indicator="dot"
+										})
+									}
+									indicator="line"
 								/>
 							}
 						/>
-						<Area dataKey="bounced" type="natural" fill="url(#fillBounced)" stroke="var(--color-bounced)" stackId="a" />
-						<Area dataKey="complained" type="natural" fill="url(#fillComplained)" stroke="var(--color-complained)" stackId="a" />
-						<Area dataKey="unknown" type="natural" fill="url(#fillUnknown)" stroke="var(--color-unknown)" stackId="a" />
-						<Area dataKey="clicked" type="natural" fill="url(#fillClicked)" stroke="var(--color-clicked)" stackId="a" strokeWidth={2} />
-						<Area dataKey="opened" type="natural" fill="url(#fillOpened)" stroke="var(--color-opened)" stackId="a" />
-						<Area dataKey="delivered" type="natural" fill="url(#fillDelivered)" stroke="var(--color-delivered)" stackId="a" />
-						<Area dataKey="sent" type="natural" fill="url(#fillSent)" stroke="var(--color-sent)" stackId="a" />
+						<Area
+							dataKey="sent"
+							type="monotone"
+							stroke="#6366f1"
+							strokeWidth={1.5}
+							fill="url(#email-sent-fill)"
+							dot={false}
+							activeDot={false}
+						/>
 					</AreaChart>
 				</ChartContainer>
 			</CardContent>

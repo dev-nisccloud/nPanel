@@ -3,58 +3,53 @@
 import { Link } from "react-router";
 import { ArrowUpRight } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatInvoiceDate } from "@/lib/invoice-date";
-import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 import { invoiceUiSchema, paymentTransactionUiSchema } from "./schemas";
 
-function getInvoiceStatusLabel(status: string) {
-	switch (status) {
-		case "PARTIALLY_PAID":
-			return "Partially Paid";
-		case "WRITTEN_OFF":
-			return "Written Off";
-		default:
-			return status.charAt(0) + status.slice(1).toLowerCase().replace(/_/g, " ");
-	}
+function invoiceStatusClass(status: string) {
+	if (status === "PAID") return "text-green-600";
+	if (status === "OVERDUE") return "text-destructive";
+	if (status === "SENT") return "text-primary";
+	return "text-muted-foreground";
 }
 
-function getInvoiceStatusVariant(status: string) {
-	switch (status) {
-		case "PAID":
-			return "default" as const;
-		case "OVERDUE":
-		case "CANCELLED":
-		case "WRITTEN_OFF":
-			return "destructive" as const;
-		case "PARTIALLY_PAID":
-		case "DRAFT":
-			return "secondary" as const;
-		default:
-			return "outline" as const;
-	}
+function paymentStatusClass(status: string) {
+	if (status === "SUCCESS") return "text-green-600";
+	if (status === "FAILED" || status === "CANCELLED") return "text-destructive";
+	if (status === "PENDING" || status === "PROCESSING") return "text-amber-600";
+	return "text-muted-foreground";
 }
 
-function getTransactionStatusLabel(status: string) {
+function paymentStatusLabel(status: string) {
 	if (status === "PARTIALLY_REFUNDED") return "Partially Refunded";
 	return status.charAt(0) + status.slice(1).toLowerCase();
 }
 
-function RecentListSkeleton() {
+function formatMoney(currency: string, amount: string | null | undefined) {
+	if (!amount) return "—";
+	const value = parseFloat(amount);
+	if (Number.isNaN(value)) return "—";
+	return `${currency} ${value.toLocaleString()}`;
+}
+
+function ActivityState({ message }: { message: string }) {
 	return (
-		<div className="divide-y">
+		<p className="flex min-h-[180px] items-center justify-center px-5 text-sm text-muted-foreground">
+			{message}
+		</p>
+	);
+}
+
+function TableSkeleton() {
+	return (
+		<div className="space-y-px p-2">
 			{Array.from({ length: 5 }).map((_, index) => (
-				<div key={index} className="flex items-center justify-between gap-3 px-5 py-3.5">
-					<div className="min-w-0 flex-1 space-y-1.5">
-						<Skeleton className="h-4 w-40" />
-						<Skeleton className="h-3 w-24" />
-					</div>
-					<Skeleton className="h-4 w-16" />
-				</div>
+				<Skeleton key={index} className="h-14 w-full" />
 			))}
 		</div>
 	);
@@ -62,19 +57,12 @@ function RecentListSkeleton() {
 
 function RecentInvoices() {
 	const { data, isLoading, isError } = trpc.invoicing.list.useQuery({
-		limit: 6,
+		limit: 5,
 		offset: 0,
 	});
 
-	if (isLoading) return <RecentListSkeleton />;
-
-	if (isError || !data) {
-		return (
-			<p className="px-5 py-8 text-center text-sm text-muted-foreground">
-				Failed to load invoices
-			</p>
-		);
-	}
+	if (isLoading) return <TableSkeleton />;
+	if (isError || !data) return <ActivityState message="Failed to load invoices" />;
 
 	const invoices = data.invoices.map((invoice) =>
 		invoiceUiSchema.parse({
@@ -91,59 +79,41 @@ function RecentInvoices() {
 		}),
 	);
 
-	if (invoices.length === 0) {
-		return (
-			<p className="px-5 py-8 text-center text-sm text-muted-foreground">No invoices yet</p>
-		);
-	}
+	if (invoices.length === 0) return <ActivityState message="No invoices yet" />;
 
 	return (
-		<div className="divide-y">
+		<ul>
 			{invoices.map((invoice) => (
-				<Link
-					key={invoice.id}
-					to={`/agency/invoices/${invoice.id}`}
-					className="flex items-center justify-between gap-3 px-5 py-3.5 transition-colors hover:bg-muted/50"
-				>
-					<div className="min-w-0">
-						<p className="truncate text-sm font-medium">
-							{invoice.invoiceNumber || `Invoice ${invoice.id.slice(0, 8)}`}
-						</p>
-						<p className="truncate text-xs text-muted-foreground">
-							{invoice.customerName || "No customer"}
-						</p>
-					</div>
-					<div className="flex shrink-0 flex-col items-end gap-1">
-						<p className="text-sm font-medium tabular-nums">
-							{invoice.amount
-								? `${invoice.currency} ${parseFloat(invoice.amount).toLocaleString()}`
-								: "—"}
-						</p>
-						<Badge variant={getInvoiceStatusVariant(invoice.status)} className="text-[10px]">
-							{getInvoiceStatusLabel(invoice.status)}
-						</Badge>
-					</div>
-				</Link>
+				<li key={invoice.id} className="border-b last:border-b-0">
+					<Link
+						to={`/agency/invoices/${invoice.id}`}
+						className="flex items-baseline justify-between gap-4 px-4 py-2.5 hover:bg-muted/40"
+					>
+						<span className="min-w-0 truncate text-sm">
+							<span className="font-medium">{invoice.invoiceNumber || invoice.id.slice(0, 8)}</span>
+							<span className="text-muted-foreground"> · {invoice.customerName || "No customer"}</span>
+						</span>
+						<span className="flex shrink-0 items-baseline gap-2 text-sm">
+							<span className="tabular-nums">{formatMoney(invoice.currency, invoice.amount)}</span>
+							<span className={invoiceStatusClass(invoice.status)}>
+								{invoice.status.replaceAll("_", " ")}
+							</span>
+						</span>
+					</Link>
+				</li>
 			))}
-		</div>
+		</ul>
 	);
 }
 
 function RecentTransactions() {
 	const { data, isLoading, isError } = trpc.paymentTransactions.list.useQuery({
-		limit: 6,
+		limit: 5,
 		offset: 0,
 	});
 
-	if (isLoading) return <RecentListSkeleton />;
-
-	if (isError || !data) {
-		return (
-			<p className="px-5 py-8 text-center text-sm text-muted-foreground">
-				Failed to load transactions
-			</p>
-		);
-	}
+	if (isLoading) return <TableSkeleton />;
+	if (isError || !data) return <ActivityState message="Failed to load transactions" />;
 
 	const transactions = data.transactions.map((transaction) =>
 		paymentTransactionUiSchema.parse({
@@ -166,63 +136,65 @@ function RecentTransactions() {
 		}),
 	);
 
-	if (transactions.length === 0) {
-		return (
-			<p className="px-5 py-8 text-center text-sm text-muted-foreground">
-				No transactions yet
-			</p>
-		);
-	}
+	if (transactions.length === 0) return <ActivityState message="No transactions yet" />;
 
 	return (
-		<div className="divide-y">
+		<ul>
 			{transactions.map((transaction) => {
 				const dateValue = transaction.processedAt
 					? new Date(transaction.processedAt)
 					: new Date(transaction.initiatedAt);
+				const title =
+					transaction.accountReference ||
+					transaction.receiptNumber ||
+					transaction.id.slice(0, 8);
 				return (
-					<div
-						key={transaction.id}
-						className="flex items-center justify-between gap-3 px-5 py-3.5"
-					>
-						<div className="min-w-0">
-							<p className="truncate text-sm font-medium">
-								{transaction.accountReference ||
-									transaction.receiptNumber ||
-									transaction.id.slice(0, 8)}
-							</p>
-							<p className="text-xs text-muted-foreground">
-								{Number.isNaN(dateValue.getTime()) ? "" : formatInvoiceDate(dateValue)}
-							</p>
-						</div>
-						<div className="flex shrink-0 flex-col items-end gap-1">
-							<p className="text-sm font-medium tabular-nums">
-								{transaction.currency} {parseFloat(transaction.amount).toLocaleString()}
-							</p>
-							<Badge
-								variant={transaction.status === "FAILED" ? "destructive" : "outline"}
-								className={cn(
-									"text-[10px]",
-									transaction.status === "SUCCESS" &&
-										"border-green-200 bg-green-100 text-green-800 dark:border-green-800 dark:bg-green-900 dark:text-green-200",
-								)}
-							>
-								{getTransactionStatusLabel(transaction.status)}
-							</Badge>
-						</div>
-					</div>
+					<li key={transaction.id} className="border-b last:border-b-0">
+						<Link
+							to="/agency/transactions"
+							className="flex items-baseline justify-between gap-4 px-4 py-2.5 hover:bg-muted/40"
+						>
+							<span className="min-w-0 truncate text-sm">
+								<span className="font-medium">{title}</span>
+								<span className="text-muted-foreground">
+									{" "}
+									· {transaction.gateway}
+									{Number.isNaN(dateValue.getTime()) ? "" : ` · ${formatInvoiceDate(dateValue)}`}
+								</span>
+							</span>
+							<span className="flex shrink-0 items-baseline gap-2 text-sm">
+								<span className="tabular-nums">{formatMoney(transaction.currency, transaction.amount)}</span>
+								<span className={paymentStatusClass(transaction.status)}>
+									{paymentStatusLabel(transaction.status)}
+								</span>
+							</span>
+						</Link>
+					</li>
 				);
 			})}
+		</ul>
+	);
+}
+
+function ViewAllLink({ href, label }: { href: string; label: string }) {
+	return (
+		<div className="flex justify-end border-t px-4 py-3">
+			<Button variant="ghost" size="sm" asChild>
+				<Link to={href}>
+					{label}
+					<ArrowUpRight className="size-3.5" />
+				</Link>
+			</Button>
 		</div>
 	);
 }
 
 export function RecentActivity() {
 	return (
-		<Card className="gap-0 overflow-hidden py-0">
+		<Card className="h-full gap-0 overflow-hidden py-0">
 			<Tabs defaultValue="invoices">
 				<div className="flex items-center justify-between gap-3 border-b px-5 py-3">
-					<CardTitle className="text-base">Recent activity</CardTitle>
+					<CardTitle className="text-sm">Recent activity</CardTitle>
 					<TabsList className="h-8">
 						<TabsTrigger value="invoices" className="text-xs">
 							Invoices
@@ -235,27 +207,11 @@ export function RecentActivity() {
 				<CardContent className="p-0">
 					<TabsContent value="invoices" className="mt-0">
 						<RecentInvoices />
-						<div className="border-t px-5 py-3">
-							<Link
-								to="/agency/invoices"
-								className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-							>
-								View all invoices
-								<ArrowUpRight className="size-3.5" />
-							</Link>
-						</div>
+						<ViewAllLink href="/agency/invoices" label="View all invoices" />
 					</TabsContent>
 					<TabsContent value="payments" className="mt-0">
 						<RecentTransactions />
-						<div className="border-t px-5 py-3">
-							<Link
-								to="/agency/transactions"
-								className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-							>
-								View all transactions
-								<ArrowUpRight className="size-3.5" />
-							</Link>
-						</div>
+						<ViewAllLink href="/agency/transactions" label="View all transactions" />
 					</TabsContent>
 				</CardContent>
 			</Tabs>
