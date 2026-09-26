@@ -17,6 +17,7 @@ import { DetailCardTabsTrigger, DETAIL_TABS_LIST_CLASS } from "@/components/ui/d
 import { HostingOverview, type HostingDetailTab } from "@/components/hosting/hosting-overview";
 import { DnsTable } from "@/components/hosting/dns";
 import { MailTable } from "@/components/hosting/mail";
+import { EmailMalwareProtectionBadge } from "@/components/hosting/mail/email-malware-protection-badge";
 import { FileManager } from "./file-manager";
 import { SubdomainsTable } from "@/components/hosting/subdomains";
 import { DatabasesTable, usePrefetchDatabasesBySiteId } from "@/components/hosting/databases";
@@ -228,8 +229,9 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             {getStatusBadge(hostingData.gen_info.status ?? 0)}
+            <EmailMalwareProtectionBadge variant="header" />
             <PleskLinkedSubscriptionUpgradeButton
               pleskSubscriptionId={hostingData.id ?? subscriptionId}
               domain={hostingData.gen_info.name}
