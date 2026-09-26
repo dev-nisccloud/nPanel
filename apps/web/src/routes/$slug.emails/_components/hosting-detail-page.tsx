@@ -17,6 +17,7 @@ import { PleskLinkedSubscriptionUpgradeButton } from "@/routes/agency.subscripti
 import { HostingOverview } from "@/components/hosting/hosting-overview";
 import { DnsTable } from "@/components/hosting/dns";
 import { MailTable } from "@/components/hosting/mail";
+import { EmailMalwareProtectionBadge } from "@/components/hosting/mail/email-malware-protection-badge";
 import { FileManager } from "./file-manager";
 import { hostingDetailSchema } from "@/components/hosting/hosting-detail-schema";
 import { useHostingDetailBatched } from "./use-hosting-detail-batched";
@@ -173,8 +174,9 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             {getStatusBadge(hostingData.gen_info.status ?? 0)}
+            <EmailMalwareProtectionBadge variant="header" />
             <PleskLinkedSubscriptionUpgradeButton
               pleskSubscriptionId={hostingData.id ?? subscriptionId}
               teamSlug={teamSlug}

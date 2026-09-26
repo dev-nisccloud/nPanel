@@ -1,5 +1,6 @@
-import { useParams } from "react-router";
+import { useParams, useSearchParams } from "react-router";
 import { WordPressDetailPage } from "@/components/wordpress/detail/wordpress-detail-page";
+import { resolveHostingWordPressReturnTo } from "@/components/wordpress/wordpress-return-to";
 import React, { Component, ErrorInfo, ReactNode } from "react";
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
@@ -35,6 +36,8 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
 
 export default function WordPressDetailRoute() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const hostingReturnTo = resolveHostingWordPressReturnTo(searchParams.get("returnTo"));
 
   if (!id) {
     return (
@@ -48,8 +51,8 @@ export default function WordPressDetailRoute() {
     <ErrorBoundary>
       <WordPressDetailPage
         installationId={id}
-        backTo="/agency/wordpress"
-        backLabel="Back to WordPress"
+        backTo={hostingReturnTo ?? "/agency/wordpress"}
+        backLabel={hostingReturnTo ? "Back to hosting" : "Back to WordPress"}
       />
     </ErrorBoundary>
   );

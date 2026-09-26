@@ -3,7 +3,8 @@
 import * as React from "react";
 import { ArrowLeft, LayoutDashboard, Network, Mail, Folder, Layers, Database, ArchiveRestore } from "lucide-react";
 import { Icons } from "@/components/icons";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
+import { hostingDetailTabFromSearch } from "@/components/wordpress/wordpress-return-to";
 import { z } from "zod";
 
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +17,7 @@ import { DetailCardTabsTrigger, DETAIL_TABS_LIST_CLASS } from "@/components/ui/d
 import { HostingOverview, type HostingDetailTab } from "@/components/hosting/hosting-overview";
 import { DnsTable } from "@/components/hosting/dns";
 import { MailTable } from "@/components/hosting/mail";
+import { EmailMalwareProtectionBadge } from "@/components/hosting/mail/email-malware-protection-badge";
 import { FileManager } from "./file-manager";
 import { SubdomainsTable } from "@/components/hosting/subdomains";
 import { DatabasesTable, usePrefetchDatabasesBySiteId } from "@/components/hosting/databases";
@@ -131,10 +133,13 @@ function HostingDetailError({ error, onRetry }: { error: Error; onRetry: () => v
 
 export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
   // Use batched endpoint - fetches both hosting data and subscription link in one request
+  const [searchParams] = useSearchParams();
   const { data: hostingData, isLoading, isError, error, refetch } = useHostingDetailBatched(subscriptionId);
   const [isCreateSubscriptionOpen, setIsCreateSubscriptionOpen] = React.useState(false);
   const [installWordPressOpen, setInstallWordPressOpen] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState("overview");
+  const [activeTab, setActiveTab] = React.useState(() =>
+    hostingDetailTabFromSearch(searchParams.get("tab")),
+  );
   const [createIntentTab, setCreateIntentTab] = React.useState<HostingDetailTab | null>(null);
   const suspendActions = useHostingSubscriptionSuspend({
     onSuccess: () => refetch(),
@@ -224,8 +229,9 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             {getStatusBadge(hostingData.gen_info.status ?? 0)}
+            <EmailMalwareProtectionBadge variant="header" />
             <PleskLinkedSubscriptionUpgradeButton
               pleskSubscriptionId={hostingData.id ?? subscriptionId}
               domain={hostingData.gen_info.name}

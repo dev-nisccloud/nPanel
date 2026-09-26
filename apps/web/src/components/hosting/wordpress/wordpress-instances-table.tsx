@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { CleanList, CleanListCell, CleanListRow } from "@/components/ui/clean-list";
 import { VisitSiteButton } from "@/components/ui/list-row-actions";
 
+import { hostingWordPressReturnPath } from "@/components/wordpress/wordpress-return-to";
 import { wordpressInstallationSchema } from "@/routes/$slug.wordpress/_components/schema";
 import { useWordPressInstances } from "@/routes/$slug.wordpress/_components/use-wordpress-instances";
 
@@ -183,7 +184,7 @@ export function WordPressInstancesTable({ domainName, onInstallClick }: WordPres
         ]}
       >
         {filteredData.map((item) => {
-          const href = `${detailBasePath}/${item.id}`;
+          const href = `${detailBasePath}/${item.id}?returnTo=${encodeURIComponent(hostingWordPressReturnPath(pathname))}`;
           const title = item.displayTitle || item.title || `Installation ${item.id}`;
 
           return (

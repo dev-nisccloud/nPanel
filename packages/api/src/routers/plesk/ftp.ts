@@ -9,6 +9,18 @@ import { tmpdir } from "os";
 
 import { protectedProcedure, router } from "../../trpc";
 
+/** Shown to clients for every FTP failure. The underlying error stays in server logs. */
+const FTP_USER_ERROR_MESSAGE =
+  "An error occurred. Please try again later or contact support.";
+
+function ftpUserError(error: unknown): TRPCError {
+  console.error("FTP operation failed:", error);
+  return new TRPCError({
+    code: "INTERNAL_SERVER_ERROR",
+    message: FTP_USER_ERROR_MESSAGE,
+  });
+}
+
 // FTP Connection Schema
 const ftpConnectionSchema = z.object({
   host: z.string().min(1, "Host is required"),
@@ -112,7 +124,7 @@ async function createFtpClient(credentials: z.infer<typeof ftpConnectionSchema>)
     console.error("FTP connection failed:", error);
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
-      message: `Failed to connect to FTP server: ${error instanceof Error ? error.message : "Unknown error"}`,
+      message: FTP_USER_ERROR_MESSAGE,
     });
   }
 }
@@ -377,10 +389,7 @@ export const ftpRouter = router({
           message: "FTP connection successful" 
         };
       } catch (error) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to test FTP connection: ${error instanceof Error ? error.message : "Unknown error"}`,
-        });
+        throw ftpUserError(error);
       } finally {
         client.close();
       }
@@ -415,10 +424,7 @@ export const ftpRouter = router({
           path: input.path,
         };
       } catch (error) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to list directory: ${error instanceof Error ? error.message : "Unknown error"}`,
-        });
+        throw ftpUserError(error);
       } finally {
         client.close();
       }
@@ -437,10 +443,7 @@ export const ftpRouter = router({
           data: currentPath,
         };
       } catch (error) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to get current directory: ${error instanceof Error ? error.message : "Unknown error"}`,
-        });
+        throw ftpUserError(error);
       } finally {
         client.close();
       }
@@ -463,10 +466,7 @@ export const ftpRouter = router({
           data: newPath,
         };
       } catch (error) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to change directory: ${error instanceof Error ? error.message : "Unknown error"}`,
-        });
+        throw ftpUserError(error);
       } finally {
         client.close();
       }
@@ -491,10 +491,7 @@ export const ftpRouter = router({
           },
         };
       } catch (error) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to get file info: ${error instanceof Error ? error.message : "Unknown error"}`,
-        });
+        throw ftpUserError(error);
       } finally {
         client.close();
       }
@@ -513,10 +510,7 @@ export const ftpRouter = router({
           message: `File uploaded successfully to ${input.remotePath}`,
         };
       } catch (error) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to upload file: ${error instanceof Error ? error.message : "Unknown error"}`,
-        });
+        throw ftpUserError(error);
       } finally {
         client.close();
       }
@@ -552,10 +546,7 @@ export const ftpRouter = router({
           remotePath,
         };
       } catch (error) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to upload file: ${error instanceof Error ? error.message : "Unknown error"}`,
-        });
+        throw ftpUserError(error);
       } finally {
         // Cleanup temp file
         if (tempFilePath) {
@@ -578,10 +569,7 @@ export const ftpRouter = router({
           message: `File downloaded successfully to ${input.localPath}`,
         };
       } catch (error) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to download file: ${error instanceof Error ? error.message : "Unknown error"}`,
-        });
+        throw ftpUserError(error);
       } finally {
         client.close();
       }
@@ -600,10 +588,7 @@ export const ftpRouter = router({
           message: `Successfully renamed ${input.oldPath} to ${input.newPath}`,
         };
       } catch (error) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to rename: ${error instanceof Error ? error.message : "Unknown error"}`,
-        });
+        throw ftpUserError(error);
       } finally {
         client.close();
       }
@@ -629,10 +614,7 @@ export const ftpRouter = router({
           message: `File ${path} deleted successfully`,
         };
       } catch (error) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to delete file: ${error instanceof Error ? error.message : "Unknown error"}`,
-        });
+        throw ftpUserError(error);
       } finally {
         client.close();
       }
@@ -665,10 +647,7 @@ export const ftpRouter = router({
           message: `Directory ${path} deleted successfully`,
         };
       } catch (error) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to delete directory: ${error instanceof Error ? error.message : "Unknown error"}`,
-        });
+        throw ftpUserError(error);
       } finally {
         client.close();
       }
@@ -687,10 +666,7 @@ export const ftpRouter = router({
           message: `Directory ${input.path} created successfully`,
         };
       } catch (error) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to create directory: ${error instanceof Error ? error.message : "Unknown error"}`,
-        });
+        throw ftpUserError(error);
       } finally {
         client.close();
       }
@@ -710,10 +686,7 @@ export const ftpRouter = router({
           data: Object.fromEntries(features),
         };
       } catch (error) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to get FTP features: ${error instanceof Error ? error.message : "Unknown error"}`,
-        });
+        throw ftpUserError(error);
       } finally {
         client.close();
       }
@@ -783,10 +756,7 @@ export const ftpRouter = router({
           });
           fileBuffer.on('error', (error) => {
             cleanupTempFile(tempFilePath!);
-            reject(new TRPCError({
-              code: "INTERNAL_SERVER_ERROR",
-              message: `Failed to read downloaded file: ${error.message}`,
-            }));
+            reject(ftpUserError(error));
           });
         });
         
@@ -796,10 +766,7 @@ export const ftpRouter = router({
           cleanupTempFile(tempFilePath);
         }
         
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to download file: ${error instanceof Error ? error.message : "Unknown error"}`,
-        });
+        throw ftpUserError(error);
       } finally {
         client.close();
       }
@@ -969,10 +936,7 @@ export const ftpRouter = router({
           });
           zipBuffer.on('error', (error) => {
             cleanupTempFile(tempZipPath!);
-            reject(new TRPCError({
-              code: "INTERNAL_SERVER_ERROR",
-              message: `Failed to read zip file: ${error.message}`,
-            }));
+            reject(ftpUserError(error));
           });
         });
         
@@ -982,10 +946,7 @@ export const ftpRouter = router({
           cleanupTempFile(tempZipPath);
         }
         
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to download folder: ${error instanceof Error ? error.message : "Unknown error"}`,
-        });
+        throw ftpUserError(error);
       } finally {
         client.close();
       }
@@ -1085,10 +1046,7 @@ export const ftpRouter = router({
           
           fileBuffer.on('error', (error) => {
             cleanupTempFile(tempFilePath!);
-            reject(new TRPCError({
-              code: "INTERNAL_SERVER_ERROR",
-              message: `Failed to read file: ${error.message}`,
-            }));
+            reject(ftpUserError(error));
           });
         });
         
@@ -1101,10 +1059,7 @@ export const ftpRouter = router({
           throw error;
         }
         
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to read file: ${error instanceof Error ? error.message : "Unknown error"}`,
-        });
+        throw ftpUserError(error);
       } finally {
         client.close();
       }
@@ -1295,10 +1250,7 @@ export const ftpRouter = router({
           throw error;
         }
         
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to extract zip file: ${error instanceof Error ? error.message : "Unknown error"}`,
-        });
+        throw ftpUserError(error);
       } finally {
         client.close();
       }

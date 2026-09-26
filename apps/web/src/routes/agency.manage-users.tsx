@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Plus, RefreshCw, Search, User, EllipsisVertical, Eye } from "lucide-react";
+import { Plus, RefreshCw, Search, User, EllipsisVertical, Eye, ShieldAlert } from "lucide-react";
+import { authClient } from "@/lib/auth-client";
 import { toast } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,6 +53,9 @@ const EmptyState = ({ title, description, action }: { title: string; description
 );
 
 export default function ManageUsersPage() {
+  const { data: session, isPending: sessionPending } = authClient.useSession();
+  const isSuperAdmin =
+    (session?.user as { role?: string } | undefined)?.role === "AGENCY_SUPER_ADMIN";
   const [isCreateSheetOpen, setIsCreateSheetOpen] = React.useState(false);
   const [selectedUserId, setSelectedUserId] = React.useState<string | null>(null);
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -67,7 +71,10 @@ export default function ManageUsersPage() {
     action: "",
   });
 
-  const { data: users, isLoading, error, refetch } = trpc.manageUsers.getAll.useQuery({});
+  const { data: users, isLoading, error, refetch } = trpc.manageUsers.getAll.useQuery(
+    {},
+    { enabled: isSuperAdmin },
+  );
 
   const utils = trpc.useUtils();
 
@@ -154,6 +161,34 @@ export default function ManageUsersPage() {
       });
     }
   };
+
+  if (sessionPending) {
+    return (
+      <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+        <div className="w-full max-w-7xl mx-auto">
+          <div className="flex items-center justify-center py-12">
+            <Spinner size={32} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isSuperAdmin) {
+    return (
+      <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+        <div className="w-full max-w-7xl mx-auto">
+          <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+            <ShieldAlert className="h-8 w-8 text-destructive" />
+            <p className="text-sm font-semibold">You don&apos;t have access to Manage Users.</p>
+            <p className="max-w-md text-xs text-muted-foreground">
+              Only agency super admins can manage agency users. If you believe this is a mistake, please contact your account owner.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

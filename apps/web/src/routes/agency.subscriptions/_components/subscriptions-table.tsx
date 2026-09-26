@@ -17,6 +17,7 @@ import { toast } from "@/components/ui/sonner";
 import { captureEvent } from "@/lib/posthog";
 import { authClient } from "@/lib/auth-client";
 import { SubscriptionDeleteDialog } from "./subscription-delete-dialog";
+import { isSubscriptionRenewable } from "@/lib/subscription-renewal-pricing";
 
 function getBillingCycleDisplayName(cycle: string | null): string {
 	if (!cycle) return "";
@@ -69,6 +70,7 @@ export interface SubscriptionsTableProps {
 	/** Optional: if provided, View link will use this instead of navigation */
 	onViewSubscription?: (subscriptionId: string) => void;
 	onEditSubscription?: (subscriptionId: string) => void;
+	onRenewSubscription?: (subscriptionId: string) => void;
 	teamId?: string;
 	unassignedOnly?: boolean;
 }
@@ -76,6 +78,7 @@ export interface SubscriptionsTableProps {
 export function SubscriptionsTable({
 	onViewSubscription,
 	onEditSubscription,
+	onRenewSubscription,
 	teamId,
 	unassignedOnly,
 }: SubscriptionsTableProps) {
@@ -145,6 +148,10 @@ export function SubscriptionsTable({
 	const items: SearchableCleanListItem[] = filtered.map((sub) => {
 		const subscribed = formatDate(sub.subscriptionDate);
 		const expires = formatDate(sub.expiryDate);
+		const renewable = isSubscriptionRenewable({
+			status: sub.status,
+			billingCycle: sub.billingCycle,
+		});
 
 		return {
 			key: sub.id,
@@ -154,9 +161,16 @@ export function SubscriptionsTable({
 				</span>
 			),
 			description: (
-				<Badge variant="outline" className={getStatusBadgeClass(sub.status)}>
-					{sub.status.replace(/_/g, " ")}
-				</Badge>
+				<div className="flex items-center gap-2">
+					<Badge variant="outline" className={getStatusBadgeClass(sub.status)}>
+						{sub.status.replace(/_/g, " ")}
+					</Badge>
+					{renewable && (
+						<Badge variant="destructive" className="animate-pulse">
+							Renew Now
+						</Badge>
+					)}
+				</div>
 			),
 			cells: {
 				billing: <CleanListCell>{getBillingCycleDisplayName(sub.billingCycle)}</CleanListCell>,
@@ -174,6 +188,20 @@ export function SubscriptionsTable({
 			onClick: () => handleViewSubscription(sub.id),
 			actions: (
 				<>
+					{renewable && onRenewSubscription ? (
+						<Button
+							type="button"
+							variant="default"
+							size="sm"
+							className="h-7 px-3 text-xs"
+							onClick={(e) => {
+								e.stopPropagation();
+								onRenewSubscription(sub.id);
+							}}
+						>
+							Renew
+						</Button>
+					) : null}
 					<ViewDetailsButton onClick={() => handleViewSubscription(sub.id)} />
 					{onEditSubscription ? (
 						<Button

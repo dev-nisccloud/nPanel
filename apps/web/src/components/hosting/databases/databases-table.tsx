@@ -8,10 +8,10 @@ import {
   Database as DatabaseIcon,
   Trash2,
   Eye,
+  ExternalLink,
 } from "lucide-react";
 import { z } from "zod";
 import { toast } from "@/components/ui/sonner";
-import { Link, useLocation } from "react-router";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,8 +37,32 @@ import { ChangeDatabasePermissionsSheet } from "./change-database-permissions-sh
 import { DatabaseConnectionInfoDialog } from "./database-connection-info-dialog";
 import { CreateDatabaseSheet } from "./create-database-sheet";
 import { CreateDatabaseUserSheet } from "./create-database-user-sheet";
-import { captureEvent } from "@/lib/posthog";
 import { isMysqlFamily } from "./connection-string";
+import { captureEvent } from "@/lib/posthog";
+
+/** Accept only the Plesk one-time session URL for this database. */
+function isSafeOrionPhpMyAdminUrl(url: string, databaseId: number): boolean {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:") return false;
+    if (parsed.username || parsed.password || parsed.hash) return false;
+    if (parsed.pathname !== "/enterprise/rsession_init.php") return false;
+    if (typeof window !== "undefined" && parsed.host === window.location.host) return false;
+    const keys = [...parsed.searchParams.keys()];
+    if (
+      keys.length !== 2 ||
+      !keys.includes("PLESKSESSID") ||
+      !keys.includes("success_redirect_url")
+    ) {
+      return false;
+    }
+    const sessionId = parsed.searchParams.get("PLESKSESSID") ?? "";
+    if (!sessionId || sessionId.length > 512 || /[\s"'<>\\]/.test(sessionId)) return false;
+    return parsed.searchParams.get("success_redirect_url") === `/smb/database/webadmin/id/${databaseId}`;
+  } catch {
+    return false;
+  }
+}
 
 interface DatabasesTableProps {
   siteId: number;
@@ -108,7 +132,8 @@ export function DatabasesTable({
   const [createUserOpen, setCreateUserOpen] = React.useState(false);
   const [selectedDatabase, setSelectedDatabase] = React.useState<z.infer<typeof databaseSchema> | null>(null);
   const [selectedUserId, setSelectedUserId] = React.useState(0);
-  const { pathname } = useLocation();
+  const [openingPhpMyAdminId, setOpeningPhpMyAdminId] = React.useState<number | null>(null);
+  const openPhpMyAdmin = trpc.plesk.databases.getPhpMyAdminUrl.useMutation();
 
   React.useEffect(() => {
     if (!openCreateSheet) return;
@@ -164,14 +189,42 @@ export function DatabasesTable({
     }
   };
 
-  const phpMyAdminHref = (db: z.infer<typeof databaseSchema>) => {
-    const hostingBase =
-      pathname.match(/^(.*\/hosting\/[^/]+)/)?.[1] ??
-      `/${pathname.split("/")[1] ?? ""}/hosting/${siteId}`;
-    const params = new URLSearchParams();
-    if (db.name) params.set("name", db.name);
-    const query = params.toString();
-    return `${hostingBase}/phpmyadmin/${db.id}${query ? `?${query}` : ""}`;
+  const handleOpenPhpMyAdmin = (databaseId: number) => {
+    const tab = window.open("about:blank", "_blank");
+    if (!tab) {
+      toast.error("Could not open phpMyAdmin", {
+        description: "Allow pop-ups for this site and try again.",
+      });
+      return;
+    }
+    try {
+      tab.opener = null;
+    } catch {
+      // The new tab can still be sent to Orion if the browser blocks this.
+    }
+    setOpeningPhpMyAdminId(databaseId);
+    openPhpMyAdmin.mutate(
+      { siteId, databaseId },
+      {
+        onSuccess: ({ url }) => {
+          if (!isSafeOrionPhpMyAdminUrl(url, databaseId)) {
+            tab.close();
+            toast.error("Could not open phpMyAdmin", {
+              description: "An error occurred. Please try again later or contact support.",
+            });
+            return;
+          }
+          tab.location.replace(url);
+        },
+        onError: () => {
+          tab.close();
+          toast.error("Could not open phpMyAdmin", {
+            description: "An error occurred. Please try again later or contact support.",
+          });
+        },
+        onSettled: () => setOpeningPhpMyAdminId(null),
+      },
+    );
   };
 
   const handleConnectionInfo = (db: z.infer<typeof databaseSchema>) => {
@@ -270,14 +323,14 @@ export function DatabasesTable({
                       variant="outline"
                       size="sm"
                       className="h-7 px-2.5 text-xs"
-                      asChild
+                      disabled={openingPhpMyAdminId === db.id}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        if (db.id) handleOpenPhpMyAdmin(db.id);
+                      }}
                     >
-                      <Link
-                        to={phpMyAdminHref(db)}
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        phpMyAdmin
-                      </Link>
+                      phpMyAdmin
+                      <ExternalLink className="ml-1 h-3.5 w-3.5" />
                     </Button>
                   ) : (
                     <Button

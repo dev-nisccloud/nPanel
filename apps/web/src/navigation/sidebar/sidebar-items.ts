@@ -323,11 +323,11 @@ export const agencysidebarItems: NavGroup[] = [
     id: 3,
     label: "Gen AI Tools",
     items: [
-      {
-        title: "Zeepo AI Agent",
-        url: "/agency/zeepo-ai-agent",
-        icon: (props: any) => React.createElement(Icons.AIImageStudio, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-      },
+      // {
+      //   title: "Zeepo AI Agent",
+      //   url: "/agency/zeepo-ai-agent",
+      //   icon: (props: any) => React.createElement(Icons.AIImageStudio, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      // },
       {
         title: "Zeepo AI",
         url: "/agency/zeepo-ai",
@@ -377,7 +377,6 @@ export const agencysidebarItems: NavGroup[] = [
           { title: "Manage Clients", url: "/agency/clients", },
           { title: "Manage Organizations", url: "/agency/manage-organizations", },
           // { title: "Create Client", url: "/agency/clients", },
-          { title: "Manage Users", url: "/agency/manage-users", },
           // { title: "Manage Affiliates", url: "/agency/manage-affiliates", },
         ],
       },
