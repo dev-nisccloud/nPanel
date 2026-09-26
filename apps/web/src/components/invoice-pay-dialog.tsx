@@ -32,12 +32,13 @@ import {
 	MpesaPayButton,
 } from "@/components/payment-method-accordion";
 import { MpesaPaymentFields } from "@/components/mpesa-payment-fields";
-import { JengaCardPaymentFields } from "@/components/jenga-card-payment-fields";
-import {
-	submitJengaPaymentForm,
-	validateJengaCustomerForm,
-	type JengaCustomerFormState,
-} from "@/lib/jenga-checkout";
+// JENGA PAYMENT GATEWAY - COMMENTED OUT (NOT STABLE YET)
+// import { JengaCardPaymentFields } from "@/components/jenga-card-payment-fields";
+// import {
+// 	submitJengaPaymentForm,
+// 	validateJengaCustomerForm,
+// 	type JengaCustomerFormState,
+// } from "@/lib/jenga-checkout";
 import { resolveMpesaCheckoutPayment } from "@/lib/mpesa-checkout-payment";
 import {
 	generateMpesaAccountReference,
@@ -114,19 +115,24 @@ export function InvoicePayDialog({
 	const [accountRefError, setAccountRefError] = React.useState("");
 	const [checkoutRequestId, setCheckoutRequestId] = React.useState<string | null>(null);
 	const [shouldStopPolling, setShouldStopPolling] = React.useState(false);
-	const [jengaCustomer, setJengaCustomer] = React.useState<JengaCustomerFormState>({
-		customerFirstName: "",
-		customerLastName: "",
-		customerEmail: "",
-		customerPhone: "",
-		customerAddress: "",
-		customerPostalCodeZip: "",
-		countryCode: "KE",
-	});
-	const [jengaCustomerErrors, setJengaCustomerErrors] = React.useState<
-		Partial<Record<keyof JengaCustomerFormState, string>>
-	>({});
-	const [jengaRedirecting, setJengaRedirecting] = React.useState(false);
+	// JENGA PAYMENT GATEWAY - COMMENTED OUT (NOT STABLE YET)
+	// Define as undefined to prevent errors if accidentally referenced
+	const jengaCustomer: any = undefined;
+	const jengaCustomerErrors: any = undefined;
+	const jengaRedirecting: any = undefined;
+	// const [jengaCustomer, setJengaCustomer] = React.useState<JengaCustomerFormState>({
+	// 	customerFirstName: "",
+	// 	customerLastName: "",
+	// 	customerEmail: "",
+	// 	customerPhone: "",
+	// 	customerAddress: "",
+	// 	customerPostalCodeZip: "",
+	// 	countryCode: "KE",
+	// });
+	// const [jengaCustomerErrors, setJengaCustomerErrors] = React.useState<
+	// 	Partial<Record<keyof JengaCustomerFormState, string>>
+	// >({});
+	// const [jengaRedirecting, setJengaRedirecting] = React.useState(false);
 	const [manualType, setManualType] = React.useState<PaymentType>("COMPLETE");
 	const [manualAmountPaid, setManualAmountPaid] = React.useState("");
 
@@ -156,17 +162,18 @@ export function InvoicePayDialog({
 	React.useEffect(() => {
 		if (!userInfoQuery.data) return;
 		const profile = userInfoQuery.data.profile;
-		setJengaCustomer((prev) => ({
-			customerFirstName: prev.customerFirstName || profile?.firstName || "",
-			customerLastName: prev.customerLastName || profile?.lastName || "",
-			customerEmail: prev.customerEmail || userInfoQuery.data.email || "",
-			customerPhone: prev.customerPhone || profile?.phone || phoneNumber || "",
-			customerAddress: prev.customerAddress || profile?.address || "",
-			customerPostalCodeZip: prev.customerPostalCodeZip || profile?.postalCode || "",
-			countryCode:
-				prev.countryCode ||
-				(profile?.country?.length === 2 ? profile.country.toUpperCase() : "KE"),
-		}));
+		// JENGA PAYMENT GATEWAY - COMMENTED OUT (NOT STABLE YET)
+		// setJengaCustomer((prev) => ({
+		// 	customerFirstName: prev.customerFirstName || profile?.firstName || "",
+		// 	customerLastName: prev.customerLastName || profile?.lastName || "",
+		// 	customerEmail: prev.customerEmail || userInfoQuery.data.email || "",
+		// 	customerPhone: prev.customerPhone || profile?.phone || phoneNumber || "",
+		// 	customerAddress: prev.customerAddress || profile?.address || "",
+		// 	customerPostalCodeZip: prev.customerPostalCodeZip || profile?.postalCode || "",
+		// 	countryCode:
+		// 		prev.countryCode ||
+		// 		(profile?.country?.length === 2 ? profile.country.toUpperCase() : "KE"),
+		// }));
 	}, [userInfoQuery.data, phoneNumber]);
 
 	const invalidateInvoice = React.useCallback(() => {
@@ -227,12 +234,15 @@ export function InvoicePayDialog({
 		},
 	});
 
-	const initiateJengaPayment = trpc.paymentGateway.jenga.initiateCardPayment.useMutation({
-		onError: (error) => {
-			setJengaRedirecting(false);
-			toast.error(error.message || "Failed to start card payment.");
-		},
-	});
+	// JENGA PAYMENT GATEWAY - COMMENTED OUT (NOT STABLE YET)
+	// Define as undefined to prevent errors if accidentally referenced
+	const initiateJengaPayment: any = { isPending: false, mutateAsync: async () => ({}) };
+	// const initiateJengaPayment = trpc.paymentGateway.jenga.initiateCardPayment.useMutation({
+	// 	onError: (error) => {
+	// 		setJengaRedirecting(false);
+	// 		toast.error(error.message || "Failed to start card payment.");
+	// 	},
+	// });
 
 	const queryPaymentStatus = trpc.paymentGateway.mpesa.queryStkPush.useQuery(
 		{ checkoutRequestId: checkoutRequestId || "" },
@@ -305,47 +315,48 @@ export function InvoicePayDialog({
 		});
 	};
 
-	const handleJengaPay = async () => {
-		const errors = validateJengaCustomerForm(jengaCustomer);
-		if (Object.keys(errors).length > 0) {
-			setJengaCustomerErrors(errors);
-			return;
-		}
-		setJengaCustomerErrors({});
-		const jengaCurrency =
-			currency === "TZS" || currency === "UGX" || currency === "USD" || currency === "EUR" || currency === "GBP"
-				? currency
-				: "KES";
-		setJengaRedirecting(true);
-		try {
-			const result = await initiateJengaPayment.mutateAsync({
-				...jengaCustomer,
-				amount: remainingCeil,
-				currency: jengaCurrency,
-				productType: "Service",
-				productDescription: `Invoice ${invoiceNumber || ""}`.trim().slice(0, 200) || "Invoice",
-				teamId: teamId ?? undefined,
-				orderIntent: {
-					source: "invoice",
-					returnOrigin: window.location.origin,
-					returnPath: "/payment/card/return",
-					currency: jengaCurrency,
-					teamId: teamId ?? undefined,
-					billedForUserId: isAgencyUser ? customerUserId ?? undefined : undefined,
-					skipInvoice: true,
-					invoiceId,
-					invoiceReturnPath,
-				},
-			});
-			if (!result.data?.checkoutUrl || !result.data.paymentData) {
-				throw new Error("Card checkout did not return a payment page.");
-			}
-			submitJengaPaymentForm(result.data.checkoutUrl, result.data.paymentData);
-		} catch (err) {
-			setJengaRedirecting(false);
-			toast.error(err instanceof Error ? err.message : "Failed to start card payment.");
-		}
-	};
+	// JENGA PAYMENT GATEWAY - COMMENTED OUT (NOT STABLE YET)
+	// const handleJengaPay = async () => {
+	// 	const errors = validateJengaCustomerForm(jengaCustomer);
+	// 	if (Object.keys(errors).length > 0) {
+	// 		setJengaCustomerErrors(errors);
+	// 		return;
+	// 	}
+	// 	setJengaCustomerErrors({});
+	// 	const jengaCurrency =
+	// 		currency === "TZS" || currency === "UGX" || currency === "USD" || currency === "EUR" || currency === "GBP"
+	// 			? currency
+	// 			: "KES";
+	// 	setJengaRedirecting(true);
+	// 	try {
+	// 		const result = await initiateJengaPayment.mutateAsync({
+	// 			...jengaCustomer,
+	// 			amount: remainingCeil,
+	// 			currency: jengaCurrency,
+	// 			productType: "Service",
+	// 			productDescription: `Invoice ${invoiceNumber || ""}`.trim().slice(0, 200) || "Invoice",
+	// 			teamId: teamId ?? undefined,
+	// 			orderIntent: {
+	// 				source: "invoice",
+	// 				returnOrigin: window.location.origin,
+	// 				returnPath: "/payment/card/return",
+	// 				currency: jengaCurrency,
+	// 				teamId: teamId ?? undefined,
+	// 				billedForUserId: isAgencyUser ? customerUserId ?? undefined : undefined,
+	// 				skipInvoice: true,
+	// 				invoiceId,
+	// 				invoiceReturnPath,
+	// 			},
+	// 		});
+	// 		if (!result.data?.checkoutUrl || !result.data.paymentData) {
+	// 			throw new Error("Card checkout did not return a payment page.");
+	// 		}
+	// 		submitJengaPaymentForm(result.data.checkoutUrl, result.data.paymentData);
+	// 	} catch (err) {
+	// 		setJengaRedirecting(false);
+	// 		toast.error(err instanceof Error ? err.message : "Failed to start card payment.");
+	// 	}
+	// };
 
 	const handleManualSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
@@ -437,7 +448,8 @@ export function InvoicePayDialog({
 						</PaymentMethodContent>
 					</PaymentMethodOption>
 
-					<PaymentMethodOption
+					{/* JENGA PAYMENT GATEWAY - COMMENTED OUT (NOT STABLE YET) */}
+					{/* <PaymentMethodOption
 						value="card"
 						trigger={
 							<PaymentMethodTrigger
@@ -469,7 +481,7 @@ export function InvoicePayDialog({
 								</div>
 							)}
 						</PaymentMethodContent>
-					</PaymentMethodOption>
+					</PaymentMethodOption> */}
 
 					{showManual ? (
 						<PaymentMethodOption

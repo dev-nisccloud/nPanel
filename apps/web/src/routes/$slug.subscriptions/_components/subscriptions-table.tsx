@@ -14,6 +14,7 @@ import {
 import { ViewDetailsButton } from "@/components/ui/list-row-actions";
 import { trpc } from "@/utils/trpc";
 import { isProgressTrackedOneTime } from "@/routes/agency.subscriptions/_components/zeepo-subscription";
+import { isSubscriptionRenewable } from "@/lib/subscription-renewal-pricing";
 
 function formatDate(v: string | Date | null | undefined): string | null {
 	if (!v) return null;
@@ -52,9 +53,10 @@ function displayServiceName(
 
 export interface CustomerSubscriptionsTableProps {
 	onViewSubscription?: (subscriptionId: string) => void;
+	onRenewSubscription?: (subscriptionId: string) => void;
 }
 
-export function CustomerSubscriptionsTable({ onViewSubscription }: CustomerSubscriptionsTableProps) {
+export function CustomerSubscriptionsTable({ onViewSubscription, onRenewSubscription }: CustomerSubscriptionsTableProps) {
 	const { pathname } = useLocation();
 	const teamSlug = pathname.split("/")[1];
 	const [searchQuery, setSearchQuery] = React.useState("");
@@ -92,6 +94,10 @@ export function CustomerSubscriptionsTable({ onViewSubscription }: CustomerSubsc
 		const subscribed = formatDate(sub.subscriptionDate);
 		const expires = formatDate(sub.expiryDate);
 		const showProgress = isProgressTrackedOneTime(sub.billingCycle, sub.productId);
+		const renewable = isSubscriptionRenewable({
+			status: sub.status,
+			billingCycle: sub.billingCycle,
+		});
 
 		return {
 			key: sub.id,
@@ -106,9 +112,16 @@ export function CustomerSubscriptionsTable({ onViewSubscription }: CustomerSubsc
 				</span>
 			),
 			description: (
-				<Badge variant="outline" className={getStatusBadgeClass(sub.status)}>
-					{sub.status.replace(/_/g, " ")}
-				</Badge>
+				<div className="flex items-center gap-2">
+					<Badge variant="outline" className={getStatusBadgeClass(sub.status)}>
+						{sub.status.replace(/_/g, " ")}
+					</Badge>
+					{renewable && (
+						<Badge variant="destructive" className="animate-pulse">
+							Renew Now
+						</Badge>
+					)}
+				</div>
 			),
 			cells: {
 				dates: (
@@ -126,9 +139,26 @@ export function CustomerSubscriptionsTable({ onViewSubscription }: CustomerSubsc
 				),
 			},
 			onClick: onViewSubscription ? () => onViewSubscription(sub.id) : undefined,
-			actions: onViewSubscription ? (
-				<ViewDetailsButton onClick={() => onViewSubscription(sub.id)} />
-			) : undefined,
+			actions: (
+				<>
+					{renewable && onRenewSubscription ? (
+						<Button
+							variant="default"
+							size="sm"
+							className="h-7 px-3 text-xs"
+							onClick={(e) => {
+								e.stopPropagation();
+								onRenewSubscription(sub.id);
+							}}
+						>
+							Renew
+						</Button>
+					) : null}
+					{onViewSubscription ? (
+						<ViewDetailsButton onClick={() => onViewSubscription(sub.id)} />
+					) : null}
+				</>
+			),
 		};
 	});
 
