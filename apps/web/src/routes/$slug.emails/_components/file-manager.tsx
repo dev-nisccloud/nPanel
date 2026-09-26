@@ -47,6 +47,10 @@ import {
 import { FileManagerTypeIcon } from "@/components/hosting/file-manager-icon";
 import { type FileManagerItem } from "./file-manager-schema";
 import { useFtpFileManager } from "@/components/hosting/use-ftp-file-manager";
+import {
+  FileManagerSuspendedOverlay,
+  isPleskWebspaceActive,
+} from "@/components/hosting/file-manager-suspended-overlay";
 import { hostingDetailSchema } from "@/components/hosting/hosting-detail-schema";
 import { z } from "zod";
 import { toast } from "@/components/ui/sonner";
@@ -114,7 +118,7 @@ function FileManagerSkeleton() {
 }
 
 // Error component
-function FileManagerError({ error, onRetry }: { error: Error; onRetry: () => void }) {
+function FileManagerError({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center space-y-4 py-12">
       <div className="text-center">
@@ -122,7 +126,7 @@ function FileManagerError({ error, onRetry }: { error: Error; onRetry: () => voi
           Failed to load files
         </h3>
         <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          {error.message || "An unexpected error occurred"}
+          An error occurred. Please try again later or contact support.
         </p>
       </div>
       <Button onClick={onRetry} variant="outline" className="flex items-center gap-2">
@@ -133,7 +137,7 @@ function FileManagerError({ error, onRetry }: { error: Error; onRetry: () => voi
   );
 }
 
-export function FileManager({ hostingData }: FileManagerProps) {
+function FileManagerContent({ hostingData }: FileManagerProps) {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -180,7 +184,6 @@ export function FileManager({ hostingData }: FileManagerProps) {
     isLoading,
     isRefreshing,
     isError,
-    error,
     currentPath,
     navigateToPath,
     navigateUp,
@@ -641,7 +644,7 @@ export function FileManager({ hostingData }: FileManagerProps) {
       {isLoading ? (
         <FileManagerSkeleton />
       ) : isError ? (
-        <FileManagerError error={error as unknown as Error} onRetry={refreshCurrentPath} />
+        <FileManagerError onRetry={refreshCurrentPath} />
       ) : filteredItems.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16">
           <div className="text-center max-w-md">
@@ -788,4 +791,17 @@ export function FileManager({ hostingData }: FileManagerProps) {
       )}
     </div>
   );
+}
+
+export function FileManager(props: FileManagerProps) {
+  if (!isPleskWebspaceActive(props.hostingData.gen_info.status)) {
+    return (
+      <FileManagerSuspendedOverlay
+        pleskSubscriptionId={props.hostingData.id}
+        domain={props.hostingData.gen_info.name}
+      />
+    );
+  }
+
+  return <FileManagerContent {...props} />;
 }

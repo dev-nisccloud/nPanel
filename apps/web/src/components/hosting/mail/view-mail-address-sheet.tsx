@@ -16,6 +16,7 @@ import {
 } from "@/components/npanel-ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { EmailMalwareProtectionBadge } from "./email-malware-protection-badge";
 import { MailboxUsageDisplay } from "./mailbox-usage";
 import { emailAccountSchema } from "./emails-schema";
 
@@ -113,7 +114,7 @@ export function ViewMailAddressSheet({
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Features</CardTitle>
-                <CardDescription>Forwarding, aliases, and protection</CardDescription>
+                <CardDescription>Forwarding, aliases, and auto reply</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -142,8 +143,8 @@ export function ViewMailAddressSheet({
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">Antivirus</p>
-                  <p className="text-base capitalize">{data.antivir || "off"}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Protection</p>
+                  <EmailMalwareProtectionBadge />
                 </div>
 
                 {data.outgoingMessagesLimit !== undefined ? (

@@ -3,8 +3,8 @@
 import * as React from "react";
 import { ArrowLeft, LayoutDashboard, Network, Mail, Folder, Layers, Database, ArchiveRestore } from "lucide-react";
 import { Icons } from "@/components/icons";
-import { Link } from "react-router";
-import { useLocation } from "react-router";
+import { Link, useLocation, useSearchParams } from "react-router";
+import { hostingDetailTabFromSearch } from "@/components/wordpress/wordpress-return-to";
 import { z } from "zod";
 
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,7 @@ import { DetailCardTabsTrigger, DETAIL_TABS_LIST_CLASS } from "@/components/ui/d
 import { HostingOverview, type HostingDetailTab } from "@/components/hosting/hosting-overview";
 import { DnsTable } from "@/components/hosting/dns";
 import { MailTable } from "@/components/hosting/mail";
+import { EmailMalwareProtectionBadge } from "@/components/hosting/mail/email-malware-protection-badge";
 import { FileManager } from "./file-manager";
 import { SubdomainsTable } from "@/components/hosting/subdomains";
 import { DatabasesTable, usePrefetchDatabasesBySiteId } from "@/components/hosting/databases";
@@ -128,11 +129,14 @@ function HostingDetailError({ error, onRetry, teamSlug }: { error: Error; onRetr
 
 export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
   const { pathname } = useLocation();
+  const [searchParams] = useSearchParams();
   const teamSlug = pathname.split("/")[1];
   const { data: hostingData, isLoading, isError, error, refetch } = useHostingDetailBatched(subscriptionId);
   const [installWordPressOpen, setInstallWordPressOpen] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState("overview");
-  const { can } = useCanTeamPermission();
+  const [activeTab, setActiveTab] = React.useState(() =>
+    hostingDetailTabFromSearch(searchParams.get("tab")),
+  );
+  const { can, isLoading: permissionsLoading } = useCanTeamPermission();
   const hostingTabAllowed = React.useMemo(
     () => ({
       overview: can("hosting.list"),
@@ -147,11 +151,12 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
     [can],
   );
   React.useEffect(() => {
+    if (permissionsLoading) return;
     if (!hostingTabAllowed[activeTab as keyof typeof hostingTabAllowed]) {
       const first = (Object.entries(hostingTabAllowed) as [string, boolean][]).find(([, ok]) => ok)?.[0];
       if (first) setActiveTab(first);
     }
-  }, [activeTab, hostingTabAllowed]);
+  }, [activeTab, hostingTabAllowed, permissionsLoading]);
   const [createIntentTab, setCreateIntentTab] = React.useState<HostingDetailTab | null>(null);
   const mailboxQuotaLimitBytes = React.useMemo(() => {
     const limits = hostingData?.limits?.limit ?? [];
@@ -227,8 +232,9 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             {getStatusBadge(hostingData.gen_info.status ?? 0)}
+            <EmailMalwareProtectionBadge variant="header" />
             <PleskLinkedSubscriptionUpgradeButton
               pleskSubscriptionId={hostingData.id ?? subscriptionId}
               teamSlug={teamSlug}

@@ -864,42 +864,6 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, domainName, ma
                 </CardContent>
               </Card>
 
-              {/* Antivirus Section */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Shield className="h-5 w-5" />
-                    Antivirus Protection
-                  </CardTitle>
-                  <CardDescription>Configure antivirus scanning for emails</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <FormField
-                    control={form.control}
-                    name="antivir"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Antivirus Level</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select antivirus level" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="off">Off - No scanning</SelectItem>
-                            <SelectItem value="in">Incoming - Scan incoming emails only</SelectItem>
-                            <SelectItem value="out">Outgoing - Scan outgoing emails only</SelectItem>
-                            <SelectItem value="inout">Both - Scan all emails</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </CardContent>
-              </Card>
-
               <SheetFooter className="flex gap-2">
                 <Button 
                   type="button" 

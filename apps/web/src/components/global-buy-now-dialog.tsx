@@ -49,12 +49,13 @@ import {
   PaymentMethodTrigger,
 } from "@/components/payment-method-accordion";
 import { MpesaPaymentFields } from "@/components/mpesa-payment-fields";
-import { JengaCardPaymentFields } from "@/components/jenga-card-payment-fields";
-import {
-  submitJengaPaymentForm,
-  validateJengaCustomerForm,
-  type JengaCustomerFormState,
-} from "@/lib/jenga-checkout";
+// JENGA PAYMENT GATEWAY - COMMENTED OUT (NOT STABLE YET)
+// import { JengaCardPaymentFields } from "@/components/jenga-card-payment-fields";
+// import {
+//   submitJengaPaymentForm,
+//   validateJengaCustomerForm,
+//   type JengaCustomerFormState,
+// } from "@/lib/jenga-checkout";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { useGlobalBuyNowStore } from "@/stores/global-buy-now-store";
@@ -287,19 +288,24 @@ export function GlobalBuyNowDialog() {
   const [checkoutRequestId, setCheckoutRequestId] = React.useState<string | null>(null);
   const [manualTransactionReference, setManualTransactionReference] = React.useState("");
   const [manualTransactionRefError, setManualTransactionRefError] = React.useState("");
-  const [jengaCustomer, setJengaCustomer] = React.useState<JengaCustomerFormState>({
-    customerFirstName: "",
-    customerLastName: "",
-    customerEmail: "",
-    customerPhone: "",
-    customerAddress: "",
-    customerPostalCodeZip: "",
-    countryCode: "KE",
-  });
-  const [jengaCustomerErrors, setJengaCustomerErrors] = React.useState<
-    Partial<Record<keyof JengaCustomerFormState, string>>
-  >({});
-  const [jengaRedirecting, setJengaRedirecting] = React.useState(false);
+  // JENGA PAYMENT GATEWAY - COMMENTED OUT (NOT STABLE YET)
+  // Define as undefined to prevent errors if accidentally referenced
+  const jengaCustomer: any = undefined;
+  const jengaCustomerErrors: any = undefined;
+  const jengaRedirecting: any = undefined;
+  // const [jengaCustomer, setJengaCustomer] = React.useState<JengaCustomerFormState>({
+  //   customerFirstName: "",
+  //   customerLastName: "",
+  //   customerEmail: "",
+  //   customerPhone: "",
+  //   customerAddress: "",
+  //   customerPostalCodeZip: "",
+  //   countryCode: "KE",
+  // });
+  // const [jengaCustomerErrors, setJengaCustomerErrors] = React.useState<
+  //   Partial<Record<keyof JengaCustomerFormState, string>>
+  // >({});
+  // const [jengaRedirecting, setJengaRedirecting] = React.useState(false);
   const [paymentError, setPaymentError] = React.useState<string | null>(null);
   const [isPolling, setIsPolling] = React.useState(false);
   const [shouldStopPolling, setShouldStopPolling] = React.useState(false);
@@ -1135,190 +1141,195 @@ export function GlobalBuyNowDialog() {
 
   onPaymentSuccessRef.current = triggerOrderFromPayment;
 
-  React.useEffect(() => {
-    if (!userInfoQuery.data) return;
-    const profile = userInfoQuery.data.profile;
-    setJengaCustomer((prev) => ({
-      customerFirstName: prev.customerFirstName || profile?.firstName || "",
-      customerLastName: prev.customerLastName || profile?.lastName || "",
-      customerEmail: prev.customerEmail || userInfoQuery.data.email || "",
-      customerPhone: prev.customerPhone || profile?.phone || mpesaPhoneNumber || "",
-      customerAddress: prev.customerAddress || profile?.address || "",
-      customerPostalCodeZip: prev.customerPostalCodeZip || profile?.postalCode || "",
-      countryCode:
-        prev.countryCode ||
-        (profile?.country?.length === 2 ? profile.country.toUpperCase() : "KE"),
-    }));
-  }, [userInfoQuery.data, mpesaPhoneNumber]);
+  // JENGA PAYMENT GATEWAY - COMMENTED OUT (NOT STABLE YET)
+  // React.useEffect(() => {
+  //   if (!userInfoQuery.data) return;
+  //   const profile = userInfoQuery.data.profile;
+  //   setJengaCustomer((prev) => ({
+  //     customerFirstName: prev.customerFirstName || profile?.firstName || "",
+  //     customerLastName: prev.customerLastName || profile?.lastName || "",
+  //     customerEmail: prev.customerEmail || userInfoQuery.data.email || "",
+  //     customerPhone: prev.customerPhone || profile?.phone || mpesaPhoneNumber || "",
+  //     customerAddress: prev.customerAddress || profile?.address || "",
+  //     customerPostalCodeZip: prev.customerPostalCodeZip || profile?.postalCode || "",
+  //     countryCode:
+  //       prev.countryCode ||
+  //       (profile?.country?.length === 2 ? profile.country.toUpperCase() : "KE"),
+  //   }));
+  // }, [userInfoQuery.data, mpesaPhoneNumber]);
 
-  const initiateJengaPayment = trpc.paymentGateway.jenga.initiateCardPayment.useMutation({
-    onError: (error) => {
-      setJengaRedirecting(false);
-      toast.error(error.message || "Failed to start card payment");
-    },
-  });
+  // JENGA PAYMENT GATEWAY - COMMENTED OUT (NOT STABLE YET)
+  // Define as undefined to prevent errors if accidentally referenced
+  const initiateJengaPayment: any = { isPending: false, mutateAsync: async () => ({}) };
+  // const initiateJengaPayment = trpc.paymentGateway.jenga.initiateCardPayment.useMutation({
+  //   onError: (error) => {
+  //     setJengaRedirecting(false);
+  //     toast.error(error.message || "Failed to start card payment");
+  //   },
+  // });
 
-  const buildJengaOrderItems = React.useCallback(() => {
-    const str = (n: number) => (Number.isFinite(n) ? String(n) : "0");
-    if (isTransferMode && transferContext) {
-      const base = transferContext.price;
-      const recorded = isAgencyUser
-        ? parsePriceOverrideInput(priceOverrideByKey["transfer"]) ?? base
-        : base;
-      return [
-        {
-          productId: transferContext.productId,
-          primaryDomain: transferContext.domain,
-          description: "transfer",
-          productPlanId: null,
-          billingCycle: "YEARLY" as const,
-          itemPrice: str(recorded),
-          itemSubtotal: str(recorded),
-          metadata: {
-            domainTransferRequestId: transferContext.domainTransferRequestId,
-            transferAuthCode: transferContext.authCode,
-            ...registrantOrderMetadata,
-          },
-        },
-      ];
-    }
-    if (isCartMode) {
-      if (!domainsProductId) return [];
-      const orderItems: Array<Record<string, unknown>> = [];
-      for (const item of items) {
-        if (item.type === "domain_bundle") {
-          const bundle = item as DomainBundleCartItem;
-          const key = `cart-bundle:${item.id}`;
-          const bundlePrice = isAgencyUser
-            ? parsePriceOverrideInput(priceOverrideByKey[key]) ?? getDomainBundleCartLinePrice(bundle)
-            : getDomainBundleCartLinePrice(bundle);
-          const domainNames = bundle.domains.map((d) => d.domain).filter(Boolean);
-          bundle.domains.forEach((domainResult, idx) => {
-            orderItems.push({
-              productId: domainsProductId,
-              primaryDomain: domainResult.domain,
-              description: "registration",
-              productPlanId: null,
-              billingCycle: "YEARLY",
-              itemPrice: idx === 0 ? str(bundlePrice) : "0",
-              itemSubtotal: idx === 0 ? str(bundlePrice) : "0",
-              metadata: {
-                ...registrantOrderMetadata,
-                [DOMAIN_BUNDLE_METADATA_KEY]: {
-                  bundleId: bundle.bundleId,
-                  bundleLabel: bundle.bundleLabel,
-                  bundlePrice,
-                  domains: domainNames,
-                  isBundleLeadItem: idx === 0,
-                },
-              },
-            });
-          });
-          continue;
-        }
-        if (item.type === "domain" && item.price) {
-          const price = getDomainCartLineBasePrice(item);
-          const key = `cart-domain:${item.id}`;
-          const line = isAgencyUser
-            ? parsePriceOverrideInput(priceOverrideByKey[key]) ?? price
-            : price;
-          orderItems.push({
-            productId: domainsProductId,
-            primaryDomain: item.domain,
-            description: "registration",
-            productPlanId: null,
-            billingCycle: "YEARLY",
-            itemPrice: str(line),
-            itemSubtotal: str(line),
-            metadata: registrantOrderMetadata,
-          });
-        }
-      }
-      return orderItems;
-    }
-    return buildDomainProductOrderItems();
-  }, [
-    isTransferMode,
-    transferContext,
-    isCartMode,
-    items,
-    domainsProductId,
-    isAgencyUser,
-    priceOverrideByKey,
-    registrantOrderMetadata,
-    buildDomainProductOrderItems,
-  ]);
+  // JENGA PAYMENT GATEWAY - COMMENTED OUT (NOT STABLE YET)
+  // const buildJengaOrderItems = React.useCallback(() => {
+  //   const str = (n: number) => (Number.isFinite(n) ? String(n) : "0");
+  //   if (isTransferMode && transferContext) {
+  //     const base = transferContext.price;
+  //     const recorded = isAgencyUser
+  //       ? parsePriceOverrideInput(priceOverrideByKey["transfer"]) ?? base
+  //       : base;
+  //     return [
+  //       {
+  //         productId: transferContext.productId,
+  //         primaryDomain: transferContext.domain,
+  //         description: "transfer",
+  //         productPlanId: null,
+  //         billingCycle: "YEARLY" as const,
+  //         itemPrice: str(recorded),
+  //         itemSubtotal: str(recorded),
+  //         metadata: {
+  //           domainTransferRequestId: transferContext.domainTransferRequestId,
+  //           transferAuthCode: transferContext.authCode,
+  //           ...registrantOrderMetadata,
+  //         },
+  //       },
+  //     ];
+  //   }
+  //   if (isCartMode) {
+  //     if (!domainsProductId) return [];
+  //     const orderItems: Array<Record<string, unknown>> = [];
+  //     for (const item of items) {
+  //       if (item.type === "domain_bundle") {
+  //         const bundle = item as DomainBundleCartItem;
+  //         const key = `cart-bundle:${item.id}`;
+  //         const bundlePrice = isAgencyUser
+  //           ? parsePriceOverrideInput(priceOverrideByKey[key]) ?? getDomainBundleCartLinePrice(bundle)
+  //           : getDomainBundleCartLinePrice(bundle);
+  //         const domainNames = bundle.domains.map((d) => d.domain).filter(Boolean);
+  //         bundle.domains.forEach((domainResult, idx) => {
+  //           orderItems.push({
+  //             productId: domainsProductId,
+  //             primaryDomain: domainResult.domain,
+  //             description: "registration",
+  //             productPlanId: null,
+  //             billingCycle: "YEARLY",
+  //             itemPrice: idx === 0 ? str(bundlePrice) : "0",
+  //             itemSubtotal: idx === 0 ? str(bundlePrice) : "0",
+  //             metadata: {
+  //               ...registrantOrderMetadata,
+  //               [DOMAIN_BUNDLE_METADATA_KEY]: {
+  //                 bundleId: bundle.bundleId,
+  //                 bundleLabel: bundle.bundleLabel,
+  //                 bundlePrice,
+  //                 domains: domainNames,
+  //                 isBundleLeadItem: idx === 0,
+  //               },
+  //             },
+  //           });
+  //         });
+  //         continue;
+  //       }
+  //       if (item.type === "domain" && item.price) {
+  //         const price = getDomainCartLineBasePrice(item);
+  //         const key = `cart-domain:${item.id}`;
+  //         const line = isAgencyUser
+  //           ? parsePriceOverrideInput(priceOverrideByKey[key]) ?? price
+  //           : price;
+  //         orderItems.push({
+  //           productId: domainsProductId,
+  //           primaryDomain: item.domain,
+  //           description: "registration",
+  //           productPlanId: null,
+  //           billingCycle: "YEARLY",
+  //           itemPrice: str(line),
+  //           itemSubtotal: str(line),
+  //           metadata: registrantOrderMetadata,
+  //         });
+  //       }
+  //     }
+  //     return orderItems;
+  //   }
+  //   return buildDomainProductOrderItems();
+  // }, [
+  //   isTransferMode,
+  //   transferContext,
+  //   isCartMode,
+  //   items,
+  //   domainsProductId,
+  //   isAgencyUser,
+  //   priceOverrideByKey,
+  //   registrantOrderMetadata,
+  //   buildDomainProductOrderItems,
+  // ]);
 
-  const handleJengaPayment = async () => {
-    const errors = validateJengaCustomerForm(jengaCustomer);
-    setJengaCustomerErrors(errors);
-    if (Object.keys(errors).length > 0) {
-      toast.error("Please complete the billing details for card payment");
-      return;
-    }
+  // const handleJengaPayment = async () => {
+  //   const errors = validateJengaCustomerForm(jengaCustomer);
+  //   setJengaCustomerErrors(errors);
+  //   if (Object.keys(errors).length > 0) {
+  //     toast.error("Please complete the billing details for card payment");
+  //     return;
+  //   }
 
-    const amount = Number.parseFloat(
-      isAgencyUser ? paymentAmount || customerMpesaAmount : customerMpesaAmount,
-    );
-    if (!Number.isFinite(amount) || amount <= 0) {
-      toast.error("Invalid payment amount");
-      return;
-    }
+  //   const amount = Number.parseFloat(
+  //     isAgencyUser ? paymentAmount || customerMpesaAmount : customerMpesaAmount,
+  //   );
+  //   if (!Number.isFinite(amount) || amount <= 0) {
+  //     toast.error("Invalid payment amount");
+  //     return;
+  //   }
 
-    const orderItems = buildJengaOrderItems();
-    if (!orderItems.length) {
-      toast.error("No order items to pay for");
-      return;
-    }
+  //   const orderItems = buildJengaOrderItems();
+  //   if (!orderItems.length) {
+  //     toast.error("No order items to pay for");
+  //     return;
+  //   }
 
-    const billedForUserId =
-      isAgencyUser &&
-      registrantType === "existing_customer" &&
-      selectedExistingCustomerId.trim()
-        ? selectedExistingCustomerId.trim()
-        : undefined;
+  //   const billedForUserId =
+  //     isAgencyUser &&
+  //     registrantType === "existing_customer" &&
+  //     selectedExistingCustomerId.trim()
+  //       ? selectedExistingCustomerId.trim()
+  //       : undefined;
 
-    const currency = isCartMode
-      ? primaryCurrency
-      : isTransferMode && transferContext
-        ? transferContext.currency
-        : displayCurrency;
+  //   const currency = isCartMode
+  //     ? primaryCurrency
+  //     : isTransferMode && transferContext
+  //       ? transferContext.currency
+  //       : displayCurrency;
 
-    const teamIdForOrder = isTransferMode
-      ? transferContext?.teamId
-      : checkoutTeamId ?? ctx?.teamId;
+  //   const teamIdForOrder = isTransferMode
+  //     ? transferContext?.teamId
+  //     : checkoutTeamId ?? ctx?.teamId;
 
-    setJengaRedirecting(true);
-    captureEvent("jenga_payment_initiated", { amount });
-    try {
-      const response = await initiateJengaPayment.mutateAsync({
-        amount,
-        currency: (currency as "KES" | "USD" | "EUR" | "GBP" | "TZS" | "UGX") || "KES",
-        productType: "Service",
-        productDescription: "Nisc Cloud order".slice(0, 200),
-        ...jengaCustomer,
-        ...(teamIdForOrder ? { teamId: teamIdForOrder } : {}),
-        orderIntent: {
-          source: "global_buy_now",
-          returnPath: "/payment/card/return",
-          returnOrigin: window.location.origin,
-          items: orderItems,
-          currency,
-          teamId: teamIdForOrder,
-          billedForUserId,
-        },
-      });
-      const data = response.data;
-      if (!data?.checkoutUrl || !data.paymentData) {
-        setJengaRedirecting(false);
-        toast.error("Failed to start card checkout");
-        return;
-      }
-      submitJengaPaymentForm(data.checkoutUrl, data.paymentData);
-    } catch {
-      setJengaRedirecting(false);
-    }
-  };
+  //   setJengaRedirecting(true);
+  //   captureEvent("jenga_payment_initiated", { amount });
+  //   try {
+  //     const response = await initiateJengaPayment.mutateAsync({
+  //       amount,
+  //       currency: (currency as "KES" | "USD" | "EUR" | "GBP" | "TZS" | "UGX") || "KES",
+  //       productType: "Service",
+  //       productDescription: "Nisc Cloud order".slice(0, 200),
+  //       ...jengaCustomer,
+  //       ...(teamIdForOrder ? { teamId: teamIdForOrder } : {}),
+  //       orderIntent: {
+  //         source: "global_buy_now",
+  //         returnPath: "/payment/card/return",
+  //         returnOrigin: window.location.origin,
+  //         items: orderItems,
+  //         currency,
+  //         teamId: teamIdForOrder,
+  //         billedForUserId,
+  //       },
+  //     });
+  //     const data = response.data;
+  //     if (!data?.checkoutUrl || !data.paymentData) {
+  //       setJengaRedirecting(false);
+  //       toast.error("Failed to start card checkout");
+  //       return;
+  //     }
+  //     submitJengaPaymentForm(data.checkoutUrl, data.paymentData);
+  //   } catch {
+  //     setJengaRedirecting(false);
+  //   }
+  // };
 
   const startPolling = React.useCallback(
     (cid: string) => {
@@ -2541,7 +2552,8 @@ export function GlobalBuyNowDialog() {
                     )}
                 </PaymentMethodContent>
               </PaymentMethodOption>
-              <PaymentMethodOption
+              {/* JENGA PAYMENT GATEWAY - COMMENTED OUT (NOT STABLE YET) */}
+              {/* <PaymentMethodOption
                 value="card"
                 trigger={
                   <PaymentMethodTrigger
@@ -2576,7 +2588,7 @@ export function GlobalBuyNowDialog() {
                     </div>
                   )}
                 </PaymentMethodContent>
-              </PaymentMethodOption>
+              </PaymentMethodOption> */}
               {isAgencyUser ? (
                 <PaymentMethodOption
                   value="manual"

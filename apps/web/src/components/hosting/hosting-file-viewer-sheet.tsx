@@ -187,7 +187,7 @@ export function HostingFileViewerSheet({
     onError: (error) => {
       console.error("Error reading file:", error);
       toast.error("Failed to load file", {
-        description: error.message || "Please try again.",
+        description: "An error occurred. Please try again later or contact support.",
       });
       setIsLoading(false);
       setFileContent(null);
@@ -208,7 +208,7 @@ export function HostingFileViewerSheet({
     onError: (error) => {
       console.error("Error saving file:", error);
       toast.error("Failed to save file", {
-        description: error.message || "Please try again.",
+        description: "An error occurred. Please try again later or contact support.",
       });
       setIsSaving(false);
     },
@@ -230,11 +230,10 @@ export function HostingFileViewerSheet({
           remotePath: file.path,
           maxSize: 5 * 1024 * 1024,
         });
-      } catch (error) {
+      } catch {
         setIsLoading(false);
         toast.error("Failed to load file", {
-          description:
-            error instanceof Error ? error.message : "Please try again.",
+          description: "An error occurred. Please try again later or contact support.",
         });
       }
     } else if (!open) {

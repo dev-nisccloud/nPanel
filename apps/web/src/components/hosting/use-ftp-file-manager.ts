@@ -11,6 +11,9 @@ import {
 	fileManagerSchema,
 } from "@/routes/agency.hosting/_components/file-manager-schema";
 
+const FTP_USER_ERROR_MESSAGE =
+	"An error occurred. Please try again later or contact support.";
+
 const ftpCredentialsSchema = z.object({
 	host: z.string().min(1, "Host is required"),
 	port: z.number().min(1).max(65535).default(21),
@@ -119,22 +122,8 @@ export function useFtpFileManager(
 	useEffect(() => {
 		if (!isError) return;
 
-		if (error instanceof TRPCClientError) {
-			if (error.data?.code === "INTERNAL_SERVER_ERROR") {
-				toast.error("FTP Connection Error", {
-					description:
-						"Failed to connect to FTP server. Please check your credentials and try again.",
-				});
-			} else {
-				toast.error("FTP Error", {
-					description: error.message || "An unexpected error occurred while accessing files.",
-				});
-			}
-			return;
-		}
-
-		toast.error("FTP Error", {
-			description: error?.message || "An unexpected error occurred.",
+		toast.error("Failed to load files", {
+			description: FTP_USER_ERROR_MESSAGE,
 		});
 	}, [isError, error]);
 
@@ -165,8 +154,8 @@ export function useFtpFileManager(
 				setCurrentPath(newPath);
 			}
 		} catch {
-			toast.error("Navigation Error", {
-				description: `Cannot access path: ${newPath}`,
+			toast.error("Failed to open folder", {
+				description: FTP_USER_ERROR_MESSAGE,
 			});
 		} finally {
 			setIsNavigating(false);
@@ -187,9 +176,9 @@ export function useFtpFileManager(
 		setIsManualRefreshing(true);
 		try {
 			await utils.plesk.ftp.list.fetch(listInput, { staleTime: 0 });
-		} catch (err) {
+		} catch {
 			toast.error("Failed to refresh files", {
-				description: err instanceof Error ? err.message : "Please try again.",
+				description: FTP_USER_ERROR_MESSAGE,
 			});
 		} finally {
 			setIsManualRefreshing(false);
@@ -203,9 +192,9 @@ export function useFtpFileManager(
 			toast.success("File deleted successfully");
 			void refetch();
 		},
-		onError: (mutationError) => {
+		onError: () => {
 			toast.error("Failed to delete file", {
-				description: mutationError.message,
+				description: FTP_USER_ERROR_MESSAGE,
 			});
 		},
 	});
@@ -217,9 +206,9 @@ export function useFtpFileManager(
 			toast.success("Directory deleted successfully");
 			void refetch();
 		},
-		onError: (mutationError) => {
+		onError: () => {
 			toast.error("Failed to delete directory", {
-				description: mutationError.message,
+				description: FTP_USER_ERROR_MESSAGE,
 			});
 		},
 	});
@@ -231,9 +220,9 @@ export function useFtpFileManager(
 			toast.success("Item renamed successfully");
 			void refetch();
 		},
-		onError: (mutationError) => {
+		onError: () => {
 			toast.error("Failed to rename item", {
-				description: mutationError.message,
+				description: FTP_USER_ERROR_MESSAGE,
 			});
 		},
 	});
@@ -245,9 +234,9 @@ export function useFtpFileManager(
 			toast.success("Directory created successfully");
 			void refetch();
 		},
-		onError: (mutationError) => {
+		onError: () => {
 			toast.error("Failed to create directory", {
-				description: mutationError.message,
+				description: FTP_USER_ERROR_MESSAGE,
 			});
 		},
 	});
@@ -260,9 +249,9 @@ export function useFtpFileManager(
 			toast.success("File uploaded successfully");
 			void refetch();
 		},
-		onError: (mutationError) => {
+		onError: () => {
 			toast.error("Failed to upload file", {
-				description: mutationError.message,
+				description: FTP_USER_ERROR_MESSAGE,
 			});
 		},
 	});
@@ -347,9 +336,9 @@ export function useFtpFileManager(
 
 			toast.success("File downloaded successfully");
 		},
-		onError: (mutationError) => {
+		onError: () => {
 			toast.error("Failed to download file", {
-				description: mutationError.message,
+				description: FTP_USER_ERROR_MESSAGE,
 			});
 		},
 	});
@@ -374,9 +363,9 @@ export function useFtpFileManager(
 
 			toast.success("Folder downloaded successfully");
 		},
-		onError: (mutationError) => {
+		onError: () => {
 			toast.error("Failed to download folder", {
-				description: mutationError.message,
+				description: FTP_USER_ERROR_MESSAGE,
 			});
 		},
 	});

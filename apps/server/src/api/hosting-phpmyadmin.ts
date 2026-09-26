@@ -31,13 +31,13 @@ export async function handlePhpMyAdminSso(c: Context) {
   const teamId = c.req.query("teamId") || undefined;
 
   if (!Number.isInteger(siteId) || siteId <= 0 || !Number.isInteger(databaseId) || databaseId <= 0) {
-    return c.text("siteId and databaseId are required", 400);
+    return c.text("An error occurred. Please try again later or contact support.", 400);
   }
 
   try {
     const ctx = await createContext({ context: c });
     if (!ctx.session?.user?.id) {
-      return c.text("Unauthorized", 401);
+      return c.text("An error occurred. Please try again later or contact support.", 401);
     }
 
     const url = await createPhpMyAdminSsoRedirect({
@@ -57,9 +57,7 @@ export async function handlePhpMyAdminSso(c: Context) {
     return c.redirect(url, 302);
   } catch (error) {
     console.error("[phpMyAdmin SSO] error:", error);
-    if (error instanceof TRPCError) {
-      return c.text(error.message, httpStatusForTrpc(error));
-    }
-    return c.text(error instanceof Error ? error.message : "Failed to open phpMyAdmin", 500);
+    const status = error instanceof TRPCError ? httpStatusForTrpc(error) : 500;
+    return c.text("An error occurred. Please try again later or contact support.", status);
   }
 }

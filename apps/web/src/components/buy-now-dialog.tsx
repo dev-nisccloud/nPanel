@@ -57,12 +57,13 @@ import {
   PaymentMethodTrigger,
 } from "@/components/payment-method-accordion";
 import { MpesaPaymentFields } from "@/components/mpesa-payment-fields";
-import { JengaCardPaymentFields } from "@/components/jenga-card-payment-fields";
-import {
-  submitJengaPaymentForm,
-  validateJengaCustomerForm,
-  type JengaCustomerFormState,
-} from "@/lib/jenga-checkout";
+// JENGA PAYMENT GATEWAY - COMMENTED OUT (NOT STABLE YET)
+// import { JengaCardPaymentFields } from "@/components/jenga-card-payment-fields";
+// import {
+//   submitJengaPaymentForm,
+//   validateJengaCustomerForm,
+//   type JengaCustomerFormState,
+// } from "@/lib/jenga-checkout";
 import { Badge } from "@/components/ui/badge";
 import { trpc, type RouterInputs } from "@/utils/trpc";
 import type { UseMutationResult } from "@tanstack/react-query";
@@ -922,19 +923,24 @@ export function BuyNowDialog({
   const [amountError, setAmountError] = React.useState<string>("");
   const [manualTransactionReference, setManualTransactionReference] = React.useState("");
   const [manualTransactionRefError, setManualTransactionRefError] = React.useState("");
-  const [jengaCustomer, setJengaCustomer] = React.useState<JengaCustomerFormState>({
-    customerFirstName: "",
-    customerLastName: "",
-    customerEmail: "",
-    customerPhone: "",
-    customerAddress: "",
-    customerPostalCodeZip: "",
-    countryCode: "KE",
-  });
-  const [jengaCustomerErrors, setJengaCustomerErrors] = React.useState<
-    Partial<Record<keyof JengaCustomerFormState, string>>
-  >({});
-  const [jengaRedirecting, setJengaRedirecting] = React.useState(false);
+  // JENGA PAYMENT GATEWAY - COMMENTED OUT (NOT STABLE YET)
+  // Define as undefined to prevent errors if accidentally referenced
+  const jengaCustomer: any = undefined;
+  const jengaCustomerErrors: any = undefined;
+  const jengaRedirecting: any = undefined;
+  // const [jengaCustomer, setJengaCustomer] = React.useState<JengaCustomerFormState>({
+  //   customerFirstName: "",
+  //   customerLastName: "",
+  //   customerEmail: "",
+  //   customerPhone: "",
+  //   customerAddress: "",
+  //   customerPostalCodeZip: "",
+  //   countryCode: "KE",
+  // });
+  // const [jengaCustomerErrors, setJengaCustomerErrors] = React.useState<
+  //   Partial<Record<keyof JengaCustomerFormState, string>>
+  // >({});
+  // const [jengaRedirecting, setJengaRedirecting] = React.useState(false);
 
   // Payment status
   const [checkoutRequestId, setCheckoutRequestId] = React.useState<string | null>(null);
@@ -1276,21 +1282,22 @@ export function BuyNowDialog({
     staleTime: 60_000,
   });
 
-  React.useEffect(() => {
-    if (!userInfoQuery.data) return;
-    const profile = userInfoQuery.data.profile;
-    setJengaCustomer((prev) => ({
-      customerFirstName: prev.customerFirstName || profile?.firstName || "",
-      customerLastName: prev.customerLastName || profile?.lastName || "",
-      customerEmail: prev.customerEmail || userInfoQuery.data.email || "",
-      customerPhone: prev.customerPhone || profile?.phone || mpesaPhoneNumber || "",
-      customerAddress: prev.customerAddress || profile?.address || "",
-      customerPostalCodeZip: prev.customerPostalCodeZip || profile?.postalCode || "",
-      countryCode:
-        prev.countryCode ||
-        (profile?.country?.length === 2 ? profile.country.toUpperCase() : "KE"),
-    }));
-  }, [userInfoQuery.data, mpesaPhoneNumber]);
+  // JENGA PAYMENT GATEWAY - COMMENTED OUT (NOT STABLE YET)
+  // React.useEffect(() => {
+  //   if (!userInfoQuery.data) return;
+  //   const profile = userInfoQuery.data.profile;
+  //   setJengaCustomer((prev) => ({
+  //     customerFirstName: prev.customerFirstName || profile?.firstName || "",
+  //     customerLastName: prev.customerLastName || profile?.lastName || "",
+  //     customerEmail: prev.customerEmail || userInfoQuery.data.email || "",
+  //     customerPhone: prev.customerPhone || profile?.phone || mpesaPhoneNumber || "",
+  //     customerAddress: prev.customerAddress || profile?.address || "",
+  //     customerPostalCodeZip: prev.customerPostalCodeZip || profile?.postalCode || "",
+  //     countryCode:
+  //       prev.countryCode ||
+  //       (profile?.country?.length === 2 ? profile.country.toUpperCase() : "KE"),
+  //   }));
+  // }, [userInfoQuery.data, mpesaPhoneNumber]);
 
   // M-Pesa STK Push mutation
   const initiateMpesaPayment = trpc.paymentGateway.mpesa.initiateStkPush.useMutation({
@@ -1755,84 +1762,87 @@ export function BuyNowDialog({
     });
   };
 
-  const initiateJengaPayment = trpc.paymentGateway.jenga.initiateCardPayment.useMutation({
-    onError: (error) => {
-      setJengaRedirecting(false);
-      toast.error(error.message || "Failed to start card payment");
-    },
-  });
+  // JENGA PAYMENT GATEWAY - COMMENTED OUT (NOT STABLE YET)
+  // Define as undefined to prevent errors if accidentally referenced
+  const initiateJengaPayment: any = { isPending: false, mutateAsync: async () => ({}) };
+  // const initiateJengaPayment = trpc.paymentGateway.jenga.initiateCardPayment.useMutation({
+  //   onError: (error) => {
+  //     setJengaRedirecting(false);
+  //     toast.error(error.message || "Failed to start card payment");
+  //   },
+  // });
 
-  const handleJengaPayment = () => {
-    if (!plan?.productId) {
-      toast.error("Plan details are missing");
-      return;
-    }
+  // const handleJengaPayment = () => {
+  //   if (!plan?.productId) {
+  //     toast.error("Plan details are missing");
+  //     return;
+  //   }
 
-    const errors = validateJengaCustomerForm(jengaCustomer);
-    setJengaCustomerErrors(errors);
-    if (Object.keys(errors).length > 0) {
-      toast.error("Please complete the billing details for card payment");
-      return;
-    }
+  //   const errors = validateJengaCustomerForm(jengaCustomer);
+  //   setJengaCustomerErrors(errors);
+  //   if (Object.keys(errors).length > 0) {
+  //     toast.error("Please complete the billing details for card payment");
+  //     return;
+  //   }
 
-    const amount = Number.parseFloat(
-      isAgencyUser ? paymentAmount || customerMpesaAmount : customerMpesaAmount,
-    );
-    if (!Number.isFinite(amount) || amount <= 0) {
-      toast.error("Invalid payment amount");
-      return;
-    }
+  //   const amount = Number.parseFloat(
+  //     isAgencyUser ? paymentAmount || customerMpesaAmount : customerMpesaAmount,
+  //   );
+  //   if (!Number.isFinite(amount) || amount <= 0) {
+  //     toast.error("Invalid payment amount");
+  //     return;
+  //   }
 
-    const hivelocityItem = hivelocityCheckoutSnapshotRef.current;
-    const exVatStr = paymentTotalString(pricing.subtotal);
-    const items =
-      plan.hivelocity && hivelocityItem
-        ? [hivelocityItem]
-        : [
-            {
-              productId: plan.productId,
-              productPlanId: plan.planId,
-              billingCycle: plan.billingCycle,
-              primaryDomain: showDomainStep ? effectiveDomain ?? undefined : undefined,
-              itemPrice: exVatStr,
-              itemSubtotal: exVatStr,
-              description: plan.planName,
-            },
-          ];
+  //   const hivelocityItem = hivelocityCheckoutSnapshotRef.current;
+  //   const exVatStr = paymentTotalString(pricing.subtotal);
+  //   const items =
+  //     plan.hivelocity && hivelocityItem
+  //       ? [hivelocityItem]
+  //       : [
+  //           {
+  //             productId: plan.productId,
+  //             productPlanId: plan.planId,
+  //             billingCycle: plan.billingCycle,
+  //             primaryDomain: showDomainStep ? effectiveDomain ?? undefined : undefined,
+  //             itemPrice: exVatStr,
+  //             itemSubtotal: exVatStr,
+  //             description: plan.planName,
+  //           },
+  //         ];
 
-    setJengaRedirecting(true);
-    captureEvent("jenga_payment_initiated", { amount });
-    initiateJengaPayment.mutate(
-      {
-        amount,
-        currency: (plan.currency as "KES" | "USD" | "EUR" | "GBP" | "TZS" | "UGX") || "KES",
-        productType: "Service",
-        productDescription: (plan.planName || "Service").slice(0, 200),
-        ...jengaCustomer,
-        ...(resolvedCheckoutTeamId ? { teamId: resolvedCheckoutTeamId } : {}),
-        orderIntent: {
-          source: "buy_now",
-          returnPath: "/payment/card/return",
-          returnOrigin: window.location.origin,
-          items,
-          currency: plan.currency ?? "KES",
-          teamId: resolvedCheckoutTeamId,
-          billedForUserId: resolvedBilledForUserId,
-        },
-      },
-      {
-        onSuccess: (response) => {
-          const data = response.data;
-          if (!data?.checkoutUrl || !data.paymentData) {
-            setJengaRedirecting(false);
-            toast.error("Failed to start card checkout");
-            return;
-          }
-          submitJengaPaymentForm(data.checkoutUrl, data.paymentData);
-        },
-      },
-    );
-  };
+  //   setJengaRedirecting(true);
+  //   captureEvent("jenga_payment_initiated", { amount });
+  //   initiateJengaPayment.mutate(
+  //     {
+  //       amount,
+  //       currency: (plan.currency as "KES" | "USD" | "EUR" | "GBP" | "TZS" | "UGX") || "KES",
+  //       productType: "Service",
+  //       productDescription: (plan.planName || "Service").slice(0, 200),
+  //       ...jengaCustomer,
+  //       ...(resolvedCheckoutTeamId ? { teamId: resolvedCheckoutTeamId } : {}),
+  //       orderIntent: {
+  //         source: "buy_now",
+  //         returnPath: "/payment/card/return",
+  //         returnOrigin: window.location.origin,
+  //         items,
+  //         currency: plan.currency ?? "KES",
+  //         teamId: resolvedCheckoutTeamId,
+  //         billedForUserId: resolvedBilledForUserId,
+  //       },
+  //     },
+  //     {
+  //       onSuccess: (response) => {
+  //         const data = response.data;
+  //         if (!data?.checkoutUrl || !data.paymentData) {
+  //           setJengaRedirecting(false);
+  //           toast.error("Failed to start card checkout");
+  //           return;
+  //         }
+  //         submitJengaPaymentForm(data.checkoutUrl, data.paymentData);
+  //       },
+  //     },
+  //   );
+  // };
 
   const handleManualTransactionReferenceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -2970,7 +2980,8 @@ export function BuyNowDialog({
                       )}
                 </PaymentMethodContent>
               </PaymentMethodOption>
-              <PaymentMethodOption
+              {/* JENGA PAYMENT GATEWAY - COMMENTED OUT (NOT STABLE YET) */}
+              {/* <PaymentMethodOption
                 value="card"
                 trigger={
                   <PaymentMethodTrigger
@@ -3010,7 +3021,7 @@ export function BuyNowDialog({
                     </div>
                   )}
                 </PaymentMethodContent>
-              </PaymentMethodOption>
+              </PaymentMethodOption> */}
               {isAgencyUser ? (
                 <PaymentMethodOption
                   value="manual"

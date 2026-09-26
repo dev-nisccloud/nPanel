@@ -12,6 +12,7 @@ import { SubscriptionViewSheet } from "./agency.subscriptions/_components/subscr
 import { SubscriptionEditSheet } from "./agency.subscriptions/_components/subscription-edit-sheet";
 import { CreateSubscriptionSheet } from "./agency.subscriptions/_components/create-subscription-sheet";
 import { SendRenewalEmailDialog } from "./agency.subscriptions/_components/send-renewal-email-dialog";
+import { SubscriptionRenewalDialog } from "@/components/subscription-renewal-dialog";
 
 const UUID_RE =
 	/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -26,6 +27,7 @@ export default function OrganizationSubscriptionsPage() {
 	const [editSheetOpen, setEditSheetOpen] = React.useState(false);
 	const [createSheetOpen, setCreateSheetOpen] = React.useState(false);
 	const [renewalEmailSubscriptionId, setRenewalEmailSubscriptionId] = React.useState<string | null>(null);
+	const [renewSubscriptionId, setRenewSubscriptionId] = React.useState<string | null>(null);
 
 	const isUnassigned = teamIdParam === UNCATEGORIZED_ORG_ROUTE;
 	const teamId = !isUnassigned && teamIdParam && UUID_RE.test(teamIdParam) ? teamIdParam : undefined;
@@ -39,6 +41,11 @@ export default function OrganizationSubscriptionsPage() {
 			unassignedOnly: isUnassigned || undefined,
 		},
 		{ enabled: !isInvalid },
+	);
+
+	const { data: renewalSubscription } = trpc.clientSubscriptions.getById.useQuery(
+		{ id: renewSubscriptionId! },
+		{ enabled: !!renewSubscriptionId }
 	);
 
 	const teamName = isUnassigned
@@ -109,6 +116,9 @@ export default function OrganizationSubscriptionsPage() {
 							setEditSubscriptionId(id);
 							setEditSheetOpen(true);
 						}}
+						onRenewSubscription={(id) => {
+							setRenewSubscriptionId(id);
+						}}
 					/>
 				</div>
 			</div>
@@ -144,6 +154,33 @@ export default function OrganizationSubscriptionsPage() {
 					onOpenChange={(open) => !open && setRenewalEmailSubscriptionId(null)}
 				/>
 			)}
+
+			<SubscriptionRenewalDialog
+				open={!!renewSubscriptionId}
+				onOpenChange={(open) => {
+					if (!open) setRenewSubscriptionId(null);
+				}}
+				subscription={
+					renewalSubscription
+						? {
+								id: renewalSubscription.id,
+								name: renewalSubscription.name,
+								productId: renewalSubscription.productId,
+								productName: renewalSubscription.product?.name || "",
+								productPlanId: renewalSubscription.productPlanId,
+								serviceType: renewalSubscription.product?.serviceType || null,
+								agreedPrice: renewalSubscription.agreedPrice,
+								agreedCurrency: renewalSubscription.agreedCurrency,
+								billingCycle: renewalSubscription.billingCycle,
+								expiryDate: renewalSubscription.expiryDate
+									? new Date(renewalSubscription.expiryDate)
+									: null,
+								userId: renewalSubscription.userId,
+								teamId: renewalSubscription.teamId,
+						  }
+						: null
+				}
+			/>
 		</div>
 	);
 }
