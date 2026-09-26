@@ -377,7 +377,6 @@ export const agencysidebarItems: NavGroup[] = [
           { title: "Manage Clients", url: "/agency/clients", },
           { title: "Manage Organizations", url: "/agency/manage-organizations", },
           // { title: "Create Client", url: "/agency/clients", },
-          { title: "Manage Users", url: "/agency/manage-users", },
           // { title: "Manage Affiliates", url: "/agency/manage-affiliates", },
         ],
       },

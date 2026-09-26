@@ -3,7 +3,8 @@
 import * as React from "react";
 import { ArrowLeft, LayoutDashboard, Network, Mail, Folder, Layers, Database, ArchiveRestore } from "lucide-react";
 import { Icons } from "@/components/icons";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
+import { hostingDetailTabFromSearch } from "@/components/wordpress/wordpress-return-to";
 import { z } from "zod";
 
 import { Badge } from "@/components/ui/badge";
@@ -131,10 +132,13 @@ function HostingDetailError({ error, onRetry }: { error: Error; onRetry: () => v
 
 export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
   // Use batched endpoint - fetches both hosting data and subscription link in one request
+  const [searchParams] = useSearchParams();
   const { data: hostingData, isLoading, isError, error, refetch } = useHostingDetailBatched(subscriptionId);
   const [isCreateSubscriptionOpen, setIsCreateSubscriptionOpen] = React.useState(false);
   const [installWordPressOpen, setInstallWordPressOpen] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState("overview");
+  const [activeTab, setActiveTab] = React.useState(() =>
+    hostingDetailTabFromSearch(searchParams.get("tab")),
+  );
   const [createIntentTab, setCreateIntentTab] = React.useState<HostingDetailTab | null>(null);
   const suspendActions = useHostingSubscriptionSuspend({
     onSuccess: () => refetch(),
