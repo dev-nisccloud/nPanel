@@ -7,7 +7,6 @@ import { Link, useSearchParams } from "react-router";
 import { hostingDetailTabFromSearch } from "@/components/wordpress/wordpress-return-to";
 import { z } from "zod";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
@@ -17,14 +16,12 @@ import { DetailCardTabsTrigger, DETAIL_TABS_LIST_CLASS } from "@/components/ui/d
 import { HostingOverview, type HostingDetailTab } from "@/components/hosting/hosting-overview";
 import { DnsTable } from "@/components/hosting/dns";
 import { MailTable } from "@/components/hosting/mail";
-import { EmailMalwareProtectionBadge } from "@/components/hosting/mail/email-malware-protection-badge";
 import { FileManager } from "./file-manager";
 import { SubdomainsTable } from "@/components/hosting/subdomains";
 import { DatabasesTable, usePrefetchDatabasesBySiteId } from "@/components/hosting/databases";
 import { WordPressInstancesTable, InstallWordPressSheet } from "@/components/hosting/wordpress";
 import { hostingDetailSchema } from "@/components/hosting/hosting-detail-schema";
 import { useHostingDetailBatched } from "./use-hosting-detail-batched";
-import { getStatusDisplayText, getStatusBadgeVariant } from "./hosting-utils";
 import { CreateSubscriptionForHostingDialog } from "./create-subscription-for-hosting-dialog";
 import { HostingSubscriptionActionMenu } from "./hosting-subscription-action-menu";
 import { PleskLinkedSubscriptionUpgradeButton } from "@/routes/agency.subscriptions/_components/subscription-upgrade-button";
@@ -197,18 +194,6 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
     return <HostingDetailError error={error as Error} onRetry={() => refetch()} />;
   }
 
-  const getStatusBadge = (status: number) => {
-    const isActive = status === 0;
-    return (
-      <Badge
-        variant={getStatusBadgeVariant(status)}
-        className={isActive ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800" : ""}
-      >
-        {getStatusDisplayText(status)}
-      </Badge>
-    );
-  };
-
   return (
     <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
       <div className="w-full max-w-7xl mx-auto">
@@ -230,8 +215,6 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
           </div>
 
           <div className="flex flex-wrap items-center justify-end gap-2">
-            {getStatusBadge(hostingData.gen_info.status ?? 0)}
-            <EmailMalwareProtectionBadge variant="header" />
             <PleskLinkedSubscriptionUpgradeButton
               pleskSubscriptionId={hostingData.id ?? subscriptionId}
               domain={hostingData.gen_info.name}

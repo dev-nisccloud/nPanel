@@ -6,6 +6,7 @@ import { Search, Send } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 
 import { ZeepoAiAutosizeTextarea } from "@/components/zeepo/zeepo-ai-autosize-textarea";
+import { ZeepoMascot } from "@/components/zeepo/zeepo-mascot";
 import { ZEEPO_AI_CAPABILITY_SHORTCUTS } from "@/components/zeepo/zeepo-ai-capabilities";
 import { ZeepoAiBuyTokensDialog } from "@/components/zeepo/zeepo-ai-buy-tokens-dialog";
 import { stashZeepoAiHandoff } from "@/components/zeepo/zeepo-ai-handoff";
@@ -154,19 +155,20 @@ function DashboardZeepoHeroInner() {
 	};
 
 	return (
-		<section className="mx-auto flex w-full max-w-2xl flex-col items-center text-center">
-			<div className="flex flex-col items-center gap-1.5">
-				<h1 className="text-3xl font-bold leading-[1.15] tracking-tight text-foreground sm:text-4xl">
-					{greeting}!
-				</h1>
-				<p className="text-sm leading-snug text-muted-foreground sm:text-base">
-					Where do you want to get started?
-				</p>
+		<section className="flex h-full flex-col rounded-xl border bg-card p-5 text-left">
+			<div className="flex items-start gap-3">
+				<ZeepoMascot className="h-12 w-12 sm:h-14 sm:w-14" />
+				<div className="flex min-w-0 flex-col gap-1 pt-0.5">
+					<h2 className="text-base font-semibold text-foreground">{greeting}</h2>
+					<p className="text-sm text-muted-foreground">
+						Ask Zeepo about domains, hosting, invoices, or your account.
+					</p>
+				</div>
 			</div>
 
 			<div
 				className={cn(
-					"zeepo-ai-compose-surface zeepo-composer-shell zeepo-floating-dock-shadow zeepo-composer-glow mt-6 w-full overflow-hidden rounded-2xl border border-border/70 bg-card text-left",
+					"zeepo-ai-compose-surface zeepo-composer-shell mt-4 w-full overflow-hidden rounded-xl border border-border/70 bg-background text-left",
 					isHandingOff && "pointer-events-none opacity-70",
 				)}
 			>
@@ -222,7 +224,7 @@ function DashboardZeepoHeroInner() {
 				</div>
 			</div>
 
-			<div className="mt-4 flex w-full flex-wrap items-center justify-center gap-2">
+			<div className="mt-4 flex w-full flex-wrap items-center gap-2">
 				{ZEEPO_AI_CAPABILITY_SHORTCUTS.map((item) => {
 					const Icon = item.icon;
 					const selected = inputValue.startsWith(item.starter);
