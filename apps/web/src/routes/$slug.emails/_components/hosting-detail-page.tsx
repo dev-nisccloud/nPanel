@@ -5,7 +5,6 @@ import { ArrowLeft, LayoutDashboard, Network, Mail, Folder } from "lucide-react"
 import { Link } from "react-router";
 import { useLocation } from "react-router";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
@@ -17,11 +16,9 @@ import { PleskLinkedSubscriptionUpgradeButton } from "@/routes/agency.subscripti
 import { HostingOverview } from "@/components/hosting/hosting-overview";
 import { DnsTable } from "@/components/hosting/dns";
 import { MailTable } from "@/components/hosting/mail";
-import { EmailMalwareProtectionBadge } from "@/components/hosting/mail/email-malware-protection-badge";
 import { FileManager } from "./file-manager";
 import { hostingDetailSchema } from "@/components/hosting/hosting-detail-schema";
 import { useHostingDetailBatched } from "./use-hosting-detail-batched";
-import { getStatusDisplayText, getStatusBadgeVariant } from "./hosting-utils";
 
 interface HostingDetailPageProps {
   subscriptionId: string;
@@ -142,18 +139,6 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
     return typeof mailboxQuota === "number" && mailboxQuota > 0 ? mailboxQuota : undefined;
   })();
 
-  const getStatusBadge = (status: number) => {
-    const isActive = status === 0;
-    return (
-      <Badge
-        variant={getStatusBadgeVariant(status)}
-        className={isActive ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800" : ""}
-      >
-        {getStatusDisplayText(status)}
-      </Badge>
-    );
-  };
-
   return (
     <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
       <div className="w-full max-w-7xl mx-auto">
@@ -175,8 +160,6 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
           </div>
 
           <div className="flex flex-wrap items-center justify-end gap-2">
-            {getStatusBadge(hostingData.gen_info.status ?? 0)}
-            <EmailMalwareProtectionBadge variant="header" />
             <PleskLinkedSubscriptionUpgradeButton
               pleskSubscriptionId={hostingData.id ?? subscriptionId}
               teamSlug={teamSlug}
@@ -208,7 +191,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
             </ScrollArea>
 
             <TabsContent value="overview" className="mt-10">
-              <HostingOverview hostingData={hostingData} showOverusePolicy={false} />
+              <HostingOverview hostingData={hostingData} showOverusePolicy={false} teamSlug={teamSlug} />
             </TabsContent>
 
             <TabsContent value="dns" className="mt-10">

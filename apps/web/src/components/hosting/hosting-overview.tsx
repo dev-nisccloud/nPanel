@@ -1,14 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { CheckCircle, XCircle, HardDrive, Wifi, Database as DatabaseIcon, Globe, ExternalLink, Copy, Eye, EyeOff, Mail, Layers, Users, List, Network, Folder, Zap } from "lucide-react";
+import { CheckCircle, XCircle, HardDrive, Wifi, Database as DatabaseIcon, Globe, ExternalLink, Copy, Eye, EyeOff, Mail, Layers, Users, List, Network, Folder, Zap, Shield, ShieldCheck } from "lucide-react";
 import { z } from "zod";
 import { toast } from "@/components/ui/sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Icons } from "@/components/icons";
+import { trpc } from "@/utils/trpc";
 
 import { hostingDetailSchema } from "@/components/hosting/hosting-detail-schema";
 import { PageSpeedInsightsCard } from "@/components/hosting/pagespeed-insights-card";
@@ -38,6 +40,8 @@ export interface HostingOverviewProps {
   hostingData: z.infer<typeof hostingDetailSchema>;
   /** Agency-only: show overuse policy. Customer sees disk quota instead. */
   showOverusePolicy?: boolean;
+  /** Customer team slug, used to scope the linked billing subscription. */
+  teamSlug?: string;
   /** Switch the parent detail page to another tab; optionally open that tab's create sheet */
   onNavigateTab?: (tab: HostingDetailTab, options?: { openCreate?: boolean }) => void;
 }
@@ -232,6 +236,83 @@ function UsageCell({
   );
 }
 
+const BILLING_CYCLE_LABELS: Record<string, string> = {
+  MONTHLY: "Monthly",
+  YEARLY: "Yearly",
+  BIENNIALLY: "Every 2 years",
+  CUSTOM: "Custom",
+  ONE_TIME: "One-time",
+};
+
+const SUBSCRIPTION_STATUS_BADGE_CLASS: Record<string, string> = {
+  ACTIVE:
+    "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200 border-green-200 dark:border-green-800",
+  PENDING:
+    "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800",
+  SUSPENDED:
+    "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-200 border-orange-200 dark:border-orange-800",
+  CANCELLED:
+    "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200 border-red-200 dark:border-red-800",
+  EXPIRED:
+    "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200 border-red-200 dark:border-red-800",
+  PROCESSING:
+    "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200 border-blue-200 dark:border-blue-800",
+  FAILED:
+    "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200 border-red-200 dark:border-red-800",
+};
+
+function formatEnumLabel(value: string) {
+  return value
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function formatOverviewDate(value: string | Date | null | undefined) {
+  if (!value) return "Not available";
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "Not available";
+  return date.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function AssuranceBadge({
+  icon: Icon,
+  label,
+  className,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  className: string;
+}) {
+  return (
+    <Badge variant="outline" className={cn("gap-1", className)}>
+      <Icon className="h-3 w-3" />
+      {label}
+    </Badge>
+  );
+}
+
+function HostingAccountStatusBadge({ status }: { status?: number | null }) {
+  const isActive = status === 0;
+  return (
+    <Badge
+      variant={isActive ? "default" : "destructive"}
+      className={
+        isActive
+          ? "bg-green-100 text-green-800 hover:bg-green-100 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800"
+          : undefined
+      }
+    >
+      {isActive ? "Active" : "Suspended"}
+    </Badge>
+  );
+}
+
 function LimitCell({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="space-y-1 px-4 py-3">
@@ -272,8 +353,21 @@ function CopyButton({
 export function HostingOverview({
   hostingData,
   showOverusePolicy = true,
+  teamSlug,
   onNavigateTab,
 }: HostingOverviewProps) {
+  const billingQuery = trpc.clientSubscriptions.getHostingOverviewBilling.useQuery(
+    {
+      pleskSubscriptionId: hostingData.id,
+      domain: hostingData.gen_info?.name,
+      ...(teamSlug ? { teamSlug } : {}),
+    },
+    { enabled: Number.isFinite(hostingData.id) },
+  );
+  const linkedSubscription = billingQuery.data?.subscription ?? null;
+  const planName = billingQuery.data?.planName?.trim() || null;
+  const renewalDate = linkedSubscription?.expiryDate ?? linkedSubscription?.nextRenewalDate ?? null;
+  const renewalLabel = linkedSubscription?.expiryDate ? "Expires" : "Next renewal";
 
   const formatBytes = (bytes: number) => {
     if (!Number.isFinite(bytes) || bytes < 0) return "-";
@@ -331,7 +425,6 @@ export function HostingOverview({
     });
   })();
   const sslEnabled = getPropertyValue("ssl");
-  const certificateName = getPropertyValue("certificate_name") || "Not Available";
   const ftpLogin = getPropertyValue("ftp_login") || "Not Available";
   const ftpPassword = getPropertyValue("ftp_password") || "Not Available";
   const ftpHost = `ftp://${ipAddress}`;
@@ -339,10 +432,10 @@ export function HostingOverview({
 
   return (
     <div className="space-y-6">
-      {/* General Information & FTP Account */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* General Information & Security & Access */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
         {/* General Information */}
-        <Card className="overflow-hidden py-0 gap-0">
+        <Card className="flex h-full flex-col overflow-hidden py-0 gap-0">
           <CardHeader className="border-b bg-muted/30 px-4 py-3">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
               <Globe className="h-4 w-4 text-muted-foreground" />
@@ -352,10 +445,10 @@ export function HostingOverview({
               Basic hosting account details
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="divide-y divide-border">
+          <CardContent className="flex flex-1 flex-col p-0">
+            <div className="flex h-full flex-1 flex-col divide-y divide-border">
               {/* Domain + Created */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
+              <div className="grid flex-1 grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
                 <div className="space-y-1 px-4 py-3">
                   <p className="text-xs text-muted-foreground">Domain Name</p>
                   <div className="flex items-center gap-1 min-w-0">
@@ -396,8 +489,12 @@ export function HostingOverview({
                 </div>
               </div>
 
-              {/* SSL + Certificate */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
+              {/* Status + SSL */}
+              <div className="grid flex-1 grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
+                <div className="space-y-1 px-4 py-3">
+                  <p className="text-xs text-muted-foreground">Status</p>
+                  <HostingAccountStatusBadge status={hostingData.gen_info?.status} />
+                </div>
                 <div className="space-y-1 px-4 py-3">
                   <p className="text-xs text-muted-foreground">SSL Certificate</p>
                   <div>
@@ -417,32 +514,101 @@ export function HostingOverview({
                     )}
                   </div>
                 </div>
-                <div className="space-y-1 px-4 py-3">
-                  <p className="text-xs text-muted-foreground">Certificate Name</p>
-                  <p className="truncate text-sm font-medium text-primary">
-                    {certificateName}
-                  </p>
-                </div>
               </div>
+
+              {/* Plan, and billing details when a subscription is linked */}
+              <div className="grid flex-1 grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
+                <div
+                  className={cn(
+                    "space-y-1 px-4 py-3",
+                    !billingQuery.isLoading && !linkedSubscription && "sm:col-span-2",
+                  )}
+                >
+                  <p className="text-xs text-muted-foreground">Plan</p>
+                  {billingQuery.isLoading ? (
+                    <Skeleton className="h-4 w-28" />
+                  ) : (
+                    <p className="truncate text-sm font-medium text-primary">
+                      {planName || "Not available"}
+                    </p>
+                  )}
+                </div>
+                {linkedSubscription ? (
+                  <div className="space-y-1 px-4 py-3">
+                    <p className="text-xs text-muted-foreground">Subscription</p>
+                    <Badge
+                      variant="outline"
+                      className={SUBSCRIPTION_STATUS_BADGE_CLASS[linkedSubscription.status]}
+                    >
+                      {formatEnumLabel(linkedSubscription.status)}
+                    </Badge>
+                  </div>
+                ) : billingQuery.isLoading ? (
+                  <div className="space-y-1 px-4 py-3">
+                    <p className="text-xs text-muted-foreground">Subscription</p>
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                ) : null}
+              </div>
+
+              {linkedSubscription ? (
+                <>
+                  <div className="grid flex-1 grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
+                    <div className="space-y-1 px-4 py-3">
+                      <p className="text-xs text-muted-foreground">Billing cycle</p>
+                      <p className="truncate text-sm font-medium text-primary">
+                        {linkedSubscription.billingCycle
+                          ? BILLING_CYCLE_LABELS[linkedSubscription.billingCycle] ??
+                            formatEnumLabel(linkedSubscription.billingCycle)
+                          : "Not available"}
+                      </p>
+                    </div>
+                    <div className="space-y-1 px-4 py-3">
+                      <p className="text-xs text-muted-foreground">{renewalLabel}</p>
+                      <p className="truncate text-sm font-medium text-primary">
+                        {formatOverviewDate(renewalDate)}
+                      </p>
+                    </div>
+                  </div>
+                </>
+              ) : null}
             </div>
           </CardContent>
         </Card>
 
-        {/* FTP Account */}
-        <Card className="overflow-hidden py-0 gap-0">
+        {/* Security & Access */}
+        <Card className="flex h-full flex-col overflow-hidden py-0 gap-0">
           <CardHeader className="border-b bg-muted/30 px-4 py-3">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-              <HardDrive className="h-4 w-4 text-muted-foreground" />
-              FTP Account
+              <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+              Security & Access
             </CardTitle>
             <CardDescription className="text-xs">
-              FTP connection details
+              Protection and connection details
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="divide-y divide-border">
-              {/* Hostname + Username */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
+          <CardContent className="flex flex-1 flex-col p-0">
+            <div className="flex h-full flex-1 flex-col divide-y divide-border">
+              <div className="grid flex-1 grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
+                <div className="space-y-1 px-4 py-3">
+                  <p className="text-xs text-muted-foreground">Malware protection</p>
+                  <AssuranceBadge
+                    icon={ShieldCheck}
+                    label="Malware protected"
+                    className="border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-950/50 dark:text-green-200"
+                  />
+                </div>
+                <div className="space-y-1 px-4 py-3">
+                  <p className="text-xs text-muted-foreground">Security</p>
+                  <AssuranceBadge
+                    icon={Shield}
+                    label="Security protected"
+                    className="border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-800 dark:bg-sky-950/50 dark:text-sky-200"
+                  />
+                </div>
+              </div>
+
+              <div className="grid flex-1 grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
                 <div className="space-y-1 px-4 py-3">
                   <p className="text-xs text-muted-foreground">FTP Hostname</p>
                   <div className="flex items-center gap-1 min-w-0">
@@ -471,8 +637,7 @@ export function HostingOverview({
                 </div>
               </div>
 
-              {/* Port + Password */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
+              <div className="grid flex-1 grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
                 <div className="space-y-1 px-4 py-3">
                   <p className="text-xs text-muted-foreground">FTP Port</p>
                   <p className="text-sm font-medium text-primary">{ftpPort}</p>
@@ -509,6 +674,23 @@ export function HostingOverview({
                     />
                   </div>
                 </div>
+              </div>
+
+              <div className="grid flex-1 grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
+                <div className="space-y-1 px-4 py-3">
+                  <p className="text-xs text-muted-foreground">IP Address</p>
+                  <div className="flex items-center gap-1 min-w-0">
+                    <p className="truncate text-sm font-medium text-primary flex-1">
+                      {ipAddress}
+                    </p>
+                    <CopyButton
+                      value={ipAddress}
+                      label="IP address"
+                      onCopy={copyToClipboard}
+                    />
+                  </div>
+                </div>
+                <div className="px-4 py-3" aria-hidden />
               </div>
             </div>
           </CardContent>

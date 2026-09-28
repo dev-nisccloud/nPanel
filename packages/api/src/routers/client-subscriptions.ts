@@ -2377,6 +2377,109 @@ export const clientSubscriptionsRouter = router({
         }),
 
     /**
+     * Plan and linked billing subscription for a hosting detail overview.
+     * Plan falls back to the live Plesk service plan when no catalog plan is linked.
+     */
+    getHostingOverviewBilling: protectedProcedure
+        .input(
+            z.object({
+                pleskSubscriptionId: z.union([z.string(), z.number()]),
+                teamSlug: z.string().optional(),
+                domain: z.string().optional(),
+            }),
+        )
+        .output(
+            z.object({
+                planName: z.string().nullable(),
+                subscription: z
+                    .object({
+                        id: z.string(),
+                        status: subscriptionStatusSchema,
+                        billingCycle: billingCycleSchema.nullable(),
+                        expiryDate: z.date().nullable(),
+                        nextRenewalDate: z.date().nullable(),
+                        autoRenew: z.boolean(),
+                        productName: z.string().nullable(),
+                        planName: z.string().nullable(),
+                        agreedPrice: z.string().nullable(),
+                        agreedCurrency: z.string().nullable(),
+                    })
+                    .nullable(),
+            }),
+        )
+        .query(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view subscriptions",
+                });
+            }
+
+            const parsedId = Number.parseInt(String(input.pleskSubscriptionId).trim(), 10);
+            const pleskPlan =
+                Number.isFinite(parsedId) && parsedId > 0
+                    ? await loadPleskWebspacePlan({ id: parsedId })
+                    : input.domain?.trim()
+                      ? await loadPleskWebspacePlan({ name: input.domain.trim() })
+                      : null;
+            const pleskPlanName = pleskPlan?.planName?.trim() || null;
+
+            const subscriptionId = await findLinkedNiscSubscriptionIdByPlesk({
+                pleskSubscriptionId: input.pleskSubscriptionId,
+                domain: input.domain,
+            });
+            if (!subscriptionId) {
+                return { planName: pleskPlanName, subscription: null };
+            }
+
+            const sub = await db.query.niscClientSubscription.findFirst({
+                where: eq(niscClientSubscription.id, subscriptionId),
+                with: {
+                    product: true,
+                    productPlan: true,
+                },
+            });
+            if (!sub) {
+                return { planName: pleskPlanName, subscription: null };
+            }
+
+            const canRead = await canReadSubscription(sub, session.user.id, session.user.role);
+            if (!canRead) {
+                return { planName: pleskPlanName, subscription: null };
+            }
+            if (input.teamSlug) {
+                const slugTeamId = await getTeamIdBySlug(input.teamSlug);
+                if (!slugTeamId || sub.teamId !== slugTeamId) {
+                    return { planName: pleskPlanName, subscription: null };
+                }
+            }
+
+            const statusParsed = subscriptionStatusSchema.safeParse(sub.status);
+            const catalogPlanName = sub.productPlan?.name?.trim() || null;
+            const productName = sub.product?.name?.trim() || null;
+            const displayPlan =
+                catalogPlanName && productName && productName !== catalogPlanName
+                    ? `${productName} · ${catalogPlanName}`
+                    : catalogPlanName ?? productName ?? pleskPlanName;
+            return {
+                planName: displayPlan,
+                subscription: {
+                    id: sub.id,
+                    status: statusParsed.success ? statusParsed.data : "PENDING",
+                    billingCycle: coerceEnumOrNull(sub.billingCycle, billingCycleSchema.options),
+                    expiryDate: sub.expiryDate ?? null,
+                    nextRenewalDate: sub.nextRenewalDate ?? null,
+                    autoRenew: Boolean(sub.autoRenew),
+                    productName,
+                    planName: catalogPlanName,
+                    agreedPrice: sub.agreedPrice?.trim() || null,
+                    agreedCurrency: sub.agreedCurrency?.trim() || null,
+                },
+            };
+        }),
+
+    /**
      * Live Plesk plan for a webspace, matched to catalog plans.
      * When productId is omitted, all hosting catalog products/plans/features are returned.
      */
