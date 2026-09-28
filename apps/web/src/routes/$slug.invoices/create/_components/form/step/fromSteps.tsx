@@ -32,7 +32,7 @@ export const FormSteps = () => {
 const step1 = {
   previous: null,
   nextStep: {
-    title: "Organization Billing",
+    title: "Bill to",
     step: "2",
   },
 };
@@ -49,7 +49,7 @@ const step2 = {
 };
 const step3 = {
   previous: {
-    title: "Organization Billing",
+    title: "Bill to",
     step: "2",
   },
   nextStep: {

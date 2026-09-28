@@ -49,6 +49,7 @@ import { formatInvoiceDate } from "@/lib/invoice-date";
 const statusBadgeVariant: Record<InvoiceSummary["status"], "default" | "secondary" | "destructive" | "outline"> = {
 	DRAFT: "outline",
 	SENT: "secondary",
+	UNPAID: "secondary",
 	PARTIALLY_PAID: "secondary",
 	PAID: "default",
 	OVERDUE: "destructive",
@@ -59,6 +60,7 @@ const statusBadgeVariant: Record<InvoiceSummary["status"], "default" | "secondar
 const statusIcon: Record<InvoiceSummary["status"], React.ComponentType<{ className?: string }>> = {
 	DRAFT: Clock,
 	SENT: AlertCircle,
+	UNPAID: AlertCircle,
 	PARTIALLY_PAID: AlertCircle,
 	PAID: CheckCircle2,
 	OVERDUE: XCircle,
@@ -400,7 +402,7 @@ function InvoiceCard({ invoice, onRefetch }: InvoiceCardProps) {
 							</DropdownMenuItem>
 							<DropdownMenuItem
 								onClick={handleResendEmail}
-								disabled={isDownloading || isResending || isDeleting || !invoice.customerEmail}
+								disabled={isResending}
 							>
 								{isResending ? (
 									<>

@@ -22,8 +22,8 @@ export function useInvoiceEtimsFiscalPreview(): EtimsFiscalFields {
 	return buildEtimsFiscalFieldsFromManual(
 		{
 			sdcId: scuSdcId,
-			sdcDate,
-			sdcTime,
+			sdcDate: scuDate,
+			sdcTime: scuTime,
 			curRcptNo: scuCurRcptNo,
 			totRcptNo: scuTotRcptNo,
 			intrlData: scuIntrlData,

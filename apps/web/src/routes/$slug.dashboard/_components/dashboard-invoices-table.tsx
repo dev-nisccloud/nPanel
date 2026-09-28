@@ -57,6 +57,7 @@ function getStatusBadgeVariant(status: InvoiceUI["status"]) {
     case "OVERDUE":
       return "destructive";
     case "SENT":
+    case "UNPAID":
       return "outline";
     case "DRAFT":
       return "secondary";

@@ -215,7 +215,7 @@ export const niscClientsRouter = router({
         .select({ teamId: invoice.teamId, createdAt: invoice.createdAt, amount: invoice.amount, status: invoice.status })
         .from(invoice)
         .where(and(
-          inArray(invoice.status, ["DRAFT", "SENT", "PAID", "OVERDUE", "PARTIALLY_PAID"]),
+          inArray(invoice.status, ["DRAFT", "SENT", "UNPAID", "PAID", "OVERDUE", "PARTIALLY_PAID"]),
         ));
 
       const periodTx = await db

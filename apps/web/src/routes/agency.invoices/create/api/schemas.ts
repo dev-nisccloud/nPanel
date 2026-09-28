@@ -3,6 +3,7 @@ import { z } from "zod";
 export const invoiceStatusSchema = z.enum([
 	"DRAFT",
 	"SENT",
+	"UNPAID",
 	"PARTIALLY_PAID",
 	"PAID",
 	"OVERDUE",

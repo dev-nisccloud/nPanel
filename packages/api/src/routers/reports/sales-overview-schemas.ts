@@ -173,6 +173,7 @@ export const overdueAgingSchema = z.object({
 export const invoiceStatusMixSchema = z.object({
 	DRAFT: z.number(),
 	SENT: z.number(),
+	UNPAID: z.number(),
 	PARTIALLY_PAID: z.number(),
 	PAID: z.number(),
 	OVERDUE: z.number(),

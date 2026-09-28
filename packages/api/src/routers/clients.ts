@@ -392,6 +392,7 @@ function mapInvoiceStatusToBucket(status: string): InvoiceBillingBucketKey | "sk
 		case "DRAFT":
 			return "draft";
 		case "SENT":
+		case "UNPAID":
 		case "OVERDUE":
 		case "PARTIALLY_PAID":
 			return "unpaid";

@@ -797,6 +797,7 @@ export async function computeSalesReportOverview(params: {
 	const invoiceStatusMix = {
 		DRAFT: statusMap.get("DRAFT") ?? 0,
 		SENT: statusMap.get("SENT") ?? 0,
+		UNPAID: statusMap.get("UNPAID") ?? 0,
 		PARTIALLY_PAID: statusMap.get("PARTIALLY_PAID") ?? 0,
 		PAID: statusMap.get("PAID") ?? 0,
 		OVERDUE: statusMap.get("OVERDUE") ?? 0,

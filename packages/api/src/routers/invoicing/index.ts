@@ -1303,7 +1303,7 @@ export const invoicingRouter = router({
 					teamId: invoice.teamId,
 					teamName: team.name,
 					invoiceCount: count(),
-					unpaidCount: sql<number>`count(*) filter (where ${invoice.status} in ('SENT', 'PARTIALLY_PAID', 'OVERDUE'))`.mapWith(Number),
+					unpaidCount: sql<number>`count(*) filter (where ${invoice.status} in ('SENT', 'UNPAID', 'PARTIALLY_PAID', 'OVERDUE'))`.mapWith(Number),
 					lastInvoiceAt: max(invoice.createdAt),
 				})
 				.from(invoice)
@@ -2537,6 +2537,10 @@ export const invoicingRouter = router({
 					});
 				});
 			} catch (emailError) {
+				const message =
+					emailError instanceof Error && emailError.message.trim()
+						? emailError.message
+						: "Failed to send email reminder";
 				console.error("Failed to send invoice reminder email:", emailError);
 				await logInvoiceActivity(db, {
 					invoiceId: input.invoiceId,
@@ -2544,12 +2548,12 @@ export const invoicingRouter = router({
 					action: "EMAIL_ERROR",
 					description: "Failed to send invoice reminder email",
 					metadata: {
-						error: emailError instanceof Error ? emailError.message : "Unknown error",
+						error: message,
 					},
 				});
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to send email reminder",
+					message,
 				});
 			}
 

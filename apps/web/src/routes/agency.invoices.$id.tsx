@@ -30,7 +30,7 @@ import { PreviewDetails } from "@/routes/agency.invoices/create/_components/form
 import { transformInvoiceToPreviewData } from "@/lib/transform-invoice-preview-data";
 import { captureEvent } from "@/lib/posthog";
 import { InvoicePayDialog } from "@/components/invoice-pay-dialog";
-import { InvoiceKraStatusPanel, canSendInvoiceEmail } from "./agency.invoices/$id/_components/invoice-kra-status-panel";
+import { InvoiceKraStatusPanel } from "./agency.invoices/$id/_components/invoice-kra-status-panel";
 import { IssueCreditNoteDialog } from "./agency.invoices/$id/_components/issue-credit-note-dialog";
 import { InvoicePaymentSummary } from "./agency.invoices/$id/_components/invoice-payment-summary";
 import { InvoiceTransactionsSection } from "./agency.invoices/$id/_components/invoice-transactions-section";
@@ -139,6 +139,7 @@ type InvoiceEditStep = "1" | "2" | "3" | "4" | "5";
 
 type InvoiceEditorFormValues = {
 	step: string;
+	billToMode: "organization" | "manual";
 	teamId?: string;
 
 	yourEmail: string;
@@ -183,7 +184,7 @@ type InvoiceEditorFormValues = {
 	invoiceNo: string;
 	issueDate: string;
 	dueDate: string;
-	invoiceStatus: "DRAFT" | "SENT" | "PARTIALLY_PAID" | "PAID" | "OVERDUE" | "CANCELLED" | "WRITTEN_OFF";
+	invoiceStatus: InvoiceStatusOption;
 	scuSdcId: string;
 	scuDate: string;
 	scuTime: string;
@@ -227,6 +228,7 @@ function buildInvoiceEditorDefaults(
 
 	return {
 		step: "1",
+		billToMode: invoice.teamId ? "organization" : "manual",
 		teamId: invoice.teamId ?? undefined,
 
 		yourEmail: String(fromDetails.email ?? ""),
@@ -317,6 +319,7 @@ export default function InvoiceViewPage() {
 	const form = useForm<InvoiceEditorFormValues>({
 		defaultValues: {
 			step: "1",
+			billToMode: "organization",
 			teamId: undefined,
 
 			yourEmail: "",
@@ -422,7 +425,7 @@ export default function InvoiceViewPage() {
 	const markUnpaidMutation = trpc.invoicing.updateStatus.useMutation({
 		onSuccess: () => {
 			setMarkUnpaidConfirmOpen(false);
-			toast.success("Invoice marked unpaid", { description: "Status set to overdue." });
+			toast.success("Invoice marked unpaid", { description: "Status set to unpaid." });
 			utils.invoicing.getById.invalidate({ id: invoiceId });
 			utils.invoicing.list.invalidate();
 		},
@@ -480,27 +483,27 @@ export default function InvoiceViewPage() {
 	const handleSendEmail = async () => {
 		if (!invoice) return;
 
+		const to = sendToEmail.trim();
+		if (!to) {
+			toast.error("No recipient email", {
+				description: "Enter an email address to send this invoice.",
+			});
+			return;
+		}
+
 		try {
 			setIsSending(true);
-
-			if (!sendToEmail) {
-				toast.error("No customer email", {
-					description: "This invoice does not have a customer email address.",
-				});
-				return;
-			}
-
 			await resendEmailMutation.mutateAsync({
 				invoiceId: invoice.id,
-				to: sendToEmail.trim() || undefined,
+				to,
 				cc: parseEmails(sendCc),
 				bcc: parseEmails(sendBcc),
 			});
+			setSendDialogOpen(false);
 		} catch (error) {
-			console.error("Failed to resend email:", error);
+			console.error("Failed to send invoice email:", error);
 		} finally {
 			setIsSending(false);
-			setSendDialogOpen(false);
 		}
 	};
 
@@ -540,7 +543,6 @@ export default function InvoiceViewPage() {
 
 	const previewData = transformInvoiceToPreviewData(invoice);
 	const pdfMeta = buildInvoicePdfDetails(invoice);
-	const emailBlocked = !canSendInvoiceEmail(invoice);
 	const canIssueCreditNote =
 		isInvoiceKraSynced(invoice.kraStatus) && !invoice.creditNote;
 	const existingCreditNoteId = invoice.creditNote?.id;
@@ -635,7 +637,7 @@ export default function InvoiceViewPage() {
 			Object.assign(payloadBase, { fromDetails: fromDetails as any });
 		} else if (editStep === "2") {
 			Object.assign(payloadBase, {
-				teamId: values.teamId ?? null,
+				teamId: values.billToMode === "manual" ? null : values.teamId || null,
 				customerName: values.companyName || null,
 				customerEmail: values.email || null,
 				customerDetails: customerDetails as any,
@@ -759,7 +761,7 @@ export default function InvoiceViewPage() {
 					)}
 					<Button
 						onClick={() => setMarkUnpaidConfirmOpen(true)}
-						disabled={invoice.status === "OVERDUE" || isDownloading || isSending}
+						disabled={invoice.status === "UNPAID" || isDownloading || isSending}
 						variant="outline"
 					>
 						<Ban className="mr-2 h-4 w-4" />
@@ -784,14 +786,7 @@ export default function InvoiceViewPage() {
 					</Button>
 					<Button
 						onClick={() => setSendDialogOpen(true)}
-						disabled={isDownloading || isSending || !invoice.customerEmail || emailBlocked}
-						title={
-							emailBlocked
-								? invoice.kraStatus === "SUBMITTING"
-									? "KRA sync in progress"
-									: "KRA sync was skipped  fix configuration or retry sync"
-								: undefined
-						}
+						disabled={isSending}
 					>
 						{isSending ? (
 							<>
@@ -827,15 +822,14 @@ export default function InvoiceViewPage() {
 					<AlertDialogHeader>
 						<AlertDialogTitle>Mark unpaid</AlertDialogTitle>
 						<AlertDialogDescription>
-							This will set the invoice status to <strong>Overdue</strong>. Use this when the invoice is past due and has not been paid. You can still record payments later via &quot;Update payment&quot;.
+							This will set the invoice status to <strong>Unpaid</strong>. The invoice stays open so you can still record payments later.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
 						<AlertDialogCancel disabled={markUnpaidMutation.isPending}>Cancel</AlertDialogCancel>
 						<AlertDialogAction
-							onClick={() => markUnpaidMutation.mutate({ id: invoice.id, status: "OVERDUE" })}
+							onClick={() => markUnpaidMutation.mutate({ id: invoice.id, status: "UNPAID" })}
 							disabled={markUnpaidMutation.isPending}
-							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
 						>
 							{markUnpaidMutation.isPending ? (
 								<>
@@ -958,7 +952,7 @@ export default function InvoiceViewPage() {
 					<DialogHeader>
 						<DialogTitle>Send invoice email</DialogTitle>
 						<DialogDescription>
-							The server will sync to KRA eTIMS if needed, generate the fiscal PDF, then email it. You can optionally add CC/BCC recipients (comma-separated).
+							Email this invoice with its PDF. You can send it again at any status. Add CC or BCC addresses separated by commas if you need them.
 						</DialogDescription>
 					</DialogHeader>
 
@@ -993,7 +987,7 @@ export default function InvoiceViewPage() {
 						<Button variant="outline" onClick={() => setSendDialogOpen(false)} disabled={isSending}>
 							Cancel
 						</Button>
-						<Button onClick={handleSendEmail} disabled={isSending || !sendToEmail}>
+						<Button onClick={handleSendEmail} disabled={isSending}>
 							{isSending ? (
 								<>
 									<Spinner className="mr-2 h-4 w-4" />

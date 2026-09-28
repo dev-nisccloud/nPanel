@@ -16,6 +16,8 @@ export default function InvoicingPage() {
       yourLogo: "",
       yourTaxId: "",
       yourZip: "",
+      billToMode: "organization",
+      teamId: "",
       email: "",
       companyName: "",
       companyAddress: "",
