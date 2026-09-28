@@ -1,6 +1,7 @@
 "use client";
 
-import { MetricPieCard } from "@/components/dashboard/metric-pie-card";
+import { Icons } from "@/components/icons";
+import { AgencyMetricCard } from "@/routes/agency.dashboard/_components/agency-metric-card";
 import type { CustomerDashboardMetrics } from "./use-customer-dashboard-metrics";
 
 const COLORS = {
@@ -14,8 +15,9 @@ export function DashboardMetricsGrid({ metrics }: { metrics: CustomerDashboardMe
 	const base = `/${teamSlug}`;
 
 	return (
-		<section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-			<MetricPieCard
+		<section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+			<AgencyMetricCard
+				icon={Icons.Site}
 				title="Domains"
 				description="Portfolio health"
 				loading={metrics.domains.isLoading}
@@ -36,7 +38,8 @@ export function DashboardMetricsGrid({ metrics }: { metrics: CustomerDashboardMe
 				]}
 			/>
 
-			<MetricPieCard
+			<AgencyMetricCard
+				icon={Icons.Hosting}
 				title="Hosting"
 				description="Website hosting"
 				loading={metrics.hosting.isLoading}
@@ -57,7 +60,8 @@ export function DashboardMetricsGrid({ metrics }: { metrics: CustomerDashboardMe
 				]}
 			/>
 
-			<MetricPieCard
+			<AgencyMetricCard
+				icon={Icons.Invoices}
 				title="Invoices"
 				description="Billing status"
 				loading={metrics.invoices.isLoading}
@@ -77,7 +81,8 @@ export function DashboardMetricsGrid({ metrics }: { metrics: CustomerDashboardMe
 				actions={[{ label: "Invoices", href: `${base}/invoices` }]}
 			/>
 
-			<MetricPieCard
+			<AgencyMetricCard
+				icon={Icons.Subscriptions}
 				title="Subscriptions"
 				description="Active services"
 				loading={metrics.subscriptions.isLoading}

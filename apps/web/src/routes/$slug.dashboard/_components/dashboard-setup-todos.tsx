@@ -9,19 +9,9 @@ import {
 	Mail,
 	ShieldCheck,
 	UserRound,
-	X,
 } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchMfaStatus } from "@/lib/mfa-auth";
 import { authClient } from "@/lib/auth-client";
@@ -45,15 +35,10 @@ interface StepConfig {
 	completed: boolean;
 }
 
-function storageKeyForTeam(teamId: string) {
-	return `customer-dashboard-todos-dismissed:${teamId}`;
-}
-
 export function DashboardSetupTodos() {
 	const { pathname } = useLocation();
 	const teamSlug = pathname?.split("/")[1] ?? "";
 
-	const [dismissed, setDismissed] = React.useState(false);
 	const [mfaEnabled, setMfaEnabled] = React.useState(false);
 	const [mfaLoading, setMfaLoading] = React.useState(true);
 	const [isSendingVerification, setIsSendingVerification] = React.useState(false);
@@ -93,19 +78,6 @@ export function DashboardSetupTodos() {
 		);
 
 	const teamId = teamData?.id;
-
-	React.useEffect(() => {
-		if (!teamId) {
-			setDismissed(false);
-			return;
-		}
-		try {
-			const stored = localStorage.getItem(storageKeyForTeam(teamId));
-			setDismissed(stored === "true");
-		} catch {
-			setDismissed(false);
-		}
-	}, [teamId]);
 
 	const { data: billingSettings, isLoading: isBillingLoading } =
 		trpc.teamBilling.getByTeam.useQuery(
@@ -191,164 +163,93 @@ export function DashboardSetupTodos() {
 	];
 
 	const completedSteps = steps.filter((s) => s.completed).length;
-	const progressPercent = (completedSteps / steps.length) * 100;
-	const allComplete = completedSteps === steps.length;
 	const isLoading =
 		isProfileLoading || isTeamLoading || isBillingLoading || mfaLoading;
 
-	const handleDismiss = () => {
-		setDismissed(true);
-		if (!teamId) return;
-		try {
-			localStorage.setItem(storageKeyForTeam(teamId), "true");
-		} catch {
-			// Ignore localStorage errors
-		}
-	};
-
-	if (dismissed) {
-		return null;
-	}
-
 	if (isLoading) {
 		return (
-			<div className="@container/onboarding w-full">
-				<Card className="border-primary/20">
-					<CardHeader className="pb-4">
-						<Skeleton className="h-5 w-48" />
-						<Skeleton className="mt-2 h-4 w-72" />
-						<Skeleton className="mt-4 h-2 w-full" />
-					</CardHeader>
-					<CardContent>
-						<div className="grid gap-3 @md/onboarding:grid-cols-2 @2xl/onboarding:grid-cols-4">
-							{[1, 2, 3, 4].map((i) => (
-								<Skeleton key={i} className="h-36 w-full rounded-lg" />
-							))}
-						</div>
-					</CardContent>
-				</Card>
-			</div>
+			<section className="flex h-full flex-col rounded-xl border bg-card p-5">
+				<Skeleton className="h-5 w-32" />
+				<Skeleton className="mt-2 h-4 w-48" />
+				<div className="mt-4 flex flex-1 flex-col gap-2">
+					{[1, 2, 3, 4].map((i) => (
+						<Skeleton key={i} className="h-16 w-full rounded-lg" />
+					))}
+				</div>
+			</section>
 		);
 	}
 
 	return (
-		<div className="@container/onboarding w-full">
-			<Card className="border-primary/20 bg-gradient-to-br from-background to-muted/20">
-				<CardHeader className="relative pb-4">
-					<div className="flex items-start justify-between gap-4">
-						<div className="flex-1 space-y-1.5">
-							<div className="flex items-center gap-2">
-								<CardTitle className="text-base md:text-lg">
-									{allComplete ? "You're all set!" : "Your to-dos"}
-								</CardTitle>
-								{!allComplete && (
-									<Badge variant="secondary" className="text-xs">
-										{completedSteps}/{steps.length} Complete
-									</Badge>
-								)}
-							</div>
-							<CardDescription className="text-xs md:text-sm">
-								{allComplete
-									? "Your account essentials are ready. Keep exploring services from your dashboard."
-									: "Finish these important steps so you can buy services, get billed correctly, and keep your account secure."}
-							</CardDescription>
-						</div>
-						<Button
-							variant="ghost"
-							size="icon"
-							className="h-7 w-7 shrink-0"
-							onClick={handleDismiss}
-						>
-							<X className="h-4 w-4" />
-							<span className="sr-only">Dismiss to-dos</span>
-						</Button>
-					</div>
-					{!allComplete && (
-						<div className="mt-4">
-							<Progress value={progressPercent} className="h-2" />
-						</div>
-					)}
-				</CardHeader>
+		<section className="flex h-full flex-col rounded-xl border bg-card p-5">
+			<div>
+				<h2 className="text-base font-semibold">Your to-dos</h2>
+				<p className="mt-1 text-sm text-muted-foreground">
+					{completedSteps} of {steps.length} complete. Finished steps stay here.
+				</p>
+			</div>
 
-				<CardContent className="space-y-3">
-					<div className="grid gap-3 @md/onboarding:grid-cols-2 @2xl/onboarding:grid-cols-4">
-						{steps.map((step) => (
-							<div
-								key={step.id}
-								className={cn(
-									"group relative rounded-lg border bg-card p-4 transition-all",
-									step.completed &&
-										"border-green-500/30 bg-green-50/30 dark:bg-green-950/10",
+			<ul className="mt-4 flex flex-1 flex-col gap-2">
+				{steps.map((step) => {
+					const Icon = step.icon;
+					return (
+						<li
+							key={step.id}
+							className={cn(
+								"rounded-lg border px-3 py-2.5",
+								step.completed &&
+									"border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/30",
+							)}
+						>
+							<div className="flex items-start gap-2.5">
+								{step.completed ? (
+									<CheckCircle2 className="mt-0.5 size-4 shrink-0 text-green-600 dark:text-green-400" />
+								) : (
+									<Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
 								)}
-							>
-								<div className="flex items-start gap-3">
-									<div
+								<div className="min-w-0 flex-1">
+									<p
 										className={cn(
-											"flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
-											step.completed
-												? "bg-green-500 text-white"
-												: "bg-muted text-muted-foreground",
+											"text-sm font-medium",
+											step.completed &&
+												"text-green-700 line-through decoration-green-700/70 dark:text-green-400 dark:decoration-green-400/70",
 										)}
 									>
-										{step.completed ? (
-											<CheckCircle2 className="h-5 w-5" />
-										) : (
-											<step.icon className="h-5 w-5" />
-										)}
-									</div>
-
-									<div className="min-w-0 flex-1 space-y-2">
-										<div className="space-y-0.5">
-											<h3 className="text-sm font-semibold leading-none">
-												{step.title}
-											</h3>
-											<p className="line-clamp-2 text-xs text-muted-foreground">
-												{step.description}
-											</p>
-										</div>
-
-										<div className="flex items-center gap-2 pt-1">
-											{step.href ? (
-												<Button
-													asChild
-													size="sm"
-													variant={step.completed ? "outline" : "default"}
-													className="h-8 text-xs"
-												>
-													<Link to={step.href}>
-														{step.ctaText}
-														<ArrowRight className="ml-1.5 h-3 w-3" />
-													</Link>
-												</Button>
-											) : (
-												<Button
-													size="sm"
-													variant="default"
-													className="h-8 text-xs"
-													onClick={step.onAction}
-													disabled={step.actionPending}
-												>
+										{step.title}
+									</p>
+									<p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{step.description}</p>
+									<div className="mt-1.5">
+										{step.href ? (
+											<Button
+												asChild
+												size="sm"
+												variant="ghost"
+												className="h-7 px-0 text-xs hover:bg-transparent"
+											>
+												<Link to={step.href}>
 													{step.ctaText}
-													<ArrowRight className="ml-1.5 h-3 w-3" />
-												</Button>
-											)}
-										</div>
+													<ArrowRight className="ml-1 size-3" />
+												</Link>
+											</Button>
+										) : (
+											<Button
+												size="sm"
+												variant="ghost"
+												className="h-7 px-0 text-xs hover:bg-transparent"
+												onClick={step.onAction}
+												disabled={step.actionPending}
+											>
+												{step.ctaText}
+												<ArrowRight className="ml-1 size-3" />
+											</Button>
+										)}
 									</div>
 								</div>
 							</div>
-						))}
-					</div>
-
-					{allComplete && (
-						<div className="mt-4 rounded-lg bg-green-50 p-4 text-center dark:bg-green-950/20">
-							<CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-green-600 dark:text-green-400" />
-							<p className="text-sm font-medium text-green-900 dark:text-green-100">
-								All set! Your email, profile, billing, and security are ready.
-							</p>
-						</div>
-					)}
-				</CardContent>
-			</Card>
-		</div>
+						</li>
+					);
+				})}
+			</ul>
+		</section>
 	);
 }

@@ -102,8 +102,10 @@ export function EmailMarketingChart() {
 				day.unknown >
 			0,
 	);
+	const hasShownCard = React.useRef(false);
+	if (hasActivity) hasShownCard.current = true;
 
-	if (isLoading) {
+	if (isLoading && !hasShownCard.current) {
 		return (
 			<Card>
 				<CardHeader>
@@ -117,8 +119,9 @@ export function EmailMarketingChart() {
 		);
 	}
 
-	if (!hasActivity) return null;
+	if (!hasActivity && !hasShownCard.current) return null;
 
+	const rangeLabel = timeRange === "7d" ? "7 days" : "30 days";
 	const totals = chartData.reduce(
 		(sum, day) => ({
 			sent: sum.sent + day.sent,
@@ -181,6 +184,9 @@ export function EmailMarketingChart() {
 						</div>
 					))}
 				</div>
+				{isLoading ? (
+					<Skeleton className="h-[140px] w-full" />
+				) : hasActivity ? (
 				<ChartContainer config={emailChartConfig} className="aspect-auto h-[140px] w-full">
 					<AreaChart data={chartData} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
 						<defs>
@@ -215,6 +221,11 @@ export function EmailMarketingChart() {
 						/>
 					</AreaChart>
 				</ChartContainer>
+				) : (
+					<div className="flex h-[140px] items-center justify-center text-sm text-muted-foreground">
+						No email activity in the last {rangeLabel}.
+					</div>
+				)}
 			</CardContent>
 		</Card>
 	);
