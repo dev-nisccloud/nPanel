@@ -161,8 +161,3 @@ export function InvoiceKraStatusPanel({
 	);
 }
 
-export function canSendInvoiceEmail(invoice: Pick<InvoiceDetail, "kraStatus">): boolean {
-	if (invoice.kraStatus === "SUBMITTING") return false;
-	if (invoice.kraStatus === "SKIPPED") return false;
-	return true;
-}

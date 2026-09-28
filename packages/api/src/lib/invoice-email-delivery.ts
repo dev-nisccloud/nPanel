@@ -1,13 +1,8 @@
 import * as crypto from "crypto";
-import { TRPCError } from "@trpc/server";
 import type { db } from "@npanel/db";
 import { generateInvoicePdfBuffer } from "./generate-invoice-pdf";
 import { getInvoiceDetailForPdf } from "./invoice-for-pdf";
-import {
-	ensureInvoiceKraSyncedForDelivery,
-	type EnsureInvoiceKraSyncedResult,
-} from "./invoice-kra-sync";
-import { invoiceRequiresKraSyncBeforeEmail, isInvoiceKraSynced } from "./invoice-kra-status";
+import { isInvoiceKraSynced } from "./invoice-kra-status";
 import { sanitizeInvoicePdfFilename } from "./invoice-pdf-data";
 import type { InvoiceDetail } from "../routers/invoicing/schemas";
 
@@ -24,16 +19,7 @@ export async function prepareInvoiceEmailDelivery(
 	dbClient: DbLike,
 	invoiceId: string,
 ): Promise<PreparedInvoiceEmailDelivery> {
-	let invoiceDetail = await getInvoiceDetailForPdf(dbClient, invoiceId);
-
-	if (invoiceRequiresKraSyncBeforeEmail(invoiceDetail.kraStatus)) {
-		const kraResult = await ensureInvoiceKraSyncedForDelivery(invoiceId);
-		if (!kraResult.ok) {
-			throw kraSyncPreconditionError(kraResult);
-		}
-		invoiceDetail = await getInvoiceDetailForPdf(dbClient, invoiceId);
-	}
-
+	const invoiceDetail = await getInvoiceDetailForPdf(dbClient, invoiceId);
 	const pdfBuffer = await generateInvoicePdfBuffer(invoiceDetail);
 	const pdfFilename = sanitizeInvoicePdfFilename(
 		invoiceDetail.invoiceNumber ?? "Invoice",
@@ -45,14 +31,6 @@ export async function prepareInvoiceEmailDelivery(
 		pdfFilename,
 		kraSynced: isInvoiceKraSynced(invoiceDetail.kraStatus),
 	};
-}
-
-function kraSyncPreconditionError(result: EnsureInvoiceKraSyncedResult & { ok: false }) {
-	return new TRPCError({
-		code: "PRECONDITION_FAILED",
-		message: `Invoice must be synced to KRA eTIMS before email can be sent. ${result.reason}`,
-		cause: { kraStatus: result.kraStatus, reason: result.reason },
-	});
 }
 
 const stripHeaderUnsafe = (value: string) => value.replace(/[\r\n]+/g, " ").trim();

@@ -64,7 +64,7 @@ export const invoiceUiSchema = z.object({
   invoiceNumber: z.string().nullable(),
   customerName: z.string().nullable(),
   customerEmail: z.string().nullable(),
-  status: z.enum(["DRAFT", "SENT", "PARTIALLY_PAID", "PAID", "OVERDUE", "CANCELLED", "WRITTEN_OFF"]),
+  status: z.enum(["DRAFT", "SENT", "UNPAID", "PARTIALLY_PAID", "PAID", "OVERDUE", "CANCELLED", "WRITTEN_OFF"]),
   amount: z.string().nullable(),
   currency: z.string(),
   dueDate: nullableDateCoerce,

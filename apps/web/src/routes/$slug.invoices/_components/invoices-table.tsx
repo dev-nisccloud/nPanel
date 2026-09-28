@@ -167,7 +167,7 @@ export function InvoicesTable({ invoices, onRefetch }: InvoicesTableProps) {
 											? "bg-green-600 text-white border-green-600 hover:bg-green-600 hover:text-white"
 											: inv.status === "OVERDUE"
 												? "bg-destructive text-destructive-foreground border-destructive hover:bg-destructive/90 hover:text-destructive-foreground"
-												: inv.status === "SENT"
+												: inv.status === "SENT" || inv.status === "UNPAID"
 													? "bg-primary text-primary-foreground border-primary hover:bg-primary/90 hover:text-primary-foreground"
 													: ""
 									}
