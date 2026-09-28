@@ -6,6 +6,7 @@ import { Search, Send } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 
 import { ZeepoAiAutosizeTextarea } from "@/components/zeepo/zeepo-ai-autosize-textarea";
+import { ZeepoMascot } from "@/components/zeepo/zeepo-mascot";
 import { ZEEPO_AI_CAPABILITY_SHORTCUTS } from "@/components/zeepo/zeepo-ai-capabilities";
 import {
 	DEFAULT_ZEEPO_AI_ROUTE,
@@ -104,11 +105,14 @@ function DashboardZeepoHeroInner() {
 
 	return (
 		<section className="flex h-full flex-col rounded-xl border bg-card p-5 text-left">
-			<div className="flex flex-col gap-1">
-				<h2 className="text-base font-semibold text-foreground">{greeting}</h2>
-				<p className="text-sm text-muted-foreground">
-					Ask Zeepo about clients, tickets, domains, or hosting. The chat opens on its own page.
-				</p>
+			<div className="flex items-start gap-3">
+				<ZeepoMascot className="h-12 w-12 sm:h-14 sm:w-14" />
+				<div className="flex min-w-0 flex-col gap-1 pt-0.5">
+					<h2 className="text-base font-semibold text-foreground">{greeting}</h2>
+					<p className="text-sm text-muted-foreground">
+						Ask Zeepo about clients, tickets, domains, or hosting.
+					</p>
+				</div>
 			</div>
 
 			<div

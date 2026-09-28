@@ -24,7 +24,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
@@ -93,28 +92,49 @@ function FileManagerSkeleton() {
         </div>
       </div>
 
-      {/* Content skeleton */}
+      {/* Content skeleton matches the loaded table */}
       <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 p-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-1.5">
-                <div className="flex items-start justify-between mb-2">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-12">
+                <Skeleton className="h-4 w-4" />
+              </TableHead>
+              <TableHead className="pl-6">Name</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Size</TableHead>
+              <TableHead>Modified</TableHead>
+              <TableHead className="w-12" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {Array.from({ length: 8 }).map((_, i) => (
+              <TableRow key={i}>
+                <TableCell>
                   <Skeleton className="h-4 w-4" />
+                </TableCell>
+                <TableCell className="pl-6">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-5 w-5 shrink-0" />
+                    <Skeleton className="h-4 w-36" />
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-4 w-16" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-4 w-14" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-4 w-32" />
+                </TableCell>
+                <TableCell>
                   <Skeleton className="h-8 w-8" />
-                </div>
-                <div className="flex justify-center mb-2">
-                  <Skeleton className="h-24 w-24" />
-                </div>
-                <div className="mb-2">
-                  <Skeleton className="h-4 w-20 mb-1" />
-                  <Skeleton className="h-3 w-12" />
-                </div>
-                <Skeleton className="h-3 w-16" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
     </div>
   );

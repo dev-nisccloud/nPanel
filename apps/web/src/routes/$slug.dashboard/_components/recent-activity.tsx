@@ -5,14 +5,8 @@ import { ArrowUpRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-	RecentActivityEmpty,
-	RecentActivityGrid,
-	RecentActivitySkeleton,
-	RecentActivityStatusBadge,
-	RecentActivityTile,
-} from "@/components/dashboard/recent-activity-tiles";
 import { formatInvoiceDate } from "@/lib/invoice-date";
 import { trpc } from "@/utils/trpc";
 import { invoiceUiSchema } from "@/routes/agency.dashboard/_components/schemas";
@@ -29,11 +23,36 @@ function getInvoiceStatusLabel(status: string) {
 	}
 }
 
-function invoiceTone(status: string): "positive" | "negative" | "muted" | "default" {
-	if (status === "PAID") return "positive";
-	if (status === "OVERDUE" || status === "CANCELLED" || status === "WRITTEN_OFF") return "negative";
-	if (status === "DRAFT" || status === "PARTIALLY_PAID") return "muted";
-	return "default";
+function invoiceStatusClass(status: string) {
+	if (status === "PAID") return "text-green-600";
+	if (status === "OVERDUE" || status === "CANCELLED" || status === "WRITTEN_OFF") return "text-destructive";
+	if (status === "SENT") return "text-primary";
+	return "text-muted-foreground";
+}
+
+function subscriptionStatusClass(status: string) {
+	if (status === "ACTIVE") return "text-green-600";
+	if (status === "SUSPENDED" || status === "EXPIRED" || status === "CANCELLED") return "text-destructive";
+	if (status === "PENDING") return "text-amber-600";
+	return "text-muted-foreground";
+}
+
+function ActivityState({ message }: { message: string }) {
+	return (
+		<p className="flex flex-1 items-center justify-center px-5 py-6 text-sm text-muted-foreground">
+			{message}
+		</p>
+	);
+}
+
+function TableSkeleton() {
+	return (
+		<div className="space-y-px p-2">
+			{Array.from({ length: 5 }).map((_, index) => (
+				<Skeleton key={index} className="h-12 w-full" />
+			))}
+		</div>
+	);
 }
 
 function formatMoney(currency: string, amount: string | null | undefined) {
@@ -58,8 +77,8 @@ function RecentInvoices({ teamSlug, teamId }: { teamSlug: string; teamId: string
 		{ enabled: Boolean(teamId) },
 	);
 
-	if (isLoading || !teamId) return <RecentActivitySkeleton />;
-	if (isError || !data) return <RecentActivityEmpty message="Failed to load invoices" />;
+	if (isLoading || !teamId) return <TableSkeleton />;
+	if (isError || !data) return <ActivityState message="Failed to load invoices" />;
 
 	const invoices = data.invoices.map((invoice) =>
 		invoiceUiSchema.parse({
@@ -76,27 +95,35 @@ function RecentInvoices({ teamSlug, teamId }: { teamSlug: string; teamId: string
 		}),
 	);
 
-	if (invoices.length === 0) return <RecentActivityEmpty message="No invoices yet" />;
+	if (invoices.length === 0) return <ActivityState message="No invoices yet" />;
 
 	return (
-		<RecentActivityGrid>
+		<ul>
 			{invoices.map((invoice) => (
-				<RecentActivityTile
-					key={invoice.id}
-					href={`/${teamSlug}/invoices/${invoice.id}`}
-					title={invoice.invoiceNumber || `Invoice ${invoice.id.slice(0, 8)}`}
-					subtitle={invoice.customerName || invoice.customerEmail || "Invoice"}
-					amount={formatMoney(invoice.currency, invoice.amount)}
-					meta={`Due ${formatInvoiceDate(invoice.dueDate, "no date")}`}
-					badge={
-						<RecentActivityStatusBadge
-							label={getInvoiceStatusLabel(invoice.status)}
-							tone={invoiceTone(invoice.status)}
-						/>
-					}
-				/>
+				<li key={invoice.id} className="border-b last:border-b-0">
+					<Link
+						to={`/${teamSlug}/invoices/${invoice.id}`}
+						className="flex items-baseline justify-between gap-4 px-4 py-2.5 hover:bg-muted/40"
+					>
+						<span className="min-w-0 truncate text-sm">
+							<span className="font-medium">
+								{invoice.invoiceNumber || invoice.id.slice(0, 8)}
+							</span>
+							<span className="text-muted-foreground">
+								{" "}
+								· {invoice.customerName || invoice.customerEmail || "Invoice"}
+							</span>
+						</span>
+						<span className="flex shrink-0 items-baseline gap-2 text-sm">
+							<span className="tabular-nums">{formatMoney(invoice.currency, invoice.amount)}</span>
+							<span className={invoiceStatusClass(invoice.status)}>
+								{getInvoiceStatusLabel(invoice.status)}
+							</span>
+						</span>
+					</Link>
+				</li>
 			))}
-		</RecentActivityGrid>
+		</ul>
 	);
 }
 
@@ -106,8 +133,8 @@ function RecentSubscriptions({ teamSlug }: { teamSlug: string }) {
 		{ enabled: Boolean(teamSlug), staleTime: 5 * 60 * 1000 },
 	);
 
-	if (isLoading) return <RecentActivitySkeleton />;
-	if (isError || !data) return <RecentActivityEmpty message="Failed to load subscriptions" />;
+	if (isLoading) return <TableSkeleton />;
+	if (isError || !data) return <ActivityState message="Failed to load subscriptions" />;
 
 	const subscriptions: DashboardSubscriptionRow[] = data.slice(0, 6).map((sub) => {
 		const nextDate = sub.nextRenewalDate ?? sub.expiryDate;
@@ -121,40 +148,39 @@ function RecentSubscriptions({ teamSlug }: { teamSlug: string }) {
 		};
 	});
 
-	if (subscriptions.length === 0) return <RecentActivityEmpty message="No subscriptions yet" />;
+	if (subscriptions.length === 0) return <ActivityState message="No subscriptions yet" />;
 
 	return (
-		<RecentActivityGrid>
-			{subscriptions.map((sub) => {
-				const isActive = sub.status === "ACTIVE";
-				const isProblem = sub.status === "SUSPENDED" || sub.status === "EXPIRED";
-				return (
-					<RecentActivityTile
-						key={sub.id}
-						href={`/${teamSlug}/subscriptions`}
-						title={sub.planName}
-						subtitle={sub.planType}
-						meta={
-							sub.nextRenewalDate
-								? `Expires ${formatInvoiceDate(sub.nextRenewalDate)}`
-								: undefined
-						}
-						badge={
-							<RecentActivityStatusBadge
-								label={sub.status.replace(/_/g, " ")}
-								tone={isActive ? "positive" : isProblem ? "negative" : "muted"}
-							/>
-						}
-					/>
-				);
-			})}
-		</RecentActivityGrid>
+		<ul>
+			{subscriptions.map((sub) => (
+				<li key={sub.id} className="border-b last:border-b-0">
+					<Link
+						to={`/${teamSlug}/subscriptions`}
+						className="flex items-baseline justify-between gap-4 px-4 py-2.5 hover:bg-muted/40"
+					>
+						<span className="min-w-0 truncate text-sm">
+							<span className="font-medium">{sub.planName}</span>
+							<span className="text-muted-foreground">
+								{" "}
+								· {sub.planType}
+								{sub.nextRenewalDate ? ` · Expires ${formatInvoiceDate(sub.nextRenewalDate)}` : ""}
+							</span>
+						</span>
+						<span className={cnStatus(sub.status)}>{sub.status.replace(/_/g, " ")}</span>
+					</Link>
+				</li>
+			))}
+		</ul>
 	);
+}
+
+function cnStatus(status: string) {
+	return `shrink-0 text-sm ${subscriptionStatusClass(status)}`;
 }
 
 function ViewAllLink({ href, label }: { href: string; label: string }) {
 	return (
-		<div className="flex justify-end border-t px-4 py-3">
+		<div className="mt-auto flex justify-end border-t px-4 py-3">
 			<Button variant="ghost" size="sm" asChild>
 				<Link to={href}>
 					{label}
@@ -174,10 +200,10 @@ export function RecentActivity() {
 	);
 
 	return (
-		<Card className="gap-0 overflow-hidden py-0">
-			<Tabs defaultValue="invoices">
+		<Card className="flex h-full flex-col gap-0 overflow-hidden py-0">
+			<Tabs defaultValue="invoices" className="flex h-full flex-col">
 				<div className="flex items-center justify-between gap-3 border-b px-5 py-3">
-					<CardTitle className="text-base">Recent activity</CardTitle>
+					<CardTitle className="text-sm">Recent activity</CardTitle>
 					<TabsList className="h-8">
 						<TabsTrigger value="invoices" className="text-xs">
 							Invoices
@@ -187,12 +213,12 @@ export function RecentActivity() {
 						</TabsTrigger>
 					</TabsList>
 				</div>
-				<CardContent className="p-0">
-					<TabsContent value="invoices" className="mt-0">
+				<CardContent className="flex flex-1 flex-col p-0">
+					<TabsContent value="invoices" className="mt-0 flex flex-1 flex-col">
 						<RecentInvoices teamSlug={teamSlug} teamId={teamData?.id} />
 						<ViewAllLink href={`/${teamSlug}/invoices`} label="View all invoices" />
 					</TabsContent>
-					<TabsContent value="subscriptions" className="mt-0">
+					<TabsContent value="subscriptions" className="mt-0 flex flex-1 flex-col">
 						<RecentSubscriptions teamSlug={teamSlug} />
 						<ViewAllLink href={`/${teamSlug}/subscriptions`} label="View all subscriptions" />
 					</TabsContent>
