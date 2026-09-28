@@ -11,7 +11,7 @@ import { useFormContext } from "react-hook-form";
 import { toast } from "@/components/ui/sonner";
 import { useNavigate } from "react-router";
 import { captureEvent } from "@/lib/posthog";
-import { InvoiceStatusSelect } from "../invoice-status-select";
+import { InvoiceStatusSelect, type InvoiceStatusOption } from "../invoice-status-select";
 import { buildKraPersistFieldsFromManual } from "@npanel/api/lib/etims-fiscal-fields";
 import { AgencyInvoicePdfPage } from "@npanel/api/agency-invoice-pdf/agency-invoice-pdf-page";
 import { useInvoiceEtimsFiscalPreview } from "../../../hooks/useEtimsFiscalPreview";
@@ -149,6 +149,14 @@ export const DownloadInvoiceButton = () => {
     try {
       setStatus("submitting");
 
+      if (!companyDetails.companyName?.trim()) {
+        toast.error("Bill-to name is required", {
+          description: "Enter the recipient name, or select an organization with billing details.",
+        });
+        setStatus("not-submitted");
+        return;
+      }
+
       // Validate billing email
       if (!companyDetails.email) {
         toast.error("Billing email is required", {
@@ -275,14 +283,8 @@ export const DownloadInvoiceButton = () => {
       };
 
       const values = form.getValues() as Record<string, string | undefined>;
-      const invoiceStatus = (values.invoiceStatus || "DRAFT") as
-        | "DRAFT"
-        | "SENT"
-        | "PARTIALLY_PAID"
-        | "PAID"
-        | "OVERDUE"
-        | "CANCELLED"
-        | "WRITTEN_OFF";
+      const invoiceStatus = (values.invoiceStatus || "DRAFT") as InvoiceStatusOption;
+      const teamId = values.billToMode === "manual" ? null : values.teamId?.trim() || null;
       const kraFields = buildKraPersistFieldsFromManual({
         sdcId: values.scuSdcId,
         sdcDate: values.scuDate,
@@ -316,6 +318,7 @@ export const DownloadInvoiceButton = () => {
         pdfBase64,
         billingEmail: companyDetails.email,
         status: invoiceStatus,
+        teamId,
         ...(kraFields ?? {}),
       });
     } catch (e) {

@@ -11,12 +11,13 @@ import { toNum, monthlyMrr } from "./filters";
 import { buildReportEntityScope, type ReportScope } from "./access";
 
 /** Statuses that represent open accounts receivable (per design doc R-05). */
-export const OPEN_AR_STATUSES = ["SENT", "OVERDUE", "PARTIALLY_PAID"] as const;
+export const OPEN_AR_STATUSES = ["SENT", "UNPAID", "OVERDUE", "PARTIALLY_PAID"] as const;
 
 /** Invoice statuses used in agency UI (`invoicing` router). */
 export const INVOICE_REPORT_STATUSES = [
   "DRAFT",
   "SENT",
+  "UNPAID",
   "PARTIALLY_PAID",
   "PAID",
   "OVERDUE",
@@ -102,7 +103,7 @@ export function invoiceOutstandingAmount(
   // Draft invoices haven't been sent yet - not part of A/R
   if (inv.status === "DRAFT") return 0;
 
-  // For all open A/R statuses (SENT, OVERDUE, PARTIALLY_PAID):
+  // For all open A/R statuses (SENT, UNPAID, OVERDUE, PARTIALLY_PAID):
   // Calculate outstanding consistently
   if ((OPEN_AR_STATUSES as readonly string[]).includes(inv.status)) {
     return Math.max(0, total - credited - completedPaymentsTotal);

@@ -147,6 +147,14 @@ export const DownloadInvoiceButton = () => {
     try {
       setStatus("submitting");
 
+      if (!companyDetails.companyName?.trim()) {
+        toast.error("Bill-to name is required", {
+          description: "Enter the recipient name, or select an organization with billing details.",
+        });
+        setStatus("not-submitted");
+        return;
+      }
+
       // Validate billing email
       if (!companyDetails.email) {
         toast.error("Billing email is required", {
@@ -277,8 +285,12 @@ export const DownloadInvoiceButton = () => {
         taxId: companyDetails.companyTaxId,
       };
 
+      const values = form.getValues() as Record<string, string | undefined>;
+      const teamId = values.billToMode === "manual" ? null : values.teamId?.trim() || null;
+
       // Submit invoice
       await submitInvoiceMutation.mutateAsync({
+        teamId,
         invoiceNumber: invoiceTerms.invoiceNumber || undefined,
         customerName: companyDetails.companyName || undefined,
         customerEmail: companyDetails.email,

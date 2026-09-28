@@ -14,7 +14,7 @@ import { invoiceUiSchema, paymentTransactionUiSchema } from "./schemas";
 function invoiceStatusClass(status: string) {
 	if (status === "PAID") return "text-green-600";
 	if (status === "OVERDUE") return "text-destructive";
-	if (status === "SENT") return "text-primary";
+	if (status === "SENT" || status === "UNPAID") return "text-primary";
 	return "text-muted-foreground";
 }
 

@@ -14,6 +14,8 @@ import {
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ChevronsUpDown, Check, Info } from "lucide-react";
+import CustomTextInput from "@/routes/agency.invoices/create/_components/ui/customTextInput";
+import CustomNumberInput from "@/routes/agency.invoices/create/_components/ui/customNumberInput";
 import type { TeamBillingSettings, TeamBillingSummary } from "@/routes/agency.invoices/create/api/team-billing-schemas";
 
 const REQUIRED_FIELDS: Array<keyof TeamBillingSettings> = [
@@ -41,6 +43,8 @@ export const CompanyDetailsForm = () => {
 	const prevTeamIdRef = useRef<string | undefined>(undefined);
 	const form = useFormContext();
 	const selectedOrganizationId = form.watch("teamId") as string | undefined;
+	const billToMode = (form.watch("billToMode") as string | undefined) || "organization";
+	const isManual = billToMode === "manual";
 
 	const { data, isLoading } = trpc.teamBilling.listTeams.useQuery();
 
@@ -75,6 +79,11 @@ export const CompanyDetailsForm = () => {
 	);
 
 	useEffect(() => {
+		if (isManual) {
+			setShowIncompleteDialog(false);
+			return;
+		}
+
 		const applyBillTo = (
 			settings: TeamBillingSettings | null,
 			teamName: string | undefined,
@@ -120,7 +129,7 @@ export const CompanyDetailsForm = () => {
 		applyBillTo(billingSettings, selectedOrganization.name, true);
 		setShowIncompleteDialog(false);
 		userDismissedIncompleteRef.current = false;
-	}, [billingSettings, billingComplete, selectedOrganization, setBillToValue]);
+	}, [billingSettings, billingComplete, isManual, selectedOrganization, selectedOrganizationId, setBillToValue]);
 
 	const displayLines = useMemo(() => {
 		if (!billingSettings || !billingComplete) {
@@ -147,10 +156,78 @@ export const CompanyDetailsForm = () => {
 	return (
 		<div className="space-y-6">
 			<div>
-				<p className="text-2xl font-semibold pb-3">Organization Billing (Bill To)</p>
+				<p className="text-2xl font-semibold pb-3">Bill To</p>
 				<p className="pb-4 text-xs font-medium text-neutral-500">
-					Choose the organization to invoice. Billing details are sourced from the organization&apos;s billing settings.
+					Link this invoice to an organization, or enter the recipient yourself when it is not tied to one.
 				</p>
+				<div className="mb-4 grid grid-cols-2 gap-2">
+					<Button
+						type="button"
+						variant={isManual ? "outline" : "default"}
+						onClick={() => {
+							form.setValue("billToMode", "organization", { shouldDirty: true });
+						}}
+					>
+						Organization
+					</Button>
+					<Button
+						type="button"
+						variant={isManual ? "default" : "outline"}
+						onClick={() => {
+							form.setValue("billToMode", "manual", { shouldDirty: true });
+							form.setValue("teamId", "", { shouldDirty: true });
+							setShowIncompleteDialog(false);
+						}}
+					>
+						Enter manually
+					</Button>
+				</div>
+				{isManual ? (
+					<div className="space-y-1">
+						<p className="pb-2 text-sm font-medium text-neutral-500">Recipient details</p>
+						<CustomTextInput
+							label="Name"
+							placeholder="Acme Ltd"
+							variableName="companyName"
+						/>
+						<CustomTextInput
+							label="Email"
+							placeholder="billing@example.com"
+							variableName="email"
+						/>
+						<CustomTextInput
+							label="Address"
+							placeholder="Kenyatta Avenue, 2"
+							variableName="companyAddress"
+						/>
+						<CustomTextInput
+							label="City"
+							placeholder="Nairobi"
+							variableName="companyCity"
+						/>
+						<CustomTextInput
+							label="State"
+							placeholder="Nairobi County"
+							variableName="companyState"
+						/>
+						<CustomNumberInput
+							label="Zip"
+							placeholder="00100"
+							variableName="companyZip"
+						/>
+						<CustomTextInput
+							label="Country"
+							placeholder="Kenya"
+							variableName="companyCountry"
+						/>
+						<CustomTextInput
+							label="Tax ID"
+							placeholder="KRA PIN"
+							variableName="companyTaxId"
+						/>
+					</div>
+				) : null}
+				{!isManual ? (
 				<Popover modal open={teamPickerOpen} onOpenChange={setTeamPickerOpen}>
 					<PopoverTrigger asChild>
 						<Button
@@ -202,8 +279,10 @@ export const CompanyDetailsForm = () => {
 						</Command>
 					</PopoverContent>
 				</Popover>
+				) : null}
 			</div>
 
+			{!isManual ? (
 			<div className="space-y-2">
 				<div className="flex items-center gap-2 text-sm font-medium text-neutral-500">
 					<Info className="h-4 w-4" />
@@ -228,6 +307,7 @@ export const CompanyDetailsForm = () => {
 					</div>
 				)}
 			</div>
+			) : null}
 
 			<AlertDialog
 				open={showIncompleteDialog}

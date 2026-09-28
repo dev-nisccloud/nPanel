@@ -41,7 +41,7 @@ function isLoopbackUrl(url: string): boolean {
 	}
 }
 
-const KRA_SYNC_ELIGIBLE_STATUSES = new Set(["SENT", "PARTIALLY_PAID", "PAID", "OVERDUE"]);
+const KRA_SYNC_ELIGIBLE_STATUSES = new Set(["SENT", "UNPAID", "PARTIALLY_PAID", "PAID", "OVERDUE"]);
 
 /**
  * Enqueue async KRA eTIMS sync for an invoice. Never throws  logs on failure.

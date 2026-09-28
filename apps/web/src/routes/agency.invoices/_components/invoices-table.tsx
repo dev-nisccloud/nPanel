@@ -130,15 +130,15 @@ function InvoiceRowActions({ invoice, onRefetch }: InvoiceRowActionsProps) {
 	const handleResend = async () => {
 		try {
 			setIsResending(true);
-			if (!invoice.customerEmail) {
-				toast.error("No customer email", { description: "This invoice does not have a customer email address." });
+			if (!invoice.customerEmail?.trim()) {
+				toast.error("No recipient email", {
+					description: "This invoice does not have a customer email address.",
+				});
 				return;
 			}
 			await resendMutation.mutateAsync({ invoiceId: invoice.id });
 		} catch (e) {
-			if (!resendMutation.isError) {
-				toast.error("Failed to resend email", { description: e instanceof Error ? e.message : "An error occurred" });
-			}
+			console.error("Failed to send invoice email:", e);
 		} finally {
 			setIsResending(false);
 		}
@@ -180,7 +180,7 @@ function InvoiceRowActions({ invoice, onRefetch }: InvoiceRowActionsProps) {
 									{isDownloading ? <Spinner className="mr-2 h-4 w-4" /> : <Download className="mr-2 h-4 w-4" />}
 									{isDownloading ? "Downloading..." : "Download Invoice"}
 								</DropdownMenuItem>
-								<DropdownMenuItem onClick={handleResend} disabled={busy || !invoice.customerEmail}>
+								<DropdownMenuItem onClick={handleResend} disabled={isResending}>
 									{isResending ? <Spinner className="mr-2 h-4 w-4" /> : <Send className="mr-2 h-4 w-4" />}
 									{isResending ? "Sending..." : "Resend Email Reminder"}
 								</DropdownMenuItem>
@@ -342,7 +342,7 @@ export function InvoicesTable({ invoices, onRefetch }: InvoicesTableProps) {
 											? "bg-green-600 text-white border-green-600 hover:bg-green-600 hover:text-white"
 											: inv.status === "OVERDUE"
 												? "bg-destructive text-destructive-foreground border-destructive hover:bg-destructive/90 hover:text-destructive-foreground"
-												: inv.status === "SENT"
+												: inv.status === "SENT" || inv.status === "UNPAID"
 													? "bg-primary text-primary-foreground border-primary hover:bg-primary/90 hover:text-primary-foreground"
 													: ""
 									}

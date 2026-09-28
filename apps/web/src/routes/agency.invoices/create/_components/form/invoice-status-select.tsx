@@ -12,6 +12,7 @@ import { Controller, useFormContext } from "react-hook-form";
 export const INVOICE_STATUS_OPTIONS = [
 	{ value: "DRAFT", label: "Draft" },
 	{ value: "SENT", label: "Sent" },
+	{ value: "UNPAID", label: "Unpaid" },
 	{ value: "PARTIALLY_PAID", label: "Partially paid" },
 	{ value: "PAID", label: "Paid" },
 	{ value: "OVERDUE", label: "Overdue" },
