@@ -4,6 +4,7 @@ import {
 	buildEtimsReceiptVerifyUrl,
 	extractRcptSignFromKraResponse,
 	isEtimsReceiptVerifyUrl,
+	normalizeEtimsReceiptVerifyUrl,
 	parseKraSdcDateTime,
 	resolveInvoiceEtimsVerificationUrl,
 } from "./etims-receipt-url";
@@ -332,7 +333,7 @@ export function ensureEtimsPrintFields(
 			sdcDateTime: fields.sdcDateTime,
 			verificationUrl:
 				fields.verificationUrl && isEtimsReceiptVerifyUrl(fields.verificationUrl)
-					? fields.verificationUrl
+					? normalizeEtimsReceiptVerifyUrl(fields.verificationUrl)
 					: null,
 			sdcId: extras?.sdcId ?? fields.sdcId,
 		},

@@ -1,6 +1,6 @@
 import { isInvoiceKraSynced } from "./invoice-kra-status";
 
-/** Spec sample uses `{KRA-PIN+BHF-ID+RcpSignture}` — concatenate, no separators. */
+/** Receipt query value is PIN + branch id + receipt signature, passed as `Data`. */
 const RECEIPT_PATH = "/common/link/etims/receipt/indexEtimsReceiptData";
 const RECEIPT_PATH_KRA_TYPO = "/common/link/etims/receipt/indexEtimsReceptData";
 
@@ -42,8 +42,9 @@ function receiptIsSandbox(storedUrl: string | undefined, explicit?: boolean): bo
 }
 
 /**
- * KRA public receipt verification URL (OSCU/VSCU spec v2.0).
- * Query string is PIN + branch + receipt signature with no separators.
+ * KRA public receipt verification URL.
+ * Live receipts use `?Data=` plus PIN + branch + receipt signature, no separators.
+ * Example: `...?Data=P052377334H00LAY45GBO54KOEF4U`
  */
 export function buildEtimsReceiptVerifyUrl(params: {
 	tin: string;
@@ -57,7 +58,23 @@ export function buildEtimsReceiptVerifyUrl(params: {
 	if (!tin || !bhfId || !rcptSign) return null;
 
 	const host = params.isSandbox ? "https://etims-sbx.kra.go.ke" : "https://etims.kra.go.ke";
-	return `${host}${RECEIPT_PATH}?${tin}${bhfId}${rcptSign}`;
+	return `${host}${RECEIPT_PATH}?Data=${tin}${bhfId}${rcptSign}`;
+}
+
+/** Insert the `Data` query name when an older URL stored only `?{PIN}{bhfId}{rcptSign}`. */
+export function normalizeEtimsReceiptVerifyUrl(url: string | null | undefined): string | null {
+	const trimmed = url?.trim();
+	if (!trimmed) return null;
+	if (!isEtimsReceiptVerifyUrl(trimmed)) return trimmed;
+	try {
+		const parsed = new URL(trimmed);
+		if (parsed.searchParams.has("Data")) return trimmed;
+		const rawQuery = parsed.search.startsWith("?") ? parsed.search.slice(1) : "";
+		if (!rawQuery || rawQuery.includes("=")) return trimmed;
+		return `${parsed.origin}${parsed.pathname}?Data=${rawQuery}`;
+	} catch {
+		return trimmed;
+	}
 }
 
 export function extractOscuIdentityForReceiptUrl(invoice: EtimsReceiptUrlSource): {
@@ -88,7 +105,7 @@ export function extractOscuIdentityForReceiptUrl(invoice: EtimsReceiptUrlSource)
 
 /**
  * Invoice / credit-note QR payload. Always the KRA receipt URL
- * `https://etims.kra.go.ke/common/link/etims/receipt/indexEtimsReceiptData?{PIN}{BHF}{rcptSign}`
+ * `https://etims.kra.go.ke/common/link/etims/receipt/indexEtimsReceiptData?Data={PIN}{BHF}{rcptSign}`
  * (sandbox host `etims-sbx` when the device is sandbox). Payment QRs are ignored.
  */
 export function resolveInvoiceEtimsVerificationUrl(
@@ -104,7 +121,7 @@ export function resolveInvoiceEtimsVerificationUrl(
 		});
 		if (rebuilt) return rebuilt;
 	}
-	if (stored && isEtimsReceiptVerifyUrl(stored)) return stored;
+	if (stored && isEtimsReceiptVerifyUrl(stored)) return normalizeEtimsReceiptVerifyUrl(stored) ?? stored;
 	if (!isInvoiceKraSynced(invoice.kraStatus)) return undefined;
 	return undefined;
 }

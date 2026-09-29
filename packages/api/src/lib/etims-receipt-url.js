@@ -15,6 +15,21 @@ function pickStr(...values) {
     return null;
 }
 
+export function normalizeEtimsReceiptVerifyUrl(url) {
+    const trimmed = url?.trim();
+    if (!trimmed) return null;
+    if (!isEtimsReceiptVerifyUrl(trimmed)) return trimmed;
+    try {
+        const parsed = new URL(trimmed);
+        if (parsed.searchParams.has("Data")) return trimmed;
+        const rawQuery = parsed.search.startsWith("?") ? parsed.search.slice(1) : "";
+        if (!rawQuery || rawQuery.includes("=")) return trimmed;
+        return `${parsed.origin}${parsed.pathname}?Data=${rawQuery}`;
+    } catch {
+        return trimmed;
+    }
+}
+
 export function isEtimsReceiptVerifyUrl(url) {
     const trimmed = url?.trim();
     if (!trimmed) return false;
@@ -35,7 +50,7 @@ export function buildEtimsReceiptVerifyUrl(params) {
     const rcptSign = params.rcptSign?.trim().replace(/-/g, "");
     if (!tin || !bhfId || !rcptSign) return null;
     const host = params.isSandbox ? "https://etims-sbx.kra.go.ke" : "https://etims.kra.go.ke";
-    return `${host}${RECEIPT_PATH}?${tin}${bhfId}${rcptSign}`;
+    return `${host}${RECEIPT_PATH}?Data=${tin}${bhfId}${rcptSign}`;
 }
 
 export function extractOscuIdentityForReceiptUrl(invoice) {
@@ -66,7 +81,7 @@ export function resolveInvoiceEtimsVerificationUrl(invoice, opts) {
         });
         if (rebuilt) return rebuilt;
     }
-    if (stored && isEtimsReceiptVerifyUrl(stored)) return stored;
+    if (stored && isEtimsReceiptVerifyUrl(stored)) return normalizeEtimsReceiptVerifyUrl(stored) ?? stored;
     if (!isInvoiceKraSynced(invoice.kraStatus)) return undefined;
     return undefined;
 }
