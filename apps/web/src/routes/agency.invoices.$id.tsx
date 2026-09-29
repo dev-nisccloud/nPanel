@@ -434,6 +434,20 @@ export default function InvoiceViewPage() {
 		},
 	});
 
+	const regenerateQrMutation = trpc.invoicing.regenerateKraQr.useMutation({
+		onSuccess: () => {
+			toast.success("QR code regenerated", {
+				description: "The QR now uses the current verification link.",
+			});
+			utils.invoicing.getById.invalidate({ id: invoiceId });
+		},
+		onError: (error) => {
+			toast.error("Could not regenerate QR code", {
+				description: error.message ?? "An error occurred.",
+			});
+		},
+	});
+
 	const handleDownloadInvoice = async () => {
 		if (!invoice) return;
 
@@ -885,6 +899,8 @@ export default function InvoiceViewPage() {
 					invoiceTerms={previewData.invoiceTerms}
 					etimsFiscal={pdfMeta.etimsFiscal}
 					onClick={handleOpenEdit}
+					onRegenerateQr={() => regenerateQrMutation.mutate({ invoiceId })}
+					regeneratingQr={regenerateQrMutation.isPending}
 				/>
 			</div>
 
