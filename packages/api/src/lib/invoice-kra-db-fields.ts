@@ -1,5 +1,6 @@
 import type { InvoiceKraStatus } from "./invoice-kra-status";
 import { initialInvoiceKraFields } from "./invoice-kra-status";
+import { normalizeEtimsReceiptVerifyUrl } from "./etims-receipt-url";
 
 type KraFieldInput = {
 	kraInvoiceNumber?: string | null;
@@ -61,7 +62,6 @@ export function mapInvoiceKraDetailFields(invoice: KraFieldInput & { kraStatus?:
 		kraInvoiceNumber: stringOrNull(invoice.kraInvoiceNumber),
 		kraReceiptNumber: stringOrNull(invoice.kraReceiptNumber),
 		kraSignature: stringOrNull(invoice.kraSignature),
-		kraQrCode: stringOrNull(invoice.kraQrCode),
 		kraVerifiedDate:
 			invoice.kraVerifiedDate instanceof Date
 				? invoice.kraVerifiedDate
@@ -84,7 +84,8 @@ export function mapInvoiceKraDetailFields(invoice: KraFieldInput & { kraStatus?:
 					: null,
 		kraAttemptCount:
 			typeof invoice.kraAttemptCount === "number" ? invoice.kraAttemptCount : null,
-		kraVerificationUrl: stringOrNull(invoice.kraVerificationUrl),
+		kraVerificationUrl: normalizeEtimsReceiptVerifyUrl(stringOrNull(invoice.kraVerificationUrl)),
+		kraQrCode: normalizeEtimsReceiptVerifyUrl(stringOrNull(invoice.kraQrCode)),
 		kraSyncPayload: invoice.kraSyncPayload ?? null,
 		kraSyncResponse: invoice.kraSyncResponse ?? null,
 	};

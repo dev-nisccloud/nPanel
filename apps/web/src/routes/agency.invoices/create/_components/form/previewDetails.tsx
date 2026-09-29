@@ -22,6 +22,8 @@ export const PreviewDetails = ({
   etimsFiscal,
   onClick,
   documentTitle,
+  onRegenerateQr,
+  regeneratingQr,
 }: {
   yourDetails: YourDetails;
   companyDetails: CompanyDetails;
@@ -31,6 +33,8 @@ export const PreviewDetails = ({
   etimsFiscal?: EtimsFiscalFields | null;
   onClick?: (step: string) => void;
   documentTitle?: string;
+  onRegenerateQr?: () => void;
+  regeneratingQr?: boolean;
 }) => {
   const title = documentTitle ?? "Invoice";
   const isCreditNote = title.toLowerCase().includes("credit");
@@ -101,6 +105,8 @@ export const PreviewDetails = ({
             })
           }
           onClick={onClick}
+          onRegenerateQr={onRegenerateQr}
+          regeneratingQr={regeneratingQr}
         />
       </div>
     </div>

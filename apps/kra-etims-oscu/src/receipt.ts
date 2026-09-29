@@ -1,7 +1,7 @@
 import type { KraEnvironment } from "./env";
 import { KRA_OSCU_URLS } from "./env";
 
-/** KRA public receipt verification URL (OSCU/VSCU spec v2.0). Query = PIN + bhfId + rcptSign. */
+/** KRA public receipt verification URL. Query is `Data=` plus PIN + bhfId + rcptSign. */
 export function buildReceiptVerifyUrl(opts: {
   tin: string;
   bhfId: string;
@@ -13,7 +13,7 @@ export function buildReceiptVerifyUrl(opts: {
   const rcptSign = opts.rcptSign.trim().replace(/-/g, "");
   if (!tin || !bhfId || !rcptSign) return null;
   const host = KRA_OSCU_URLS[opts.environment ?? "sandbox"].gava.receiptHost;
-  return `${host}/common/link/etims/receipt/indexEtimsReceiptData?${tin}${bhfId}${rcptSign}`;
+  return `${host}/common/link/etims/receipt/indexEtimsReceiptData?Data=${tin}${bhfId}${rcptSign}`;
 }
 
 export function extractRcptSign(data: unknown): string | null {
