@@ -1,8 +1,7 @@
 /**
  * KRA public receipt verification URL.
  *
- * Spec sample: `https://etims.kra.go.ke/common/link/etims/receipt/indexEtimsReceiptData?{KRA-PIN+BHF-ID+RcpSignture}`
- * Query = PIN + branch + receipt signature with no separators. Sandbox uses etims-sbx.
+ * Live receipts use `?Data=` plus PIN + branch + receipt signature. Sandbox uses etims-sbx.
  */
 export function buildEtimsReceiptVerifyUrl(params: {
     tin: string;
@@ -16,7 +15,7 @@ export function buildEtimsReceiptVerifyUrl(params: {
     if (!tin || !bhfId || !rcptSign) return null;
 
     const host = params.isSandbox ? "https://etims-sbx.kra.go.ke" : "https://etims.kra.go.ke";
-    return `${host}/common/link/etims/receipt/indexEtimsReceiptData?${tin}${bhfId}${rcptSign}`;
+    return `${host}/common/link/etims/receipt/indexEtimsReceiptData?Data=${tin}${bhfId}${rcptSign}`;
 }
 
 export function extractRcptSign(invoice: Record<string, unknown>): string | null {

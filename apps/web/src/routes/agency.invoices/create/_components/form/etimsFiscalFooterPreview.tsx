@@ -5,6 +5,8 @@ import { QRCodeSVG } from "qrcode.react";
 type EtimsFiscalFooterPreviewProps = {
 	etimsFiscal: EtimsFiscalFields;
 	onClick?: (step: string) => void;
+	onRegenerateQr?: () => void;
+	regeneratingQr?: boolean;
 };
 
 function display(value: string | null | undefined): string {
@@ -24,6 +26,8 @@ function Row({ label, value }: { label: string; value: string | null | undefined
 export function EtimsFiscalFooterPreview({
 	etimsFiscal,
 	onClick,
+	onRegenerateQr,
+	regeneratingQr,
 }: EtimsFiscalFooterPreviewProps) {
 	const internal = etimsFiscal.intrlDataDashed ?? etimsFiscal.intrlData;
 	const signature = etimsFiscal.rcptSignDashed ?? etimsFiscal.rcptSign;
@@ -68,8 +72,22 @@ export function EtimsFiscalFooterPreview({
 					</div>
 				</div>
 				{qrValue ? (
-					<div className="shrink-0">
+					<div className="flex shrink-0 flex-col items-center gap-1">
 						<QRCodeSVG value={qrValue} size={64} />
+						{onRegenerateQr ? (
+							<button
+								type="button"
+								disabled={regeneratingQr}
+								className="rounded border border-gray-300 bg-white px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+								onClick={(event) => {
+									event.stopPropagation();
+									event.preventDefault();
+									onRegenerateQr();
+								}}
+							>
+								{regeneratingQr ? "Regenerating…" : "Regenerate QR"}
+							</button>
+						) : null}
 					</div>
 				) : null}
 			</div>

@@ -17,7 +17,7 @@ describe("Africa/Nairobi stamps", () => {
 });
 
 describe("receipt verification URL", () => {
-  test("sandbox query is PIN + bhfId + rcptSign", () => {
+  test("sandbox query is Data= PIN + bhfId + rcptSign", () => {
     expect(
       buildReceiptVerifyUrl({
         tin: "P600004455A",
@@ -26,7 +26,7 @@ describe("receipt verification URL", () => {
         environment: "sandbox",
       }),
     ).toBe(
-      "https://etims-sbx.kra.go.ke/common/link/etims/receipt/indexEtimsReceiptData?P600004455A005AWILTL6HKHBQ754",
+      "https://etims-sbx.kra.go.ke/common/link/etims/receipt/indexEtimsReceiptData?Data=P600004455A005AWILTL6HKHBQ754",
     );
   });
 

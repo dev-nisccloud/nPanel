@@ -38,6 +38,7 @@ import {
 	extractEtimsFiscalFieldsFromCreditNote,
 	extractEtimsFiscalFieldsFromInvoice,
 } from "../../lib/etims-fiscal-fields";
+import { resolveInvoiceEtimsVerificationUrl } from "../../lib/etims-receipt-url";
 import { scheduleInvoiceKraSyncAfterCreate } from "../../lib/qstash/invoice-kra-sync-worker";
 import {
 	prepareInvoiceEmailDelivery,
@@ -2621,6 +2622,45 @@ export const invoicingRouter = router({
 				message,
 				invoice: mapInvoiceDetail(after),
 			};
+		}),
+
+	/** Rewrite the stored QR payload from the current eTIMS verify link. */
+	regenerateKraQr: protectedProcedure
+		.input(z.object({ invoiceId: z.string().uuid() }))
+		.output(z.object({ verificationUrl: z.string() }))
+		.mutation(async ({ ctx, input }) => {
+			const user = await getAuthenticatedUser(ctx);
+			await ensureInvoiceMutationAccess(db, user.id, user.role, input.invoiceId);
+
+			const current = await fetchInvoiceDetail(db, input.invoiceId);
+			const verificationUrl = resolveInvoiceEtimsVerificationUrl(current);
+			if (!verificationUrl) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This invoice has no eTIMS receipt to rebuild the QR code from.",
+				});
+			}
+
+			const now = new Date();
+			await db
+				.update(invoice)
+				.set({
+					kraVerificationUrl: verificationUrl,
+					kraQrCode: verificationUrl,
+					updatedAt: now,
+					updatedBy: user.id,
+				})
+				.where(eq(invoice.id, input.invoiceId));
+
+			await logInvoiceActivity(db, {
+				invoiceId: input.invoiceId,
+				userId: user.id,
+				action: "UPDATE",
+				description: "Regenerated the eTIMS QR code from the current verification link",
+				metadata: { kraVerificationUrl: verificationUrl },
+			});
+
+			return { verificationUrl };
 		}),
 
 	listCreditNotes: protectedProcedure
