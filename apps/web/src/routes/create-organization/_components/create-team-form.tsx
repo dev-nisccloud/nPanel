@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Building2, Users, ArrowRight, ArrowLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -36,14 +36,13 @@ export function CreateTeamForm() {
     currency: "KES",
     inviteMembers: "",
   });
+  const invitedCountRef = useRef(0);
 
   const createTeamMutation = trpc.teams.create.useMutation({
     onSuccess: (data) => {
       captureEvent("organization_created", {
         base_currency: formData.currency,
-        invited_member_count: formData.inviteMembers.trim()
-          ? formData.inviteMembers.split(/[,;\n]/).filter((email) => email.trim()).length
-          : 0,
+        invited_member_count: invitedCountRef.current,
       });
       toast.success("Organization created successfully!");
       const teamSlug = data.team.slug;
@@ -76,24 +75,28 @@ export function CreateTeamForm() {
     setCurrentStep(2);
   };
 
-  const handleSubmit = () => {
-    const inviteEmailsRaw = formData.inviteMembers.trim();
+  const handleSubmit = (skipInvites = false) => {
     let inviteEmails: string[] = [];
 
-    if (inviteEmailsRaw) {
-      inviteEmails = inviteEmailsRaw
-        .split(/[,;\n]/)
-        .map((email) => email.trim())
-        .filter((email) => email.length > 0);
+    if (!skipInvites) {
+      const inviteEmailsRaw = formData.inviteMembers.trim();
+      if (inviteEmailsRaw) {
+        inviteEmails = inviteEmailsRaw
+          .split(/[,;\n]/)
+          .map((email) => email.trim())
+          .filter((email) => email.length > 0);
 
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      const invalidEmails = inviteEmails.filter((email) => !emailRegex.test(email));
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const invalidEmails = inviteEmails.filter((email) => !emailRegex.test(email));
 
-      if (invalidEmails.length > 0) {
-        toast.error(`Invalid email addresses: ${invalidEmails.join(", ")}`);
-        return;
+        if (invalidEmails.length > 0) {
+          toast.error(`Invalid email addresses: ${invalidEmails.join(", ")}`);
+          return;
+        }
       }
     }
+
+    invitedCountRef.current = inviteEmails.length;
 
     const teamData: CreateTeamInput = {
       name: formData.teamName.trim(),
@@ -219,29 +222,40 @@ export function CreateTeamForm() {
         </div>
 
         {/* Footer actions */}
-        <div className="px-8 pb-8 pt-2 flex gap-3">
+        <div className="px-8 pb-8 pt-2 flex flex-col gap-3">
           {currentStep === 2 ? (
             <>
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setCurrentStep(1)}
+                  className="flex-1 h-11 rounded-lg"
+                  disabled={createTeamMutation.isPending}
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => handleSubmit(false)}
+                  className="flex-1 h-11 rounded-lg gap-2"
+                  disabled={createTeamMutation.isPending}
+                >
+                  {createTeamMutation.isPending ? "Creating…" : "Create organization"}
+                  {!createTeamMutation.isPending && (
+                    <ArrowRight className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
               <Button
                 type="button"
-                variant="outline"
-                onClick={() => setCurrentStep(1)}
-                className="flex-1 h-11 rounded-lg"
+                variant="ghost"
+                onClick={() => handleSubmit(true)}
+                className="h-11 w-full rounded-lg text-muted-foreground"
                 disabled={createTeamMutation.isPending}
               >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
-              </Button>
-              <Button
-                type="button"
-                onClick={handleSubmit}
-                className="flex-1 h-11 rounded-lg gap-2"
-                disabled={createTeamMutation.isPending}
-              >
-                {createTeamMutation.isPending ? "Creating…" : "Create organization"}
-                {!createTeamMutation.isPending && (
-                  <ArrowRight className="h-4 w-4" />
-                )}
+                Skip for now
               </Button>
             </>
           ) : (
