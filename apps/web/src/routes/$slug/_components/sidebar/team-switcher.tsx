@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Check, ChevronsUpDown, Plus } from "lucide-react";
 import { useNavigate, useLocation } from "react-router";
 
@@ -19,10 +20,22 @@ import { getInitials } from "@/lib/utils";
 import { captureEvent } from "@/lib/posthog";
 import { trpc } from "@/utils/trpc";
 
+function isGuideTeamPreview() {
+  return document.body.hasAttribute("data-customer-guide-team-preview");
+}
+
 export function TeamSwitcher() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { startSwitchTeam } = useSwitchingTeam();
+  const [guidePreview, setGuidePreview] = useState(false);
+
+  useEffect(() => {
+    const sync = () => setGuidePreview(isGuideTeamPreview());
+    sync();
+    window.addEventListener("npanel:customer-guide-team-preview", sync);
+    return () => window.removeEventListener("npanel:customer-guide-team-preview", sync);
+  }, []);
 
   // Extract current team slug from URL (first segment after /)
   const currentSlug = pathname.split("/")[1];
@@ -46,6 +59,7 @@ export function TeamSwitcher() {
   });
 
   const handleTeamSwitch = (teamId: string, teamSlug: string) => {
+    if (isGuideTeamPreview()) return;
     captureEvent("organization_switched", {
       from_org_id: activeTeam?.id,
       to_org_id: teamId,
@@ -59,6 +73,7 @@ export function TeamSwitcher() {
   };
 
   const handleCreateTeam = () => {
+    if (isGuideTeamPreview()) return;
     navigate("/create-organization");
   };
 
@@ -98,7 +113,11 @@ export function TeamSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="h-10 gap-2 px-2 data-[state=open]:bg-accent">
+        <Button
+          variant="ghost"
+          data-customer-guide="team-switcher"
+          className="h-10 gap-2 px-2 data-[state=open]:bg-accent"
+        >
           <Avatar className="h-8 w-8 rounded-lg">
             {activeTeam?.logoUrl ? (
               <AvatarImage src={activeTeam.logoUrl} alt={activeTeam.name} />
@@ -116,11 +135,14 @@ export function TeamSwitcher() {
           <ChevronsUpDown className="ml-auto h-4 w-4 text-muted-foreground" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-64">
+      <DropdownMenuContent align="start" className={guidePreview ? "z-[80] w-64" : "w-64"}>
         <DropdownMenuLabel className="text-xs text-muted-foreground">Organizations</DropdownMenuLabel>
         {teams.map((team) => (
           <DropdownMenuItem
             key={team.id}
+            onSelect={(event) => {
+              if (guidePreview) event.preventDefault();
+            }}
             onClick={() => handleTeamSwitch(team.id, team.slug)}
             className="gap-2 p-2"
           >
@@ -144,7 +166,13 @@ export function TeamSwitcher() {
           </DropdownMenuItem>
         ))}
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleCreateTeam} className="gap-2 p-2">
+        <DropdownMenuItem
+          onSelect={(event) => {
+            if (guidePreview) event.preventDefault();
+          }}
+          onClick={handleCreateTeam}
+          className="gap-2 p-2"
+        >
           <Avatar className="h-8 w-8 rounded-lg">
             <AvatarFallback className="rounded-lg">
               <Plus className="h-4 w-4" />
