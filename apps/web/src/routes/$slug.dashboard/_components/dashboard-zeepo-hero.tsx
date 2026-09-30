@@ -7,7 +7,8 @@ import { toast } from "@/components/ui/sonner";
 
 import { ZeepoAiAutosizeTextarea } from "@/components/zeepo/zeepo-ai-autosize-textarea";
 import { ZeepoMascot } from "@/components/zeepo/zeepo-mascot";
-import { ZEEPO_AI_CAPABILITY_SHORTCUTS } from "@/components/zeepo/zeepo-ai-capabilities";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useZeepoAiHomeSuggestions } from "@/components/zeepo/use-zeepo-ai-home-suggestions";
 import { ZeepoAiBuyTokensDialog } from "@/components/zeepo/zeepo-ai-buy-tokens-dialog";
 import { stashZeepoAiHandoff } from "@/components/zeepo/zeepo-ai-handoff";
 import {
@@ -45,6 +46,7 @@ function getFirstName(fullName: string | null | undefined): string {
 function DashboardZeepoHeroInner() {
 	const navigate = useNavigate();
 	const route = useZeepoAiRoute();
+	const homeSuggestions = useZeepoAiHomeSuggestions(route.teamId, true);
 	const { data: session } = authClient.useSession();
 	const firstName = getFirstName(session?.user?.name);
 	const userRole = (session?.user as { role?: string } | undefined)?.role;
@@ -168,7 +170,7 @@ function DashboardZeepoHeroInner() {
 
 			<div
 				className={cn(
-					"zeepo-ai-compose-surface zeepo-composer-shell mt-4 w-full overflow-hidden rounded-xl border border-border/70 bg-background text-left",
+					"zeepo-ai-compose-surface zeepo-composer-shell zeepo-floating-dock-shadow zeepo-composer-glow mt-4 w-full overflow-hidden rounded-xl border border-border/70 bg-background text-left transition-[border-color,box-shadow,opacity] duration-300",
 					isHandingOff && "pointer-events-none opacity-70",
 				)}
 			>
@@ -224,30 +226,34 @@ function DashboardZeepoHeroInner() {
 				</div>
 			</div>
 
-			<div className="mt-4 flex w-full flex-wrap items-center gap-2">
-				{ZEEPO_AI_CAPABILITY_SHORTCUTS.map((item) => {
-					const Icon = item.icon;
-					const selected = inputValue.startsWith(item.starter);
-					return (
-						<button
-							key={item.id}
-							type="button"
-							disabled={isHandingOff}
-							onClick={() => applyStarter(item.starter, item.enableSearch)}
-							className={cn(
-								"inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-								"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-								"disabled:pointer-events-none disabled:opacity-50",
-								selected
-									? "border-primary/30 bg-primary/10 text-foreground"
-									: "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
-							)}
-						>
-							<Icon className="size-3.5 shrink-0 opacity-70" aria-hidden />
-							{item.label}
-						</button>
-					);
-				})}
+			<div className="mt-4 flex w-full flex-wrap items-center gap-2" aria-busy={homeSuggestions.isLoading}>
+				{homeSuggestions.isLoading
+					? Array.from({ length: 4 }, (_, index) => (
+							<Skeleton key={index} className="h-7 w-40 rounded-full" />
+						))
+					: homeSuggestions.items?.map((item) => {
+							const Icon = item.icon;
+							const selected = inputValue.startsWith(item.starter);
+							return (
+								<button
+									key={item.id}
+									type="button"
+									disabled={isHandingOff}
+									onClick={() => applyStarter(item.starter, item.enableSearch)}
+									className={cn(
+										"inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+										"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+										"disabled:pointer-events-none disabled:opacity-50",
+										selected
+											? "border-primary/30 bg-primary/10 text-foreground"
+											: "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
+									)}
+								>
+									<Icon className="size-3.5 shrink-0 opacity-70" aria-hidden />
+									{item.label}
+								</button>
+							);
+						})}
 			</div>
 
 			<ZeepoAiBuyTokensDialog open={buyOpen} onOpenChange={setBuyOpen} />
