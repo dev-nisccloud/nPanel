@@ -452,6 +452,7 @@ export function BuyNowDialog({
   const [agencyLinkType, setAgencyLinkType] = React.useState<AgencyLinkType>("self");
   const [selectedAgencyTeamId, setSelectedAgencyTeamId] = React.useState("");
   const [selectedAgencyUserId, setSelectedAgencyUserId] = React.useState("");
+  const [selectedAgencyUserTeamId, setSelectedAgencyUserTeamId] = React.useState("");
 
   /** Agency portfolio checkout: list all client teams (requires agency role - server enforces). */
   const { data: agencyTeams = [], isLoading: loadingAgencyTeams } = trpc.teams.getAll.useQuery(
@@ -483,6 +484,29 @@ export function BuyNowDialog({
     [agencyUsers],
   );
   const selectedAgencyUserItem = agencyUserItems.find((u) => u.id === selectedAgencyUserId);
+  const agencyUserTeamsQuery = trpc.userProfile.listTeamsForCustomer.useQuery(
+    { userId: selectedAgencyUserId },
+    {
+      enabled: open && showAgencyBillingStep && agencyLinkType === "user" && selectedAgencyUserId.length > 0,
+    },
+  );
+  const agencyUserTeamItems: ComboboxItem[] = React.useMemo(
+    () => (agencyUserTeamsQuery.data ?? []).map((team) => ({ id: team.id, label: team.name })),
+    [agencyUserTeamsQuery.data],
+  );
+  const selectedAgencyUserTeamItem = agencyUserTeamItems.find((team) => team.id === selectedAgencyUserTeamId);
+
+  React.useEffect(() => {
+    const teams = agencyUserTeamsQuery.data;
+    if (!teams || agencyLinkType !== "user") return;
+    if (teams.length === 1) {
+      setSelectedAgencyUserTeamId(teams[0].id);
+      return;
+    }
+    setSelectedAgencyUserTeamId((current) =>
+      current && teams.some((team) => team.id === current) ? current : "",
+    );
+  }, [agencyLinkType, agencyUserTeamsQuery.data]);
 
   const { data: checkoutTeamBySlug } = trpc.teams.getTeamIdBySlug.useQuery(
     { slug: resolvedTeamSlug ?? "" },
@@ -494,10 +518,18 @@ export function BuyNowDialog({
   const resolvedCheckoutTeamId = React.useMemo(() => {
     if (showAgencyBillingStep) {
       if (agencyLinkType === "team") return selectedAgencyTeamId || undefined;
+      if (agencyLinkType === "user") return selectedAgencyUserTeamId || undefined;
       return undefined;
     }
     return teamId ?? checkoutTeamBySlug?.id ?? undefined;
-  }, [showAgencyBillingStep, agencyLinkType, selectedAgencyTeamId, teamId, checkoutTeamBySlug?.id]);
+  }, [
+    showAgencyBillingStep,
+    agencyLinkType,
+    selectedAgencyTeamId,
+    selectedAgencyUserTeamId,
+    teamId,
+    checkoutTeamBySlug?.id,
+  ]);
 
   const resolvedBilledForUserId = React.useMemo(() => {
     if (showAgencyBillingStep && agencyLinkType === "user") return selectedAgencyUserId || undefined;
@@ -537,7 +569,7 @@ export function BuyNowDialog({
   const canProceedFromAgencyBilling =
     agencyLinkType === "self" ||
     (agencyLinkType === "team" && !!selectedAgencyTeamId) ||
-    (agencyLinkType === "user" && !!selectedAgencyUserId);
+    (agencyLinkType === "user" && !!selectedAgencyUserId && !!selectedAgencyUserTeamId);
 
   // Hivelocity configuration step state
   const [hostname, setHostname] = React.useState("");
@@ -1166,6 +1198,7 @@ export function BuyNowDialog({
       setAgencyLinkType("self");
       setSelectedAgencyTeamId("");
       setSelectedAgencyUserId("");
+      setSelectedAgencyUserTeamId("");
 
       const ref = generateMpesaAccountReference(plan.planName);
       intendedAccountReferenceRef.current = ref;
@@ -1759,6 +1792,7 @@ export function BuyNowDialog({
       transactionDesc,
       checkoutTotalIncVat: pricing.total,
       ...(resolvedCheckoutTeamId && { teamId: resolvedCheckoutTeamId }),
+      ...(resolvedBilledForUserId && { billedForUserId: resolvedBilledForUserId }),
     });
   };
 
@@ -1895,6 +1929,7 @@ export function BuyNowDialog({
         accountReference: resolved.accountReference || undefined,
         transactionDesc,
         ...(resolvedCheckoutTeamId ? { teamId: resolvedCheckoutTeamId } : {}),
+        ...(resolvedBilledForUserId ? { billedForUserId: resolvedBilledForUserId } : {}),
       });
       setCheckoutRequestId(result.checkoutRequestId);
       terminalStateDetectedRef.current = true;
@@ -2576,12 +2611,45 @@ export function BuyNowDialog({
                         <ComboboxDropdown
                           items={agencyUserItems}
                           selectedItem={selectedAgencyUserItem}
-                          onSelect={(item) => setSelectedAgencyUserId(item.id)}
+                          onSelect={(item) => {
+                            setSelectedAgencyUserId(item.id);
+                            setSelectedAgencyUserTeamId("");
+                          }}
                           placeholder="Select a user..."
                           searchPlaceholder="Search users..."
                           emptyResults="No users found"
                         />
                       )
+                    ) : null}
+                    {agencyLinkType === "user" && selectedAgencyUserId ? (
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-foreground">Organization</p>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          The subscription, payment, and invoice are linked to this organization. Billing details come from the organization, then this customer.
+                        </p>
+                        {agencyUserTeamsQuery.isLoading ? (
+                          <div className="flex h-10 items-center justify-center rounded-md border">
+                            <Spinner size={18} />
+                          </div>
+                        ) : agencyUserTeamsQuery.error ? (
+                          <p className="text-xs text-destructive">
+                            {agencyUserTeamsQuery.error.message ?? "Failed to load organizations."}
+                          </p>
+                        ) : agencyUserTeamItems.length === 0 ? (
+                          <p className="text-xs text-destructive">
+                            This customer is not on an organization yet. Add them to a team before checkout.
+                          </p>
+                        ) : (
+                          <ComboboxDropdown
+                            items={agencyUserTeamItems}
+                            selectedItem={selectedAgencyUserTeamItem}
+                            onSelect={(item) => setSelectedAgencyUserTeamId(item.id)}
+                            placeholder="Select an organization..."
+                            searchPlaceholder="Search organizations..."
+                            emptyResults="No organizations found"
+                          />
+                        )}
+                      </div>
                     ) : null}
                   </div>
                 </div>

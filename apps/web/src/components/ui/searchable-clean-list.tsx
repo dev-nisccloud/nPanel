@@ -90,6 +90,7 @@ export function SearchableCleanList({
   searchPlaceholder = "Search...",
   errorTitle = "Failed to load",
   columns,
+  titleLines,
 }: {
   items: SearchableCleanListItem[];
   searchQuery: string;
@@ -104,6 +105,8 @@ export function SearchableCleanList({
   searchPlaceholder?: string;
   errorTitle?: string;
   columns?: CleanListColumn[];
+  /** Lines each title may use before the rest is ellipsized. */
+  titleLines?: number;
 }) {
   if (isLoading) {
     return <ListSkeleton />;
@@ -154,6 +157,7 @@ export function SearchableCleanList({
             actions={item.actions}
             cells={item.cells}
             onClick={item.onClick}
+            titleLines={titleLines}
           />
         ))}
       </CleanList>

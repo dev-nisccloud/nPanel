@@ -3,7 +3,6 @@ import { db, eq } from "@npanel/db";
 import {
   paymentTransaction,
   paymentTransactionActivityLog,
-  user
 } from "@npanel/db/schema";
 import {
   validateMpesaCallback,
@@ -15,6 +14,7 @@ import { renderPaymentReceiptEmail } from "@npanel/api/lib/email-templates";
 import { randomUUID } from "node:crypto";
 import { claimWebhookEvent } from "@npanel/api/lib/webhook-idempotency";
 import { applySuccessfulPaymentToInvoiceSafe } from "@npanel/api/lib/invoice-apply-gateway-payment";
+import { resolveNiscCustomerNotificationRecipient } from "@npanel/api/lib/nisc-order-invoice-billing";
 
 /**
  * M-Pesa Webhook Handler
@@ -150,12 +150,12 @@ export async function handleMpesaWebhook(c: Context) {
 
         // Async email sending
         try {
-          const userData = await db.query.user.findFirst({
-            where: eq(user.id, transaction.userId),
-            columns: { email: true, name: true },
+          const recipient = await resolveNiscCustomerNotificationRecipient({
+            teamId: transaction.teamId,
+            userId: transaction.userId,
           });
 
-          if (userData?.email) {
+          if (recipient) {
             const formattedAmount = paymentStatus.metadata?.amount
               ? new Intl.NumberFormat("en-US", {
                 minimumFractionDigits: 2,
@@ -164,7 +164,7 @@ export async function handleMpesaWebhook(c: Context) {
               : transaction.amount;
 
             const emailHtml = await renderPaymentReceiptEmail({
-              customerName: userData.name || "Valued Customer",
+              customerName: recipient.name,
               receiptNumber: paymentStatus.metadata?.mpesaReceiptNumber || "N/A",
               transactionDate: now.toLocaleString(),
               amount: formattedAmount,
@@ -175,7 +175,7 @@ export async function handleMpesaWebhook(c: Context) {
             });
 
             await sendEmail({
-              to: userData.email,
+              to: recipient.email,
               subject: `Payment Receipt - ${paymentStatus.metadata?.mpesaReceiptNumber || "Payment Confirmed"}`,
               html: emailHtml,
             });

@@ -75,6 +75,8 @@ export type PaymentDetails = {
 export type InvoiceTerms = {
   invoiceNumber?: string;
   issueDate?: string | Date;
+  /** Full `dd/mm/yyyy hh:mm:ss` from the KRA SCU stamp. Preferred over formatting `issueDate`. */
+  issuedAtDisplay?: string;
   dueDate?: string | Date;
   /** Shown on credit notes instead of due date */
   originalInvoiceNumber?: string;

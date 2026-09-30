@@ -75,9 +75,11 @@ export function HostingDataTable() {
     return data.filter((subscription) => {
       const linked = linkedByPleskId.get(String(subscription.id));
       const customer = linked?.teamName || linked?.userName || "";
+      const plan = linked?.planName || "";
       return (
         subscription.subscriptionName.toLowerCase().includes(q) ||
-        customer.toLowerCase().includes(q)
+        customer.toLowerCase().includes(q) ||
+        plan.toLowerCase().includes(q)
       );
     });
   }, [data, searchQuery, linkedByPleskId]);
@@ -102,17 +104,20 @@ export function HostingDataTable() {
           {subscription.subscriptionName}
         </Link>
       ),
-      description: (
-        <HostingStatusBadge
-          label={getStatusDisplayText(subscription.status)}
-          variant={getStatusBadgeVariant(subscription.status)}
-          isActive={subscription.status === 0}
-        />
-      ),
       cells: {
+        status: (
+          <HostingStatusBadge
+            label={getStatusDisplayText(subscription.status)}
+            variant={getStatusBadgeVariant(subscription.status)}
+            isActive={subscription.status === 0}
+          />
+        ),
         customer: customerLabel ? (
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-foreground">{customerLabel}</p>
+            {linked?.planName ? (
+              <p className="truncate text-sm text-muted-foreground">{linked.planName}</p>
+            ) : null}
             {expiry ? (
               <CleanListCell>Expires {expiry}</CleanListCell>
             ) : null}
@@ -208,6 +213,7 @@ export function HostingDataTable() {
         onRetry={() => refetch()}
         columns={[
           { key: "name", label: "Name" },
+          { key: "status", label: "Status", className: "w-36", hideBelow: "@md" },
           { key: "customer", label: "Customer", className: "w-64", hideBelow: "@lg" },
           { key: "actions", label: "Actions", align: "end" },
         ]}

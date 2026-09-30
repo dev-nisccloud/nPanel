@@ -127,7 +127,9 @@ function oscuFrom(ctx: RunContext): EtimsOscuHeaders {
 /** Customer PIN must differ from the session tin (Application Test Pin). */
 function customerTin(ctx: RunContext): string {
     if (ctx.integratorPin && ctx.integratorPin !== ctx.tin) return ctx.integratorPin;
-    return "P052377334H";
+    throw new Error(
+        "ETIMS_CERT_TIN must differ from ETIMS_CERT_APP_TEST_PIN so customer/supplier PIN is not the OSCU session tin.",
+    );
 }
 
 function lastReq(ctx: RunContext) {
@@ -1022,10 +1024,14 @@ async function main() {
 
     const cfg = await loadDeviceConfig();
     const appTestPin = process.env.ETIMS_CERT_APP_TEST_PIN?.trim() || "";
+    const tisName = process.env.ETIMS_CERT_TIS_NAME?.trim() || "";
     if (!appTestPin) {
         throw new Error(
             "ETIMS_CERT_APP_TEST_PIN is required in .env.etims-certification — OSCU init uses this PIN as tin.",
         );
+    }
+    if (!tisName) {
+        throw new Error("ETIMS_CERT_TIS_NAME is required in .env.etims-certification.");
     }
     const ctx: RunContext = {
         tin: appTestPin,
@@ -1035,7 +1041,7 @@ async function main() {
         cmcKey: "",
         isSandbox: cfg.isSandbox,
         appTestPin,
-        tisName: process.env.ETIMS_CERT_TIS_NAME?.trim() || "nPanel 2",
+        tisName,
         tisVersion: process.env.ETIMS_CERT_TIS_VERSION?.trim() || "1.0.0",
         kraItems: [],
         itemClsOptions: [],

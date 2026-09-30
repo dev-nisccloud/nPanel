@@ -18,6 +18,11 @@ import { captureEvent } from "@/lib/posthog";
 import { authClient } from "@/lib/auth-client";
 import { SubscriptionDeleteDialog } from "./subscription-delete-dialog";
 import { isSubscriptionRenewable } from "@/lib/subscription-renewal-pricing";
+import {
+	formatRemainingTokenCount,
+	isZeepoTokenProduct,
+	ZEEPO_BILLING_LABEL,
+} from "./zeepo-subscription";
 
 function getBillingCycleDisplayName(cycle: string | null): string {
 	if (!cycle) return "";
@@ -148,6 +153,7 @@ export function SubscriptionsTable({
 	const items: SearchableCleanListItem[] = filtered.map((sub) => {
 		const subscribed = formatDate(sub.subscriptionDate);
 		const expires = formatDate(sub.expiryDate);
+		const zeepo = isZeepoTokenProduct(sub.productId);
 		const renewable = isSubscriptionRenewable({
 			status: sub.status,
 			billingCycle: sub.billingCycle,
@@ -160,21 +166,30 @@ export function SubscriptionsTable({
 					{displayServiceName(sub.productName, sub.productPlanName, sub.subscriptionName, sub.billingCycle)}
 				</span>
 			),
-			description: (
-				<div className="flex items-center gap-2">
-					<Badge variant="outline" className={getStatusBadgeClass(sub.status)}>
-						{sub.status.replace(/_/g, " ")}
-					</Badge>
-					{renewable && (
-						<Badge variant="destructive" className="animate-pulse">
-							Renew Now
-						</Badge>
-					)}
-				</div>
-			),
 			cells: {
-				billing: <CleanListCell>{getBillingCycleDisplayName(sub.billingCycle)}</CleanListCell>,
-				dates: (
+				status: (
+					<div className="flex flex-col items-start gap-1">
+						<Badge variant="outline" className={getStatusBadgeClass(sub.status)}>
+							{sub.status.replace(/_/g, " ")}
+						</Badge>
+						{renewable ? (
+							<Badge variant="destructive" className="animate-pulse">
+								Renew Now
+							</Badge>
+						) : null}
+					</div>
+				),
+				billing: (
+					<CleanListCell>
+						{zeepo ? ZEEPO_BILLING_LABEL : getBillingCycleDisplayName(sub.billingCycle)}
+					</CleanListCell>
+				),
+				details: zeepo ? (
+					<div className="flex min-w-0 flex-col gap-0.5">
+						<p className="truncate text-sm font-medium text-foreground">Remaining tokens</p>
+						<CleanListCell>{formatRemainingTokenCount(sub.remainingTokens)}</CleanListCell>
+					</div>
+				) : (
 					<div className="flex min-w-0 flex-col gap-0.5">
 						<p className="truncate text-sm font-medium text-foreground">
 							{subscribed ? `Subscribed ${subscribed}` : ""}
@@ -250,10 +265,12 @@ export function SubscriptionsTable({
 						? `No subscriptions match "${searchQuery}"`
 						: "No subscriptions found. They will appear here when you create them."
 				}
+				titleLines={3}
 				columns={[
 					{ key: "name", label: "Service" },
-					{ key: "billing", label: "Billing", className: "w-28", hideBelow: "@lg" },
-					{ key: "dates", label: "Dates", className: "w-56", hideBelow: "@xl" },
+					{ key: "status", label: "Status", className: "w-36", hideBelow: "@md" },
+					{ key: "billing", label: "Billing", className: "w-36", hideBelow: "@lg" },
+					{ key: "details", label: "Details", className: "w-56", hideBelow: "@xl" },
 					{ key: "actions", label: "Actions", align: "end" },
 				]}
 				toolbarActions={

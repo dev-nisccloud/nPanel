@@ -31,4 +31,5 @@ export declare function resolveInvoiceEtimsVerificationUrl(invoice: EtimsReceipt
     isSandbox?: boolean;
 }): string | undefined;
 export declare function extractRcptSignFromKraResponse(data: unknown): string | null;
-export declare function parseKraSdcDateTime(value: string | null | undefined): Date | null;
+export declare function parseKraSdcDateTime(value: string | Date | null | undefined): Date | null;
+export declare function kraSdcDateTimeToCompact(value: string | Date | null | undefined): string | null;

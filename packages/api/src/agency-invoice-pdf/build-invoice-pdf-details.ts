@@ -2,7 +2,7 @@
  * Same PDF props as agency invoice details page (`buildInvoicePdfDetails` in agency.invoices.$id.tsx).
  */
 import type { InvoiceDetail } from "../routers/invoicing/schemas";
-import { ensureEtimsPrintFields, extractEtimsFiscalFieldsFromInvoice } from "../lib/etims-fiscal-fields";
+import { ensureEtimsPrintFields, extractEtimsFiscalFieldsFromInvoice, formatKraSdcDateTimeDisplay } from "../lib/etims-fiscal-fields";
 import { resolveInvoiceEtimsVerificationUrl } from "../lib/etims-receipt-url";
 import { formatInvoiceLineItemForPdf, normalizeStoredInvoicePeriodDescription } from "../lib/nisc-order-invoice-line-items";
 import type {
@@ -96,14 +96,6 @@ export function buildInvoicePdfDetails(invoice: InvoiceDetail): {
 			undefined,
 	};
 
-	const invoiceTerms: InvoiceTerms = {
-		invoiceNumber: invoice.invoiceNumber ?? undefined,
-		issueDate: invoice.issueDate ?? undefined,
-		dueDate: invoice.dueDate ?? undefined,
-		buyerPin: (customerDetails?.taxId as string | undefined) ?? undefined,
-		status: invoice.status ?? undefined,
-	};
-
 	const etimsFiscal =
 		extractEtimsFiscalFieldsFromInvoice(invoice, {
 			tisReceiptNumber: invoice.invoiceNumber,
@@ -118,6 +110,18 @@ export function buildInvoicePdfDetails(invoice: InvoiceDetail): {
 				itemCount: invoiceDetails.items.length,
 			},
 		);
+
+	const invoiceTerms: InvoiceTerms = {
+		invoiceNumber: invoice.invoiceNumber ?? undefined,
+		issueDate: invoice.issueDate ?? undefined,
+		issuedAtDisplay:
+			formatKraSdcDateTimeDisplay(etimsFiscal.sdcDateTime) ??
+			formatKraSdcDateTimeDisplay(invoice.issueDate) ??
+			undefined,
+		dueDate: invoice.dueDate ?? undefined,
+		buyerPin: (customerDetails?.taxId as string | undefined) ?? undefined,
+		status: invoice.status ?? undefined,
+	};
 
 	const storedPayment =
 		invoice.paymentDetails &&

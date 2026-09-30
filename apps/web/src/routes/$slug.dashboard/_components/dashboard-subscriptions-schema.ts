@@ -18,6 +18,9 @@ export interface DashboardSubscriptionRow {
   id: string;
   planName: string;
   planType: string;
+  productId: string;
+  billingCycle: string | null;
+  remainingTokens: number | null;
   subscriptionDate: Date | null;
   nextRenewalDate: Date | null;
   status: DashboardSubscriptionStatus;

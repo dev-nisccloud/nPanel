@@ -8,13 +8,20 @@ import { db } from "@npanel/db";
 import { user } from "@npanel/db/schema/auth";
 import { userProfile } from "@npanel/db/schema/auth-extras";
 import { domainTransferRequest } from "@npanel/db/schema/domain-transfer-requests";
-import { niscOrder, niscOrderItem } from "@npanel/db/schema/nisc-orders";
+import { niscOrder, niscOrderItem, niscOrderProcessingLog } from "@npanel/db/schema/nisc-orders";
 import {
 	niscClientSubscription,
+	niscClientSubscriptionActivityLog,
 	niscProduct,
 	niscProductPlan,
 } from "@npanel/db/schema/products";
+import { invoice as invoiceTable } from "@npanel/db/schema/invoicing";
 import { paymentTransaction } from "@npanel/db/schema/payment-transactions";
+import {
+	getNiscOrderNotificationDraft,
+	NISC_RESEND_KINDS,
+	resendNiscOrderNotifications,
+} from "../lib/nisc-order-resend-notifications";
 import { team, teamMember, teamBillingSettings } from "@npanel/db/schema/teams";
 import { protectedProcedure, router } from "../trpc";
 import {
@@ -111,7 +118,13 @@ async function isTeamMember(teamId: string, userId: string): Promise<boolean> {
 		.from(teamMember)
 		.where(and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)))
 		.limit(1);
-	return Boolean(member);
+	if (member) return true;
+	const [owned] = await db
+		.select({ id: team.id })
+		.from(team)
+		.where(and(eq(team.id, teamId), eq(team.createdById, userId)))
+		.limit(1);
+	return Boolean(owned);
 }
 
 async function canAccessOrderRead(orderId: string, userId: string, role: string | null | undefined) {
@@ -1391,7 +1404,15 @@ export const niscServiceOrdersRouter = router({
 								user: { columns: { id: true, name: true, email: true } },
 							},
 						});
-						if (!orderWithUser?.user?.email) return;
+						if (!orderWithUser) return;
+						const { resolveNiscCustomerNotificationRecipient } = await import(
+							"../lib/nisc-order-invoice-billing"
+						);
+						const recipient = await resolveNiscCustomerNotificationRecipient({
+							teamId: orderWithUser.teamId,
+							userId: orderWithUser.userId,
+						});
+						if (!recipient) return;
 						const { sendEmail } = await import("../lib/email");
 						const { renderNiscOrderReceivedEmail } = await import("../lib/email-templates");
 						const { buildNiscOrderReceivedEmailItems } = await import(
@@ -1416,7 +1437,7 @@ export const niscServiceOrdersRouter = router({
 							})),
 						});
 						const html = await renderNiscOrderReceivedEmail({
-							customerName: orderWithUser.user.name ?? undefined,
+							customerName: recipient.name,
 							orderNumber: orderWithUser.orderNumber,
 							orderDate: formatNiscDateTime(orderWithUser.createdAt),
 							totalAmount,
@@ -1424,7 +1445,7 @@ export const niscServiceOrdersRouter = router({
 							orderItems,
 						});
 						await sendEmail({
-							to: orderWithUser.user.email,
+							to: recipient.email,
 							subject: `Order ${orderWithUser.orderNumber} received`,
 							html,
 						});
@@ -1447,6 +1468,255 @@ export const niscServiceOrdersRouter = router({
 					team: { columns: { id: true, name: true } },
 				},
 			});
+		}),
+
+	/**
+	 * Move this order and every subscription it created onto another organization.
+	 * The order user becomes that organization's owner (or its creator).
+	 */
+	reassignSubscriptions: protectedProcedure
+		.input(
+			z.object({
+				niscOrderId: z.string().min(1),
+				teamId: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const userId = ctx.session?.user?.id;
+			const userRole = ctx.session?.user?.role;
+			if (!userId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You must be logged in to reassign order subscriptions",
+				});
+			}
+			if (!isAgencyUserRole(userRole)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only agency users can reassign order subscriptions",
+				});
+			}
+
+			const [order] = await db
+				.select({
+					id: niscOrder.id,
+					userId: niscOrder.userId,
+					teamId: niscOrder.teamId,
+					invoiceId: niscOrder.invoiceId,
+					paymentTransactionId: niscOrder.paymentTransactionId,
+				})
+				.from(niscOrder)
+				.where(eq(niscOrder.id, input.niscOrderId))
+				.limit(1);
+			if (!order) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Nisc order not found" });
+			}
+
+			const [targetTeam] = await db
+				.select({ id: team.id, name: team.name, createdById: team.createdById })
+				.from(team)
+				.where(eq(team.id, input.teamId))
+				.limit(1);
+			if (!targetTeam) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Organization not found" });
+			}
+
+			const [ownerMember] = await db
+				.select({ userId: teamMember.userId })
+				.from(teamMember)
+				.where(and(eq(teamMember.teamId, targetTeam.id), eq(teamMember.role, "OWNER")))
+				.limit(1);
+			let nextUserId = ownerMember?.userId ?? null;
+			if (!nextUserId) {
+				const [creator] = await db
+					.select({ id: user.id })
+					.from(user)
+					.where(eq(user.id, targetTeam.createdById))
+					.limit(1);
+				nextUserId = creator?.id ?? null;
+			}
+			if (!nextUserId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This organization has no user to assign the order to.",
+				});
+			}
+
+			const itemLinks = await db
+				.select({ subscriptionId: niscOrderItem.niscClientSubscriptionId })
+				.from(niscOrderItem)
+				.where(eq(niscOrderItem.niscOrderId, order.id));
+			const itemSubscriptionIds = itemLinks
+				.map((row) => row.subscriptionId)
+				.filter((id): id is string => typeof id === "string" && id.length > 0);
+
+			const subscriptions = await db
+				.select({
+					id: niscClientSubscription.id,
+					teamId: niscClientSubscription.teamId,
+				})
+				.from(niscClientSubscription)
+				.where(
+					itemSubscriptionIds.length > 0
+						? or(
+								eq(niscClientSubscription.niscOrderId, order.id),
+								inArray(niscClientSubscription.id, itemSubscriptionIds),
+							)
+						: eq(niscClientSubscription.niscOrderId, order.id),
+				);
+
+			const now = new Date();
+			await db.transaction(async (tx) => {
+				if (subscriptions.length > 0) {
+					await tx
+						.update(niscClientSubscription)
+						.set({ teamId: targetTeam.id, userId: nextUserId, updatedAt: now })
+						.where(
+							inArray(
+								niscClientSubscription.id,
+								subscriptions.map((sub) => sub.id),
+							),
+						);
+					await tx.insert(niscClientSubscriptionActivityLog).values(
+						subscriptions.map((sub) => ({
+							id: randomUUID(),
+							subscriptionId: sub.id,
+							userId,
+							action: "REASSIGN_TEAM",
+							description: `Reassigned to ${targetTeam.name}`,
+							metadata: {
+								niscOrderId: order.id,
+								previousTeamId: sub.teamId,
+								teamId: targetTeam.id,
+								userId: nextUserId,
+							},
+							ipAddress: null,
+							userAgent: null,
+						})),
+					);
+				}
+				await tx
+					.update(niscOrder)
+					.set({ teamId: targetTeam.id, userId: nextUserId })
+					.where(eq(niscOrder.id, order.id));
+				if (order.invoiceId) {
+					await tx
+						.update(invoiceTable)
+						.set({ teamId: targetTeam.id, updatedAt: now })
+						.where(eq(invoiceTable.id, order.invoiceId));
+				}
+				if (order.paymentTransactionId) {
+					await tx
+						.update(paymentTransaction)
+						.set({ teamId: targetTeam.id, userId: nextUserId, updatedAt: now })
+						.where(eq(paymentTransaction.id, order.paymentTransactionId));
+				}
+				await tx.insert(niscOrderProcessingLog).values({
+					id: randomUUID(),
+					niscOrderId: order.id,
+					step: "subscriptions_reassigned",
+					payload: {
+						teamId: targetTeam.id,
+						teamName: targetTeam.name,
+						previousTeamId: order.teamId,
+						previousUserId: order.userId,
+						userId: nextUserId,
+						subscriptionIds: subscriptions.map((sub) => sub.id),
+						reassignedBy: userId,
+					},
+				});
+			});
+
+			return {
+				updated: subscriptions.length,
+				teamId: targetTeam.id,
+				teamName: targetTeam.name,
+			};
+		}),
+
+	getNotificationDraft: protectedProcedure
+		.input(z.object({ id: z.string().min(1) }))
+		.query(async ({ ctx, input }) => {
+			const userId = ctx.session?.user?.id;
+			const userRole = ctx.session?.user?.role;
+			if (!userId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You must be logged in to view notification details",
+				});
+			}
+			if (!isAgencyUserRole(userRole)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only agency users can resend order notifications",
+				});
+			}
+			await canAccessOrderRead(input.id, userId, userRole);
+			try {
+				return await getNiscOrderNotificationDraft(input.id);
+			} catch (error) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: error instanceof Error ? error.message : "Nisc order not found",
+				});
+			}
+		}),
+
+	resendNotifications: protectedProcedure
+		.input(
+			z.object({
+				niscOrderId: z.string().min(1),
+				kinds: z.array(z.enum(NISC_RESEND_KINDS)).min(1),
+				to: z.string().trim().email(),
+				cc: z.string().optional(),
+				bcc: z.string().optional(),
+				sendInvoiceAnyway: z.boolean().optional(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const userId = ctx.session?.user?.id;
+			const userRole = ctx.session?.user?.role;
+			if (!userId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You must be logged in to resend order notifications",
+				});
+			}
+			if (!isAgencyUserRole(userRole)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only agency users can resend order notifications",
+				});
+			}
+			await canAccessOrderRead(input.niscOrderId, userId, userRole);
+
+			const parseAddresses = (value: string | undefined) => {
+				if (!value?.trim()) return [] as string[];
+				return value
+					.split(/[,;]+/)
+					.map((part) => part.trim())
+					.filter((part) => part.length > 0);
+			};
+			const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+			const cc = parseAddresses(input.cc);
+			const bcc = parseAddresses(input.bcc);
+			const invalid = [...cc, ...bcc].filter((address) => !emailPattern.test(address));
+			if (invalid.length > 0) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `Invalid email address: ${invalid[0]}`,
+				});
+			}
+
+			const results = await resendNiscOrderNotifications({
+				niscOrderId: input.niscOrderId,
+				kinds: input.kinds,
+				to: input.to.trim(),
+				cc,
+				bcc,
+				sendInvoiceAnyway: input.sendInvoiceAnyway === true,
+			});
+			return { results };
 		}),
 
 	retry: protectedProcedure

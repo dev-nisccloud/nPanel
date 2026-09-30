@@ -18,6 +18,7 @@ import { formatNiscDateTime } from "@npanel/api/lib/nisc-datetime-format";
 import { buildNiscOrderReceivedEmailItems } from "@npanel/api/lib/nisc-order-received-email";
 import { verifySignature } from "../../lib/qstash-verify";
 import { getNormalizedPublicAppUrl, joinPublicAppPath } from "@npanel/api/lib/public-app-url";
+import { resolveNiscCustomerNotificationRecipient } from "@npanel/api/lib/nisc-order-invoice-billing";
 
 interface NiscOrderPayload {
 	niscOrderId: string;
@@ -132,17 +133,12 @@ export async function handleProcessNiscOrder(c: Context) {
 			result.status === "COMPLETED" &&
 			orderAfter
 		) {
-			const billingSettings = order.teamId
-				? await db.query.teamBillingSettings.findFirst({
-					where: (fields, { eq }) => eq(fields.teamId, order.teamId as string),
-				})
-				: null;
-			
-			const customerEmail =
-				order.user?.email ??
-				(billingSettings?.billingEmail?.trim() ? billingSettings.billingEmail : null);
+			const recipient = await resolveNiscCustomerNotificationRecipient({
+				teamId: order.teamId,
+				userId: order.userId,
+			});
 
-			if (customerEmail) {
+			if (recipient) {
 				try {
 					const customerOrderLink =
 						order.team?.slug != null
@@ -167,7 +163,7 @@ export async function handleProcessNiscOrder(c: Context) {
 							})),
 						});
 					const orderConfirmationHtml = await renderOrderConfirmationEmail({
-						customerName: customerName ?? undefined,
+						customerName: recipient.name,
 						orderNumber: orderAfter.orderNumber,
 						orderDate: formatNiscDateTime(orderAfter.createdAt),
 						totalAmount: confirmationTotal,
@@ -178,7 +174,7 @@ export async function handleProcessNiscOrder(c: Context) {
 						orderLink: customerOrderLink,
 					});
 					await sendEmail({
-						to: customerEmail,
+						to: recipient.email,
 						subject: `Order Confirmation - ${orderAfter.orderNumber} from Nisc Cloud®`,
 						html: orderConfirmationHtml,
 					});

@@ -11,6 +11,9 @@ import {
 } from "@/components/npanel-ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
 	Collapsible,
@@ -19,6 +22,7 @@ import {
 } from "@/components/ui/collapsible";
 import { toast } from "@/components/ui/sonner";
 import { trpc } from "@/utils/trpc";
+import { ComboboxDropdown, type ComboboxItem } from "@npanel/ui/components/combobox-dropdown";
 import { OrderInvoiceSection } from "./order-invoice-section";
 import { ORDER_STATUS_VARIANTS, orderStatusBadgeClass } from "./schema";
 
@@ -60,6 +64,49 @@ export function ViewOrderSheet({
 		{ enabled: open && !!orderId }
 	);
 
+	const utils = trpc.useUtils();
+	const [reassignOpen, setReassignOpen] = React.useState(false);
+	const [selectedTeamId, setSelectedTeamId] = React.useState("");
+	const [notifyReceipt, setNotifyReceipt] = React.useState(false);
+	const [notifyReceived, setNotifyReceived] = React.useState(false);
+	const [notifyInvoice, setNotifyInvoice] = React.useState(false);
+	const [notifyConfirmation, setNotifyConfirmation] = React.useState(false);
+	const [sendInvoiceAnyway, setSendInvoiceAnyway] = React.useState(false);
+	const [toEmail, setToEmail] = React.useState("");
+	const [toTouched, setToTouched] = React.useState(false);
+	const [ccEmail, setCcEmail] = React.useState("");
+	const [bccEmail, setBccEmail] = React.useState("");
+
+	React.useEffect(() => {
+		setReassignOpen(false);
+		setSelectedTeamId("");
+		setNotifyReceipt(false);
+		setNotifyReceived(false);
+		setNotifyInvoice(false);
+		setNotifyConfirmation(false);
+		setSendInvoiceAnyway(false);
+		setToEmail("");
+		setToTouched(false);
+		setCcEmail("");
+		setBccEmail("");
+	}, [orderId]);
+
+	const notificationDraft = trpc.niscServiceOrders.getNotificationDraft.useQuery(
+		{ id: orderId! },
+		{ enabled: open && !!orderId },
+	);
+
+	React.useEffect(() => {
+		if (toTouched) return;
+		if (notificationDraft.data?.to) {
+			setToEmail(notificationDraft.data.to);
+		}
+	}, [notificationDraft.data?.to, toTouched]);
+
+	const { data: teams = [], isLoading: loadingTeams } = trpc.teams.getAll.useQuery(undefined, {
+		enabled: open && reassignOpen,
+	});
+
 	const retryMutation = trpc.niscServiceOrders.retry.useMutation({
 		onSuccess: () => {
 			toast.success("Order re-queued for processing");
@@ -67,6 +114,44 @@ export function ViewOrderSheet({
 		},
 		onError: (e: { message?: string }) => toast.error(e.message || "Retry failed"),
 	});
+
+	const reassignMutation = trpc.niscServiceOrders.reassignSubscriptions.useMutation({
+		onSuccess: (result) => {
+			toast.success(
+				result.updated > 0
+					? `Reassigned the order and ${result.updated} subscription${result.updated === 1 ? "" : "s"} to ${result.teamName}`
+					: `Reassigned the order to ${result.teamName}`,
+			);
+			setReassignOpen(false);
+			setSelectedTeamId("");
+			if (orderId) {
+				void utils.niscServiceOrders.getById.invalidate({ id: orderId });
+			}
+			onRetrySuccess?.();
+			void notificationDraft.refetch();
+		},
+		onError: (e: { message?: string }) => toast.error(e.message || "Reassign failed"),
+	});
+
+	const resendMutation = trpc.niscServiceOrders.resendNotifications.useMutation({
+		onSuccess: (result) => {
+			const sent = result.results.filter((row) => row.sent);
+			const failed = result.results.filter((row) => !row.sent);
+			if (sent.length > 0) {
+				toast.success(`Sent ${sent.length} notification${sent.length === 1 ? "" : "s"}.`);
+			}
+			if (failed.length > 0) {
+				toast.error(failed.map((row) => row.message).join(" "));
+			}
+		},
+		onError: (e: { message?: string }) => toast.error(e.message || "Failed to send notifications"),
+	});
+
+	const teamItems: ComboboxItem[] = React.useMemo(
+		() => teams.map((team) => ({ id: team.id, label: team.name })),
+		[teams],
+	);
+	const selectedTeamItem = teamItems.find((item) => item.id === selectedTeamId);
 
 	const canRetry =
 		order && (order.status === "FAILED" || order.status === "PARTIAL");
@@ -97,9 +182,58 @@ export function ViewOrderSheet({
 							<p className="text-sm font-medium text-muted-foreground">Order number</p>
 							<p className="font-mono">{order.orderNumber}</p>
 						</div>
-						<div className="w-full">
-							<p className="text-sm font-medium text-muted-foreground">User / Organization</p>
-							<p>{order.user?.name ?? order.team?.name ?? "- "}</p>
+						<div className="w-full space-y-2">
+							<div className="flex items-center justify-between gap-2">
+								<p className="text-sm font-medium text-muted-foreground">User / Organization</p>
+								<Button
+									type="button"
+									variant="outline"
+									size="sm"
+									onClick={() => setReassignOpen((open) => !open)}
+								>
+									Reassign
+								</Button>
+							</div>
+							<p>{order.user?.name ?? "—"}</p>
+							<p className="text-sm text-muted-foreground">
+								{order.team?.name ?? "No organization"}
+							</p>
+							{reassignOpen ? (
+								<div className="space-y-2 rounded-md border p-3">
+									<p className="text-xs text-muted-foreground">
+										Moves this order&apos;s user and organization, its invoice and payment, and every subscription it created.
+									</p>
+									{loadingTeams ? (
+										<Skeleton className="h-10 w-full" />
+									) : (
+										<ComboboxDropdown
+											placeholder="Select an organization…"
+											searchPlaceholder="Search organizations"
+											items={teamItems}
+											selectedItem={selectedTeamItem}
+											onSelect={(item) => setSelectedTeamId(item.id)}
+											emptyResults="No organizations found"
+										/>
+									)}
+									<Button
+										type="button"
+										size="sm"
+										disabled={
+											!selectedTeamId ||
+											selectedTeamId === order.team?.id ||
+											reassignMutation.isPending
+										}
+										onClick={() =>
+											reassignMutation.mutate({
+												niscOrderId: order.id,
+												teamId: selectedTeamId,
+											})
+										}
+									>
+										{reassignMutation.isPending ? "Reassigning…" : "Assign subscriptions"}
+									</Button>
+								</div>
+							) : null}
 						</div>
 						<div className="w-full">
 							<p className="text-sm font-medium text-muted-foreground">Status</p>
@@ -212,6 +346,125 @@ export function ViewOrderSheet({
 								{retryMutation.isPending ? "Re-queuing..." : "Retry order"}
 							</Button>
 						)}
+						<div className="w-full space-y-3 border-t pt-4">
+							<div>
+								<p className="text-sm font-medium text-foreground">Resend notification emails</p>
+								<p className="text-xs text-muted-foreground mt-1">
+									Selected emails are sent together, in this order: payment receipt, order received, invoice, then order confirmation.
+								</p>
+							</div>
+							<div className="space-y-2">
+								<label className="flex items-center gap-2 text-sm">
+									<Checkbox
+										checked={notifyReceipt}
+										onCheckedChange={(checked) => setNotifyReceipt(checked === true)}
+									/>
+									Payment receipt
+								</label>
+								<label className="flex items-center gap-2 text-sm">
+									<Checkbox
+										checked={notifyReceived}
+										onCheckedChange={(checked) => setNotifyReceived(checked === true)}
+									/>
+									Order received
+								</label>
+								<label className="flex items-center gap-2 text-sm">
+									<Checkbox
+										checked={notifyInvoice}
+										onCheckedChange={(checked) => setNotifyInvoice(checked === true)}
+									/>
+									Invoice
+								</label>
+								{notifyInvoice && notificationDraft.data?.kraBlocksSend ? (
+									<div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200 space-y-2">
+										<p>
+											This invoice is not synced with KRA
+											{notificationDraft.data.kraStatus
+												? ` (${notificationDraft.data.kraStatus})`
+												: ""}
+											. It is held back until KRA sync succeeds. Choose send anyway to email the current invoice without that sync.
+										</p>
+										<label className="flex items-center gap-2 text-sm">
+											<Checkbox
+												checked={sendInvoiceAnyway}
+												onCheckedChange={(checked) => setSendInvoiceAnyway(checked === true)}
+											/>
+											Send anyway
+										</label>
+									</div>
+								) : null}
+								{notifyInvoice && notificationDraft.data && !notificationDraft.data.invoiceNumber ? (
+									<p className="text-xs text-muted-foreground">This order has no invoice yet.</p>
+								) : null}
+								<label className="flex items-center gap-2 text-sm">
+									<Checkbox
+										checked={notifyConfirmation}
+										onCheckedChange={(checked) => setNotifyConfirmation(checked === true)}
+									/>
+									Order confirmation
+								</label>
+							</div>
+							{(notifyReceipt || notifyReceived || notifyInvoice || notifyConfirmation) ? (
+								<div className="space-y-3">
+									<div className="space-y-1.5">
+										<Label htmlFor="resend-to">To</Label>
+										<Input
+											id="resend-to"
+											type="email"
+											value={toEmail}
+											placeholder="customer@example.com"
+											onChange={(event) => {
+												setToTouched(true);
+												setToEmail(event.target.value);
+											}}
+										/>
+										<p className="text-[11px] text-muted-foreground">
+											Prefilled with this order&apos;s notification recipient. You can change it.
+										</p>
+									</div>
+									<div className="space-y-1.5">
+										<Label htmlFor="resend-cc">Cc</Label>
+										<Input
+											id="resend-cc"
+											value={ccEmail}
+											placeholder="Separate addresses with commas"
+											onChange={(event) => setCcEmail(event.target.value)}
+										/>
+									</div>
+									<div className="space-y-1.5">
+										<Label htmlFor="resend-bcc">Bcc</Label>
+										<Input
+											id="resend-bcc"
+											value={bccEmail}
+											placeholder="Separate addresses with commas"
+											onChange={(event) => setBccEmail(event.target.value)}
+										/>
+									</div>
+									<Button
+										type="button"
+										disabled={!toEmail.trim() || resendMutation.isPending}
+										onClick={() => {
+											const kinds = [
+												notifyReceipt ? "payment_receipt" : null,
+												notifyReceived ? "order_received" : null,
+												notifyInvoice ? "invoice" : null,
+												notifyConfirmation ? "order_confirmation" : null,
+											].filter((kind): kind is "payment_receipt" | "order_received" | "invoice" | "order_confirmation" => kind != null);
+											resendMutation.mutate({
+												niscOrderId: order.id,
+												kinds,
+												to: toEmail.trim(),
+												cc: ccEmail,
+												bcc: bccEmail,
+												sendInvoiceAnyway,
+											});
+										}}
+									>
+										{resendMutation.isPending ? "Sending…" : "Send notifications"}
+									</Button>
+								</div>
+							) : null}
+						</div>
 					</div>
 				)}
 			</SheetContent>

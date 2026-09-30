@@ -1,6 +1,7 @@
 import React from "react";
 import { Text, View } from "@react-pdf/renderer";
 import { format } from "date-fns";
+import { formatKraSdcDateTimeFull } from "../../lib/etims-scu-print";
 import { pdfInvoiceMeta } from "../pdf-styles";
 import type { InvoiceTerms } from "../types";
 
@@ -16,9 +17,16 @@ function statusTextColor(status: string): string {
   return "#92400e";
 }
 
+function formatIssuedAt(issueDate?: string | Date, issuedAtDisplay?: string): string {
+  const fromKra = issuedAtDisplay?.trim() || formatKraSdcDateTimeFull(issueDate ?? null);
+  if (fromKra) return fromKra;
+  return "-";
+}
+
 export const InvoiceTermsPdf: React.FC<InvoiceTerms> = ({
   invoiceNumber,
   issueDate,
+  issuedAtDisplay,
   dueDate,
   originalInvoiceNumber,
   numberLabel = "INVOICE NO",
@@ -53,12 +61,7 @@ export const InvoiceTermsPdf: React.FC<InvoiceTerms> = ({
         <View style={pdfInvoiceMeta.rowTerms}>
           <Text style={pdfInvoiceMeta.label}>ISSUED</Text>
           <Text wrap={false} style={pdfInvoiceMeta.value}>
-            {issueDate
-              ? format(
-                  typeof issueDate === "string" ? new Date(issueDate) : issueDate,
-                  "dd-MM-yyyy"
-                )
-              : "-"}
+            {formatIssuedAt(issueDate, issuedAtDisplay)}
           </Text>
         </View>
         {originalInvoiceNumber ? (

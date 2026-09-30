@@ -90,6 +90,7 @@ export type PaymentDetails = {
 export type InvoiceTerms = {
   invoiceNumber?: string;
   issueDate?: string | Date;
+  issuedAtDisplay?: string;
   dueDate?: string | Date;
   originalInvoiceNumber?: string;
   numberLabel?: string;

@@ -14,6 +14,7 @@ const REQUIRED = [
     "ETIMS_CERT_BHF_ID",
     "ETIMS_CERT_DEVICE_SERIAL",
     "ETIMS_CERT_APP_TEST_PIN",
+    "ETIMS_CERT_TIS_NAME",
     "ETIMS_APIGEE_APP_ID",
     "ETIMS_CONSUMER_KEY",
     "ETIMS_CONSUMER_SECRET",
@@ -108,7 +109,7 @@ export function loadEtimsCertEnv(): EtimsCertEnv {
         integratorPin: file.ETIMS_CERT_TIN.trim(),
         bhfId: file.ETIMS_CERT_BHF_ID.trim(),
         dvcSrlNo: file.ETIMS_CERT_DEVICE_SERIAL.trim(),
-        tisName: file.ETIMS_CERT_TIS_NAME?.trim() || "nPanel 4",
+        tisName: file.ETIMS_CERT_TIS_NAME.trim(),
         tisVersion: file.ETIMS_CERT_TIS_VERSION?.trim() || "1.0.0",
         storedCmcKey: file.ETIMS_CERT_CMC_KEY?.trim() || null,
         clientConfig: {
@@ -209,26 +210,14 @@ export function setEtimsCertCmcKey(cmcKey: string): void {
     writeCertSessionFile(rt.env, rt.cmcKey);
 }
 
-export function certIdentityMatchesEnv(
-    env: EtimsCertEnv,
-    input?: { tin?: string; bhfId?: string; dvcSrlNo?: string } | null,
-): boolean {
-    const tin = input?.tin?.trim() || env.tin;
-    const bhfId = input?.bhfId?.trim() || env.bhfId;
-    const dvcSrlNo = input?.dvcSrlNo?.trim() || env.dvcSrlNo;
-    return tin === env.tin && bhfId === env.bhfId && dvcSrlNo === env.dvcSrlNo;
-}
-
 /** 902 returns data:null. Reuse cert-local key (body → env → session file → memory), never live DB. */
 export function resolveReusedCmcKey(opts: {
     bodyKey?: string | null;
     env: EtimsCertEnv;
     memoryKey: string | null;
-    identityMatchesEnv: boolean;
 }): string | null {
     const bodyKey = opts.bodyKey?.trim() || null;
     if (bodyKey) return bodyKey;
-    if (!opts.identityMatchesEnv) return opts.memoryKey?.trim() || null;
     return opts.env.storedCmcKey || readCertSessionFile(opts.env) || opts.memoryKey?.trim() || null;
 }
 

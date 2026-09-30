@@ -1,4 +1,5 @@
 import { isInvoiceKraSynced } from "./invoice-kra-status";
+import { kraSdcStampToCompact, parseKraSdcStamp } from "./etims-scu-print";
 
 /** Receipt query value is PIN + branch id + receipt signature, passed as `Data`. */
 const RECEIPT_PATH = "/common/link/etims/receipt/indexEtimsReceiptData";
@@ -138,16 +139,15 @@ export function extractRcptSignFromKraResponse(data: unknown): string | null {
 	return sign ? String(sign).trim() : null;
 }
 
-export function parseKraSdcDateTime(value: string | null | undefined): Date | null {
-	if (!value) return null;
-	const s = String(value).trim();
-	if (s.length !== 14) return null;
-	const y = Number(s.slice(0, 4));
-	const m = Number(s.slice(4, 6)) - 1;
-	const d = Number(s.slice(6, 8));
-	const hh = Number(s.slice(8, 10));
-	const mm = Number(s.slice(10, 12));
-	const ss = Number(s.slice(12, 14));
-	const dt = new Date(y, m, d, hh, mm, ss);
+/** Interpret a KRA SCU stamp as Africa/Nairobi (`+03:00`), including spaced lookup form. */
+export function parseKraSdcDateTime(value: string | Date | null | undefined): Date | null {
+	const p = parseKraSdcStamp(value);
+	if (!p) return null;
+	const dt = new Date(`${p.y}-${p.m}-${p.d}T${p.hh}:${p.mm}:${p.ss}+03:00`);
 	return Number.isNaN(dt.getTime()) ? null : dt;
+}
+
+export function kraSdcDateTimeToCompact(value: string | Date | null | undefined): string | null {
+	const p = parseKraSdcStamp(value);
+	return p ? kraSdcStampToCompact(p) : null;
 }

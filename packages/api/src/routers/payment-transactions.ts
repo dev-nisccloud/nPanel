@@ -209,7 +209,14 @@ export const paymentTransactionsRouter = router({
 						.from(teamMember)
 						.where(and(eq(teamMember.teamId, input.teamId), eq(teamMember.userId, billedFor)))
 						.limit(1);
-					if (!membership) {
+					const [ownedTeam] = membership
+						? []
+						: await db
+								.select({ id: teamTable.id })
+								.from(teamTable)
+								.where(and(eq(teamTable.id, input.teamId), eq(teamTable.createdById, billedFor)))
+								.limit(1);
+					if (!membership && !ownedTeam) {
 						throw new TRPCError({
 							code: "BAD_REQUEST",
 							message: "Selected user is not a member of this team.",
