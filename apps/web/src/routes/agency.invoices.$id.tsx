@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useParams, useNavigate } from "react-router";
-import { ArrowLeft, Ban, Download, DollarSign, FileText, Send } from "lucide-react";
+import { ArrowLeft, Ban, Download, DollarSign, FileText, Link2, Send } from "lucide-react";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,6 +35,7 @@ import { IssueCreditNoteDialog } from "./agency.invoices/$id/_components/issue-c
 import { InvoicePaymentSummary } from "./agency.invoices/$id/_components/invoice-payment-summary";
 import { InvoiceTransactionsSection } from "./agency.invoices/$id/_components/invoice-transactions-section";
 import { InvoiceTransactionViewSheet } from "./agency.invoices/$id/_components/invoice-transaction-view-sheet";
+import { LinkInvoiceOrganizationDialog } from "./agency.invoices/_components/link-invoice-organization-dialog";
 import { isInvoiceKraSynced } from "@npanel/api/lib/invoice-kra-status";
 import { buildInvoicePdfDetails } from "@npanel/api/agency-invoice-pdf/build-invoice-pdf-details";
 import { resolveInvoicePaymentTotals } from "@/lib/invoice-payment-totals";
@@ -306,6 +307,7 @@ export default function InvoiceViewPage() {
 	const [editDialogOpen, setEditDialogOpen] = React.useState(false);
 	const [editStep, setEditStep] = React.useState<InvoiceEditStep>("1");
 	const [sendDialogOpen, setSendDialogOpen] = React.useState(false);
+	const [linkOrgOpen, setLinkOrgOpen] = React.useState(false);
 	const [sendToEmail, setSendToEmail] = React.useState("");
 	const [sendCc, setSendCc] = React.useState("");
 	const [sendBcc, setSendBcc] = React.useState("");
@@ -799,6 +801,14 @@ export default function InvoiceViewPage() {
 						)}
 					</Button>
 					<Button
+						onClick={() => setLinkOrgOpen(true)}
+						variant="outline"
+						disabled={isSending}
+					>
+						<Link2 className="mr-2 h-4 w-4" />
+						{invoice.teamId ? "Reassign to organization" : "Link to organization"}
+					</Button>
+					<Button
 						onClick={() => setSendDialogOpen(true)}
 						disabled={isSending}
 					>
@@ -962,6 +972,13 @@ export default function InvoiceViewPage() {
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
+
+			<LinkInvoiceOrganizationDialog
+				open={linkOrgOpen}
+				onOpenChange={setLinkOrgOpen}
+				invoiceId={invoice.id}
+				currentTeamId={invoice.teamId}
+			/>
 
 			<Dialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
 				<DialogContent className="sm:max-w-lg">

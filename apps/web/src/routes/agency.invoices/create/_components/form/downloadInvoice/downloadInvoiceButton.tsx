@@ -182,12 +182,14 @@ export const DownloadInvoiceButton = () => {
         }
       }
 
+      const draftStatus = String(form.getValues("invoiceStatus") || "DRAFT");
       const blob = await pdf(
         <Document>
           <AgencyInvoicePdfPage
             companyDetails={companyDetails}
             invoiceDetails={invoiceDetails}
-            invoiceTerms={invoiceTerms}
+            invoiceTerms={{ ...invoiceTerms, status: draftStatus }}
+            paymentDetails={paymentDetails}
             yourDetails={yourDetails}
             etimsFiscal={etimsFiscal}
             qrCodeDataUrl={qrCodeDataUrl}

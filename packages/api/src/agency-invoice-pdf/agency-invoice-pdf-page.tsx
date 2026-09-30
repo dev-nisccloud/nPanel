@@ -1,6 +1,6 @@
 import React from "react";
-import { Page } from "@react-pdf/renderer";
-import { EtimsFiscalFooterPdf } from "./components/etims-fiscal-footer-pdf";
+import { Page, Text } from "@react-pdf/renderer";
+import { InvoicePageFooter } from "./components/invoice-page-footer";
 import { PdfDetails } from "./components/pdf-details";
 import { pdfContainers } from "./pdf-styles";
 import type { EtimsFiscalFields } from "./types";
@@ -17,7 +17,6 @@ export type AgencyInvoicePdfPageProps = {
 	yourDetails: YourDetails;
 	companyDetails: CompanyDetails;
 	invoiceDetails: InvoiceItemDetails;
-	/** Kept for caller compatibility; bank/M-Pesa is no longer printed (KRA SCU footer occupies this space). */
 	paymentDetails?: PaymentDetails;
 	invoiceTerms: InvoiceTerms;
 	etimsFiscal: EtimsFiscalFields | null;
@@ -26,12 +25,13 @@ export type AgencyInvoicePdfPageProps = {
 };
 
 /**
- * Single A4 invoice page with optional fixed KRA eTIMS fiscal footer on every page.
+ * Single A4 invoice page. Payment details and the KRA SCU footer repeat on every page.
  */
 export function AgencyInvoicePdfPage({
 	yourDetails,
 	companyDetails,
 	invoiceDetails,
+	paymentDetails,
 	invoiceTerms,
 	etimsFiscal,
 	qrCodeDataUrl,
@@ -48,13 +48,28 @@ export function AgencyInvoicePdfPage({
 
 	return (
 		<Page size="A4" style={pdfContainers.pageWithEtimsFooter}>
-			<EtimsFiscalFooterPdf fields={fiscal} qrCodeDataUrl={qrCodeDataUrl} />
+			<InvoicePageFooter
+				fields={fiscal}
+				qrCodeDataUrl={qrCodeDataUrl}
+				paymentDetails={paymentDetails}
+			/>
 			<PdfDetails
 				companyDetails={companyDetails}
 				invoiceDetails={invoiceDetails}
 				invoiceTerms={invoiceTerms}
 				yourDetails={yourDetails}
 				documentTitle={documentTitle}
+			/>
+			<Text
+				fixed
+				style={{
+					position: "absolute",
+					bottom: 4,
+					right: 40,
+					fontSize: 8,
+					color: "#6b7280",
+				}}
+				render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}
 			/>
 		</Page>
 	);

@@ -1894,8 +1894,20 @@ export function MediaBuyingEomTotalSpendInvoicesFlow({
                             invoiceNumber: invoiceTerms.invoiceNumber,
                             issueDate: invoiceTerms.issueDate,
                             dueDate: invoiceTerms.dueDate,
+                            status: "SENT",
                           }}
                           etimsFiscal={etimsFiscal}
+                          paymentDetails={{
+                            bankName: invoiceDefaults.bankName,
+                            accountNumber: invoiceDefaults.accountNumber,
+                            accountName: invoiceDefaults.accountName,
+                            branchName: invoiceDefaults.branchName,
+                            branchCode: invoiceDefaults.branchCode,
+                            swiftCode: invoiceDefaults.swiftCode,
+                            mpesaPaybillNumber: invoiceDefaults.mpesaPaybillNumber,
+                            mpesaAccountNumber: invoiceDefaults.mpesaAccountNumber,
+                            mpesaInstructions: invoiceDefaults.mpesaInstructions,
+                          }}
                         />
                       </Document>
                     ).toBlob();

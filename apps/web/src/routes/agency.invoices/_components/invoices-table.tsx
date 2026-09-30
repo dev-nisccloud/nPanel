@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useNavigate } from "react-router";
-import { FileText, EllipsisVertical, Download, Send, Trash2, Eye } from "lucide-react";
+import { FileText, EllipsisVertical, Download, Send, Trash2, Eye, Link2 } from "lucide-react";
 import {
 	Table,
 	TableBody,
@@ -43,6 +43,7 @@ import { toast } from "@/components/ui/sonner";
 import { captureEvent } from "@/lib/posthog";
 import { formatInvoiceDate } from "@/lib/invoice-date";
 import { registerFonts } from "./invoices-list";
+import { LinkInvoiceOrganizationDialog } from "./link-invoice-organization-dialog";
 import type { InvoiceSummary } from "@/routes/agency.invoices/create/api/schemas";
 
 const formatCurrency = (amount: string | null | undefined, currency: string) => {
@@ -72,6 +73,7 @@ function InvoiceRowActions({ invoice, onRefetch }: InvoiceRowActionsProps) {
 	const [isDownloading, setIsDownloading] = React.useState(false);
 	const [isResending, setIsResending] = React.useState(false);
 	const [isDeleting, setIsDeleting] = React.useState(false);
+	const [isLinkOpen, setIsLinkOpen] = React.useState(false);
 
 	const utils = trpc.useUtils();
 	const getById = trpc.invoicing.getById.useQuery({ id: invoice.id }, { enabled: false });
@@ -170,10 +172,14 @@ function InvoiceRowActions({ invoice, onRefetch }: InvoiceRowActionsProps) {
 									<span className="sr-only">Actions</span>
 								</Button>
 							</DropdownMenuTrigger>
-							<DropdownMenuContent align="end" className="w-48">
+							<DropdownMenuContent align="end" className="w-64">
 								<DropdownMenuItem onClick={() => navigate(`/agency/invoices/${invoice.id}`)} disabled={busy}>
 									<Eye className="mr-2 h-4 w-4" />
 									View Invoice
+								</DropdownMenuItem>
+								<DropdownMenuItem onClick={() => setIsLinkOpen(true)} disabled={busy}>
+									<Link2 className="mr-2 h-4 w-4" />
+									{invoice.teamId ? "Reassign to organization" : "Link to organization"}
 								</DropdownMenuItem>
 								<DropdownMenuSeparator />
 								<DropdownMenuItem onClick={handleDownload} disabled={busy}>
@@ -195,6 +201,14 @@ function InvoiceRowActions({ invoice, onRefetch }: InvoiceRowActionsProps) {
 					<TooltipContent>Actions</TooltipContent>
 				</Tooltip>
 			</TooltipProvider>
+
+			<LinkInvoiceOrganizationDialog
+				open={isLinkOpen}
+				onOpenChange={setIsLinkOpen}
+				invoiceId={invoice.id}
+				currentTeamId={invoice.teamId}
+				onLinked={onRefetch}
+			/>
 
 			<AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
 				<AlertDialogContent>

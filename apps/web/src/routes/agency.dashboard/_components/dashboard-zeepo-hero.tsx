@@ -117,7 +117,7 @@ function DashboardZeepoHeroInner() {
 
 			<div
 				className={cn(
-					"zeepo-ai-compose-surface zeepo-composer-shell mt-4 w-full overflow-hidden rounded-xl border border-border/70 bg-background text-left",
+					"zeepo-ai-compose-surface zeepo-composer-shell zeepo-floating-dock-shadow zeepo-composer-glow mt-4 w-full overflow-hidden rounded-xl border border-border/70 bg-background text-left transition-[border-color,box-shadow,opacity] duration-300",
 					isHandingOff && "pointer-events-none opacity-70",
 				)}
 			>
