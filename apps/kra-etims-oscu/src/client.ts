@@ -324,8 +324,8 @@ export class KraOscuClient {
     return this.request<{ noticeList?: unknown[] }>("selectNoticeList", this.lastReq(lastReqDt));
   }
 
-  async getCustomerByPin(custmTin: string) {
-    return this.request("selectCustomer", { custmTin });
+  async getCustomerByPin(custmTin: string, lastReqDt?: string) {
+    return this.request("selectCustomer", { custmTin, lastReqDt: lastReqDt ?? DEFAULT_LAST_REQ_DT });
   }
 
   async getCustomerList(lastReqDt?: string) {

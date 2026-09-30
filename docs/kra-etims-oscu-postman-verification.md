@@ -26,7 +26,7 @@ Every request:
 
 Pass: `resultCd` `000`. Empty lookup `001` is also a pass. Init `902` = already installed. Sandbox often returns `data: null` (no `cmcKey`). Still a pass if nPanel reuses a **cert-local** key (POST body, `ETIMS_CERT_CMC_KEY`, or `apps/server/.etims-certification/session.json`). Never the live DB.
 
-Do **not** send integrator PIN `P052377334H` as `tin`. OSCU `tin` / customer PIN is Application Test Pin **`P600004480A`**.
+Identity is **not** in the Postman body. `etimsCert.initialization.initializeDevice` always sends `ETIMS_CERT_APP_TEST_PIN` / `ETIMS_CERT_BHF_ID` / `ETIMS_CERT_DEVICE_SERIAL` from `apps/server/.env.etims-certification`. A body `tin` / `bhfId` / `dvcSrlNo` is ignored. Do **not** send `config.integratorPin` (`ETIMS_CERT_TIN`) as OSCU `tin`. JSON examples use `APPLICATION_TEST_PIN` as a placeholder for `config.kraPin` from step 0 — do not paste a PIN from an old collection.
 
 Copy as you go: leaf `itemClsCd` from step 3 (`clsB` example `1010150100`), `invcNo` (start 1), `sarNo` (start 1), sale `intrlData` / `rcptSign` / `sdcDateTime`.
 
@@ -44,7 +44,7 @@ Gava Connect **lists** composition and stock master earlier than this. Ignore th
 https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.auth.getConfiguration
 ```
 
-Expect `config.kraPin` = `P600004480A`, `branchId` = `00`, `usesDatabase` = `false`. `isInitialized` is `false` until step 1. `hasReusableCmcKey` is `true` once a cert-local key exists (env or session file).
+Expect `config.kraPin` = `ETIMS_CERT_APP_TEST_PIN`, `config.integratorPin` = `ETIMS_CERT_TIN`, `branchId` / `deviceSerialNumber` from that file, `usesDatabase` = `false`. Copy `config.kraPin` into later `custTin` / `custmTin` / `spplrTin` fields. `isInitialized` is `false` until step 1. `hasReusableCmcKey` is `true` once a cert-local key exists (env or session file).
 
 ---
 
@@ -57,15 +57,10 @@ https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.initial
 ```
 
 ```json
-{
-  "tin": "P600004480A",
-  "bhfId": "00",
-  "dvcSrlNo": "KRACUO100069163",
-  "isSandbox": true
-}
+{}
 ```
 
-Body is optional (`{}` uses the cert file). `kraInitUrl` must end in `/etims-oscu/api/v1/initialize`. Still **POST this to KRA** so Gava scores init.
+Do not put PIN / serial in this body. The server always uses `.env.etims-certification`. Confirm the echo fields `tin`, `bhfId`, `dvcSrlNo`, `source` in the response. `kraInitUrl` must end in `/etims-oscu/api/v1/initialize`. Still **POST this to KRA** so Gava scores init.
 
 **`000`:** KRA returns `cmcKey`. nPanel stores it in memory and `apps/server/.etims-certification/session.json` (not `etims_configuration`).
 
@@ -75,10 +70,6 @@ First time you hit 902 with no stored key, send the known key once:
 
 ```json
 {
-  "tin": "P600004480A",
-  "bhfId": "00",
-  "dvcSrlNo": "KRACUO100069163",
-  "isSandbox": true,
   "cmcKey": "PASTE_PRIOR_000_CMC_KEY"
 }
 ```
@@ -151,7 +142,7 @@ https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.branch.
 {
   "customer": {
     "custNo": "CUST001",
-    "custTin": "P600004480A",
+    "custTin": "APPLICATION_TEST_PIN",
     "custNm": "Application Test Customer",
     "adrs": "Nairobi",
     "telNo": "0700000000",
@@ -434,7 +425,7 @@ https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.sales.s
     "trdInvcNo": "NP1",
     "invcNo": 1,
     "orgInvcNo": 0,
-    "custTin": "P600004480A",
+    "custTin": "APPLICATION_TEST_PIN",
     "custNm": "Application Test Customer",
     "salesTyCd": "N",
     "rcptTyCd": "S",
@@ -473,10 +464,10 @@ https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.sales.s
     "modrId": "Admin",
     "modrNm": "Admin",
     "receipt": {
-      "custTin": "P600004480A",
+      "custTin": "APPLICATION_TEST_PIN",
       "custMblNo": "0700000000",
       "rcptPbctDt": "20260914120000",
-      "trdeNm": "nPanel 4",
+      "trdeNm": "TIS_NAME",
       "adrs": "Nairobi",
       "topMsg": null,
       "btmMsg": null,
@@ -536,7 +527,7 @@ https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.purchas
 ```json
 {
   "purchase": {
-    "spplrTin": "P600004480A",
+    "spplrTin": "APPLICATION_TEST_PIN",
     "invcNo": 2,
     "orgInvcNo": 0,
     "spplrBhfId": "00",
@@ -618,7 +609,7 @@ https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.stock.s
 {
   "stockMaster": {
     "itemCd": "KE1NTBA0000001",
-    "rsdQty": 10,
+    "rsdQty": 20,
     "regrId": "Admin",
     "regrNm": "Admin",
     "modrId": "Admin",
@@ -627,7 +618,7 @@ https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.stock.s
 }
 ```
 
-Repeat for `KE1NTBA0000002` if you I/O’d the child.
+If KRA says `rsdQty mismatch. Expected: N`, retry with that remaining qty (often 20 after a second stock-in).
 
 ---
 
@@ -696,7 +687,7 @@ No body.
 **GET**
 
 ```
-https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.data.lookupCustomer?input={"custmTin":"P600004480A"}
+https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.data.lookupCustomer?input={"custmTin":"APPLICATION_TEST_PIN","lastReqDt":"20180101000000"}
 ```
 
 No body. Not on the Gava dashboard.
@@ -729,7 +720,7 @@ https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.sales.s
     "trdInvcNo": "NP-CN1",
     "invcNo": 5,
     "orgInvcNo": 1,
-    "custTin": "P600004480A",
+    "custTin": "APPLICATION_TEST_PIN",
     "custNm": "Application Test Customer",
     "salesTyCd": "N",
     "rcptTyCd": "R",
@@ -768,10 +759,10 @@ https://loverlike-cinderella-signatureless.ngrok-free.dev/trpc/etimsCert.sales.s
     "modrId": "Admin",
     "modrNm": "Admin",
     "receipt": {
-      "custTin": "P600004480A",
+      "custTin": "APPLICATION_TEST_PIN",
       "custMblNo": "0700000000",
       "rcptPbctDt": "20260914123000",
-      "trdeNm": "nPanel 4",
+      "trdeNm": "TIS_NAME",
       "adrs": "Nairobi",
       "topMsg": null,
       "btmMsg": null,
@@ -820,5 +811,5 @@ After a signed sale, open the nPanel invoice and confirm PIN, QR, CU number, dat
 | Hit `/trpc/etims.`… | Wrong tree. Use **`etimsCert`** |
 | `Stock IO is empty` | Step 11 before 18 |
 | `Insufficient Stock` on composition | Step 11 before 12 |
-| `901 It is not valid device` | Application Test Pin + `bhfId` matching the portal |
+| `901 It is not valid device` | Env is used, but PIN + serial are not a KRA pair. Copy **Device Serial Number** from the same Automated App Test as `ETIMS_CERT_APP_TEST_PIN`. Do not keep an old TIS app's serial with a new test PIN. |
 | Init URL is `etims-api-sbx` | Cert file `ETIMS_SANDBOX_BASE_URL` must be `https://sbx.kra.go.ke/etims-oscu/api/v1`, then restart |

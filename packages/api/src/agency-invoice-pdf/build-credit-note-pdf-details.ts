@@ -1,5 +1,5 @@
 import type { CreditNoteDetail, InvoiceDetail } from "../routers/invoicing/schemas";
-import { extractEtimsFiscalFieldsFromCreditNote, ensureEtimsPrintFields } from "../lib/etims-fiscal-fields";
+import { extractEtimsFiscalFieldsFromCreditNote, ensureEtimsPrintFields, formatKraSdcDateTimeDisplay } from "../lib/etims-fiscal-fields";
 import { resolveCreditNoteEtimsVerificationUrl } from "../lib/credit-note-customer-view";
 import { buildInvoicePdfDetails } from "./build-invoice-pdf-details";
 import type {
@@ -74,6 +74,10 @@ export function buildCreditNotePdfDetails(creditNote: CreditNoteDetail): {
 		invoiceTerms: {
 			invoiceNumber: creditNote.creditNumber ?? undefined,
 			issueDate: creditNote.issuedAt ?? undefined,
+			issuedAtDisplay:
+				formatKraSdcDateTimeDisplay(etimsFiscal.sdcDateTime) ??
+				formatKraSdcDateTimeDisplay(creditNote.issuedAt) ??
+				undefined,
 			dueDate: undefined,
 			originalInvoiceNumber:
 				creditNote.originalInvoiceNumber ?? creditNote.invoiceNumber ?? undefined,

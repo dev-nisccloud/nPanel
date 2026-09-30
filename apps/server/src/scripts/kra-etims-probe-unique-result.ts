@@ -110,11 +110,13 @@ type Variant = {
 };
 
 async function main() {
-    const tin = process.env.ETIMS_CERT_TIN?.trim() ?? "";
-    const bhfId = process.env.ETIMS_CERT_BHF_ID?.trim() || "01";
+    const tin = process.env.ETIMS_CERT_APP_TEST_PIN?.trim() ?? "";
+    const bhfId = process.env.ETIMS_CERT_BHF_ID?.trim() ?? "";
     const serial = process.env.ETIMS_CERT_DEVICE_SERIAL?.trim() ?? "";
-    if (!tin || !serial) {
-        throw new Error("Missing ETIMS_CERT_TIN / ETIMS_CERT_DEVICE_SERIAL in .env.etims-certification");
+    if (!tin || !bhfId || !serial) {
+        throw new Error(
+            "Missing ETIMS_CERT_APP_TEST_PIN / ETIMS_CERT_BHF_ID / ETIMS_CERT_DEVICE_SERIAL in .env.etims-certification (OSCU tin is the Application Test Pin, not ETIMS_CERT_TIN).",
+        );
     }
     const cmcKey = await fetchCmcKeyFromCertDb(serial);
     const apigee = (process.env.ETIMS_APIGEE_APP_ID ?? "").trim();

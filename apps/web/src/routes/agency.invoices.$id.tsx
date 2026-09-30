@@ -906,7 +906,7 @@ export default function InvoiceViewPage() {
 					companyDetails={previewData.companyDetails}
 					invoiceDetails={previewData.invoiceDetails}
 					paymentDetails={previewData.paymentDetails}
-					invoiceTerms={previewData.invoiceTerms}
+					invoiceTerms={pdfMeta.invoiceTerms}
 					etimsFiscal={pdfMeta.etimsFiscal}
 					onClick={handleOpenEdit}
 					onRegenerateQr={() => regenerateQrMutation.mutate({ invoiceId })}
