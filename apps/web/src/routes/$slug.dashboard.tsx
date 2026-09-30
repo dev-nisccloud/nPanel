@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 
 import { captureEvent } from "@/lib/posthog";
+import { CustomerDashboardGuide } from "@/components/customer-guide/customer-dashboard-guide";
 import { DashboardZeepoHero } from "./$slug.dashboard/_components/dashboard-zeepo-hero";
 import { DashboardSetupTodos } from "./$slug.dashboard/_components/dashboard-setup-todos";
 import { NeedsAttention } from "./$slug.dashboard/_components/needs-attention";
@@ -19,6 +20,7 @@ export default function DashboardPage() {
 
 	return (
 		<div className="@container/main flex flex-col gap-6 px-4 py-6 md:px-6 md:py-8 lg:px-8">
+			<CustomerDashboardGuide />
 			<div className="mx-auto flex w-full max-w-7xl flex-col gap-3 md:gap-4">
 				<KpiStatsGrid metrics={metrics} />
 				<NeedsAttention metrics={metrics} />

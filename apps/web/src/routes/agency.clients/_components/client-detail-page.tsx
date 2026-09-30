@@ -88,7 +88,7 @@ function EmptyPanel({
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-4 py-2.5 text-sm first:pt-0 last:pb-0">
+    <div className="flex items-center justify-between gap-6 px-6 py-4 text-sm">
       <span className="text-muted-foreground">{label}</span>
       <span className="text-right font-medium">{value}</span>
     </div>
@@ -165,7 +165,7 @@ function OverviewTab({
   return (
     <div className="space-y-5">
       <SettingsSection title="Account" description="Core account information for this client.">
-        <div className="divide-y rounded-lg border bg-card px-4">
+        <div className="divide-y overflow-hidden rounded-xl border bg-card">
           <DetailRow label="Email" value={client.email} />
           <DetailRow
             label="Email verified"

@@ -7,6 +7,10 @@ import { RefreshCw } from "lucide-react";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { toast } from "@/components/ui/sonner";
 
+import {
+	EChartsRadialChart,
+	type ChartConfig as RadialChartConfig,
+} from "@/components/evilcharts/charts/echarts-radial-chart";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -70,69 +74,77 @@ function percent(used: number | null | undefined, total: number | null | undefin
 	return Math.min(100, Math.max(0, (used / total) * 100));
 }
 
-function UsageRing({ percentage }: { percentage: number | null }) {
-	const size = 88;
-	const radius = 34;
-	const circumference = 2 * Math.PI * radius;
-	const value = percentage ?? 0;
-	const offset = circumference - (value / 100) * circumference;
-
-	return (
-		<svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden>
-			<circle cx={size / 2} cy={size / 2} r={radius} fill="none" strokeWidth="8" className="stroke-muted" />
-			<circle
-				cx={size / 2}
-				cy={size / 2}
-				r={radius}
-				fill="none"
-				strokeWidth="8"
-				strokeLinecap="round"
-				className="stroke-indigo-600"
-				strokeDasharray={circumference}
-				strokeDashoffset={percentage == null ? circumference : offset}
-				transform={`rotate(-90 ${size / 2} ${size / 2})`}
-			/>
-			<text
-				x={size / 2}
-				y={size / 2}
-				textAnchor="middle"
-				dominantBaseline="middle"
-				className="fill-foreground text-sm font-semibold"
-			>
-				{percentage == null ? "—" : `${Math.round(percentage)}%`}
-			</text>
-		</svg>
-	);
+function quotaLabel(name: string, used: number | null | undefined, total: number | null | undefined, pct: number | null) {
+	const share = pct == null ? "—" : `${Math.round(pct)}%`;
+	return `${name} · ${share} · ${formatBytes(used)} / ${formatBytes(total)}`;
 }
 
-function QuotaBar({
-	label,
-	current,
-	total,
-	percentage,
-	barClassName,
+type QuotaSlice = {
+	used: number | null | undefined;
+	total: number | null | undefined;
+	pct: number | null;
+};
+
+function AssignedQuotaCard({
+	isLoading,
+	memory,
+	swap,
+	disk,
 }: {
-	label: string;
-	current: string;
-	total: string;
-	percentage: number | null;
-	barClassName: string;
+	isLoading: boolean;
+	memory: QuotaSlice;
+	swap: QuotaSlice;
+	disk: QuotaSlice;
 }) {
+	const data = useMemo(
+		() => [
+			{ resource: "memory", used: memory.pct == null ? 0 : Math.round(memory.pct) },
+			{ resource: "swap", used: swap.pct == null ? 0 : Math.round(swap.pct) },
+			{ resource: "disk", used: disk.pct == null ? 0 : Math.round(disk.pct) },
+		],
+		[memory.pct, swap.pct, disk.pct],
+	);
+
+	const chartConfig = useMemo(
+		() =>
+			({
+				memory: {
+					label: quotaLabel("Memory", memory.used, memory.total, memory.pct),
+					colors: { light: ["#f59e0b"], dark: ["#fbbf24"] },
+				},
+				swap: {
+					label: quotaLabel("Swap", swap.used, swap.total, swap.pct),
+					colors: { light: ["#0ea5e9"], dark: ["#38bdf8"] },
+				},
+				disk: {
+					label: quotaLabel("Disk", disk.used, disk.total, disk.pct),
+					colors: { light: ["#4f46e5"], dark: ["#818cf8"] },
+				},
+			}) satisfies RadialChartConfig,
+		[memory, swap, disk],
+	);
+
 	return (
-		<div className="space-y-1.5">
-			<div className="flex items-center justify-between gap-3 text-sm">
-				<span className="font-medium">{label}</span>
-				<span className="tabular-nums text-muted-foreground">
-					{current} / {total}
-				</span>
-			</div>
-			<div className="h-2 overflow-hidden rounded-full bg-muted">
-				<div
-					className={cn("h-full rounded-full", barClassName)}
-					style={{ width: `${percentage ?? 0}%` }}
-				/>
-			</div>
-		</div>
+		<Card className="h-full min-h-[22rem] gap-0 py-0">
+			<CardHeader className="border-b px-5 py-4">
+				<CardTitle className="text-sm">Assigned quota</CardTitle>
+			</CardHeader>
+			<CardContent className="flex min-h-0 flex-1 px-0 py-2">
+				<EChartsRadialChart
+					className="h-full min-h-64 w-full flex-1 p-4"
+					data={data}
+					nameKey="resource"
+					config={chartConfig}
+					variant="semi"
+					max={100}
+					isLoading={isLoading}
+				>
+					<EChartsRadialChart.Legend />
+					<EChartsRadialChart.Tooltip />
+					<EChartsRadialChart.RadialBar dataKey="used" />
+				</EChartsRadialChart>
+			</CardContent>
+		</Card>
 	);
 }
 
@@ -231,62 +243,12 @@ export function ServerMetricsCard() {
 				</Card>
 			) : (
 				<div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-					<Card className="gap-0 py-0">
-						<CardHeader className="border-b px-5 py-4">
-							<CardTitle className="text-sm">Assigned quota</CardTitle>
-						</CardHeader>
-						<CardContent className="grid gap-6 px-5 py-5 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center">
-							{isLoading ? (
-								<Skeleton className="size-[88px] rounded-full" />
-							) : (
-								<div className="flex items-center gap-3">
-									<UsageRing percentage={diskPct} />
-									<div>
-										<p className="text-xs text-muted-foreground">Disk usage</p>
-										<p className="text-sm font-semibold tabular-nums">
-											{formatBytes(disk.used)} / {formatBytes(disk.total)}
-										</p>
-										<p className="mt-1 text-xs text-muted-foreground">
-											Free {formatBytes(disk.free)}
-										</p>
-									</div>
-								</div>
-							)}
-							<div className="space-y-4">
-								{isLoading ? (
-									<>
-										<Skeleton className="h-8 w-full" />
-										<Skeleton className="h-8 w-full" />
-										<Skeleton className="h-8 w-full" />
-									</>
-								) : (
-									<>
-										<QuotaBar
-											label="Memory"
-											current={formatBytes(latest?.memUsed)}
-											total={formatBytes(latest?.memTotal)}
-											percentage={memPct}
-											barClassName="bg-amber-500"
-										/>
-										<QuotaBar
-											label="Swap"
-											current={formatBytes(latest?.swapUsed)}
-											total={formatBytes(latest?.swapTotal)}
-											percentage={swapPct}
-											barClassName="bg-sky-500"
-										/>
-										<QuotaBar
-											label="Disk"
-											current={formatBytes(disk.used)}
-											total={formatBytes(disk.total)}
-											percentage={diskPct}
-											barClassName="bg-indigo-600"
-										/>
-									</>
-								)}
-							</div>
-						</CardContent>
-					</Card>
+					<AssignedQuotaCard
+						isLoading={isLoading}
+						memory={{ used: latest?.memUsed, total: latest?.memTotal, pct: memPct }}
+						swap={{ used: latest?.swapUsed, total: latest?.swapTotal, pct: swapPct }}
+						disk={{ used: disk.used, total: disk.total, pct: diskPct }}
+					/>
 
 					<Card className="gap-0 py-0">
 						<CardHeader className="flex flex-row items-center justify-between gap-3 border-b px-5 py-4">

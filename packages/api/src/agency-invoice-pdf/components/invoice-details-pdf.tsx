@@ -14,6 +14,12 @@ import {
 const hasLineAmount = (amount: unknown): amount is number =>
   amount !== undefined && amount !== null && `${amount}` !== "";
 
+/** Shared with the header row so QTY, price, and amount stay in one column. */
+const QTY_COL_WIDTH = 48;
+const PRICE_COL_WIDTH = 78;
+const AMOUNT_COL_WIDTH = 108;
+const LINE_EDGE = 40;
+
 function LineItemDescriptionCell({
   text,
   lineStyle,
@@ -90,40 +96,23 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
 
   return (
     <View>
-      <View style={pdfUtils.flexRowItemCenter}>
-        <View
-          style={{
-            flex: 1,
-            paddingHorizontal: 40,
-            paddingVertical: compactLineItems ? 6 : 16,
-          }}
-        >
+      <View
+        style={{
+          ...pdfUtils.flexRowItemCenter,
+          paddingVertical: compactLineItems ? 6 : 12,
+        }}
+      >
+        <View style={{ flex: 1, minWidth: 0, paddingLeft: LINE_EDGE, paddingRight: 8 }}>
           <Text style={headerText}>Description</Text>
         </View>
-        <View
-          style={{
-            flex: 1,
-            ...pdfUtils.flexRowItemCenter,
-            // Match body rows: numeric block uses the same left inset so QTY lines up.
-            paddingLeft: compactLineItems ? 48 : 80,
-            paddingRight: 40,
-            paddingVertical: compactLineItems ? 6 : 16,
-          }}
-        >
-          <View style={{ flex: 1 }}>
-            <Text style={headerText}>QTY</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={headerText}>Price</Text>
-          </View>
-          <View style={{ flex: 1, textAlign: "right" }}>
-            <Text style={headerText}>Amount</Text>
-          </View>
-        </View>
+        <Text style={{ ...headerText, width: QTY_COL_WIDTH, textAlign: "right" }}>QTY</Text>
+        <Text style={{ ...headerText, width: PRICE_COL_WIDTH, textAlign: "right" }}>Price</Text>
+        <Text style={{ ...headerText, width: AMOUNT_COL_WIDTH, paddingRight: LINE_EDGE, textAlign: "right" }}>
+          Amount
+        </Text>
       </View>
       {itemsNormalized.map(({ itemDescription, amount, qty, billingCycle }, index) => {
         const containerStyle = {
-          marginHorizontal: 40,
           paddingVertical: compactLineItems ? 5 : 14,
           ...pdfUtils.borderBottom,
           ...pdfUtils.flexRowItemStart,
@@ -138,7 +127,7 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
               ...borderStyle,
             }}
           >
-            <View style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
+            <View style={{ flex: 1, minWidth: 0, paddingLeft: LINE_EDGE, paddingRight: 8 }}>
               <LineItemDescriptionCell
                 text={itemDescription ?? ""}
                 lineStyle={lineText}
@@ -150,39 +139,19 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
                 </Text>
               )}
             </View>
-            <View
-              style={{
-                flex: 1,
-                ...pdfUtils.flexRowItemCenter,
-                paddingLeft: compactLineItems ? 48 : 80,
-              }}
+            <Text style={{ ...lineText, width: QTY_COL_WIDTH, textAlign: "right" }}>
+              {qty ? qty : "-"}
+            </Text>
+            <Text wrap style={{ ...lineText, width: PRICE_COL_WIDTH, textAlign: "right" }}>
+              {hasLineAmount(amount) ? formatPdfMoney(sign * Number(amount)) : ""}
+            </Text>
+            <Text
+              wrap
+              style={{ ...lineText, width: AMOUNT_COL_WIDTH, paddingRight: LINE_EDGE, textAlign: "right" }}
             >
-              <Text style={{ flex: 1, ...lineText }}>
-                {qty ? qty : "-"}
-              </Text>
-              <Text
-                wrap
-                style={{
-                  flex: 1,
-                  ...lineText,
-                  flexWrap: "wrap",
-                }}
-              >
-                {hasLineAmount(amount) ? formatPdfMoney(sign * Number(amount)) : ""}
-              </Text>
-              <Text
-                wrap
-                style={{
-                  flex: 1,
-                  ...lineText,
-                  textAlign: "right",
-                  flexWrap: "wrap",
-                }}
-              >
-                {currencyDetails?.currencySymbol}
-                {hasLineAmount(amount) && ` ${formatPdfMoney(sign * (qty ? +qty : 1) * Number(amount))}`}
-              </Text>
-            </View>
+              {currencyDetails?.currencySymbol}
+              {hasLineAmount(amount) && ` ${formatPdfMoney(sign * (qty ? +qty : 1) * Number(amount))}`}
+            </Text>
           </View>
         );
       })}

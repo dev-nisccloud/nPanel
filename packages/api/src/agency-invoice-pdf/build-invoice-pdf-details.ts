@@ -101,6 +101,7 @@ export function buildInvoicePdfDetails(invoice: InvoiceDetail): {
 		issueDate: invoice.issueDate ?? undefined,
 		dueDate: invoice.dueDate ?? undefined,
 		buyerPin: (customerDetails?.taxId as string | undefined) ?? undefined,
+		status: invoice.status ?? undefined,
 	};
 
 	const etimsFiscal =
@@ -118,8 +119,31 @@ export function buildInvoicePdfDetails(invoice: InvoiceDetail): {
 			},
 		);
 
+	const storedPayment =
+		invoice.paymentDetails &&
+		typeof invoice.paymentDetails === "object" &&
+		!Array.isArray(invoice.paymentDetails)
+			? (invoice.paymentDetails as Record<string, unknown>)
+			: {};
+	const pickPayment = (...keys: string[]): string | undefined => {
+		for (const key of keys) {
+			const value = storedPayment[key];
+			if (typeof value === "string" && value.trim()) return value.trim();
+		}
+		return undefined;
+	};
+
 	const paymentDetailsFormatted: PaymentDetails = {
 		etimsVerificationUrl: etimsFiscal?.verificationUrl ?? resolveInvoiceEtimsVerificationUrl(invoice),
+		bankName: pickPayment("bankName"),
+		accountNumber: pickPayment("accountNumber"),
+		accountName: pickPayment("accountName"),
+		branchName: pickPayment("branchName"),
+		branchCode: pickPayment("branchCode"),
+		swiftCode: pickPayment("swiftCode"),
+		mpesaPaybillNumber: pickPayment("mpesaPaybillNumber", "paybillNumber"),
+		mpesaAccountNumber: pickPayment("mpesaAccountNumber"),
+		mpesaInstructions: pickPayment("mpesaInstructions", "instructions"),
 	};
 
 	return {

@@ -10,7 +10,7 @@
  */
 import * as React from "react";
 import { Text, View } from "@react-pdf/renderer";
-import { pdfContainers, pdfInvoiceMeta } from "./pdf-styles";
+import { pdfContainers, pdfInvoiceMeta, pdfPartyEmphasis } from "./pdf-styles";
 
 export type PdfCompanyDetailsFields = {
   email?: string;
@@ -28,12 +28,11 @@ export type PdfCompanyDetailsBlockProps = PdfCompanyDetailsFields & {
   label?: string;
 };
 
-function buildBillToBody(input: PdfCompanyDetailsFields): string {
+function buildBillToLines(input: PdfCompanyDetailsFields): { name: string | null; rest: string } {
   const cityLine = [input.companyCity, input.companyState, input.companyZip]
     .filter((x) => x != null && String(x).trim() !== "")
     .join(", ");
-  const parts: (string | null | undefined)[] = [
-    input.companyName,
+  const rest = [
     input.email,
     input.companyAddress,
     cityLine || null,
@@ -41,17 +40,18 @@ function buildBillToBody(input: PdfCompanyDetailsFields): string {
     input.companyTaxId != null && String(input.companyTaxId).trim() !== ""
       ? `PIN: ${input.companyTaxId}`
       : null,
-  ];
-  return parts
+  ]
     .filter((v) => v != null && String(v).trim() !== "")
     .map((v) => String(v).trim())
     .join("\n");
+  const name = input.companyName?.trim() || null;
+  return { name, rest };
 }
 
 export function PdfCompanyDetailsBlock(props: PdfCompanyDetailsBlockProps) {
-  const body = buildBillToBody(props);
+  const { name, rest } = buildBillToLines(props);
   const hasLabel = props.label != null && String(props.label).trim() !== "";
-  if (!body && !hasLabel) {
+  if (!name && !rest && !hasLabel) {
     return null;
   }
 
@@ -61,9 +61,15 @@ export function PdfCompanyDetailsBlock(props: PdfCompanyDetailsBlockProps) {
         {hasLabel ? (
           <Text style={[pdfInvoiceMeta.label, { marginBottom: 4 }]}>{props.label}</Text>
         ) : null}
-        {body ? (
+        {name || rest ? (
           <Text style={pdfInvoiceMeta.valueBillTo} wrap>
-            {body}
+            {name ? (
+              <Text style={pdfPartyEmphasis}>
+                {name}
+                {rest ? "\n" : ""}
+              </Text>
+            ) : null}
+            {rest}
           </Text>
         ) : null}
       </View>

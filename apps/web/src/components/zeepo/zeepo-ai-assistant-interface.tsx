@@ -28,7 +28,8 @@ import { UploadProgressRing } from "@/components/upload-progress-ring";
 import { ZeepoMascot } from "@/components/zeepo/zeepo-mascot";
 import { useAppFileUpload } from "@/hooks/use-app-file-upload";
 import { startViewTransitionNavigate } from "@/routes/_agency.zeepo-ai-agent/nav-state";
-import { ZEEPO_AI_CAPABILITY_SHORTCUTS } from "@/components/zeepo/zeepo-ai-capabilities";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useZeepoAiHomeSuggestions } from "@/components/zeepo/use-zeepo-ai-home-suggestions";
 import {
   useZeepoAiRoute,
   zeepoAiCreateSessionInput,
@@ -74,6 +75,7 @@ function getFirstName(fullName: string | null | undefined): string {
 export function ZeepoAiAssistantInterface() {
   const navigate = useNavigate();
   const route = useZeepoAiRoute();
+  const homeSuggestions = useZeepoAiHomeSuggestions(route.teamId, route.isCustomer);
   const { data: session } = authClient.useSession();
   const firstName = getFirstName(session?.user?.name);
   const userRole = (session?.user as { role?: string } | undefined)?.role;
@@ -602,46 +604,57 @@ export function ZeepoAiAssistantInterface() {
             "zeepo-ai-shortcuts mt-3 w-full min-w-0 shrink-0 sm:mt-4",
             isHandingOff && "pointer-events-none opacity-60",
           )}
+          aria-busy={homeSuggestions.isLoading}
         >
-          <div className="flex flex-col">
-            {ZEEPO_AI_CAPABILITY_SHORTCUTS.map((item, index) => {
-              const Icon = item.icon;
-              const isSelected = inputValue.startsWith(item.starter);
-              const compactHide = "compactHide" in item && item.compactHide;
-              return (
-                <div
-                  key={item.id}
-                  className={cn(compactHide && "zeepo-ai-shortcut-compact-hide")}
-                >
+          {homeSuggestions.isLoading ? (
+            <div className="flex flex-col" aria-label="Loading suggestions">
+              {Array.from({ length: 5 }, (_, index) => (
+                <div key={index}>
                   {index > 0 ? (
                     <div className="zeepo-ai-shortcut-divider mx-2 my-1.5 h-px bg-border/70" role="separator" />
                   ) : null}
-                  <button
-                    type="button"
-                    disabled={isHandingOff}
-                    onClick={() =>
-                      selectCapabilityShortcut(
-                        item.starter,
-                        "enableSearch" in item ? item.enableSearch : undefined,
-                      )
-                    }
-                    className={cn(
-                      "zeepo-ai-shortcut-row flex w-full min-w-0 items-center gap-2 sm:gap-2.5 rounded-lg px-1.5 py-2 text-left text-[13px] sm:px-2 sm:py-2.5 sm:text-sm transition-colors",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                      "disabled:pointer-events-none disabled:opacity-50",
-                      isSelected
-                        ? "bg-muted/70 text-foreground"
-                        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-                    )}
-                  >
-                    <Icon className="size-3.5 shrink-0 opacity-70 sm:size-4" aria-hidden />
-                    <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                    <ChevronRight className="size-4 shrink-0 opacity-40" aria-hidden />
-                  </button>
+                  <div className="flex items-center gap-2.5 px-2 py-2.5">
+                    <Skeleton className="size-4 shrink-0 rounded" />
+                    <Skeleton className="h-4 w-[min(100%,16rem)]" />
+                  </div>
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col">
+              {homeSuggestions.items?.map((item, index) => {
+                const Icon = item.icon;
+                const isSelected = inputValue.startsWith(item.starter);
+                return (
+                  <div
+                    key={item.id}
+                    className={cn(item.compactHide && "zeepo-ai-shortcut-compact-hide")}
+                  >
+                    {index > 0 ? (
+                      <div className="zeepo-ai-shortcut-divider mx-2 my-1.5 h-px bg-border/70" role="separator" />
+                    ) : null}
+                    <button
+                      type="button"
+                      disabled={isHandingOff}
+                      onClick={() => selectCapabilityShortcut(item.starter, item.enableSearch)}
+                      className={cn(
+                        "zeepo-ai-shortcut-row flex w-full min-w-0 items-center gap-2 sm:gap-2.5 rounded-lg px-1.5 py-2 text-left text-[13px] sm:px-2 sm:py-2.5 sm:text-sm transition-colors",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        "disabled:pointer-events-none disabled:opacity-50",
+                        isSelected
+                          ? "bg-muted/70 text-foreground"
+                          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+                      )}
+                    >
+                      <Icon className="size-3.5 shrink-0 opacity-70 sm:size-4" aria-hidden />
+                      <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                      <ChevronRight className="size-4 shrink-0 opacity-40" aria-hidden />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Sample prompt tabs  temporarily hidden

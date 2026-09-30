@@ -3,7 +3,6 @@ import { InvoiceHeaderPdf } from "./invoice-header-pdf";
 import { InvoiceTermsPdf } from "./invoice-terms-pdf";
 import { CompanyDetailsPdf } from "./company-details-pdf";
 import { InvoiceDetailsPdf } from "./invoice-details-pdf";
-import { pdfUtils } from "../pdf-styles";
 import type {
 	YourDetails,
 	CompanyDetails,
@@ -83,9 +82,7 @@ export const PdfDetails = ({
       </View>
     </View>
     
-    <View style={pdfUtils.borderBottom}>
-      <InvoiceDetailsPdf {...invoiceDetails} />
-    </View>
+    <InvoiceDetailsPdf {...invoiceDetails} />
   </View>
   );
 };

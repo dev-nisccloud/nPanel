@@ -27,7 +27,8 @@
     "etims:certification": "bun --no-env-file --env-file=./.env.etims-certification run src/scripts/kra-etims-certification-test.ts",
     "etims:certification:env": "bun --no-env-file run src/scripts/write-etims-cert-env.ts",
     "etims:certification:probe": "bun --no-env-file --env-file=./.env.etims-certification run src/scripts/kra-etims-probe-unique-result.ts",
-    "etims:golive-invoice": "bun run src/scripts/kra-etims-golive-invoice.ts"
+    "etims:golive-invoice": "bun run src/scripts/kra-etims-golive-invoice.ts",
+    "mock:invoice-pdfs": "bun run src/scripts/mock-invoice-pdfs.ts"
   },
   "dependencies": {
     "@hono/trpc-server": "^0.4.0",

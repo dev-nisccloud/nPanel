@@ -181,7 +181,7 @@ export function DashboardSetupTodos() {
 	}
 
 	return (
-		<section className="flex h-full flex-col rounded-xl border bg-card p-5">
+		<section data-customer-guide="todos" className="flex h-full flex-col rounded-xl border bg-card p-5">
 			<div>
 				<h2 className="text-base font-semibold">Your to-dos</h2>
 				<p className="mt-1 text-sm text-muted-foreground">
@@ -195,6 +195,7 @@ export function DashboardSetupTodos() {
 					return (
 						<li
 							key={step.id}
+							data-customer-guide={`todo-${step.id}`}
 							className={cn(
 								"rounded-lg border px-3 py-2.5",
 								step.completed &&

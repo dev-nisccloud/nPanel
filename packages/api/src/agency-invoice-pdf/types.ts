@@ -86,6 +86,8 @@ export type InvoiceTerms = {
   originalCuInvoiceNo?: string;
   /** Buyer PIN printed near the credit-note header. */
   buyerPin?: string;
+  /** Invoice or credit-note status, printed as STATUS under the dates. */
+  status?: string;
 };
 
 export type { EtimsFiscalFields } from "../lib/etims-fiscal-fields";

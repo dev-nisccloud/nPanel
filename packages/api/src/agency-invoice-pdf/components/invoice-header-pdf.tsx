@@ -1,7 +1,7 @@
 /* eslint-disable jsx-a11y/alt-text */
 import React from "react";
 import { Image, Text, View } from "@react-pdf/renderer";
-import { pdfBrandingLogoBox, pdfTypography } from "../pdf-styles";
+import { pdfBrandingLogoBox, pdfPartyDetail, pdfPartyEmphasis } from "../pdf-styles";
 import type { YourDetails } from "../types";
 
 export const InvoiceHeaderPdf: React.FC<YourDetails & { documentTitle?: string }> = ({
@@ -53,26 +53,26 @@ export const InvoiceHeaderPdf: React.FC<YourDetails & { documentTitle?: string }
       {/* From details on right */}
       <View style={{ flex: 1, alignItems: "flex-end" }}>
         {yourName && (
-          <Text style={{ ...pdfTypography.description, fontWeight: "bold", marginBottom: 4 }}>
+          <Text style={{ ...pdfPartyEmphasis, marginBottom: 4 }}>
             {yourName}
           </Text>
         )}
         {yourEmail && (
-          <Text style={{ ...pdfTypography.description, marginBottom: 4 }}>
+          <Text style={{ ...pdfPartyDetail, marginBottom: 4 }}>
             {yourEmail}
           </Text>
         )}
-        <View style={{ ...pdfTypography.description, alignItems: "flex-end" }}>
-          {yourAddress && <Text style={{ marginBottom: 2 }}>{yourAddress}</Text>}
+        <View style={{ alignItems: "flex-end" }}>
+          {yourAddress && <Text style={{ ...pdfPartyDetail, marginBottom: 2 }}>{yourAddress}</Text>}
           {(yourCity || yourState || yourZip) && (
-            <Text style={{ marginBottom: 2 }}>
+            <Text style={{ ...pdfPartyDetail, marginBottom: 2 }}>
               {yourCity}, {yourState} {yourZip}
             </Text>
           )}
           {yourCountry && (
-            <Text style={{ marginBottom: 2 }}>{yourCountry}</Text>
+            <Text style={{ ...pdfPartyDetail, marginBottom: 2 }}>{yourCountry}</Text>
           )}
-          {yourTaxId && <Text>PIN: {yourTaxId}</Text>}
+          {yourTaxId && <Text style={pdfPartyDetail}>PIN: {yourTaxId}</Text>}
         </View>
       </View>
     </View>
@@ -98,11 +98,9 @@ export const InvoiceHeaderPdf: React.FC<YourDetails & { documentTitle?: string }
       />
       <Text
         style={{
+          ...pdfPartyEmphasis,
           paddingLeft: 16,
           paddingRight: 16,
-          fontSize: 12,
-          fontWeight: "semibold",
-          color: "#374151",
           textTransform: "uppercase",
         }}
       >
