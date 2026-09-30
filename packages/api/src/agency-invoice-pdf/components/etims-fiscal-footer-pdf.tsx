@@ -8,6 +8,8 @@ type EtimsFiscalFooterPdfProps = {
 	qrCodeDataUrl?: string;
 	/** When true, repeats on every PDF page (react-pdf `fixed` prop). */
 	fixed?: boolean;
+	/** When false, the block flows inside a parent that is already fixed to the page. */
+	positioned?: boolean;
 };
 
 const muted = { fontSize: 7, color: "#374151", lineHeight: 1.35 } as const;
@@ -43,6 +45,7 @@ export const EtimsFiscalFooterPdf: React.FC<EtimsFiscalFooterPdfProps> = ({
 	fields,
 	qrCodeDataUrl,
 	fixed = true,
+	positioned = true,
 }) => {
 	const internal = fields.intrlDataDashed ?? fields.intrlData;
 	const signature = fields.rcptSignDashed ?? fields.rcptSign;
@@ -50,17 +53,26 @@ export const EtimsFiscalFooterPdf: React.FC<EtimsFiscalFooterPdfProps> = ({
 
 	return (
 		<View
-			fixed={fixed}
-			style={{
-				position: "absolute",
-				bottom: 16,
-				left: 40,
-				right: 40,
-				borderTopWidth: 1,
-				borderTopStyle: "solid",
-				borderTopColor: "#111827",
-				paddingTop: 8,
-			}}
+			fixed={positioned ? fixed : undefined}
+			style={
+				positioned
+					? {
+							position: "absolute",
+							bottom: 16,
+							left: 40,
+							right: 40,
+							borderTopWidth: 1,
+							borderTopStyle: "solid",
+							borderTopColor: "#111827",
+							paddingTop: 8,
+						}
+					: {
+							borderTopWidth: 1,
+							borderTopStyle: "solid",
+							borderTopColor: "#111827",
+							paddingTop: 8,
+						}
+			}
 		>
 			<View style={{ flexDirection: "row", alignItems: "flex-start" }}>
 				<View style={{ flex: 1, paddingRight: qrCodeDataUrl ? 12 : 0 }}>

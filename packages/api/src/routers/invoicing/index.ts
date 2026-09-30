@@ -1954,6 +1954,50 @@ export const invoicingRouter = router({
 			return mapInvoiceDetail(invoiceDetail);
 		}),
 
+	linkToOrganization: protectedProcedure
+		.input(
+			z.object({
+				invoiceId: z.string().uuid(),
+				teamId: z.string().min(1),
+			}),
+		)
+		.output(z.object({ teamId: z.string(), teamName: z.string() }))
+		.mutation(async ({ ctx, input }) => {
+			const user = await getAuthenticatedUser(ctx);
+			const current = await ensureInvoiceMutationAccess(db, user.id, user.role, input.invoiceId);
+			await ensureTeamMutationAccess(db, user.id, user.role, input.teamId);
+
+			const [org] = await db
+				.select({ id: team.id, name: team.name })
+				.from(team)
+				.where(eq(team.id, input.teamId))
+				.limit(1);
+			if (!org) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Organization not found." });
+			}
+
+			const now = new Date();
+			await db
+				.update(invoice)
+				.set({
+					teamId: org.id,
+					updatedBy: user.id,
+					updatedAt: now,
+				})
+				.where(eq(invoice.id, input.invoiceId));
+
+			await logInvoiceActivity(db, {
+				invoiceId: input.invoiceId,
+				userId: user.id,
+				action: "UPDATE",
+				description: current.teamId
+					? `Reassigned invoice to ${org.name}`
+					: `Linked invoice to ${org.name}`,
+			});
+
+			return { teamId: org.id, teamName: org.name };
+		}),
+
 	updateStatus: protectedProcedure
 		.input(
 			z.object({

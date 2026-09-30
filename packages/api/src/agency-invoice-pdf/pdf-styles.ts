@@ -98,11 +98,11 @@ export const pdfContainers = StyleSheet.create({
         paddingLeft: 0,
         paddingRight: 0,
     },
-    /** Reserve space so body content does not overlap the fixed eTIMS fiscal footer. */
+    /** Reserve space so body content does not overlap the fixed payment strip and eTIMS footer. */
     pageWithEtimsFooter: {
         fontFamily: "Geist",
         paddingTop: 28,
-        paddingBottom: 200,
+        paddingBottom: 310,
         paddingLeft: 0,
         paddingRight: 0,
     },
@@ -147,21 +147,31 @@ export const pdfBrandingLogoBox = {
     height: 45,
 } as const
 
+/** Names, document title, and term values: the facts the invoice insists on. */
+export const pdfPartyEmphasis = {
+    fontSize: 10,
+    fontWeight: "bold" as const,
+    color: "#111827",
+}
+
+/** Address, email, and PIN lines. Same size as the emphasis lines, without the weight. */
+export const pdfPartyDetail = {
+    fontSize: 10,
+    fontWeight: "normal" as const,
+    color: colors.gray600,
+}
+
 /**
  * Shared with `InvoiceTermsPdf` (invoice no / dates) and `CompanyDetailsPdf` (Bill To):
  * same label typography, value typography, row gap, and margin between rows.
  */
 export const pdfInvoiceMeta = {
     label: {
-        fontSize: 11,
+        fontSize: 9,
         textTransform: "uppercase" as const,
         color: colors.gray500,
     },
-    value: {
-        fontSize: 12,
-        fontWeight: "bold" as const,
-        color: "#111827",
-    },
+    value: pdfPartyEmphasis,
     /** Right column: invoice number, issued, due date */
     rowTerms: {
         display: "flex" as const,
@@ -176,9 +186,7 @@ export const pdfInvoiceMeta = {
      * `lineHeight` is a **unitless multiplier** (like CSS), not points   `13` would mean 13× fontSize.
      */
     valueBillTo: {
-        fontSize: 10,
-        fontWeight: "medium" as const,
-        color: "#111827",
+        ...pdfPartyDetail,
         lineHeight: 1.2,
     },
 }

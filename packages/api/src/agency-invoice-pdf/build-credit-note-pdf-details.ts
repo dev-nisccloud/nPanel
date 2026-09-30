@@ -81,6 +81,7 @@ export function buildCreditNotePdfDetails(creditNote: CreditNoteDetail): {
 			showDueDate: false,
 			originalCuInvoiceNo: originalCuInvoiceNo ?? undefined,
 			buyerPin,
+			status: creditNote.status ?? undefined,
 		},
 		documentTitle: "Credit Note",
 	};
