@@ -11,6 +11,10 @@ import { formatInvoiceDate } from "@/lib/invoice-date";
 import { trpc } from "@/utils/trpc";
 import { invoiceUiSchema } from "@/routes/agency.dashboard/_components/schemas";
 import type { DashboardSubscriptionRow } from "./dashboard-subscriptions-schema";
+import {
+	formatRemainingTokenCount,
+	isZeepoTokenProduct,
+} from "@/routes/agency.subscriptions/_components/zeepo-subscription";
 
 function getInvoiceStatusLabel(status: string) {
 	switch (status) {
@@ -142,6 +146,9 @@ function RecentSubscriptions({ teamSlug }: { teamSlug: string }) {
 			id: sub.id,
 			planName: displayServiceName(sub.productName, sub.productPlanName, sub.subscriptionName ?? null),
 			planType: sub.productName,
+			productId: sub.productId,
+			billingCycle: sub.billingCycle,
+			remainingTokens: sub.remainingTokens,
 			subscriptionDate: sub.subscriptionDate ? new Date(sub.subscriptionDate) : null,
 			nextRenewalDate: nextDate ? new Date(nextDate) : null,
 			status: sub.status as DashboardSubscriptionRow["status"],
@@ -161,9 +168,9 @@ function RecentSubscriptions({ teamSlug }: { teamSlug: string }) {
 						<span className="min-w-0 truncate text-sm">
 							<span className="font-medium">{sub.planName}</span>
 							<span className="text-muted-foreground">
-								{" "}
-								· {sub.planType}
-								{sub.nextRenewalDate ? ` · Expires ${formatInvoiceDate(sub.nextRenewalDate)}` : ""}
+								{isZeepoTokenProduct(sub.productId)
+									? ` · Remaining tokens ${formatRemainingTokenCount(sub.remainingTokens)}`
+									: ` · ${sub.planType}${sub.nextRenewalDate ? ` · Expires ${formatInvoiceDate(sub.nextRenewalDate)}` : ""}`}
 							</span>
 						</span>
 						<span className={cnStatus(sub.status)}>{sub.status.replace(/_/g, " ")}</span>

@@ -323,6 +323,7 @@ export function CleanListRow({
   cells,
   onClick,
   className,
+  titleLines = 1,
 }: {
   title: React.ReactNode;
   description?: React.ReactNode;
@@ -336,6 +337,8 @@ export function CleanListRow({
   cells?: Record<string, React.ReactNode>;
   onClick?: () => void;
   className?: string;
+  /** Lines the title may use before the rest is ellipsized. */
+  titleLines?: number;
 }) {
   const { columns } = React.useContext(CleanListLayoutContext);
   const { extras, actions: actionsCol } = splitColumns(columns);
@@ -367,8 +370,17 @@ export function CleanListRow({
         <div className="flex min-w-0 items-start gap-3">
           {leading ? <div className="mt-0.5 shrink-0">{leading}</div> : null}
           <div className="min-w-0 flex-1 space-y-0.5">
-            <div className="flex min-w-0 items-center gap-1.5">
-              <p className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
+            <div className={cn("flex min-w-0 gap-1.5", titleLines > 1 ? "items-start" : "items-center")}>
+              <p
+                className={cn(
+                  "min-w-0 flex-1 text-sm font-semibold text-foreground",
+                  titleLines >= 3
+                    ? "line-clamp-3 break-words"
+                    : titleLines === 2
+                      ? "line-clamp-2 break-words"
+                      : "truncate",
+                )}
+              >
                 {title}
               </p>
               {trailing ? <div className="max-w-full shrink-0">{trailing}</div> : null}
