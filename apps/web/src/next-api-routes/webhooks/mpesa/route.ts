@@ -9,6 +9,7 @@ import {
 import { sendEmail } from "@npanel/api/lib/email";
 import { renderPaymentReceiptEmail } from "@npanel/api/lib/email-templates";
 import { claimWebhookEvent } from "@npanel/api/lib/webhook-idempotency";
+import { resolveNiscCustomerNotificationRecipient } from "@npanel/api/lib/nisc-order-invoice-billing";
 
 /**
  * M-Pesa Webhook Handler
@@ -235,12 +236,12 @@ export async function POST(req: Request) {
 				// Send payment receipt email after DB transaction is recorded
 				try {
 					// Get user email
-					const user = await prisma.user.findUnique({
-						where: { id: transaction.userId },
-						select: { email: true, name: true },
+					const recipient = await resolveNiscCustomerNotificationRecipient({
+						teamId: transaction.teamId,
+						userId: transaction.userId,
 					});
 
-					if (user?.email) {
+					if (recipient) {
 						// Format transaction date
 						const transactionDate = paymentStatus.metadata?.transactionDate
 							? new Date(String(paymentStatus.metadata.transactionDate).replace(
@@ -273,7 +274,7 @@ export async function POST(req: Request) {
 
 						// Render and send email
 						const emailHtml = await renderPaymentReceiptEmail({
-							customerName: user.name || "Valued Customer",
+							customerName: recipient.name,
 							receiptNumber: paymentStatus.metadata?.mpesaReceiptNumber || "N/A",
 							transactionDate: transactionDate,
 							amount: formattedAmount,
@@ -284,7 +285,7 @@ export async function POST(req: Request) {
 						});
 
 						await sendEmail({
-							to: user.email,
+							to: recipient.email,
 							subject: `Payment Receipt - ${paymentStatus.metadata?.mpesaReceiptNumber || "Payment Confirmed"}`,
 							html: emailHtml,
 						});

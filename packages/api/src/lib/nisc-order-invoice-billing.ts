@@ -1,8 +1,8 @@
 /**
  * Resolve billing details for Nisc order invoices.
- * Orders with a team: company billing settings first, then the earliest team owner
- * (role OWNER, else team creator) for invoice customer details, emailed to all owners,
- * then order user profile fallback. Orders without a team: user profile only.
+ * Orders with a team: company billing settings first. If those are incomplete and the
+ * order user is a customer, use that customer's profile. Team owners are only used when
+ * there is no customer profile to bill. Orders without a team: user profile only.
  */
 import { and, asc, db, eq } from "@npanel/db";
 import { user as userTable } from "@npanel/db/schema/auth";
@@ -311,6 +311,19 @@ export async function resolveNiscOrderInvoiceBilling(params: {
 		return { ok: true, resolved: { billing: teamRow, source: "team_billing" } };
 	}
 
+	if (userId) {
+		const orderUser = await db.query.user.findFirst({
+			where: eq(userTable.id, userId),
+			columns: { role: true },
+		});
+		if (orderUser?.role === "CUSTOMER") {
+			const profileResult = await resolveUserProfileBilling(userId);
+			if (profileResult.ok) {
+				return profileResult;
+			}
+		}
+	}
+
 	const ownerBilling = await resolveTeamOwnerBilling(teamId);
 	if (ownerBilling.ok) {
 		return ownerBilling;
@@ -346,4 +359,40 @@ export async function resolveNiscOrderInvoiceBilling(params: {
 	}
 
 	return profileResult;
+}
+
+/**
+ * Address for customer-facing order and payment emails.
+ * Team billing email when it is set, otherwise the order user's email.
+ */
+export async function resolveNiscCustomerNotificationRecipient(params: {
+	teamId: string | null | undefined;
+	userId: string | null | undefined;
+}): Promise<{ email: string; name: string } | null> {
+	const teamId = params.teamId?.trim() || null;
+	const userId = params.userId?.trim() || null;
+
+	if (teamId) {
+		const billing = await db.query.teamBillingSettings.findFirst({
+			where: eq(teamBillingSettings.teamId, teamId),
+			columns: { billingEmail: true, legalName: true },
+		});
+		const billingEmail = billing?.billingEmail?.trim();
+		if (billingEmail) {
+			return {
+				email: billingEmail,
+				name: billing?.legalName?.trim() || "Customer",
+			};
+		}
+	}
+
+	if (!userId) return null;
+
+	const userRow = await db.query.user.findFirst({
+		where: eq(userTable.id, userId),
+		columns: { email: true, name: true },
+	});
+	const email = userRow?.email?.trim();
+	if (!email) return null;
+	return { email, name: userRow?.name?.trim() || "Customer" };
 }

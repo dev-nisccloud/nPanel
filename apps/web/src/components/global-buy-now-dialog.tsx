@@ -333,6 +333,7 @@ export function GlobalBuyNowDialog() {
     isAgencySide ? "existing_customer" : "myself",
   );
   const [selectedExistingCustomerId, setSelectedExistingCustomerId] = React.useState("");
+  const [selectedCustomerTeamId, setSelectedCustomerTeamId] = React.useState("");
 
   const isCartMode = mode === "cart";
   const isTransferMode = mode === "transfer";
@@ -414,9 +415,39 @@ export function GlobalBuyNowDialog() {
     [customerComboboxItems, selectedExistingCustomerId],
   );
 
+  const customerTeamsQuery = trpc.userProfile.listTeamsForCustomer.useQuery(
+    { userId: selectedExistingCustomerId },
+    {
+      enabled:
+        open &&
+        isAgencyUser &&
+        registrantType === "existing_customer" &&
+        selectedExistingCustomerId.trim().length > 0,
+    },
+  );
+
+  React.useEffect(() => {
+    const teams = customerTeamsQuery.data;
+    if (!teams) return;
+    if (teams.length === 1) {
+      setSelectedCustomerTeamId(teams[0].id);
+      return;
+    }
+    setSelectedCustomerTeamId((current) =>
+      current && teams.some((team) => team.id === current) ? current : "",
+    );
+  }, [customerTeamsQuery.data]);
+
+  const customerTeamItems: ComboboxItem[] = React.useMemo(
+    () => (customerTeamsQuery.data ?? []).map((team) => ({ id: team.id, label: team.name })),
+    [customerTeamsQuery.data],
+  );
+  const selectedCustomerTeamItem = customerTeamItems.find((item) => item.id === selectedCustomerTeamId);
+
   const isExistingCustomerReady =
     registrantType === "existing_customer" &&
-    !!selectedExistingCustomer?.profileComplete;
+    !!selectedExistingCustomer?.profileComplete &&
+    !!selectedCustomerTeamId;
 
   const registrantOrderMetadata = React.useMemo(
     () => buildRegistrantOrderMetadata(registrantType, selectedExistingCustomer),
@@ -432,6 +463,15 @@ export function GlobalBuyNowDialog() {
   );
   const teamId = isTransferMode ? transferContext?.teamId : ctx?.teamId;
   const checkoutTeamId = teamId ?? checkoutTeamBySlug?.id ?? undefined;
+  const agencyBilledForUserId =
+    isAgencyUser &&
+    registrantType === "existing_customer" &&
+    selectedExistingCustomerId.trim()
+      ? selectedExistingCustomerId.trim()
+      : undefined;
+  const resolvedOrderTeamId = agencyBilledForUserId
+    ? selectedCustomerTeamId.trim() || undefined
+    : (isTransferMode ? transferContext?.teamId : undefined) ?? checkoutTeamId ?? ctx?.teamId;
   const showPurchaseAsBusinessOption = !isAgencySide && !!checkoutTeamId;
   const teamBillingQuery = trpc.teamBilling.getByTeam.useQuery(
     { teamId: checkoutTeamId ?? "" },
@@ -977,12 +1017,6 @@ export function GlobalBuyNowDialog() {
         const base = transferContext.price;
         const recorded = isAgencyUser ? parsePriceOverrideInput(priceOverrideByKey["transfer"]) ?? base : base;
         // Team transfers use teamId on the order; agency may also set billedForUserId (registrant).
-        const billedForUserId =
-          isAgencyUser &&
-          registrantType === "existing_customer" &&
-          selectedExistingCustomerId.trim()
-            ? selectedExistingCustomerId.trim()
-            : undefined;
         createOrderFromPayment.mutate({
           checkoutRequestId: checkoutRequestIdParam,
           items: [
@@ -1002,8 +1036,8 @@ export function GlobalBuyNowDialog() {
             },
           ],
           currency: transferContext.currency,
-          ...(transferContext.teamId ? { teamId: transferContext.teamId } : {}),
-          ...(billedForUserId ? { billedForUserId } : {}),
+          ...(resolvedOrderTeamId ? { teamId: resolvedOrderTeamId } : {}),
+          ...(agencyBilledForUserId ? { billedForUserId: agencyBilledForUserId } : {}),
         });
         return;
       }
@@ -1070,18 +1104,12 @@ export function GlobalBuyNowDialog() {
         }
 
         if (orderItems.length === 0) return;
-        const cartBilledForUserId =
-          isAgencyUser &&
-          registrantType === "existing_customer" &&
-          selectedExistingCustomerId.trim()
-            ? selectedExistingCustomerId.trim()
-            : undefined;
         createOrderFromPayment.mutate({
           checkoutRequestId: checkoutRequestIdParam,
           items: orderItems,
           currency: primaryCurrency,
-          ...(checkoutTeamId ? { teamId: checkoutTeamId } : {}),
-          ...(cartBilledForUserId ? { billedForUserId: cartBilledForUserId } : {}),
+          ...(resolvedOrderTeamId ? { teamId: resolvedOrderTeamId } : {}),
+          ...(agencyBilledForUserId ? { billedForUserId: agencyBilledForUserId } : {}),
         });
         return;
       }
@@ -1092,28 +1120,19 @@ export function GlobalBuyNowDialog() {
           checkoutRequestId: checkoutRequestIdParam,
           items: upgradeItems,
           currency: selectedMainPlan?.currency ?? displayCurrency,
-          ...((checkoutTeamId ?? ctx?.teamId)
-            ? { teamId: checkoutTeamId ?? ctx?.teamId }
-            : {}),
+          ...(resolvedOrderTeamId ? { teamId: resolvedOrderTeamId } : {}),
+          ...(agencyBilledForUserId ? { billedForUserId: agencyBilledForUserId } : {}),
         });
         return;
       }
       const orderItems = buildDomainProductOrderItems();
       if (orderItems.length === 0) return;
-      const billedForUserId =
-        isAgencyUser &&
-        registrantType === "existing_customer" &&
-        selectedExistingCustomerId.trim()
-          ? selectedExistingCustomerId.trim()
-          : undefined;
       createOrderFromPayment.mutate({
         checkoutRequestId: checkoutRequestIdParam,
         items: orderItems,
         currency: displayCurrency,
-        ...((checkoutTeamId ?? ctx?.teamId)
-          ? { teamId: checkoutTeamId ?? ctx?.teamId }
-          : {}),
-        ...(billedForUserId ? { billedForUserId } : {}),
+        ...(resolvedOrderTeamId ? { teamId: resolvedOrderTeamId } : {}),
+        ...(agencyBilledForUserId ? { billedForUserId: agencyBilledForUserId } : {}),
       });
     },
     [
@@ -1130,8 +1149,8 @@ export function GlobalBuyNowDialog() {
       isAgencyUser,
       priceOverrideByKey,
       registrantOrderMetadata,
-      registrantType,
-      selectedExistingCustomerId,
+      agencyBilledForUserId,
+      resolvedOrderTeamId,
       buildDomainProductOrderItems,
       isUpgradeMode,
       buildUpgradeOrderItems,
@@ -1514,6 +1533,10 @@ export function GlobalBuyNowDialog() {
       toast.error("Please fix the errors in the form");
       return;
     }
+    if (agencyBilledForUserId && !resolvedOrderTeamId) {
+      toast.error("Select the customer's organization before paying.");
+      return;
+    }
 
     const amount = resolved.amount;
     const timestamp = Date.now().toString().slice(-9);
@@ -1528,6 +1551,8 @@ export function GlobalBuyNowDialog() {
         accountReference: resolved.accountReference,
         transactionDesc: transactionDesc.slice(0, 13),
         checkoutTotalIncVat: effectiveTotal,
+        ...(resolvedOrderTeamId ? { teamId: resolvedOrderTeamId } : {}),
+        ...(agencyBilledForUserId ? { billedForUserId: agencyBilledForUserId } : {}),
       });
     } catch {
       // handled in onError
@@ -1545,8 +1570,6 @@ export function GlobalBuyNowDialog() {
     immediateStepRef.current = null;
     immediatePaymentErrorRef.current = null;
   };
-  const resolvedPaymentTeamId = isTransferMode ? transferContext?.teamId : undefined;
-
   const handleManualTransactionReferenceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setManualTransactionReference(value);
@@ -1581,6 +1604,10 @@ export function GlobalBuyNowDialog() {
       toast.error("Enter a valid payment amount.");
       return;
     }
+    if (agencyBilledForUserId && !resolvedOrderTeamId) {
+      toast.error("Select the customer's organization before paying.");
+      return;
+    }
 
     try {
       const result = await recordManualPayment.mutateAsync({
@@ -1601,7 +1628,8 @@ export function GlobalBuyNowDialog() {
             : ctx?.domain?.domain
               ? `Domain ${ctx.domain.domain}`
               : ctx?.productName ?? "Nisc order",
-        teamId: resolvedPaymentTeamId,
+        ...(resolvedOrderTeamId ? { teamId: resolvedOrderTeamId } : {}),
+        ...(agencyBilledForUserId ? { billedForUserId: agencyBilledForUserId } : {}),
       });
       terminalStateDetectedRef.current = true;
       setShouldStopPolling(true);
@@ -1811,6 +1839,19 @@ export function GlobalBuyNowDialog() {
     setSelectedUpsellPlans((prev) => prev.filter((p) => p.hostingType !== type));
   };
 
+  const handleHostingBillingCycleChange = (type: HostingPlanType, cycle: HostingBillingCycle) => {
+    setSelectedUpsellPlans((prev) =>
+      prev.map((plan) => {
+        if (plan.hostingType !== type) return plan;
+        const catalog = type === "web" ? webHostingPricing?.plans : emailHostingPricing?.plans;
+        const source = catalog?.find((row) => row.id === plan.planId);
+        if (!source) return { ...plan, billingCycle: cycle };
+        const updated = planSelectionToUpsell(source, { hostingType: type }, cycle);
+        return { ...plan, billingCycle: cycle, price: updated.price, currency: updated.currency };
+      }),
+    );
+  };
+
   const upsellPlanSelectionContext = React.useMemo(() => {
     if (!upsellBrowseTarget) return null;
     return {
@@ -1956,6 +1997,7 @@ export function GlobalBuyNowDialog() {
       setSelectedBillingCycle(DEFAULT_HOSTING_BILLING_CYCLE);
       setRegistrantType(isAgencySide ? "existing_customer" : "myself");
       setSelectedExistingCustomerId("");
+      setSelectedCustomerTeamId("");
       setSelectedPaymentMethod(null);
       setMpesaPhoneNumber("");
       setPaymentAmount("");
@@ -2091,6 +2133,7 @@ export function GlobalBuyNowDialog() {
               isLoadingPrices={isLoadingWebHostingPricing || isLoadingEmailHostingPricing}
               onBrowseHostingPlans={handleHostingBrowsePlans}
               onChangeHostingPlan={handleHostingBrowsePlans}
+              onBillingCycleChange={handleHostingBillingCycleChange}
               onRemoveHosting={handleHostingRemove}
             />
           </BuyNowStepBody>
@@ -2099,8 +2142,7 @@ export function GlobalBuyNowDialog() {
       case "plan-selection":
         if (upsellBrowseTarget && upsellPlanSelectionContext) {
           return (
-            <ScrollArea className="h-[min(72vh,44rem)] w-full max-w-[calc(100%-0.5rem)]" thumbClassName="bg-primary">
-              <div className="py-2 pl-1 pr-4">
+            <BuyNowStepBody>
               <HostingPlanSelectionStep
                 selectionTitle={upsellPlanSelectionContext.title}
                 planType={upsellPlanSelectionContext.planType}
@@ -2113,8 +2155,7 @@ export function GlobalBuyNowDialog() {
                 billingCycle={selectedBillingCycle}
                 onBillingCycleChange={setSelectedBillingCycle}
               />
-              </div>
-            </ScrollArea>
+            </BuyNowStepBody>
           );
         }
         return (
@@ -2822,6 +2863,7 @@ export function GlobalBuyNowDialog() {
                           onSelect={(item) => {
                             if (item.disabled) return;
                             setSelectedExistingCustomerId(item.id);
+                            setSelectedCustomerTeamId("");
                             setRegistrantType("existing_customer");
                           }}
                           renderListItem={({ isChecked, item }) => {
@@ -2879,6 +2921,36 @@ export function GlobalBuyNowDialog() {
                         </div>
                       </div>
                     ) : null}
+                    {registrantType === "existing_customer" && selectedExistingCustomer?.profileComplete ? (
+                      <div className="mt-3 space-y-2">
+                        <p className="text-xs font-medium text-foreground">Organization</p>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          Domain registration uses this customer&apos;s profile. The subscription, payment, and invoice are linked to the organization you select.
+                        </p>
+                        {customerTeamsQuery.isLoading ? (
+                          <div className="flex justify-center py-2">
+                            <Spinner size={18} />
+                          </div>
+                        ) : customerTeamsQuery.error ? (
+                          <p className="text-xs text-destructive">
+                            {customerTeamsQuery.error.message ?? "Failed to load organizations."}
+                          </p>
+                        ) : customerTeamItems.length === 0 ? (
+                          <p className="text-xs text-destructive">
+                            This customer is not on an organization yet. Add them to a team before checkout.
+                          </p>
+                        ) : (
+                          <ComboboxDropdown
+                            placeholder="Select an organization…"
+                            searchPlaceholder="Search organizations"
+                            items={customerTeamItems}
+                            selectedItem={selectedCustomerTeamItem}
+                            onSelect={(item) => setSelectedCustomerTeamId(item.id)}
+                            emptyResults="No organizations found"
+                          />
+                        )}
+                      </div>
+                    ) : null}
                     {registrantType === "existing_customer" &&
                     selectedExistingCustomer &&
                     !selectedExistingCustomer.profileComplete ? (
@@ -2899,6 +2971,7 @@ export function GlobalBuyNowDialog() {
                 onClick={() => {
                   setRegistrantType("myself");
                   setSelectedExistingCustomerId("");
+                  setSelectedCustomerTeamId("");
                 }}
               >
                 <div className="flex w-full items-start gap-5">
@@ -3058,7 +3131,11 @@ export function GlobalBuyNowDialog() {
             {effectiveStep === "error" && "Payment could not be completed."}
           </DialogDescription>
         </DialogHeader>
-        <BuyNowDialogBodyScroll>{renderStep()}</BuyNowDialogBodyScroll>
+        <BuyNowDialogBodyScroll
+          allowHorizontal={effectiveStep === "plan-selection" && !!upsellBrowseTarget}
+        >
+          {renderStep()}
+        </BuyNowDialogBodyScroll>
         <DialogFooter className="gap-2 px-6 pb-6 pt-4 flex-shrink-0 border-t">
           {effectiveStep === "product" && (
             <>

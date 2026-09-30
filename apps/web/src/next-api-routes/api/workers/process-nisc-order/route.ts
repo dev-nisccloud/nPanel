@@ -14,6 +14,7 @@ import {
 	runPreProvisioningInvoiceForOrder,
 } from "@npanel/api/lib/nisc-order-invoice-delivery";
 import { getNormalizedPublicAppUrl, joinPublicAppPath } from "@npanel/api/lib/public-app-url";
+import { resolveNiscCustomerNotificationRecipient } from "@npanel/api/lib/nisc-order-invoice-billing";
 
 interface NiscOrderPayload {
 	niscOrderId: string;
@@ -148,23 +149,19 @@ export async function POST(request: Request) {
 			result.status === "COMPLETED" &&
 			orderAfter
 		) {
-			const billingSettings = order.teamId
-				? await prisma.teamBillingSettings.findUnique({
-					where: { teamId: order.teamId },
-				})
-				: null;
-			const customerEmail =
-				order.user?.email ??
-				(billingSettings?.billingEmail?.trim() ? billingSettings.billingEmail : null);
+			const recipient = await resolveNiscCustomerNotificationRecipient({
+				teamId: order.teamId,
+				userId: order.userId,
+			});
 
-			if (customerEmail) {
+			if (recipient) {
 				try {
 					const customerOrderLink =
 						order.team?.slug != null
 							? joinPublicAppPath(`/${order.team.slug}/subscriptions`)
 							: joinPublicAppPath("/dashboard");
 					const orderConfirmationHtml = await renderOrderConfirmationEmail({
-						customerName: customerName ?? undefined,
+						customerName: recipient.name,
 						orderNumber: orderAfter.orderNumber,
 						orderDate: orderAfter.createdAt.toISOString().slice(0, 10),
 						totalAmount: orderAfter.total,
@@ -178,7 +175,7 @@ export async function POST(request: Request) {
 						orderLink: customerOrderLink,
 					});
 					await sendEmail({
-						to: customerEmail,
+						to: recipient.email,
 						subject: `Order Confirmation - ${orderAfter.orderNumber} from Nisc Cloud®`,
 						html: orderConfirmationHtml,
 					});

@@ -56,6 +56,8 @@ export interface PricingTableProps
   hideBadges?: boolean
   /** Compact layout for dialogs and embedded panels */
   embedded?: boolean
+  /** Let the parent dialog scroll this table instead of nesting a second scroller */
+  flowWithParent?: boolean
   /** Hide the primary CTA button (selection handled externally) */
   hideActionButton?: boolean
   containerClassName?: string
@@ -172,6 +174,7 @@ export function PricingTable({
   onSelectedPlanLevelChange,
   hideBadges = false,
   embedded = false,
+  flowWithParent = false,
   hideActionButton = false,
   className,
   containerClassName,
@@ -422,8 +425,8 @@ export function PricingTable({
         {embedded ? <div className="mb-3">{renderCta()}</div> : null}
 
         {/* Features table  sticky first column so labels stay visible while scrolling */}
-        <div className="rounded-xl border border-border overflow-hidden shadow-sm bg-card/30">
-          <div className="overflow-x-auto overscroll-x-contain">
+        <div className={cn("rounded-xl border border-border shadow-sm bg-card/30", flowWithParent ? "overflow-visible" : "overflow-hidden")}>
+          <div className={flowWithParent ? undefined : "overflow-x-auto overscroll-x-contain"}>
             <div className={cn(embedded ? "min-w-[520px]" : "min-w-[640px]")}>
               <div className="flex items-center px-3 sm:px-5 py-3 bg-muted/60 border-b border-border/80">
                 <div

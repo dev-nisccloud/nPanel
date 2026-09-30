@@ -1,7 +1,7 @@
 import { Context } from "hono";
 import { and, eq } from "@npanel/db";
 import { db } from "@npanel/db";
-import { paymentTransaction, user } from "@npanel/db/schema";
+import { paymentTransaction } from "@npanel/db/schema";
 import {
 	applyJengaCallbackUpdate,
 	applyJengaIpnUpdate,
@@ -15,6 +15,7 @@ import {
 import { claimWebhookEvent } from "@npanel/api/lib/webhook-idempotency";
 import { sendEmail } from "@npanel/api/lib/email";
 import { renderPaymentReceiptEmail } from "@npanel/api/lib/email-templates";
+import { resolveNiscCustomerNotificationRecipient } from "@npanel/api/lib/nisc-order-invoice-billing";
 
 function verifyJengaIpnBasicAuth(authHeader: string | undefined): boolean {
 	const username = process.env.JENGA_IPN_USERNAME;
@@ -147,11 +148,11 @@ export async function handleJengaIpn(c: Context) {
 					where: eq(paymentTransaction.id, result.transactionId),
 				});
 				if (transaction) {
-					const userData = await db.query.user.findFirst({
-						where: eq(user.id, transaction.userId),
-						columns: { email: true, name: true },
+					const recipient = await resolveNiscCustomerNotificationRecipient({
+						teamId: transaction.teamId,
+						userId: transaction.userId,
 					});
-					if (userData?.email) {
+					if (recipient) {
 						const formattedAmount = new Intl.NumberFormat("en-US", {
 							minimumFractionDigits: 2,
 							maximumFractionDigits: 2,
@@ -161,7 +162,7 @@ export async function handleJengaIpn(c: Context) {
 							),
 						);
 						const emailHtml = await renderPaymentReceiptEmail({
-							customerName: userData.name || "Valued Customer",
+							customerName: recipient.name,
 							receiptNumber:
 								transaction.receiptNumber ||
 								payload.transaction.reference ||
@@ -174,7 +175,7 @@ export async function handleJengaIpn(c: Context) {
 							supportPhone: "+254 748 777 666",
 						});
 						await sendEmail({
-							to: userData.email,
+							to: recipient.email,
 							subject: `Payment Receipt - ${transaction.receiptNumber || payload.transaction.reference}`,
 							html: emailHtml,
 						});

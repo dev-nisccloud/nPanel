@@ -160,6 +160,7 @@ type HostingUpsellStepProps = {
   isLoadingPrices?: boolean;
   onBrowseHostingPlans: (type: HostingPlanType) => void;
   onChangeHostingPlan: (type: HostingPlanType) => void;
+  onBillingCycleChange: (type: HostingPlanType, cycle: HostingBillingCycle) => void;
   onRemoveHosting: (type: HostingPlanType) => void;
 };
 
@@ -172,6 +173,7 @@ export function HostingUpsellStep({
   isLoadingPrices = false,
   onBrowseHostingPlans,
   onChangeHostingPlan,
+  onBillingCycleChange,
   onRemoveHosting,
 }: HostingUpsellStepProps) {
   const webSelected = selected.find((p) => p.hostingType === "web");
@@ -200,6 +202,7 @@ export function HostingUpsellStep({
           selected={webSelected}
           onBrowse={() => onBrowseHostingPlans("web")}
           onChange={() => onChangeHostingPlan("web")}
+          onBillingCycleChange={(cycle) => onBillingCycleChange("web", cycle)}
           onRemove={() => onRemoveHosting("web")}
         />
         <HostingServiceCard
@@ -213,6 +216,7 @@ export function HostingUpsellStep({
           selected={emailSelected}
           onBrowse={() => onBrowseHostingPlans("email")}
           onChange={() => onChangeHostingPlan("email")}
+          onBillingCycleChange={(cycle) => onBillingCycleChange("email", cycle)}
           onRemove={() => onRemoveHosting("email")}
         />
       </div>
@@ -231,6 +235,7 @@ function HostingServiceCard({
   selected,
   onBrowse,
   onChange,
+  onBillingCycleChange,
   onRemove,
 }: {
   type: HostingPlanType;
@@ -242,6 +247,7 @@ function HostingServiceCard({
   selected?: SelectedServiceUpsell;
   onBrowse: () => void;
   onChange: () => void;
+  onBillingCycleChange: (cycle: HostingBillingCycle) => void;
   onRemove: () => void;
 }) {
   const isSelected = !!selected;
@@ -296,13 +302,25 @@ function HostingServiceCard({
                   {formatPrice(selected.price, selected.currency)}
                 </span>
               </div>
-              <div className="flex gap-2 pt-1">
-                <Button type="button" variant="outline" size="sm" className="h-7 text-xs flex-1" onClick={onChange}>
-                  Change plan
-                </Button>
-                <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={onRemove}>
-                  Remove
-                </Button>
+              <div className="space-y-2 pt-1" onClick={(e) => e.stopPropagation()}>
+                <HostingBillingCycleSelector
+                  value={selected.billingCycle}
+                  onChange={onBillingCycleChange}
+                />
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" size="sm" className="h-7 text-xs flex-1" onClick={onChange}>
+                    Change plan
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs text-destructive hover:text-destructive border-destructive/40 hover:bg-destructive/10"
+                    onClick={onRemove}
+                  >
+                    Remove
+                  </Button>
+                </div>
               </div>
             </div>
           ) : (
@@ -437,6 +455,7 @@ export function HostingPlanSelectionStep({
 
       <PricingTable
         embedded
+        flowWithParent
         hideBadges
         hideActionButton
         plans={pricingPlans}

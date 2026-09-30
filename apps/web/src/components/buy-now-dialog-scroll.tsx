@@ -10,6 +10,8 @@ type BuyNowDialogBodyScrollProps = {
 	className?: string;
 	innerClassName?: string;
 	scrollRef?: React.Ref<HTMLDivElement>;
+	/** Same element scrolls horizontally, so wide plan tables don't get a second scroller. */
+	allowHorizontal?: boolean;
 };
 
 /**
@@ -22,12 +24,14 @@ export function BuyNowDialogBodyScroll({
 	className,
 	innerClassName,
 	scrollRef,
+	allowHorizontal = false,
 }: BuyNowDialogBodyScrollProps) {
 	return (
 		<div
 			ref={scrollRef}
 			className={cn(
-				"flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain px-6",
+				"flex-1 min-h-0 overflow-y-auto overscroll-contain px-6",
+				allowHorizontal ? "overflow-x-auto" : "overflow-x-hidden",
 				nativePrimaryScrollbarClassName,
 				className,
 			)}

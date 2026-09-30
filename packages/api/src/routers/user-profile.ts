@@ -6,6 +6,7 @@ import { TRPCError } from "@trpc/server";
 import { db } from "@npanel/db";
 import { session, user } from "@npanel/db/schema/auth";
 import { userActivityLog, userProfile } from "@npanel/db/schema/auth-extras";
+import { team, teamMember } from "@npanel/db/schema/teams";
 import { mapUserAdminFields, mapUserEmailPreferences } from "../lib/user-extra-fields";
 import { invalidateSessionCache } from "@npanel/auth/session-cache";
 
@@ -705,5 +706,46 @@ export const userProfileRouter = router({
           missingFields,
         });
       });
+    }),
+
+  /**
+   * Agency: organizations a customer belongs to, so checkout can link the order to that team.
+   */
+  listTeamsForCustomer: protectedProcedure
+    .input(z.object({ userId: z.string().min(1) }))
+    .output(
+      z.array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          slug: z.string(),
+        }),
+      ),
+    )
+    .query(async ({ ctx, input }) => {
+      const actor = getActor(ctx);
+      if (!isAgencyUserRole(actor.role)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only agency users can list a customer's organizations.",
+        });
+      }
+
+      const memberships = await db
+        .select({ id: team.id, name: team.name, slug: team.slug })
+        .from(teamMember)
+        .innerJoin(team, eq(team.id, teamMember.teamId))
+        .where(eq(teamMember.userId, input.userId));
+
+      const created = await db
+        .select({ id: team.id, name: team.name, slug: team.slug })
+        .from(team)
+        .where(eq(team.createdById, input.userId));
+
+      const byId = new Map<string, { id: string; name: string; slug: string }>();
+      for (const row of [...memberships, ...created]) {
+        byId.set(row.id, row);
+      }
+      return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
     }),
 });

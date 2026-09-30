@@ -129,7 +129,16 @@ export const mpesaRouter = router({
 							),
 							columns: { id: true },
 						});
-						if (!membership) {
+						const [ownedTeam] = membership
+							? []
+							: await db
+									.select({ id: team.id })
+									.from(team)
+									.where(
+										and(eq(team.id, input.teamId), eq(team.createdById, input.billedForUserId)),
+									)
+									.limit(1);
+						if (!membership && !ownedTeam) {
 							throw new TRPCError({
 								code: "BAD_REQUEST",
 								message: "Target user is not a member of the specified team",
