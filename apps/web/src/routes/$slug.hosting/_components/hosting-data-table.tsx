@@ -36,7 +36,8 @@ export function HostingDataTable() {
     const q = searchQuery.toLowerCase();
     return data.filter((subscription) =>
       (subscription.subscriptionName ?? "").toLowerCase().includes(q) ||
-      (subscription.primaryDomain ?? "").toLowerCase().includes(q),
+      (subscription.primaryDomain ?? "").toLowerCase().includes(q) ||
+      (subscription.productPlanName ?? "").toLowerCase().includes(q),
     );
   }, [data, searchQuery]);
 
@@ -71,6 +72,9 @@ export function HostingDataTable() {
       ) : (
         <span className="text-muted-foreground">{titleText}</span>
       ),
+      description: subscription.productPlanName ? (
+        <span className="truncate">{subscription.productPlanName}</span>
+      ) : undefined,
       cells: {
         dates: (
           <CleanListCell>
@@ -111,8 +115,8 @@ export function HostingDataTable() {
       onRetry={() => refetch()}
       columns={[
         { key: "name", label: "Domain" },
+        { key: "status", label: "Status", className: "w-36", hideBelow: "@md" },
         { key: "dates", label: "Dates", className: "min-w-0 flex-1", hideBelow: "@lg" },
-        { key: "status", label: "Status", className: "w-28 shrink-0", hideBelow: "@xl" },
         { key: "actions", label: "Actions", align: "end" },
       ]}
     />

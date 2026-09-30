@@ -1,4 +1,4 @@
-import { and, asc, db, desc, eq, inArray, sql } from "@npanel/db";
+import { and, asc, db, desc, eq, inArray, notInArray, sql } from "@npanel/db";
 import {
 	AGENCY_CRON_JOB_KEYS,
 	agencyCronJobActivity,
@@ -28,6 +28,17 @@ import {
 } from "./subscription-renewal-invoice";
 import { isTerminalSubscriptionStatus } from "./nisc-subscription-renewal-apply";
 import { computeSubscriptionExpiryFromBillingCycle } from "./nisc-subscription-dates";
+import { ZEEPO_AI_AGENT_PRODUCT_ID } from "./zeepo-agent-billing";
+import { ZEEPO_AI_PRODUCT_ID } from "./zeepo-ai-billing";
+
+/**
+ * Token wallets. They are not renewable services, so the renewal cron never
+ * scans, invoices, or emails them.
+ */
+const RENEWAL_REMINDER_EXCLUDED_PRODUCT_IDS = [
+	ZEEPO_AI_PRODUCT_ID,
+	ZEEPO_AI_AGENT_PRODUCT_ID,
+] as const;
 
 /** Subscriptions with expiry (or next renewal) on/before this many days from now are reminded. */
 export const RENEWAL_REMINDER_WINDOW_DAYS = 7;
@@ -537,10 +548,11 @@ async function markRunFailed(runId: string, error: string) {
 }
 
 /**
- * Scan every client subscription: sync dates (expiry is canonical; next renewal mirrors it;
- * missing dates are backfilled from subscription date + billing cycle), set ACTIVE/EXPIRED
- * from those dates, and send renewal reminder emails for rows expired or due within
- * {@link RENEWAL_REMINDER_WINDOW_DAYS}. Persists run + per-subscription item logs.
+ * Scan client subscriptions except Zeepo AI and Zeepo AI Agent: sync dates (expiry is
+ * canonical; next renewal mirrors it; missing dates are backfilled from subscription date +
+ * billing cycle), set ACTIVE/EXPIRED from those dates, and send renewal reminder emails for
+ * rows expired or due within {@link RENEWAL_REMINDER_WINDOW_DAYS}. Persists run +
+ * per-subscription item logs.
  */
 export async function processSubscriptionRenewalReminders(
 	opts: SubscriptionRenewalRemindersPayload = {},
@@ -1202,6 +1214,11 @@ async function fetchSubscriptionsForCron(
 		.leftJoin(
 			teamBillingSettings,
 			eq(teamBillingSettings.teamId, niscClientSubscription.teamId),
+		)
+		.where(
+			notInArray(niscClientSubscription.productId, [
+				...RENEWAL_REMINDER_EXCLUDED_PRODUCT_IDS,
+			]),
 		)
 		.orderBy(sql`${dueDateExpr} ASC NULLS LAST`, asc(niscClientSubscription.id))
 		.limit(limit)

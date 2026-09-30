@@ -12,9 +12,12 @@ import {
 	buildCuInvoiceNo,
 	dashEvery4,
 	extractSdcIdFromKraBody,
+	formatKraSdcDateTimeFull,
 	formatScuDateTimeParts,
 	formatTisDateTimeParts,
 	kraReceiptLabel,
+	kraSdcStampToCompact,
+	parseKraSdcStamp,
 } from "./etims-scu-print";
 
 export type EtimsFiscalFields = {
@@ -65,11 +68,9 @@ function stringOrNull(value: unknown): string | null {
 	return s.length > 0 ? s : null;
 }
 
-/** Format KRA `yyyyMMddHHmmss` for display on the invoice footer. */
-export function formatKraSdcDateTimeDisplay(value: string | null | undefined): string | null {
-	const parts = formatScuDateTimeParts(value);
-	if (!parts) return value ? String(value) : null;
-	return `${parts.date} ${parts.time}`;
+/** Format KRA stamp for display: `dd/mm/yyyy hh:mm:ss` using returned digits. */
+export function formatKraSdcDateTimeDisplay(value: string | Date | null | undefined): string | null {
+	return formatKraSdcDateTimeFull(value);
 }
 
 export type ManualScuParts = {
@@ -93,19 +94,15 @@ export function combineScuDateTime(
 	time?: string | null,
 ): string | null {
 	if (typeof date === "string" && /^\d{14}$/.test(date.trim())) return date.trim();
+	const stamp = parseKraSdcStamp(date);
+	if (stamp && !time?.trim()) return kraSdcStampToCompact(stamp);
 	let year = "";
 	let month = "";
 	let day = "";
-	if (date instanceof Date && !Number.isNaN(date.getTime())) {
-		year = String(date.getFullYear());
-		month = String(date.getMonth() + 1).padStart(2, "0");
-		day = String(date.getDate()).padStart(2, "0");
-	} else if (typeof date === "string" && date.trim()) {
-		const parsed = new Date(date);
-		if (Number.isNaN(parsed.getTime())) return null;
-		year = String(parsed.getFullYear());
-		month = String(parsed.getMonth() + 1).padStart(2, "0");
-		day = String(parsed.getDate()).padStart(2, "0");
+	if (stamp) {
+		year = stamp.y;
+		month = stamp.m;
+		day = stamp.d;
 	} else {
 		return null;
 	}
@@ -151,7 +148,7 @@ function assembleFiscalFields(
 ): EtimsFiscalFields {
 	const receiptLabel = kraReceiptLabel({ isCreditNote: extras?.isCreditNote });
 	const scu = formatScuDateTimeParts(base.sdcDateTime);
-	const tis = formatTisDateTimeParts(extras?.tisIssuedAt ?? null);
+	const tis = formatTisDateTimeParts(base.sdcDateTime ?? extras?.tisIssuedAt ?? null);
 	return {
 		...base,
 		sdcDateTimeDisplay: formatKraSdcDateTimeDisplay(base.sdcDateTime),
@@ -440,10 +437,6 @@ export function formatEtimsFiscalFooterPrimaryLine(fields: Pick<
 }
 
 function formatKraVerifiedDateToKraString(date: Date): string | null {
-	if (Number.isNaN(date.getTime())) return null;
-	const pad = (n: number) => String(n).padStart(2, "0");
-	return (
-		`${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}` +
-		`${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`
-	);
+	const p = parseKraSdcStamp(date);
+	return p ? kraSdcStampToCompact(p) : null;
 }

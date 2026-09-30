@@ -116,7 +116,7 @@ export declare class EtimsOscuClient {
     /** Dashboard test case path: /selectNotices */
     selectNotices(oscu: EtimsOscuHeaders, lastReqDt: string): Promise<unknown>;
     /** Look up a single customer by their KRA TIN (central registry). */
-    selectCustomer(oscu: EtimsOscuHeaders, custmTin: string): Promise<unknown>;
+    selectCustomer(oscu: EtimsOscuHeaders, custmTin: string, lastReqDt?: string): Promise<unknown>;
     /** List customers registered on this branch via saveBhfCustomer. */
     selectCustomerList(oscu: EtimsOscuHeaders, lastReqDt: string): Promise<unknown>;
     selectTaxPayerInfo(oscu: EtimsOscuHeaders, lastReqDt: string): Promise<unknown>;

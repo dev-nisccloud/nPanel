@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "nPanel eTIMS OSCU (Postman → ngrok)",
-    "description": "Queries = GET with ?input=. Mutations = POST with JSON body. See docs/kra-etims-oscu-postman-verification.md",
+    "description": "Isolated cert tree etimsCert.* — identity always comes from apps/server/.env.etims-certification. Queries = GET with ?input=. Mutations = POST with JSON body. See docs/kra-etims-oscu-postman-verification.md",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -12,7 +12,7 @@
         "header": [
           { "key": "ngrok-skip-browser-warning", "value": "1" }
         ],
-        "url": "{{npanelUrl}}/trpc/etims.auth.getConfiguration"
+        "url": "{{npanelUrl}}/trpc/etimsCert.auth.getConfiguration"
       }
     },
     {
@@ -25,9 +25,9 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"tin\": \"P600004455A\",\n  \"bhfId\": \"00\",\n  \"dvcSrlNo\": \"KRACUO100069163\",\n  \"isSandbox\": true\n}"
+          "raw": "{}"
         },
-        "url": "{{npanelUrl}}/trpc/etims.initialization.initializeDevice"
+        "url": "{{npanelUrl}}/trpc/etimsCert.initialization.initializeDevice"
       }
     },
     {
@@ -37,7 +37,7 @@
         "header": [
           { "key": "ngrok-skip-browser-warning", "value": "1" }
         ],
-        "url": "{{npanelUrl}}/trpc/etims.data.getCodeList?input={\"lastReqDt\":\"{{lastReqDt}}\"}"
+        "url": "{{npanelUrl}}/trpc/etimsCert.data.getCodeList?input={\"lastReqDt\":\"{{lastReqDt}}\"}"
       }
     },
     {
@@ -47,7 +47,7 @@
         "header": [
           { "key": "ngrok-skip-browser-warning", "value": "1" }
         ],
-        "url": "{{npanelUrl}}/trpc/etims.data.getItemClassList?input={\"lastReqDt\":\"{{lastReqDt}}\"}"
+        "url": "{{npanelUrl}}/trpc/etimsCert.data.getItemClassList?input={\"lastReqDt\":\"{{lastReqDt}}\"}"
       }
     },
     {
@@ -57,7 +57,7 @@
         "header": [
           { "key": "ngrok-skip-browser-warning", "value": "1" }
         ],
-        "url": "{{npanelUrl}}/trpc/etims.items.getItemList?input={\"lastReqDt\":\"{{lastReqDt}}\"}"
+        "url": "{{npanelUrl}}/trpc/etimsCert.items.getItemList?input={\"lastReqDt\":\"{{lastReqDt}}\"}"
       }
     },
     {
@@ -67,7 +67,7 @@
         "header": [
           { "key": "ngrok-skip-browser-warning", "value": "1" }
         ],
-        "url": "{{npanelUrl}}/trpc/etims.imports.getImportedItems?input={\"lastReqDt\":\"{{lastReqDt}}\"}"
+        "url": "{{npanelUrl}}/trpc/etimsCert.imports.getImportedItems?input={\"lastReqDt\":\"{{lastReqDt}}\"}"
       }
     },
     {
@@ -77,7 +77,7 @@
         "header": [
           { "key": "ngrok-skip-browser-warning", "value": "1" }
         ],
-        "url": "{{npanelUrl}}/trpc/etims.purchases.getPurchaseTransactions?input={\"lastReqDt\":\"{{lastReqDt}}\"}"
+        "url": "{{npanelUrl}}/trpc/etimsCert.purchases.getPurchaseTransactions?input={\"lastReqDt\":\"{{lastReqDt}}\"}"
       }
     },
     {
@@ -87,7 +87,7 @@
         "header": [
           { "key": "ngrok-skip-browser-warning", "value": "1" }
         ],
-        "url": "{{npanelUrl}}/trpc/etims.branch.getBranchList?input={\"lastReqDt\":\"{{lastReqDt}}\"}"
+        "url": "{{npanelUrl}}/trpc/etimsCert.branch.getBranchList?input={\"lastReqDt\":\"{{lastReqDt}}\"}"
       }
     },
     {
@@ -97,7 +97,7 @@
         "header": [
           { "key": "ngrok-skip-browser-warning", "value": "1" }
         ],
-        "url": "{{npanelUrl}}/trpc/etims.stock.getStockMovements?input={\"lastReqDt\":\"{{lastReqDt}}\"}"
+        "url": "{{npanelUrl}}/trpc/etimsCert.stock.getStockMovements?input={\"lastReqDt\":\"{{lastReqDt}}\"}"
       }
     },
     {
@@ -107,7 +107,7 @@
         "header": [
           { "key": "ngrok-skip-browser-warning", "value": "1" }
         ],
-        "url": "{{npanelUrl}}/trpc/etims.data.getNoticeList?input={\"lastReqDt\":\"{{lastReqDt}}\"}"
+        "url": "{{npanelUrl}}/trpc/etimsCert.data.getNoticeList?input={\"lastReqDt\":\"{{lastReqDt}}\"}"
       }
     }
   ]

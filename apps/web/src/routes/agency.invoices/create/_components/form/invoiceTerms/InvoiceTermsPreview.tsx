@@ -7,6 +7,7 @@ export const InvoiceTermsPreview: React.FC<
 > = ({
   invoiceNumber,
   issueDate,
+  issuedAtDisplay,
   dueDate,
   originalInvoiceNumber,
   numberLabel = "Invoice No",
@@ -18,6 +19,7 @@ export const InvoiceTermsPreview: React.FC<
     const dateObj = typeof date === "string" ? new Date(date) : date;
     return format(dateObj, "dd-MM-yyyy");
   };
+  const issuedLabel = issuedAtDisplay?.trim() || formatDate(issueDate) || "-";
 
   return (
     <div
@@ -48,7 +50,7 @@ export const InvoiceTermsPreview: React.FC<
               Issued
             </span>
             <span className="font-semibold text-gray-700">
-              {formatDate(issueDate) || "-"}
+              {issuedLabel}
             </span>
           </p>
           {originalInvoiceNumber ? (

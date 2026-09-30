@@ -59,6 +59,7 @@ export type PaymentDetails = {
 export type InvoiceTerms = {
     invoiceNumber?: string;
     issueDate?: string | Date;
+    issuedAtDisplay?: string;
     dueDate?: string | Date;
     /** Shown on credit notes instead of due date */
     originalInvoiceNumber?: string;

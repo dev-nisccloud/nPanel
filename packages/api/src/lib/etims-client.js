@@ -361,12 +361,13 @@ export class EtimsOscuClient {
     // Customer
     // ───────────────────────
     /** Look up a single customer by their KRA TIN (central registry). */
-    async selectCustomer(oscu, custmTin) {
+    async selectCustomer(oscu, custmTin, lastReqDt = "20180101000000") {
         return this.post('selectCustomer', {
             tin: oscu.tin,
             bhfId: oscu.bhfId,
             cmcKey: oscu.cmcKey,
             custmTin,
+            lastReqDt,
         }, oscu);
     }
     /** List customers registered on this branch via saveBhfCustomer. */

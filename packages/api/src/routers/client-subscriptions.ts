@@ -8,6 +8,7 @@ import {
 	niscClientSubscriptionActivityLog,
 	niscClientSubscriptionNote,
 	niscClientSubscriptionRenewal,
+	niscClientSubscriptionUsage,
 	niscCommissionEntry,
 	niscProduct,
 	niscProductPlan,
@@ -36,8 +37,8 @@ import { NISC_MEDIA_BUYING_PRODUCT_ID } from "../lib/media-buying-billing";
 import { NISC_DOMAINS_PRODUCT_ID } from "../lib/planless-services-billing";
 import { resolveActiveNiscProductById, resolveActiveNiscProductId } from "../lib/planless-product-resolver";
 import { domainProductSqlFilter } from "../lib/nisc-domain-product";
-import { ZEEPO_AI_PRODUCT_ID } from "../lib/zeepo-ai-billing";
-import { ZEEPO_AI_AGENT_PRODUCT_ID } from "../lib/zeepo-agent-billing";
+import { ZEEPO_AI_PRODUCT_ID, ZEEPO_AI_USAGE_KIND } from "../lib/zeepo-ai-billing";
+import { ZEEPO_AGENT_USAGE_KIND, ZEEPO_AI_AGENT_PRODUCT_ID } from "../lib/zeepo-agent-billing";
 
 // ============================================================================
 // ZOD SCHEMAS   independent from the database schema layer
@@ -716,6 +717,56 @@ async function getTeamIdBySlug(slug: string) {
     return row?.id ?? null;
 }
 
+const ZEEPO_TOKEN_USAGE_KIND_BY_PRODUCT: Record<string, string> = {
+    [ZEEPO_AI_PRODUCT_ID]: ZEEPO_AI_USAGE_KIND,
+    [ZEEPO_AI_AGENT_PRODUCT_ID]: ZEEPO_AGENT_USAGE_KIND,
+};
+
+function parseStoredTokenCredits(credits: string): number | null {
+    const trimmed = credits.trim();
+    if (!trimmed || trimmed.toLowerCase() === "unlimited") return null;
+    const n = Number.parseFloat(trimmed);
+    return Number.isFinite(n) ? n : null;
+}
+
+/** Remaining token balance for Zeepo AI and Zeepo AI Agent subscriptions. */
+async function loadRemainingTokensBySubscriptionId(
+    subs: { id: string; productId: string }[],
+): Promise<Map<string, number | null>> {
+    const zeepo = subs.filter((s) => s.productId in ZEEPO_TOKEN_USAGE_KIND_BY_PRODUCT);
+    const result = new Map<string, number | null>();
+    for (const sub of zeepo) result.set(sub.id, null);
+    if (zeepo.length === 0) return result;
+
+    const ids = zeepo.map((s) => s.id);
+    const rows = await db
+        .select({
+            subscriptionId: niscClientSubscriptionUsage.subscriptionId,
+            usageKind: niscClientSubscriptionUsage.usageKind,
+            credits: niscClientSubscriptionUsage.credits,
+        })
+        .from(niscClientSubscriptionUsage)
+        .where(
+            and(
+                inArray(niscClientSubscriptionUsage.subscriptionId, ids),
+                inArray(niscClientSubscriptionUsage.usageKind, [
+                    ZEEPO_AI_USAGE_KIND,
+                    ZEEPO_AGENT_USAGE_KIND,
+                ]),
+            ),
+        );
+
+    const productById = new Map(zeepo.map((s) => [s.id, s.productId]));
+    for (const row of rows) {
+        const productId = productById.get(row.subscriptionId);
+        if (!productId) continue;
+        if (row.usageKind !== ZEEPO_TOKEN_USAGE_KIND_BY_PRODUCT[productId]) continue;
+        const tokens = parseStoredTokenCredits(row.credits);
+        if (tokens != null) result.set(row.subscriptionId, tokens);
+    }
+    return result;
+}
+
 async function isTeamMember(teamId: string, userId: string) {
     const [m] = await db
         .select({ id: teamMember.id })
@@ -1133,6 +1184,7 @@ export const clientSubscriptionsRouter = router({
                     subscriptionName: z.string().nullable(),
                     teamName: z.string().nullable(),
                     userName: z.string().nullable(),
+                    remainingTokens: z.number().nullable(),
                 })
             )
         )
@@ -1191,6 +1243,7 @@ export const clientSubscriptionsRouter = router({
                           .where(inArray(userTable.id, userIds))
                     : [];
             const userMap = new Map(users.map((u) => [u.id, u.name ?? u.email ?? u.id]));
+            const remainingTokens = await loadRemainingTokensBySubscriptionId(subs);
 
             return subs.map((sub) => {
                 const mapped = mapSubscription(sub);
@@ -1203,6 +1256,7 @@ export const clientSubscriptionsRouter = router({
                     subscriptionName: sub.name ?? null,
                     teamName,
                     userName,
+                    remainingTokens: remainingTokens.get(sub.id) ?? null,
                 };
             });
         }),
@@ -1926,6 +1980,7 @@ export const clientSubscriptionsRouter = router({
                     billingCycle: billingCycleSchema.nullable(),
                     progressPercent: z.number().int().nullable(),
                     progressStatus: progressStatusSchema.nullable(),
+                    remainingTokens: z.number().nullable(),
                 })
             )
         )
@@ -1974,6 +2029,8 @@ export const clientSubscriptionsRouter = router({
                 },
             });
 
+            const remainingTokens = await loadRemainingTokensBySubscriptionId(subs);
+
             return subs.map((sub) => ({
                 id: sub.id,
                 productId: sub.productId,
@@ -1988,6 +2045,7 @@ export const clientSubscriptionsRouter = router({
                 progressPercent:
                     typeof sub.progressPercent === "number" ? sub.progressPercent : null,
                 progressStatus: coerceEnumOrNull(sub.progressStatus, progressStatusSchema.options),
+                remainingTokens: remainingTokens.get(sub.id) ?? null,
             }));
         }),
 
@@ -2678,6 +2736,7 @@ export const clientSubscriptionsRouter = router({
                     teamName: z.string().nullable(),
                     userName: z.string().nullable(),
                     expiryDate: z.date().nullable(),
+                    planName: z.string().nullable(),
                 }),
             ),
         )
@@ -2699,10 +2758,15 @@ export const clientSubscriptionsRouter = router({
                     expiryDate: niscClientSubscription.expiryDate,
                     userId: niscClientSubscription.userId,
                     teamName: team.name,
+                    planName: niscProductPlan.name,
                     createdAt: niscClientSubscription.createdAt,
                 })
                 .from(niscClientSubscription)
                 .leftJoin(team, eq(niscClientSubscription.teamId, team.id))
+                .leftJoin(
+                    niscProductPlan,
+                    eq(niscProductPlan.id, niscClientSubscription.productPlanId),
+                )
                 .where(
                     and(
                         or(
@@ -2736,6 +2800,7 @@ export const clientSubscriptionsRouter = router({
                     teamName: string | null;
                     userName: string | null;
                     expiryDate: Date | null;
+                    planName: string | null;
                 }
             >();
             for (const sub of subs) {
@@ -2748,6 +2813,7 @@ export const clientSubscriptionsRouter = router({
                     teamName: sub.teamName ?? null,
                     userName: sub.userId ? userMap.get(sub.userId) ?? null : null,
                     expiryDate: sub.expiryDate ?? null,
+                    planName: sub.planName ?? null,
                 });
             }
             return [...byPleskId.values()];

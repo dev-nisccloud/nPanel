@@ -10,6 +10,11 @@ import { trpc } from "@/utils/trpc";
 import { Package, CheckCircle2, XCircle, AlertCircle, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DashboardSubscriptionRow } from "./dashboard-subscriptions-schema";
+import {
+  formatRemainingTokenCount,
+  isZeepoTokenProduct,
+  ZEEPO_BILLING_LABEL,
+} from "@/routes/agency.subscriptions/_components/zeepo-subscription";
 
 function SubscriptionsTableSkeleton() {
   return (
@@ -77,12 +82,28 @@ function displayServiceName(
 }
 
 /** Map clientSubscriptions.listForTeam item to dashboard-local row type. API dates may be ISO strings over the wire. */
+function billingLabel(cycle: string | null, productId: string): string {
+  if (isZeepoTokenProduct(productId)) return ZEEPO_BILLING_LABEL;
+  if (!cycle) return "";
+  const labels: Record<string, string> = {
+    MONTHLY: "Monthly",
+    YEARLY: "Yearly",
+    BIENNIALLY: "Biennially",
+    CUSTOM: "Custom",
+    ONE_TIME: "One-time",
+  };
+  return labels[cycle] ?? cycle;
+}
+
 function toDashboardRow(
   sub: {
     id: string;
+    productId: string;
     productName: string;
     productPlanName: string | null;
     subscriptionName?: string | null;
+    billingCycle: string | null;
+    remainingTokens: number | null;
     subscriptionDate: Date | string | null;
     nextRenewalDate: Date | string | null;
     expiryDate: Date | string | null;
@@ -104,7 +125,10 @@ function toDashboardRow(
   return {
     id: sub.id,
     planName: label,
-    planType: sub.productName,
+    planType: billingLabel(sub.billingCycle, sub.productId),
+    productId: sub.productId,
+    billingCycle: sub.billingCycle,
+    remainingTokens: sub.remainingTokens,
     subscriptionDate: subDate,
     nextRenewalDate: nextRenewal,
     status: sub.status as DashboardSubscriptionRow["status"],
@@ -155,22 +179,30 @@ export function DashboardSubscriptionsTable() {
       emptyMessage="No subscriptions found. Subscriptions for your company will appear here."
       columns={[
         { key: "name", label: "Service" },
-        { key: "planType", label: "Plan type", className: "w-40", hideBelow: "@lg" },
-        { key: "dates", label: "Dates", className: "w-56", hideBelow: "@xl" },
+        { key: "status", label: "Status", className: "w-36", hideBelow: "@md" },
+        { key: "planType", label: "Billing", className: "w-36", hideBelow: "@lg" },
+        { key: "details", label: "Details", className: "w-56", hideBelow: "@xl" },
       ]}
     >
       {subscriptions.map((sub) => {
         const subscribed = formatDate(sub.subscriptionDate);
         const renews = formatDate(sub.nextRenewalDate);
+        const zeepo = isZeepoTokenProduct(sub.productId);
 
         return (
           <CleanListRow
             key={sub.id}
             title={sub.planName ?? ""}
-            description={<StatusBadge status={sub.status} />}
+            titleLines={3}
             cells={{
+              status: <StatusBadge status={sub.status} />,
               planType: <CleanListCell>{sub.planType ?? ""}</CleanListCell>,
-              dates: (
+              details: zeepo ? (
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <p className="truncate text-sm font-medium text-foreground">Remaining tokens</p>
+                  <CleanListCell>{formatRemainingTokenCount(sub.remainingTokens)}</CleanListCell>
+                </div>
+              ) : (
                 <div className="flex min-w-0 flex-col gap-0.5">
                   <p className="truncate text-sm font-medium text-foreground">
                     {subscribed ? `Subscribed ${subscribed}` : ""}

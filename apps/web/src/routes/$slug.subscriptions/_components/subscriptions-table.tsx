@@ -13,8 +13,25 @@ import {
 } from "@/components/ui/searchable-clean-list";
 import { ViewDetailsButton } from "@/components/ui/list-row-actions";
 import { trpc } from "@/utils/trpc";
-import { isProgressTrackedOneTime } from "@/routes/agency.subscriptions/_components/zeepo-subscription";
+import {
+	formatRemainingTokenCount,
+	isProgressTrackedOneTime,
+	isZeepoTokenProduct,
+	ZEEPO_BILLING_LABEL,
+} from "@/routes/agency.subscriptions/_components/zeepo-subscription";
 import { isSubscriptionRenewable } from "@/lib/subscription-renewal-pricing";
+
+function getBillingCycleDisplayName(cycle: string | null): string {
+	if (!cycle) return "";
+	const m: Record<string, string> = {
+		MONTHLY: "Monthly",
+		YEARLY: "Yearly",
+		BIENNIALLY: "Biennially",
+		CUSTOM: "Custom",
+		ONE_TIME: "One-time",
+	};
+	return m[cycle] ?? cycle;
+}
 
 function formatDate(v: string | Date | null | undefined): string | null {
 	if (!v) return null;
@@ -93,6 +110,7 @@ export function CustomerSubscriptionsTable({ onViewSubscription, onRenewSubscrip
 	const items: SearchableCleanListItem[] = filtered.map((sub) => {
 		const subscribed = formatDate(sub.subscriptionDate);
 		const expires = formatDate(sub.expiryDate);
+		const zeepo = isZeepoTokenProduct(sub.productId);
 		const showProgress = isProgressTrackedOneTime(sub.billingCycle, sub.productId);
 		const renewable = isSubscriptionRenewable({
 			status: sub.status,
@@ -111,20 +129,30 @@ export function CustomerSubscriptionsTable({ onViewSubscription, onRenewSubscrip
 					)}
 				</span>
 			),
-			description: (
-				<div className="flex items-center gap-2">
-					<Badge variant="outline" className={getStatusBadgeClass(sub.status)}>
-						{sub.status.replace(/_/g, " ")}
-					</Badge>
-					{renewable && (
-						<Badge variant="destructive" className="animate-pulse">
-							Renew Now
-						</Badge>
-					)}
-				</div>
-			),
 			cells: {
-				dates: (
+				status: (
+					<div className="flex flex-col items-start gap-1">
+						<Badge variant="outline" className={getStatusBadgeClass(sub.status)}>
+							{sub.status.replace(/_/g, " ")}
+						</Badge>
+						{renewable ? (
+							<Badge variant="destructive" className="animate-pulse">
+								Renew Now
+							</Badge>
+						) : null}
+					</div>
+				),
+				billing: (
+					<CleanListCell>
+						{zeepo ? ZEEPO_BILLING_LABEL : getBillingCycleDisplayName(sub.billingCycle)}
+					</CleanListCell>
+				),
+				details: zeepo ? (
+					<div className="flex min-w-0 flex-col gap-0.5">
+						<p className="truncate text-sm font-medium text-foreground">Remaining tokens</p>
+						<CleanListCell>{formatRemainingTokenCount(sub.remainingTokens)}</CleanListCell>
+					</div>
+				) : (
 					<div className="flex min-w-0 flex-col gap-0.5">
 						<p className="truncate text-sm font-medium text-foreground">
 							{subscribed ? `Subscribed ${subscribed}` : ""}
@@ -179,9 +207,12 @@ export function CustomerSubscriptionsTable({ onViewSubscription, onRenewSubscrip
 					? `No subscriptions match "${searchQuery}"`
 					: "No subscriptions found. Your company's subscriptions will appear here."
 			}
+			titleLines={3}
 			columns={[
 				{ key: "name", label: "Service" },
-				{ key: "dates", label: "Dates", className: "w-56", hideBelow: "@lg" },
+				{ key: "status", label: "Status", className: "w-36", hideBelow: "@md" },
+				{ key: "billing", label: "Billing", className: "w-36", hideBelow: "@lg" },
+				{ key: "details", label: "Details", className: "w-56", hideBelow: "@xl" },
 				{ key: "progress", label: "Progress", className: "w-24", hideBelow: "@xl" },
 				{ key: "actions", label: "Actions", align: "end" },
 			]}

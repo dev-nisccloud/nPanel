@@ -1,8 +1,6 @@
 import { z } from "zod";
 import { publicProcedure, router } from "../trpc";
-import { EtimsApiError } from "../lib/etims-client";
 import {
-    certIdentityMatchesEnv,
     extractCmcKey,
     extractResultCd,
     getEtimsCertOscu,
@@ -30,8 +28,8 @@ async function kra<T>(fn: () => Promise<T>): Promise<{ success: true; data: T } 
 
 function parseExpectedCounter(message: string): number | null {
     const m =
-        message.match(/Expected:\s*(\d+)\s+but\s+found/i) ??
-        message.match(/expected:\s*(\d+)\s+but\s+found/i);
+        message.match(/Expected:\s*(\d+(?:\.\d+)?)\s+but\s+found/i) ??
+        message.match(/expected:\s*(\d+(?:\.\d+)?)\s+but\s+found/i);
     return m ? Number(m[1]) : null;
 }
 
@@ -46,7 +44,6 @@ export const etimsCertRouter = router({
                     resolveReusedCmcKey({
                         env: rt.env,
                         memoryKey: rt.cmcKey,
-                        identityMatchesEnv: true,
                     }),
                 ),
                 usesDatabase: false,
@@ -70,6 +67,7 @@ export const etimsCertRouter = router({
     initialization: router({
         initializeDevice: publicProcedure
             .input(z.object({
+                /** Ignored. OSCU tin/bhfId/serial always come from .env.etims-certification. */
                 tin: z.string().min(1).optional(),
                 bhfId: z.string().min(1).optional(),
                 dvcSrlNo: z.string().min(1).optional(),
@@ -79,21 +77,46 @@ export const etimsCertRouter = router({
             }).optional())
             .mutation(async ({ input }) => {
                 const rt = getEtimsCertRuntime();
-                const tin = input?.tin?.trim() || rt.env.tin;
-                const bhfId = input?.bhfId?.trim() || rt.env.bhfId;
-                const dvcSrlNo = input?.dvcSrlNo?.trim() || rt.env.dvcSrlNo;
+                const tin = rt.env.tin;
+                const bhfId = rt.env.bhfId;
+                const dvcSrlNo = rt.env.dvcSrlNo;
+                const ignoredBodyIdentity = Boolean(
+                    (input?.tin?.trim() && input.tin.trim() !== tin) ||
+                    (input?.bhfId?.trim() && input.bhfId.trim() !== bhfId) ||
+                    (input?.dvcSrlNo?.trim() && input.dvcSrlNo.trim() !== dvcSrlNo),
+                );
                 const kraInitUrl = `${rt.env.clientConfig.baseUrl.replace(/\/+$/, "")}/initialize`;
                 await rt.client.clearToken();
 
-                let result: unknown;
-                try {
-                    result = await rt.client.selectInitOsdcInfo({ tin, bhfId, dvcSrlNo });
-                } catch (e: unknown) {
-                    if (e instanceof EtimsApiError && e.resultCd === "902") {
-                        result = e.response;
-                    } else {
-                        return { success: false as const, data: null, cmcKey: null, kraInitUrl, errorMessage: errMsg(e) };
-                    }
+                const raw = await rt.client.requestRaw(
+                    "selectInitOsdcInfo",
+                    { tin, bhfId, dvcSrlNo },
+                    { tin, bhfId, cmcKey: "" },
+                );
+                const result = raw.bodyJson;
+                const resultCd = extractResultCd(result);
+
+                const identity = {
+                    tin,
+                    bhfId,
+                    dvcSrlNo,
+                    ignoredBodyIdentity,
+                    source: rt.env.envPath,
+                    usesDatabase: false as const,
+                    kraHttpStatus: raw.statusCode,
+                    resultCd,
+                };
+
+                if (resultCd === "901") {
+                    return {
+                        success: false as const,
+                        data: result,
+                        cmcKey: null,
+                        kraInitUrl,
+                        ...identity,
+                        errorMessage:
+                            "KRA 901: this device serial is not registered to ETIMS_CERT_APP_TEST_PIN. Copy Device Serial Number from the same Developer Portal Automated App Test as that PIN. A new Application Test Pin cannot reuse a previous TIS app's serial.",
+                    };
                 }
 
                 const fromKra = extractCmcKey(result);
@@ -105,19 +128,16 @@ export const etimsCertRouter = router({
                         cmcKey: fromKra,
                         reusedExistingCmcKey: false,
                         kraInitUrl,
-                        source: rt.env.envPath,
-                        usesDatabase: false,
+                        ...identity,
                     };
                 }
 
-                const resultCd = extractResultCd(result);
                 const reused =
                     resultCd === "902"
                         ? resolveReusedCmcKey({
                             bodyKey: input?.cmcKey,
                             env: rt.env,
                             memoryKey: rt.cmcKey,
-                            identityMatchesEnv: certIdentityMatchesEnv(rt.env, input),
                         })
                         : null;
 
@@ -129,8 +149,26 @@ export const etimsCertRouter = router({
                         cmcKey: reused,
                         reusedExistingCmcKey: true,
                         kraInitUrl,
-                        source: rt.env.envPath,
-                        usesDatabase: false,
+                        ...identity,
+                    };
+                }
+
+                if (raw.statusCode !== 200 && resultCd !== "902") {
+                    return {
+                        success: false as const,
+                        data: result,
+                        cmcKey: null,
+                        kraInitUrl,
+                        ...identity,
+                        errorMessage: errMsg(
+                            new Error(
+                                `eTIMS API (selectInitOsdcInfo) HTTP ${raw.statusCode}: ${
+                                    typeof result === "object" && result && "resultMsg" in result
+                                        ? String((result as { resultMsg?: unknown }).resultMsg)
+                                        : raw.bodyText
+                                }`,
+                            ),
+                        ),
                     };
                 }
 
@@ -139,6 +177,7 @@ export const etimsCertRouter = router({
                     data: result,
                     cmcKey: null,
                     kraInitUrl,
+                    ...identity,
                     errorMessage:
                         resultCd === "902"
                             ? "Sandbox 902 returned no cmcKey. POST cmcKey once on this call, or set ETIMS_CERT_CMC_KEY in .env.etims-certification. Isolated cert never reads etims_configuration."
@@ -173,10 +212,15 @@ export const etimsCertRouter = router({
             return kra(() => client.selectTaxPayerInfo(oscu, input.lastReqDt));
         }),
         lookupCustomer: publicProcedure
-            .input(z.object({ custmTin: z.string().min(1) }))
+            .input(z.object({
+                custmTin: z.string().min(1),
+                lastReqDt: z.string().regex(/^\d{14}$/).default("20180101000000"),
+            }))
             .query(async ({ input }) => {
                 const { client, oscu } = getEtimsCertOscu();
-                return kra(() => client.selectCustomer(oscu, input.custmTin.trim().toUpperCase()));
+                return kra(() =>
+                    client.selectCustomer(oscu, input.custmTin.trim().toUpperCase(), input.lastReqDt),
+                );
             }),
     }),
 
@@ -276,7 +320,15 @@ export const etimsCertRouter = router({
         }),
         saveStockMaster: publicProcedure.input(z.object({ stockMaster: body })).mutation(async ({ input }) => {
             const { client, oscu } = getEtimsCertOscu();
-            return kra(() => client.saveStockMaster(oscu, input.stockMaster));
+            const stockMaster = { ...input.stockMaster };
+            for (let attempt = 0; attempt < 6; attempt++) {
+                const result = await kra(() => client.saveStockMaster(oscu, stockMaster));
+                if (result.success) return result;
+                const expected = parseExpectedCounter(result.errorMessage);
+                if (expected == null || expected === Number(stockMaster.rsdQty)) return result;
+                stockMaster.rsdQty = expected;
+            }
+            return { success: false as const, data: null, errorMessage: "saveStockMaster: exhausted rsdQty retries" };
         }),
     }),
 });
