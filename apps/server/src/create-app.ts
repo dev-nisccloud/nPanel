@@ -42,6 +42,7 @@ import { handleManifest } from "./api/manifest";
 import { handlePleskHealthCheck } from "./api/plesk-health-check";
 import { handleNiscBackupHealthCheck } from "./api/nisc-backup-health-check";
 import { handleNiscBackupDownloadFile } from "./api/nisc-backup-download-file";
+import { handleHostingFtpDownload } from "./api/hosting-ftp-download";
 import { handleTestPleskConnection } from "./api/test-plesk-connection";
 import { handlePhpMyAdminSso } from "./api/hosting-phpmyadmin";
 import { handlePhpMyAdminProxy } from "./api/hosting-phpmyadmin-proxy";
@@ -244,6 +245,7 @@ export function createApp(options: CreateAppOptions = {}) {
     app.use("/api/hosting/phpmyadmin/proxy/*", handlePhpMyAdminProxy);
     app.get("/api/nisc-backup/health-check", handleNiscBackupHealthCheck);
     app.get("/api/nisc-backup/downloads/:id/file", handleNiscBackupDownloadFile);
+    app.get("/api/hosting/ftp/download", handleHostingFtpDownload);
     app.get("/api/kenic/test-connection", handleTestKenicConnection);
     app.get("/api/my-ip", handleMyIp);
 

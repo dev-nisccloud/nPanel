@@ -14,6 +14,24 @@ import {
 const FTP_USER_ERROR_MESSAGE =
 	"An error occurred. Please try again later or contact support.";
 
+function ftpErrorDescription(error: unknown): string {
+	if (error instanceof TRPCClientError) {
+		const message = error.message?.trim();
+		if (message) return message;
+	}
+	return FTP_USER_ERROR_MESSAGE;
+}
+
+function startBrowserDownload(url: string, filename: string) {
+	const anchor = document.createElement("a");
+	anchor.href = url;
+	anchor.download = filename || "download";
+	anchor.rel = "noopener";
+	document.body.appendChild(anchor);
+	anchor.click();
+	anchor.remove();
+}
+
 const ftpCredentialsSchema = z.object({
 	host: z.string().min(1, "Host is required"),
 	port: z.number().min(1).max(65535).default(21),
@@ -107,13 +125,12 @@ export function useFtpFileManager(
 		refetchOnWindowFocus: false,
 		refetchOnMount: true,
 		retry: (failureCount: number, err: unknown) => {
-			if (
-				err instanceof TRPCClientError &&
-				err.data?.code === "INTERNAL_SERVER_ERROR" &&
-				failureCount < 3
-			) {
-				return true;
-			}
+			if (!(err instanceof TRPCClientError)) return false;
+			const code = err.data?.code;
+			// A refused connection will not recover by retrying. Timeouts and
+			// unexpected server errors can.
+			if (code === "TIMEOUT" && failureCount < 1) return true;
+			if (code === "INTERNAL_SERVER_ERROR" && failureCount < 3) return true;
 			return false;
 		},
 		retryDelay: (attemptIndex: number) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -123,7 +140,7 @@ export function useFtpFileManager(
 		if (!isError) return;
 
 		toast.error("Failed to load files", {
-			description: FTP_USER_ERROR_MESSAGE,
+			description: ftpErrorDescription(error),
 		});
 	}, [isError, error]);
 
@@ -153,9 +170,9 @@ export function useFtpFileManager(
 			if (result.success) {
 				setCurrentPath(newPath);
 			}
-		} catch {
+		} catch (navigationError) {
 			toast.error("Failed to open folder", {
-				description: FTP_USER_ERROR_MESSAGE,
+				description: ftpErrorDescription(navigationError),
 			});
 		} finally {
 			setIsNavigating(false);
@@ -176,9 +193,9 @@ export function useFtpFileManager(
 		setIsManualRefreshing(true);
 		try {
 			await utils.plesk.ftp.list.fetch(listInput, { staleTime: 0 });
-		} catch {
+		} catch (refreshError) {
 			toast.error("Failed to refresh files", {
-				description: FTP_USER_ERROR_MESSAGE,
+				description: ftpErrorDescription(refreshError),
 			});
 		} finally {
 			setIsManualRefreshing(false);
@@ -192,9 +209,9 @@ export function useFtpFileManager(
 			toast.success("File deleted successfully");
 			void refetch();
 		},
-		onError: () => {
+		onError: (mutationError) => {
 			toast.error("Failed to delete file", {
-				description: FTP_USER_ERROR_MESSAGE,
+				description: ftpErrorDescription(mutationError),
 			});
 		},
 	});
@@ -206,9 +223,9 @@ export function useFtpFileManager(
 			toast.success("Directory deleted successfully");
 			void refetch();
 		},
-		onError: () => {
+		onError: (mutationError) => {
 			toast.error("Failed to delete directory", {
-				description: FTP_USER_ERROR_MESSAGE,
+				description: ftpErrorDescription(mutationError),
 			});
 		},
 	});
@@ -220,9 +237,9 @@ export function useFtpFileManager(
 			toast.success("Item renamed successfully");
 			void refetch();
 		},
-		onError: () => {
+		onError: (mutationError) => {
 			toast.error("Failed to rename item", {
-				description: FTP_USER_ERROR_MESSAGE,
+				description: ftpErrorDescription(mutationError),
 			});
 		},
 	});
@@ -234,9 +251,9 @@ export function useFtpFileManager(
 			toast.success("Directory created successfully");
 			void refetch();
 		},
-		onError: () => {
+		onError: (mutationError) => {
 			toast.error("Failed to create directory", {
-				description: FTP_USER_ERROR_MESSAGE,
+				description: ftpErrorDescription(mutationError),
 			});
 		},
 	});
@@ -249,9 +266,9 @@ export function useFtpFileManager(
 			toast.success("File uploaded successfully");
 			void refetch();
 		},
-		onError: () => {
+		onError: (mutationError) => {
 			toast.error("Failed to upload file", {
-				description: FTP_USER_ERROR_MESSAGE,
+				description: ftpErrorDescription(mutationError),
 			});
 		},
 	});
@@ -302,12 +319,25 @@ export function useFtpFileManager(
 		const fileData = await new Promise<string>((resolve, reject) => {
 			const reader = new FileReader();
 			reader.onload = () => {
-				const result = reader.result as string;
-				const base64 = result.split(",")[1];
+				const result = reader.result;
+				if (typeof result !== "string") {
+					reject(new Error("Could not read the selected file."));
+					return;
+				}
+				const base64 = result.includes(",") ? (result.split(",")[1] ?? "") : "";
+				if (!base64 && file.size > 0) {
+					reject(new Error("Could not read the selected file."));
+					return;
+				}
 				resolve(base64);
 			};
-			reader.onerror = reject;
+			reader.onerror = () => reject(new Error("Could not read the selected file."));
 			reader.readAsDataURL(file);
+		}).catch((readError: unknown) => {
+			toast.error("Failed to upload file", {
+				description: "The selected file could not be read. Please try again.",
+			});
+			throw readError;
 		});
 
 		await uploadFileMutation.mutateAsync({
@@ -323,22 +353,12 @@ export function useFtpFileManager(
 			toast.info("Starting file download...");
 		},
 		onSuccess: (data) => {
-			const buffer = Buffer.from(data.data.data);
-			const blob = new Blob([buffer]);
-			const url = window.URL.createObjectURL(blob);
-			const a = document.createElement("a");
-			a.href = url;
-			a.download = data.filename;
-			document.body.appendChild(a);
-			a.click();
-			window.URL.revokeObjectURL(url);
-			document.body.removeChild(a);
-
+			startBrowserDownload(data.url, data.filename);
 			toast.success("File downloaded successfully");
 		},
-		onError: () => {
+		onError: (mutationError) => {
 			toast.error("Failed to download file", {
-				description: FTP_USER_ERROR_MESSAGE,
+				description: ftpErrorDescription(mutationError),
 			});
 		},
 	});
@@ -350,38 +370,32 @@ export function useFtpFileManager(
 			});
 		},
 		onSuccess: (data) => {
-			const buffer = Buffer.from(data.data.data);
-			const blob = new Blob([buffer]);
-			const url = window.URL.createObjectURL(blob);
-			const a = document.createElement("a");
-			a.href = url;
-			a.download = data.filename;
-			document.body.appendChild(a);
-			a.click();
-			window.URL.revokeObjectURL(url);
-			document.body.removeChild(a);
-
+			startBrowserDownload(data.url, data.filename);
 			toast.success("Folder downloaded successfully");
 		},
-		onError: () => {
+		onError: (mutationError) => {
 			toast.error("Failed to download folder", {
-				description: FTP_USER_ERROR_MESSAGE,
+				description: ftpErrorDescription(mutationError),
 			});
 		},
 	});
 
 	const downloadItem = async (item: z.infer<typeof fileManagerItemSchema>) => {
-		if (item.type === "folder") {
-			await downloadFolderMutation.mutateAsync({
-				credentials: ftpCredentials,
-				remotePath: item.path,
-				folderName: item.name,
-			});
-		} else {
-			await downloadFileMutation.mutateAsync({
-				credentials: ftpCredentials,
-				remotePath: item.path,
-			});
+		try {
+			if (item.type === "folder") {
+				await downloadFolderMutation.mutateAsync({
+					credentials: ftpCredentials,
+					remotePath: item.path,
+					folderName: item.name,
+				});
+			} else {
+				await downloadFileMutation.mutateAsync({
+					credentials: ftpCredentials,
+					remotePath: item.path,
+				});
+			}
+		} catch {
+			// The mutation onError handler already told the user what happened.
 		}
 	};
 
