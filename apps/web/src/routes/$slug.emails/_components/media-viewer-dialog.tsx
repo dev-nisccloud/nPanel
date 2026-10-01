@@ -71,12 +71,19 @@ interface MediaViewerDialogProps {
   onDownload: (item: FileManagerItem) => void;
 }
 
-function bufferToBlob(data: { data?: number[]; type?: string }): Blob {
-  const bytes = data?.data;
-  if (!bytes || !Array.isArray(bytes)) {
-    throw new Error("Invalid file data");
+async function loadFtpPreview(url: string): Promise<string> {
+  const response = await fetch(url, { credentials: "include" });
+  if (!response.ok) {
+    let message = "An error occurred. Please try again later or contact support.";
+    try {
+      const body = (await response.json()) as { message?: unknown };
+      if (typeof body.message === "string" && body.message.trim()) message = body.message.trim();
+    } catch {
+      // Error bodies are JSON from the download route. Ignore anything else.
+    }
+    throw new Error(message);
   }
-  return new Blob([new Uint8Array(bytes)]);
+  return window.URL.createObjectURL(await response.blob());
 }
 
 export function MediaViewerDialog({
@@ -109,17 +116,17 @@ export function MediaViewerDialog({
   };
 
   const downloadFileMutation = trpc.plesk.ftp.downloadFile.useMutation({
-    onSuccess: (result, variables) => {
-      const name = variables?.path || variables?.filePath || file?.name || "";
+    onSuccess: async (result, variables) => {
+      const name = variables?.remotePath || file?.name || "";
       const ext = String(name).includes(".") ? String(name).split(".").pop()?.toLowerCase() || "unknown" : "unknown";
       captureEvent("file_viewed", { file_type: ext });
       try {
-        const blob = bufferToBlob(result.data as unknown as { data?: number[]; type?: string });
-        const url = window.URL.createObjectURL(blob);
-        setObjectUrl(url);
+        setObjectUrl(await loadFtpPreview(result.url));
       } catch (e) {
         console.error("Failed to create object URL", e);
-        toast.error("Failed to load media");
+        toast.error("Failed to load media", {
+          description: e instanceof Error ? e.message : "An error occurred. Please try again later or contact support.",
+        });
       }
     },
     onError: (error) => {

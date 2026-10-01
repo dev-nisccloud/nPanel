@@ -32,6 +32,7 @@ const userInfoOutputSchema = z.object({
       state: z.string().nullable(),
       country: z.string().nullable(),
       postalCode: z.string().nullable(),
+      customerGuideCompletedAt: z.date().nullable(),
     })
     .nullable(),
 });
@@ -138,6 +139,7 @@ function mapProfileRow(p: typeof userProfile.$inferSelect | undefined) {
     state: p.state,
     country: p.country,
     postalCode: p.postalCode,
+    customerGuideCompletedAt: p.customerGuideCompletedAt ?? null,
   };
 }
 
@@ -241,6 +243,45 @@ export const userProfileRouter = router({
         updatedAt: u.updatedAt,
         profile: mapProfileRow(p),
       };
+    }),
+
+  /**
+   * Remember that this user finished or dismissed the customer dashboard tour.
+   * Stored on the user profile, not on a team.
+   */
+  setCustomerGuideCompleted: protectedProcedure
+    .input(z.object({ completed: z.boolean() }))
+    .output(z.object({ success: z.boolean() }))
+    .mutation(async ({ input, ctx }) => {
+      const userId = ctx.session?.user?.id;
+      if (!userId) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
+      }
+
+      const now = new Date();
+      const completedAt = input.completed ? now : null;
+      const [existing] = await db
+        .select({ id: userProfile.id })
+        .from(userProfile)
+        .where(eq(userProfile.userId, userId))
+        .limit(1);
+
+      if (existing) {
+        await db
+          .update(userProfile)
+          .set({ customerGuideCompletedAt: completedAt, updatedAt: now })
+          .where(eq(userProfile.userId, userId));
+      } else {
+        await db.insert(userProfile).values({
+          id: crypto.randomUUID(),
+          userId,
+          customerGuideCompletedAt: completedAt,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+
+      return { success: true };
     }),
 
   /**

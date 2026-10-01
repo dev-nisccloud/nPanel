@@ -110,6 +110,7 @@ export const userProfile = pgTable(
     state: text("state"),
     country: text("country"),
     postalCode: text("postal_code"),
+    customerGuideCompletedAt: timestamp("customer_guide_completed_at"),
     createdAt: timestamp("created_at").notNull(),
     updatedAt: timestamp("updated_at").notNull(),
   },
