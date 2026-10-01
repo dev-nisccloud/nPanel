@@ -28,17 +28,17 @@ function visitKey(userId: string, step: GuideStep) {
 	return `npanel:customer-guide-visit:${userId}:${step}`;
 }
 
-function readGuide(userId: string): GuideStep | "done" {
+function readGuide(userId: string): GuideStep | "done" | null {
 	try {
 		const raw = localStorage.getItem(storageKey(userId));
-		if (!raw) return "welcome";
+		if (!raw) return null;
 		const parsed = JSON.parse(raw) as SavedGuide;
-		if (parsed?.v !== 1) return "welcome";
+		if (parsed?.v !== 1) return null;
 		if (parsed.step === "done") return "done";
 		if (STEPS.includes(parsed.step as GuideStep)) return parsed.step as GuideStep;
-		return "welcome";
+		return null;
 	} catch {
-		return "welcome";
+		return null;
 	}
 }
 
@@ -234,9 +234,13 @@ export function CustomerDashboardGuide() {
 	const [sendingEmail, setSendingEmail] = useState(false);
 	const [mfaEnabled, setMfaEnabled] = useState(false);
 
-	const { data: userInfo } = trpc.userProfile.getUserInfo.useQuery(undefined, {
-		enabled: Boolean(userId) && step !== null && step !== "done",
+	const { data: userInfo, isFetched: userInfoFetched } = trpc.userProfile.getUserInfo.useQuery(undefined, {
+		enabled: Boolean(userId),
 	});
+	const setGuideCompleted = trpc.userProfile.setCustomerGuideCompleted.useMutation();
+	const guideCompletedAt = userInfo?.profile?.customerGuideCompletedAt ?? null;
+	const completionSynced = useRef(false);
+	const openedForUser = useRef<string | null>(null);
 	const { data: teamData } = trpc.teams.getTeamIdBySlug.useQuery(
 		{ slug: teamSlug },
 		{ enabled: Boolean(teamSlug) && step !== null && step !== "done", staleTime: 5 * 60 * 1000 },
@@ -251,13 +255,28 @@ export function CustomerDashboardGuide() {
 	}, []);
 
 	useEffect(() => {
-		if (!userId) return;
+		if (!userId || !userInfoFetched) return;
+		if (openedForUser.current === userId) return;
+		openedForUser.current = userId;
 		const saved = readGuide(userId);
-		setStep(saved);
-		if (saved === "welcome") {
+		const serverDone = Boolean(guideCompletedAt);
+		if (saved === null) {
+			if (serverDone) {
+				writeGuide(userId, "done");
+				setStep("done");
+				return;
+			}
+			writeGuide(userId, "welcome");
+			setStep("welcome");
 			captureEvent("customer_guide_started");
+			return;
 		}
-	}, [userId]);
+		setStep(saved);
+		if (saved === "done" && !serverDone && !completionSynced.current) {
+			completionSynced.current = true;
+			setGuideCompleted.mutate({ completed: true });
+		}
+	}, [guideCompletedAt, setGuideCompleted, userId, userInfoFetched]);
 
 	useEffect(() => {
 		if (!userId) return;
@@ -356,10 +375,11 @@ export function CustomerDashboardGuide() {
 			if (!userId) return;
 			writeGuide(userId, "done");
 			setStep("done");
+			setGuideCompleted.mutate({ completed: true });
 			if (reason === "done") fireGuideConfetti();
 			captureEvent("customer_guide_finished", { reason });
 		},
-		[userId],
+		[setGuideCompleted, userId],
 	);
 
 	const advance = useCallback(() => {
@@ -444,6 +464,15 @@ export function CustomerDashboardGuide() {
 		advance();
 	};
 
+	const stepFinished = isStepComplete(step, {
+		emailVerified,
+		profileComplete,
+		billingComplete,
+		mfaEnabled,
+	});
+	const canDoLater =
+		(step === "email" || step === "profile" || step === "billing" || step === "mfa") && !stepFinished;
+
 	const nextLabel =
 		step === "teams"
 			? "Done"
@@ -519,7 +548,7 @@ export function CustomerDashboardGuide() {
 					{copy.title}
 				</h2>
 				<p className="mt-2 text-sm leading-relaxed text-muted-foreground">{copy.body}</p>
-				<div className="mt-4 flex items-center justify-between gap-3">
+				<div className="mt-4 flex items-center justify-between gap-2">
 					{index > 0 ? (
 						<Button type="button" size="sm" variant="outline" onClick={goBack}>
 							Previous
@@ -527,9 +556,22 @@ export function CustomerDashboardGuide() {
 					) : (
 						<span />
 					)}
-					<Button type="button" size="sm" onClick={onNext} disabled={sendingEmail}>
-						{nextLabel}
-					</Button>
+					<div className="flex items-center gap-2">
+						{canDoLater ? (
+							<Button
+								type="button"
+								size="sm"
+								variant="outline"
+								onClick={advance}
+								disabled={sendingEmail}
+							>
+								Do later
+							</Button>
+						) : null}
+						<Button type="button" size="sm" onClick={onNext} disabled={sendingEmail}>
+							{nextLabel}
+						</Button>
+					</div>
 				</div>
 			</div>
 		</div>,

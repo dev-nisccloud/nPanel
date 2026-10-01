@@ -1,0 +1,1 @@
+ALTER TABLE "user_profile" ADD COLUMN "customer_guide_completed_at" timestamp;

@@ -1,23 +1,216 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { Client, FileInfo, enterPassiveModeIPv4 } from "basic-ftp";
-import archiver from "archiver";
 import AdmZip from "adm-zip";
-import { createWriteStream, createReadStream, unlinkSync, existsSync, mkdirSync, statSync } from "fs";
+import { createReadStream, unlinkSync, existsSync, mkdirSync, statSync } from "fs";
 import { join, dirname } from "path";
 import { tmpdir } from "os";
 
+import {
+  createFtpDownloadUrl,
+  isOptionalFtpSizeError,
+  safeFtpDownloadName,
+} from "../../lib/plesk/ftp-download";
 import { protectedProcedure, router } from "../../trpc";
 
-/** Shown to clients for every FTP failure. The underlying error stays in server logs. */
+const ftpViewerRole = new AsyncLocalStorage<string | null>();
+
+const ftpProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+  return ftpViewerRole.run(ctx.session?.user?.role ?? null, () => next());
+});
+
+/** Fallback when the failure is unexpected. Known FTP failures get a specific message. */
 const FTP_USER_ERROR_MESSAGE =
   "An error occurred. Please try again later or contact support.";
 
-function ftpUserError(error: unknown): TRPCError {
-  console.error("FTP operation failed:", error);
-  return new TRPCError({
+function ftpErrorText(error: unknown): { code?: string; text: string } {
+  if (!error || typeof error !== "object") {
+    return { text: String(error) };
+  }
+
+  const record = error as { code?: unknown; message?: unknown };
+  return {
+    code: typeof record.code === "string" ? record.code : undefined,
+    text: error instanceof Error ? error.message : String(record.message ?? error),
+  };
+}
+
+/**
+ * Map transport and FTP reply failures to client-safe messages.
+ * Codes in the server's expected-error set are not reported to Sentry.
+ */
+function ftpReplyStartsWith(text: string, replyCode: string): boolean {
+  return new RegExp(`^\\s*${replyCode}\\b`, "i").test(text);
+}
+
+function classifyFtpError(error: unknown): { code: TRPCError["code"]; message: string } {
+  const { code, text } = ftpErrorText(error);
+  const normalizedCode = (code ?? "").toUpperCase();
+  const haystack = text.toLowerCase();
+
+  if (
+    ["ECONNREFUSED", "ENOTFOUND", "EHOSTUNREACH", "ENETUNREACH", "EAI_AGAIN"].includes(
+      normalizedCode,
+    ) ||
+    /\b(econnrefused|enotfound|ehostunreach|enetunreach|eai_again|getaddrinfo)\b/i.test(text)
+  ) {
+    return {
+      code: "PRECONDITION_FAILED",
+      message:
+        "Could not reach the hosting server. The file service may be offline. Please try again in a few minutes.",
+    };
+  }
+
+  if (
+    normalizedCode === "ETIMEDOUT" ||
+    normalizedCode === "ESOCKETTIMEDOUT" ||
+    /^timeout\b/i.test(text) ||
+    /\btimed out\b/i.test(text) ||
+    /\betimedout\b/i.test(text)
+  ) {
+    return {
+      code: "TIMEOUT",
+      message: "The hosting server took too long to respond. Please try again.",
+    };
+  }
+
+  if (
+    normalizedCode === "ECONNRESET" ||
+    normalizedCode === "EPIPE" ||
+    /\b(econnreset|epipe)\b/i.test(text) ||
+    haystack.includes("socket disconnected") ||
+    haystack.includes("client is closed") ||
+    haystack.includes("connection closed") ||
+    haystack.includes("connection reset")
+  ) {
+    return {
+      code: "PRECONDITION_FAILED",
+      message: "The connection to the hosting server was interrupted. Please try again.",
+    };
+  }
+
+  if (
+    haystack.includes("unable to verify") ||
+    haystack.includes("self signed") ||
+    haystack.includes("ssl routines") ||
+    haystack.includes("certificate") ||
+    haystack.includes("secure tls") ||
+    haystack.includes("tls handshake")
+  ) {
+    return {
+      code: "PRECONDITION_FAILED",
+      message:
+        "A secure connection to the hosting server could not be established. Please try again later.",
+    };
+  }
+
+  if (
+    ftpReplyStartsWith(text, "530") ||
+    haystack.includes("login incorrect") ||
+    haystack.includes("login authentication failed") ||
+    haystack.includes("authentication failed") ||
+    haystack.includes("not logged in")
+  ) {
+    return {
+      code: "FORBIDDEN",
+      message: "The hosting login was rejected. Check the FTP username and password, then try again.",
+    };
+  }
+
+  if (
+    haystack.includes("permission denied") ||
+    haystack.includes("access denied") ||
+    haystack.includes("not permitted") ||
+    haystack.includes("operation not permitted")
+  ) {
+    return {
+      code: "FORBIDDEN",
+      message: "You don't have permission to access this file or folder.",
+    };
+  }
+
+  if (
+    haystack.includes("disk quota") ||
+    haystack.includes("quota exceeded") ||
+    haystack.includes("no space left") ||
+    haystack.includes("disk full")
+  ) {
+    return {
+      code: "PAYLOAD_TOO_LARGE",
+      message: "The hosting account is out of space, so this change could not be saved.",
+    };
+  }
+
+  if (
+    haystack.includes("no such file") ||
+    haystack.includes("no such directory") ||
+    haystack.includes("does not exist") ||
+    haystack.includes("not found")
+  ) {
+    return {
+      code: "NOT_FOUND",
+      message: "That file or folder could not be found. It may have been moved or deleted.",
+    };
+  }
+
+  if (
+    ["421", "425", "426", "450", "451"].some((replyCode) => ftpReplyStartsWith(text, replyCode)) ||
+    haystack.includes("service not available") ||
+    haystack.includes("can't open data connection") ||
+    haystack.includes("cannot open data connection")
+  ) {
+    return {
+      code: "PRECONDITION_FAILED",
+      message: "The hosting server closed the file connection. Please try again.",
+    };
+  }
+
+  if (
+    ftpReplyStartsWith(text, "553") ||
+    haystack.includes("file name not allowed") ||
+    haystack.includes("invalid filename")
+  ) {
+    return {
+      code: "BAD_REQUEST",
+      message: "The file name or path is not allowed on the hosting server.",
+    };
+  }
+
+  if (ftpReplyStartsWith(text, "550")) {
+    return {
+      code: "NOT_FOUND",
+      message:
+        "The hosting server rejected this file or folder. It may be missing, or you may not have access.",
+    };
+  }
+
+  return {
     code: "INTERNAL_SERVER_ERROR",
     message: FTP_USER_ERROR_MESSAGE,
+  };
+}
+
+function ftpDetail(error: unknown): string {
+  const { code, text } = ftpErrorText(error);
+  return [code, text].filter((part) => part && part.trim()).join(": ").replace(/\s+/g, " ").trim().slice(0, 500);
+}
+
+function ftpUserError(error: unknown, role = ftpViewerRole.getStore()): TRPCError {
+  const reveal = role?.trim().toUpperCase() === "AGENCY_SUPER_ADMIN";
+  console.error("FTP operation failed:", error);
+  if (error instanceof TRPCError) {
+    if (reveal) return error;
+    return new TRPCError({
+      code: error.code,
+      message: FTP_USER_ERROR_MESSAGE,
+    });
+  }
+  const classified = classifyFtpError(error);
+  const detail = ftpDetail(error);
+  return new TRPCError({
+    code: classified.code,
+    message: reveal && detail ? detail : FTP_USER_ERROR_MESSAGE,
   });
 }
 
@@ -121,11 +314,12 @@ async function createFtpClient(credentials: z.infer<typeof ftpConnectionSchema>)
     
     return client;
   } catch (error) {
-    console.error("FTP connection failed:", error);
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: FTP_USER_ERROR_MESSAGE,
-    });
+    try {
+      client.close();
+    } catch {
+      // The socket may already be closed after a refused connection.
+    }
+    throw ftpUserError(error);
   }
 }
 
@@ -149,13 +343,21 @@ async function reconnectFtpClient(
 }
 
 function isRetryableTransferError(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error);
+  const { code, text } = ftpErrorText(error);
+  const haystack = `${code ?? ""} ${text}`;
   return (
-    message.includes("ECONNRESET") ||
-    message.includes("Client is closed") ||
-    message.includes("socket disconnected") ||
-    message.includes("secure TLS connection") ||
-    message.includes("Timeout")
+    code === "ECONNRESET" ||
+    code === "EPIPE" ||
+    code === "ETIMEDOUT" ||
+    haystack.includes("ECONNRESET") ||
+    haystack.includes("EPIPE") ||
+    haystack.includes("ETIMEDOUT") ||
+    haystack.includes("Client is closed") ||
+    haystack.includes("socket disconnected") ||
+    haystack.includes("secure TLS connection") ||
+    haystack.includes("Timeout") ||
+    haystack.includes("connection closed") ||
+    haystack.includes("426")
   );
 }
 
@@ -323,8 +525,13 @@ async function removeDirectoryRecursive(
   }
 }
 
-// Helper function to recursively list all files in a directory
-async function getAllFilesRecursively(client: Client, dirPath: string): Promise<any[]> {
+// Helper function to recursively list all files in a directory.
+// The root listing must fail loudly. Nested listing failures are skipped.
+async function getAllFilesRecursively(
+  client: Client,
+  dirPath: string,
+  options?: { throwOnListError?: boolean; skipped?: { count: number } },
+): Promise<any[]> {
   const allFiles: any[] = [];
   
   try {
@@ -341,7 +548,9 @@ async function getAllFilesRecursively(client: Client, dirPath: string): Promise<
       // If it's a directory, recursively get its contents
       if (file.isDirectory) {
         console.log(`Recursively processing directory: ${fullPath}`);
-        const subFiles = await getAllFilesRecursively(client, fullPath);
+        const subFiles = await getAllFilesRecursively(client, fullPath, {
+          skipped: options?.skipped,
+        });
         allFiles.push(...subFiles);
       } else {
         // Only add files, not directories
@@ -350,8 +559,13 @@ async function getAllFilesRecursively(client: Client, dirPath: string): Promise<
       }
     }
   } catch (error) {
+    if (options?.throwOnListError) {
+      throw error;
+    }
     console.error(`Error listing directory ${dirPath}:`, error);
-    // Continue with other directories even if one fails
+    if (options?.skipped) {
+      options.skipped.count += 1;
+    }
   }
   
   return allFiles;
@@ -377,7 +591,7 @@ function cleanupTempFile(filePath: string): void {
 
 export const ftpRouter = router({
   // Test FTP connection
-  testConnection: protectedProcedure
+  testConnection: ftpProcedure
     .input(ftpConnectionSchema)
     .query(async ({ input }) => {
       const client = await createFtpClient(input);
@@ -396,7 +610,7 @@ export const ftpRouter = router({
     }),
 
   // List files and directories
-  list: protectedProcedure
+  list: ftpProcedure
     .input(listSchema)
     .query(async ({ input }) => {
       const client = await createFtpClient(input.credentials);
@@ -431,7 +645,7 @@ export const ftpRouter = router({
     }),
 
   // Get current working directory
-  pwd: protectedProcedure
+  pwd: ftpProcedure
     .input(z.object({ credentials: ftpConnectionSchema }))
     .query(async ({ input }) => {
       const client = await createFtpClient(input.credentials);
@@ -450,7 +664,7 @@ export const ftpRouter = router({
     }),
 
   // Change directory
-  cd: protectedProcedure
+  cd: ftpProcedure
     .input(z.object({
       credentials: ftpConnectionSchema,
       path: z.string().min(1, "Path is required"),
@@ -473,7 +687,7 @@ export const ftpRouter = router({
     }),
 
   // Get file information
-  getFileInfo: protectedProcedure
+  getFileInfo: ftpProcedure
     .input(fileInfoRequestSchema)
     .query(async ({ input }) => {
       const client = await createFtpClient(input.credentials);
@@ -498,7 +712,7 @@ export const ftpRouter = router({
     }),
 
   // Upload file (server-side)
-  upload: protectedProcedure
+  upload: ftpProcedure
     .input(uploadSchema)
     .mutation(async ({ input }) => {
       const client = await createFtpClient(input.credentials);
@@ -517,7 +731,7 @@ export const ftpRouter = router({
     }),
 
   // Upload file from browser (base64 data)
-  uploadFile: protectedProcedure
+  uploadFile: ftpProcedure
     .input(uploadFileSchema)
     .mutation(async ({ input }) => {
       const client = await createFtpClient(input.credentials);
@@ -557,7 +771,7 @@ export const ftpRouter = router({
     }),
 
   // Download file
-  download: protectedProcedure
+  download: ftpProcedure
     .input(downloadSchema)
     .mutation(async ({ input }) => {
       const client = await createFtpClient(input.credentials);
@@ -576,7 +790,7 @@ export const ftpRouter = router({
     }),
 
   // Rename file or directory
-  rename: protectedProcedure
+  rename: ftpProcedure
     .input(renameSchema)
     .mutation(async ({ input }) => {
       const client = await createFtpClient(input.credentials);
@@ -595,7 +809,7 @@ export const ftpRouter = router({
     }),
 
   // Delete file
-  deleteFile: protectedProcedure
+  deleteFile: ftpProcedure
     .input(deleteSchema)
     .mutation(async ({ input }) => {
       const path = typeof input.path === "string" ? input.path.trim() : String(input.path).trim();
@@ -621,7 +835,7 @@ export const ftpRouter = router({
     }),
 
   // Delete directory (recursive: we list, delete contents, then remove empty dir)
-  deleteDirectory: protectedProcedure
+  deleteDirectory: ftpProcedure
     .input(deleteSchema)
     .mutation(async ({ input }) => {
       const path = typeof input.path === "string" ? input.path.trim() : String(input.path).trim();
@@ -654,7 +868,7 @@ export const ftpRouter = router({
     }),
 
   // Create directory
-  createDirectory: protectedProcedure
+  createDirectory: ftpProcedure
     .input(createDirSchema)
     .mutation(async ({ input }) => {
       const client = await createFtpClient(input.credentials);
@@ -674,7 +888,7 @@ export const ftpRouter = router({
 
 
   // Get FTP server features
-  getFeatures: protectedProcedure
+  getFeatures: ftpProcedure
     .input(z.object({ credentials: ftpConnectionSchema }))
     .query(async ({ input }) => {
       const client = await createFtpClient(input.credentials);
@@ -692,260 +906,101 @@ export const ftpRouter = router({
       }
     }),
 
-  // Download single file
-  downloadFile: protectedProcedure
+  // Download single file. Bytes are streamed from GET /api/hosting/ftp/download.
+  downloadFile: ftpProcedure
     .input(downloadFileSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const client = await createFtpClient(input.credentials);
-      let tempFilePath: string | null = null;
-      
       try {
-        console.log(`Downloading file: ${input.remotePath}`);
-        
-        // Create temporary file path
-        tempFilePath = createTempFilePath();
-        
-        // Download file with retry logic
-        let retryCount = 0;
-        const maxRetries = 3;
-        
-        while (retryCount < maxRetries) {
-          try {
-            await downloadWithRetry(client, input.credentials, tempFilePath, input.remotePath, 1);
-            break; // Success, exit retry loop
-          } catch (error) {
-            retryCount++;
-            if (retryCount >= maxRetries) {
-              throw error; // Re-throw if max retries reached
-            }
-            
-            // Wait before retry (exponential backoff)
-            await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
-            
-            // Reconnect if connection was lost
-            if (error instanceof Error && error.message.includes('connection')) {
-              await reconnectFtpClient(client, input.credentials);
-            }
-          }
+        try {
+          await client.size(input.remotePath);
+        } catch (error) {
+          if (!isOptionalFtpSizeError(error)) throw error;
         }
-        
-        // Read the downloaded file
-        const fileBuffer = createReadStream(tempFilePath);
-        const chunks: Buffer[] = [];
-        
-        return new Promise<{ success: boolean; data: Buffer; filename: string }>((resolve, reject) => {
-          fileBuffer.on('data', (chunk: string | Buffer) => {
-            if (Buffer.isBuffer(chunk)) {
-              chunks.push(chunk);
-            } else {
-              chunks.push(Buffer.from(chunk));
-            }
+
+        const userId = ctx.session?.user?.id;
+        if (!userId) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "Authentication required",
           });
-          fileBuffer.on('end', () => {
-            const buffer = Buffer.concat(chunks);
-            const filename = input.remotePath.split('/').pop() || 'download';
-            
-            // Cleanup temp file
-            cleanupTempFile(tempFilePath!);
-            
-            resolve({
-              success: true,
-              data: buffer,
-              filename,
-            });
-          });
-          fileBuffer.on('error', (error) => {
-            cleanupTempFile(tempFilePath!);
-            reject(ftpUserError(error));
-          });
+        }
+
+        const filename = safeFtpDownloadName(input.remotePath.split("/").pop(), "download");
+        const url = createFtpDownloadUrl({
+          uid: userId,
+          kind: "file",
+          filename,
+          remotePath: input.remotePath,
+          credentials: {
+            host: input.credentials.host,
+            port: input.credentials.port,
+            user: input.credentials.user,
+            password: input.credentials.password,
+            secure: input.credentials.secure,
+            timeout: Math.max(input.credentials.timeout, 300_000),
+          },
         });
-        
+        return { success: true as const, url, filename };
       } catch (error) {
-        // Cleanup temp file on error
-        if (tempFilePath) {
-          cleanupTempFile(tempFilePath);
-        }
-        
         throw ftpUserError(error);
       } finally {
         client.close();
       }
     }),
 
-  // Download folder as zip
-  downloadFolder: protectedProcedure
+  // Download folder as a streamed zip.
+  downloadFolder: ftpProcedure
     .input(downloadFolderSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const client = await createFtpClient(input.credentials);
-      let tempZipPath: string | null = null;
-      
       try {
-        // Get all files recursively
-        console.log(`Starting folder download for: ${input.remotePath}`);
-        const allFiles = await getAllFilesRecursively(client, input.remotePath);
-        console.log(`Found ${allFiles.length} files in folder:`, allFiles.map(f => f.path));
-        
+        const allFiles = await getAllFilesRecursively(client, input.remotePath, {
+          throwOnListError: true,
+          skipped: { count: 0 },
+        });
         if (allFiles.length === 0) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Folder is empty or does not exist",
+            message: "This folder is empty, so there is nothing to download.",
           });
         }
-        
-        // Check total folder size limit (500MB)
-        const maxFolderSize = 500 * 1024 * 1024; // 500MB
+
+        const maxFolderSize = 500 * 1024 * 1024;
         const totalSize = allFiles.reduce((sum, file) => sum + (file.size || 0), 0);
-        
         if (totalSize > maxFolderSize) {
           throw new TRPCError({
             code: "PAYLOAD_TOO_LARGE",
             message: `Folder too large (${Math.round(totalSize / 1024 / 1024)}MB). Maximum allowed size is 500MB.`,
           });
         }
-        
-        console.log(`Folder total size: ${Math.round(totalSize / 1024)}KB`);
-        
-        // Create temporary zip file
-        tempZipPath = createTempFilePath("zip");
-        const output = createWriteStream(tempZipPath);
-        const archive = archiver('zip', { zlib: { level: 9 } });
-        
-        // Set up archive
-        archive.pipe(output);
-        
-        // Track progress
-        let processedFiles = 0;
-        
-        // Add files to archive
-        const tempFiles: string[] = [];
-        
-        for (const file of allFiles) {
-          try {
-            console.log(`Processing file: ${file.path}`);
-            
-            // Create temporary file for each file
-            const tempFilePath = createTempFilePath();
-            tempFiles.push(tempFilePath);
-            console.log(`Created temp file: ${tempFilePath}`);
-            
-            // Download file with retry logic
-            let retryCount = 0;
-            const maxRetries = 3;
-            
-            while (retryCount < maxRetries) {
-              try {
-                console.log(`Downloading file ${file.path} to ${tempFilePath} (attempt ${retryCount + 1})`);
-                await downloadWithRetry(client, input.credentials, tempFilePath, file.path, 1);
-                console.log(`Successfully downloaded file: ${file.path}`);
-                break;
-              } catch (error) {
-                retryCount++;
-                console.error(`Download attempt ${retryCount} failed for ${file.path}:`, error);
-                if (retryCount >= maxRetries) {
-                  throw error;
-                }
-                
-                await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
-                
-                if (error instanceof Error && error.message.includes('connection')) {
-                  await reconnectFtpClient(client, input.credentials);
-                }
-              }
-            }
-            
-            // Calculate relative path for archive
-            const relativePath = file.path.startsWith(input.remotePath) 
-              ? file.path.substring(input.remotePath.length + 1)
-              : file.path.substring(1); // Remove leading slash if not starting with remotePath
-            
-            console.log(`DEBUG: File path: ${file.path}, Remote path: ${input.remotePath}, Relative path: ${relativePath}`);
-            
-            console.log(`Adding file to archive: ${relativePath} (from ${tempFilePath})`);
-            
-            // Add file to archive
-            archive.file(tempFilePath, { name: relativePath });
-            console.log(`File added to archive: ${relativePath}`);
-            
-            // Check if temp file exists and has content
-            const fs = require('fs');
-            if (fs.existsSync(tempFilePath)) {
-              const stats = fs.statSync(tempFilePath);
-              console.log(`DEBUG: Temp file ${tempFilePath} exists, size: ${stats.size} bytes`);
-            } else {
-              console.log(`DEBUG: Temp file ${tempFilePath} does not exist!`);
-            }
-            
-            processedFiles++;
-            console.log(`Successfully processed file ${processedFiles}/${allFiles.length}: ${file.path}`);
-            
-          } catch (error) {
-            console.error(`Failed to process file ${file.path}:`, error);
-            // Continue with other files
-          }
+
+        const userId = ctx.session?.user?.id;
+        if (!userId) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "Authentication required",
+          });
         }
-        
-        // Cleanup all temp files after archive is finalized
-        console.log(`Cleaning up ${tempFiles.length} temporary files`);
-        tempFiles.forEach(cleanupTempFile);
-        
-        // Finalize archive
-        console.log(`Finalizing archive with ${processedFiles} files processed`);
-        await archive.finalize();
-        console.log(`Archive finalized successfully`);
-        
-        // Log archive entries for debugging
-        console.log(`DEBUG: Archive entries:`, archive.pointer());
-        
-        // Wait for zip to be written
-        console.log(`Waiting for zip file to be written to ${tempZipPath}`);
-        await new Promise<void>((resolve, reject) => {
-          output.on('close', () => {
-            console.log(`Zip file written successfully`);
-            resolve();
-          });
-          output.on('error', reject);
+
+        const filename = safeFtpDownloadName(`${input.folderName}.zip`, "folder.zip");
+        const url = createFtpDownloadUrl({
+          uid: userId,
+          kind: "folder",
+          filename,
+          remotePath: input.remotePath,
+          folderName: input.folderName,
+          credentials: {
+            host: input.credentials.host,
+            port: input.credentials.port,
+            user: input.credentials.user,
+            password: input.credentials.password,
+            secure: input.credentials.secure,
+            timeout: Math.max(input.credentials.timeout, 300_000),
+          },
         });
-        
-        // Read the zip file
-        console.log(`Reading zip file from ${tempZipPath}`);
-        const zipBuffer = createReadStream(tempZipPath);
-        const chunks: Buffer[] = [];
-        
-        return new Promise<{ success: boolean; data: Buffer; filename: string }>((resolve, reject) => {
-          zipBuffer.on('data', (chunk: string | Buffer) => {
-            if (Buffer.isBuffer(chunk)) {
-              chunks.push(chunk);
-            } else {
-              chunks.push(Buffer.from(chunk));
-            }
-          });
-          zipBuffer.on('end', () => {
-            const buffer = Buffer.concat(chunks);
-            const filename = `${input.folderName}.zip`;
-            
-            console.log(`Zip file read successfully, size: ${buffer.length} bytes`);
-            
-            // Cleanup temp zip file
-            cleanupTempFile(tempZipPath!);
-            
-            resolve({
-              success: true,
-              data: buffer,
-              filename,
-            });
-          });
-          zipBuffer.on('error', (error) => {
-            cleanupTempFile(tempZipPath!);
-            reject(ftpUserError(error));
-          });
-        });
-        
+        return { success: true as const, url, filename };
       } catch (error) {
-        // Cleanup temp zip file on error
-        if (tempZipPath) {
-          cleanupTempFile(tempZipPath);
-        }
-        
         throw ftpUserError(error);
       } finally {
         client.close();
@@ -953,7 +1008,7 @@ export const ftpRouter = router({
     }),
 
   // Read file content as text (for file viewer)
-  readFile: protectedProcedure
+  readFile: ftpProcedure
     .input(z.object({
       credentials: ftpConnectionSchema,
       remotePath: z.string().min(1, "Remote path is required"),
@@ -994,7 +1049,7 @@ export const ftpRouter = router({
             
             await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
             
-            if (error instanceof Error && error.message.includes('connection')) {
+            if (isRetryableTransferError(error)) {
               await reconnectFtpClient(client, input.credentials);
             }
           }
@@ -1002,6 +1057,7 @@ export const ftpRouter = router({
         
         // Read the downloaded file as text
         return new Promise<{ success: boolean; content: string; filename: string; encoding: string }>((resolve, reject) => {
+          const role = ftpViewerRole.getStore();
           const fileBuffer = createReadStream(tempFilePath!);
           const chunks: Buffer[] = [];
           
@@ -1046,7 +1102,7 @@ export const ftpRouter = router({
           
           fileBuffer.on('error', (error) => {
             cleanupTempFile(tempFilePath!);
-            reject(ftpUserError(error));
+            reject(ftpUserError(error, role));
           });
         });
         
@@ -1066,7 +1122,7 @@ export const ftpRouter = router({
     }),
 
   // Extract zip file
-  extractZip: protectedProcedure
+  extractZip: ftpProcedure
     .input(z.object({
       credentials: ftpConnectionSchema,
       zipPath: z.string().min(1, "Zip file path is required"),
@@ -1124,7 +1180,7 @@ export const ftpRouter = router({
             
             await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
             
-            if (error instanceof Error && error.message.includes('connection')) {
+            if (isRetryableTransferError(error)) {
               await reconnectFtpClient(client, input.credentials);
             }
           }

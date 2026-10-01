@@ -141,7 +141,7 @@ function FileManagerSkeleton() {
 }
 
 // Error component
-function FileManagerError({ onRetry }: { onRetry: () => void }) {
+function FileManagerError({ onRetry, description }: { onRetry: () => void; description?: string }) {
   return (
     <div className="flex flex-col items-center justify-center space-y-4 py-12">
       <div className="text-center">
@@ -149,7 +149,7 @@ function FileManagerError({ onRetry }: { onRetry: () => void }) {
           Failed to load files
         </h3>
         <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          An error occurred. Please try again later or contact support.
+          {description?.trim() || "An error occurred. Please try again later or contact support."}
         </p>
       </div>
       <Button onClick={onRetry} variant="outline" className="flex items-center gap-2">
@@ -219,6 +219,7 @@ function FileManagerContent({
     isLoading,
     isRefreshing,
     isError,
+    error,
     currentPath,
     navigateToPath,
     navigateUp,
@@ -664,7 +665,7 @@ function FileManagerContent({
       {isLoading ? (
         <FileManagerSkeleton />
       ) : isError ? (
-        <FileManagerError onRetry={refreshCurrentPath} />
+        <FileManagerError onRetry={refreshCurrentPath} description={error?.message} />
       ) : filteredItems.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16">
           <div className="text-center max-w-md">
