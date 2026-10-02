@@ -92,6 +92,9 @@ export function useFtpFileManager(
 	initialPath: string = "/",
 ) {
 	const [currentPath, setCurrentPath] = useState(initialPath);
+	useEffect(() => {
+		setCurrentPath(initialPath || "/");
+	}, [initialPath]);
 	const [isNavigating, setIsNavigating] = useState(false);
 	const [isManualRefreshing, setIsManualRefreshing] = useState(false);
 	const utils = trpc.useUtils();

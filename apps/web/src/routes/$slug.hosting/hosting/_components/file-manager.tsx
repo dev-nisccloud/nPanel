@@ -69,6 +69,7 @@ interface FileManagerProps {
   hostingData: z.infer<typeof hostingDetailSchema>;
   openCreateSheet?: boolean;
   onCreateSheetOpened?: () => void;
+  initialPath?: string;
 }
 
 // Loading skeleton component
@@ -145,6 +146,7 @@ function FileManagerContent({
   hostingData,
   openCreateSheet,
   onCreateSheetOpened,
+  initialPath = "/",
 }: FileManagerProps) {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -218,7 +220,7 @@ function FileManagerContent({
     isCreating,
     isUploading,
     isDownloading,
-  } = useFtpFileManager(ftpCredentials, "/");
+  } = useFtpFileManager(ftpCredentials, initialPath);
 
   const filteredItems = sortFileManagerItems(
     (data?.items || []).filter(item =>
