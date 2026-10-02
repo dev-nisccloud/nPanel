@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Trash2, Search, RefreshCw, Eye } from "lucide-react";
+import { Plus, Trash2, Search, RefreshCw, Eye, Folder } from "lucide-react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { CleanList, CleanListCell, CleanListRow } from "@/components/ui/clean-list";
 import { Badge } from "@/components/ui/badge";
-import { subdomainSchema } from "./subdomains-schema";
+import { subdomainFtpHomePath, subdomainSchema } from "./subdomains-schema";
 import { useSubdomainsByDomain } from "./use-subdomains-by-domain";
 import { AddSubdomainSheet } from "./add-subdomain-sheet";
 import { ViewSubdomainSheet } from "./view-subdomain-sheet";
@@ -34,6 +34,7 @@ interface SubdomainsTableProps {
   domainName: string;
   openCreateSheet?: boolean;
   onCreateSheetOpened?: () => void;
+  onOpenFileManager?: (path: string) => void;
 }
 
 function phpVersionFromHandler(phpHandler: string) {
@@ -103,6 +104,7 @@ export function SubdomainsTable({
   domainName,
   openCreateSheet,
   onCreateSheetOpened,
+  onOpenFileManager,
 }: SubdomainsTableProps) {
   const { data: subdomainsData, isLoading, isError, error, refetch } = useSubdomainsByDomain(domainName);
   const [searchTerm, setSearchTerm] = React.useState("");
@@ -300,6 +302,18 @@ export function SubdomainsTable({
               actions={
                 <>
                   <VisitSiteButton url={subdomainSiteUrl(subdomain)} />
+                  {onOpenFileManager ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 px-2.5 text-xs"
+                      onClick={() => onOpenFileManager(subdomainFtpHomePath(subdomain))}
+                    >
+                      <Folder className="mr-1 h-3.5 w-3.5" />
+                      File manager
+                    </Button>
+                  ) : null}
                   <Button
                     type="button"
                     variant="outline"

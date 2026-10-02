@@ -86,13 +86,13 @@ export const agencyMenuKeys = [
 	"/agency/kra-etims/branches",
 	"/agency/kra-etims/settings",
 
-	"/agency/digitax/sales",
-	"/agency/digitax/purchases",
-	"/agency/digitax/products",
-	"/agency/digitax/customers",
-	"/agency/digitax/branches",
-	"/agency/digitax/notices",
-	"/agency/digitax/verifications",
+	// "/agency/digitax/sales",
+	// "/agency/digitax/purchases",
+	// "/agency/digitax/products",
+	// "/agency/digitax/customers",
+	// "/agency/digitax/branches",
+	// "/agency/digitax/notices",
+	// "/agency/digitax/verifications",
 
 	"/agency/reports/sales",
 	"/agency/reports/creative",
@@ -107,7 +107,7 @@ export const agencyMenuKeys = [
 	"/agency/nisc-reports/payments",
 	"/agency/nisc-reports/tax",
 
-	"/agency/cronjobs",
+	// "/agency/cronjobs",
 
 	"/agency/support",
 ] as const;

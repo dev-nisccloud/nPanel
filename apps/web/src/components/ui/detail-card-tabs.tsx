@@ -40,6 +40,7 @@ type DetailCardTabsTriggerProps = {
   className?: string;
   /** `scroll` = fixed min width in a scroll row; `fluid` = flex-1 grid cells */
   layout?: "scroll" | "fluid";
+  onClick?: () => void;
 };
 
 export function DetailCardTabsTrigger({
@@ -49,10 +50,12 @@ export function DetailCardTabsTrigger({
   subtitle,
   className,
   layout = "scroll",
+  onClick,
 }: DetailCardTabsTriggerProps) {
   return (
     <TabsTrigger
       value={value}
+      onClick={onClick}
       className={cn(
         layout === "fluid" ? DETAIL_TAB_TRIGGER_FLUID_CLASS : DETAIL_TAB_TRIGGER_CLASS,
         className,

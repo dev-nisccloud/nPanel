@@ -6,6 +6,7 @@ import { z } from "zod";
 import { trpc } from "@/utils/trpc";
 
 import { captureEvent } from "@/lib/posthog";
+import { putFtpFile } from "@/components/hosting/ftp-transfer";
 import {
 	fileManagerItemSchema,
 	fileManagerSchema,
@@ -15,7 +16,7 @@ const FTP_USER_ERROR_MESSAGE =
 	"An error occurred. Please try again later or contact support.";
 
 function ftpErrorDescription(error: unknown): string {
-	if (error instanceof TRPCClientError) {
+	if (error instanceof TRPCClientError || error instanceof Error) {
 		const message = error.message?.trim();
 		if (message) return message;
 	}
@@ -92,8 +93,12 @@ export function useFtpFileManager(
 	initialPath: string = "/",
 ) {
 	const [currentPath, setCurrentPath] = useState(initialPath);
+	useEffect(() => {
+		setCurrentPath(initialPath || "/");
+	}, [initialPath]);
 	const [isNavigating, setIsNavigating] = useState(false);
 	const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+	const [uploadsInFlight, setUploadsInFlight] = useState(0);
 	const utils = trpc.useUtils();
 
 	const listInput = useMemo(
@@ -258,20 +263,7 @@ export function useFtpFileManager(
 		},
 	});
 
-	const uploadFileMutation = trpc.plesk.ftp.uploadFile.useMutation({
-		onSuccess: (_data, variables) => {		const name = (variables as { fileName?: string })?.fileName || "";
-		const ext = name.includes(".") ? name.split(".").pop()?.toLowerCase() || "unknown" : "unknown";
-		captureEvent("file_uploaded", { file_type: ext });
-
-			toast.success("File uploaded successfully");
-			void refetch();
-		},
-		onError: (mutationError) => {
-			toast.error("Failed to upload file", {
-				description: ftpErrorDescription(mutationError),
-			});
-		},
-	});
+	const uploadFileMutation = trpc.plesk.ftp.uploadFile.useMutation();
 
 	const deleteItem = async (item: z.infer<typeof fileManagerItemSchema>) => {
 		if (item.type === "folder") {
@@ -316,36 +308,29 @@ export function useFtpFileManager(
 	};
 
 	const uploadFile = async (file: File, remotePath: string) => {
-		const fileData = await new Promise<string>((resolve, reject) => {
-			const reader = new FileReader();
-			reader.onload = () => {
-				const result = reader.result;
-				if (typeof result !== "string") {
-					reject(new Error("Could not read the selected file."));
-					return;
-				}
-				const base64 = result.includes(",") ? (result.split(",")[1] ?? "") : "";
-				if (!base64 && file.size > 0) {
-					reject(new Error("Could not read the selected file."));
-					return;
-				}
-				resolve(base64);
-			};
-			reader.onerror = () => reject(new Error("Could not read the selected file."));
-			reader.readAsDataURL(file);
-		}).catch((readError: unknown) => {
-			toast.error("Failed to upload file", {
-				description: "The selected file could not be read. Please try again.",
+		setUploadsInFlight((count) => count + 1);
+		try {
+			const prepared = await uploadFileMutation.mutateAsync({
+				credentials: ftpCredentials,
+				fileName: file.name,
+				remotePath,
+				size: file.size,
 			});
-			throw readError;
-		});
-
-		await uploadFileMutation.mutateAsync({
-			credentials: ftpCredentials,
-			fileData,
-			fileName: file.name,
-			remotePath,
-		});
+			await putFtpFile(prepared.url, file);
+			const extension = file.name.includes(".")
+				? file.name.split(".").pop()?.toLowerCase() || "unknown"
+				: "unknown";
+			captureEvent("file_uploaded", { file_type: extension });
+			toast.success("File uploaded successfully");
+			void refetch();
+		} catch (uploadError) {
+			toast.error("Failed to upload file", {
+				description: ftpErrorDescription(uploadError),
+			});
+			throw uploadError;
+		} finally {
+			setUploadsInFlight((count) => Math.max(0, count - 1));
+		}
 	};
 
 	const downloadFileMutation = trpc.plesk.ftp.downloadFile.useMutation({
@@ -424,7 +409,7 @@ export function useFtpFileManager(
 		isRenaming: renameMutation.isPending,
 		isMoving: renameMutation.isPending,
 		isCreating: createDirectoryMutation.isPending,
-		isUploading: uploadFileMutation.isPending,
+		isUploading: uploadsInFlight > 0 || uploadFileMutation.isPending,
 		isDownloading: downloadFileMutation.isPending || downloadFolderMutation.isPending,
 	};
 }

@@ -68,7 +68,7 @@ export function WordPressDataTable() {
       title: (
         <Link
           to={href}
-          className="text-primary hover:underline"
+          className="text-foreground hover:underline"
           onClick={(e) => e.stopPropagation()}
         >
           {title}

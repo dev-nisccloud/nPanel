@@ -43,6 +43,8 @@ import { handlePleskHealthCheck } from "./api/plesk-health-check";
 import { handleNiscBackupHealthCheck } from "./api/nisc-backup-health-check";
 import { handleNiscBackupDownloadFile } from "./api/nisc-backup-download-file";
 import { handleHostingFtpDownload } from "./api/hosting-ftp-download";
+import { handleHostingFtpExtract } from "./api/hosting-ftp-extract";
+import { handleHostingFtpUpload } from "./api/hosting-ftp-upload";
 import { handleTestPleskConnection } from "./api/test-plesk-connection";
 import { handlePhpMyAdminSso } from "./api/hosting-phpmyadmin";
 import { handlePhpMyAdminProxy } from "./api/hosting-phpmyadmin-proxy";
@@ -163,7 +165,7 @@ export function createApp(options: CreateAppOptions = {}) {
     "/*",
     cors({
       origin: createCorsOriginMatcher(env.CORS_ORIGIN),
-      allowMethods: ["GET", "POST", "OPTIONS"],
+      allowMethods: ["GET", "POST", "PUT", "OPTIONS"],
       allowHeaders: ["Content-Type", "Authorization", "upstash-signature"],
       credentials: true,
     }),
@@ -246,6 +248,8 @@ export function createApp(options: CreateAppOptions = {}) {
     app.get("/api/nisc-backup/health-check", handleNiscBackupHealthCheck);
     app.get("/api/nisc-backup/downloads/:id/file", handleNiscBackupDownloadFile);
     app.get("/api/hosting/ftp/download", handleHostingFtpDownload);
+    app.put("/api/hosting/ftp/upload", handleHostingFtpUpload);
+    app.post("/api/hosting/ftp/extract", handleHostingFtpExtract);
     app.get("/api/kenic/test-connection", handleTestKenicConnection);
     app.get("/api/my-ip", handleMyIp);
 

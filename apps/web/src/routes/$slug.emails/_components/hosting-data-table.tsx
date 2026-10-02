@@ -31,6 +31,7 @@ import { useLocation } from "react-router";
 // import { hostingColumns } from "./columns";
 import { getStatusDisplayText, getStatusBadgeVariant } from "./hosting-utils";
 
+import { PurchaseAnotherPlanButton } from "@/routes/$slug.marketplace/_components/purchase-another-plan-button";
 import { HostingPricing } from "./hosting-pricing";
 import type { CustomerHostingListItem } from "./schema";
 import { useTeamEmailSubscriptions } from "./use-team-email-subscriptions";
@@ -214,7 +215,7 @@ export function HostingDataTable() {
                 <TableCell className="pl-6">
                   <Link
                     to={`/${teamSlug}/emails/${emailHostingDetailId(subscription)}`}
-                    className="font-medium text-primary hover:underline"
+                    className="font-medium text-foreground hover:underline"
                   >
                     {subscription.primaryDomain ?? subscription.subscriptionName ?? subscription.id}
                   </Link>
@@ -247,8 +248,8 @@ export function HostingDataTable() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-1 items-center space-x-2">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -264,6 +265,7 @@ export function HostingDataTable() {
             </Badge>
           )}
         </div>
+        <PurchaseAnotherPlanButton service="email" />
       </div>
 
       <TableView />

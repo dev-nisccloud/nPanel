@@ -137,6 +137,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
   const [activeTab, setActiveTab] = React.useState(() =>
     hostingDetailTabFromSearch(searchParams.get("tab")),
   );
+  const [fileManagerPath, setFileManagerPath] = React.useState("/");
   const [createIntentTab, setCreateIntentTab] = React.useState<HostingDetailTab | null>(null);
   const suspendActions = useHostingSubscriptionSuspend({
     onSuccess: () => refetch(),
@@ -251,7 +252,13 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
                 <DetailCardTabsTrigger value="overview" icon={LayoutDashboard} title="Overview" subtitle="Details" />
                 <DetailCardTabsTrigger value="dns" icon={Network} title="DNS" subtitle="Records" />
                 <DetailCardTabsTrigger value="mail" icon={Mail} title="Mail" subtitle="Accounts" />
-                <DetailCardTabsTrigger value="file-manager" icon={Folder} title="File Manager" subtitle="Files" />
+                <DetailCardTabsTrigger
+                  value="file-manager"
+                  icon={Folder}
+                  title="File Manager"
+                  subtitle="Files"
+                  onClick={() => setFileManagerPath("/")}
+                />
                 <DetailCardTabsTrigger value="subdomains" icon={Layers} title="Subdomains" subtitle="Domains" />
                 <DetailCardTabsTrigger value="databases" icon={Database} title="Databases" subtitle="MySQL/PostgreSQL" />
                 <DetailCardTabsTrigger value="wordpress" icon={Icons.Wordpress} title="WordPress" subtitle="Instances" />
@@ -289,6 +296,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
             <TabsContent value="file-manager" className="mt-10">
               <FileManager
                 hostingData={hostingData}
+                initialPath={fileManagerPath}
                 openCreateSheet={createIntentTab === "file-manager"}
                 onCreateSheetOpened={clearCreateIntent}
               />
@@ -299,6 +307,10 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
                 domainName={hostingData.gen_info?.name || ""}
                 openCreateSheet={createIntentTab === "subdomains"}
                 onCreateSheetOpened={clearCreateIntent}
+                onOpenFileManager={(path) => {
+                  setFileManagerPath(path);
+                  setActiveTab("file-manager");
+                }}
               />
             </TabsContent>
 

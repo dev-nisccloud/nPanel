@@ -14,6 +14,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { trpc } from "@/utils/trpc";
+import { authClient } from "@/lib/auth-client";
 import { captureEvent } from "@/lib/posthog";
 import { cn } from "@/lib/utils";
 
@@ -49,16 +50,15 @@ type PageSpeedData = {
   cached?: boolean;
 };
 
-function formatPageSpeedErrorMessage(message: string | undefined): string {
-  if (!message) return "Failed to load PageSpeed Insights data";
-  if (
-    /service unavailable/i.test(message) ||
-    /not valid JSON/i.test(message) ||
-    /unexpected token/i.test(message)
-  ) {
-    return "PageSpeed Insights is temporarily unavailable. Please try again.";
-  }
-  return message;
+const GENERIC_PAGESPEED_ERROR =
+  "An error occurred. Please try again or contact support.";
+
+function formatPageSpeedErrorMessage(
+  message: string | undefined,
+  isSuperAdmin: boolean,
+): string {
+  if (isSuperAdmin && message?.trim()) return message.trim();
+  return GENERIC_PAGESPEED_ERROR;
 }
 
 function scoreStroke(score: number | null): string {
@@ -182,6 +182,7 @@ function StrategySummary({
   data,
   loading,
   error,
+  errorMessage,
   selected,
   onSelect,
 }: {
@@ -189,6 +190,7 @@ function StrategySummary({
   data: PageSpeedData | undefined;
   loading: boolean;
   error: boolean;
+  errorMessage?: string;
   selected: boolean;
   onSelect: () => void;
 }) {
@@ -206,13 +208,13 @@ function StrategySummary({
       <ScoreRing score={error ? null : score} loading={loading} />
       <div className="min-w-0 space-y-0.5">
         <p className="text-sm font-semibold text-foreground">{label}</p>
-        <p className="text-xs text-muted-foreground">
+        <p className="break-words text-xs text-muted-foreground">
           Last scanned:{" "}
           <span className="text-muted-foreground">
             {loading
               ? "Running…"
               : error
-                ? "Failed"
+                ? errorMessage?.trim() || "Failed"
                 : formatScannedAt(data?.timestamp)}
           </span>
         </p>
@@ -284,24 +286,26 @@ type PageSpeedSiteResult = {
   cached?: boolean;
 };
 
-function toastPageSpeedError(error: {
-  data?: { code?: string };
-  message?: string;
-} | null | undefined) {
+function toastPageSpeedError(
+  error: {
+    data?: { code?: string };
+    message?: string;
+  } | null | undefined,
+  isSuperAdmin: boolean,
+) {
   if (!error) return;
-  if (error.data?.code === "TOO_MANY_REQUESTS") {
-    toast.error("Rate limit exceeded. Please try again later.");
-  } else if (error.data?.code === "UNAUTHORIZED") {
-    toast.error("PageSpeed Insights API authentication failed.");
-  } else {
-    toast.error(formatPageSpeedErrorMessage(error.message));
-  }
+  toast.error(formatPageSpeedErrorMessage(error.message, isSuperAdmin));
 }
 
 export function PageSpeedInsightsCard({ domainName }: PageSpeedInsightsCardProps) {
   const [selectedStrategy, setSelectedStrategy] =
     React.useState<Strategy>("mobile");
   const utils = trpc.useUtils();
+  const { data: session, isPending: sessionPending } = authClient.useSession();
+  const isSuperAdmin =
+    (session?.user as { role?: string } | undefined)?.role === "AGENCY_SUPER_ADMIN";
+  const isSuperAdminRef = React.useRef(isSuperAdmin);
+  isSuperAdminRef.current = isSuperAdmin;
 
   const domainUrl = React.useMemo(() => {
     if (!domainName) return null;
@@ -338,18 +342,22 @@ export function PageSpeedInsightsCard({ domainName }: PageSpeedInsightsCardProps
       utils.pagespeedInsights.getPageSpeed.setData({ url: domainUrl }, data);
       if (data.desktopError || data.mobileError) {
         toast.error(
-          formatPageSpeedErrorMessage(data.desktopError || data.mobileError),
+          formatPageSpeedErrorMessage(
+            data.desktopError || data.mobileError,
+            isSuperAdminRef.current,
+          ),
         );
       }
     },
     onError: (error) => {
-      toastPageSpeedError(error);
+      toastPageSpeedError(error, isSuperAdminRef.current);
     },
   });
 
   React.useEffect(() => {
-    toastPageSpeedError(pageSpeedQuery.error);
-  }, [pageSpeedQuery.error]);
+    if (sessionPending) return;
+    toastPageSpeedError(pageSpeedQuery.error, isSuperAdmin);
+  }, [pageSpeedQuery.error, isSuperAdmin, sessionPending]);
 
   const handleRunBoth = React.useCallback(() => {
     if (!domainUrl || runPageSpeed.isPending) return;
@@ -417,8 +425,8 @@ export function PageSpeedInsightsCard({ domainName }: PageSpeedInsightsCardProps
         </CardHeader>
         <CardContent className="flex flex-col items-center justify-center gap-3 px-4 py-10 text-center">
           <AlertCircle className="h-7 w-7 text-muted-foreground" />
-          <p className="max-w-sm text-sm text-muted-foreground">
-            {formatPageSpeedErrorMessage(pageSpeedQuery.error?.message)}
+          <p className="max-w-md break-words text-sm text-muted-foreground">
+            {formatPageSpeedErrorMessage(pageSpeedQuery.error?.message, isSuperAdmin)}
           </p>
         </CardContent>
       </Card>
@@ -456,6 +464,9 @@ export function PageSpeedInsightsCard({ domainName }: PageSpeedInsightsCardProps
             data={desktop}
             loading={(isLoading || isRefreshing) && !desktop}
             error={!!result?.desktopError && !desktop}
+            errorMessage={
+              isSuperAdmin ? result?.desktopError : undefined
+            }
             selected={selectedStrategy === "desktop"}
             onSelect={() => setSelectedStrategy("desktop")}
           />
@@ -464,6 +475,7 @@ export function PageSpeedInsightsCard({ domainName }: PageSpeedInsightsCardProps
             data={mobile}
             loading={(isLoading || isRefreshing) && !mobile}
             error={!!result?.mobileError && !mobile}
+            errorMessage={isSuperAdmin ? result?.mobileError : undefined}
             selected={selectedStrategy === "mobile"}
             onSelect={() => setSelectedStrategy("mobile")}
           />

@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { BuyNowDialog, type ServicePlanDetails } from "@/components/buy-now-dialog";
+import { CloudServersPlansSplit } from "../../_components/cloud-servers-catalog";
 
 import { inventoryToPlans as vpsInventoryToPlans } from "../../agency.vps/schema";
 import { PlanCard as VpsPlanCard } from "../../agency.vps/_components/plan-card";
@@ -116,11 +117,13 @@ function VpsPlansSection({ slug }: { slug: string }) {
 
   return (
     <>
-      {!plansQuery.isLoading && !plansQuery.error && plans.length > 0 && (
-        <div className="mb-5">
-          <VpsPlanFilter plans={plans} filter={filter} onFilterChange={setFilter} displayCurrency={displayCurrency} displayPrices={displayPriceMap} totalCount={displayPlans.length} filteredCount={filteredPlans.length} />
-        </div>
-      )}
+      <CloudServersPlansSplit
+        filter={
+          !plansQuery.isLoading && !plansQuery.error && plans.length > 0 ? (
+            <VpsPlanFilter plans={plans} filter={filter} onFilterChange={setFilter} displayCurrency={displayCurrency} displayPrices={displayPriceMap} totalCount={displayPlans.length} filteredCount={filteredPlans.length} />
+          ) : null
+        }
+      >
       <PlanGrid
         isLoading={plansQuery.isLoading}
         error={plansQuery.error ? resolveClientErrorMessage(plansQuery.error, "Failed to load plans.") : null}
@@ -137,6 +140,7 @@ function VpsPlansSection({ slug }: { slug: string }) {
         ))}
         {plansQuery.isFetchingNextPage && Array.from({ length: 6 }).map((_, i) => <VpsPlanCardSkeleton key={i} />)}
       </PlanGrid>
+      </CloudServersPlansSplit>
 
       {selectedPlan && (
         <BuyNowDialog open={buyNowOpen} onOpenChange={setBuyNowOpen} plan={selectedPlan} requireDomainStep={false} intent={dialogIntent} teamSlug={slug || undefined} buyDomainHref={slug ? `/${slug}/domains` : undefined} />
@@ -210,11 +214,13 @@ function VdsPlansSection({ slug }: { slug: string }) {
 
   return (
     <>
-      {!plansQuery.isLoading && !plansQuery.error && plans.length > 0 && (
-        <div className="mb-5">
-          <VpsPlanFilter plans={plans as any} filter={filter} onFilterChange={setFilter} displayCurrency={displayCurrency} displayPrices={displayPriceMap} totalCount={displayPlans.length} filteredCount={filteredPlans.length} />
-        </div>
-      )}
+      <CloudServersPlansSplit
+        filter={
+          !plansQuery.isLoading && !plansQuery.error && plans.length > 0 ? (
+            <VpsPlanFilter plans={plans as any} filter={filter} onFilterChange={setFilter} displayCurrency={displayCurrency} displayPrices={displayPriceMap} totalCount={displayPlans.length} filteredCount={filteredPlans.length} />
+          ) : null
+        }
+      >
       <PlanGrid
         isLoading={plansQuery.isLoading}
         error={plansQuery.error ? resolveClientErrorMessage(plansQuery.error, "Failed to load plans.") : null}
@@ -231,6 +237,7 @@ function VdsPlansSection({ slug }: { slug: string }) {
         ))}
         {plansQuery.isFetchingNextPage && Array.from({ length: 6 }).map((_, i) => <VdsPlanCardSkeleton key={i} />)}
       </PlanGrid>
+      </CloudServersPlansSplit>
 
       {selectedPlan && (
         <BuyNowDialog open={buyNowOpen} onOpenChange={setBuyNowOpen} plan={selectedPlan} requireDomainStep={false} intent={dialogIntent} teamSlug={slug || undefined} buyDomainHref={slug ? `/${slug}/domains` : undefined} />
@@ -365,12 +372,13 @@ function DedicatedPlansSection({ slug }: { slug: string }) {
         </div>
       </div>
 
-      {!plansQuery.isLoading && !plansQuery.error && plans.length > 0 && (
-        <div className="mb-5">
-          <DedicatedPlanFilter plans={plans} filter={filter} onFilterChange={setFilter} displayCurrency={displayCurrency} displayPrices={displayPriceMap} totalCount={displayPlans.length} filteredCount={filteredPlans.length} />
-        </div>
-      )}
-
+      <CloudServersPlansSplit
+        filter={
+          !plansQuery.isLoading && !plansQuery.error && plans.length > 0 ? (
+            <DedicatedPlanFilter plans={plans} filter={filter} onFilterChange={setFilter} displayCurrency={displayCurrency} displayPrices={displayPriceMap} totalCount={displayPlans.length} filteredCount={filteredPlans.length} />
+          ) : null
+        }
+      >
       <PlanGrid
         isLoading={plansQuery.isLoading}
         error={plansQuery.error ? resolveClientErrorMessage(plansQuery.error, "Failed to load plans.") : null}
@@ -387,6 +395,7 @@ function DedicatedPlansSection({ slug }: { slug: string }) {
         ))}
         {plansQuery.isFetchingNextPage && Array.from({ length: 6 }).map((_, i) => <DedicatedPlanCardSkeleton key={i} />)}
       </PlanGrid>
+      </CloudServersPlansSplit>
 
       {selectedPlan && (
         <BuyNowDialog open={buyNowOpen} onOpenChange={setBuyNowOpen} plan={selectedPlan} requireDomainStep={false} intent={dialogIntent} teamSlug={slug || undefined} buyDomainHref={slug ? `/${slug}/domains` : undefined} />
@@ -443,7 +452,7 @@ function PlanGrid({
   }
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 @xl/cards:grid-cols-2 @4xl/cards:grid-cols-3">
         {children}
       </div>
       <div className="flex justify-center">

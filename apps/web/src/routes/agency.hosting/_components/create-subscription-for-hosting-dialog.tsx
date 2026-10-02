@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { ComboboxDropdown, type ComboboxItem } from "@npanel/ui/components/combobox-dropdown";
 import { DatePicker } from "@/components/npanel-ui/date-picker";
-import { PlanOptionWithFeatures } from "@/components/plan-option-with-features";
+import { calculateRenewalPrice } from "@/lib/subscription-renewal-pricing";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { captureEvent } from "@/lib/posthog";
@@ -37,6 +37,33 @@ function addBillingPeriod(
   else if (cycle === "BIENNIALLY") next.setFullYear(next.getFullYear() + 2);
   else next.setFullYear(next.getFullYear() + 1);
   return next;
+}
+
+type BillingCycle = "YEARLY" | "MONTHLY" | "BIENNIALLY" | "CUSTOM";
+
+function formatMoneyAmount(amount: number): string {
+  if (!Number.isFinite(amount)) return "";
+  const rounded = Math.round(amount * 100) / 100;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2);
+}
+
+/** Catalog plan price is for its own cycle. Scale it to the cycle being billed. Custom follows a one-year term. */
+function agreedPriceForCycle(
+  planPrice: string | null | undefined,
+  planCycle: string | null | undefined,
+  targetCycle: BillingCycle,
+): string | null {
+  const raw = planPrice?.trim();
+  if (!raw) return null;
+  const amount = Number.parseFloat(raw);
+  if (!Number.isFinite(amount)) return null;
+
+  const source = (planCycle ?? "YEARLY").toUpperCase() === "CUSTOM" ? "YEARLY" : (planCycle ?? "YEARLY").toUpperCase();
+  const target = targetCycle === "CUSTOM" ? "YEARLY" : targetCycle;
+  if (source === target) return formatMoneyAmount(amount);
+
+  const converted = Number.parseFloat(calculateRenewalPrice(raw, source, target));
+  return formatMoneyAmount(converted);
 }
 
 function hostingTypeFromServiceType(
@@ -81,7 +108,7 @@ export function CreateSubscriptionForHostingDialog({
   const [expiryDate, setExpiryDate] = React.useState<Date>(() =>
     addBillingPeriod(new Date(), "YEARLY")
   );
-  const [billingCycle, setBillingCycle] = React.useState<"YEARLY" | "MONTHLY" | "BIENNIALLY" | "CUSTOM">("YEARLY");
+  const [billingCycle, setBillingCycle] = React.useState<BillingCycle>("YEARLY");
   const [hostingType, setHostingType] = React.useState<"WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING">("WEB_HOSTING");
   const [primaryDomain, setPrimaryDomain] = React.useState("");
   const [pleskFilterId, setPleskFilterId] = React.useState("");
@@ -205,17 +232,20 @@ export function CreateSubscriptionForHostingDialog({
     (planId: string) => {
       setSelectedPlanId(planId);
       const plan = catalogPlans.find((item) => item.id === planId);
-      if (plan?.price) {
-        setAgreedPrice(plan.price);
-        setAgreedCurrency(plan.currency ?? "KES");
-      }
       const cycle = plan?.billingCycle?.toUpperCase();
-      if (cycle === "MONTHLY" || cycle === "YEARLY" || cycle === "BIENNIALLY" || cycle === "CUSTOM") {
-        setBillingCycle(cycle);
-        setExpiryDate(addBillingPeriod(subscriptionDate, cycle));
+      const nextCycle: BillingCycle =
+        cycle === "MONTHLY" || cycle === "YEARLY" || cycle === "BIENNIALLY" || cycle === "CUSTOM"
+          ? cycle
+          : billingCycle;
+      setBillingCycle(nextCycle);
+      setExpiryDate(addBillingPeriod(subscriptionDate, nextCycle));
+      const nextPrice = agreedPriceForCycle(plan?.price, plan?.billingCycle, nextCycle);
+      if (nextPrice != null) {
+        setAgreedPrice(nextPrice);
+        setAgreedCurrency(plan?.currency ?? "KES");
       }
     },
-    [catalogPlans, subscriptionDate],
+    [billingCycle, catalogPlans, subscriptionDate],
   );
 
   const handleProductChange = (productId: string) => {
@@ -238,11 +268,17 @@ export function CreateSubscriptionForHostingDialog({
     [billingCycle]
   );
   const handleBillingCycleChange = React.useCallback(
-    (value: "YEARLY" | "MONTHLY" | "BIENNIALLY" | "CUSTOM") => {
+    (value: BillingCycle) => {
       setBillingCycle(value);
       setExpiryDate(addBillingPeriod(subscriptionDate, value));
+      const plan = catalogPlans.find((item) => item.id === selectedPlanId);
+      const nextPrice = agreedPriceForCycle(plan?.price, plan?.billingCycle, value);
+      if (nextPrice != null) {
+        setAgreedPrice(nextPrice);
+        if (plan?.currency) setAgreedCurrency(plan.currency);
+      }
     },
-    [subscriptionDate]
+    [catalogPlans, selectedPlanId, subscriptionDate],
   );
 
   const productItems: ComboboxItem[] = React.useMemo(
@@ -254,7 +290,23 @@ export function CreateSubscriptionForHostingDialog({
     [teams]
   );
 
+  const planItems: ComboboxItem[] = React.useMemo(
+    () =>
+      catalogPlans.map((plan) => {
+        const price = plan.price ? `${plan.currency ?? "KES"} ${plan.price}` : null;
+        const cycle = plan.billingCycle ? plan.billingCycle.toLowerCase() : null;
+        const priceBit = price && cycle ? `${price} / ${cycle}` : price;
+        return {
+          id: plan.id,
+          label: [plan.name, priceBit, matchedPlanId === plan.id ? "Current" : null].filter(Boolean).join(" · "),
+          keywords: [plan.name, pleskPlanName ?? ""].filter(Boolean),
+        };
+      }),
+    [catalogPlans, matchedPlanId, pleskPlanName],
+  );
+
   const selectedProduct = productItems.find((p) => p.id === selectedProductId);
+  const selectedPlan = planItems.find((plan) => plan.id === selectedPlanId);
   const selectedTeam = teamItems.find((t) => t.id === selectedTeamId);
 
   const handleSubmit = () => {
@@ -355,27 +407,16 @@ export function CreateSubscriptionForHostingDialog({
                     No active plans found for this product.
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    {catalogPlans.map((plan) => (
-                      <PlanOptionWithFeatures
-                        key={plan.id}
-                        plan={{
-                          id: plan.id,
-                          name: plan.name,
-                          features: plan.features,
-                          badge: matchedPlanId === plan.id ? "Plesk match" : null,
-                        }}
-                        selected={selectedPlanId === plan.id}
-                        onSelect={applyPlanDefaults}
-                        disabled={isSubmitting}
-                        priceLabel={
-                          plan.price
-                            ? `${plan.currency ?? "KES"} ${plan.price}`
-                            : undefined
-                        }
-                      />
-                    ))}
-                  </div>
+                  <ComboboxDropdown
+                    items={planItems}
+                    selectedItem={selectedPlan}
+                    onSelect={(item) => applyPlanDefaults(item.id)}
+                    placeholder="Select a plan..."
+                    searchPlaceholder="Search plans..."
+                    emptyResults="No plans found"
+                    disabled={isSubmitting}
+                    inDialog
+                  />
                 )}
                 {pleskPlanName ? (
                   <p className="text-xs text-muted-foreground">
@@ -436,7 +477,11 @@ export function CreateSubscriptionForHostingDialog({
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label className="text-xs">Billing cycle</Label>
-                  <Select value={billingCycle} onValueChange={handleBillingCycleChange} disabled={isSubmitting}>
+                  <Select
+                    value={billingCycle}
+                    onValueChange={(value) => handleBillingCycleChange(value as BillingCycle)}
+                    disabled={isSubmitting}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>

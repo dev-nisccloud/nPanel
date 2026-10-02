@@ -4,32 +4,15 @@ import { captureEvent } from "@/lib/posthog";
 
 import * as React from "react";
 import { Link, useParams } from "react-router";
-import { ArrowLeft, CalendarDays, RotateCcw } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/utils/trpc";
+import { MarketplaceCurrentPlans } from "./$slug.marketplace/_components/marketplace-current-plans";
 import { MarketplacePricing } from "./$slug.marketplace/_components/marketplace-pricing";
 import { MarketplaceHivelocityPricing, getHivelocityTypeForSlug } from "./$slug.marketplace/_components/marketplace-hivelocity-pricing";
 import { slugifyProductName } from "./$slug.marketplace/marketplace-services";
 import { useMarketplaceSubscriptions } from "./$slug.marketplace/_components/use-marketplace-subscriptions";
-
-const STATUS_STYLES: Record<string, string> = {
-  ACTIVE:     "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
-  PENDING:    "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
-  SUSPENDED:  "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
-  CANCELLED:  "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
-  EXPIRED:    "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
-  PROCESSING: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
-};
-
-function formatDate(date: Date | string | null | undefined): string {
-  if (!date) return "N/A";
-  const d = date instanceof Date ? date : new Date(date as string);
-  return isNaN(d.getTime())
-    ? "N/A"
-    : d.toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" });
-}
 
 export default function MarketplaceServicePage() {
   const params = useParams();
@@ -106,44 +89,11 @@ export default function MarketplaceServicePage() {
           )}
         </div>
 
-        {/* Current plan banner (only when subscribed) */}
-        {activeSubs.length > 0 && (
-          <div className="mt-4 shrink-0 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
-            <div className="mb-2 flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-green-500" />
-              <span className="text-xs font-semibold">
-                Current plan{activeSubs.length > 1 ? "s" : ""}
-              </span>
-            </div>
-            <div className="space-y-2">
-              {activeSubs.map((sub) => (
-                <div key={sub.id} className="flex flex-wrap items-center gap-3 text-xs">
-                  <span className="font-medium">
-                    {sub.productPlanName ?? sub.productName}
-                  </span>
-                  <span className={cn(
-                    "rounded-full px-2 py-0.5 font-medium",
-                    STATUS_STYLES[sub.status] ?? "bg-muted text-muted-foreground"
-                  )}>
-                    {sub.status}
-                  </span>
-                  {sub.subscriptionDate && (
-                    <span className="flex items-center gap-1 text-muted-foreground">
-                      <CalendarDays className="h-3 w-3" />
-                      Since {formatDate(sub.subscriptionDate)}
-                    </span>
-                  )}
-                  {(sub.nextRenewalDate ?? sub.expiryDate) && (
-                    <span className="flex items-center gap-1 text-muted-foreground">
-                      <RotateCcw className="h-3 w-3" />
-                      Renews {formatDate(sub.nextRenewalDate ?? sub.expiryDate)}
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        <MarketplaceCurrentPlans
+          teamSlug={teamSlug}
+          serviceSlug={serviceSlug}
+          subscriptions={activeSubs}
+        />
 
         {/* Pricing section  Hivelocity server grid for VPS/VDS/Dedicated, pricing table for all others */}
         <div className="mt-6 min-h-0 flex-1">

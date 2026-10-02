@@ -4,9 +4,9 @@ import * as React from "react";
 import { useParams } from "react-router";
 
 import { trpc } from "@/utils/trpc";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsContent } from "@/components/ui/tabs";
+import { CloudServersCatalogLayout, CloudServersPlansSplit, CloudServersPlansStatus } from "./_components/cloud-servers-catalog";
 
 import { inventoryToPlans } from "./agency.vps/schema";
 import { PlanCard } from "./agency.vps/_components/plan-card";
@@ -143,28 +143,20 @@ export default function VpsPage() {
 	}, [displayCurrency, productIdByType, facilityTitleByCode, pricing]);
 
 	return (
-		<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
-			<div className="w-full max-w-7xl mx-auto">
-				<div className="flex flex-col gap-2">
-					<h1 className="text-base font-semibold tracking-tight">VPS Hosting</h1>
-					<p className="text-xs text-muted-foreground">
-						Manage Virtual Private Servers (VPS) plans, fast, flexible virtual servers you can deploy and scale as needed.
-					</p>
-				</div>
-
-				<div className="mt-6">
-					<Tabs defaultValue="plans" className="w-full">
-						<div className="flex justify-center mb-6">
-							<TabsList className={cn("inline-flex w-auto")}>
-								<TabsTrigger value="plans">Plans</TabsTrigger>
-								<TabsTrigger value="servers">Servers</TabsTrigger>
-							</TabsList>
-						</div>
-
-						<TabsContent value="plans" className="mt-0 data-[state=inactive]:hidden" forceMount>
-							{/* Client-side filter bar */}
-							{!plansQuery.isLoading && !plansQuery.error && plans.length > 0 && (
-								<div className="mb-5">
+		<>
+			<CloudServersCatalogLayout
+				title="VPS Hosting"
+				description="Manage Virtual Private Servers (VPS) plans, fast, flexible virtual servers you can deploy and scale as needed."
+				tabs={[
+					{ value: "plans", label: "Plans" },
+					{ value: "servers", label: "Servers" },
+				]}
+			>
+				<TabsContent value="plans" className="mt-0 data-[state=inactive]:hidden" forceMount>
+					<div className="flex flex-col gap-4">
+						<CloudServersPlansSplit
+							filter={
+								!plansQuery.isLoading && !plansQuery.error && plans.length > 0 ? (
 									<VpsPlanFilter
 										plans={plans}
 										filter={filter}
@@ -174,63 +166,56 @@ export default function VpsPage() {
 										totalCount={displayPlans.length}
 										filteredCount={filteredPlans.length}
 									/>
+								) : null
+							}
+						>
+						<CloudServersPlansStatus
+							isLoading={plansQuery.isLoading}
+							errorMessage={
+								plansQuery.error
+									? resolveClientErrorMessage(plansQuery.error, "Failed to load plans. Please try again.")
+									: null
+							}
+							filteredEmpty={filteredPlans.length === 0 && activeFilterCount > 0}
+							empty={plans.length === 0}
+							emptyMessage="No VPS plans found."
+							onClearFilters={() => setFilter(DEFAULT_VPS_FILTER)}
+						>
+							<div className="space-y-6">
+								<div className="grid grid-cols-1 gap-4 @xl/cards:grid-cols-2 @4xl/cards:grid-cols-3">
+									{filteredPlans.map((p) => (
+										<PlanCard
+											key={`${p.data_center}-${p.product_id}-${p.location_option_id}`}
+											plan={p}
+											locationName={facilityTitleByCode.get(p.data_center) ?? p.data_center}
+											displayCurrency={displayCurrency}
+											originalUsd={(p as any).__originalUsd}
+											onBuyNow={openBuyNow}
+											onAddToCart={openCartFlow}
+										/>
+									))}
+									{plansQuery.isFetchingNextPage &&
+										Array.from({ length: 6 }).map((_, i) => <PlanCardSkeleton key={`skeleton-${i}`} />)}
 								</div>
-							)}
-							{plansQuery.isLoading ? (
-								<div className="flex items-center justify-center h-64 border border-dashed rounded-lg">
-									<p className="text-muted-foreground">Loading plans...</p>
+								<div className="flex justify-center">
+									<Button
+										variant="outline"
+										disabled={!plansQuery.hasNextPage || plansQuery.isFetchingNextPage}
+										onClick={() => plansQuery.fetchNextPage()}
+									>
+										{plansQuery.isFetchingNextPage ? "Loading more..." : plansQuery.hasNextPage ? "Load more" : "No more plans"}
+									</Button>
 								</div>
-							) : plansQuery.error ? (
-								<div className="flex items-center justify-center h-64 border border-dashed rounded-lg">
-									<p className="text-muted-foreground">
-										{resolveClientErrorMessage(plansQuery.error, "Failed to load plans. Please try again.")}
-									</p>
-								</div>
-							) : filteredPlans.length === 0 && activeFilterCount > 0 ? (
-								<div className="flex flex-col items-center justify-center h-64 border border-dashed rounded-lg gap-3">
-									<p className="text-muted-foreground">No plans match your filters.</p>
-									<Button variant="outline" size="sm" onClick={() => setFilter(DEFAULT_VPS_FILTER)}>Clear filters</Button>
-								</div>
-							) : plans.length === 0 ? (
-								<div className="flex items-center justify-center h-64 border border-dashed rounded-lg">
-									<p className="text-muted-foreground">No VPS plans found.</p>
-								</div>
-							) : (
-								<div className="space-y-6">
-									<div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-										{filteredPlans.map((p) => (
-											<PlanCard
-												key={`${p.data_center}-${p.product_id}-${p.location_option_id}`}
-												plan={p}
-												locationName={facilityTitleByCode.get(p.data_center) ?? p.data_center}
-												displayCurrency={displayCurrency}
-												originalUsd={(p as any).__originalUsd}
-												onBuyNow={openBuyNow}
-												onAddToCart={openCartFlow}
-											/>
-										))}
-										{plansQuery.isFetchingNextPage &&
-											Array.from({ length: 6 }).map((_, i) => <PlanCardSkeleton key={`skeleton-${i}`} />)}
-									</div>
-									<div className="flex justify-center">
-										<Button
-											variant="outline"
-											disabled={!plansQuery.hasNextPage || plansQuery.isFetchingNextPage}
-											onClick={() => plansQuery.fetchNextPage()}
-										>
-											{plansQuery.isFetchingNextPage ? "Loading more..." : plansQuery.hasNextPage ? "Load more" : "No more plans"}
-										</Button>
-									</div>
-								</div>
-							)}
-						</TabsContent>
+							</div>
+						</CloudServersPlansStatus>
+						</CloudServersPlansSplit>
+					</div>
+				</TabsContent>
 
-						<TabsContent value="servers" className="mt-0">
-							<HivelocityServersTable type="vps" resourceBasePath={resourceBasePath} teamSlug={slug} />
-						</TabsContent>
-					</Tabs>
-				</div>
-			</div>
+				<TabsContent value="servers" className="mt-0">
+					<HivelocityServersTable type="vps" resourceBasePath={resourceBasePath} teamSlug={slug} />
+				</TabsContent>
+			</CloudServersCatalogLayout>
 			{selectedPlan ? (
 				<BuyNowDialog
 					open={buyNowOpen}
@@ -242,6 +227,6 @@ export default function VpsPage() {
 					buyDomainHref={slug ? `/${slug}/domains` : undefined}
 				/>
 			) : null}
-		</div>
+		</>
 	);
 }

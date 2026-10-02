@@ -1,12 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { SlidersHorizontal, X, RotateCcw } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
 import { DualPriceRangeSlider } from "@/components/dual-price-range-slider";
+import { PlanFilterToolbar, type PlanFilterChip } from "../../_components/plan-filter-toolbar";
 import type { DedicatedPlan } from "../schema";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -169,13 +165,6 @@ export const PlanFilter = React.memo(function PlanFilter({
 	const effectiveMin = draftPrice?.min ?? (filter.priceMin === 0 ? priceRange.min : Math.max(filter.priceMin, priceRange.min));
 	const effectiveMax = draftPrice?.max ?? (filter.priceMax === Infinity ? priceRange.max : Math.min(filter.priceMax, priceRange.max));
 
-	const activeCount = [
-		filter.cpuBrand !== "all" ? 1 : 0,
-		filter.memory !== "all" ? 1 : 0,
-		filter.cores !== "all" ? 1 : 0,
-		filter.priceMin > priceRange.min || filter.priceMax < priceRange.max ? 1 : 0,
-	].reduce((a, b) => a + b, 0);
-
 	const formatPrice = React.useCallback(
 		(v: number) =>
 			displayCurrency === "KES"
@@ -194,183 +183,52 @@ export const PlanFilter = React.memo(function PlanFilter({
 		[onFilterChange, priceRange.min, priceRange.max],
 	);
 
+	const chips: PlanFilterChip[] = [
+		filter.cpuBrand !== "all"
+			? { id: "cpu", label: filter.cpuBrand === "intel" ? "Intel" : "AMD", onRemove: () => onFilterChange({ ...filter, cpuBrand: "all" }) }
+			: null,
+		filter.memory !== "all"
+			? { id: "memory", label: filter.memory, onRemove: () => onFilterChange({ ...filter, memory: "all" }) }
+			: null,
+		filter.cores !== "all"
+			? { id: "cores", label: `${filter.cores} cores`, onRemove: () => onFilterChange({ ...filter, cores: "all" }) }
+			: null,
+		filter.priceMin > priceRange.min || filter.priceMax < priceRange.max
+			? {
+					id: "price",
+					label: `${formatPrice(effectiveMin)} – ${formatPrice(effectiveMax)}`,
+					onRemove: () => onFilterChange({ ...filter, priceMin: priceRange.min, priceMax: priceRange.max }),
+				}
+			: null,
+	].filter((chip): chip is PlanFilterChip => chip !== null);
+
 	return (
-		<div className="rounded-xl border bg-card shadow-sm">
-			{/* Header */}
-			<div className="flex items-center justify-between px-4 py-3 border-b">
-				<div className="flex items-center gap-2">
-					<SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
-					<span className="text-sm font-medium">Filters</span>
-					{activeCount > 0 && (
-						<Badge variant="secondary" className="text-xs h-5 px-1.5">
-							{activeCount}
-						</Badge>
-					)}
-				</div>
-				<div className="flex items-center gap-3">
-					<span className="text-xs text-muted-foreground">
-						Showing <span className="font-semibold text-foreground">{filteredCount}</span> of{" "}
-						<span className="font-semibold text-foreground">{totalCount}</span> plans
-					</span>
-					{activeCount > 0 && (
-						<Button variant="ghost" size="sm" className="h-7 px-2 gap-1 text-xs" onClick={reset}>
-							<RotateCcw className="h-3 w-3" />
-							Reset
-						</Button>
-					)}
-				</div>
-			</div>
-
-			{/* Filter controls */}
-			<div className="px-4 py-4 flex flex-wrap gap-6 items-start">
-				{/* CPU Brand */}
-				<div className="flex flex-col gap-2 min-w-[120px]">
-					<label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-						CPU Brand
-					</label>
-					<div className="flex gap-1.5">
-						{(["all", "intel", "amd"] as const).map((brand) => (
-							<button
-								key={brand}
-								onClick={() => onFilterChange({ ...filter, cpuBrand: brand })}
-								className={cn(
-									"flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all",
-									filter.cpuBrand === brand
-										? "border-primary bg-primary/10 text-primary"
-										: "border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground"
-								)}
-							>
-								{brand === "all" ? (
-									"All"
-								) : (
-									<>
-										<img
-											src={brand === "intel" ? "/intel.svg" : "/amd.svg"}
-											alt={brand}
-											className="h-4 w-4 object-contain"
-										/>
-										{brand === "intel" ? "Intel" : "AMD"}
-									</>
-								)}
-							</button>
-						))}
-					</div>
-				</div>
-
-				{/* Memory */}
-				{memoryOptions.length > 0 && (
-					<div className="flex flex-col gap-2 min-w-[150px]">
-						<label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-							Memory
-						</label>
-						<Select
-							value={filter.memory}
-							onValueChange={(v) => onFilterChange({ ...filter, memory: v })}
-						>
-							<SelectTrigger className="h-8 text-xs">
-								<SelectValue placeholder="All memory" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="all">All memory</SelectItem>
-								{memoryOptions.map((m) => (
-									<SelectItem key={m} value={m}>
-										{m}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
-				)}
-
-				{/* Cores */}
-				{coreOptions.length > 0 && (
-					<div className="flex flex-col gap-2 min-w-[130px]">
-						<label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-							CPU Cores
-						</label>
-						<Select
-							value={filter.cores}
-							onValueChange={(v) => onFilterChange({ ...filter, cores: v })}
-						>
-							<SelectTrigger className="h-8 text-xs">
-								<SelectValue placeholder="All cores" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="all">All cores</SelectItem>
-								{coreOptions.map((c) => (
-									<SelectItem key={c} value={String(c)}>
-										{c} cores
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
-				)}
-
-				{/* Price Range */}
-				{priceRange.max > priceRange.min && (
-					<div className="flex flex-col gap-2 flex-1 min-w-[220px] max-w-sm">
-						<label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-							Monthly Price
-						</label>
-						<DualPriceRangeSlider
-							min={priceRange.min}
-							max={priceRange.max}
-							valueMin={effectiveMin}
-							valueMax={effectiveMax}
-							onChange={handlePriceChange}
-							formatLabel={formatPrice}
-						/>
-					</div>
-				)}
-
-				{/* Active filter chips */}
-				{activeCount > 0 && (
-					<div className="flex flex-col gap-2 min-w-0 self-end">
-						<label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-							Active
-						</label>
-						<div className="flex flex-wrap gap-1.5">
-							{filter.cpuBrand !== "all" && (
-								<span
-									className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium cursor-pointer hover:bg-primary/20"
-									onClick={() => onFilterChange({ ...filter, cpuBrand: "all" })}
-								>
-									{filter.cpuBrand === "intel" ? "Intel" : "AMD"}
-									<X className="h-3 w-3" />
-								</span>
-							)}
-							{filter.memory !== "all" && (
-								<span
-									className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium cursor-pointer hover:bg-primary/20"
-									onClick={() => onFilterChange({ ...filter, memory: "all" })}
-								>
-									{filter.memory}
-									<X className="h-3 w-3" />
-								</span>
-							)}
-							{filter.cores !== "all" && (
-								<span
-									className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium cursor-pointer hover:bg-primary/20"
-									onClick={() => onFilterChange({ ...filter, cores: "all" })}
-								>
-									{filter.cores} cores
-									<X className="h-3 w-3" />
-								</span>
-							)}
-							{(filter.priceMin > priceRange.min || filter.priceMax < priceRange.max) && (
-								<span
-									className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium cursor-pointer hover:bg-primary/20"
-									onClick={() => onFilterChange({ ...filter, priceMin: priceRange.min, priceMax: priceRange.max })}
-								>
-									{formatPrice(effectiveMin)} – {formatPrice(effectiveMax)}
-									<X className="h-3 w-3" />
-								</span>
-							)}
-						</div>
-					</div>
-				)}
-			</div>
-		</div>
+		<PlanFilterToolbar
+			cpuBrand={filter.cpuBrand}
+			onCpuBrandChange={(cpuBrand) => onFilterChange({ ...filter, cpuBrand })}
+			memory={filter.memory}
+			memoryOptions={memoryOptions}
+			onMemoryChange={(memory) => onFilterChange({ ...filter, memory })}
+			cores={filter.cores}
+			coreOptions={coreOptions}
+			onCoresChange={(cores) => onFilterChange({ ...filter, cores })}
+			coresLabel="CPU cores"
+			priceControl={
+				priceRange.max > priceRange.min ? (
+					<DualPriceRangeSlider
+						min={priceRange.min}
+						max={priceRange.max}
+						valueMin={effectiveMin}
+						valueMax={effectiveMax}
+						onChange={handlePriceChange}
+						formatLabel={formatPrice}
+					/>
+				) : null
+			}
+			chips={chips}
+			filteredCount={filteredCount}
+			totalCount={totalCount}
+			onReset={reset}
+		/>
 	);
 });

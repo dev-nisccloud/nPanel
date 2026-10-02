@@ -178,7 +178,7 @@ export default function DomainsPortfolioPage() {
       title: (
         <Link
           to={detailHref}
-          className="text-primary hover:underline"
+          className="text-foreground hover:underline"
           onClick={(e) => e.stopPropagation()}
         >
           <DomainListTitle domain={domain.domain} />

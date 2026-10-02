@@ -10,6 +10,7 @@ import {
   WordPressListStatusBadge,
 } from "@/components/wordpress/wordpress-list";
 
+import { PurchaseAnotherPlanButton } from "@/routes/$slug.marketplace/_components/purchase-another-plan-button";
 import { WordPressPricing } from "./wordpress-pricing";
 import { useTeamWordPressSubscriptions } from "./use-team-wordpress-subscriptions";
 
@@ -80,7 +81,7 @@ export function WordPressDataTable() {
       title: detailHref ? (
         <Link
           to={detailHref}
-          className="text-primary hover:underline"
+          className="text-foreground hover:underline"
           onClick={(e) => e.stopPropagation()}
         >
           {titleText}
@@ -135,6 +136,7 @@ export function WordPressDataTable() {
         { key: "status", label: "Status", className: "w-28 shrink-0", hideBelow: "@xl" },
         { key: "actions", label: "Actions", align: "end" },
       ]}
+      toolbarActions={<PurchaseAnotherPlanButton service="wordpress" />}
     />
   );
 }

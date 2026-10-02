@@ -133,6 +133,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
   const [activeTab, setActiveTab] = React.useState(() =>
     hostingDetailTabFromSearch(searchParams.get("tab")),
   );
+  const [fileManagerPath, setFileManagerPath] = React.useState("/");
   const { can, isLoading: permissionsLoading } = useCanTeamPermission();
   const hostingTabAllowed = React.useMemo(
     () => ({
@@ -242,7 +243,13 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
                 <DetailCardTabsTrigger value="mail" icon={Mail} title="Mail" subtitle="Accounts" />
                 ) : null}
                 {hostingTabAllowed["file-manager"] ? (
-                <DetailCardTabsTrigger value="file-manager" icon={Folder} title="File Manager" subtitle="Files" />
+                <DetailCardTabsTrigger
+                  value="file-manager"
+                  icon={Folder}
+                  title="File Manager"
+                  subtitle="Files"
+                  onClick={() => setFileManagerPath("/")}
+                />
                 ) : null}
                 {hostingTabAllowed.subdomains ? (
                 <DetailCardTabsTrigger value="subdomains" icon={Layers} title="Subdomains" subtitle="Domains" />
@@ -291,6 +298,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
             <TabsContent value="file-manager" className="mt-10">
               <FileManager
                 hostingData={hostingData}
+                initialPath={fileManagerPath}
                 openCreateSheet={createIntentTab === "file-manager"}
                 onCreateSheetOpened={clearCreateIntent}
               />
@@ -301,6 +309,14 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
                 domainName={hostingData.gen_info?.name || ""}
                 openCreateSheet={createIntentTab === "subdomains"}
                 onCreateSheetOpened={clearCreateIntent}
+                onOpenFileManager={
+                  hostingTabAllowed["file-manager"]
+                    ? (path) => {
+                        setFileManagerPath(path);
+                        setActiveTab("file-manager");
+                      }
+                    : undefined
+                }
               />
             </TabsContent>
 
