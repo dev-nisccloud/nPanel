@@ -214,7 +214,7 @@ export function HostingDataTable() {
                 <TableCell className="pl-6">
                   <Link
                     to={`/${teamSlug}/emails/${emailHostingDetailId(subscription)}`}
-                    className="font-medium text-primary hover:underline"
+                    className="font-medium text-foreground hover:underline"
                   >
                     {subscription.primaryDomain ?? subscription.subscriptionName ?? subscription.id}
                   </Link>

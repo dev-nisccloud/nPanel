@@ -57,7 +57,7 @@ export function OrganizationsList({
   const items: SearchableCleanListItem[] = filtered.map((team) => ({
     key: team.id,
     title: (
-      <span className="text-primary hover:underline">{team.name}</span>
+      <span className="text-foreground hover:underline">{team.name}</span>
     ),
     description: (
       <Badge variant="outline" className={getStatusBadgeClass(team.isActive)}>

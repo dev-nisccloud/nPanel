@@ -191,7 +191,7 @@ export function WordPressInstancesTable({ domainName, onInstallClick }: WordPres
             <CleanListRow
               key={item.id}
               title={
-                <Link to={href} className="text-primary hover:underline" onClick={(e) => e.stopPropagation()}>
+                <Link to={href} className="text-foreground hover:underline" onClick={(e) => e.stopPropagation()}>
                   {title}
                 </Link>
               }

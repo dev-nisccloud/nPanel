@@ -98,7 +98,7 @@ export function HostingDataTable() {
       title: (
         <Link
           to={`/agency/hosting/${subscription.id}`}
-          className="text-primary hover:underline"
+          className="text-foreground hover:underline"
           onClick={(e) => e.stopPropagation()}
         >
           {subscription.subscriptionName}

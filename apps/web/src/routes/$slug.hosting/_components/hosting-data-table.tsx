@@ -64,7 +64,7 @@ export function HostingDataTable() {
       title: detailHref ? (
         <Link
           to={detailHref}
-          className="text-primary hover:underline"
+          className="text-foreground hover:underline"
           onClick={(e) => e.stopPropagation()}
         >
           {titleText}
