@@ -13,7 +13,6 @@ import {
   File,
   Eye,
   Edit,
-  Copy,
   Move,
   Archive,
   RefreshCw,
@@ -307,30 +306,6 @@ function FileManagerContent({
     }
   };
 
-  // Check if selected items include a zip file
-  const hasSelectedZipFile = (): boolean => {
-    if (selectedItems.length === 0) return false;
-    return filteredItems.some(item =>
-      selectedItems.includes(item.id) && isZipFile(item)
-    );
-  };
-
-  // Get the first selected zip file
-  const getSelectedZipFile = (): FileManagerItem | null => {
-    if (selectedItems.length === 0) return null;
-    return filteredItems.find(item =>
-      selectedItems.includes(item.id) && isZipFile(item)
-    ) || null;
-  };
-
-  // Handle extract from selected items
-  const handleExtractSelected = () => {
-    const zipFile = getSelectedZipFile();
-    if (zipFile) {
-      handleExtractClick(zipFile);
-    }
-  };
-
   const handleDeleteConfirm = async () => {
     const itemsToDelete =
       bulkDeleteItems && bulkDeleteItems.length > 0
@@ -482,6 +457,12 @@ function FileManagerContent({
                         View
                       </DropdownMenuItem>
                     )}
+                    {isZipFile(item) && (
+                      <DropdownMenuItem onClick={() => handleExtractClick(item)}>
+                        <Archive className="mr-2 h-4 w-4" />
+                        Extract
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={() => handleDownloadClick(item)}>
                       <Download className="mr-2 h-4 w-4" />
                       Download
@@ -489,10 +470,6 @@ function FileManagerContent({
                     <DropdownMenuItem onClick={() => handleRenameClick(item)}>
                       <Edit className="mr-2 h-4 w-4" />
                       Rename
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Copy className="mr-2 h-4 w-4" />
-                      Copy
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleMoveClick(item)}>
                       <Move className="mr-2 h-4 w-4" />
@@ -574,17 +551,6 @@ function FileManagerContent({
           {/* Action Buttons */}
           {selectedItems.length > 0 && (
             <>
-              {hasSelectedZipFile() && (
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="flex-shrink-0"
-                  onClick={handleExtractSelected}
-                >
-                  <Archive className="h-4 w-4 @sm/main:mr-2" />
-                  <span className="hidden @sm/main:inline">Extract</span>
-                </Button>
-              )}
               <Button
                 variant="destructive"
                 size="sm"
