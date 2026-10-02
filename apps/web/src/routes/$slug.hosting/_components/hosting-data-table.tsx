@@ -9,6 +9,7 @@ import {
 } from "@/components/hosting/hosting-subscriptions-list";
 import { CleanListCell } from "@/components/ui/clean-list";
 import { ViewDetailsButton, VisitSiteButton } from "@/components/ui/list-row-actions";
+import { PurchaseAnotherPlanButton } from "@/routes/$slug.marketplace/_components/purchase-another-plan-button";
 import { HostingPricing } from "./hosting-pricing";
 import { getStatusBadgeVariant, getStatusDisplayText } from "./hosting-utils";
 import { useTeamHostingSubscriptions } from "./use-team-hosting-subscriptions";
@@ -119,6 +120,7 @@ export function HostingDataTable() {
         { key: "dates", label: "Dates", className: "min-w-0 flex-1", hideBelow: "@lg" },
         { key: "actions", label: "Actions", align: "end" },
       ]}
+      toolbarActions={<PurchaseAnotherPlanButton service="hosting" />}
     />
   );
 }
