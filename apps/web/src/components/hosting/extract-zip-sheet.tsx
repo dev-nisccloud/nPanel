@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Archive, AlertCircle } from "lucide-react";
+import { TRPCClientError } from "@trpc/client";
 import { toast } from "@/components/ui/sonner";
 import { z } from "zod";
 
@@ -18,6 +19,8 @@ import {
 	SheetTitle,
 } from "@/components/npanel-ui/sheet";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
+
+import { postFtpExtract } from "@/components/hosting/ftp-transfer";
 import { trpc } from "@/utils/trpc";
 import { hostingDetailSchema } from "@/components/hosting/hosting-detail-schema";
 import { captureEvent } from "@/lib/posthog";
@@ -80,33 +83,10 @@ export function ExtractZipSheet({
 	const [overwrite, setOverwrite] = React.useState(false);
 	const [error, setError] = React.useState<string | null>(null);
 	const [failedFiles, setFailedFiles] = React.useState<string[]>([]);
+	const [failedCount, setFailedCount] = React.useState(0);
+	const [pending, setPending] = React.useState(false);
 
-	const extractZip = trpc.plesk.ftp.extractZip.useMutation({
-		onMutate: () => {
-			setError(null);
-			setFailedFiles([]);
-		},
-		onSuccess: (data) => {
-			captureEvent("zip_extracted", {
-				file_count: Array.isArray(data.files) ? data.files.length : 0,
-			});
-			const failed = data.failedFiles ?? [];
-			toast.success("Extraction completed", {
-				description: data.message,
-			});
-			onSuccess?.();
-			if (failed.length > 0) {
-				setFailedFiles(failed);
-				return;
-			}
-			onOpenChange(false);
-		},
-		onError: (mutationError) => {
-			const message = mutationError.message?.trim() || FTP_USER_ERROR_MESSAGE;
-			setError(message);
-			toast.error("Extraction failed", { description: message });
-		},
-	});
+	const extractZip = trpc.plesk.ftp.extractZip.useMutation();
 
 	React.useEffect(() => {
 		if (!open) return;
@@ -114,9 +94,8 @@ export function ExtractZipSheet({
 		setOverwrite(false);
 		setError(null);
 		setFailedFiles([]);
+		setFailedCount(0);
 	}, [open, defaultFolderName]);
-
-	const pending = extractZip.isPending;
 
 	const handleOpenChange = (next: boolean) => {
 		if (!next && pending) {
@@ -126,29 +105,45 @@ export function ExtractZipSheet({
 		onOpenChange(next);
 	};
 
-	const handleExtract = () => {
-		if (!file) return;
+	const handleExtract = async () => {
+		if (!file || pending) return;
 		const sanitized = folderName.trim().replace(/[/\\]+/g, "").trim() || defaultFolderName;
 		const extractToPath =
 			currentPath === "/"
 				? `/${sanitized}`.replace(/\/+/g, "/")
 				: `${currentPath}/${sanitized}`.replace(/\/+/g, "/");
 
+		setPending(true);
+		setError(null);
+		setFailedFiles([]);
+		setFailedCount(0);
 		try {
-			extractZip.mutate({
+			const prepared = await extractZip.mutateAsync({
 				credentials: ftpCredentials(hostingData),
 				zipPath: file.path,
 				extractTo: extractToPath,
 				overwrite,
 				maxSize: 500 * 1024 * 1024,
 			});
-		} catch (credentialsError) {
+			const result = await postFtpExtract(prepared.url);
+			captureEvent("zip_extracted", { file_count: result.extractedCount });
+			toast.success("Extraction completed", { description: result.message });
+			onSuccess?.();
+			if (result.failedCount > 0) {
+				setFailedFiles(result.failedFiles);
+				setFailedCount(result.failedCount);
+				return;
+			}
+			onOpenChange(false);
+		} catch (extractError) {
 			const message =
-				credentialsError instanceof Error
-					? credentialsError.message
+				extractError instanceof TRPCClientError || extractError instanceof Error
+					? extractError.message.trim() || FTP_USER_ERROR_MESSAGE
 					: FTP_USER_ERROR_MESSAGE;
 			setError(message);
 			toast.error("Extraction failed", { description: message });
+		} finally {
+			setPending(false);
 		}
 	};
 
@@ -213,10 +208,10 @@ export function ExtractZipSheet({
 						</div>
 					) : null}
 
-					{failedFiles.length > 0 ? (
+					{failedCount > 0 ? (
 						<div className="space-y-2 rounded-lg border border-border bg-muted/40 px-3 py-2">
 							<p className="text-xs font-medium text-foreground">
-								{failedFiles.length} file{failedFiles.length === 1 ? "" : "s"} could not be extracted
+								{failedCount} file{failedCount === 1 ? "" : "s"} could not be extracted
 							</p>
 							<ul className="max-h-28 space-y-1 overflow-y-auto">
 								{failedFiles.slice(0, 8).map((filePath) => (
@@ -225,9 +220,9 @@ export function ExtractZipSheet({
 									</li>
 								))}
 							</ul>
-							{failedFiles.length > 8 ? (
+							{failedCount > 8 ? (
 								<p className="text-xs text-muted-foreground">
-									and {failedFiles.length - 8} more
+									and {failedCount - 8} more
 								</p>
 							) : null}
 						</div>
@@ -240,9 +235,9 @@ export function ExtractZipSheet({
 							onClick={() => handleOpenChange(false)}
 							disabled={pending}
 						>
-							{failedFiles.length > 0 ? "Done" : "Cancel"}
+							{failedCount > 0 ? "Done" : "Cancel"}
 						</Button>
-						{failedFiles.length === 0 ? (
+						{failedCount === 0 ? (
 							<Button type="button" onClick={handleExtract} disabled={pending || !file}>
 								{pending ? (
 									<>

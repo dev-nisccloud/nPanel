@@ -24,48 +24,54 @@ export type FtpDownloadCredentials = {
 export type FtpDownloadTicket = {
 	uid: string;
 	exp: number;
-	kind: "file" | "folder";
+	kind: "file" | "folder" | "text";
 	filename: string;
 	remotePath: string;
 	folderName?: string;
+	maxBytes?: number;
 	credentials: FtpDownloadCredentials;
 };
 
-function downloadKey(): Buffer {
+function ticketKey(purpose: string): Buffer {
 	const secret = process.env.BETTER_AUTH_SECRET;
 	if (!secret || secret.length < 32) {
 		throw new Error("Download signing secret is not configured");
 	}
-	return createHash("sha256").update(`npanel-ftp-download:${secret}`).digest();
+	return createHash("sha256").update(`npanel-ftp-${purpose}:${secret}`).digest();
+}
+
+export function sealFtpTicket(purpose: string, payload: Record<string, unknown>, ttlMs: number): string {
+	const iv = randomBytes(12);
+	const cipher = createCipheriv("aes-256-gcm", ticketKey(purpose), iv);
+	const plaintext = Buffer.from(JSON.stringify({ ...payload, exp: Date.now() + ttlMs }), "utf8");
+	const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
+	return Buffer.concat([iv, cipher.getAuthTag(), ciphertext]).toString("base64url");
+}
+
+export function openFtpTicket<T>(purpose: string, token: string): T | null {
+	try {
+		const raw = Buffer.from(token, "base64url");
+		if (raw.length < 29) return null;
+		const decipher = createDecipheriv("aes-256-gcm", ticketKey(purpose), raw.subarray(0, 12));
+		decipher.setAuthTag(raw.subarray(12, 28));
+		const json = Buffer.concat([decipher.update(raw.subarray(28)), decipher.final()]).toString("utf8");
+		return JSON.parse(json) as T;
+	} catch {
+		return null;
+	}
 }
 
 export function createFtpDownloadUrl(ticket: Omit<FtpDownloadTicket, "exp">): string {
-	const iv = randomBytes(12);
-	const cipher = createCipheriv("aes-256-gcm", downloadKey(), iv);
-	const plaintext = Buffer.from(
-		JSON.stringify({ ...ticket, exp: Date.now() + DOWNLOAD_TTL_MS }),
-		"utf8",
-	);
-	const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
-	const token = Buffer.concat([iv, cipher.getAuthTag(), ciphertext]).toString("base64url");
+	const token = sealFtpTicket("download", { ...ticket }, DOWNLOAD_TTL_MS);
 	return `/api/hosting/ftp/download?ticket=${encodeURIComponent(token)}`;
 }
 
 export function openFtpDownloadTicket(token: string): FtpDownloadTicket | null {
-	try {
-		const raw = Buffer.from(token, "base64url");
-		if (raw.length < 29) return null;
-		const decipher = createDecipheriv("aes-256-gcm", downloadKey(), raw.subarray(0, 12));
-		decipher.setAuthTag(raw.subarray(12, 28));
-		const json = Buffer.concat([decipher.update(raw.subarray(28)), decipher.final()]).toString("utf8");
-		const parsed = JSON.parse(json) as FtpDownloadTicket;
-		if (!parsed?.uid || !parsed.exp || !parsed.remotePath || !parsed.credentials?.host) return null;
-		if (parsed.kind !== "file" && parsed.kind !== "folder") return null;
-		if (parsed.exp < Date.now()) return null;
-		return parsed;
-	} catch {
-		return null;
-	}
+	const parsed = openFtpTicket<FtpDownloadTicket>("download", token);
+	if (!parsed?.uid || !parsed.exp || !parsed.remotePath || !parsed.credentials?.host) return null;
+	if (parsed.kind !== "file" && parsed.kind !== "folder" && parsed.kind !== "text") return null;
+	if (parsed.exp < Date.now()) return null;
+	return parsed;
 }
 
 export function safeFtpDownloadName(name: string | undefined, fallback: string): string {
@@ -100,7 +106,7 @@ function contentDisposition(filename: string): string {
 	return `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(filename)}`;
 }
 
-async function connectFtp(credentials: FtpDownloadCredentials): Promise<Client> {
+export async function connectFtp(credentials: FtpDownloadCredentials): Promise<Client> {
 	const client = new Client(credentials.timeout || 30_000);
 	client.prepareTransfer = enterPassiveModeIPv4;
 	await client.access({
@@ -148,12 +154,66 @@ function relativeZipPath(filePath: string, remotePath: string): string | null {
 	return relative;
 }
 
+const TEXT_VIEW_MAX_BYTES = 5 * 1024 * 1024;
+
 export async function respondToFtpDownload(
 	ticket: FtpDownloadTicket,
 	revealDetails: boolean,
 ): Promise<Response> {
 	if (ticket.kind === "folder") return streamFolder(ticket, revealDetails);
+	if (ticket.kind === "text") return streamText(ticket, revealDetails);
 	return streamFile(ticket, revealDetails);
+}
+
+async function streamText(ticket: FtpDownloadTicket, revealDetails: boolean): Promise<Response> {
+	const maxBytes =
+		typeof ticket.maxBytes === "number" && ticket.maxBytes > 0
+			? Math.min(ticket.maxBytes, TEXT_VIEW_MAX_BYTES)
+			: TEXT_VIEW_MAX_BYTES;
+	let client: Client | null = null;
+	const tempFile = tempPath();
+	try {
+		client = await connectFtp(ticket.credentials);
+		let size: number | undefined;
+		try {
+			size = await client.size(ticket.remotePath);
+		} catch (error) {
+			if (!isOptionalFtpSizeError(error)) throw error;
+		}
+		if (typeof size === "number" && size > maxBytes) {
+			client.close();
+			client = null;
+			return Response.json(
+				{ message: "This file is too large to open in the editor." },
+				{ status: 413, headers: { "Cache-Control": "no-store" } },
+			);
+		}
+		await client.downloadTo(tempFile, ticket.remotePath);
+		client.close();
+		client = null;
+		const { readFileSync, statSync } = await import("node:fs");
+		const actual = statSync(tempFile).size;
+		if (actual > maxBytes) {
+			return Response.json(
+				{ message: "This file is too large to open in the editor." },
+				{ status: 413, headers: { "Cache-Control": "no-store" } },
+			);
+		}
+		const content = readFileSync(tempFile);
+		return new Response(content, {
+			status: 200,
+			headers: {
+				"Content-Type": "text/plain; charset=utf-8",
+				"Cache-Control": "no-store",
+				"X-Content-Type-Options": "nosniff",
+			},
+		});
+	} catch (error) {
+		client?.close();
+		return failureResponse(error, revealDetails);
+	} finally {
+		removeTemp(tempFile);
+	}
 }
 
 async function streamFile(ticket: FtpDownloadTicket, revealDetails: boolean): Promise<Response> {

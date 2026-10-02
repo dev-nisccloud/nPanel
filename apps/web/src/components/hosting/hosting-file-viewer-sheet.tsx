@@ -40,7 +40,16 @@ import {
   FileCodeEditor,
   getMonacoLanguageFromExtension,
 } from "@/components/hosting/file-code-editor";
+import { putFtpFile, readFtpText } from "@/components/hosting/ftp-transfer";
 import { trpc } from "@/utils/trpc";
+
+const FTP_USER_ERROR_MESSAGE =
+  "An error occurred. Please try again later or contact support.";
+
+function ftpErrorDescription(error: unknown): string {
+  if (error instanceof Error && error.message.trim()) return error.message.trim();
+  return FTP_USER_ERROR_MESSAGE;
+}
 
 export type HostingFileViewerFile = {
   name: string;
@@ -176,79 +185,66 @@ export function HostingFileViewerSheet({
     return `${Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
   };
 
-  const readFile = trpc.plesk.ftp.readFile.useMutation({
-    onSuccess: (data) => {
-      setFileContent(data.content);
-      setOriginalContent(data.content);
-      setEditedContent(data.content);
-      setHasUnsavedChanges(false);
-      setIsLoading(false);
-    },
-    onError: (error) => {
-      console.error("Error reading file:", error);
-      toast.error("Failed to load file", {
-        description: "An error occurred. Please try again later or contact support.",
-      });
-      setIsLoading(false);
-      setFileContent(null);
-      setOriginalContent(null);
-      setEditedContent(null);
-    },
-  });
-
-  const uploadFile = trpc.plesk.ftp.uploadFile.useMutation({
-    onSuccess: () => {
-      setOriginalContent(editedContent);
-      setFileContent(editedContent);
-      setHasUnsavedChanges(false);
-      setIsSaving(false);
-      setIsEditMode(false);
-      toast.success("File saved successfully");
-    },
-    onError: (error) => {
-      console.error("Error saving file:", error);
-      toast.error("Failed to save file", {
-        description: "An error occurred. Please try again later or contact support.",
-      });
-      setIsSaving(false);
-    },
-  });
+  const readFile = trpc.plesk.ftp.readFile.useMutation();
+  const uploadFile = trpc.plesk.ftp.uploadFile.useMutation();
 
   React.useEffect(() => {
-    if (open && file && isViewableHostingFile(file)) {
-      setIsLoading(true);
-      setFileContent(null);
-      setOriginalContent(null);
-      setEditedContent(null);
-      setHasUnsavedChanges(false);
-      setIsEditMode(false);
+    if (!(open && file && isViewableHostingFile(file))) {
+      if (!open) {
+        setFileContent(null);
+        setOriginalContent(null);
+        setEditedContent(null);
+        setHasUnsavedChanges(false);
+        setIsEditMode(false);
+        setIsLoading(false);
+        setPendingClose(false);
+        setShowUnsavedDialog(false);
+      }
+      return;
+    }
 
+    let cancelled = false;
+    setIsLoading(true);
+    setFileContent(null);
+    setOriginalContent(null);
+    setEditedContent(null);
+    setHasUnsavedChanges(false);
+    setIsEditMode(false);
+
+    void (async () => {
       try {
         const credentials = getCredentials();
-        readFile.mutate({
+        const prepared = await readFile.mutateAsync({
           credentials,
           remotePath: file.path,
           maxSize: 5 * 1024 * 1024,
         });
-      } catch {
-        setIsLoading(false);
+        const content = await readFtpText(prepared.url);
+        if (cancelled) return;
+        setFileContent(content);
+        setOriginalContent(content);
+        setEditedContent(content);
+        setHasUnsavedChanges(false);
+      } catch (error) {
+        if (cancelled) return;
+        console.error("Error reading file:", error);
         toast.error("Failed to load file", {
-          description: "An error occurred. Please try again later or contact support.",
+          description: ftpErrorDescription(error),
         });
+        setFileContent(null);
+        setOriginalContent(null);
+        setEditedContent(null);
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
-    } else if (!open) {
-      setFileContent(null);
-      setOriginalContent(null);
-      setEditedContent(null);
-      setHasUnsavedChanges(false);
-      setIsEditMode(false);
-      setIsLoading(false);
-      setPendingClose(false);
-      setShowUnsavedDialog(false);
-    }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
     // Intentionally only re-fetch when the sheet opens for a file
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, file.path]);
+  }, [open, file?.path]);
 
   const switchToViewMode = React.useCallback(() => {
     if (hasUnsavedChanges) {
@@ -287,20 +283,29 @@ export function HostingFileViewerSheet({
 
     try {
       const credentials = getCredentials();
-      const base64Content = btoa(unescape(encodeURIComponent(editedContent)));
-
+      const body = new Blob([editedContent], { type: "text/plain;charset=utf-8" });
       const pathParts = file.path.split("/");
       pathParts.pop();
       const parentPath = pathParts.join("/") || "/";
 
-      await uploadFile.mutateAsync({
+      const prepared = await uploadFile.mutateAsync({
         credentials,
-        fileData: base64Content,
         fileName: file.name,
         remotePath: parentPath,
+        size: body.size,
       });
+      await putFtpFile(prepared.url, body);
+      setOriginalContent(editedContent);
+      setFileContent(editedContent);
+      setHasUnsavedChanges(false);
+      setIsEditMode(false);
+      toast.success("File saved successfully");
     } catch (error) {
       console.error("Save error:", error);
+      toast.error("Failed to save file", {
+        description: ftpErrorDescription(error),
+      });
+    } finally {
       setIsSaving(false);
     }
   };
