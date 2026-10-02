@@ -36,6 +36,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -72,16 +73,16 @@ function FileManagerSkeleton() {
   return (
     <div className="space-y-4">
       {/* Header skeleton */}
-      <div className="flex flex-col gap-4 @sm/main:flex-row @sm/main:items-center @sm/main:justify-between">
-        <div className="flex flex-col gap-4 @sm/main:flex-row @sm/main:items-center">
-          <Skeleton className="h-10 w-full @sm/main:w-80" />
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-4 w-full min-w-0 md:w-auto md:flex-row md:items-center">
+          <Skeleton className="h-10 w-full md:w-80" />
           <div className="flex items-center space-x-1">
             <Skeleton className="h-4 w-16" />
             <Skeleton className="h-4 w-1" />
             <Skeleton className="h-4 w-20" />
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:justify-end">
           <Skeleton className="h-10 w-10" />
           <Skeleton className="h-10 w-20" />
           <Skeleton className="h-10 w-20" />
@@ -379,9 +380,9 @@ function FileManagerContent({ hostingData }: FileManagerProps) {
   };
 
   const TableView = () => (
-    <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-      <Table>
-        <TableHeader>
+    <ScrollArea horizontal className="h-[calc(100svh-28rem)] min-h-64 rounded-lg border bg-card shadow-sm">
+      <Table containerClassName="overflow-visible">
+        <TableHeader className="sticky top-0 z-10 bg-card [&_th]:bg-card">
           <TableRow>
             <TableHead className="w-12">
               <Checkbox
@@ -510,20 +511,20 @@ function FileManagerContent({ hostingData }: FileManagerProps) {
           ))}
         </TableBody>
       </Table>
-    </div>
+    </ScrollArea>
   );
 
   return (
     <div className="space-y-4">
       {/* Header with controls */}
-      <div className="flex flex-col gap-4 @sm/main:flex-row @sm/main:items-center @sm/main:justify-between">
-        <div className="flex flex-col gap-4 @sm/main:flex-row @sm/main:items-center">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-4 w-full min-w-0 md:w-auto md:flex-row md:items-center">
           <div className="relative">
             <Input
               placeholder="Search files and folders..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full @sm/main:w-80"
+              className="w-full md:w-80"
             />
           </div>
 
@@ -554,7 +555,7 @@ function FileManagerContent({ hostingData }: FileManagerProps) {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:justify-end">
           {/* Refresh Button */}
           <Button
             type="button"
@@ -785,8 +786,6 @@ function FileManagerContent({ hostingData }: FileManagerProps) {
           currentPath={currentPath}
           onSuccess={() => {
             refreshCurrentPath();
-            setExtractZipDialogOpen(false);
-            setExtractingFile(null);
           }}
         />
       )}
