@@ -406,20 +406,20 @@ export const agencysidebarItems: NavGroup[] = [
         icon: (props: any) => React.createElement(Icons.PAYMENT_GATEWAY, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         isNew: true,
       },
-      {
-        title: "Digitax eTIMS",
-        url: "/agency/digitax/sales",
-        icon: (props: any) => React.createElement(Icons.Invoices, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-        subItems: [
-          { title: "Sales", url: "/agency/digitax/sales", },
-          { title: "Purchases", url: "/agency/digitax/purchases", },
-          { title: "Products", url: "/agency/digitax/products", },
-          { title: "Customers", url: "/agency/digitax/customers", },
-          { title: "Branches", url: "/agency/digitax/branches", },
-          { title: "Notices", url: "/agency/digitax/notices", },
-          { title: "Verifications", url: "/agency/digitax/verifications", },
-        ],
-      },
+      // {
+      //   title: "Digitax eTIMS",
+      //   url: "/agency/digitax/sales",
+      //   icon: (props: any) => React.createElement(Icons.Invoices, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      //   subItems: [
+      //     { title: "Sales", url: "/agency/digitax/sales", },
+      //     { title: "Purchases", url: "/agency/digitax/purchases", },
+      //     { title: "Products", url: "/agency/digitax/products", },
+      //     { title: "Customers", url: "/agency/digitax/customers", },
+      //     { title: "Branches", url: "/agency/digitax/branches", },
+      //     { title: "Notices", url: "/agency/digitax/notices", },
+      //     { title: "Verifications", url: "/agency/digitax/verifications", },
+      //   ],
+      // },
       {
         title: "KRA eTIMS",
         url: "/agency/kra-etims/sales",
@@ -447,11 +447,11 @@ export const agencysidebarItems: NavGroup[] = [
         url: "/agency/nisc-reports",
         icon: (props: any) => React.createElement(Icons.Reports, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
-      {
-        title: "Workflow Jobs",
-        url: "/agency/cronjobs",
-        icon: (props: any) => React.createElement(Icons.CRONJOB, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-      },
+      // {
+      //   title: "Workflow Jobs",
+      //   url: "/agency/cronjobs",
+      //   icon: (props: any) => React.createElement(Icons.CRONJOB, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      // },
       // {
       //   title: "Invoicing",
       //   url: "/agency/invoicing",
