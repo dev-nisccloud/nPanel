@@ -15,8 +15,9 @@ function ScrollArea({
   children,
   viewportClassName,
   thumbClassName,
+  horizontal = false,
   ...props
-}: ScrollAreaProps) {
+}: ScrollAreaProps & { horizontal?: boolean }) {
   return (
     <ScrollAreaPrimitive.Root
       data-slot="scroll-area"
@@ -33,6 +34,7 @@ function ScrollArea({
         {children}
       </ScrollAreaPrimitive.Viewport>
       <ScrollBar thumbClassName={thumbClassName} />
+      {horizontal ? <ScrollBar orientation="horizontal" thumbClassName={thumbClassName} /> : null}
       <ScrollAreaPrimitive.Corner />
     </ScrollAreaPrimitive.Root>
   )

@@ -162,7 +162,7 @@ export function SubscriptionsTable({
 		return {
 			key: sub.id,
 			title: (
-				<span className="text-primary hover:underline">
+				<span className="text-foreground hover:underline">
 					{displayServiceName(sub.productName, sub.productPlanName, sub.subscriptionName, sub.billingCycle)}
 				</span>
 			),

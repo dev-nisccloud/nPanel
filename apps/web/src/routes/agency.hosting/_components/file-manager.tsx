@@ -13,7 +13,6 @@ import {
   File,
   Eye,
   Edit,
-  Copy,
   Move,
   Archive,
   RefreshCw,
@@ -35,6 +34,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -67,6 +67,7 @@ interface FileManagerProps {
   hostingData: z.infer<typeof hostingDetailSchema>;
   openCreateSheet?: boolean;
   onCreateSheetOpened?: () => void;
+  initialPath?: string;
 }
 
 // Loading skeleton component
@@ -74,16 +75,16 @@ function FileManagerSkeleton() {
   return (
     <div className="space-y-4">
       {/* Header skeleton */}
-      <div className="flex flex-col gap-4 @sm/main:flex-row @sm/main:items-center @sm/main:justify-between">
-        <div className="flex flex-col gap-4 @sm/main:flex-row @sm/main:items-center">
-          <Skeleton className="h-10 w-full @sm/main:w-80" />
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-4 w-full min-w-0 md:w-auto md:flex-row md:items-center">
+          <Skeleton className="h-10 w-full md:w-80" />
           <div className="flex items-center space-x-1">
             <Skeleton className="h-4 w-16" />
             <Skeleton className="h-4 w-1" />
             <Skeleton className="h-4 w-20" />
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:justify-end">
           <Skeleton className="h-10 w-10" />
           <Skeleton className="h-10 w-20" />
           <Skeleton className="h-10 w-20" />
@@ -164,6 +165,7 @@ function FileManagerContent({
   hostingData,
   openCreateSheet,
   onCreateSheetOpened,
+  initialPath = "/",
 }: FileManagerProps) {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -189,6 +191,11 @@ function FileManagerContent({
     setUploadSheetOpen(true);
     onCreateSheetOpened?.();
   }, [openCreateSheet, onCreateSheetOpened]);
+
+  React.useEffect(() => {
+    setSearchTerm("");
+    setSelectedItems([]);
+  }, [initialPath]);
 
   // Extract FTP credentials from hosting data
   const ftpCredentials = React.useMemo(() => {
@@ -237,7 +244,7 @@ function FileManagerContent({
     isCreating,
     isUploading,
     isDownloading,
-  } = useFtpFileManager(ftpCredentials, "/");
+  } = useFtpFileManager(ftpCredentials, initialPath);
 
   const filteredItems = sortFileManagerItems(
     (data?.items || []).filter(item =>
@@ -324,30 +331,6 @@ function FileManagerContent({
     }
   };
 
-  // Check if selected items include a zip file
-  const hasSelectedZipFile = (): boolean => {
-    if (selectedItems.length === 0) return false;
-    return filteredItems.some(item =>
-      selectedItems.includes(item.id) && isZipFile(item)
-    );
-  };
-
-  // Get the first selected zip file
-  const getSelectedZipFile = (): FileManagerItem | null => {
-    if (selectedItems.length === 0) return null;
-    return filteredItems.find(item =>
-      selectedItems.includes(item.id) && isZipFile(item)
-    ) || null;
-  };
-
-  // Handle extract from selected items
-  const handleExtractSelected = () => {
-    const zipFile = getSelectedZipFile();
-    if (zipFile) {
-      handleExtractClick(zipFile);
-    }
-  };
-
   const handleDeleteConfirm = async () => {
     const itemsToDelete =
       bulkDeleteItems && bulkDeleteItems.length > 0
@@ -413,9 +396,9 @@ function FileManagerContent({
   };
 
   const TableView = () => (
-    <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-      <Table>
-        <TableHeader>
+    <ScrollArea horizontal className="h-[calc(100svh-28rem)] min-h-64 rounded-lg border bg-card shadow-sm">
+      <Table containerClassName="overflow-visible">
+        <TableHeader className="sticky top-0 z-10 bg-card [&_th]:bg-card">
           <TableRow>
             <TableHead className="w-12">
               <Checkbox
@@ -499,6 +482,12 @@ function FileManagerContent({
                         View
                       </DropdownMenuItem>
                     )}
+                    {isZipFile(item) && (
+                      <DropdownMenuItem onClick={() => handleExtractClick(item)}>
+                        <Archive className="mr-2 h-4 w-4" />
+                        Extract
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={() => handleDownloadClick(item)}>
                       <Download className="mr-2 h-4 w-4" />
                       Download
@@ -506,10 +495,6 @@ function FileManagerContent({
                     <DropdownMenuItem onClick={() => handleRenameClick(item)}>
                       <Edit className="mr-2 h-4 w-4" />
                       Rename
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Copy className="mr-2 h-4 w-4" />
-                      Copy
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleMoveClick(item)}>
                       <Move className="mr-2 h-4 w-4" />
@@ -530,7 +515,7 @@ function FileManagerContent({
           ))}
         </TableBody>
       </Table>
-    </div>
+    </ScrollArea>
   );
 
   return (
@@ -562,19 +547,19 @@ function FileManagerContent({
       </div>
 
       {/* Header with controls */}
-      <div className="flex flex-col gap-4 @sm/main:flex-row @sm/main:items-center @sm/main:justify-between">
-        <div className="flex flex-col gap-4 @sm/main:flex-row @sm/main:items-center">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-4 w-full min-w-0 md:w-auto md:flex-row md:items-center">
           <div className="relative">
             <Input
               placeholder="Search files and folders..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full @sm/main:w-80"
+              className="w-full md:w-80"
             />
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:justify-end">
           {/* Refresh Button */}
           <Button
             type="button"
@@ -591,17 +576,6 @@ function FileManagerContent({
           {/* Action Buttons */}
           {selectedItems.length > 0 && (
             <>
-              {hasSelectedZipFile() && (
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="flex-shrink-0"
-                  onClick={handleExtractSelected}
-                >
-                  <Archive className="h-4 w-4 @sm/main:mr-2" />
-                  <span className="hidden @sm/main:inline">Extract</span>
-                </Button>
-              )}
               <Button
                 variant="destructive"
                 size="sm"
@@ -812,8 +786,6 @@ function FileManagerContent({
           currentPath={currentPath}
           onSuccess={() => {
             refreshCurrentPath();
-            setExtractZipDialogOpen(false);
-            setExtractingFile(null);
           }}
         />
       )}

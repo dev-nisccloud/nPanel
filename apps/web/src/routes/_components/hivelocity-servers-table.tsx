@@ -280,7 +280,7 @@ export function HivelocityServersTable({ type, resourceBasePath, teamSlug }: Hiv
 				title: (
 					<Link
 						to={detailHref}
-						className="text-primary hover:underline"
+						className="text-foreground hover:underline"
 						onClick={(e) => e.stopPropagation()}
 					>
 						{titleText}
@@ -311,7 +311,7 @@ export function HivelocityServersTable({ type, resourceBasePath, teamSlug }: Hiv
 			title: (
 				<Link
 					to={detailHref}
-					className="text-primary hover:underline"
+					className="text-foreground hover:underline"
 					onClick={(e) => e.stopPropagation()}
 				>
 					{titleText}

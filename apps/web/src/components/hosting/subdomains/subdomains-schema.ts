@@ -70,6 +70,36 @@ export const subdomainsDataSchema = z.object({
   subdomains: z.array(subdomainSchema),
 });
 
+/** FTP path of a subdomain's document root, relative to the subscription home. */
+export function subdomainFtpHomePath(subdomain: {
+  name?: string;
+  parent?: string;
+  properties?: { www_root?: string } | null;
+}): string {
+  const wwwRoot = subdomain.properties?.www_root?.trim().replace(/\\/g, "/") ?? "";
+  const parent = subdomain.parent?.trim() ?? "";
+
+  if (wwwRoot) {
+    let relative = wwwRoot;
+    if (parent) {
+      const marker = `/${parent}/`;
+      const index = wwwRoot.toLowerCase().indexOf(marker.toLowerCase());
+      if (index >= 0) {
+        relative = wwwRoot.slice(index + marker.length);
+      }
+    }
+    relative = relative.replace(/^\/+/, "").replace(/\/+$/, "");
+    const systemPath = /^(var|usr|home|opt)\//i.test(relative);
+    if (relative && !systemPath) {
+      return `/${relative}`.replace(/\/+/g, "/");
+    }
+  }
+
+  const name = subdomain.name?.trim() ?? "";
+  const host = name.includes(".") ? name : parent ? `${name}.${parent}` : name;
+  return host ? `/${host}` : "/";
+}
+
 export type PleskSubdomainsResponse = z.infer<typeof pleskSubdomainsResponseSchema>;
 export type SubdomainProperties = z.infer<typeof subdomainPropertiesSchema>;
 export type Subdomain = z.infer<typeof subdomainSchema>;

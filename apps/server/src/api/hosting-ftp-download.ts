@@ -1,5 +1,3 @@
-import { createContext, t } from "@npanel/api";
-import { appRouter } from "@npanel/api/routers/index";
 import {
 	FTP_PUBLIC_ERROR_MESSAGE,
 	openFtpDownloadTicket,
@@ -7,7 +5,7 @@ import {
 } from "@npanel/api/lib/plesk/ftp-download";
 import type { Context } from "hono";
 
-const appCaller = t.createCallerFactory(appRouter);
+import { readHostingFtpSession } from "./hosting-ftp-session";
 
 export async function handleHostingFtpDownload(c: Context) {
 	const token = c.req.query("ticket")?.trim();
@@ -16,21 +14,14 @@ export async function handleHostingFtpDownload(c: Context) {
 	}
 
 	try {
-		const ctx = await createContext({
-			context: c,
-			createCaller: (innerCtx) => appCaller(innerCtx),
-		});
-		const userId = ctx.session?.user?.id;
-		if (!userId) {
-			return c.json({ message: "Authentication required" }, 401);
-		}
+		const session = await readHostingFtpSession(c);
+		if (!session.ok) return session.response;
 
-		const reveal = ctx.session?.user?.role?.trim().toUpperCase() === "AGENCY_SUPER_ADMIN";
 		const ticket = openFtpDownloadTicket(token);
-		if (!ticket || ticket.uid !== userId) {
+		if (!ticket || ticket.uid !== session.userId) {
 			return c.json(
 				{
-					message: reveal
+					message: session.reveal
 						? "This download link has expired or does not match this session."
 						: FTP_PUBLIC_ERROR_MESSAGE,
 				},
@@ -38,7 +29,7 @@ export async function handleHostingFtpDownload(c: Context) {
 			);
 		}
 
-		return respondToFtpDownload(ticket, reveal);
+		return respondToFtpDownload(ticket, session.reveal);
 	} catch (error) {
 		console.error("FTP download route failed:", error);
 		return c.json({ message: FTP_PUBLIC_ERROR_MESSAGE }, 500);

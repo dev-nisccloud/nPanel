@@ -120,7 +120,7 @@ export function CustomerSubscriptionsTable({ onViewSubscription, onRenewSubscrip
 		return {
 			key: sub.id,
 			title: (
-				<span className="text-primary hover:underline">
+				<span className="text-foreground hover:underline">
 					{displayServiceName(
 						sub.productName,
 						sub.productPlanName,

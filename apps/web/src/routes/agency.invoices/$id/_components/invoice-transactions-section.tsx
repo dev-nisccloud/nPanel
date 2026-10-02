@@ -92,7 +92,7 @@ export function InvoiceTransactionsSection({
 						<CleanListRow
 							key={tx.id}
 							title={
-								<span className="text-primary hover:underline">
+								<span className="text-foreground hover:underline">
 									{tx.reference || tx.providerReference || `${tx.id.slice(0, 8)}…`}
 								</span>
 							}

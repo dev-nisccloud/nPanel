@@ -150,7 +150,7 @@ export function TransactionsTable({
 
     return {
       key: transaction.id,
-      title: <span className="text-primary hover:underline">{reference}</span>,
+      title: <span className="text-foreground hover:underline">{reference}</span>,
       description: (
         <Badge
           variant={
