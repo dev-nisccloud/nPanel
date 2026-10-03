@@ -16,3 +16,4 @@ export { MailTable } from "./mail";
 export { SubdomainsTable } from "./subdomains";
 export { DatabasesTable } from "./databases";
 export { WordPressInstancesTable, InstallWordPressSheet } from "./wordpress";
+export { FileManagerFolderTree, type FolderTreeNode } from "./file-manager-folder-tree";

@@ -24,7 +24,7 @@ export type FtpDownloadCredentials = {
 export type FtpDownloadTicket = {
 	uid: string;
 	exp: number;
-	kind: "file" | "folder" | "text";
+	kind: "file" | "folder" | "text" | "preview";
 	filename: string;
 	remotePath: string;
 	folderName?: string;
@@ -69,7 +69,7 @@ export function createFtpDownloadUrl(ticket: Omit<FtpDownloadTicket, "exp">): st
 export function openFtpDownloadTicket(token: string): FtpDownloadTicket | null {
 	const parsed = openFtpTicket<FtpDownloadTicket>("download", token);
 	if (!parsed?.uid || !parsed.exp || !parsed.remotePath || !parsed.credentials?.host) return null;
-	if (parsed.kind !== "file" && parsed.kind !== "folder" && parsed.kind !== "text") return null;
+	if (parsed.kind !== "file" && parsed.kind !== "folder" && parsed.kind !== "text" && parsed.kind !== "preview") return null;
 	if (parsed.exp < Date.now()) return null;
 	return parsed;
 }
@@ -162,7 +162,43 @@ export async function respondToFtpDownload(
 ): Promise<Response> {
 	if (ticket.kind === "folder") return streamFolder(ticket, revealDetails);
 	if (ticket.kind === "text") return streamText(ticket, revealDetails);
+	if (ticket.kind === "preview") {
+		const contentType = previewContentType(ticket.filename);
+		return streamFile(ticket, revealDetails, {
+			inline: true,
+			// Images can paint without a length. Video players need Content-Length, so keep one SIZE on this same connection.
+			skipSize: contentType.startsWith("image/"),
+			contentType,
+		});
+	}
 	return streamFile(ticket, revealDetails);
+}
+
+const PREVIEW_CONTENT_TYPES: Record<string, string> = {
+	jpg: "image/jpeg",
+	jpeg: "image/jpeg",
+	png: "image/png",
+	gif: "image/gif",
+	webp: "image/webp",
+	svg: "image/svg+xml",
+	bmp: "image/bmp",
+	ico: "image/x-icon",
+	apng: "image/apng",
+	avif: "image/avif",
+	mp4: "video/mp4",
+	webm: "video/webm",
+	ogg: "video/ogg",
+	ogv: "video/ogg",
+	mov: "video/quicktime",
+	m4v: "video/mp4",
+	avi: "video/x-msvideo",
+	mkv: "video/x-matroska",
+	"3gp": "video/3gpp",
+};
+
+function previewContentType(filename: string): string {
+	const extension = filename.split(".").pop()?.toLowerCase() ?? "";
+	return PREVIEW_CONTENT_TYPES[extension] ?? "application/octet-stream";
 }
 
 async function streamText(ticket: FtpDownloadTicket, revealDetails: boolean): Promise<Response> {
@@ -216,17 +252,23 @@ async function streamText(ticket: FtpDownloadTicket, revealDetails: boolean): Pr
 	}
 }
 
-async function streamFile(ticket: FtpDownloadTicket, revealDetails: boolean): Promise<Response> {
+async function streamFile(
+	ticket: FtpDownloadTicket,
+	revealDetails: boolean,
+	options?: { inline?: boolean; skipSize?: boolean; contentType?: string },
+): Promise<Response> {
 	let client: Client | null = null;
 	try {
 		client = await connectFtp(ticket.credentials);
 		let size: number | undefined;
-		try {
-			size = await client.size(ticket.remotePath);
-		} catch (error) {
-			if (!isOptionalFtpSizeError(error)) {
-				client.close();
-				return failureResponse(error, revealDetails);
+		if (!options?.skipSize) {
+			try {
+				size = await client.size(ticket.remotePath);
+			} catch (error) {
+				if (!isOptionalFtpSizeError(error)) {
+					client.close();
+					return failureResponse(error, revealDetails);
+				}
 			}
 		}
 
@@ -243,10 +285,13 @@ async function streamFile(ticket: FtpDownloadTicket, revealDetails: boolean): Pr
 				ftp.close();
 			});
 
+		const filename = ticket.filename || "download";
 		const headers = new Headers({
-			"Content-Type": "application/octet-stream",
-			"Content-Disposition": contentDisposition(ticket.filename || "download"),
-			"Cache-Control": "no-store",
+			"Content-Type": options?.contentType || "application/octet-stream",
+			"Content-Disposition": options?.inline
+				? `inline; filename="${filename.replace(/["\\]/g, "_")}"`
+				: contentDisposition(filename),
+			"Cache-Control": options?.inline ? "private, max-age=60" : "no-store",
 			"X-Content-Type-Options": "nosniff",
 		});
 		if (typeof size === "number" && size >= 0) headers.set("Content-Length", String(size));
@@ -276,30 +321,27 @@ async function streamFolder(ticket: FtpDownloadTicket, revealDetails: boolean): 
 		}
 
 		const pass = new PassThrough();
-		const archive = archiver("zip", { zlib: { level: 6 } });
+		const archive = archiver("zip", { zlib: { level: 1 } });
 		archive.on("error", (error) => pass.destroy(error));
 		archive.pipe(pass);
 
 		const ftp = client;
 		client = null;
 		void (async () => {
-			const tempFiles: string[] = [];
 			try {
 				let packed = 0;
 				for (const file of files) {
 					const relative = relativeZipPath(file.path, ticket.remotePath);
 					if (!relative) continue;
-					const tempFile = tempPath();
-					tempFiles.push(tempFile);
+					const source = new PassThrough();
+					archive.append(source, { name: relative });
 					try {
-						await ftp.downloadTo(tempFile, file.path);
+						await ftp.downloadTo(source, file.path);
+						packed += 1;
 					} catch (error) {
 						console.error(`FTP folder download skipped ${file.path}:`, error);
-						continue;
+						source.destroy();
 					}
-					if (!existsSync(tempFile)) continue;
-					archive.file(tempFile, { name: relative });
-					packed += 1;
 				}
 				if (packed === 0) {
 					throw new Error("None of the files in this folder could be downloaded.");
@@ -311,7 +353,6 @@ async function streamFolder(ticket: FtpDownloadTicket, revealDetails: boolean): 
 				pass.destroy(error instanceof Error ? error : new Error("Download failed"));
 			} finally {
 				ftp.close();
-				tempFiles.forEach(removeTemp);
 			}
 		})();
 

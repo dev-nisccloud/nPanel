@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { Archive, AlertCircle } from "lucide-react";
-import { TRPCClientError } from "@trpc/client";
 import { toast } from "@/components/ui/sonner";
 import { z } from "zod";
 
@@ -21,12 +20,10 @@ import {
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
 import { postFtpExtract } from "@/components/hosting/ftp-transfer";
+import { useFtpErrorMessage } from "@/components/hosting/ftp-error-message";
 import { trpc } from "@/utils/trpc";
 import { hostingDetailSchema } from "@/components/hosting/hosting-detail-schema";
 import { captureEvent } from "@/lib/posthog";
-
-const FTP_USER_ERROR_MESSAGE =
-	"An error occurred. Please try again later or contact support.";
 
 export type ExtractZipFile = {
 	name: string;
@@ -75,6 +72,7 @@ export function ExtractZipSheet({
 	currentPath,
 	onSuccess,
 }: ExtractZipSheetProps) {
+	const ftpErrorText = useFtpErrorMessage();
 	const defaultFolderName = React.useMemo(
 		() => (file?.name ? file.name.replace(/\.zip$/i, "").trim() || "extracted" : "extracted"),
 		[file?.name],
@@ -136,10 +134,7 @@ export function ExtractZipSheet({
 			}
 			onOpenChange(false);
 		} catch (extractError) {
-			const message =
-				extractError instanceof TRPCClientError || extractError instanceof Error
-					? extractError.message.trim() || FTP_USER_ERROR_MESSAGE
-					: FTP_USER_ERROR_MESSAGE;
+			const message = ftpErrorText(extractError);
 			setError(message);
 			toast.error("Extraction failed", { description: message });
 		} finally {

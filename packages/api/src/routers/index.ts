@@ -135,6 +135,7 @@ import { storefrontRouter } from "./storefront";
 import { objectStorageRouter } from "./object-storage";
 import { whoisRouter } from "./whois";
 import { niscPaymentGatewayRouter } from "./nisc-payment-gateway";
+import { customerOAuthRouter } from "./customer-oauth";
 
 
 export const appRouter = router({
@@ -369,6 +370,8 @@ export const appRouter = router({
 		filePermissions: niscBackupFilePermissionsRouter,
 		plugins: niscBackupPluginsRouter,
 	}),
+	// Customer OAuth (Self-Service Social/Ads Platform Connections)
+	customerOAuth: customerOAuthRouter,
 	// Nisc Payment Gateway (White-label Payment Gateway)
 	niscPaymentGateway: niscPaymentGatewayRouter,
 });
