@@ -35,6 +35,9 @@ export const agencyMenuKeys = [
 	"/agency/ad-campaigns/google-ads",
 	"/agency/ad-campaigns/linkedin-ads",
 
+	"/agency/social-media-ads",
+	"/agency/social-media-ads/facebook",
+
 	"/agency/email-marketing",
 	"/agency/email-marketing/campaigns",
 	"/agency/email-marketing/domain-configuration",

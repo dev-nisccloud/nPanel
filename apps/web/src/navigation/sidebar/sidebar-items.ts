@@ -292,6 +292,14 @@ export const agencysidebarItems: NavGroup[] = [
         ],
       },
       {
+        title: "Social Media & Ads",
+        url: "/agency/social-media-ads",
+        icon: (props: any) => React.createElement(Icons.SOCIAL_MEDIA_ADS, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        subItems: [
+          { title: "Facebook", url: "/agency/social-media-ads/facebook" },
+        ],
+      },
+      {
         title: "Email Marketing",
         url: "/agency/nisc-email-marketing",
         icon: (props: any) => React.createElement(Icons.EmailMarketing, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
