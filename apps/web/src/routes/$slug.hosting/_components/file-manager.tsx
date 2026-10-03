@@ -17,7 +17,12 @@ import {
   Archive,
   RefreshCw,
   ArrowLeft,
-  XIcon
+  XIcon,
+  Copy,
+  PanelLeftClose,
+  PanelLeft,
+  Home,
+  Search,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -34,7 +39,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -43,7 +47,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 import { FileManagerTypeIcon } from "@/components/hosting/file-manager-icon";
+import { FileManagerFolderTree, type FolderTreeNode } from "@/components/hosting/file-manager-folder-tree";
 import type { FileManagerData, FileManagerItem } from "./file-manager-schema";
 import { sortFileManagerItems } from "./file-manager-schema";
 import { useFtpFileManager } from "@/components/hosting/use-ftp-file-manager";
@@ -61,7 +68,7 @@ import { NewFolderDialog } from "./new-folder-dialog";
 import { UploadFileSheet } from "@/components/hosting/upload-file-sheet";
 import { FileViewerSheet, isViewableFile } from "./file-viewer-sheet";
 import { MediaViewerDialog, isViewableMediaFile } from "./media-viewer-dialog";
-import { ExtractZipDialog } from "./extract-zip-dialog";
+import { CopyFileDialog } from "@/components/hosting/copy-file-dialog";
 
 interface FileManagerProps {
   hostingData: z.infer<typeof hostingDetailSchema>;
@@ -169,6 +176,7 @@ function FileManagerContent({
 }: FileManagerProps) {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Dialog states
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -185,6 +193,8 @@ function FileManagerContent({
   const [viewingFile, setViewingFile] = useState<FileManagerItem | null>(null);
   const [extractingFile, setExtractingFile] = useState<FileManagerItem | null>(null);
   const [availableDirectories, setAvailableDirectories] = useState<FileManagerItem[]>([]);
+  const [copyDialogOpen, setCopyDialogOpen] = useState(false);
+  const [copyTargets, setCopyTargets] = useState<FileManagerItem[]>([]);
 
   React.useEffect(() => {
     if (!openCreateSheet) return;
@@ -226,21 +236,24 @@ function FileManagerContent({
     isLoading,
     isRefreshing,
     isError,
-    error,
+    errorMessage,
     currentPath,
     navigateToPath,
     navigateUp,
     navigateToBreadcrumb,
     refreshCurrentPath,
+    listDirectory,
     deleteItem,
     renameItem,
     moveItem,
+    copyItems,
     createFolder,
     uploadFile,
     downloadItem,
     isDeleting,
     isRenaming,
     isMoving,
+    isCopying,
     isCreating,
     isUploading,
     isDownloading,
@@ -298,6 +311,31 @@ function FileManagerContent({
     setAvailableDirectories(directories);
     setMoveDialogOpen(true);
   };
+
+  const handleCopyClick = (items: FileManagerItem[]) => {
+    if (items.length === 0) {
+      toast.error("Select at least one file or folder to copy");
+      return;
+    }
+    setCopyTargets(items);
+    setCopyDialogOpen(true);
+  };
+
+  const copyDestinations = React.useMemo(() => {
+    const options: { id: string; name: string; path: string }[] = [
+      { id: `current:${currentPath}`, name: "This folder", path: currentPath || "/" },
+    ];
+    if (currentPath && currentPath !== "/") {
+      const parent = currentPath.split("/").slice(0, -1).join("/") || "/";
+      options.push({ id: `parent:${parent}`, name: "Parent folder", path: parent });
+    }
+    for (const item of data?.items || []) {
+      if (item.type === "folder") {
+        options.push({ id: item.id, name: item.name, path: item.path });
+      }
+    }
+    return options;
+  }, [currentPath, data?.items]);
 
   const handleExtractClick = (item: FileManagerItem) => {
     setExtractingFile(item);
@@ -395,300 +433,368 @@ function FileManagerContent({
     setDeleteDialogOpen(true);
   };
 
-  const TableView = () => (
-    <ScrollArea horizontal className="h-[calc(100svh-28rem)] min-h-64 rounded-lg border bg-card shadow-sm">
-      <Table containerClassName="overflow-visible">
-        <TableHeader className="sticky top-0 z-10 bg-card [&_th]:bg-card">
-          <TableRow>
-            <TableHead className="w-12">
-              <Checkbox
-                checked={isAllSelected}
-                ref={(el) => {
-                  if (el) {
-                    (el as HTMLButtonElement).indeterminate = isIndeterminate;
-                  }
-                }}
-                onCheckedChange={(checked) => handleSelectAll(!!checked)}
-              />
-            </TableHead>
-            <TableHead className="pl-6">Name</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Size</TableHead>
-            <TableHead>Modified</TableHead>
-            <TableHead className="w-12"></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filteredItems.map((item) => (
-            <TableRow
-              key={item.id}
-              className={`cursor-pointer ${selectedItems.includes(item.id) ? "bg-muted/50" : ""
-                }`}
-              onClick={() => handleItemActivate(item)}
-            >
-              <TableCell onClick={(e) => e.stopPropagation()}>
-                <Checkbox
-                  checked={selectedItems.includes(item.id)}
-                  onCheckedChange={(checked) => {
-                    handleSelectItem(item.id, !!checked);
-                  }}
-                />
-              </TableCell>
-              <TableCell className="pl-6">
-                <div className="flex items-center space-x-2">
-                  <FileManagerTypeIcon item={item} className="h-4 w-4" size={16} />
-                  <span className="font-medium">{item.name}</span>
-                  {item.type === "file" && item.extension && (
-                    <Badge variant="outline" className="text-xs">
-                      {item.extension.toUpperCase()}
-                    </Badge>
-                  )}
-                </div>
-              </TableCell>
-              <TableCell>
-                <Badge variant={item.type === "folder" ? "default" : "secondary"}>
-                  {item.type === "folder" ? "Folder" : "File"}
-                </Badge>
-              </TableCell>
-              <TableCell>{formatFileSize(item.size)}</TableCell>
-              <TableCell>{format(new Date(item.modified), "MMM dd, yyyy HH:mm")}</TableCell>
-              <TableCell onClick={(e) => e.stopPropagation()}>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {isViewableMediaFile(item) && (
-                      <DropdownMenuItem onClick={() => {
-                        setViewingMediaFile(item);
-                        setMediaViewerOpen(true);
-                      }}>
-                        <Eye className="mr-2 h-4 w-4" />
-                        View
-                      </DropdownMenuItem>
-                    )}
-                    {isViewableFile(item) && !isViewableMediaFile(item) && (
-                      <DropdownMenuItem onClick={() => {
-                        setViewingFile(item);
-                        setFileViewerOpen(true);
-                      }}>
-                        <Eye className="mr-2 h-4 w-4" />
-                        View
-                      </DropdownMenuItem>
-                    )}
-                    {isZipFile(item) && (
-                      <DropdownMenuItem onClick={() => handleExtractClick(item)}>
-                        <Archive className="mr-2 h-4 w-4" />
-                        Extract
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem onClick={() => handleDownloadClick(item)}>
-                      <Download className="mr-2 h-4 w-4" />
-                      Download
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleRenameClick(item)}>
-                      <Edit className="mr-2 h-4 w-4" />
-                      Rename
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleMoveClick(item)}>
-                      <Move className="mr-2 h-4 w-4" />
-                      Move
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      className="text-destructive"
-                      onClick={() => handleDeleteClick(item)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </ScrollArea>
-  );
+  const loadFolderTree = React.useCallback(async (path: string): Promise<FolderTreeNode[]> => {
+    const items = await listDirectory(path);
+    return items
+      .filter((item) => item.type === "folder")
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }))
+      .map((item) => ({
+        path: item.path,
+        name: item.name,
+        childrenLoaded: false,
+      }));
+  }, [listDirectory]);
 
   return (
     <div className="space-y-4">
-      {/* Current path (full-width, wraps) */}
-      <div className="w-full rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-        <div className="flex flex-wrap items-center gap-x-1 gap-y-1 break-words">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={navigateUp}
-            disabled={currentPath === "/"}
-            className="h-6 px-2"
-          >
-            <ArrowLeft className="h-3 w-3" />
-          </Button>
-          {(data?.breadcrumbs || []).map((crumb, index) => (
-            <React.Fragment key={crumb.path}>
-              <span
-                className="cursor-pointer hover:text-foreground"
-                onClick={() => navigateToBreadcrumb(crumb.path)}
-              >
-                {crumb.name}
-              </span>
-              {index < (data?.breadcrumbs || []).length - 1 && <span>/</span>}
-            </React.Fragment>
-          ))}
-        </div>
-      </div>
+      {/* Top Toolbar */}
+      <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between bg-background border rounded-lg p-3">
+        {/* Left section - Breadcrumbs and search */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-1 w-full min-w-0">
+          {/* Breadcrumb navigation */}
+          <div className="flex items-center gap-1 flex-wrap min-w-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigateToPath("/")}
+              className="h-8 px-2"
+            >
+              <Home className="h-4 w-4" />
+            </Button>
+            <span className="text-muted-foreground">/</span>
+            {(data?.breadcrumbs || []).slice(1).map((crumb, index, arr) => (
+              <React.Fragment key={crumb.path}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigateToBreadcrumb(crumb.path)}
+                  className="h-8 px-2 text-sm font-medium hover:text-primary"
+                >
+                  {crumb.name}
+                </Button>
+                {index < arr.length - 1 && <span className="text-muted-foreground">/</span>}
+              </React.Fragment>
+            ))}
+          </div>
 
-      {/* Header with controls */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="flex flex-col gap-4 w-full min-w-0 md:w-auto md:flex-row md:items-center">
-          <div className="relative">
+          {/* Search */}
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search files and folders..."
+              placeholder="Search files..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full md:w-80"
+              className="pl-9 h-9"
             />
           </div>
         </div>
 
-        <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:justify-end">
-          {/* Refresh Button */}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => void refreshCurrentPath()}
-            disabled={isLoading || isRefreshing}
-            className="flex-shrink-0"
-          >
-            <RefreshCw className={`h-4 w-4 @sm/main:mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
-            <span className="hidden @sm/main:inline">Refresh</span>
-          </Button>
-
-          {/* Action Buttons */}
+        {/* Right section - Actions */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Bulk actions when items selected */}
           {selectedItems.length > 0 && (
             <>
+              <Badge variant="secondary" className="h-9 px-3">
+                {selectedItems.length} selected
+              </Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const items = (data?.items || []).filter((item) => selectedItems.includes(item.id));
+                  handleCopyClick(items);
+                }}
+                disabled={isCopying}
+              >
+                <Copy className="h-4 w-4 mr-2" />
+                Copy
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  // Move bulk action
+                  toast.info("Move functionality coming soon");
+                }}
+              >
+                <Move className="h-4 w-4 mr-2" />
+                Move
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  // Archive action - placeholder
+                  toast.info("Archive functionality coming soon");
+                }}
+              >
+                <Archive className="h-4 w-4 mr-2" />
+                Archive
+              </Button>
               <Button
                 variant="destructive"
                 size="sm"
-                className="flex-shrink-0"
                 onClick={handleBulkDelete}
                 disabled={isDeleting}
               >
                 {isDeleting ? (
                   <>
-                    <Spinner variant="ellipsis" className="h-4 w-4 @sm/main:mr-2 text-destructive-foreground" size="sm" />
-                    <span className="hidden @sm/main:inline">Deleting...</span>
-                    <span className="@sm/main:hidden">Deleting</span>
+                    <Spinner variant="ellipsis" className="h-4 w-4 mr-2" size="sm" />
+                    Deleting...
                   </>
                 ) : (
                   <>
-                    <Trash2 className="h-4 w-4 @sm/main:mr-2" />
-                    <span className="hidden @sm/main:inline">Delete ({selectedItems.length})</span>
-                    <span className="@sm/main:hidden">Delete</span>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Remove
                   </>
                 )}
               </Button>
-
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="flex-shrink-0"
                 onClick={() => setSelectedItems([])}
               >
-                <XIcon className="h-4 w-4 @sm/main:mr-2" />
-                <span className="hidden @sm/main:inline">Clear Selection</span>
-                <span className="@sm/main:hidden">Clear</span>
+                <XIcon className="h-4 w-4" />
               </Button>
+              <Separator orientation="vertical" className="h-6" />
             </>
           )}
 
+          {/* Regular actions */}
           <Button
             variant="outline"
             size="sm"
-            className="flex-shrink-0"
+            onClick={() => void refreshCurrentPath()}
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={cn("h-4 w-4 mr-2", isRefreshing && "animate-spin")} />
+            Refresh
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setUploadSheetOpen(true)}
           >
-            <Upload className="h-4 w-4 @sm/main:mr-2" />
-            <span className="hidden @sm/main:inline">Upload</span>
-            <span className="@sm/main:hidden">Upload</span>
+            <Upload className="h-4 w-4 mr-2" />
+            Upload
           </Button>
-
           <Button
             variant="outline"
             size="sm"
-            className="flex-shrink-0"
             onClick={() => setNewFolderDialogOpen(true)}
           >
-            <FolderPlus className="h-4 w-4 @sm/main:mr-2" />
-            <span className="hidden @sm/main:inline">New Folder</span>
-            <span className="@sm/main:hidden">Folder</span>
+            <FolderPlus className="h-4 w-4 mr-2" />
+            New Folder
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+          >
+            {sidebarCollapsed ? (
+              <PanelLeft className="h-4 w-4" />
+            ) : (
+              <PanelLeftClose className="h-4 w-4" />
+            )}
           </Button>
         </div>
       </div>
 
-      {/* Content */}
-      {isLoading ? (
-        <FileManagerSkeleton />
-      ) : isError ? (
-        <FileManagerError onRetry={refreshCurrentPath} description={error?.message} />
-      ) : filteredItems.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16">
-          <div className="text-center max-w-md">
-            <div className="mb-6 p-4 bg-muted/50 rounded-full w-fit mx-auto">
-              <Folder className="h-12 w-12 text-muted-foreground" />
-            </div>
-            <h3 className="text-xl font-semibold mb-3">
-              {searchTerm ? "No files match your search" : "This directory is empty"}
-            </h3>
-            <p className="text-muted-foreground mb-6">
-              {searchTerm
-                ? `No files or folders match "${searchTerm}". Try adjusting your search terms.`
-                : "Upload files or create folders to get started with your hosting account."
-              }
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => setUploadSheetOpen(true)}
-                className="flex items-center gap-2"
-              >
-                <Upload className="h-4 w-4" />
-                Upload Files
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <FolderPlus className="h-4 w-4" />
-                New Folder
-              </Button>
-            </div>
-            {searchTerm && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSearchTerm("")}
-                className="mt-4"
-              >
-                Clear search
-              </Button>
-            )}
+      {/* Main Content Area - Split View */}
+      <div className="flex h-[40rem] max-h-[calc(100vh-14rem)] min-h-0 gap-4 overflow-hidden">
+        {/* Left Sidebar - Folder Tree */}
+        {!sidebarCollapsed && (
+          <div className="h-full min-h-0 w-64 shrink-0">
+            <FileManagerFolderTree
+              currentPath={currentPath}
+              onPathSelect={navigateToPath}
+              onLoadFolder={loadFolderTree}
+              className="rounded-lg overflow-hidden h-full"
+            />
           </div>
+        )}
+
+        {/* Right Side - File List */}
+        <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          {isLoading ? (
+            <FileManagerSkeleton />
+          ) : isError ? (
+            <FileManagerError onRetry={refreshCurrentPath} description={errorMessage} />
+          ) : filteredItems.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full py-16 border rounded-lg bg-muted/20">
+              <div className="text-center max-w-md">
+                <div className="mb-6 p-4 bg-muted/50 rounded-full w-fit mx-auto">
+                  <Folder className="h-12 w-12 text-muted-foreground" />
+                </div>
+                <h3 className="text-xl font-semibold mb-3">
+                  {searchTerm ? "No files match your search" : "This directory is empty"}
+                </h3>
+                <p className="text-muted-foreground mb-6">
+                  {searchTerm
+                    ? `No files or folders match "${searchTerm}". Try adjusting your search.`
+                    : "Upload files or create folders to get started."
+                  }
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => setUploadSheetOpen(true)}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Files
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setNewFolderDialogOpen(true)}
+                  >
+                    <FolderPlus className="h-4 w-4 mr-2" />
+                    New Folder
+                  </Button>
+                </div>
+                {searchTerm && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSearchTerm("")}
+                    className="mt-4"
+                  >
+                    Clear search
+                  </Button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="h-full min-h-0 overflow-auto rounded-lg border bg-card">
+              <Table>
+                  <TableHeader className="sticky top-0 z-10 bg-card">
+                    <TableRow>
+                      <TableHead className="w-12">
+                        <Checkbox
+                          checked={isAllSelected}
+                          ref={(el) => {
+                            if (el) {
+                              (el as HTMLButtonElement).indeterminate = isIndeterminate;
+                            }
+                          }}
+                          onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                        />
+                      </TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead className="w-32">Modified</TableHead>
+                      <TableHead className="w-24">Size</TableHead>
+                      <TableHead className="w-12"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredItems.map((item) => (
+                      <TableRow
+                        key={item.id}
+                        className={cn(
+                          "cursor-pointer hover:bg-muted/50 transition-colors",
+                          selectedItems.includes(item.id) && "bg-primary/5"
+                        )}
+                        onDoubleClick={() => handleItemActivate(item)}
+                      >
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedItems.includes(item.id)}
+                            onCheckedChange={(checked) => {
+                              handleSelectItem(item.id, !!checked);
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <FileManagerTypeIcon item={item} className="h-4 w-4 shrink-0" size={16} />
+                            <span className="font-medium truncate">{item.name}</span>
+                            {item.type === "file" && item.extension && (
+                              <Badge variant="outline" className="text-xs uppercase">
+                                {item.extension}
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {format(new Date(item.modified), "MMM dd, yyyy")}
+                          <br />
+                          <span className="text-xs">{format(new Date(item.modified), "HH:mm")}</span>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {formatFileSize(item.size)}
+                        </TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {isViewableMediaFile(item) && (
+                                <DropdownMenuItem onClick={() => {
+                                  setViewingMediaFile(item);
+                                  setMediaViewerOpen(true);
+                                }}>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  View
+                                </DropdownMenuItem>
+                              )}
+                              {isViewableFile(item) && !isViewableMediaFile(item) && (
+                                <DropdownMenuItem onClick={() => {
+                                  setViewingFile(item);
+                                  setFileViewerOpen(true);
+                                }}>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  View
+                                </DropdownMenuItem>
+                              )}
+                              {isZipFile(item) && (
+                                <DropdownMenuItem onClick={() => handleExtractClick(item)}>
+                                  <Archive className="mr-2 h-4 w-4" />
+                                  Extract
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem onClick={() => handleDownloadClick(item)}>
+                                <Download className="mr-2 h-4 w-4" />
+                                Download
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleCopyClick([item])}>
+                                <Copy className="mr-2 h-4 w-4" />
+                                Copy
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleRenameClick(item)}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Rename
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleMoveClick(item)}>
+                                <Move className="mr-2 h-4 w-4" />
+                                Move
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => handleDeleteClick(item)}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+            </div>
+          )}
         </div>
-      ) : (
-        <TableView />
-      )}
+      </div>
 
       {/* Dialogs */}
       <DeleteFileDialog
@@ -726,6 +832,24 @@ function FileManagerContent({
         availableDirectories={availableDirectories}
         onConfirm={handleMoveConfirm}
         isMoving={isMoving}
+      />
+
+      <CopyFileDialog
+        open={copyDialogOpen}
+        onOpenChange={(open) => {
+          setCopyDialogOpen(open);
+          if (!open) setCopyTargets([]);
+        }}
+        items={copyTargets}
+        destinations={copyDestinations}
+        isCopying={isCopying}
+        onConfirm={async (destinationPath) => {
+          await copyItems(
+            copyTargets.map((item) => ({ path: item.path, type: item.type })),
+            destinationPath,
+          );
+          setSelectedItems([]);
+        }}
       />
 
       <NewFolderDialog

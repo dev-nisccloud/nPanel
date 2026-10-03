@@ -42,14 +42,7 @@ import {
 } from "@/components/hosting/file-code-editor";
 import { putFtpFile, readFtpText } from "@/components/hosting/ftp-transfer";
 import { trpc } from "@/utils/trpc";
-
-const FTP_USER_ERROR_MESSAGE =
-  "An error occurred. Please try again later or contact support.";
-
-function ftpErrorDescription(error: unknown): string {
-  if (error instanceof Error && error.message.trim()) return error.message.trim();
-  return FTP_USER_ERROR_MESSAGE;
-}
+import { useFtpErrorMessage } from "@/components/hosting/ftp-error-message";
 
 export type HostingFileViewerFile = {
   name: string;
@@ -164,6 +157,9 @@ export function HostingFileViewerSheet({
   file,
   getCredentials,
 }: HostingFileViewerSheetProps) {
+  const ftpErrorText = useFtpErrorMessage();
+  const ftpErrorTextRef = React.useRef(ftpErrorText);
+  ftpErrorTextRef.current = ftpErrorText;
   const [fileContent, setFileContent] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
@@ -229,7 +225,7 @@ export function HostingFileViewerSheet({
         if (cancelled) return;
         console.error("Error reading file:", error);
         toast.error("Failed to load file", {
-          description: ftpErrorDescription(error),
+          description: ftpErrorTextRef.current(error),
         });
         setFileContent(null);
         setOriginalContent(null);
@@ -303,7 +299,7 @@ export function HostingFileViewerSheet({
     } catch (error) {
       console.error("Save error:", error);
       toast.error("Failed to save file", {
-        description: ftpErrorDescription(error),
+        description: ftpErrorTextRef.current(error),
       });
     } finally {
       setIsSaving(false);
