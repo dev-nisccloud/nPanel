@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TRPCClientError } from "@trpc/client";
 import { toast } from "@/components/ui/sonner";
 import { z } from "zod";
@@ -7,21 +7,11 @@ import { trpc } from "@/utils/trpc";
 
 import { captureEvent } from "@/lib/posthog";
 import { putFtpFile } from "@/components/hosting/ftp-transfer";
+import { useFtpErrorMessage } from "@/components/hosting/ftp-error-message";
 import {
 	fileManagerItemSchema,
 	fileManagerSchema,
 } from "@/routes/agency.hosting/_components/file-manager-schema";
-
-const FTP_USER_ERROR_MESSAGE =
-	"An error occurred. Please try again later or contact support.";
-
-function ftpErrorDescription(error: unknown): string {
-	if (error instanceof TRPCClientError || error instanceof Error) {
-		const message = error.message?.trim();
-		if (message) return message;
-	}
-	return FTP_USER_ERROR_MESSAGE;
-}
 
 function startBrowserDownload(url: string, filename: string) {
 	const anchor = document.createElement("a");
@@ -32,6 +22,9 @@ function startBrowserDownload(url: string, filename: string) {
 	anchor.click();
 	anchor.remove();
 }
+
+/** Reuse a folder listing briefly so the table and the folder tree do not each open FTP. */
+const LIST_CACHE_MS = 15_000;
 
 const ftpCredentialsSchema = z.object({
 	host: z.string().min(1, "Host is required"),
@@ -100,6 +93,9 @@ export function useFtpFileManager(
 	const [isManualRefreshing, setIsManualRefreshing] = useState(false);
 	const [uploadsInFlight, setUploadsInFlight] = useState(0);
 	const utils = trpc.useUtils();
+	const ftpErrorText = useFtpErrorMessage();
+	const ftpErrorTextRef = useRef(ftpErrorText);
+	ftpErrorTextRef.current = ftpErrorText;
 
 	const listInput = useMemo(
 		() => ({
@@ -125,7 +121,7 @@ export function useFtpFileManager(
 		error,
 		refetch,
 	} = trpc.plesk.ftp.list.useQuery(listInput, {
-		staleTime: 0,
+		staleTime: LIST_CACHE_MS,
 		gcTime: 10 * 60 * 1000,
 		refetchOnWindowFocus: false,
 		refetchOnMount: true,
@@ -135,7 +131,7 @@ export function useFtpFileManager(
 			// A refused connection will not recover by retrying. Timeouts and
 			// unexpected server errors can.
 			if (code === "TIMEOUT" && failureCount < 1) return true;
-			if (code === "INTERNAL_SERVER_ERROR" && failureCount < 3) return true;
+			if (code === "INTERNAL_SERVER_ERROR" && failureCount < 1) return true;
 			return false;
 		},
 		retryDelay: (attemptIndex: number) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -145,7 +141,7 @@ export function useFtpFileManager(
 		if (!isError) return;
 
 		toast.error("Failed to load files", {
-			description: ftpErrorDescription(error),
+			description: ftpErrorTextRef.current(error),
 		});
 	}, [isError, error]);
 
@@ -168,16 +164,19 @@ export function useFtpFileManager(
 
 		setIsNavigating(true);
 		try {
-			const result = await utils.plesk.ftp.list.fetch({
-				credentials: ftpCredentials,
-				path: newPath,
-			});
+			const result = await utils.plesk.ftp.list.fetch(
+				{
+					credentials: ftpCredentials,
+					path: newPath,
+				},
+				{ staleTime: LIST_CACHE_MS },
+			);
 			if (result.success) {
 				setCurrentPath(newPath);
 			}
 		} catch (navigationError) {
 			toast.error("Failed to open folder", {
-				description: ftpErrorDescription(navigationError),
+				description: ftpErrorTextRef.current(navigationError),
 			});
 		} finally {
 			setIsNavigating(false);
@@ -194,13 +193,36 @@ export function useFtpFileManager(
 		void navigateToPath(path);
 	};
 
+	const listDirectory = useCallback(
+		async (path: string) => {
+			const result = await utils.plesk.ftp.list.fetch(
+				{
+					credentials: ftpCredentials,
+					path,
+				},
+				{ staleTime: LIST_CACHE_MS },
+			);
+			if (!result?.success || !result.data) return [];
+			return result.data.map((file) => transformFtpFileToManagerItem(file, path));
+		},
+		[
+			utils,
+			ftpCredentials.host,
+			ftpCredentials.port,
+			ftpCredentials.user,
+			ftpCredentials.password,
+			ftpCredentials.secure,
+			ftpCredentials.timeout,
+		],
+	);
+
 	const refreshCurrentPath = async () => {
 		setIsManualRefreshing(true);
 		try {
 			await utils.plesk.ftp.list.fetch(listInput, { staleTime: 0 });
 		} catch (refreshError) {
 			toast.error("Failed to refresh files", {
-				description: ftpErrorDescription(refreshError),
+				description: ftpErrorTextRef.current(refreshError),
 			});
 		} finally {
 			setIsManualRefreshing(false);
@@ -216,7 +238,7 @@ export function useFtpFileManager(
 		},
 		onError: (mutationError) => {
 			toast.error("Failed to delete file", {
-				description: ftpErrorDescription(mutationError),
+				description: ftpErrorTextRef.current(mutationError),
 			});
 		},
 	});
@@ -230,7 +252,7 @@ export function useFtpFileManager(
 		},
 		onError: (mutationError) => {
 			toast.error("Failed to delete directory", {
-				description: ftpErrorDescription(mutationError),
+				description: ftpErrorTextRef.current(mutationError),
 			});
 		},
 	});
@@ -244,7 +266,7 @@ export function useFtpFileManager(
 		},
 		onError: (mutationError) => {
 			toast.error("Failed to rename item", {
-				description: ftpErrorDescription(mutationError),
+				description: ftpErrorTextRef.current(mutationError),
 			});
 		},
 	});
@@ -258,7 +280,7 @@ export function useFtpFileManager(
 		},
 		onError: (mutationError) => {
 			toast.error("Failed to create directory", {
-				description: ftpErrorDescription(mutationError),
+				description: ftpErrorTextRef.current(mutationError),
 			});
 		},
 	});
@@ -300,6 +322,32 @@ export function useFtpFileManager(
 		});
 	};
 
+	const copyMutation = trpc.plesk.ftp.copy.useMutation();
+
+	const copyItems = async (
+		items: Array<{ path: string; type: "file" | "folder" }>,
+		destinationPath: string,
+	) => {
+		try {
+			const result = await copyMutation.mutateAsync({
+				credentials: ftpCredentials,
+				sources: items.map((item) => ({
+					path: item.path,
+					type: item.type,
+				})),
+				destinationPath,
+			});
+			captureEvent("files_copied", { count: items.length });
+			toast.success(result.message || "Copied successfully");
+			void refetch();
+		} catch (copyError) {
+			toast.error("Failed to copy", {
+				description: ftpErrorTextRef.current(copyError),
+			});
+			throw copyError;
+		}
+	};
+
 	const createFolder = async (folderPath: string) => {
 		await createDirectoryMutation.mutateAsync({
 			credentials: ftpCredentials,
@@ -325,7 +373,7 @@ export function useFtpFileManager(
 			void refetch();
 		} catch (uploadError) {
 			toast.error("Failed to upload file", {
-				description: ftpErrorDescription(uploadError),
+				description: ftpErrorTextRef.current(uploadError),
 			});
 			throw uploadError;
 		} finally {
@@ -334,33 +382,25 @@ export function useFtpFileManager(
 	};
 
 	const downloadFileMutation = trpc.plesk.ftp.downloadFile.useMutation({
-		onMutate: () => {
-			toast.info("Starting file download...");
-		},
 		onSuccess: (data) => {
 			startBrowserDownload(data.url, data.filename);
-			toast.success("File downloaded successfully");
+			toast.success("Download started");
 		},
 		onError: (mutationError) => {
 			toast.error("Failed to download file", {
-				description: ftpErrorDescription(mutationError),
+				description: ftpErrorTextRef.current(mutationError),
 			});
 		},
 	});
 
 	const downloadFolderMutation = trpc.plesk.ftp.downloadFolder.useMutation({
-		onMutate: () => {
-			toast.info("Starting folder download...", {
-				description: "This may take a moment for large folders",
-			});
-		},
 		onSuccess: (data) => {
 			startBrowserDownload(data.url, data.filename);
-			toast.success("Folder downloaded successfully");
+			toast.success("Download started");
 		},
 		onError: (mutationError) => {
 			toast.error("Failed to download folder", {
-				description: ftpErrorDescription(mutationError),
+				description: ftpErrorTextRef.current(mutationError),
 			});
 		},
 	});
@@ -392,22 +432,26 @@ export function useFtpFileManager(
 		isRefreshing,
 		isError,
 		error,
+		errorMessage: ftpErrorText(error),
 
 		currentPath,
 		navigateToPath,
 		navigateUp,
 		navigateToBreadcrumb,
 		refreshCurrentPath,
+		listDirectory,
 
 		deleteItem,
 		renameItem,
 		moveItem,
+		copyItems,
 		createFolder,
 		uploadFile,
 		downloadItem,
 		isDeleting: deleteFileMutation.isPending || deleteDirectoryMutation.isPending,
 		isRenaming: renameMutation.isPending,
 		isMoving: renameMutation.isPending,
+		isCopying: copyMutation.isPending,
 		isCreating: createDirectoryMutation.isPending,
 		isUploading: uploadsInFlight > 0 || uploadFileMutation.isPending,
 		isDownloading: downloadFileMutation.isPending || downloadFolderMutation.isPending,

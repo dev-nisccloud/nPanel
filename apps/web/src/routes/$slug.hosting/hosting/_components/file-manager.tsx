@@ -201,7 +201,7 @@ function FileManagerContent({
     isLoading,
     isRefreshing,
     isError,
-    error,
+    errorMessage,
     currentPath,
     navigateToPath,
     navigateUp,
@@ -614,7 +614,7 @@ function FileManagerContent({
       {isLoading ? (
         <FileManagerSkeleton />
       ) : isError ? (
-        <FileManagerError onRetry={refreshCurrentPath} description={error?.message} />
+        <FileManagerError onRetry={refreshCurrentPath} description={errorMessage} />
       ) : filteredItems.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16">
           <div className="text-center max-w-md">

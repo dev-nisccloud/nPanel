@@ -53,6 +53,7 @@ const groupByCategory = (keys: readonly string[]) => {
 		else if (key.startsWith("/agency/hosting") || key.startsWith("/agency/wordpress")) category = "Hosting & WordPress";
 		else if (key.startsWith("/agency/social-media-marketing")) category = "Social Media";
 		else if (key.startsWith("/agency/ad-campaigns")) category = "Ad Campaigns";
+		else if (key.startsWith("/agency/social-media-ads")) category = "Social Media & Ads";
 		else if (key.startsWith("/agency/email-marketing")) category = "Email Marketing";
 		else if (key.startsWith("/agency/seo")) category = "SEO";
 		else if (key.startsWith("/agency/creative-assets")) category = "Creatives";

@@ -1,4 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { Client, FileInfo, enterPassiveModeIPv4 } from "basic-ftp";
@@ -6,7 +9,6 @@ import { posix } from "path";
 
 import {
   createFtpDownloadUrl,
-  isOptionalFtpSizeError,
   safeFtpDownloadName,
 } from "../../lib/plesk/ftp-download";
 import {
@@ -269,6 +271,23 @@ const renameSchema = z.object({
   oldPath: z.string().min(1, "Old path is required"),
   newPath: z.string().min(1, "New path is required"),
 });
+
+const copySchema = z.object({
+  credentials: ftpConnectionSchema,
+  sources: z
+    .array(
+      z.object({
+        path: z.string().min(1),
+        type: z.enum(["file", "folder"]),
+      }),
+    )
+    .min(1)
+    .max(100),
+  destinationPath: z.string().min(1, "Destination path is required"),
+});
+
+const COPY_OPERATION_TIMEOUT_MS = 600_000;
+const COPY_FILE_MAX_BYTES = 200 * 1024 * 1024;
 
 const deleteSchema = z.object({
   credentials: ftpConnectionSchema,
@@ -540,6 +559,170 @@ function ftpCredentials(credentials: z.infer<typeof ftpConnectionSchema>) {
   };
 }
 
+function normalizeFtpPath(path: string): string {
+  const parts = path.split("/").filter((part) => part && part !== ".");
+  return `/${parts.join("/")}`;
+}
+
+function ftpParentPath(path: string): string {
+  const normalized = normalizeFtpPath(path);
+  if (normalized === "/") return "/";
+  const parent = normalized.slice(0, normalized.lastIndexOf("/"));
+  return parent || "/";
+}
+
+function joinFtpPath(directory: string, name: string): string {
+  const dir = normalizeFtpPath(directory);
+  return dir === "/" ? `/${name}` : `${dir}/${name}`;
+}
+
+function isSameOrInsideFtpPath(parent: string, child: string): boolean {
+  const normalizedParent = normalizeFtpPath(parent);
+  const normalizedChild = normalizeFtpPath(child);
+  if (normalizedParent === "/") return true;
+  return (
+    normalizedChild === normalizedParent ||
+    normalizedChild.startsWith(`${normalizedParent}/`)
+  );
+}
+
+function quoteFtpArgument(path: string): string {
+  if (!/[\s"]/.test(path)) return path;
+  return `"${path.replaceAll('"', '""')}"`;
+}
+
+function uniqueCopyName(existing: Set<string>, name: string, isFolder: boolean): string {
+  if (!existing.has(name)) {
+    existing.add(name);
+    return name;
+  }
+
+  const dot = !isFolder ? name.lastIndexOf(".") : -1;
+  const base = dot > 0 ? name.slice(0, dot) : name;
+  const ext = dot > 0 ? name.slice(dot) : "";
+  let candidate = `${base} copy${ext}`;
+  let suffix = 2;
+  while (existing.has(candidate)) {
+    candidate = `${base} copy ${suffix}${ext}`;
+    suffix += 1;
+  }
+  existing.add(candidate);
+  return candidate;
+}
+
+function isUnsupportedCopyCommand(error: unknown): boolean {
+  const text = ftpErrorText(error).text.toLowerCase();
+  return (
+    text.includes("500") ||
+    text.includes("502") ||
+    text.includes("504") ||
+    text.includes("unknown command") ||
+    text.includes("not implemented") ||
+    text.includes("not understood") ||
+    text.includes("syntax error")
+  );
+}
+
+async function copyFileThroughTemp(
+  client: Client,
+  credentials: z.infer<typeof ftpConnectionSchema>,
+  sourcePath: string,
+  destinationPath: string,
+): Promise<void> {
+  const directory = await mkdtemp(join(tmpdir(), "npanel-ftp-copy-"));
+  const localPath = join(directory, "payload");
+  try {
+    await downloadWithRetry(client, credentials, localPath, sourcePath);
+    await uploadWithRetry(client, credentials, localPath, destinationPath);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+}
+
+async function copyRemoteFile(
+  client: Client,
+  credentials: z.infer<typeof ftpConnectionSchema>,
+  sourcePath: string,
+  destinationPath: string,
+  support: { siteCopy: boolean | null },
+  size?: number,
+): Promise<void> {
+  const rejectIfTooLarge = (bytes?: number) => {
+    if (typeof bytes === "number" && bytes > COPY_FILE_MAX_BYTES) {
+      throw new TRPCError({
+        code: "PAYLOAD_TOO_LARGE",
+        message: `"${sourcePath.split("/").pop()}" is larger than 200 MB, so it could not be copied.`,
+      });
+    }
+  };
+
+  if (support.siteCopy !== false) {
+    try {
+      await client.send(`SITE CPFR ${quoteFtpArgument(sourcePath)}`);
+      support.siteCopy = true;
+      await client.send(`SITE CPTO ${quoteFtpArgument(destinationPath)}`);
+      return;
+    } catch (error) {
+      if (support.siteCopy === true || !isUnsupportedCopyCommand(error)) {
+        throw error;
+      }
+      support.siteCopy = false;
+    }
+  }
+
+  let knownSize = size;
+  if (typeof knownSize !== "number") {
+    const parent = ftpParentPath(sourcePath);
+    const name = sourcePath.split("/").pop();
+    const entries = await client.list(parent);
+    knownSize = entries.find((entry) => entry.name === name)?.size;
+  }
+  rejectIfTooLarge(knownSize);
+  await copyFileThroughTemp(client, credentials, sourcePath, destinationPath);
+}
+
+async function copyRemoteTree(
+  client: Client,
+  credentials: z.infer<typeof ftpConnectionSchema>,
+  sourcePath: string,
+  destinationPath: string,
+  isFolder: boolean,
+  support: { siteCopy: boolean | null },
+  depth: number,
+  size?: number,
+): Promise<void> {
+  if (depth > 40) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "This folder is nested too deeply to copy.",
+    });
+  }
+
+  if (!isFolder) {
+    await copyRemoteFile(client, credentials, sourcePath, destinationPath, support, size);
+    return;
+  }
+
+  await client.ensureDir(destinationPath);
+  const entries = await client.list(sourcePath);
+  for (const entry of entries) {
+    if (!entry.name || entry.name === "." || entry.name === "..") continue;
+    if (entry.isSymbolicLink) continue;
+    const childSource = joinFtpPath(sourcePath, entry.name);
+    const childDestination = joinFtpPath(destinationPath, entry.name);
+    await copyRemoteTree(
+      client,
+      credentials,
+      childSource,
+      childDestination,
+      entry.isDirectory,
+      support,
+      depth + 1,
+      entry.size,
+    );
+  }
+}
+
 export const ftpRouter = router({
   // Test FTP connection
   testConnection: ftpProcedure
@@ -754,6 +937,77 @@ export const ftpRouter = router({
       }
     }),
 
+  copy: ftpProcedure
+    .input(copySchema)
+    .mutation(async ({ input }) => {
+      const destinationPath = normalizeFtpPath(input.destinationPath);
+      for (const source of input.sources) {
+        const sourcePath = normalizeFtpPath(source.path);
+        if (source.type === "folder" && isSameOrInsideFtpPath(sourcePath, destinationPath)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "A folder cannot be copied into itself.",
+          });
+        }
+      }
+
+      const credentials = {
+        ...input.credentials,
+        timeout: Math.max(input.credentials.timeout ?? 30_000, COPY_OPERATION_TIMEOUT_MS),
+      };
+      const client = await createFtpClient(credentials);
+
+      try {
+        let listing: FileInfo[];
+        try {
+          listing = await client.list(destinationPath);
+        } catch (error) {
+          if (isNoSuchFileError(error)) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "The destination folder could not be found.",
+            });
+          }
+          throw error;
+        }
+
+        const existingNames = new Set(listing.map((entry) => entry.name));
+        const support = { siteCopy: null as boolean | null };
+        const copied: string[] = [];
+
+        for (const source of input.sources) {
+          const sourcePath = normalizeFtpPath(source.path);
+          const sourceName = sourcePath.split("/").pop();
+          if (!sourceName) continue;
+          const destinationName = uniqueCopyName(existingNames, sourceName, source.type === "folder");
+          const destination = joinFtpPath(destinationPath, destinationName);
+          await copyRemoteTree(
+            client,
+            credentials,
+            sourcePath,
+            destination,
+            source.type === "folder",
+            support,
+            0,
+          );
+          copied.push(destination);
+        }
+
+        return {
+          success: true,
+          copied,
+          message:
+            copied.length === 1
+              ? `Copied to ${copied[0]}`
+              : `Copied ${copied.length} items`,
+        };
+      } catch (error) {
+        throw ftpUserError(error);
+      } finally {
+        client.close();
+      }
+    }),
+
   // Delete file
   deleteFile: ftpProcedure
     .input(deleteSchema)
@@ -852,18 +1106,11 @@ export const ftpRouter = router({
       }
     }),
 
-  // Download single file. Bytes are streamed from GET /api/hosting/ftp/download.
+  // Mint a download URL. The browser GET opens FTP once and streams the file.
   downloadFile: ftpProcedure
     .input(downloadFileSchema)
     .mutation(async ({ input, ctx }) => {
-      const client = await createFtpClient(input.credentials);
       try {
-        try {
-          await client.size(input.remotePath);
-        } catch (error) {
-          if (!isOptionalFtpSizeError(error)) throw error;
-        }
-
         const userId = ctx.session?.user?.id;
         if (!userId) {
           throw new TRPCError({
@@ -872,12 +1119,22 @@ export const ftpRouter = router({
           });
         }
 
-        const filename = safeFtpDownloadName(input.remotePath.split("/").pop(), "download");
+        const remotePath = safeRemotePath(
+          input.remotePath.startsWith("/") ? input.remotePath : `/${input.remotePath}`,
+        );
+        if (!remotePath || remotePath === "/") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "The file path is not allowed.",
+          });
+        }
+
+        const filename = safeFtpDownloadName(remotePath.split("/").pop(), "download");
         const url = createFtpDownloadUrl({
           uid: userId,
           kind: "file",
           filename,
-          remotePath: input.remotePath,
+          remotePath,
           credentials: {
             host: input.credentials.host,
             port: input.credentials.port,
@@ -890,17 +1147,22 @@ export const ftpRouter = router({
         return { success: true as const, url, filename };
       } catch (error) {
         throw ftpUserError(error);
-      } finally {
-        client.close();
       }
     }),
 
-  // Download folder as a streamed zip. Listing the tree happens on the download stream.
+  // Mint a folder-zip URL. The download stream lists and packs the folder on one FTP connection.
   downloadFolder: ftpProcedure
     .input(downloadFolderSchema)
     .mutation(async ({ input, ctx }) => {
-      const client = await createFtpClient(input.credentials);
       try {
+        const userId = ctx.session?.user?.id;
+        if (!userId) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "Authentication required",
+          });
+        }
+
         const remotePath = safeRemotePath(
           input.remotePath.startsWith("/") ? input.remotePath : `/${input.remotePath}`,
         );
@@ -908,15 +1170,6 @@ export const ftpRouter = router({
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: "The folder path is not allowed.",
-          });
-        }
-        await client.list(remotePath);
-
-        const userId = ctx.session?.user?.id;
-        if (!userId) {
-          throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "Authentication required",
           });
         }
 
@@ -932,8 +1185,6 @@ export const ftpRouter = router({
         return { success: true as const, url, filename };
       } catch (error) {
         throw ftpUserError(error);
-      } finally {
-        client.close();
       }
     }),
 
@@ -972,6 +1223,43 @@ export const ftpRouter = router({
           filename,
           remotePath,
           maxBytes,
+          credentials: ftpCredentials(input.credentials),
+        });
+        return { success: true as const, url, filename };
+      } catch (error) {
+        throw ftpUserError(error);
+      }
+    }),
+
+  // Mint a preview URL without opening FTP. The image or video tag loads the bytes directly.
+  previewFile: ftpProcedure
+    .input(downloadFileSchema)
+    .mutation(async ({ input, ctx }) => {
+      try {
+        const userId = ctx.session?.user?.id;
+        if (!userId) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "Authentication required",
+          });
+        }
+
+        const remotePath = safeRemotePath(
+          input.remotePath.startsWith("/") ? input.remotePath : `/${input.remotePath}`,
+        );
+        if (!remotePath || remotePath === "/") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "The file path is not allowed.",
+          });
+        }
+
+        const filename = safeFtpDownloadName(remotePath.split("/").pop(), "preview");
+        const url = createFtpDownloadUrl({
+          uid: userId,
+          kind: "preview",
+          filename,
+          remotePath,
           credentials: ftpCredentials(input.credentials),
         });
         return { success: true as const, url, filename };
