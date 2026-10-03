@@ -18,6 +18,7 @@ import {
   RefreshCw,
   ArrowLeft,
   XIcon,
+  KeyRound,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -62,6 +63,7 @@ import { UploadFileSheet } from "@/components/hosting/upload-file-sheet";
 import { FileViewerSheet, isViewableFile } from "./file-viewer-sheet";
 import { MediaViewerDialog, isViewableMediaFile } from "./media-viewer-dialog";
 import { ExtractZipDialog } from "./extract-zip-dialog";
+import { PermissionsDialog } from "@/components/hosting/permissions-dialog";
 
 interface FileManagerProps {
   hostingData: z.infer<typeof hostingDetailSchema>;
@@ -152,6 +154,8 @@ function FileManagerContent({ hostingData }: FileManagerProps) {
   const [viewingMediaFile, setViewingMediaFile] = useState<FileManagerItem | null>(null);
   const [extractZipDialogOpen, setExtractZipDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<FileManagerItem | null>(null);
+  const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false);
+  const [permissionTargets, setPermissionTargets] = useState<FileManagerItem[]>([]);
   const [viewingFile, setViewingFile] = useState<FileManagerItem | null>(null);
   const [extractingFile, setExtractingFile] = useState<FileManagerItem | null>(null);
   const [availableDirectories, setAvailableDirectories] = useState<FileManagerItem[]>([]);
@@ -196,6 +200,8 @@ function FileManagerContent({ hostingData }: FileManagerProps) {
     createFolder,
     uploadFile,
     downloadItem,
+    changePermissions,
+    isChangingPermissions,
     isDeleting,
     isRenaming,
     isMoving,
@@ -252,6 +258,15 @@ function FileManagerContent({ hostingData }: FileManagerProps) {
     const directories = (data?.items || []).filter(item => item.type === "folder");
     setAvailableDirectories(directories);
     setMoveDialogOpen(true);
+  };
+
+  const handlePermissionsClick = (items: FileManagerItem[]) => {
+    if (items.length === 0) {
+      toast.error("Select at least one file or folder");
+      return;
+    }
+    setPermissionTargets(items);
+    setPermissionsDialogOpen(true);
   };
 
   const handleExtractClick = (item: FileManagerItem) => {
@@ -473,6 +488,10 @@ function FileManagerContent({ hostingData }: FileManagerProps) {
                       <Move className="mr-2 h-4 w-4" />
                       Move
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handlePermissionsClick([item])}>
+                      <KeyRound className="mr-2 h-4 w-4" />
+                      Permissions
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       className="text-destructive"
@@ -549,6 +568,19 @@ function FileManagerContent({ hostingData }: FileManagerProps) {
           {/* Action Buttons */}
           {selectedItems.length > 0 && (
             <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-shrink-0"
+                onClick={() => {
+                  const items = (data?.items || []).filter((item) => selectedItems.includes(item.id));
+                  handlePermissionsClick(items);
+                }}
+                disabled={isChangingPermissions}
+              >
+                <KeyRound className="h-4 w-4 @sm/main:mr-2" />
+                <span className="hidden @sm/main:inline">Permissions</span>
+              </Button>
               <Button
                 variant="destructive"
                 size="sm"
@@ -664,6 +696,23 @@ function FileManagerContent({ hostingData }: FileManagerProps) {
       )}
 
       {/* Dialogs */}
+      <PermissionsDialog
+        open={permissionsDialogOpen}
+        onOpenChange={(open) => {
+          setPermissionsDialogOpen(open);
+          if (!open) setPermissionTargets([]);
+        }}
+        items={permissionTargets}
+        isSaving={isChangingPermissions}
+        onConfirm={async (mode, recursive) => {
+          await changePermissions(
+            permissionTargets.map((item) => ({ path: item.path, type: item.type })),
+            mode,
+            recursive,
+          );
+          setSelectedItems([]);
+        }}
+      />
       <DeleteFileDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}

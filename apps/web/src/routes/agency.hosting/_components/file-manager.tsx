@@ -19,6 +19,7 @@ import {
   ArrowLeft,
   XIcon,
   Copy,
+  KeyRound,
   PanelLeftClose,
   PanelLeft,
   Home,
@@ -69,6 +70,7 @@ import { UploadFileSheet } from "@/components/hosting/upload-file-sheet";
 import { FileViewerSheet, isViewableFile } from "./file-viewer-sheet";
 import { MediaViewerDialog, isViewableMediaFile } from "./media-viewer-dialog";
 import { CopyFileDialog } from "@/components/hosting/copy-file-dialog";
+import { PermissionsDialog } from "@/components/hosting/permissions-dialog";
 
 interface FileManagerProps {
   hostingData: z.infer<typeof hostingDetailSchema>;
@@ -195,6 +197,8 @@ function FileManagerContent({
   const [availableDirectories, setAvailableDirectories] = useState<FileManagerItem[]>([]);
   const [copyDialogOpen, setCopyDialogOpen] = useState(false);
   const [copyTargets, setCopyTargets] = useState<FileManagerItem[]>([]);
+  const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false);
+  const [permissionTargets, setPermissionTargets] = useState<FileManagerItem[]>([]);
 
   React.useEffect(() => {
     if (!openCreateSheet) return;
@@ -247,6 +251,7 @@ function FileManagerContent({
     renameItem,
     moveItem,
     copyItems,
+    changePermissions,
     createFolder,
     uploadFile,
     downloadItem,
@@ -254,6 +259,7 @@ function FileManagerContent({
     isRenaming,
     isMoving,
     isCopying,
+    isChangingPermissions,
     isCreating,
     isUploading,
     isDownloading,
@@ -319,6 +325,15 @@ function FileManagerContent({
     }
     setCopyTargets(items);
     setCopyDialogOpen(true);
+  };
+
+  const handlePermissionsClick = (items: FileManagerItem[]) => {
+    if (items.length === 0) {
+      toast.error("Select at least one file or folder");
+      return;
+    }
+    setPermissionTargets(items);
+    setPermissionsDialogOpen(true);
   };
 
   const copyDestinations = React.useMemo(() => {
@@ -508,6 +523,18 @@ function FileManagerContent({
               >
                 <Copy className="h-4 w-4 mr-2" />
                 Copy
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const items = (data?.items || []).filter((item) => selectedItems.includes(item.id));
+                  handlePermissionsClick(items);
+                }}
+                disabled={isChangingPermissions}
+              >
+                <KeyRound className="h-4 w-4 mr-2" />
+                Permissions
               </Button>
               <Button
                 variant="outline"
@@ -776,6 +803,10 @@ function FileManagerContent({
                                 <Move className="mr-2 h-4 w-4" />
                                 Move
                               </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handlePermissionsClick([item])}>
+                                <KeyRound className="mr-2 h-4 w-4" />
+                                Permissions
+                              </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 className="text-destructive"
@@ -832,6 +863,24 @@ function FileManagerContent({
         availableDirectories={availableDirectories}
         onConfirm={handleMoveConfirm}
         isMoving={isMoving}
+      />
+
+      <PermissionsDialog
+        open={permissionsDialogOpen}
+        onOpenChange={(open) => {
+          setPermissionsDialogOpen(open);
+          if (!open) setPermissionTargets([]);
+        }}
+        items={permissionTargets}
+        isSaving={isChangingPermissions}
+        onConfirm={async (mode, recursive) => {
+          await changePermissions(
+            permissionTargets.map((item) => ({ path: item.path, type: item.type })),
+            mode,
+            recursive,
+          );
+          setSelectedItems([]);
+        }}
       />
 
       <CopyFileDialog

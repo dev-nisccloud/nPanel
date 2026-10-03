@@ -323,6 +323,7 @@ export function useFtpFileManager(
 	};
 
 	const copyMutation = trpc.plesk.ftp.copy.useMutation();
+	const chmodMutation = trpc.plesk.ftp.chmod.useMutation();
 
 	const copyItems = async (
 		items: Array<{ path: string; type: "file" | "folder" }>,
@@ -345,6 +346,28 @@ export function useFtpFileManager(
 				description: ftpErrorTextRef.current(copyError),
 			});
 			throw copyError;
+		}
+	};
+
+	const changePermissions = async (
+		items: Array<{ path: string; type: "file" | "folder" }>,
+		mode: string,
+		recursive: boolean,
+	) => {
+		try {
+			const result = await chmodMutation.mutateAsync({
+				credentials: ftpCredentials,
+				paths: items,
+				mode,
+				recursive,
+			});
+			toast.success(result.message || "Permissions updated");
+			void refetch();
+		} catch (permissionError) {
+			toast.error("Failed to update permissions", {
+				description: ftpErrorTextRef.current(permissionError),
+			});
+			throw permissionError;
 		}
 	};
 
@@ -445,6 +468,7 @@ export function useFtpFileManager(
 		renameItem,
 		moveItem,
 		copyItems,
+		changePermissions,
 		createFolder,
 		uploadFile,
 		downloadItem,
@@ -452,6 +476,7 @@ export function useFtpFileManager(
 		isRenaming: renameMutation.isPending,
 		isMoving: renameMutation.isPending,
 		isCopying: copyMutation.isPending,
+		isChangingPermissions: chmodMutation.isPending,
 		isCreating: createDirectoryMutation.isPending,
 		isUploading: uploadsInFlight > 0 || uploadFileMutation.isPending,
 		isDownloading: downloadFileMutation.isPending || downloadFolderMutation.isPending,
