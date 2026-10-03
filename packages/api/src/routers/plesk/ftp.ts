@@ -272,6 +272,21 @@ const renameSchema = z.object({
   newPath: z.string().min(1, "New path is required"),
 });
 
+const chmodSchema = z.object({
+  credentials: ftpConnectionSchema,
+  paths: z
+    .array(
+      z.object({
+        path: z.string().min(1),
+        type: z.enum(["file", "folder"]),
+      }),
+    )
+    .min(1)
+    .max(100),
+  mode: z.string().regex(/^[0-7]{3}$/, "Permissions must be a mode like 644 or 755"),
+  recursive: z.boolean().default(false),
+});
+
 const copySchema = z.object({
   credentials: ftpConnectionSchema,
   sources: z
@@ -462,7 +477,7 @@ function parseRawListOutput(rawOutput: string): any[] {
           size: isDirectory ? undefined : size,
           user: owner,
           group,
-          permissions: permissions || "644",
+          permissions: formatUnixMode(permissions),
           date: new Date(), // We'll use current date as fallback
         });
       }
@@ -472,6 +487,35 @@ function parseRawListOutput(rawOutput: string): any[] {
   return files;
 }
 
+function formatUnixMode(permissions: unknown): string {
+  if (permissions && typeof permissions === "object") {
+    const record = permissions as { user?: unknown; group?: unknown; world?: unknown };
+    const parts = [record.user, record.group, record.world];
+    if (parts.every((part) => typeof part === "number" && part >= 0 && part <= 7)) {
+      return parts.join("");
+    }
+  }
+
+  if (typeof permissions === "string") {
+    const trimmed = permissions.trim();
+    if (/^[0-7]{3,4}$/.test(trimmed)) return trimmed.slice(-3);
+    const symbolic = trimmed.match(/^[dl-]([r-][w-][xsStT-])([r-][w-][xsStT-])([r-][w-][xsStT-])/);
+    if (symbolic) {
+      const value = (triplet: string) => {
+        let mode = 0;
+        if (triplet[0] === "r") mode += 4;
+        if (triplet[1] === "w") mode += 2;
+        const execute = triplet[2];
+        if (execute === "x" || execute === "s" || execute === "t") mode += 1;
+        return mode;
+      };
+      return `${value(symbolic[1])}${value(symbolic[2])}${value(symbolic[3])}`;
+    }
+  }
+
+  return "644";
+}
+
 // Helper function to transform FileInfo to our schema
 function transformFileInfo(fileInfo: FileInfo): z.infer<typeof fileInfoSchema> {
   return {
@@ -479,7 +523,7 @@ function transformFileInfo(fileInfo: FileInfo): z.infer<typeof fileInfoSchema> {
     type: fileInfo.isDirectory ? "directory" : "file",
     size: fileInfo.size,
     date: fileInfo.date ? String(fileInfo.date) : undefined,
-    permissions: fileInfo.permissions?.toString(), // Convert UnixPermissions to string
+    permissions: formatUnixMode(fileInfo.permissions),
     owner: fileInfo.user,
     group: fileInfo.group,
   };
@@ -574,6 +618,62 @@ function ftpParentPath(path: string): string {
 function joinFtpPath(directory: string, name: string): string {
   const dir = normalizeFtpPath(directory);
   return dir === "/" ? `/${name}` : `${dir}/${name}`;
+}
+
+const CHMOD_MAX_ENTRIES = 5000;
+const CHMOD_MAX_DEPTH = 40;
+
+async function applyFtpMode(
+  client: Client,
+  remotePath: string,
+  mode: string,
+  opCount: { current: number },
+) {
+  await client.send(`SITE CHMOD ${mode} ${remotePath}`);
+  opCount.current += 1;
+  if (opCount.current % KEEPALIVE_EVERY_N_OPS === 0) {
+    await client.sendIgnoringError("NOOP");
+  }
+}
+
+async function applyFtpModeTree(
+  client: Client,
+  remotePath: string,
+  mode: string,
+  opCount: { current: number },
+  depth: number,
+) {
+  if (depth > CHMOD_MAX_DEPTH) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "This folder is nested too deeply to update recursively.",
+    });
+  }
+  if (opCount.current >= CHMOD_MAX_ENTRIES) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "This folder has too many items to update in one pass.",
+    });
+  }
+
+  await applyFtpMode(client, remotePath, mode, opCount);
+  const entries = await client.list(remotePath);
+  for (const entry of entries) {
+    if (entry.name === "." || entry.name === ".." || entry.name.includes("/") || entry.isSymbolicLink) {
+      continue;
+    }
+    const child = joinFtpPath(remotePath, entry.name);
+    if (entry.isDirectory) {
+      await applyFtpModeTree(client, child, mode, opCount, depth + 1);
+    } else if (opCount.current >= CHMOD_MAX_ENTRIES) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "This folder has too many items to update in one pass.",
+      });
+    } else {
+      await applyFtpMode(client, child, mode, opCount);
+    }
+  }
 }
 
 function isSameOrInsideFtpPath(parent: string, child: string): boolean {
@@ -929,6 +1029,53 @@ export const ftpRouter = router({
         return {
           success: true,
           message: `Successfully renamed ${input.oldPath} to ${input.newPath}`,
+        };
+      } catch (error) {
+        throw ftpUserError(error);
+      } finally {
+        client.close();
+      }
+    }),
+
+  chmod: ftpProcedure
+    .input(chmodSchema)
+    .mutation(async ({ input }) => {
+      const targets = input.paths.map((item) => {
+        const remote = safeRemotePath(item.path.startsWith("/") ? item.path : `/${item.path}`);
+        if (!remote || remote === "/" || /[\u0000-\u001f]/.test(remote)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "The file path is not allowed.",
+          });
+        }
+        return { path: remote, type: item.type };
+      });
+
+      const credentials = input.recursive
+        ? {
+            ...input.credentials,
+            timeout: Math.max(input.credentials.timeout ?? 30_000, 600_000),
+          }
+        : input.credentials;
+      const client = await createFtpClient(credentials);
+      const opCount = { current: 0 };
+      try {
+        for (const target of targets) {
+          if (input.recursive && target.type === "folder") {
+            await applyFtpModeTree(client, target.path, input.mode, opCount, 0);
+          } else {
+            await applyFtpMode(client, target.path, input.mode, opCount);
+          }
+        }
+        return {
+          success: true as const,
+          mode: input.mode,
+          updated: opCount.current,
+          message: input.recursive
+            ? `Permissions updated to ${input.mode}, including folder contents`
+            : targets.length === 1
+              ? `Permissions updated to ${input.mode}`
+              : `Permissions updated to ${input.mode} for ${targets.length} items`,
         };
       } catch (error) {
         throw ftpUserError(error);
