@@ -463,37 +463,9 @@ function FileManagerContent({
   return (
     <div className="space-y-4">
       {/* Top Toolbar */}
-      <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between bg-background border rounded-lg p-3">
-        {/* Left section - Breadcrumbs and search */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-1 w-full min-w-0">
-          {/* Breadcrumb navigation */}
-          <div className="flex items-center gap-1 flex-wrap min-w-0">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigateToPath("/")}
-              className="h-8 px-2"
-            >
-              <Home className="h-4 w-4" />
-            </Button>
-            <span className="text-muted-foreground">/</span>
-            {(data?.breadcrumbs || []).slice(1).map((crumb, index, arr) => (
-              <React.Fragment key={crumb.path}>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigateToBreadcrumb(crumb.path)}
-                  className="h-8 px-2 text-sm font-medium hover:text-primary"
-                >
-                  {crumb.name}
-                </Button>
-                {index < arr.length - 1 && <span className="text-muted-foreground">/</span>}
-              </React.Fragment>
-            ))}
-          </div>
-
-          {/* Search */}
-          <div className="relative w-full sm:w-64">
+      <div className="flex flex-col gap-3 bg-background border rounded-lg p-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="relative w-full sm:w-64 shrink-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search files..."
@@ -502,7 +474,6 @@ function FileManagerContent({
               className="pl-9 h-9"
             />
           </div>
-        </div>
 
         {/* Right section - Actions */}
         <div className="flex flex-wrap items-center gap-2">
@@ -625,6 +596,32 @@ function FileManagerContent({
             )}
           </Button>
         </div>
+        </div>
+
+        <div className="flex w-full items-center gap-1 flex-wrap border-t pt-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigateToPath("/")}
+            className="h-8 px-2"
+          >
+            <Home className="h-4 w-4" />
+          </Button>
+          <span className="text-muted-foreground">/</span>
+          {(data?.breadcrumbs || []).slice(1).map((crumb, index, arr) => (
+            <React.Fragment key={crumb.path}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigateToBreadcrumb(crumb.path)}
+                className="h-8 px-2 text-sm font-medium hover:text-primary"
+              >
+                {crumb.name}
+              </Button>
+              {index < arr.length - 1 && <span className="text-muted-foreground">/</span>}
+            </React.Fragment>
+          ))}
+        </div>
       </div>
 
       {/* Main Content Area - Split View */}
@@ -722,7 +719,7 @@ function FileManagerContent({
                           "cursor-pointer hover:bg-muted/50 transition-colors",
                           selectedItems.includes(item.id) && "bg-primary/5"
                         )}
-                        onDoubleClick={() => handleItemActivate(item)}
+                        onClick={() => handleItemActivate(item)}
                       >
                         <TableCell onClick={(e) => e.stopPropagation()}>
                           <Checkbox
