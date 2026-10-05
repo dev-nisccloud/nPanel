@@ -438,6 +438,7 @@ export const agencysidebarItems: NavGroup[] = [
           { title: "Products", url: "/agency/kra-etims/products", },
           { title: "Customers", url: "/agency/kra-etims/customers", },
           { title: "Branches", url: "/agency/kra-etims/branches", },
+          { title: "Notices", url: "/agency/kra-etims/notices", },
           { title: "Settings", url: "/agency/kra-etims/settings", },
         ],
       },

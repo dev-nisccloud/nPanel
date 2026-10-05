@@ -3,24 +3,16 @@
 import { captureEvent } from "@/lib/posthog";
 
 import * as React from "react";
-import {
-    ShieldCheck,
-    Zap,
-    Info,
-    CheckCircle2,
-    RefreshCw,
-} from "lucide-react";
+import { Building2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
-import { AutomatedTestChecklist } from "./agency.kra-etims/_components/automated-test-checklist";
+import { LAST_REQ_DT, unwrapKraData, unwrapKraList } from "./agency.kra-etims/_lib/etims-kra";
 
 export default function ETimsSettingsPage() {
     const utils = trpc.useUtils();
@@ -32,208 +24,173 @@ export default function ETimsSettingsPage() {
             captureEvent("etims_connected");
             toast.success(
                 configStatus?.isInitialized
-                    ? "eTIMS Re-initialized Successfully"
-                    : "eTIMS Initialized Successfully",
+                    ? "eTIMS re-initialized"
+                    : "eTIMS initialized",
             );
             utils.etims.auth.getConfiguration.invalidate();
         },
         onError: (error) => {
-            toast.error(`Initialization Failed: ${error.message}`);
-        }
+            toast.error(`Initialization failed: ${error.message}`);
+        },
     });
-
-    // Note: token management is now handled internally by the server - no frontend exposure.
 
     const [formData, setFormData] = React.useState({
         kraPin: "",
         branchId: "00",
         deviceSerialNumber: "",
-        isSandbox: true
+        isSandbox: true,
     });
 
-    // Reset form configuration loads
     React.useEffect(() => {
         if (configStatus?.config) {
             setFormData({
                 kraPin: configStatus.config.kraPin,
                 branchId: configStatus.config.branchId,
                 deviceSerialNumber: configStatus.config.deviceSerialNumber,
-                isSandbox: configStatus.config.isSandbox
+                isSandbox: configStatus.config.isSandbox,
             });
         }
     }, [configStatus]);
 
     const isInitialized = Boolean(configStatus?.isInitialized);
-    // Sandbox allows re-init for KRA test sessions; production locks after first init.
     const canEdit = !isInitialized || formData.isSandbox;
-    const canInitialize = canEdit && !initMutation.isPending;
+
+    const { data: taxpayerData, isFetching: isFetchingTaxpayer } =
+        trpc.etims.data.getTaxPayerInfo.useQuery(
+            { lastReqDt: LAST_REQ_DT },
+            { enabled: isInitialized },
+        );
+
+    const taxpayer = React.useMemo(() => {
+        const data = unwrapKraData(taxpayerData);
+        const list = unwrapKraList(taxpayerData, "infoList", "taxpayerList", "taxPayerList", "itemList");
+        return list[0] ?? data;
+    }, [taxpayerData]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { id, value } = e.target;
-        setFormData(prev => ({ ...prev, [id]: value }));
+        setFormData((prev) => ({ ...prev, [id]: value }));
     };
 
-    const handleSwitchChange = (checked: boolean) => {
-        setFormData(prev => ({ ...prev, isSandbox: checked }));
+    const onHandleInitialize = () => {
+        initMutation.mutate({
+            tin: formData.kraPin,
+            bhfId: formData.branchId,
+            dvcSrlNo: formData.deviceSerialNumber,
+            isSandbox: formData.isSandbox,
+        });
     };
 
-    const onHandleInitialize = async () => {
-        try {
-            initMutation.mutate({
-                tin: formData.kraPin,
-                bhfId: formData.branchId,
-                dvcSrlNo: formData.deviceSerialNumber,
-                isSandbox: formData.isSandbox
-            });
-        } catch (error) {
-            console.error("Setup flow failed", error);
-        }
-    };
+    const location = [taxpayer.locDesc, taxpayer.sctrNm, taxpayer.dstrtNm, taxpayer.prvncNm]
+        .filter(Boolean)
+        .map(String)
+        .join(", ");
 
     return (
         <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
-            <div className="w-full max-w-7xl mx-auto">
-                <div className="flex flex-col gap-6">
-                    <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
-                        <div className="flex flex-col gap-2">
-                            <h1 className="text-base font-semibold tracking-tight">eTIMS Configuration</h1>
-                            <p className="text-xs text-muted-foreground">
-                                Manage your KRA API credentials and device initialization settings.
-                            </p>
-                        </div>
-                    </div>
-
-                    {isLoadingConfig ? (
-                        <div className="flex justify-center py-12">
-                            <Spinner size={32} />
-                        </div>
-                    ) : (
-                        <>
-                            {!isInitialized && (
-                                <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-900/10 dark:border-amber-900/50">
-                                    <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                                    <AlertTitle className="text-amber-800 dark:text-amber-400">Action Required</AlertTitle>
-                                    <AlertDescription className="text-amber-700 dark:text-amber-500">
-                                        Device not initialized. Complete the configuration and click "Initialize Device".
-                                    </AlertDescription>
-                                </Alert>
-                            )}
-
-                            {isInitialized && formData.isSandbox && (
-                                <Alert className="bg-sky-50 border-sky-200 dark:bg-sky-900/10 dark:border-sky-900/50">
-                                    <RefreshCw className="h-4 w-4 text-sky-600 dark:text-sky-400" />
-                                    <AlertTitle className="text-sky-800 dark:text-sky-400">Sandbox Testing</AlertTitle>
-                                    <AlertDescription className="text-sky-700 dark:text-sky-500">
-                                        KRA sandbox sessions expire. Use "Re-initialize Device" to refresh the cmcKey and continue testing.
-                                    </AlertDescription>
-                                </Alert>
-                            )}
-
-                            <div className="grid gap-6 lg:grid-cols-3">
-                                {/* Main Settings Form */}
-                                <div className="lg:col-span-2 space-y-6">
-                                    <Card className="bg-card shadow-sm">
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center gap-2">
-                                                <ShieldCheck className="h-5 w-5 text-primary" />
-                                                Taxpayer Details
-                                            </CardTitle>
-                                            <CardDescription>Basic business information registered with KRA.</CardDescription>
-                                        </CardHeader>
-                                        <CardContent className="space-y-4">
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="kraPin">KRA PIN</Label>
-                                                    <Input id="kraPin" value={formData.kraPin} onChange={handleInputChange} placeholder="P05XXXXXXXX" disabled={!canEdit} />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="branchId">Branch ID</Label>
-                                                    <Input id="branchId" value={formData.branchId} onChange={handleInputChange} placeholder="00" disabled={!canEdit} />
-                                                </div>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label htmlFor="deviceSerialNumber">Device Serial Number</Label>
-                                                <Input id="deviceSerialNumber" value={formData.deviceSerialNumber} onChange={handleInputChange} placeholder="NPCXXXXXXX" disabled={!canEdit} />
-                                            </div>
-                                        </CardContent>
-                                        <CardFooter className="flex justify-end gap-3 border-t bg-muted/50 p-4">
-                                            {/* Footer content if needed */}
-                                        </CardFooter>
-                                    </Card>
-
-                                    <AutomatedTestChecklist enabled={formData.isSandbox} />
-                                </div>
-
-                                {/* Sidebar Info/Status */}
-                                <div className="space-y-6">
-                                    <Card className="bg-card shadow-sm">
-                                        <CardHeader>
-                                            <CardTitle className="text-base flex items-center gap-2">
-                                                <Zap className="h-4 w-4 text-amber-500" />
-                                                System Mode
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="space-y-4">
-                                            <div className="flex items-center justify-between">
-                                                <div className="space-y-0.5">
-                                                    <Label>Sandbox Mode</Label>
-                                                    <p className="text-xs text-muted-foreground">Used for testing and verification.</p>
-                                                </div>
-                                                <Switch checked={formData.isSandbox} onCheckedChange={handleSwitchChange} disabled={!canEdit} />
-                                            </div>
-
-                                            <div className="pt-4 border-t">
-                                                <div className="flex items-center justify-between text-sm">
-                                                    <span className="text-muted-foreground">Initialization Status:</span>
-                                                    <Badge variant={isInitialized ? "outline" : "secondary"}>
-                                                        {isInitialized ? "COMPLETE" : "PENDING"}
-                                                    </Badge>
-                                                </div>
-                                                {isInitialized && (
-                                                    <div className="mt-3 flex items-center gap-2 lg:flex-row flex-col justify-center">
-                                                        <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded border border-green-200 dark:border-green-800">
-                                                            <CheckCircle2 className="h-3 w-3" />
-                                                            Device Ready
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </CardContent>
-                                        <CardFooter className="p-4 pt-0">
-                                            <Button
-                                                className="w-full"
-                                                variant={isInitialized ? "outline" : "default"}
-                                                onClick={onHandleInitialize}
-                                                disabled={!canInitialize}
-                                            >
-                                                {initMutation.isPending && <Spinner size={16} className="mr-2" />}
-                                                {!initMutation.isPending && isInitialized && formData.isSandbox && (
-                                                    <RefreshCw className="mr-2 h-4 w-4" />
-                                                )}
-                                                {isInitialized
-                                                    ? (formData.isSandbox ? "Re-initialize Device" : "Device Initialized")
-                                                    : "Initialize Device"}
-                                            </Button>
-                                        </CardFooter>
-                                    </Card>
-
-                                    <Card className="bg-card shadow-sm border-dashed">
-                                        <CardHeader>
-                                            <CardTitle className="text-sm">Need Help?</CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="text-xs text-muted-foreground space-y-2">
-                                            <p>Initialization requires a unique Device Serial Number and valid Taxpayer details.</p>
-                                            <p>The <strong>cmcKey</strong> will be automatically retrieved and stored upon successful initialization.</p>
-                                            {formData.isSandbox && (
-                                                <p>In sandbox, re-initialize whenever KRA returns a session-expired error during testing.</p>
-                                            )}
-                                        </CardContent>
-                                    </Card>
-                                </div>
-                            </div>
-                        </>
-                    )}
+            <div className="w-full max-w-3xl mx-auto">
+                <div className="flex items-center justify-between gap-3">
+                    <h1 className="text-base font-semibold tracking-tight">eTIMS</h1>
+                    <Badge variant={isInitialized ? "outline" : "secondary"}>
+                        {isInitialized ? (
+                            <span className="inline-flex items-center gap-1.5">
+                                <CheckCircle2 className="h-3 w-3 text-green-600" />
+                                Initialized
+                            </span>
+                        ) : (
+                            "Not initialized"
+                        )}
+                    </Badge>
                 </div>
+
+                {isLoadingConfig ? (
+                    <div className="flex justify-center py-12">
+                        <Spinner size={32} />
+                    </div>
+                ) : (
+                    <Card className="mt-6 bg-card shadow-sm">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Building2 className="h-5 w-5 text-primary" />
+                                Taxpayer details
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {isInitialized ? (
+                                isFetchingTaxpayer && !taxpayer.taxprNm && !taxpayer.tin ? (
+                                    <div className="flex justify-center py-6">
+                                        <Spinner size={24} />
+                                    </div>
+                                ) : (
+                                    <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <dt className="text-xs text-muted-foreground">Legal name</dt>
+                                            <dd className="mt-0.5 font-medium">{String(taxpayer.taxprNm ?? "—")}</dd>
+                                        </div>
+                                        <div>
+                                            <dt className="text-xs text-muted-foreground">PIN</dt>
+                                            <dd className="mt-0.5 font-mono">{String(taxpayer.tin ?? formData.kraPin ?? "—")}</dd>
+                                        </div>
+                                        <div>
+                                            <dt className="text-xs text-muted-foreground">Branch</dt>
+                                            <dd className="mt-0.5 font-mono">{formData.branchId || "—"}</dd>
+                                        </div>
+                                        <div>
+                                            <dt className="text-xs text-muted-foreground">Status</dt>
+                                            <dd className="mt-0.5">{String(taxpayer.taxprSttsCd ?? "—")}</dd>
+                                        </div>
+                                        <div className="sm:col-span-2">
+                                            <dt className="text-xs text-muted-foreground">Location</dt>
+                                            <dd className="mt-0.5">{location || "—"}</dd>
+                                        </div>
+                                    </dl>
+                                )
+                            ) : (
+                                <>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="kraPin">KRA PIN</Label>
+                                            <Input
+                                                id="kraPin"
+                                                value={formData.kraPin}
+                                                onChange={handleInputChange}
+                                                placeholder="P05XXXXXXXX"
+                                                disabled={!canEdit}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="branchId">Branch ID</Label>
+                                            <Input
+                                                id="branchId"
+                                                value={formData.branchId}
+                                                onChange={handleInputChange}
+                                                placeholder="00"
+                                                disabled={!canEdit}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="deviceSerialNumber">Device serial</Label>
+                                        <Input
+                                            id="deviceSerialNumber"
+                                            value={formData.deviceSerialNumber}
+                                            onChange={handleInputChange}
+                                            placeholder="NPCXXXXXXX"
+                                            disabled={!canEdit}
+                                        />
+                                    </div>
+                                    <Button
+                                        onClick={onHandleInitialize}
+                                        disabled={initMutation.isPending || !formData.kraPin || !formData.deviceSerialNumber}
+                                    >
+                                        {initMutation.isPending && <Spinner size={16} className="mr-2" />}
+                                        {initMutation.isPending ? "Initializing…" : "Initialize device"}
+                                    </Button>
+                                </>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
             </div>
         </div>
     );

@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import { RefreshCw, Search } from "lucide-react";
+import { customerFromLookup } from "../../_lib/etims-kra";
 
 const formSchema = z.object({
     custNo: z.string().min(1, "Customer number is required").max(9),
@@ -117,14 +118,22 @@ export function SaveETimsCustomerSheet({
     );
 
     React.useEffect(() => {
-        if (!lookupData?.data?.custmNm) return;
-        form.setValue("custNm", lookupData.data.custmNm);
-        if (lookupData.data.adrs) form.setValue("adrs", lookupData.data.adrs);
-        if (lookupData.data.telNo) form.setValue("telNo", lookupData.data.telNo);
-        if (lookupData.data.email) form.setValue("email", lookupData.data.email);
+        if (!lookupTin || isLookingUp) return;
+        const found = customerFromLookup(lookupData);
+        if (!found) {
+            if (lookupData !== undefined) {
+                toast.error("KRA did not return details for this PIN");
+            }
+            return;
+        }
+        form.setValue("custNm", found.name);
+        form.setValue("custTin", found.tin || lookupTin);
+        if (found.adrs) form.setValue("adrs", found.adrs);
+        if (found.telNo) form.setValue("telNo", found.telNo);
+        if (found.email) form.setValue("email", found.email);
         toast.success("Customer details filled from KRA lookup");
         setLookupTin(null);
-    }, [lookupData, form]);
+    }, [lookupData, lookupTin, isLookingUp, form]);
 
     const saveCustomer = trpc.etims.branch.saveCustomer.useMutation({
         onSuccess: (res) => {

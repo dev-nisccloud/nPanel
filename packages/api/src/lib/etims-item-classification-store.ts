@@ -23,6 +23,43 @@ const SYNC_START = "20180101000000";
 const KRA_PAGE_SIZE = 1000;
 const INSERT_CHUNK_SIZE = 100;
 
+function tokenizeClassificationSearch(raw: string): string[] {
+    const compact = raw.replace(/[%_\\]/g, " ").replace(/\s+/g, " ").trim();
+    if (!compact) return [];
+    const tokens = compact
+        .split(/[\s,;/|+]+/)
+        .map((token) => token.trim())
+        .filter((token) => token.length >= 2)
+        .slice(0, 8);
+    if (tokens.length) return tokens;
+    return compact.length ? [compact] : [];
+}
+
+function tokenMatch(token: string) {
+    return or(
+        ilike(eTimsItemClassification.itemClsNm, `%${token}%`),
+        ilike(eTimsItemClassification.itemClsCd, `%${token}%`),
+    );
+}
+
+/** Each token must appear (partial) in name or code. Order does not matter. */
+function classificationListWhere(level: number, search?: string) {
+    const raw = search?.trim() ?? "";
+    if (!raw) return eq(eTimsItemClassification.itemClsLvl, level);
+
+    const digits = raw.replace(/[\s-]/g, "");
+    if (/^\d{2,10}$/.test(digits) && !/[a-zA-Z]/.test(raw)) {
+        return ilike(eTimsItemClassification.itemClsCd, `${digits}%`);
+    }
+
+    const tokens = tokenizeClassificationSearch(raw);
+    if (!tokens.length) return eq(eTimsItemClassification.itemClsLvl, level);
+
+    const clauses = tokens.map(tokenMatch);
+    if (clauses.length === 1) return clauses[0]!;
+    return and(...clauses);
+}
+
 function optionalText(value: unknown): string | null {
     if (value == null) return null;
     const text = String(value).trim();
@@ -37,18 +74,24 @@ function dedupeRows(rows: EtimsItemClassification[]): EtimsItemClassification[] 
     return Array.from(byCode.values());
 }
 
+function inferItemClsLvl(code: string, rawLvl: unknown): number | null {
+    const level = Number(rawLvl);
+    if (Number.isFinite(level) && level >= 1 && level <= 5) return level;
+    if (code.length === 2) return 1;
+    if (code.length === 4) return 2;
+    if (code.length === 6) return 3;
+    if (code.length === 8) return 4;
+    if (code.length === 10) return 5;
+    return null;
+}
+
 function normalizeRow(raw: Record<string, unknown>): EtimsItemClassification | null {
-    const itemClsCd = raw.itemClsCd;
-    const itemClsNm = raw.itemClsNm;
-    const itemClsLvl = raw.itemClsLvl;
-    if (!itemClsCd || !itemClsNm || itemClsLvl == null) return null;
-
-    const level = Number(itemClsLvl);
-    if (!Number.isFinite(level) || level < 1 || level > 5) return null;
-
-    const code = String(itemClsCd).trim();
-    const name = String(itemClsNm).trim();
+    const code = String(raw.itemClsCd ?? "").trim();
+    const name = String(raw.itemClsNm ?? "").trim();
     if (!code || !name) return null;
+
+    const level = inferItemClsLvl(code, raw.itemClsLvl);
+    if (level == null) return null;
 
     return {
         itemClsCd: code,
@@ -60,20 +103,36 @@ function normalizeRow(raw: Record<string, unknown>): EtimsItemClassification | n
     };
 }
 
-function extractKraPage(result: unknown): { rows: EtimsItemClassification[]; resultDt?: string } {
+function findItemClsList(root: unknown, depth = 0): unknown[] {
+    if (depth > 6 || !root || typeof root !== "object") return [];
+    const rec = root as Record<string, unknown>;
+    if (Array.isArray(rec.itemClsList)) return rec.itemClsList;
+    for (const key of ["data", "responseBody"]) {
+        const nested = findItemClsList(rec[key], depth + 1);
+        if (nested.length) return nested;
+    }
+    return [];
+}
+
+function extractKraPage(result: unknown): { rows: EtimsItemClassification[]; resultDt?: string; resultCd?: string; resultMsg?: string } {
     if (!result || typeof result !== "object") return { rows: [] };
     const root = result as Record<string, unknown>;
-    const data = root.data;
-    const list = data && typeof data === "object"
-        ? (data as Record<string, unknown>).itemClsList
-        : undefined;
-    const rows = Array.isArray(list)
-        ? list
-            .map((row) => normalizeRow(row as Record<string, unknown>))
-            .filter((row): row is EtimsItemClassification => row != null)
-        : [];
-    const resultDt = typeof root.resultDt === "string" ? root.resultDt : undefined;
-    return { rows, resultDt };
+    const nested = (root.data && typeof root.data === "object" ? root.data : null) as Record<string, unknown> | null;
+    const list = findItemClsList(root);
+    const rows = list
+        .map((row) => (row && typeof row === "object" ? normalizeRow(row as Record<string, unknown>) : null))
+        .filter((row): row is EtimsItemClassification => row != null);
+    const resultDt = typeof root.resultDt === "string"
+        ? root.resultDt
+        : typeof nested?.resultDt === "string"
+            ? nested.resultDt
+            : undefined;
+    return {
+        rows,
+        resultDt,
+        resultCd: typeof root.resultCd === "string" ? root.resultCd : undefined,
+        resultMsg: typeof root.resultMsg === "string" ? root.resultMsg : undefined,
+    };
 }
 
 async function clearAllClassifications() {
@@ -143,6 +202,33 @@ async function buildMeta(): Promise<EtimsItemClassMeta | null> {
     };
 }
 
+export function preferLocalItemClassifications(): boolean {
+    return true;
+}
+
+function kraDateTimeFromDate(value: Date) {
+    const y = value.getUTCFullYear();
+    const m = String(value.getUTCMonth() + 1).padStart(2, "0");
+    const d = String(value.getUTCDate()).padStart(2, "0");
+    const hh = String(value.getUTCHours()).padStart(2, "0");
+    const mm = String(value.getUTCMinutes()).padStart(2, "0");
+    const ss = String(value.getUTCSeconds()).padStart(2, "0");
+    return `${y}${m}${d}${hh}${mm}${ss}`;
+}
+
+export async function getEtimsItemClassListFromDb() {
+    const meta = await buildMeta();
+    if (!meta) return null;
+
+    return {
+        resultCd: "000",
+        resultMsg: "Success",
+        resultDt: kraDateTimeFromDate(new Date(meta.syncedAt)),
+        data: { itemClsList: [] as EtimsItemClassification[] },
+        meta,
+    };
+}
+
 export async function getEtimsItemClassMeta(_oscu: EtimsOscuHeaders): Promise<EtimsItemClassMeta | null> {
     return buildMeta();
 }
@@ -151,6 +237,9 @@ export async function getEtimsItemClassificationByCode(
     _oscu: EtimsOscuHeaders,
     itemClsCd: string,
 ): Promise<EtimsItemClassification | null> {
+    const code = itemClsCd?.trim();
+    if (!code) return null;
+
     const [row] = await db
         .select({
             itemClsCd: eTimsItemClassification.itemClsCd,
@@ -161,7 +250,7 @@ export async function getEtimsItemClassificationByCode(
             useYn: eTimsItemClassification.useYn,
         })
         .from(eTimsItemClassification)
-        .where(eq(eTimsItemClassification.itemClsCd, itemClsCd.trim()))
+        .where(eq(eTimsItemClassification.itemClsCd, code))
         .limit(1);
     if (!row) return null;
 
@@ -181,19 +270,11 @@ export async function listEtimsItemClassifications(
             pageSize: input.pageSize,
             totalPages: 0,
             needsSync: true,
+            empty: true,
         };
     }
 
-    const term = input.search?.trim();
-    const where = term
-        ? and(
-            eq(eTimsItemClassification.itemClsLvl, input.level),
-            or(
-                ilike(eTimsItemClassification.itemClsCd, `%${term}%`),
-                ilike(eTimsItemClassification.itemClsNm, `%${term}%`),
-            ),
-        )
-        : eq(eTimsItemClassification.itemClsLvl, input.level);
+    const where = classificationListWhere(input.level, input.search);
 
     const [totalRow] = await db
         .select({ total: count() })
@@ -202,7 +283,18 @@ export async function listEtimsItemClassifications(
 
     const total = Number(totalRow?.total ?? 0);
     const totalPages = total === 0 ? 0 : Math.ceil(total / input.pageSize);
-    const page = Math.min(Math.max(input.page, 1), Math.max(totalPages, 1));
+    const page = Math.max(input.page, 1);
+    if (totalPages > 0 && page > totalPages) {
+        return {
+            items: [] as EtimsItemClassification[],
+            total,
+            page,
+            pageSize: input.pageSize,
+            totalPages,
+            needsSync: false,
+            empty: false,
+        };
+    }
     const offset = (page - 1) * input.pageSize;
 
     const rows = await db
@@ -227,6 +319,7 @@ export async function listEtimsItemClassifications(
         pageSize: input.pageSize,
         totalPages,
         needsSync: false,
+        empty: false,
     };
 }
 
@@ -249,7 +342,10 @@ export async function syncEtimsItemClassificationsBatch(
 
     while (pagesFetched < maxPages) {
         const result = await client.selectItemClsList(_oscu, lastReqDt);
-        const { rows, resultDt } = extractKraPage(result);
+        const { rows, resultDt, resultCd, resultMsg } = extractKraPage(result);
+        if (resultCd && resultCd !== "000" && resultCd !== "001") {
+            throw new Error(resultMsg || `KRA selectItemClsList failed (${resultCd})`);
+        }
         if (!rows.length) break;
 
         await insertClassificationBatch(rows);
@@ -279,6 +375,72 @@ export async function syncEtimsItemClassificationsBatch(
         nextLastReqDt,
         totalSynced: Number(totalRow?.total ?? 0),
         isComplete: !hasMore && !!meta,
+        meta,
+    };
+}
+
+function sleep(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export async function syncAllEtimsItemClassifications(
+    client: EtimsOscuClient,
+    oscu: EtimsOscuHeaders,
+    input: {
+        lastReqDt?: string;
+        reset?: boolean;
+        sleepMs?: number;
+        onProgress?: (progress: {
+            pagesFetched: number;
+            rowsFetched: number;
+            totalSynced: number;
+            nextLastReqDt: string;
+            hasMore: boolean;
+        }) => void;
+    } = {},
+) {
+    let lastReqDt = input.lastReqDt;
+    let reset = input.reset ?? false;
+    let pagesFetched = 0;
+    let rowsFetched = 0;
+    let nextLastReqDt = lastReqDt ?? SYNC_START;
+    let hasMore = true;
+    let meta = await buildMeta();
+
+    while (hasMore) {
+        const batch = await syncEtimsItemClassificationsBatch(client, oscu, {
+            lastReqDt: nextLastReqDt,
+            maxPages: 5,
+            reset,
+        });
+        reset = false;
+        pagesFetched += batch.pagesFetched;
+        rowsFetched += batch.rowsFetched;
+        nextLastReqDt = batch.nextLastReqDt;
+        hasMore = batch.hasMore;
+        meta = batch.meta;
+
+        input.onProgress?.({
+            pagesFetched,
+            rowsFetched,
+            totalSynced: batch.totalSynced,
+            nextLastReqDt,
+            hasMore,
+        });
+
+        if (!batch.pagesFetched) break;
+        if (hasMore && (input.sleepMs ?? 200) > 0) {
+            await sleep(input.sleepMs ?? 200);
+        }
+    }
+
+    return {
+        pagesFetched,
+        rowsFetched,
+        hasMore: false,
+        nextLastReqDt,
+        totalSynced: meta?.totalCount ?? 0,
+        isComplete: !!meta,
         meta,
     };
 }

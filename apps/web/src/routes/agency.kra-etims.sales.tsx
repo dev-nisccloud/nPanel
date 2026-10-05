@@ -1,7 +1,5 @@
 "use client";
 
-import { captureEvent } from "@/lib/posthog";
-
 import * as React from "react";
 import {
     FileText,
@@ -20,7 +18,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
-import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -42,16 +39,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ETimsInitializationGuard } from "@/components/etims/etims-initialization-guard";
 import { ETimsBranchSwitcher } from "@/components/etims/etims-branch-switcher";
-import { Textarea } from "@/components/ui/textarea";
-import {
-    Sheet,
-    SheetContent,
-    SheetDescription,
-    SheetFooter,
-    SheetHeader,
-    SheetTitle,
-} from "@/components/npanel-ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SendETimsSaleSheet } from "./agency.kra-etims/sales/_components/send-etims-sale-sheet";
 import {
     IssueETimsCreditNoteSheet,
     creditNoteReasonLabel,
@@ -76,37 +65,9 @@ export default function ETimsSalesPage() {
     const [isViewOpen, setIsViewOpen] = React.useState(false);
     const [viewingRecord, setViewingRecord] = React.useState<EtimsSaleRecord | null>(null);
     const [creditNoteSale, setCreditNoteSale] = React.useState<EtimsSaleForCreditNote | null>(null);
-    const [salePayload, setSalePayload] = React.useState<string>("");
-    const [ensureStock, setEnsureStock] = React.useState(false);
-    const [custTinSearch, setCustTinSearch] = React.useState("");
-    const [lookupTin, setLookupTin] = React.useState<string | null>(null);
-
-    const utils = trpc.useUtils();
 
     const { data: etimsConfig } = trpc.etims.auth.getConfiguration.useQuery();
     const { data: branchesData } = trpc.etims.branch.getBranchList.useQuery({ lastReqDt: "20230101000000" });
-    const { data: itemsData } = trpc.etims.items.getItemList.useQuery({
-        lastReqDt: "20230101000000",
-    });
-
-    const { data: customerLookupData, isFetching: isSearchingCustomer } = trpc.etims.data.lookupCustomer.useQuery(
-        { custmTin: lookupTin ?? "" },
-        { enabled: !!lookupTin, retry: false }
-    );
-
-    const verifiedCustomer: any = React.useMemo(() => {
-        const root: any = customerLookupData;
-        if (root?.data?.custmNm) return root.data;
-        const payload = root?.data?.responseBody?.data ?? root?.data ?? root?.responseBody?.data ?? root;
-        const raw = payload?.data ?? payload;
-        if (raw?.custmNm || raw?.custNm || raw?.taxprNm) {
-            return {
-                custmTin: raw.custmTin ?? raw.custTin ?? raw.tin,
-                custmNm: raw.custmNm ?? raw.custNm ?? raw.taxprNm,
-            };
-        }
-        return raw;
-    }, [customerLookupData]);
 
     const branches = React.useMemo(() => {
         const root: any = branchesData;
@@ -123,176 +84,9 @@ export default function ETimsSalesPage() {
         else if (branches.length) setSelectedBhfId(branches[0].bhfId);
     }, [selectedBhfId, etimsConfig, branches]);
 
-    const itemOptions = React.useMemo(() => {
-        const root: any = itemsData;
-        const payload = root?.data?.responseBody?.data ?? root?.data ?? root?.responseBody?.data ?? root;
-        const data: any = payload?.data ?? payload;
-        const list = data?.itemList ?? data?.items ?? [];
-        return Array.isArray(list) ? list : [];
-    }, [itemsData]);
-
-    const itemByCode = React.useMemo(() => {
-        const map = new Map<string, any>();
-        for (const it of itemOptions) {
-            if (it?.itemCd) map.set(String(it.itemCd), it);
-        }
-        return map;
-    }, [itemOptions]);
-
-    const buildDefaultSalePayload = React.useCallback(() => {
-        const cfg: any = (etimsConfig as any)?.config;
-        const deviceBhfId = cfg?.branchId ?? selectedBhfId ?? "01";
-        const branch = branches.find((b: any) => b.bhfId === deviceBhfId);
-
-        const now = new Date();
-        const yyyy = String(now.getFullYear());
-        const mm = String(now.getMonth() + 1).padStart(2, "0");
-        const dd = String(now.getDate()).padStart(2, "0");
-        const HH = String(now.getHours()).padStart(2, "0");
-        const MM = String(now.getMinutes()).padStart(2, "0");
-        const SS = String(now.getSeconds()).padStart(2, "0");
-        const salesDt = `${yyyy}${mm}${dd}`;
-        const dt14 = `${yyyy}${mm}${dd}${HH}${MM}${SS}`;
-
-        const branchItems = itemOptions.filter((x: any) => String(x?.regBhfId ?? "") === String(deviceBhfId));
-        const fallbackItems = itemOptions.filter((x: any) => String(x?.regBhfId ?? "") === "00");
-        const goodsBranch = branchItems.filter((x: any) => String(x?.itemTyCd ?? "") !== "3");
-        const goodsFallback = fallbackItems.filter((x: any) => String(x?.itemTyCd ?? "") !== "3");
-        // KRA SBX stock validations apply to goods; prefer a non-service item for sales tests.
-        const pool =
-            goodsBranch.length ? goodsBranch :
-            goodsFallback.length ? goodsFallback :
-            branchItems.length ? branchItems :
-            fallbackItems.length ? fallbackItems :
-            itemOptions;
-        const pick = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
-
-        const itemCd = pick?.itemCd ?? "KE3OUXU0000001";
-        const itemClsCd = pick?.itemClsCd ?? "81112100";
-        const itemNm = pick?.itemNm ?? "Cloud & Digital Services";
-        const pkgUnitCd = pick?.pkgUnitCd ?? "OU";
-        const qtyUnitCd = pick?.qtyUnitCd ?? "U";
-        const taxTyCd = pick?.taxTyCd ?? "B";
-        const prc = Number(pick?.dftPrc ?? 0);
-        const qty = 1;
-        const splyAmt = prc * qty;
-        const dcAmt = 0;
-        const taxblAmt = splyAmt - dcAmt;
-        const taxRatePct = taxTyCd === "B" ? 16 : 0;
-        const taxAmt = Math.round((taxblAmt * taxRatePct) / 100);
-        // Docs sample shows header totAmt equals total taxable amount (tax excluded).
-        const lineTotAmt = taxblAmt;
-
-        const totTaxblAmt = taxblAmt;
-        const totTaxAmt = taxAmt;
-
-        const invcNo = Math.floor(Math.random() * 900000) + 100000;
-        return {
-            trdInvcNo: `TINV${invcNo}`,
-            invcNo,
-            orgInvcNo: 0,
-            custTin: "A016495079I",
-            custNm: "FINEY OTIENO AKWOYO",
-            salesTyCd: "N",
-            rcptTyCd: "S",
-            pmtTyCd: "01",
-            salesSttsCd: "02",
-            cfmDt: dt14,
-            salesDt,
-            stockRlsDt: dt14,
-            totItemCnt: 1,
-            taxblAmtA: 0,
-            taxblAmtB: taxTyCd === "B" ? taxblAmt : 0,
-            taxblAmtC: 0,
-            taxblAmtD: 0,
-            taxblAmtE: 0,
-            taxRtA: 0,
-            taxRtB: 16,
-            taxRtC: 0,
-            taxRtD: 0,
-            taxRtE: 0,
-            taxAmtA: 0,
-            taxAmtB: taxTyCd === "B" ? taxAmt : 0,
-            taxAmtC: 0,
-            taxAmtD: 0,
-            taxAmtE: 0,
-            totTaxblAmt,
-            totTaxAmt,
-            totAmt: totTaxblAmt,
-            prchrAcptcYn: "N",
-            remark: "",
-            regrId: "Admin",
-            regrNm: "Admin",
-            modrId: "Admin",
-            modrNm: "Admin",
-            receipt: {
-                custTin: "A016495079I",
-                rptNo: 1,
-                rcptPbctDt: dt14,
-                trdeNm: branch?.bhfNm ?? cfg?.mgrNm ?? "Nisc Cloud Limited",
-                adrs: cfg?.prvncNm ?? "Nairobi",
-                topMsg: "Shopwithus",
-                btmMsg: "Welcome",
-                prchrAcptcYn: "N",
-            },
-            itemList: [
-                {
-                    itemSeq: 1,
-                    itemCd,
-                    itemClsCd,
-                    itemNm,
-                    pkgUnitCd,
-                    pkg: 1,
-                    qtyUnitCd,
-                    qty,
-                    prc,
-                    splyAmt,
-                    dcRt: 0,
-                    dcAmt,
-                    taxTyCd,
-                    taxblAmt,
-                    taxAmt,
-                    totAmt: lineTotAmt,
-                },
-            ],
-        };
-    }, [branches, etimsConfig, itemOptions, selectedBhfId]);
-
-    React.useEffect(() => {
-        if (!isSendOpen) return;
-        setSalePayload((prev) => {
-            if (prev?.trim()) return prev;
-            return JSON.stringify(buildDefaultSalePayload(), null, 2);
-        });
-    }, [isSendOpen, buildDefaultSalePayload]);
-
-    // Fetch eTIMS signed invoices from KRA
-    // Fetch eTIMS signed invoices from KRA
     const { data: salesData, isLoading, refetch } = trpc.etims.sales.getSalesTransactions.useQuery({
         lastReqDt: "20230101000000",
     });
-
-    const sendSale = trpc.etims.sales.sendSalesTransaction.useMutation({
-        onSuccess: (res: any) => {
-            if (res?.success === false) {
-                toast.error(res?.errorMessage ?? "Failed to send sale");
-                return;
-            }
-            const body = res?.data?.responseBody ?? res?.data ?? res;
-            if (body?.resultCd && body.resultCd !== "000") {
-                toast.error(body?.resultMsg ?? "Failed to send sale");
-                return;
-            }
-            captureEvent("etims_sale_recorded", { has_vat: true });
-            toast.success("Sale sent to KRA eTIMS");
-            setIsSendOpen(false);
-            refetch();
-        },
-        onError: (err) => {
-            toast.error(err.message || "Failed to send sale");
-        },
-    });
-    const saveStockMaster = trpc.etims.stock.saveStockMaster.useMutation();
 
     const invoices = React.useMemo(() => {
         // API shape is: { success: true, data: <kraResponse> }
@@ -484,152 +278,11 @@ export default function ETimsSalesPage() {
                     requestCreditNote(toCreditNoteSale(record));
                 }}
             />
-            <Sheet open={isSendOpen} onOpenChange={setIsSendOpen}>
-                <SheetContent className="w-full sm:max-w-3xl overflow-y-auto">
-                    <SheetHeader>
-                        <SheetTitle>Send Sales Transaction</SheetTitle>
-                        <SheetDescription>
-                            Sends a sales transaction to KRA eTIMS using `/sendSalesTransaction`. Paste JSON matching the KRA sample request.
-                        </SheetDescription>
-                    </SheetHeader>
-
-                    <div className="mt-6 space-y-6">
-                        <div className="p-4 rounded-xl border bg-muted/30 space-y-3">
-                            <div className="flex items-center gap-2 text-xs font-semibold text-primary">
-                                <Search className="h-3.5 w-3.5" />
-                                CUSTOMER SEARCH
-                            </div>
-                            <div className="flex gap-2">
-                                <Input
-                                    placeholder="Enter Customer TIN (e.g. A0123...)"
-                                    value={custTinSearch}
-                                    onChange={(e) => setCustTinSearch(e.target.value)}
-                                    className="h-9 text-xs font-mono uppercase"
-                                />
-                                <Button
-                                    size="sm"
-                                    variant="secondary"
-                                    onClick={() => setLookupTin(custTinSearch.toUpperCase())}
-                                    disabled={isSearchingCustomer || !custTinSearch}
-                                    className="h-9"
-                                >
-                                    {isSearchingCustomer ? <RefreshCw className="h-3 w-3 animate-spin" /> : "Verify"}
-                                </Button>
-                            </div>
-                            {verifiedCustomer?.custmNm && (
-                                <div className="flex items-center justify-between p-2 rounded-lg bg-background border animate-in fade-in zoom-in-95 duration-200">
-                                    <div className="flex items-center gap-2">
-                                        <div className="h-7 w-7 rounded-md bg-green-100 text-green-700 flex items-center justify-center">
-                                            <CheckCircle2 className="h-4 w-4" />
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <span className="text-[11px] font-bold truncate max-w-[200px]">{verifiedCustomer.custmNm}</span>
-                                            <span className="text-[10px] text-muted-foreground font-mono">{verifiedCustomer.custmTin}</span>
-                                        </div>
-                                    </div>
-                                    <Button
-                                        size="xs"
-                                        className="h-7 text-[10px] px-3"
-                                        onClick={() => {
-                                            try {
-                                                const parsed = JSON.parse(salePayload);
-                                                parsed.custTin = verifiedCustomer.custmTin;
-                                                parsed.custNm = verifiedCustomer.custmNm;
-                                                if (parsed.receipt) {
-                                                    parsed.receipt.custTin = verifiedCustomer.custmTin;
-                                                }
-                                                setSalePayload(JSON.stringify(parsed, null, 2));
-                                                toast.success("Customer data applied to payload");
-                                            } catch {
-                                                toast.error("Cannot apply: Invalid JSON in payload editor");
-                                            }
-                                        }}
-                                    >
-                                        Apply to Sale
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
-                        <Textarea
-                            value={salePayload}
-                            onChange={(e) => setSalePayload(e.target.value)}
-                            className="min-h-[420px] font-mono text-xs"
-                        />
-                        <SheetFooter className="gap-2 sm:gap-0">
-                            <Button type="button" variant="outline" onClick={() => setIsSendOpen(false)} disabled={sendSale.isPending}>
-                                Cancel
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setEnsureStock((v) => !v)}
-                                disabled={sendSale.isPending || saveStockMaster.isPending}
-                                title="If enabled, we will attempt to register the item in eTIMS stock master before sending the sale."
-                            >
-                                {ensureStock ? "Stock: Auto-add ON" : "Stock: Auto-add OFF"}
-                            </Button>
-                            <Button
-                                type="button"
-                                onClick={async () => {
-                                    const deviceBhfId = (etimsConfig as any)?.config?.branchId;
-                                    if (deviceBhfId && selectedBhfId && deviceBhfId !== selectedBhfId) {
-                                        toast.error(`This device is only valid for branch ${deviceBhfId}.`);
-                                        return;
-                                    }
-                                    try {
-                                        const parsed = JSON.parse(salePayload);
-                                        const firstItem = Array.isArray(parsed?.itemList) ? parsed.itemList[0] : null;
-                                        const firstItemCd = firstItem?.itemCd ? String(firstItem.itemCd) : "";
-                                        const firstMeta: any = firstItemCd ? itemByCode.get(firstItemCd) : null;
-                                        const itemTyCd = String(firstMeta?.itemTyCd ?? "");
-
-                                        if (ensureStock) {
-                                            const itemCd = firstItem?.itemCd;
-                                            const qty = Number(firstItem?.qty ?? 1);
-                                            if (itemCd) {
-                                                // Services (itemTyCd=3) cannot be stocked; skip auto-add.
-                                                if (itemTyCd && itemTyCd !== "3") {
-                                                    const res: any = await saveStockMaster.mutateAsync({
-                                                        stockMaster: {
-                                                            itemCd,
-                                                            rsdQty: Number.isFinite(qty) && qty > 0 ? qty : 1,
-                                                            regrId: "Admin",
-                                                            regrNm: "Admin",
-                                                            modrId: "Admin",
-                                                            modrNm: "Admin",
-                                                        },
-                                                    });
-                                                    if (res?.success === false) {
-                                                        toast.error(res?.errorMessage ?? "Failed to add stock master");
-                                                        return;
-                                                    }
-                                                } else {
-                                                    toast.message("Stock auto-add skipped", {
-                                                        description: "This item looks like a service (itemTyCd=3). KRA SBX rejects stocking services.",
-                                                    });
-                                                }
-                                            }
-                                        }
-                                        sendSale.mutate({ transaction: parsed });
-                                    } catch {
-                                        toast.error("Invalid JSON. Please fix and try again.");
-                                    }
-                                }}
-                                disabled={sendSale.isPending || saveStockMaster.isPending}
-                            >
-                                {sendSale.isPending || saveStockMaster.isPending ? (
-                                    <>
-                                        <Spinner size={16} className="mr-2" />
-                                        Sending...
-                                    </>
-                                ) : (
-                                    "Send to KRA"
-                                )}
-                            </Button>
-                        </SheetFooter>
-                    </div>
-                </SheetContent>
-            </Sheet>
+            <SendETimsSaleSheet
+                open={isSendOpen}
+                onOpenChange={setIsSendOpen}
+                onSuccess={() => refetch()}
+            />
             <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
                 <div className="w-full max-w-7xl mx-auto">
                     <div className="flex flex-col gap-2">
