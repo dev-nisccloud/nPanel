@@ -75,8 +75,13 @@ export function kraGatewayErrorMessage(
     };
     push(data.resultMsg);
     push(data.errorMessage);
+    push(data.message);
+    push(data.error);
     push(header?.customerMessage);
     push(header?.debugMessage);
+    push(header?.statusMessage);
+    push(header?.responseDescription);
+    push(header?.moreInformation);
     if (header?.errors != null) {
         try {
             push(JSON.stringify(header.errors));
@@ -84,7 +89,20 @@ export function kraGatewayErrorMessage(
             /* ignore */
         }
     }
-    return `eTIMS API (${endpointKey}) HTTP ${statusCode}: ${parts.join(' — ') || bodyText}`;
+    if (root.errors != null && root.errors !== header?.errors) {
+        try {
+            push(JSON.stringify(root.errors));
+        } catch {
+            /* ignore */
+        }
+    }
+    const useful = parts.filter((part) => !/^error:?$/i.test(part));
+    const summary = useful.join(" — ") || parts.join(" — ");
+    if (summary && !/^error:?$/i.test(summary)) {
+        return `eTIMS API (${endpointKey}) HTTP ${statusCode}: ${summary}`;
+    }
+    const snippet = bodyText.replace(/\s+/g, " ").trim().slice(0, 400);
+    return `eTIMS API (${endpointKey}) HTTP ${statusCode}: ${summary || snippet || "KRA rejected the request"}`;
 }
 
 // ─────────────────────────────────────────────

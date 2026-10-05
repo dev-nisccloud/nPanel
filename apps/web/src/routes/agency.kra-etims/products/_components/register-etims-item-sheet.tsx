@@ -27,14 +27,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { trpc } from "@/utils/trpc";
 import type { EtimsItemRecord } from "./etims-item-utils";
 import { ItemClassificationPicker } from "./item-classification-picker";
 
 const formSchema = z.object({
   itemNm: z.string().min(1, "Service name is required"),
-  itemClsCd: z.string().min(1, "Item classification code is required"),
+  itemClsCd: z.string().min(8, "Pick an 8–10 digit classification code"),
   taxTyCd: z.enum(["A", "B", "C", "D", "E"]).default("B"),
+  priceMode: z.enum(["dynamic", "fixed"]).default("dynamic"),
   dftPrc: z.coerce.number().min(0, "Price must be >= 0").default(0),
 
   // Official KRA itemCd (OSCU §4.19): {orgnNatCd}{itemTyCd}{pkgUnitCd}{qtyUnitCd}{seq7}
@@ -49,12 +51,16 @@ const formSchema = z.object({
   orgnNatCd: z.string().length(2).default("KE"),
   pkgUnitCd: z.string().min(1).default("OU"),
   // Apigee rejects 1-char qty units in itemCd ("U"); prefer 2-char codes like NO.
-  qtyUnitCd: z.string().min(1).default("NO"),
+  qtyUnitCd: z.string().min(2, "Quantity unit must be 2 characters, e.g. NO").default("NO"),
   btchNo: z.string().nullable().optional(),
   bcd: z.string().nullable().optional(),
   addInfo: z.string().nullable().optional(),
   sftyQty: z.coerce.number().nullable().optional(),
   useYn: z.enum(["Y", "N"]).default("Y"),
+}).superRefine((data, ctx) => {
+  if (data.priceMode === "fixed" && data.dftPrc <= 0) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Enter a price", path: ["dftPrc"] });
+  }
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -74,16 +80,21 @@ function parseTaxTyCd(value?: string | null): FormData["taxTyCd"] {
   return "B";
 }
 
+function priceModeFromAmount(value?: number | string | null): FormData["priceMode"] {
+  return Number(value ?? 0) > 0 ? "fixed" : "dynamic";
+}
+
 const EMPTY_FORM_VALUES: FormData = {
   itemNm: "",
   itemClsCd: "",
   taxTyCd: "B",
+  priceMode: "dynamic",
   dftPrc: 0,
   itemCd: "",
   itemStdNm: null,
   orgnNatCd: "KE",
   pkgUnitCd: "OU",
-  qtyUnitCd: "U",
+  qtyUnitCd: "NO",
   btchNo: null,
   bcd: null,
   addInfo: null,
@@ -121,12 +132,13 @@ export function RegisterETimsItemSheet({
     taxTyCd: (item.taxTyCd === "A" || item.taxTyCd === "B" || item.taxTyCd === "C" || item.taxTyCd === "D" || item.taxTyCd === "E")
       ? item.taxTyCd
       : "B",
+    priceMode: priceModeFromAmount(item.dftPrc),
     dftPrc: Number(item.dftPrc ?? 0),
     itemCd: item.itemCd,
     itemStdNm: item.itemStdNm ?? null,
     orgnNatCd: item.orgnNatCd ?? "KE",
     pkgUnitCd: item.pkgUnitCd ?? "OU",
-    qtyUnitCd: item.qtyUnitCd ?? "U",
+    qtyUnitCd: item.qtyUnitCd && item.qtyUnitCd.trim().length >= 2 ? item.qtyUnitCd : "NO",
     btchNo: item.btchNo ?? null,
     bcd: item.bcd ?? null,
     addInfo: item.addInfo ?? null,
@@ -149,12 +161,15 @@ export function RegisterETimsItemSheet({
         itemNm: syncNiscProduct.name,
         itemClsCd: String(syncNiscProduct.etimsItemClsCd ?? "").trim(),
         taxTyCd: parseTaxTyCd(syncNiscProduct.etimsTaxTyCd),
+        priceMode: priceModeFromAmount(syncNiscProduct.etimsDefaultPrice),
         dftPrc: Number(syncNiscProduct.etimsDefaultPrice ?? 0) || 0,
         itemCd: "",
         itemStdNm: null,
         orgnNatCd: "KE",
         pkgUnitCd: syncNiscProduct.etimsPkgUnitCd ?? "OU",
-        qtyUnitCd: syncNiscProduct.etimsQtyUnitCd ?? "U",
+        qtyUnitCd: syncNiscProduct.etimsQtyUnitCd && syncNiscProduct.etimsQtyUnitCd.trim().length >= 2
+          ? syncNiscProduct.etimsQtyUnitCd
+          : "NO",
         btchNo: null,
         bcd: null,
         addInfo: null,
@@ -236,7 +251,8 @@ export function RegisterETimsItemSheet({
   const generateNextItemCd = React.useCallback(() => {
     const orgnNatCd = form.getValues("orgnNatCd");
     const pkgUnitCd = form.getValues("pkgUnitCd");
-    const qtyUnitCd = form.getValues("qtyUnitCd");
+    const rawQty = (form.getValues("qtyUnitCd") || "NO").trim().toUpperCase();
+    const qtyUnitCd = rawQty.length >= 2 ? rawQty : "NO";
     // For npanel we register services only.
     const itemTyCd = "3";
     // Official format: Country + Type + Pkg + Qty + Seq7 (no X separator)
@@ -275,6 +291,7 @@ export function RegisterETimsItemSheet({
 
   const buildSaveItemInput = (data: FormData) => {
     const itemTyCd = isEdit ? String(initialItem?.itemTyCd ?? "3") : "3";
+    const dftPrc = data.priceMode === "dynamic" ? 0 : data.dftPrc;
     return {
       item: {
         itemCd: data.itemCd,
@@ -288,11 +305,11 @@ export function RegisterETimsItemSheet({
         taxTyCd: data.taxTyCd,
         btchNo: data.btchNo ?? null,
         bcd: data.bcd ?? null,
-        dftPrc: data.dftPrc,
-        grpPrcL1: data.dftPrc,
-        grpPrcL2: data.dftPrc,
-        grpPrcL3: data.dftPrc,
-        grpPrcL4: data.dftPrc,
+        dftPrc,
+        grpPrcL1: dftPrc,
+        grpPrcL2: dftPrc,
+        grpPrcL3: dftPrc,
+        grpPrcL4: dftPrc,
         grpPrcL5: 0,
         addInfo: data.addInfo ?? null,
         sftyQty: data.sftyQty ?? 0,
@@ -323,7 +340,7 @@ export function RegisterETimsItemSheet({
           etimsItemCd: data.itemCd,
           etimsItemClsCd: data.itemClsCd,
           etimsTaxTyCd: data.taxTyCd,
-          etimsDefaultPrice: String(data.dftPrc),
+          etimsDefaultPrice: String(data.priceMode === "dynamic" ? 0 : data.dftPrc),
           etimsPkgUnitCd: data.pkgUnitCd,
           etimsQtyUnitCd: data.qtyUnitCd,
         });
@@ -436,10 +453,6 @@ export function RegisterETimsItemSheet({
                       />
                     </div>
                   </FormControl>
-                  <p className="text-xs text-muted-foreground">
-                    Pick a hierarchy level, search, then select a KRA classification code.
-                    Level 4 is recommended for registering services.
-                  </p>
                   <FormMessage />
                 </FormItem>
               )}
@@ -474,24 +487,51 @@ export function RegisterETimsItemSheet({
               <FormField
                 control={form.control}
                 name="dftPrc"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Default unit price</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        value={Number.isFinite(field.value) ? field.value : 0}
-                        onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))}
-                        onBlur={field.onBlur}
-                        name={field.name}
-                        ref={field.ref}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const priceMode = form.watch("priceMode");
+                  return (
+                    <FormItem>
+                      <FormLabel>Price</FormLabel>
+                      <ToggleGroup
+                        type="single"
+                        variant="outline"
+                        size="sm"
+                        value={priceMode}
+                        onValueChange={(next) => {
+                          if (next !== "dynamic" && next !== "fixed") return;
+                          form.setValue("priceMode", next, { shouldValidate: true });
+                          if (next === "dynamic") {
+                            form.setValue("dftPrc", 0, { shouldValidate: true });
+                          }
+                        }}
+                        className="w-full"
+                        aria-label="Price mode"
+                      >
+                        <ToggleGroupItem value="dynamic" className="flex-1 text-xs">
+                          At sale
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="fixed" className="flex-1 text-xs">
+                          Fixed
+                        </ToggleGroupItem>
+                      </ToggleGroup>
+                      {priceMode === "fixed" ? (
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            value={Number.isFinite(field.value) ? field.value : 0}
+                            onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))}
+                            onBlur={field.onBlur}
+                            name={field.name}
+                            ref={field.ref}
+                          />
+                        </FormControl>
+                      ) : null}
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
             </div>
 
@@ -516,7 +556,7 @@ export function RegisterETimsItemSheet({
                   <FormItem>
                     <FormLabel>Quantity unit code</FormLabel>
                     <FormControl>
-                      <Input placeholder="U" {...field} />
+                      <Input placeholder="NO" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

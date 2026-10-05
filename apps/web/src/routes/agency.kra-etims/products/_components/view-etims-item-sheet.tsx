@@ -106,7 +106,7 @@ export function ViewETimsItemSheet({
                     <DetailRow
                         icon={Banknote}
                         label="Default price"
-                        value={price != null && Number.isFinite(price) ? `KES ${price.toLocaleString()}` : "Dynamic"}
+                        value={price != null && Number.isFinite(price) && price > 0 ? `KES ${price.toLocaleString()}` : "At sale"}
                     />
                     <DetailRow icon={Package} label="Packaging unit" value={item.pkgUnitCd} mono />
                     <DetailRow icon={Package} label="Quantity unit" value={item.qtyUnitCd} mono />
