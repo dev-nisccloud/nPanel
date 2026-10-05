@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/collapsible";
 import { toast } from "@/components/ui/sonner";
 import { trpc } from "@/utils/trpc";
+import { transferItemNeedsNewAuthCode } from "@npanel/api/lib/transfer-auth-retry";
 import { ComboboxDropdown, type ComboboxItem } from "@npanel/ui/components/combobox-dropdown";
 import { OrderInvoiceSection } from "./order-invoice-section";
 import { ORDER_STATUS_VARIANTS, orderStatusBadgeClass } from "./schema";
@@ -29,13 +30,16 @@ import { ORDER_STATUS_VARIANTS, orderStatusBadgeClass } from "./schema";
 /** Shallow type for order items in the view to avoid deep tRPC type instantiation. */
 type ViewOrderItem = {
 	id: string;
-	product: { name: string };
+	product: { name: string; serviceType?: string };
 	productPlan: { name: string } | null;
 	itemSubtotal: string;
 	itemCurrency: string | null;
 	status: string;
 	provisioningError: string | null;
 	provisioningErrorDetails: object | null;
+	primaryDomain: string | null;
+	description: string | null;
+	metadata: unknown;
 };
 
 /** Shallow type for processing logs to avoid deep tRPC type instantiation. */
@@ -76,6 +80,7 @@ export function ViewOrderSheet({
 	const [toTouched, setToTouched] = React.useState(false);
 	const [ccEmail, setCcEmail] = React.useState("");
 	const [bccEmail, setBccEmail] = React.useState("");
+	const [authCodes, setAuthCodes] = React.useState<Record<string, string>>({});
 
 	React.useEffect(() => {
 		setReassignOpen(false);
@@ -89,6 +94,7 @@ export function ViewOrderSheet({
 		setToTouched(false);
 		setCcEmail("");
 		setBccEmail("");
+		setAuthCodes({});
 	}, [orderId]);
 
 	const notificationDraft = trpc.niscServiceOrders.getNotificationDraft.useQuery(
@@ -110,6 +116,10 @@ export function ViewOrderSheet({
 	const retryMutation = trpc.niscServiceOrders.retry.useMutation({
 		onSuccess: () => {
 			toast.success("Order re-queued for processing");
+			setAuthCodes({});
+			if (orderId) {
+				void utils.niscServiceOrders.getById.invalidate({ id: orderId });
+			}
 			onRetrySuccess?.();
 		},
 		onError: (e: { message?: string }) => toast.error(e.message || "Retry failed"),
@@ -155,6 +165,15 @@ export function ViewOrderSheet({
 
 	const canRetry =
 		order && (order.status === "FAILED" || order.status === "PARTIAL");
+	const authCodeItems = React.useMemo(() => {
+		if (!order || !canRetry) return [];
+		return (order.orderItems as unknown as ViewOrderItem[]).filter((item) =>
+			transferItemNeedsNewAuthCode(item, order.failureReason),
+		);
+	}, [order, canRetry]);
+	const authCodesReady =
+		authCodeItems.length === 0 ||
+		authCodeItems.every((item) => (authCodes[item.id] ?? "").trim().length > 0);
 
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>
@@ -337,14 +356,57 @@ export function ViewOrderSheet({
 							</div>
 						)}
 						{canRetry && (
-							<Button
-								variant="outline"
-								onClick={() => retryMutation.mutate({ niscOrderId: order.id })}
-								disabled={retryMutation.isPending}
-							>
-								<RotateCcw className="mr-2 h-4 w-4" />
-								{retryMutation.isPending ? "Re-queuing..." : "Retry order"}
-							</Button>
+							<div className="w-full space-y-3">
+								{authCodeItems.length > 0 ? (
+									<div className="space-y-3 rounded-md border p-3">
+										<p className="text-sm">
+											The transfer authorization code was rejected. Enter a new code from the registrar that currently holds the domain. Retry saves it on this order, then queues processing again.
+										</p>
+										{authCodeItems.map((item) => (
+											<div key={item.id} className="space-y-1.5">
+												<Label htmlFor={`transfer-auth-${item.id}`}>
+													New authorization code
+													{item.primaryDomain ? ` for ${item.primaryDomain}` : ""}
+												</Label>
+												<Input
+													id={`transfer-auth-${item.id}`}
+													value={authCodes[item.id] ?? ""}
+													onChange={(event) =>
+														setAuthCodes((current) => ({
+															...current,
+															[item.id]: event.target.value,
+														}))
+													}
+													autoComplete="off"
+													spellCheck={false}
+													placeholder="EPP / auth code"
+												/>
+											</div>
+										))}
+									</div>
+								) : null}
+								<Button
+									variant="outline"
+									onClick={() => {
+										const transferAuthCodes = authCodeItems.map((item) => ({
+											orderItemId: item.id,
+											authCode: (authCodes[item.id] ?? "").trim(),
+										}));
+										if (transferAuthCodes.some((entry) => !entry.authCode)) {
+											toast.error("Enter a new authorization code before retrying.");
+											return;
+										}
+										retryMutation.mutate({
+											niscOrderId: order.id,
+											...(transferAuthCodes.length > 0 ? { transferAuthCodes } : {}),
+										});
+									}}
+									disabled={retryMutation.isPending || !authCodesReady}
+								>
+									<RotateCcw className="mr-2 h-4 w-4" />
+									{retryMutation.isPending ? "Re-queuing..." : "Retry order"}
+								</Button>
+							</div>
 						)}
 						<div className="w-full space-y-3 border-t pt-4">
 							<div>
