@@ -7,7 +7,7 @@ import { protectedProcedure, router } from '../../trpc';
 type CreateInput = {
 	parent: string;
 	name: string;
-	wwwRoot?: string;
+	wwwRoot: string;
 	ssh?: boolean;
 	safeMode?: boolean;
 	php?: string;
@@ -46,6 +46,23 @@ function validateCreateData(data: CreateInput): void {
   if (data.webstat && !['none', 'awstats', 'webalizer', 'analog', 'custom'].includes(data.webstat)) {
     throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid webstat type' });
   }
+  if (!data.wwwRoot?.trim()) {
+    throw new TRPCError({ code: 'BAD_REQUEST', message: 'Document root is required' });
+  }
+  if (data.wwwRoot.includes('..') || /[\r\n\0]/.test(data.wwwRoot)) {
+    throw new TRPCError({ code: 'BAD_REQUEST', message: 'Document root is not valid' });
+  }
+}
+
+/** Linux document root. Plesk expects a path such as /blog.example.com. */
+function subdomainDocumentRoot(name: string, parent: string, requested?: string): string {
+  const fallback = `${name.trim()}.${parent.trim().replace(/^\./, '')}`;
+  const cleaned = (requested?.trim() || fallback).replace(/\\/g, '/').replace(/\/{2,}/g, '/');
+  const path = cleaned.startsWith('/') ? cleaned : `/${cleaned.replace(/^\/+/, '')}`;
+  if (path === '/' || path.includes('..') || /[\r\n\0]/.test(path)) {
+    throw new TRPCError({ code: 'BAD_REQUEST', message: 'Document root is not valid' });
+  }
+  return path;
 }
 
 function buildSubdomainCreateXml(data: CreateInput): string {
@@ -53,7 +70,7 @@ function buildSubdomainCreateXml(data: CreateInput): string {
 
   // Build properties array - properties are direct children of <add>
   const properties: string[] = [];
-  if (data.wwwRoot) properties.push(`      <property><name>www_root</name><value>${escapeXml(data.wwwRoot)}</value></property>`);
+  properties.push(`      <property><name>www_root</name><value>${escapeXml(data.wwwRoot)}</value></property>`);
   if (data.ssh !== undefined) properties.push(`      <property><name>ssh</name><value>${data.ssh ? 'true' : 'false'}</value></property>`);
   if (data.safeMode !== undefined) properties.push(`      <property><name>safe_mode</name><value>${data.safeMode ? 'true' : 'false'}</value></property>`);
   // PHP handler property name is php_handler_id, not php
@@ -99,7 +116,7 @@ export const subdomainsCreateRouter = router({
     .input(z.object({
       parent: z.string(),
       name: z.string(),
-      wwwRoot: z.string().optional(),
+      wwwRoot: z.string().min(1, 'Document root is required'),
       ssh: z.boolean().optional(),
       safeMode: z.boolean().optional(),
       php: z.string().optional(),
@@ -124,8 +141,10 @@ export const subdomainsCreateRouter = router({
           });
         }
 
-        validateCreateData(input as CreateInput);
-        const xmlRequest = buildSubdomainCreateXml(input as CreateInput);
+        const wwwRoot = subdomainDocumentRoot(input.name, input.parent, input.wwwRoot);
+        const createInput: CreateInput = { ...input, wwwRoot };
+        validateCreateData(createInput);
+        const xmlRequest = buildSubdomainCreateXml(createInput);
         const { xml, isAuthError, isHostUnreachable } = await sendPleskXmlRequest(xmlRequest);
 
         if (isHostUnreachable) {
