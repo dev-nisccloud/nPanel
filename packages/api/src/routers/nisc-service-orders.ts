@@ -38,6 +38,10 @@ import {
 } from "../lib/domain-bundle-order";
 import { processNiscOrder } from "../lib/nisc-order-processor";
 import { runPreProvisioningInvoiceForOrder } from "../lib/nisc-order-invoice-delivery";
+import {
+	isDomainTransferOrderItem,
+	transferItemNeedsNewAuthCode,
+} from "../lib/transfer-auth-retry";
 import { isZeepoAiAgentProduct } from "../lib/zeepo-agent-order-provisioning";
 import { resolveActiveNiscProductById } from "../lib/planless-product-resolver";
 import { resolveDomainBillingCycle } from "../lib/nisc-subscription-dates";
@@ -1754,11 +1758,93 @@ export const niscServiceOrdersRouter = router({
 				});
 			}
 
+			const agencyRetry = isAgencyUserRole(userRole);
+			if (!agencyRetry && (input.transferAuthCodes?.length ?? 0) > 0) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only agency users can update a transfer authorization code when retrying.",
+				});
+			}
+
+			const retryItems = agencyRetry
+				? await db.query.niscOrderItem.findMany({
+						where: eq(niscOrderItem.niscOrderId, order.id),
+						with: {
+							product: { columns: { serviceType: true } },
+						},
+					})
+				: [];
+			const authCodeByItemId = new Map<string, string>();
+			if (agencyRetry) {
+				for (const entry of input.transferAuthCodes ?? []) {
+					const code = entry.authCode.trim();
+					if (!code) continue;
+					authCodeByItemId.set(entry.orderItemId, code);
+				}
+				for (const [orderItemId] of authCodeByItemId) {
+					const item = retryItems.find((row) => row.id === orderItemId);
+					if (!item || !isDomainTransferOrderItem(item)) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "Authorization code can only be updated on a domain transfer item.",
+						});
+					}
+				}
+				for (const item of retryItems) {
+					if (!transferItemNeedsNewAuthCode(item, order.failureReason)) continue;
+					if (!authCodeByItemId.get(item.id)) {
+						const domain = item.primaryDomain?.trim() || "this domain";
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: `Enter a new transfer authorization code for ${domain} before retrying.`,
+						});
+					}
+				}
+			}
+
 				// Reset status to PENDING BEFORE enqueuing so the worker never sees a non-PENDING order.
 			// Previously the enqueue happened first, causing a race condition: QStash delivered the
 			// message before the DB update completed, so the worker loaded the order in FAILED status
 			// and skipped it with worker_order_skip_not_pending.
 			await db.transaction(async (tx) => {
+				const now = new Date();
+				for (const [orderItemId, authCode] of authCodeByItemId) {
+					const item = retryItems.find((row) => row.id === orderItemId);
+					if (!item) continue;
+					const existing =
+						item.metadata && typeof item.metadata === "object" && !Array.isArray(item.metadata)
+							? { ...(item.metadata as Record<string, unknown>) }
+							: {};
+					existing.transferAuthCode = authCode;
+					await tx
+						.update(niscOrderItem)
+						.set({ metadata: existing, updatedAt: now })
+						.where(eq(niscOrderItem.id, item.id));
+
+					const requestId =
+						typeof existing.domainTransferRequestId === "string"
+							? existing.domainTransferRequestId.trim()
+							: "";
+					if (requestId) {
+						await tx
+							.update(domainTransferRequest)
+							.set({ authCode, updatedAt: now })
+							.where(eq(domainTransferRequest.id, requestId));
+					}
+					const domain = item.primaryDomain?.trim();
+					if (domain) {
+						await tx
+							.update(domainTransferRequest)
+							.set({ authCode, updatedAt: now })
+							.where(
+								and(
+									eq(domainTransferRequest.niscOrderId, order.id),
+									sql`lower(${domainTransferRequest.domainName}) = ${domain.toLowerCase()}`,
+								),
+							);
+					}
+				}
+
 				await tx
 					.update(niscOrder)
 					.set({
