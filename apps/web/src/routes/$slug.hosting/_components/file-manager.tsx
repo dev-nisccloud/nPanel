@@ -71,6 +71,7 @@ import { FileViewerSheet, isViewableFile } from "./file-viewer-sheet";
 import { MediaViewerDialog, isViewableMediaFile } from "./media-viewer-dialog";
 import { CopyFileDialog } from "@/components/hosting/copy-file-dialog";
 import { PermissionsDialog } from "@/components/hosting/permissions-dialog";
+import { ExtractZipDialog } from "./extract-zip-dialog";
 
 interface FileManagerProps {
   hostingData: z.infer<typeof hostingDetailSchema>;
