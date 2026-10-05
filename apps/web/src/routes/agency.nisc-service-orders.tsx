@@ -24,10 +24,21 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "@/components/ui/sonner";
 import { trpc, type RouterOutputs } from "@/utils/trpc";
+import { isInvalidTransferAuthCodeError } from "@npanel/api/lib/transfer-auth-retry";
 import { CreateOrderSheet } from "./agency.nisc-service-orders/_components/create-order-sheet";
 import { ViewOrderSheet } from "./agency.nisc-service-orders/_components/view-order-sheet";
 import { OrderInvoiceSection } from "./agency.nisc-service-orders/_components/order-invoice-section";
 import { ORDER_STATUS_VARIANTS, orderStatusBadgeClass } from "./agency.nisc-service-orders/_components/schema";
+
+function orderNeedsNewTransferAuthCode(order: {
+	failureReason: string | null;
+	orderItems: Array<{ provisioningError: string | null }>;
+}): boolean {
+	return (
+		isInvalidTransferAuthCodeError(order.failureReason) ||
+		order.orderItems.some((item) => isInvalidTransferAuthCodeError(item.provisioningError))
+	);
+}
 
 function EmptyState({
 	title,
@@ -249,17 +260,26 @@ export default function NiscServiceOrdersPage() {
 																		<EllipsisVertical className="h-4 w-4" />
 																	</Button>
 																</DropdownMenuTrigger>
-																<DropdownMenuContent align="end" className="w-40">
+																<DropdownMenuContent align="end" className="w-52">
 																	<DropdownMenuItem onSelect={() => setSelectedOrderId(order.id)}>
 																		View details
 																	</DropdownMenuItem>
 																	{(order.status === "FAILED" || order.status === "PARTIAL") && (
 																		<DropdownMenuItem
-																			onSelect={() => retryMutation.mutate({ niscOrderId: order.id })}
+																			onSelect={() => {
+																				if (orderNeedsNewTransferAuthCode(order)) {
+																					setSelectedOrderId(order.id);
+																					toast.message(
+																						"Enter a new authorization code, then retry this transfer.",
+																					);
+																					return;
+																				}
+																				retryMutation.mutate({ niscOrderId: order.id });
+																			}}
 																			disabled={retryMutation.isPending}
 																		>
 																			<RotateCcw className="mr-2 h-4 w-4" />
-																			Retry
+																			{orderNeedsNewTransferAuthCode(order) ? "Retry with new code" : "Retry"}
 																		</DropdownMenuItem>
 																	)}
 																</DropdownMenuContent>

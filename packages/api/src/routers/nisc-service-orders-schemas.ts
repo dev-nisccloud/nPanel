@@ -263,7 +263,17 @@ export type GetAllNiscOrdersInput = z.infer<typeof getAllNiscOrdersInputSchema>;
 export const getNiscOrderByIdInputSchema = z.object({ id: z.string() });
 export type GetNiscOrderByIdInput = z.infer<typeof getNiscOrderByIdInputSchema>;
 
-export const retryNiscOrderInputSchema = z.object({ niscOrderId: z.string() });
+export const retryNiscOrderInputSchema = z.object({
+	niscOrderId: z.string(),
+	transferAuthCodes: z
+		.array(
+			z.object({
+				orderItemId: z.string().min(1),
+				authCode: z.string().trim().min(1).max(128),
+			}),
+		)
+		.optional(),
+});
 export type RetryNiscOrderInput = z.infer<typeof retryNiscOrderInputSchema>;
 
 // ============================================================================

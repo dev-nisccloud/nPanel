@@ -410,6 +410,10 @@ export declare const getNiscOrderByIdInputSchema: z.ZodObject<{
 export type GetNiscOrderByIdInput = z.infer<typeof getNiscOrderByIdInputSchema>;
 export declare const retryNiscOrderInputSchema: z.ZodObject<{
     niscOrderId: z.ZodString;
+    transferAuthCodes: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        orderItemId: z.ZodString;
+        authCode: z.ZodString;
+    }, z.core.$strip>>>;
 }, z.core.$strip>;
 export type RetryNiscOrderInput = z.infer<typeof retryNiscOrderInputSchema>;
 export declare const createFromPaymentMetadataSchema: z.ZodNullable<z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>>;
