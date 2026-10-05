@@ -52,10 +52,12 @@ export declare const etimsDataRouter: import("@trpc/server").TRPCBuiltRouter<{
         output: {
             success: boolean;
             data: unknown;
+            source: "db";
             errorMessage?: undefined;
         } | {
             success: boolean;
             data: null;
+            source: "db";
             errorMessage: string;
         };
         meta: object;
@@ -66,7 +68,10 @@ export declare const etimsDataRouter: import("@trpc/server").TRPCBuiltRouter<{
         output: {
             success: boolean;
             meta: import("../../lib/etims-item-classification-store").EtimsItemClassMeta | null;
+            empty: boolean;
             needsSync: boolean;
+            allowAutoSync: boolean;
+            errorMessage?: string;
         };
         meta: object;
     }>;
@@ -85,7 +90,9 @@ export declare const etimsDataRouter: import("@trpc/server").TRPCBuiltRouter<{
             pageSize: number;
             totalPages: number;
             needsSync: boolean;
+            empty?: boolean;
             success: boolean;
+            errorMessage?: string;
         };
         meta: object;
     }>;
@@ -97,25 +104,7 @@ export declare const etimsDataRouter: import("@trpc/server").TRPCBuiltRouter<{
         output: {
             success: boolean;
             item: import("../../lib/etims-item-classification-store").EtimsItemClassification | null;
-        };
-        meta: object;
-    }>;
-    /** Pull batches from KRA into Redis (call repeatedly until isComplete). */
-    syncItemClassifications: import("@trpc/server").TRPCMutationProcedure<{
-        input: {
-            lastReqDt?: string | undefined;
-            maxPages?: number | undefined;
-            reset?: boolean | undefined;
-        };
-        output: {
-            pagesFetched: number;
-            rowsFetched: number;
-            hasMore: boolean;
-            nextLastReqDt: string;
-            totalSynced: number;
-            isComplete: boolean;
-            meta: import("../../lib/etims-item-classification-store").EtimsItemClassMeta | null;
-            success: boolean;
+            errorMessage?: string;
         };
         meta: object;
     }>;

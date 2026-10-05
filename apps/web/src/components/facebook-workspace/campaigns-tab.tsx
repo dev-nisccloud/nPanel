@@ -1,10 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { Building2, Check, ChevronsUpDown, Plus } from "lucide-react";
+import { format } from "date-fns";
+import { Building2, Calendar as CalendarIcon, Check, ChevronsUpDown, Plus } from "lucide-react";
+import { type DateRange } from "react-day-picker";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Command,
   CommandEmpty,
@@ -38,6 +41,11 @@ function getStatusStyles(status?: string) {
 export function FacebookCampaignsTab() {
   const [accountPickerOpen, setAccountPickerOpen] = React.useState(false);
   const [selectedAccountId, setSelectedAccountId] = React.useState(MOCK_AD_ACCOUNTS[0]?.accountId ?? "");
+  const [dateRange, setDateRange] = React.useState<DateRange | undefined>({
+    from: new Date(new Date().setDate(new Date().getDate() - 30)), // Default to last 30 days
+    to: new Date(),
+  });
+  const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false);
 
   const selectedAccount = MOCK_AD_ACCOUNTS.find((account) => account.accountId === selectedAccountId);
   const campaigns = MOCK_CAMPAIGNS.filter((campaign) => campaign.accountId === selectedAccountId);
@@ -103,10 +111,48 @@ export function FacebookCampaignsTab() {
           </Popover>
         </div>
 
-        <Button size="sm" className="w-fit">
-          <Plus className="mr-1.5 h-3.5 w-3.5" />
-          Create campaign
-        </Button>
+        <div className="flex items-center gap-2">
+          <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "h-9 justify-start border-muted/60 px-3 font-normal shadow-sm",
+                  !dateRange && "text-muted-foreground",
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateRange?.from ? (
+                  dateRange.to ? (
+                    <>
+                      {format(dateRange.from, "MMM dd, yyyy")} - {format(dateRange.to, "MMM dd, yyyy")}
+                    </>
+                  ) : (
+                    format(dateRange.from, "MMM dd, yyyy")
+                  )
+                ) : (
+                  <span>Pick a date range</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                initialFocus
+                mode="range"
+                defaultMonth={dateRange?.from}
+                selected={dateRange}
+                onSelect={setDateRange}
+                numberOfMonths={2}
+              />
+            </PopoverContent>
+          </Popover>
+
+          <Button size="sm" className="w-fit">
+            <Plus className="mr-1.5 h-3.5 w-3.5" />
+            Create campaign
+          </Button>
+        </div>
       </div>
 
       <div className="flex items-center justify-between">

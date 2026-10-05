@@ -6,10 +6,13 @@ import { Check } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
-import { MOCK_FACEBOOK_PAGES } from "./mock-data";
+import { FacebookContentCalendar } from "./content-calendar";
+import { MOCK_FACEBOOK_PAGES, MOCK_SCHEDULED_CONTENT, type MockScheduledContent } from "./mock-data";
 
 export function FacebookPagesTab() {
   const [selectedPageId, setSelectedPageId] = React.useState(MOCK_FACEBOOK_PAGES[0]?.id ?? "");
+  const [scheduledContent, setScheduledContent] = React.useState<MockScheduledContent[]>(MOCK_SCHEDULED_CONTENT);
+  const selectedPage = MOCK_FACEBOOK_PAGES.find((page) => page.id === selectedPageId);
 
   return (
     <div className="min-w-0 space-y-6">
@@ -59,7 +62,14 @@ export function FacebookPagesTab() {
         </TabsList>
         <TabsContent value="analytics" />
         <TabsContent value="posts" />
-        <TabsContent value="calendar" />
+        <TabsContent value="calendar" className="mt-4">
+          <FacebookContentCalendar
+            pageId={selectedPageId}
+            pageName={selectedPage?.name ?? "this page"}
+            items={scheduledContent}
+            onItemsChange={setScheduledContent}
+          />
+        </TabsContent>
       </Tabs>
     </div>
   );

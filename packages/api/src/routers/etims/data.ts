@@ -1,14 +1,17 @@
 import { z } from "zod";
 import { router } from "../../trpc";
 import { TRPCError } from "@trpc/server";
-import { getEtimsContext } from "../../lib/etims-config";
+import { getEtimsContext, buildClientConfigFromEnv } from "../../lib/etims-config";
+import { createEtimsClient } from "../../lib/etims-client";
 import {
+    getEtimsItemClassListFromDb,
     getEtimsItemClassMeta,
     getEtimsItemClassificationByCode,
     listEtimsItemClassifications,
-    syncEtimsItemClassificationsBatch,
 } from "../../lib/etims-item-classification-store";
 import { etimsProcedure, skipEtimsAuthChecks } from "./_procedure";
+
+const unusedOscu = { tin: "", bhfId: "", cmcKey: "" };
 
 const isAgencyUser = (role: string | null | undefined) =>
     ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
@@ -31,38 +34,95 @@ export type EtimsCustomerLookup = {
     source: "kra_registry" | "branch_list";
 };
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
+
+function pickStr(raw: Record<string, unknown>, ...keys: string[]): string {
+    for (const key of keys) {
+        const value = raw[key];
+        if (typeof value === "string" && value.trim()) return value.trim();
+    }
+    return "";
+}
+
+const CLASSIC_SANDBOX_BASE = "https://etims-api-sbx.kra.go.ke/etims-api";
+const CLASSIC_PROD_BASE = "https://etims-api.kra.go.ke/etims-api";
+
+const CUSTOMER_NAME_KEYS = [
+    "custmNm",
+    "custNm",
+    "taxprNm",
+    "taxpayerNm",
+    "taxprName",
+    "customerNm",
+] as const;
+
+const CUSTOMER_TIN_KEYS = ["custmTin", "custTin", "tin", "taxprTin"] as const;
+
+function tinOf(raw: Record<string, unknown>): string {
+    return pickStr(raw, ...CUSTOMER_TIN_KEYS).toUpperCase();
+}
+
+function collectNamedRecords(value: unknown, out: Record<string, unknown>[], depth = 0) {
+    if (depth > 6 || value == null) return;
+    if (Array.isArray(value)) {
+        for (const item of value) collectNamedRecords(item, out, depth + 1);
+        return;
+    }
+    const rec = asRecord(value);
+    if (!rec) return;
+    if (pickStr(rec, ...CUSTOMER_NAME_KEYS) || tinOf(rec)) out.push(rec);
+    for (const nested of [rec.data, rec.responseBody, rec.info, rec.customer, rec.custList, rec.infoList, rec.itemList]) {
+        collectNamedRecords(nested, out, depth + 1);
+    }
+}
+
+function extractRegistryPayload(
+    result: unknown,
+    searchedTin: string,
+    ownTin: string,
+): Record<string, unknown> | null {
+    const wanted = searchedTin.trim().toUpperCase();
+    const self = ownTin.trim().toUpperCase();
+    const candidates: Record<string, unknown>[] = [];
+    collectNamedRecords(result, candidates);
+
+    const matching = candidates.find((c) => tinOf(c) === wanted && pickStr(c, ...CUSTOMER_NAME_KEYS));
+    if (matching) return matching;
+
+    // Gava `/customerPinInfo` often echoes *our* taxpayer. Never treat that as the lookup target.
+    if (wanted !== self) {
+        return null;
+    }
+    return candidates.find((c) => tinOf(c) === self && pickStr(c, ...CUSTOMER_NAME_KEYS)) ?? null;
+}
+
 function normalizeRegistryCustomer(raw: Record<string, unknown>, fallbackTin: string): EtimsCustomerLookup | null {
-    const name = raw.taxprNm ?? raw.custmNm ?? raw.custNm;
-    const tin = raw.tin ?? raw.custmTin ?? raw.custTin ?? fallbackTin;
-    if (!name || typeof name !== "string") return null;
+    const name = pickStr(raw, ...CUSTOMER_NAME_KEYS);
+    const tin = tinOf(raw) || fallbackTin;
+    if (!name) return null;
+    if (tin && tin !== fallbackTin.trim().toUpperCase()) return null;
 
     const addressParts = [raw.locDesc, raw.sctrNm, raw.dstrtNm, raw.prvncNm, raw.adrs]
         .filter((v) => typeof v === "string" && v.trim().length > 0);
     return {
-        custmTin: String(tin).toUpperCase(),
-        custmNm: String(name),
-        adrs: addressParts.length ? addressParts.join(", ") : (raw.adrs as string | null | undefined) ?? null,
-        telNo: (raw.telNo as string | null | undefined) ?? null,
-        email: (raw.email as string | null | undefined) ?? null,
-        taxprSttsCd: (raw.taxprSttsCd as string | null | undefined) ?? null,
+        custmTin: (tin || fallbackTin).toUpperCase(),
+        custmNm: name,
+        adrs: addressParts.length ? addressParts.join(", ") : pickStr(raw, "adrs") || null,
+        telNo: pickStr(raw, "telNo", "mgrTelNo") || null,
+        email: pickStr(raw, "email", "mgrEmail") || null,
+        taxprSttsCd: pickStr(raw, "taxprSttsCd") || null,
         source: raw.custNo ? "branch_list" : "kra_registry",
     };
 }
 
-function extractRegistryPayload(result: unknown): Record<string, unknown> | null {
-    if (!result || typeof result !== "object") return null;
-    const root = result as Record<string, unknown>;
-    if (root.resultCd === "001" || root.data == null) return null;
-    if (root.data && typeof root.data === "object") return root.data as Record<string, unknown>;
-    return root;
-}
-
 function extractBranchCustomerList(result: unknown): Record<string, unknown>[] {
-    if (!result || typeof result !== "object") return [];
-    const root = result as Record<string, unknown>;
-    const data = root.data;
-    if (!data || typeof data !== "object") return [];
-    const list = (data as Record<string, unknown>).custList;
+    const root = asRecord(result);
+    if (!root) return [];
+    const data = asRecord(root.data) ?? asRecord(root.responseBody) ?? root;
+    const list = data.custList ?? data.customerList ?? data.infoList;
     return Array.isArray(list) ? list as Record<string, unknown>[] : [];
 }
 
@@ -128,32 +188,53 @@ export const etimsDataRouter = router({
         .input(z.object({
             lastReqDt: z.string().regex(/^\d{14}$/, "Must be YYYYMMDDHHmmss"),
         }))
-        .query(async ({ ctx, input }) => {
+        .query(async ({ ctx }) => {
             assertReadAccess(ctx.session?.user?.role);
-            const { client, oscu } = await getEtimsContext();
-
             try {
-                const result = await client.selectItemClsList(oscu, input.lastReqDt);
-                return { success: true, data: result };
+                const fromDb = await getEtimsItemClassListFromDb();
+                if (!fromDb) {
+                    return {
+                        success: false,
+                        data: null,
+                        source: "db" as const,
+                        errorMessage: "No item classifications in the database. Run `bun run etims:sync-classifications` in apps/server.",
+                    };
+                }
+                return { success: true, data: fromDb, source: "db" as const };
             } catch (error: unknown) {
                 const msg = (error as Error).message;
-                // Non-fatal: KRA sandbox can return errors here during test session issues.
-                // Return a graceful failure so the UI can prompt the user to enter codes manually.
-                console.warn("[eTIMS] getItemClassList failed:", msg);
-                return { success: false, data: null, errorMessage: msg || "Failed to retrieve item class list" };
+                return { success: false, data: null, source: "db" as const, errorMessage: msg || "Failed to read item classifications" };
             }
         }),
 
-    /** Cached KRA item classification metadata (level counts, last sync). */
+    /** Classification metadata from `etims_item_classification` (never live KRA). */
     getItemClassMeta: etimsProcedure
         .query(async ({ ctx }) => {
             assertReadAccess(ctx.session?.user?.role);
-            const { oscu } = await getEtimsContext();
-            const meta = await getEtimsItemClassMeta(oscu);
-            return { success: true, meta, needsSync: !meta };
+            try {
+                const meta = await getEtimsItemClassMeta(unusedOscu);
+                return {
+                    success: true,
+                    meta,
+                    empty: !meta,
+                    needsSync: !meta,
+                    allowAutoSync: false,
+                    errorMessage: meta ? undefined : "No item classifications in the database. Run `bun run etims:sync-classifications` in apps/server.",
+                };
+            } catch (error: unknown) {
+                const msg = (error as Error).message;
+                return {
+                    success: false,
+                    meta: null,
+                    empty: true,
+                    needsSync: true,
+                    allowAutoSync: false,
+                    errorMessage: msg || "Failed to read item classifications",
+                };
+            }
         }),
 
-    /** Paginated, searchable item classifications for a chosen hierarchy level. */
+    /** Paginated, searchable item classifications from the local database. */
     listItemClassifications: etimsProcedure
         .input(z.object({
             level: z.number().int().min(1).max(5),
@@ -163,49 +244,43 @@ export const etimsDataRouter = router({
         }))
         .query(async ({ ctx, input }) => {
             assertReadAccess(ctx.session?.user?.role);
-            const { oscu } = await getEtimsContext();
             try {
-                const result = await listEtimsItemClassifications(oscu, input);
-                return { success: true, ...result };
+                const result = await listEtimsItemClassifications(unusedOscu, input);
+                return { success: true, ...result, items: result.items ?? [] };
             } catch (error: unknown) {
                 const msg = (error as Error).message;
-                throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: msg || "Failed to list item classifications" });
+                return {
+                    success: false,
+                    items: [],
+                    total: 0,
+                    page: input.page,
+                    pageSize: input.pageSize,
+                    totalPages: 0,
+                    needsSync: true,
+                    empty: true,
+                    errorMessage: msg || "Failed to list item classifications",
+                };
             }
         }),
 
-    /** Look up one classification code from the Redis cache. */
+    /** Look up one classification code from the local database. */
     getItemClassification: etimsProcedure
         .input(z.object({ itemClsCd: z.string().min(1) }))
         .query(async ({ ctx, input }) => {
             assertReadAccess(ctx.session?.user?.role);
-            const { oscu } = await getEtimsContext();
-            const item = await getEtimsItemClassificationByCode(oscu, input.itemClsCd.trim());
-            return { success: true, item };
-        }),
-
-    /** Pull batches from KRA into Redis (call repeatedly until isComplete). */
-    syncItemClassifications: etimsProcedure
-        .input(z.object({
-            lastReqDt: z.string().regex(/^\d{14}$/, "Must be YYYYMMDDHHmmss").optional(),
-            maxPages: z.number().int().min(1).max(10).default(3),
-            reset: z.boolean().default(false),
-        }))
-        .mutation(async ({ ctx, input }) => {
-            assertReadAccess(ctx.session?.user?.role);
-            const { client, oscu } = await getEtimsContext();
             try {
-                const result = await syncEtimsItemClassificationsBatch(client, oscu, input);
-                return { success: true, ...result };
+                const item = await getEtimsItemClassificationByCode(unusedOscu, input.itemClsCd.trim());
+                return { success: true, item: item ?? null };
             } catch (error: unknown) {
                 const msg = (error as Error).message;
-                throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: msg || "Failed to sync item classifications" });
+                return { success: false, item: null, errorMessage: msg || "Failed to look up classification" };
             }
         }),
 
     /**
      * Look up a customer by KRA TIN.
-     * 1. POST /selectCustomer  KRA central taxpayer registry
-     * 2. POST /selectCustomerList  branch customers saved via saveBhfCustomer (sandbox fallback)
+     * Gava `/customerPinInfo` often returns *our* taxpayer (Namiri Technology). Prefer a
+     * record whose TIN matches the searched PIN, then classic `/selectCustomer`, then the branch list.
      */
     lookupCustomer: etimsProcedure
         .input(z.object({
@@ -213,28 +288,41 @@ export const etimsDataRouter = router({
         }))
         .query(async ({ ctx, input }) => {
             assertReadAccess(ctx.session?.user?.role);
-            const { client, oscu } = await getEtimsContext();
+            const { client, oscu, isSandbox } = await getEtimsContext();
             const custmTin = input.custmTin.trim().toUpperCase();
 
+            const fromResult = (result: unknown) => {
+                const payload = extractRegistryPayload(result, custmTin, oscu.tin);
+                return payload ? normalizeRegistryCustomer(payload, custmTin) : null;
+            };
+
             try {
-                const registryResult = await client.selectCustomer(oscu, custmTin);
-                const registryPayload = extractRegistryPayload(registryResult);
-                if (registryPayload) {
-                    const normalized = normalizeRegistryCustomer(registryPayload, custmTin);
-                    if (normalized) {
-                        return { success: true, data: normalized };
-                    }
+                try {
+                    const fromGava = fromResult(await client.selectCustomer(oscu, custmTin));
+                    if (fromGava) return { success: true, data: fromGava };
+                } catch {
+                    // Gava `/customerPinInfo` is the device taxpayer, not a PIN search.
+                }
+
+                try {
+                    const classic = createEtimsClient({
+                        ...buildClientConfigFromEnv(isSandbox),
+                        baseUrl: isSandbox ? CLASSIC_SANDBOX_BASE : CLASSIC_PROD_BASE,
+                        memoryTokenOnly: true,
+                    });
+                    const fromClassic = fromResult(await classic.selectCustomer(oscu, custmTin));
+                    if (fromClassic) return { success: true, data: fromClassic };
+                } catch {
+                    // Classic `/selectCustomer` is unavailable on some sessions.
                 }
 
                 const listResult = await client.selectCustomerList(oscu, "20230101000000");
                 const branchMatch = extractBranchCustomerList(listResult).find(
-                    (c) => String(c.custTin ?? "").toUpperCase() === custmTin,
+                    (c) => tinOf(c) === custmTin,
                 );
                 if (branchMatch) {
                     const normalized = normalizeRegistryCustomer(branchMatch, custmTin);
-                    if (normalized) {
-                        return { success: true, data: normalized };
-                    }
+                    if (normalized) return { success: true, data: normalized };
                 }
 
                 return { success: true, data: null };

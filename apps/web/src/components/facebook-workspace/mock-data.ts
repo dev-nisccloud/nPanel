@@ -33,6 +33,20 @@ export type MockFacebookPage = {
   color: string;
 };
 
+export type ScheduledContentKind = "post" | "reel" | "story";
+export type ScheduledContentStatus = "draft" | "scheduled" | "published";
+
+export type MockScheduledContent = {
+  id: string;
+  pageId: string;
+  title: string;
+  caption: string;
+  kind: ScheduledContentKind;
+  status: ScheduledContentStatus;
+  /** Local date-time, no timezone suffix, so the clock time stays stable in the UI. */
+  scheduledAt: string;
+};
+
 export const MOCK_AD_ACCOUNTS: MockAdAccount[] = [
   { accountId: "act_100284719", accountName: "Nisc Cloud Ads", status: "ACTIVE", currency: "KES" },
   { accountId: "act_100284720", accountName: "Retail Kenya", status: "ACTIVE", currency: "KES" },
@@ -184,6 +198,153 @@ export const MOCK_FACEBOOK_PAGES: MockFacebookPage[] = [
   { id: "page_6", name: "Community", color: "#0891B2" },
   { id: "page_7", name: "Careers", color: "#CA8A04" },
   { id: "page_8", name: "Partners", color: "#0F766E" },
+];
+
+export const MOCK_SCHEDULED_CONTENT: MockScheduledContent[] = [
+  {
+    id: "cnt_1",
+    pageId: "page_1",
+    title: "September recap",
+    caption: "A short look at uptime, new plans, and what shipped in September.",
+    kind: "post",
+    status: "published",
+    scheduledAt: "2026-10-01T09:00:00",
+  },
+  {
+    id: "cnt_2",
+    pageId: "page_1",
+    title: "Hosting myth, busted",
+    caption: "60 seconds on why shared hosting is not always the cheaper choice.",
+    kind: "reel",
+    status: "scheduled",
+    scheduledAt: "2026-10-02T11:30:00",
+  },
+  {
+    id: "cnt_3",
+    pageId: "page_1",
+    title: "Behind the racks",
+    caption: "A quiet walk through the Nairobi cage before the Q4 push.",
+    kind: "story",
+    status: "draft",
+    scheduledAt: "2026-10-03T15:00:00",
+  },
+  {
+    id: "cnt_4",
+    pageId: "page_2",
+    title: "Weekend sale",
+    caption: "Domains and email at 15% off through Sunday.",
+    kind: "post",
+    status: "scheduled",
+    scheduledAt: "2026-10-04T14:00:00",
+  },
+  {
+    id: "cnt_5",
+    pageId: "page_1",
+    title: "Q4 cloud checklist",
+    caption: "Five things to check before traffic picks up: backups, SSL, DNS, PHP, and mail.",
+    kind: "post",
+    status: "scheduled",
+    scheduledAt: "2026-10-05T09:00:00",
+  },
+  {
+    id: "cnt_6",
+    pageId: "page_1",
+    title: "Migration in 60s",
+    caption: "How we move a WordPress site without the downtime story.",
+    kind: "reel",
+    status: "scheduled",
+    scheduledAt: "2026-10-05T16:00:00",
+  },
+  {
+    id: "cnt_7",
+    pageId: "page_1",
+    title: "Domain renewal reminder",
+    caption: "Renew before the grace period. Here is what happens if you wait.",
+    kind: "post",
+    status: "scheduled",
+    scheduledAt: "2026-10-06T10:00:00",
+  },
+  {
+    id: "cnt_8",
+    pageId: "page_2",
+    title: "New arrivals",
+    caption: "Themes and plugins we actually recommend this month.",
+    kind: "reel",
+    status: "scheduled",
+    scheduledAt: "2026-10-07T11:00:00",
+  },
+  {
+    id: "cnt_9",
+    pageId: "page_1",
+    title: "Customer spotlight",
+    caption: "How a Nairobi retailer moved checkout week without a blip.",
+    kind: "story",
+    status: "scheduled",
+    scheduledAt: "2026-10-08T13:00:00",
+  },
+  {
+    id: "cnt_10",
+    pageId: "page_3",
+    title: "Open day",
+    caption: "Campus tour this Friday. Stories from the floor.",
+    kind: "story",
+    status: "scheduled",
+    scheduledAt: "2026-10-09T17:00:00",
+  },
+  {
+    id: "cnt_11",
+    pageId: "page_1",
+    title: "WordPress speed tips",
+    caption: "Cache, images, and the one plugin we keep turning off.",
+    kind: "post",
+    status: "scheduled",
+    scheduledAt: "2026-10-10T09:30:00",
+  },
+  {
+    id: "cnt_12",
+    pageId: "page_1",
+    title: "New data center",
+    caption: "A first look at the extra capacity going live this quarter.",
+    kind: "reel",
+    status: "scheduled",
+    scheduledAt: "2026-10-14T18:00:00",
+  },
+  {
+    id: "cnt_13",
+    pageId: "page_1",
+    title: "Black Friday teaser",
+    caption: "Draft only. Pricing still needs a pass.",
+    kind: "post",
+    status: "draft",
+    scheduledAt: "2026-10-18T08:30:00",
+  },
+  {
+    id: "cnt_14",
+    pageId: "page_1",
+    title: "Support hours update",
+    caption: "Chat stays open later on weekdays through December.",
+    kind: "post",
+    status: "scheduled",
+    scheduledAt: "2026-10-22T12:00:00",
+  },
+  {
+    id: "cnt_15",
+    pageId: "page_1",
+    title: "Welcome October",
+    caption: "What we are shipping this month, in one post.",
+    kind: "post",
+    status: "published",
+    scheduledAt: "2026-09-29T10:00:00",
+  },
+  {
+    id: "cnt_16",
+    pageId: "page_1",
+    title: "November kickoff",
+    caption: "Renewals, migrations, and the holiday freeze window.",
+    kind: "post",
+    status: "scheduled",
+    scheduledAt: "2026-11-02T09:00:00",
+  },
 ];
 
 export const FACEBOOK_WORKSPACE_CONNECTED_KEY = "npanel_facebook_workspace_connected";

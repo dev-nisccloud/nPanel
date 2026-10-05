@@ -2,8 +2,9 @@ import { z } from "zod";
 import { router } from "../../trpc";
 import { TRPCError } from "@trpc/server";
 import { getEtimsContext } from "../../lib/etims-config";
-import { getEtimsItemClassMeta, getEtimsItemClassificationByCode, listEtimsItemClassifications, syncEtimsItemClassificationsBatch, } from "../../lib/etims-item-classification-store";
+import { getEtimsItemClassListFromDb, getEtimsItemClassMeta, getEtimsItemClassificationByCode, listEtimsItemClassifications, } from "../../lib/etims-item-classification-store";
 import { etimsProcedure, skipEtimsAuthChecks } from "./_procedure";
+const unusedOscu = { tin: "", bhfId: "", cmcKey: "" };
 const isAgencyUser = (role) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
 function assertReadAccess(role) {
     if (skipEtimsAuthChecks())
@@ -97,30 +98,51 @@ export const etimsDataRouter = router({
         .input(z.object({
         lastReqDt: z.string().regex(/^\d{14}$/, "Must be YYYYMMDDHHmmss"),
     }))
-        .query(async ({ ctx, input }) => {
+        .query(async ({ ctx }) => {
         assertReadAccess(ctx.session?.user?.role);
-        const { client, oscu } = await getEtimsContext();
         try {
-            const result = await client.selectItemClsList(oscu, input.lastReqDt);
-            return { success: true, data: result };
+            const fromDb = await getEtimsItemClassListFromDb();
+            if (!fromDb) {
+                return {
+                    success: false,
+                    data: null,
+                    source: "db",
+                    errorMessage: "No item classifications in the database. Run `bun run etims:sync-classifications` in apps/server.",
+                };
+            }
+            return { success: true, data: fromDb, source: "db" };
         }
         catch (error) {
             const msg = error.message;
-            // Non-fatal: KRA sandbox can return errors here during test session issues.
-            // Return a graceful failure so the UI can prompt the user to enter codes manually.
-            console.warn("[eTIMS] getItemClassList failed:", msg);
-            return { success: false, data: null, errorMessage: msg || "Failed to retrieve item class list" };
+            return { success: false, data: null, source: "db", errorMessage: msg || "Failed to read item classifications" };
         }
     }),
-    /** Cached KRA item classification metadata (level counts, last sync). */
     getItemClassMeta: etimsProcedure
         .query(async ({ ctx }) => {
         assertReadAccess(ctx.session?.user?.role);
-        const { oscu } = await getEtimsContext();
-        const meta = await getEtimsItemClassMeta(oscu);
-        return { success: true, meta, needsSync: !meta };
+        try {
+            const meta = await getEtimsItemClassMeta(unusedOscu);
+            return {
+                success: true,
+                meta,
+                empty: !meta,
+                needsSync: !meta,
+                allowAutoSync: false,
+                errorMessage: meta ? undefined : "No item classifications in the database. Run `bun run etims:sync-classifications` in apps/server.",
+            };
+        }
+        catch (error) {
+            const msg = error.message;
+            return {
+                success: false,
+                meta: null,
+                empty: true,
+                needsSync: true,
+                allowAutoSync: false,
+                errorMessage: msg || "Failed to read item classifications",
+            };
+        }
     }),
-    /** Paginated, searchable item classifications for a chosen hierarchy level. */
     listItemClassifications: etimsProcedure
         .input(z.object({
         level: z.number().int().min(1).max(5),
@@ -130,42 +152,36 @@ export const etimsDataRouter = router({
     }))
         .query(async ({ ctx, input }) => {
         assertReadAccess(ctx.session?.user?.role);
-        const { oscu } = await getEtimsContext();
         try {
-            const result = await listEtimsItemClassifications(oscu, input);
-            return { success: true, ...result };
+            const result = await listEtimsItemClassifications(unusedOscu, input);
+            return { success: true, ...result, items: result.items ?? [] };
         }
         catch (error) {
             const msg = error.message;
-            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: msg || "Failed to list item classifications" });
+            return {
+                success: false,
+                items: [],
+                total: 0,
+                page: input.page,
+                pageSize: input.pageSize,
+                totalPages: 0,
+                needsSync: true,
+                empty: true,
+                errorMessage: msg || "Failed to list item classifications",
+            };
         }
     }),
-    /** Look up one classification code from the Redis cache. */
     getItemClassification: etimsProcedure
         .input(z.object({ itemClsCd: z.string().min(1) }))
         .query(async ({ ctx, input }) => {
         assertReadAccess(ctx.session?.user?.role);
-        const { oscu } = await getEtimsContext();
-        const item = await getEtimsItemClassificationByCode(oscu, input.itemClsCd.trim());
-        return { success: true, item };
-    }),
-    /** Pull batches from KRA into Redis (call repeatedly until isComplete). */
-    syncItemClassifications: etimsProcedure
-        .input(z.object({
-        lastReqDt: z.string().regex(/^\d{14}$/, "Must be YYYYMMDDHHmmss").optional(),
-        maxPages: z.number().int().min(1).max(10).default(3),
-        reset: z.boolean().default(false),
-    }))
-        .mutation(async ({ ctx, input }) => {
-        assertReadAccess(ctx.session?.user?.role);
-        const { client, oscu } = await getEtimsContext();
         try {
-            const result = await syncEtimsItemClassificationsBatch(client, oscu, input);
-            return { success: true, ...result };
+            const item = await getEtimsItemClassificationByCode(unusedOscu, input.itemClsCd.trim());
+            return { success: true, item: item ?? null };
         }
         catch (error) {
             const msg = error.message;
-            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: msg || "Failed to sync item classifications" });
+            return { success: false, item: null, errorMessage: msg || "Failed to look up classification" };
         }
     }),
     /**

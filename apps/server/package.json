@@ -28,6 +28,8 @@
     "etims:certification:env": "bun --no-env-file run src/scripts/write-etims-cert-env.ts",
     "etims:certification:probe": "bun --no-env-file --env-file=./.env.etims-certification run src/scripts/kra-etims-probe-unique-result.ts",
     "etims:golive-invoice": "bun run src/scripts/kra-etims-golive-invoice.ts",
+    "etims:sync-classifications": "bun --no-env-file --env-file=./.env run src/scripts/etims-sync-item-classifications.ts",
+    "etims:sync-classifications:prod": "bun --no-env-file --env-file=./.env.production run src/scripts/etims-sync-item-classifications.ts",
     "mock:invoice-pdfs": "bun run src/scripts/mock-invoice-pdfs.ts"
   },
   "dependencies": {

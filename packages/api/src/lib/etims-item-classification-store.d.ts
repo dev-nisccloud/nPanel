@@ -12,6 +12,16 @@ export type EtimsItemClassMeta = {
     totalCount: number;
     levelCounts: Record<number, number>;
 };
+export declare function preferLocalItemClassifications(): boolean;
+export declare function getEtimsItemClassListFromDb(): Promise<{
+    resultCd: string;
+    resultMsg: string;
+    resultDt: string;
+    data: {
+        itemClsList: EtimsItemClassification[];
+    };
+    meta: EtimsItemClassMeta;
+} | null>;
 export declare function getEtimsItemClassMeta(_oscu: EtimsOscuHeaders): Promise<EtimsItemClassMeta | null>;
 export declare function getEtimsItemClassificationByCode(_oscu: EtimsOscuHeaders, itemClsCd: string): Promise<EtimsItemClassification | null>;
 export declare function listEtimsItemClassifications(_oscu: EtimsOscuHeaders, input: {
@@ -26,11 +36,32 @@ export declare function listEtimsItemClassifications(_oscu: EtimsOscuHeaders, in
     pageSize: number;
     totalPages: number;
     needsSync: boolean;
+    empty: boolean;
 }>;
 export declare function syncEtimsItemClassificationsBatch(client: EtimsOscuClient, _oscu: EtimsOscuHeaders, input: {
     lastReqDt?: string;
     maxPages?: number;
     reset?: boolean;
+}): Promise<{
+    pagesFetched: number;
+    rowsFetched: number;
+    hasMore: boolean;
+    nextLastReqDt: string;
+    totalSynced: number;
+    isComplete: boolean;
+    meta: EtimsItemClassMeta | null;
+}>;
+export declare function syncAllEtimsItemClassifications(client: EtimsOscuClient, oscu: EtimsOscuHeaders, input?: {
+    lastReqDt?: string;
+    reset?: boolean;
+    sleepMs?: number;
+    onProgress?: (progress: {
+        pagesFetched: number;
+        rowsFetched: number;
+        totalSynced: number;
+        nextLastReqDt: string;
+        hasMore: boolean;
+    }) => void;
 }): Promise<{
     pagesFetched: number;
     rowsFetched: number;

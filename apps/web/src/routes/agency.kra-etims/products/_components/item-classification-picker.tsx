@@ -1,20 +1,32 @@
 "use client";
 
 import * as React from "react";
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, Loader2, RefreshCw } from "lucide-react";
+import { Check, Loader2, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 
-const LEVEL_INFO: Record<number, { title: string; hint: string }> = {
-  1: { title: "Level 1  Segment", hint: "Top-level UNSPSC segments" },
-  2: { title: "Level 2  Family", hint: "Product/service families" },
-  3: { title: "Level 3  Class", hint: "Broader service categories" },
-  4: { title: "Level 4  Commodity", hint: "Recommended for item registration" },
-  5: { title: "Level 5  Detail", hint: "Most specific commodity codes" },
+const PAGE_SIZE = 40;
+const LEVELS = [1, 2, 3, 4, 5] as const;
+
+function levelFromCode(code?: string): number | null {
+  const length = code?.trim().length ?? 0;
+  if (length === 2) return 1;
+  if (length === 4) return 2;
+  if (length === 6) return 3;
+  if (length === 8) return 4;
+  if (length === 10) return 5;
+  return null;
+}
+
+type ClassRow = {
+  itemClsCd: string;
+  itemClsNm: string;
+  itemClsLvl: number;
+  taxTyCd?: string | null;
 };
 
 type Props = {
@@ -26,38 +38,37 @@ type Props = {
 };
 
 export function ItemClassificationPicker({ value, onChange, onBlur, disabled, enabled = true }: Props) {
-  const [step, setStep] = React.useState<"level" | "browse">("level");
-  const [selectedLevel, setSelectedLevel] = React.useState<number | null>(null);
+  const [level, setLevel] = React.useState(() => levelFromCode(value) ?? 4);
   const [search, setSearch] = React.useState("");
   const [debouncedSearch, setDebouncedSearch] = React.useState("");
   const [page, setPage] = React.useState(1);
-  const [syncProgress, setSyncProgress] = React.useState<number | null>(null);
-  const [syncError, setSyncError] = React.useState<string | null>(null);
-
-  const utils = trpc.useUtils();
+  const [rows, setRows] = React.useState<ClassRow[]>([]);
+  const [knownTotal, setKnownTotal] = React.useState(0);
+  const listRef = React.useRef<HTMLDivElement>(null);
+  const loadMoreRef = React.useRef<HTMLDivElement>(null);
+  const loadingMoreRef = React.useRef(false);
 
   const metaQuery = trpc.etims.data.getItemClassMeta.useQuery(undefined, {
     enabled,
     staleTime: 30_000,
+    retry: 1,
   });
-
-  const syncMutation = trpc.etims.data.syncItemClassifications.useMutation();
 
   const selectedCodeQuery = trpc.etims.data.getItemClassification.useQuery(
     { itemClsCd: value?.trim() ?? "" },
-    { enabled: enabled && !!value?.trim() && !!metaQuery.data?.meta },
+    { enabled: enabled && !!value?.trim() && !!metaQuery.data?.meta, retry: 1 },
   );
 
   const listQuery = trpc.etims.data.listItemClassifications.useQuery(
     {
-      level: selectedLevel ?? 4,
+      level,
       search: debouncedSearch || undefined,
       page,
-      pageSize: 25,
+      pageSize: PAGE_SIZE,
     },
     {
-      enabled: enabled && step === "browse" && selectedLevel != null && !!metaQuery.data?.meta,
-      placeholderData: (prev) => prev,
+      enabled: enabled && !!metaQuery.data?.meta,
+      retry: 1,
     },
   );
 
@@ -65,247 +76,207 @@ export function ItemClassificationPicker({ value, onChange, onBlur, disabled, en
     const timer = window.setTimeout(() => {
       setDebouncedSearch(search.trim());
       setPage(1);
-    }, 300);
+      loadingMoreRef.current = false;
+    }, 250);
     return () => window.clearTimeout(timer);
   }, [search]);
 
   React.useEffect(() => {
     if (!enabled) return;
-    setStep("level");
-    setSelectedLevel(null);
+    setLevel(levelFromCode(value) ?? 4);
     setSearch("");
     setDebouncedSearch("");
     setPage(1);
+    setRows([]);
+    setKnownTotal(0);
   }, [enabled]);
 
-  const runSync = React.useCallback(async (reset = false) => {
-    let lastReqDt: string | undefined;
-    let hasMore = true;
-    let isComplete = false;
-    let batches = 0;
-
-    setSyncError(null);
-    setSyncProgress(0);
-
-    try {
-      while (hasMore && !isComplete) {
-        const result = await syncMutation.mutateAsync({
-          reset: reset && batches === 0,
-          maxPages: 3,
-          lastReqDt,
-        });
-
-        batches += result.pagesFetched;
-        hasMore = result.hasMore;
-        isComplete = result.isComplete;
-        lastReqDt = result.nextLastReqDt;
-
-        if (isComplete) {
-          setSyncProgress(100);
-        } else if (result.totalSynced > 0) {
-          setSyncProgress(Math.min(95, Math.round((result.totalSynced / 150_000) * 100)));
-        }
-
-        reset = false;
-      }
-
-      await utils.etims.data.getItemClassMeta.invalidate();
-      await utils.etims.data.listItemClassifications.invalidate();
-    } catch (error) {
-      setSyncError(error instanceof Error ? error.message : "Failed to sync classifications from KRA");
-      throw error;
-    } finally {
-      setSyncProgress(null);
-    }
-  }, [syncMutation, utils.etims.data.getItemClassMeta]);
-
-  const syncAttemptedRef = React.useRef(false);
+  React.useEffect(() => {
+    if (!listQuery.isFetching) loadingMoreRef.current = false;
+  }, [listQuery.isFetching]);
 
   React.useEffect(() => {
-    if (!enabled) {
-      syncAttemptedRef.current = false;
-      return;
-    }
-    if (metaQuery.isLoading || metaQuery.data?.needsSync !== true) return;
-    if (syncAttemptedRef.current || syncMutation.isPending || syncProgress != null) return;
-
-    syncAttemptedRef.current = true;
-    void runSync(true).catch(() => {
-      syncAttemptedRef.current = false;
+    const data = listQuery.data;
+    if (!data?.success) return;
+    const items = (data.items ?? []) as ClassRow[];
+    const returnedPage = data.page ?? 1;
+    setKnownTotal(Number(data.total ?? 0));
+    setRows((prev) => {
+      if (returnedPage <= 1) return items;
+      if (returnedPage !== page) return prev;
+      const seen = new Set(prev.map((row) => row.itemClsCd));
+      return [...prev, ...items.filter((row) => !seen.has(row.itemClsCd))];
     });
-  }, [enabled, metaQuery.isLoading, metaQuery.data?.needsSync, syncMutation.isPending, syncProgress, runSync]);
+  }, [listQuery.data, page]);
 
-  const meta = metaQuery.data?.meta;
-  const needsSync = metaQuery.data?.needsSync ?? true;
-  const isSyncing = syncMutation.isPending || syncProgress != null;
+  const meta = metaQuery.data?.meta ?? null;
+  const empty = Boolean(metaQuery.data?.empty ?? metaQuery.data?.needsSync ?? !meta);
+  const errorMessage = metaQuery.data?.errorMessage
+    ?? (metaQuery.error?.message || null)
+    ?? (listQuery.data && "errorMessage" in listQuery.data ? String(listQuery.data.errorMessage ?? "") : null)
+    ?? (listQuery.error?.message || null);
 
-  const selectedLabel = React.useMemo(() => {
-    if (!value?.trim()) return null;
-    const fromList = listQuery.data?.items.find((row) => row.itemClsCd === value.trim());
-    if (fromList) return `${fromList.itemClsCd}  ${fromList.itemClsNm}`;
-    const cached = selectedCodeQuery.data?.item;
-    if (cached) return `${cached.itemClsCd}  ${cached.itemClsNm}`;
-    return `${value.trim()} (saved classification)`;
-  }, [value, listQuery.data?.items, selectedCodeQuery.data?.item]);
+  const total = listQuery.data?.success ? Number(listQuery.data.total ?? knownTotal) : knownTotal;
+  const lastPageEmpty = page > 1 && Boolean(listQuery.data?.success) && (listQuery.data?.items?.length ?? 0) === 0;
+  const hasMore = rows.length < total && !lastPageEmpty;
+  const searching = search.trim() !== debouncedSearch;
+  const firstPageLoading = page === 1 && listQuery.isFetching && rows.length === 0;
+  const refreshing = page === 1 && listQuery.isFetching && rows.length > 0;
+  const selectedItem = selectedCodeQuery.data?.item ?? rows.find((row) => row.itemClsCd === value?.trim()) ?? null;
+  const listFailed = Boolean(
+    (listQuery.isError || listQuery.data?.success === false) && rows.length === 0,
+  );
 
-  const handlePickLevel = (level: number) => {
-    setSelectedLevel(level);
-    setSearch("");
-    setDebouncedSearch("");
+  React.useEffect(() => {
+    const root = listRef.current;
+    const target = loadMoreRef.current;
+    if (!root || !target || disabled) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting) return;
+        if (listQuery.isFetching || loadingMoreRef.current || !hasMore) return;
+        loadingMoreRef.current = true;
+        setPage((current) => current + 1);
+      },
+      { root, rootMargin: "120px" },
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [disabled, hasMore, listQuery.isFetching, rows.length]);
+
+  const handleLevelChange = (next: string) => {
+    if (!next) return;
+    setLevel(Number(next));
     setPage(1);
-    setStep("browse");
-  };
-
-  const handleBackToLevels = () => {
-    setStep("level");
-    setSelectedLevel(null);
-    setSearch("");
-    setDebouncedSearch("");
-    setPage(1);
+    setRows([]);
+    setKnownTotal(0);
+    loadingMoreRef.current = false;
   };
 
   const handleSelectCode = (itemClsCd: string) => {
     if (disabled) return;
     onChange(itemClsCd);
     onBlur?.();
-    setStep("level");
-    setSelectedLevel(null);
-    setSearch("");
-    setDebouncedSearch("");
-    setPage(1);
   };
 
-  const selectedBanner = value?.trim() && selectedLabel ? (
-    <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm">
-      <span className="text-muted-foreground">Selected: </span>
-      {selectedLabel}
-    </div>
-  ) : null;
-
-  if (syncError) {
+  if (metaQuery.isLoading) {
     return (
-      <div className="rounded-lg border border-destructive/40 p-4 space-y-3">
-        <p className="text-sm text-destructive">{syncError}</p>
-        <Button type="button" variant="outline" size="sm" onClick={() => void runSync(true)}>
-          Retry sync
+      <div className="rounded-lg border p-3 space-y-2">
+        <div className="h-8 rounded-md bg-muted animate-pulse" />
+        <div className="h-9 rounded-md bg-muted animate-pulse" />
+        <div className="h-40 rounded-md bg-muted animate-pulse" />
+      </div>
+    );
+  }
+
+  if (metaQuery.isError || metaQuery.data?.success === false) {
+    return (
+      <div className="rounded-lg border border-destructive/40 p-3 space-y-2">
+        <p className="text-sm text-destructive">{errorMessage || "Could not load codes."}</p>
+        <Button type="button" variant="outline" size="sm" onClick={() => void metaQuery.refetch()}>
+          Retry
         </Button>
       </div>
     );
   }
 
-  if (needsSync || isSyncing) {
+  if (empty || !meta) {
     return (
-      <div className="rounded-lg border p-4 space-y-3">
-        <div className="flex items-center gap-2 text-sm">
-          <Loader2 className="size-4 animate-spin" />
-          <span>Getting classification codes for you…</span>
-        </div>
-        {syncProgress != null && <Progress value={syncProgress} className="h-2" />}
+      <div className="rounded-lg border p-3 space-y-2">
+        <p className="text-sm">No codes stored.</p>
+        <pre className="rounded-md bg-muted px-3 py-2 text-xs overflow-x-auto">bun run etims:sync-classifications</pre>
+        <Button type="button" variant="outline" size="sm" onClick={() => void metaQuery.refetch()}>
+          Retry
+        </Button>
       </div>
     );
   }
-
-  if (step === "level") {
-    return (
-      <div className="space-y-3">
-        {selectedBanner}
-
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-sm text-muted-foreground">Choose a hierarchy level to browse codes.</p>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={disabled || isSyncing}
-            onClick={() => {
-              syncAttemptedRef.current = true;
-              void runSync(true).finally(() => {
-                syncAttemptedRef.current = false;
-              });
-            }}
-          >
-            <RefreshCw className="size-3.5 mr-1.5" />
-            Resync
-          </Button>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {[1, 2, 3, 4, 5].map((level) => {
-            const count = meta?.levelCounts[level] ?? 0;
-            const info = LEVEL_INFO[level];
-            return (
-              <button
-                key={level}
-                type="button"
-                disabled={disabled || count === 0}
-                onClick={() => handlePickLevel(level)}
-                className={cn(
-                  "rounded-lg border px-3 py-3 text-left transition-colors hover:bg-muted/50",
-                  "disabled:opacity-50 disabled:pointer-events-none",
-                  level === 4 && "border-primary/40 bg-primary/5",
-                )}
-              >
-                <div className="font-medium text-sm">{info.title}</div>
-                <div className="text-xs text-muted-foreground mt-1">{info.hint}</div>
-                <div className="text-xs mt-2">{count.toLocaleString()} codes</div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
-
-  const levelInfo = selectedLevel ? LEVEL_INFO[selectedLevel] : null;
-  const totalPages = listQuery.data?.totalPages ?? 0;
-  const currentPage = listQuery.data?.page ?? page;
 
   return (
-    <div className="space-y-3">
-      {selectedBanner}
+    <div className="space-y-2">
+      {value?.trim() ? (
+        <div className="rounded-md border px-3 py-2">
+          <p className="font-mono text-sm leading-none">{value.trim()}</p>
+          <p className="text-xs text-muted-foreground mt-1 truncate">
+            {selectedItem?.itemClsNm
+              ?? (selectedCodeQuery.isFetching ? "…" : "Saved code")}
+          </p>
+        </div>
+      ) : null}
 
-      <div className="flex items-center gap-2">
-        <Button type="button" variant="ghost" size="sm" onClick={handleBackToLevels} disabled={disabled}>
-          <ArrowLeft className="size-3.5 mr-1" />
-          All levels
-        </Button>
-        <span className="text-sm font-medium">{levelInfo?.title}</span>
+      <ToggleGroup
+        type="single"
+        variant="outline"
+        size="sm"
+        value={String(level)}
+        onValueChange={handleLevelChange}
+        disabled={disabled}
+        className="w-full"
+        aria-label="Classification level"
+      >
+        {LEVELS.map((item) => {
+          const count = meta.levelCounts?.[item] ?? 0;
+          return (
+            <ToggleGroupItem
+              key={item}
+              value={String(item)}
+              disabled={disabled || count === 0}
+              className="flex-1 px-0 text-xs"
+              aria-label={`Level ${item}`}
+            >
+              {item}
+            </ToggleGroupItem>
+          );
+        })}
+      </ToggleGroup>
+
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={search}
+          disabled={disabled}
+          placeholder="Code or name"
+          className="pl-8 pr-8"
+          onChange={(event) => setSearch(event.target.value)}
+          onPointerDown={(event) => event.stopPropagation()}
+          onMouseDown={(event) => event.stopPropagation()}
+        />
+        {searching || listQuery.isFetching ? (
+          <Loader2 className="pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+        ) : null}
       </div>
 
-      <Input
-        placeholder="Search by code or name…"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        disabled={disabled}
-        onPointerDown={(e) => e.stopPropagation()}
-        onMouseDown={(e) => e.stopPropagation()}
-      />
-
       <div
-        className="rounded-lg border max-h-64 overflow-y-auto"
-        onPointerDown={(e) => e.stopPropagation()}
-        onMouseDown={(e) => e.stopPropagation()}
+        ref={listRef}
+        className="relative rounded-lg border max-h-64 overflow-y-auto"
+        onPointerDown={(event) => event.stopPropagation()}
+        onMouseDown={(event) => event.stopPropagation()}
       >
-        {listQuery.isLoading ? (
-          <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
-            <Loader2 className="size-4 animate-spin" />
-            Loading…
+        {listFailed ? (
+          <div className="py-8 text-center text-sm text-destructive px-3">
+            {errorMessage || "Failed to load codes."}
           </div>
-        ) : (listQuery.data?.items.length ?? 0) === 0 ? (
-          <div className="py-8 text-center text-sm text-muted-foreground">No codes match your search.</div>
+        ) : firstPageLoading ? (
+          <div className="p-2 space-y-1">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div key={index} className="h-9 rounded-md bg-muted animate-pulse" />
+            ))}
+          </div>
+        ) : rows.length === 0 ? (
+          <div className="py-8 text-center text-sm text-muted-foreground">No matches.</div>
         ) : (
-          <ul className="divide-y">
-            {listQuery.data?.items.map((row) => {
+          <ul className={cn("divide-y", refreshing && "opacity-60")}>
+            {rows.map((row) => {
               const isSelected = value?.trim() === row.itemClsCd;
               return (
                 <li key={row.itemClsCd}>
                   <button
                     type="button"
                     disabled={disabled}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onClick={(e) => {
-                      e.stopPropagation();
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onMouseDown={(event) => event.stopPropagation()}
+                    onClick={(event) => {
+                      event.stopPropagation();
                       handleSelectCode(row.itemClsCd);
                     }}
                     className={cn(
@@ -319,7 +290,7 @@ export function ItemClassificationPicker({ value, onChange, onBlur, disabled, en
                         isSelected ? "opacity-100 text-primary" : "opacity-0",
                       )}
                     />
-                    <span>
+                    <span className="min-w-0">
                       <span className="font-mono text-xs mr-2">{row.itemClsCd}</span>
                       <span>{row.itemClsNm}</span>
                     </span>
@@ -329,39 +300,17 @@ export function ItemClassificationPicker({ value, onChange, onBlur, disabled, en
             })}
           </ul>
         )}
+        {hasMore && !firstPageLoading ? <div ref={loadMoreRef} className="h-8" /> : null}
+        {page > 1 && listQuery.isFetching ? (
+          <div className="flex items-center justify-center py-2 text-muted-foreground">
+            <Loader2 className="size-4 animate-spin" />
+          </div>
+        ) : null}
       </div>
 
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs text-muted-foreground">
-          {(listQuery.data?.total ?? 0).toLocaleString()} codes
-          {debouncedSearch ? " matching search" : ""}
-        </p>
-        <div className="flex items-center gap-1">
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="size-8"
-            disabled={disabled || currentPage <= 1 || listQuery.isFetching}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-          >
-            <ChevronLeft className="size-4" />
-          </Button>
-          <span className="text-xs min-w-24 text-center">
-            Page {currentPage}{totalPages ? ` of ${totalPages}` : ""}
-          </span>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="size-8"
-            disabled={disabled || currentPage >= totalPages || listQuery.isFetching}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            <ChevronRight className="size-4" />
-          </Button>
-        </div>
-      </div>
+      <p className="text-xs text-muted-foreground">
+        {total.toLocaleString()}{debouncedSearch ? " matches" : ""}
+      </p>
     </div>
   );
 }

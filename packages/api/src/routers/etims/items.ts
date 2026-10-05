@@ -4,7 +4,8 @@ import { router } from "../../trpc";
 import { TRPCError } from "@trpc/server";
 import { db } from "@npanel/db";
 import { eTimsItem } from "@npanel/db/schema/etims";
-import { getEtimsContext } from "../../lib/etims-config";
+import { getEtimsContext, buildClientConfigFromEnv } from "../../lib/etims-config";
+import { createEtimsClient, type EtimsOscuClient, type EtimsOscuHeaders } from "../../lib/etims-client";
 import { etimsProcedure, skipEtimsAuthChecks } from "./_procedure";
 
 const isAgencyUser = (r: string | null | undefined) =>
@@ -18,6 +19,77 @@ function assertRead(role: string | null | undefined) {
 function assertWrite(role: string | null | undefined) {
     if (skipEtimsAuthChecks()) return;
     if (!isSuperAdmin(role)) throw new TRPCError({ code: "FORBIDDEN", message: "Only agency super admins can modify eTIMS item data." });
+}
+
+const CLASSIC_SANDBOX_BASE = "https://etims-api-sbx.kra.go.ke/etims-api";
+const CLASSIC_PROD_BASE = "https://etims-api.kra.go.ke/etims-api";
+
+function isOpaqueKraError(message: string) {
+    return /TestSessionApiLog|getApiNo/i.test(message)
+        || /HTTP 400:\s*Error:?\s*$/i.test(message)
+        || /HTTP 400:\s*Error:\s*—/i.test(message);
+}
+
+function twoCharUnit(value: string, fallback: string) {
+    const unit = value.trim().toUpperCase();
+    if (unit.length >= 2) return unit.slice(0, 5);
+    if (unit.length === 1) return fallback;
+    return fallback;
+}
+
+function sanitizeSaveItem(item: Record<string, unknown> & {
+    itemCd: string;
+    itemClsCd: string;
+    itemTyCd: string;
+    itemNm: string;
+    pkgUnitCd: string;
+    qtyUnitCd: string;
+    orgnNatCd: string;
+    itemStdNm?: string | null;
+    sftyQty?: number | null;
+    grpPrcL5?: number | null;
+}) {
+    const pkgUnitCd = twoCharUnit(item.pkgUnitCd, "OU");
+    const qtyUnitCd = twoCharUnit(item.qtyUnitCd, "NO");
+    const orgnNatCd = item.orgnNatCd.trim().toUpperCase().slice(0, 2) || "KE";
+    const itemTyCd = String(item.itemTyCd).trim().slice(0, 1) || "3";
+    const seq = /^\d{7}$/.test(item.itemCd.slice(-7)) ? item.itemCd.slice(-7) : "0000001";
+    const itemNm = item.itemNm.trim();
+    return {
+        ...item,
+        orgnNatCd,
+        itemTyCd,
+        pkgUnitCd,
+        qtyUnitCd,
+        itemNm,
+        itemStdNm: (item.itemStdNm && String(item.itemStdNm).trim()) || itemNm,
+        itemClsCd: item.itemClsCd.trim(),
+        itemCd: `${orgnNatCd}${itemTyCd}${pkgUnitCd}${qtyUnitCd}${seq}`,
+        sftyQty: item.sftyQty ?? 0,
+        grpPrcL5: item.grpPrcL5 ?? 0,
+    };
+}
+
+async function saveItemOnKra(
+    client: EtimsOscuClient,
+    oscu: EtimsOscuHeaders,
+    isSandbox: boolean,
+    item: Record<string, unknown>,
+) {
+    try {
+        return await client.saveItem(oscu, item);
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (!isOpaqueKraError(message)) throw error;
+
+        const classic = createEtimsClient({
+            ...buildClientConfigFromEnv(isSandbox),
+            baseUrl: isSandbox ? CLASSIC_SANDBOX_BASE : CLASSIC_PROD_BASE,
+            memoryTokenOnly: true,
+        });
+        console.warn("[eTIMS] saveItem Gava 400, retrying classic OSCU");
+        return await classic.saveItem(oscu, item);
+    }
 }
 
 export const etimsItemsRouter = router({
@@ -66,29 +138,30 @@ export const etimsItemsRouter = router({
         }))
         .mutation(async ({ ctx, input }) => {
             assertWrite(ctx.session?.user?.role);
-            const { client, oscu } = await getEtimsContext();
+            const { client, oscu, isSandbox } = await getEtimsContext();
+            const item = sanitizeSaveItem(input.item);
             try {
-                const result = await client.saveItem(oscu, input.item as Record<string, unknown>);
+                const result = await saveItemOnKra(client, oscu, isSandbox, item);
                 const data = result as { resultCd?: string };
                 if (data.resultCd === "000" || data.resultCd === "001") {
                     const now = new Date();
                     await db.insert(eTimsItem).values({
                         id: crypto.randomUUID(),
                         localItemId: null,
-                        itemCd: input.item.itemCd,
-                        itemClsCd: input.item.itemClsCd,
-                        itemNm: input.item.itemNm,
-                        taxTyCd: input.item.taxTyCd,
-                        pkgUnitCd: input.item.pkgUnitCd,
-                        unitPrice: input.item.dftPrc.toString(),
-                        originCountryCd: input.item.orgnNatCd,
-                        quantityUnit: input.item.qtyUnitCd,
-                        packagingUnit: input.item.pkgUnitCd,
+                        itemCd: item.itemCd,
+                        itemClsCd: item.itemClsCd,
+                        itemNm: item.itemNm,
+                        taxTyCd: item.taxTyCd,
+                        pkgUnitCd: item.pkgUnitCd,
+                        unitPrice: item.dftPrc.toString(),
+                        originCountryCd: item.orgnNatCd,
+                        quantityUnit: item.qtyUnitCd,
+                        packagingUnit: item.pkgUnitCd,
                         createdAt: now,
                         updatedAt: now,
                     }).onConflictDoUpdate({
                         target: eTimsItem.itemCd,
-                        set: { itemClsCd: input.item.itemClsCd, itemNm: input.item.itemNm, taxTyCd: input.item.taxTyCd, pkgUnitCd: input.item.pkgUnitCd, unitPrice: input.item.dftPrc.toString(), originCountryCd: input.item.orgnNatCd, quantityUnit: input.item.qtyUnitCd, packagingUnit: input.item.pkgUnitCd, updatedAt: now },
+                        set: { itemClsCd: item.itemClsCd, itemNm: item.itemNm, taxTyCd: item.taxTyCd, pkgUnitCd: item.pkgUnitCd, unitPrice: item.dftPrc.toString(), originCountryCd: item.orgnNatCd, quantityUnit: item.qtyUnitCd, packagingUnit: item.pkgUnitCd, updatedAt: now },
                     });
                 }
                 return { success: true, data: result };
