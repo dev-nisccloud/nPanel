@@ -18,6 +18,9 @@ interface FileManagerFolderTreeProps {
   currentPath: string;
   onPathSelect: (path: string) => void;
   onLoadFolder: (path: string) => Promise<FolderTreeNode[]>;
+  /** Expand this path after the home folder loads, so the current location is visible. */
+  expandPath?: string;
+  showHeader?: boolean;
   className?: string;
 }
 
@@ -48,6 +51,8 @@ export function FileManagerFolderTree({
   currentPath,
   onPathSelect,
   onLoadFolder,
+  expandPath,
+  showHeader = true,
   className,
 }: FileManagerFolderTreeProps) {
   const [treeData, setTreeData] = React.useState<FolderTreeNode[]>([
@@ -64,6 +69,8 @@ export function FileManagerFolderTree({
   treeRef.current = treeData;
   const onLoadFolderRef = React.useRef(onLoadFolder);
   onLoadFolderRef.current = onLoadFolder;
+  const expandPathRef = React.useRef(expandPath);
+  expandPathRef.current = expandPath;
 
   React.useEffect(() => {
     let cancelled = false;
@@ -71,7 +78,7 @@ export function FileManagerFolderTree({
       try {
         const folders = await onLoadFolderRef.current("/");
         if (cancelled) return;
-        setTreeData([
+        let nodes: FolderTreeNode[] = [
           {
             path: "/",
             name: "Home directory",
@@ -80,7 +87,31 @@ export function FileManagerFolderTree({
             isLoading: false,
             childrenLoaded: true,
           },
-        ]);
+        ];
+        setTreeData(nodes);
+
+        const target = expandPathRef.current?.trim() || "";
+        const segments = target.split("/").filter(Boolean);
+        let built = "";
+        for (const segment of segments) {
+          if (cancelled) return;
+          built = `${built}/${segment}`;
+          if (!findNode(nodes, built)) break;
+          try {
+            const children = await onLoadFolderRef.current(built);
+            if (cancelled) return;
+            nodes = mapNode(nodes, built, {
+              isExpanded: true,
+              isLoading: false,
+              childrenLoaded: true,
+              children,
+            });
+            setTreeData(nodes);
+          } catch (error) {
+            console.error("Failed to expand folder:", error);
+            break;
+          }
+        }
       } catch (error) {
         console.error("Failed to load initial folders:", error);
         if (cancelled) return;
@@ -139,7 +170,7 @@ export function FileManagerFolderTree({
       <div key={node.path}>
         <div
           className={cn(
-            "flex items-center gap-1 rounded-md py-1 pr-2 cursor-pointer hover:bg-muted/60 transition-colors",
+            "flex w-full min-w-0 items-center gap-1 rounded-md py-1 pr-2 cursor-pointer hover:bg-muted/60 transition-colors",
             isSelected && "bg-primary/10 text-primary font-medium",
           )}
           style={{ paddingLeft: `${level * 12 + 4}px` }}
@@ -188,14 +219,16 @@ export function FileManagerFolderTree({
   };
 
   return (
-    <div className={cn("flex h-full min-h-0 flex-col overflow-hidden border bg-muted/30", className)}>
-      <div className="shrink-0 border-b bg-background/50 p-3">
-        <h3 className="flex items-center gap-2 text-sm font-semibold">
-          <Folder className="h-4 w-4" />
-          Folders
-        </h3>
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto">
+    <div className={cn("flex h-full min-h-0 min-w-0 flex-col overflow-hidden border bg-muted/30", className)}>
+      {showHeader ? (
+        <div className="shrink-0 border-b bg-background/50 p-3">
+          <h3 className="flex items-center gap-2 text-sm font-semibold">
+            <Folder className="h-4 w-4" />
+            Folders
+          </h3>
+        </div>
+      ) : null}
+      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden">
         <div className="p-2">{treeData.map((node) => renderNode(node))}</div>
       </div>
     </div>
