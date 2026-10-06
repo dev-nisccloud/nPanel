@@ -12,7 +12,7 @@ import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
-import { LAST_REQ_DT, unwrapKraData, unwrapKraList } from "./agency.kra-etims/_lib/etims-kra";
+import { LAST_REQ_DT, extractTaxpayerRow } from "./agency.kra-etims/_lib/etims-kra";
 
 export default function ETimsSettingsPage() {
     const utils = trpc.useUtils();
@@ -61,11 +61,7 @@ export default function ETimsSettingsPage() {
             { enabled: isInitialized },
         );
 
-    const taxpayer = React.useMemo(() => {
-        const data = unwrapKraData(taxpayerData);
-        const list = unwrapKraList(taxpayerData, "infoList", "taxpayerList", "taxPayerList", "itemList");
-        return list[0] ?? data;
-    }, [taxpayerData]);
+    const taxpayer = React.useMemo(() => extractTaxpayerRow(taxpayerData), [taxpayerData]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { id, value } = e.target;
@@ -83,8 +79,10 @@ export default function ETimsSettingsPage() {
 
     const location = [taxpayer.locDesc, taxpayer.sctrNm, taxpayer.dstrtNm, taxpayer.prvncNm]
         .filter(Boolean)
-        .map(String)
         .join(", ");
+    const branchLabel = taxpayer.bhfNm
+        ? `${taxpayer.bhfNm} (${taxpayer.bhfId || formData.branchId || "—"})`
+        : (formData.branchId || "—");
 
     return (
         <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
@@ -125,20 +123,26 @@ export default function ETimsSettingsPage() {
                                     <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                                         <div>
                                             <dt className="text-xs text-muted-foreground">Legal name</dt>
-                                            <dd className="mt-0.5 font-medium">{String(taxpayer.taxprNm ?? "—")}</dd>
+                                            <dd className="mt-0.5 font-medium">{taxpayer.taxprNm || "—"}</dd>
                                         </div>
                                         <div>
                                             <dt className="text-xs text-muted-foreground">PIN</dt>
-                                            <dd className="mt-0.5 font-mono">{String(taxpayer.tin ?? formData.kraPin ?? "—")}</dd>
+                                            <dd className="mt-0.5 font-mono">{taxpayer.tin || formData.kraPin || "—"}</dd>
                                         </div>
                                         <div>
                                             <dt className="text-xs text-muted-foreground">Branch</dt>
-                                            <dd className="mt-0.5 font-mono">{formData.branchId || "—"}</dd>
+                                            <dd className="mt-0.5">{branchLabel}</dd>
                                         </div>
                                         <div>
                                             <dt className="text-xs text-muted-foreground">Status</dt>
-                                            <dd className="mt-0.5">{String(taxpayer.taxprSttsCd ?? "—")}</dd>
+                                            <dd className="mt-0.5">{taxpayer.taxprSttsCd || "—"}</dd>
                                         </div>
+                                        {taxpayer.bsnsActv ? (
+                                            <div className="sm:col-span-2">
+                                                <dt className="text-xs text-muted-foreground">Business activity</dt>
+                                                <dd className="mt-0.5">{taxpayer.bsnsActv}</dd>
+                                            </div>
+                                        ) : null}
                                         <div className="sm:col-span-2">
                                             <dt className="text-xs text-muted-foreground">Location</dt>
                                             <dd className="mt-0.5">{location || "—"}</dd>

@@ -42,15 +42,15 @@ import {
 	nextInvcNo,
 	parseExpectedInvcNo,
 	round2,
-	unwrapKraData,
 	unwrapKraList,
 	customerFromLookup,
+	extractTaxpayerRow,
 } from "../../_lib/etims-kra";
 import { type EtimsItemRecord } from "../../products/_components/etims-item-utils";
 
 const lineSchema = z.object({
 	itemCd: z.string().min(1, "Select a service"),
-	itemNm: z.string().min(1),
+	itemNm: z.string().min(1, "Enter a name for this line").max(200),
 	itemClsCd: z.string().min(1),
 	pkgUnitCd: z.string().min(1),
 	qtyUnitCd: z.string().min(1),
@@ -114,9 +114,7 @@ export function SendETimsSaleSheet({
 	);
 
 	const receiptIdentity = React.useMemo(() => {
-		const data = unwrapKraData(taxpayerData);
-		const list = unwrapKraList(taxpayerData, "infoList", "taxpayerList", "taxPayerList", "itemList");
-		const row = list[0] ?? data;
+		const row = extractTaxpayerRow(taxpayerData);
 		const loc = [row.locDesc, row.sctrNm, row.dstrtNm, row.prvncNm].filter(Boolean).join(", ");
 		return {
 			tradeName: String(tradeName ?? row.taxprNm ?? row.bhfNm ?? "nPanel"),
@@ -219,7 +217,7 @@ export function SendETimsSaleSheet({
 		form.setValue(`lines.${index}.itemNm`, item.itemNm);
 		form.setValue(`lines.${index}.itemClsCd`, item.itemClsCd);
 		form.setValue(`lines.${index}.pkgUnitCd`, item.pkgUnitCd ?? "OU");
-		form.setValue(`lines.${index}.qtyUnitCd`, item.qtyUnitCd ?? "U");
+		form.setValue(`lines.${index}.qtyUnitCd`, item.qtyUnitCd ?? "NO");
 		form.setValue(`lines.${index}.taxTyCd`, (item.taxTyCd as FormData["lines"][number]["taxTyCd"]) ?? "B");
 		const price = Number(item.dftPrc ?? 0);
 		if (price > 0) form.setValue(`lines.${index}.inclusivePrc`, round2(price));
@@ -269,7 +267,7 @@ export function SendETimsSaleSheet({
 			salesSttsCd: "02",
 			cfmDt,
 			salesDt,
-			stockRlsDt: cfmDt,
+			stockRlsDt: null,
 			totItemCnt: itemList.length,
 			...bands,
 			prchrAcptcYn: "N" as const,
@@ -475,7 +473,7 @@ export function SendETimsSaleSheet({
 											itemNm: "",
 											itemClsCd: "",
 											pkgUnitCd: "OU",
-											qtyUnitCd: "U",
+											qtyUnitCd: "NO",
 											taxTyCd: "B",
 											qty: 1,
 											inclusivePrc: 0,
@@ -514,6 +512,29 @@ export function SendETimsSaleSheet({
 																onSelect={(item) => applyItem(index, item)}
 																emptyResults="No services registered. Add one under Products first."
 															/>
+															{selected?.itemCd ? (
+																<p className="text-[11px] text-muted-foreground">
+																	KRA item code stays <span className="font-mono">{selected.itemCd}</span>
+																</p>
+															) : null}
+															<FormMessage />
+														</FormItem>
+													)}
+												/>
+												<FormField
+													control={form.control}
+													name={`lines.${index}.itemNm`}
+													render={({ field: nameField }) => (
+														<FormItem className="mt-3">
+															<FormLabel>Name on receipt</FormLabel>
+															<FormControl>
+																<Input
+																	{...nameField}
+																	disabled={!selected}
+																	placeholder={selected ? "Edit the name shown on this sale…" : "Select a service first"}
+																	maxLength={200}
+																/>
+															</FormControl>
 															<FormMessage />
 														</FormItem>
 													)}
@@ -635,10 +656,10 @@ export function SendETimsSaleSheet({
 								{sendSale.isPending ? (
 									<>
 										<Spinner size={16} className="mr-2" />
-										Sending…
+										Creating…
 									</>
 								) : (
-									"Send to KRA"
+									"Create sale"
 								)}
 							</Button>
 						</SheetFooter>
@@ -665,7 +686,7 @@ function defaultForm(): FormData {
 				itemNm: "",
 				itemClsCd: "",
 				pkgUnitCd: "OU",
-				qtyUnitCd: "U",
+				qtyUnitCd: "NO",
 				taxTyCd: "B",
 				qty: 1,
 				inclusivePrc: 0,

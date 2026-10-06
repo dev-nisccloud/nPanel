@@ -126,6 +126,131 @@ function extractBranchCustomerList(result: unknown): Record<string, unknown>[] {
     return Array.isArray(list) ? list as Record<string, unknown>[] : [];
 }
 
+function collectTaxpayerRecords(value: unknown, out: Record<string, unknown>[], depth = 0) {
+    if (depth > 8 || value == null) return;
+    if (Array.isArray(value)) {
+        for (const item of value) collectTaxpayerRecords(item, out, depth + 1);
+        return;
+    }
+    const rec = asRecord(value);
+    if (!rec) return;
+    if (
+        pickStr(rec, ...CUSTOMER_NAME_KEYS, "bhfNm", "locDesc", "prvncNm", "dstrtNm", "sctrNm", "taxprSttsCd", "bsnsActv")
+        || tinOf(rec)
+    ) {
+        out.push(rec);
+    }
+    for (const nested of [
+        rec.data, rec.responseBody, rec.info, rec.customer, rec.custList,
+        rec.infoList, rec.itemList, rec.bhfList, rec.branchList, rec.taxpayerList, rec.taxPayerList,
+    ]) {
+        collectTaxpayerRecords(nested, out, depth + 1);
+    }
+}
+
+type EtimsTaxpayerInfo = {
+    tin: string;
+    taxprNm: string;
+    taxprSttsCd: string;
+    locDesc: string;
+    sctrNm: string;
+    dstrtNm: string;
+    prvncNm: string;
+    bhfId: string;
+    bhfNm: string;
+    bsnsActv: string;
+    mgrNm: string;
+    mgrTelNo: string;
+    mgrEmail: string;
+};
+
+function emptyTaxpayer(ownTin = "", bhfId = ""): EtimsTaxpayerInfo {
+    return {
+        tin: ownTin,
+        taxprNm: "",
+        taxprSttsCd: "",
+        locDesc: "",
+        sctrNm: "",
+        dstrtNm: "",
+        prvncNm: "",
+        bhfId,
+        bhfNm: "",
+        bsnsActv: "",
+        mgrNm: "",
+        mgrTelNo: "",
+        mgrEmail: "",
+    };
+}
+
+function taxpayerFromRecord(raw: Record<string, unknown>, ownTin = "", bhfId = ""): EtimsTaxpayerInfo {
+    return {
+        tin: tinOf(raw) || pickStr(raw, "tin") || ownTin,
+        taxprNm: pickStr(raw, ...CUSTOMER_NAME_KEYS) || pickStr(raw, "bhfNm"),
+        taxprSttsCd: pickStr(raw, "taxprSttsCd", "bhfSttsCd"),
+        locDesc: pickStr(raw, "locDesc", "adrs"),
+        sctrNm: pickStr(raw, "sctrNm"),
+        dstrtNm: pickStr(raw, "dstrtNm"),
+        prvncNm: pickStr(raw, "prvncNm"),
+        bhfId: pickStr(raw, "bhfId") || bhfId,
+        bhfNm: pickStr(raw, "bhfNm"),
+        bsnsActv: pickStr(raw, "bsnsActv"),
+        mgrNm: pickStr(raw, "mgrNm"),
+        mgrTelNo: pickStr(raw, "mgrTelNo", "telNo"),
+        mgrEmail: pickStr(raw, "mgrEmail", "email"),
+    };
+}
+
+function flattenTaxpayer(result: unknown, ownTin: string, bhfId: string): EtimsTaxpayerInfo | null {
+    const candidates: Record<string, unknown>[] = [];
+    collectTaxpayerRecords(result, candidates);
+    const wanted = ownTin.trim().toUpperCase();
+    const ranked = candidates
+        .map((rec) => ({
+            rec,
+            score:
+                (pickStr(rec, ...CUSTOMER_NAME_KEYS) ? 8 : 0) +
+                (pickStr(rec, "bhfNm") ? 2 : 0) +
+                (pickStr(rec, "locDesc", "prvncNm", "dstrtNm") ? 1 : 0) +
+                (tinOf(rec) === wanted ? 2 : 0),
+        }))
+        .filter((row) => {
+            const tin = tinOf(row.rec);
+            return !tin || tin === wanted;
+        })
+        .sort((a, b) => b.score - a.score);
+    if (!ranked[0] || ranked[0].score <= 0) return null;
+    return taxpayerFromRecord(ranked[0].rec, ownTin, bhfId);
+}
+
+function mergeTaxpayer(base: EtimsTaxpayerInfo | null, extra: EtimsTaxpayerInfo | null): EtimsTaxpayerInfo | null {
+    if (!base) return extra;
+    if (!extra) return base;
+    return {
+        tin: base.tin || extra.tin,
+        taxprNm: base.taxprNm || extra.taxprNm,
+        taxprSttsCd: base.taxprSttsCd || extra.taxprSttsCd,
+        locDesc: base.locDesc || extra.locDesc,
+        sctrNm: base.sctrNm || extra.sctrNm,
+        dstrtNm: base.dstrtNm || extra.dstrtNm,
+        prvncNm: base.prvncNm || extra.prvncNm,
+        bhfId: base.bhfId || extra.bhfId,
+        bhfNm: base.bhfNm || extra.bhfNm,
+        bsnsActv: base.bsnsActv || extra.bsnsActv,
+        mgrNm: base.mgrNm || extra.mgrNm,
+        mgrTelNo: base.mgrTelNo || extra.mgrTelNo,
+        mgrEmail: base.mgrEmail || extra.mgrEmail,
+    };
+}
+
+function extractBhfRows(result: unknown): Record<string, unknown>[] {
+    const root = asRecord(result);
+    if (!root) return [];
+    const data = asRecord(root.data) ?? asRecord(root.responseBody) ?? root;
+    const inner = asRecord(data.data) ?? data;
+    const list = inner.bhfList ?? inner.branchList ?? inner.itemList ?? inner.bhfInfoList;
+    return Array.isArray(list) ? list as Record<string, unknown>[] : [];
+}
+
 /** Normalized branch customer for list/detail UI. */
 export type EtimsBranchCustomer = {
     custNo: string;
@@ -394,7 +519,11 @@ export const etimsDataRouter = router({
             }
         }),
 
-    /** POST /selectTaxPayerInfo */
+    /**
+     * Taxpayer / branch identity for settings and receipts.
+     * Gava `/selectTaxpayerInfo` often returns 000 with an empty body; fall back to
+     * `/customerPinInfo` for our own PIN, then the matching row from `/branchList`.
+     */
     getTaxPayerInfo: etimsProcedure
         .input(z.object({
             lastReqDt: z.string().regex(/^\d{14}$/, "Must be YYYYMMDDHHmmss").default("20180101000000"),
@@ -403,8 +532,41 @@ export const etimsDataRouter = router({
             assertReadAccess(ctx.session?.user?.role);
             const { client, oscu } = await getEtimsContext();
             try {
-                const result = await client.selectTaxPayerInfo(oscu, input.lastReqDt);
-                return { success: true, data: result };
+                let taxpayer = flattenTaxpayer(
+                    await client.selectTaxPayerInfo(oscu, input.lastReqDt),
+                    oscu.tin,
+                    oscu.bhfId,
+                );
+
+                if (!taxpayer?.taxprNm) {
+                    try {
+                        taxpayer = mergeTaxpayer(
+                            taxpayer,
+                            flattenTaxpayer(await client.selectCustomer(oscu, oscu.tin), oscu.tin, oscu.bhfId),
+                        );
+                    } catch {
+                        // `/customerPinInfo` is the device taxpayer on Gava; ignore if unavailable.
+                    }
+                }
+
+                if (!taxpayer?.taxprNm || !taxpayer.locDesc || !taxpayer.bhfNm) {
+                    try {
+                        const rows = extractBhfRows(await client.selectBhfList(oscu, input.lastReqDt));
+                        const match =
+                            rows.find((row) => pickStr(row, "bhfId") === oscu.bhfId) ??
+                            rows[0];
+                        if (match) {
+                            taxpayer = mergeTaxpayer(taxpayer, taxpayerFromRecord(match, oscu.tin, oscu.bhfId));
+                        }
+                    } catch {
+                        // Branch list is optional enrichment.
+                    }
+                }
+
+                return {
+                    success: true,
+                    data: taxpayer ?? emptyTaxpayer(oscu.tin, oscu.bhfId),
+                };
             } catch (error: unknown) {
                 const msg = (error as Error).message;
                 throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: msg || "Failed to retrieve taxpayer info" });
