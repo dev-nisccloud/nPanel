@@ -199,7 +199,6 @@ function FileManagerContent({
   const [bulkDeleteItems, setBulkDeleteItems] = useState<FileManagerItem[] | null>(null);
   const [viewingFile, setViewingFile] = useState<FileManagerItem | null>(null);
   const [extractingFile, setExtractingFile] = useState<FileManagerItem | null>(null);
-  const [availableDirectories, setAvailableDirectories] = useState<FileManagerItem[]>([]);
   const [copyDialogOpen, setCopyDialogOpen] = useState(false);
   const [copyTargets, setCopyTargets] = useState<FileManagerItem[]>([]);
   const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false);
@@ -320,8 +319,6 @@ function FileManagerContent({
   const handleMoveClick = (item: FileManagerItem) => {
     setSelectedItem(item);
     setMoveTargets([item]);
-    const directories = (data?.items || []).filter((entry) => entry.type === "folder");
-    setAvailableDirectories(directories);
     setMoveDialogOpen(true);
   };
 
@@ -336,8 +333,6 @@ function FileManagerContent({
     }
     setMoveTargets(items);
     setSelectedItem(items[0] ?? null);
-    const directories = (data?.items || []).filter((entry) => entry.type === "folder");
-    setAvailableDirectories(directories);
     setMoveDialogOpen(true);
   };
 
@@ -368,22 +363,6 @@ function FileManagerContent({
     setPermissionTargets(items);
     setPermissionsDialogOpen(true);
   };
-
-  const copyDestinations = React.useMemo(() => {
-    const options: { id: string; name: string; path: string }[] = [
-      { id: `current:${currentPath}`, name: "This folder", path: currentPath || "/" },
-    ];
-    if (currentPath && currentPath !== "/") {
-      const parent = currentPath.split("/").slice(0, -1).join("/") || "/";
-      options.push({ id: `parent:${parent}`, name: "Parent folder", path: parent });
-    }
-    for (const item of data?.items || []) {
-      if (item.type === "folder") {
-        options.push({ id: item.id, name: item.name, path: item.path });
-      }
-    }
-    return options;
-  }, [currentPath, data?.items]);
 
   const handleExtractClick = (item: FileManagerItem) => {
     setExtractingFile(item);
@@ -891,15 +870,11 @@ function FileManagerContent({
 
       <MoveFileDialog
         open={moveDialogOpen}
-        onOpenChange={(open) => {
-          setMoveDialogOpen(open);
-          if (!open) {
-            setAvailableDirectories([]); // Clear when dialog closes
-          }
-        }}
+        onOpenChange={setMoveDialogOpen}
         item={moveTargets[0] ?? selectedItem}
         items={moveTargets}
-        availableDirectories={availableDirectories}
+        currentPath={currentPath}
+        onLoadFolder={loadFolderTree}
         onConfirm={handleMoveConfirm}
         isMoving={isMoving}
       />
@@ -941,7 +916,8 @@ function FileManagerContent({
           if (!open) setCopyTargets([]);
         }}
         items={copyTargets}
-        destinations={copyDestinations}
+        currentPath={currentPath}
+        onLoadFolder={loadFolderTree}
         isCopying={isCopying}
         onConfirm={async (destinationPath) => {
           await copyItems(
