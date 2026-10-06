@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Copy, Folder, FolderOpen } from "lucide-react";
+import { Copy, Folder } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -12,10 +12,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { toast } from "@/components/ui/sonner";
+import {
+  FileManagerFolderTree,
+  type FolderTreeNode,
+} from "@/components/hosting/file-manager-folder-tree";
 
 export interface CopyDialogItem {
   id: string;
@@ -24,17 +26,12 @@ export interface CopyDialogItem {
   type: "file" | "folder";
 }
 
-export interface CopyDialogDestination {
-  id: string;
-  name: string;
-  path: string;
-}
-
 interface CopyFileDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   items: CopyDialogItem[];
-  destinations: CopyDialogDestination[];
+  currentPath: string;
+  onLoadFolder: (path: string) => Promise<FolderTreeNode[]>;
   onConfirm: (destinationPath: string) => Promise<void>;
   isCopying: boolean;
 }
@@ -55,22 +52,19 @@ export function CopyFileDialog({
   open,
   onOpenChange,
   items,
-  destinations,
+  currentPath,
+  onLoadFolder,
   onConfirm,
   isCopying,
 }: CopyFileDialogProps) {
-  const [selectedDirectory, setSelectedDirectory] = React.useState("");
-  const [customPath, setCustomPath] = React.useState("");
+  const [selectedDirectory, setSelectedDirectory] = React.useState(currentPath || "/");
 
   React.useEffect(() => {
     if (!open) return;
-    setSelectedDirectory(destinations[0]?.path ?? "");
-    setCustomPath("");
-    // Reset only when the dialog opens, not when the folder list refreshes behind it.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+    setSelectedDirectory(currentPath || "/");
+  }, [open, currentPath]);
 
-  const destinationPath = customPath.trim() || selectedDirectory;
+  const destinationPath = selectedDirectory || "/";
 
   const handleConfirm = async () => {
     if (items.length === 0 || !destinationPath) return;
@@ -94,80 +88,57 @@ export function CopyFileDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Copy className="h-5 w-5 text-primary" />
+      <DialogContent className="flex max-h-[min(85vh,40rem)] min-w-0 flex-col overflow-hidden sm:max-w-xl">
+        <DialogHeader className="min-w-0 shrink-0 pr-8">
+          <DialogTitle className="flex min-w-0 items-center gap-2 break-words">
+            <Copy className="h-5 w-5 shrink-0 text-primary" />
             Copy {items.length === 1 ? (items[0]?.type === "folder" ? "folder" : "file") : "items"}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="break-words">
             The original stays in place. A copy is created in the folder you choose. If that name already exists, the copy is named with “copy”.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
-          <div className="flex items-center gap-3 rounded-lg bg-muted p-3">
+        <div className="min-h-0 min-w-0 flex-1 space-y-4 overflow-y-auto py-1">
+          <div className="flex min-w-0 items-center gap-3 rounded-lg bg-muted p-3">
             <Folder className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium" title={label}>
                 {label}
               </p>
               {items.length === 1 ? (
-                <p className="truncate text-xs text-muted-foreground" title={items[0]?.path}>
+                <p className="break-all text-xs text-muted-foreground" title={items[0]?.path}>
                   {items[0]?.path}
                 </p>
               ) : (
-                <p className="truncate text-xs text-muted-foreground">
+                <p className="break-words text-xs text-muted-foreground">
                   {items.map((item) => item.name).join(", ")}
                 </p>
               )}
             </div>
           </div>
 
-          {destinations.length > 0 ? (
-            <div className="space-y-2">
-              <Label>Destination folder</Label>
-              <div className="grid max-h-40 grid-cols-1 gap-2 overflow-y-auto rounded-lg border p-2">
-                {destinations.map((directory) => (
-                  <button
-                    key={directory.id}
-                    type="button"
-                    className={`flex items-center gap-2 rounded p-2 text-left transition-colors ${
-                      !customPath && selectedDirectory === directory.path
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-muted"
-                    }`}
-                    onClick={() => {
-                      setSelectedDirectory(directory.path);
-                      setCustomPath("");
-                    }}
-                    disabled={isCopying}
-                  >
-                    <FolderOpen className="h-4 w-4 shrink-0" />
-                    <span className="truncate text-sm">{directory.name}</span>
-                    <span className="ml-auto truncate text-xs opacity-70">{directory.path}</span>
-                  </button>
-                ))}
-              </div>
+          <div className="min-w-0 space-y-2">
+            <p className="text-sm font-medium">Destination folder</p>
+            <div className={isCopying ? "pointer-events-none opacity-60" : undefined}>
+              {open ? (
+                <FileManagerFolderTree
+                  className="h-64 rounded-lg bg-background"
+                  showHeader={false}
+                  currentPath={destinationPath}
+                  expandPath={currentPath || "/"}
+                  onPathSelect={setSelectedDirectory}
+                  onLoadFolder={onLoadFolder}
+                />
+              ) : null}
             </div>
-          ) : null}
-
-          <div className="space-y-2">
-            <Label htmlFor="copy-destination-path">Or enter a folder path</Label>
-            <Input
-              id="copy-destination-path"
-              value={customPath}
-              onChange={(event) => setCustomPath(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && !isCopying) void handleConfirm();
-              }}
-              placeholder="/httpdocs/backup"
-              disabled={isCopying}
-            />
+            <p className="break-all text-xs text-muted-foreground">
+              Selected: {destinationPath}
+            </p>
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isCopying}>
             Cancel
           </Button>

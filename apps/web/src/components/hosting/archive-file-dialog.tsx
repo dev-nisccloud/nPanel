@@ -68,23 +68,24 @@ export function ArchiveFileDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Archive className="h-5 w-5" />
+      <DialogContent className="min-w-0 overflow-hidden sm:max-w-md">
+        <DialogHeader className="min-w-0 pr-8">
+          <DialogTitle className="flex min-w-0 items-center gap-2">
+            <Archive className="h-5 w-5 shrink-0" />
             Archive
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="break-words">
             {items.length === 1
               ? `Save ${items[0]?.name ?? "this item"} as a zip in this folder.`
               : `Save ${items.length} items as a zip in this folder.`}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-2">
+        <div className="min-w-0 space-y-2">
           <Label htmlFor="archive-name">Archive name</Label>
           <Input
             id="archive-name"
+            className="min-w-0"
             value={archiveName}
             onChange={(event) => setArchiveName(event.target.value)}
             disabled={isArchiving}
@@ -92,7 +93,7 @@ export function ArchiveFileDialog({
               if (event.key === "Enter" && !isArchiving) void handleConfirm();
             }}
           />
-          <p className="text-sm text-muted-foreground">
+          <p className="break-all text-sm text-muted-foreground">
             The zip is created in {currentPath || "/"}.
           </p>
         </div>
