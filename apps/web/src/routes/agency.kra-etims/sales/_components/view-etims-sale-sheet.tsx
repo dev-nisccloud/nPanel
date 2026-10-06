@@ -74,7 +74,7 @@ export function ViewETimsSaleSheet({
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
-            <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+            <SheetContent size="wide" className="w-full min-w-0 overflow-x-hidden overflow-y-auto">
                 <SheetHeader>
                     <div className="flex items-start justify-between gap-3 pr-6">
                         <div className="space-y-1">
@@ -269,8 +269,8 @@ export function ViewETimsSaleSheet({
                     </section>
                 </div>
 
-                <SheetFooter className="mt-8 flex-col gap-2 sm:flex-row sm:justify-between">
-                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <SheetFooter className="mt-8 flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-between">
+                    <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 w-full sm:w-auto min-w-0">
                         {onDownload ? (
                             <Button
                                 type="button"

@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { db } from "@npanel/db";
 import { eTimsConfiguration } from "@npanel/db/schema/etims";
-import { type EtimsClientConfig, type EtimsOscuHeaders, getEtimsClient, type EtimsOscuClient } from "./etims-client";
+import { type EtimsClientConfig, type EtimsOscuHeaders, getEtimsClient, createEtimsClient, type EtimsOscuClient } from "./etims-client";
 export { getEtimsClient };
 
 export interface EtimsContext {
@@ -117,4 +117,40 @@ export async function getEtimsContext(): Promise<EtimsContext> {
     };
 
     return { client, oscu, isSandbox: config.isSandbox };
+}
+
+const CLASSIC_SANDBOX_BASE = "https://etims-api-sbx.kra.go.ke/etims-api";
+const CLASSIC_PROD_BASE = "https://etims-api.kra.go.ke/etims-api";
+
+function isGavaSalesInventoryMiss(message: string) {
+    return /does not exist in your inventory/i.test(message)
+        || /Item itemCd provided/i.test(message)
+        || /item management package/i.test(message);
+}
+
+/**
+ * Gava `/sendSalesTransaction` checks its own item catalog. Service items are often
+ * saved on classic OSCU (`saveItem` fallback), so retry the sale there. Services have
+ * no stock — this is an item-list lookup, not stock I/O.
+ */
+export async function saveTrnsSalesOnKra(
+    client: EtimsOscuClient,
+    oscu: EtimsOscuHeaders,
+    isSandbox: boolean,
+    transaction: Record<string, unknown>,
+) {
+    try {
+        return await client.saveTrnsSalesOsdc(oscu, transaction);
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (!isGavaSalesInventoryMiss(message)) throw error;
+
+        const classic = createEtimsClient({
+            ...buildClientConfigFromEnv(isSandbox),
+            baseUrl: isSandbox ? CLASSIC_SANDBOX_BASE : CLASSIC_PROD_BASE,
+            memoryTokenOnly: true,
+        });
+        console.warn("[eTIMS] saveTrnsSalesOsdc Gava item catalog miss, retrying classic OSCU");
+        return await classic.saveTrnsSalesOsdc(oscu, transaction);
+    }
 }

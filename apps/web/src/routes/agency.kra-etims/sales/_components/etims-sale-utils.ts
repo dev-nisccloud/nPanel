@@ -1,3 +1,4 @@
+import { format, formatDistanceToNowStrict } from "date-fns";
 import { creditNoteReasonLabel } from "./issue-etims-credit-note-sheet";
 
 export type EtimsSaleRecord = Record<string, unknown> & {
@@ -97,6 +98,59 @@ export function lineTaxableAmount(line: Record<string, unknown>) {
 export function formatKraDateTime(value?: string | null) {
     if (!value) return "";
     return String(value).replace("T", " ").replace(/\.0+$/, "").trim();
+}
+
+export function parseKraStamp(value?: string | null): Date | null {
+    if (!value) return null;
+    const raw = String(value).trim();
+    if (!raw) return null;
+    if (/^\d{14}$/.test(raw)) {
+        const parsed = new Date(
+            Number(raw.slice(0, 4)),
+            Number(raw.slice(4, 6)) - 1,
+            Number(raw.slice(6, 8)),
+            Number(raw.slice(8, 10)),
+            Number(raw.slice(10, 12)),
+            Number(raw.slice(12, 14)),
+        );
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+    if (/^\d{8}$/.test(raw)) {
+        const parsed = new Date(Number(raw.slice(0, 4)), Number(raw.slice(4, 6)) - 1, Number(raw.slice(6, 8)));
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+    const parsed = new Date(raw);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+/** e.g. `1 day ago (06 October 2026, 11:32:05 AM)` */
+export function formatKraHumanDateTime(value?: string | null): string {
+    const date = parseKraStamp(value);
+    if (!date) return "";
+    const relative = formatDistanceToNowStrict(date, { addSuffix: true });
+    return `${relative} (${format(date, "dd MMMM yyyy, hh:mm:ss a")})`;
+}
+
+export function kraStampMillis(value?: string | null): number {
+    return parseKraStamp(value)?.getTime() ?? 0;
+}
+
+export function compareKraNewestFirst(a: EtimsSaleRecord, b: EtimsSaleRecord): number {
+    const aT = kraStampMillis(String(a.cfmDt ?? a.rfdDt ?? a.salesDt ?? ""));
+    const bT = kraStampMillis(String(b.cfmDt ?? b.rfdDt ?? b.salesDt ?? ""));
+    if (bT !== aT) return bT - aT;
+    return Number(b.invcNo ?? 0) - Number(a.invcNo ?? 0);
+}
+
+export function formatSaleTableDateTime(sale: EtimsSaleRecord & { salesTime?: string | null }): string {
+    const salesTime = String(sale.salesTime ?? "").replace(/\D/g, "");
+    const salesDt = String(sale.salesDt ?? "");
+    const combined =
+        salesDt.length === 8 && salesTime.length >= 4
+            ? `${salesDt}${salesTime.padEnd(6, "0").slice(0, 6)}`
+            : salesDt;
+    const preferred = isCreditNote(sale) ? sale.rfdDt || sale.cfmDt : sale.cfmDt || sale.rfdDt;
+    return formatKraHumanDateTime(preferred) || formatKraHumanDateTime(combined) || "";
 }
 
 export function formatSalesDate(value?: string | null) {
