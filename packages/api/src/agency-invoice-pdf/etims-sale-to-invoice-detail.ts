@@ -55,6 +55,23 @@ function moneyString(value: unknown): string {
 	return Number.isFinite(n) ? n.toFixed(2) : "0.00";
 }
 
+function newPdfId(): string {
+	const webCrypto = globalThis.crypto as
+		| { randomUUID?: () => string; getRandomValues?: (array: Uint8Array) => Uint8Array }
+		| undefined;
+	if (typeof webCrypto?.randomUUID === "function") {
+		return webCrypto.randomUUID();
+	}
+	if (typeof webCrypto?.getRandomValues === "function") {
+		const bytes = webCrypto.getRandomValues(new Uint8Array(16));
+		bytes[6] = (bytes[6] & 0x0f) | 0x40;
+		bytes[8] = (bytes[8] & 0x3f) | 0x80;
+		const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+		return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+	}
+	return `etims-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 function parseKraDate(salesDt?: unknown, cfmDt?: unknown): Date {
 	const cfm = stringOrNull(cfmDt);
 	if (cfm && /^\d{14}$/.test(cfm)) {
@@ -139,7 +156,7 @@ function lineItemsFromSale(sale: Record<string, unknown>, now: Date) {
 		const unit = prc > 0 ? prc : taxbl > 0 ? taxbl / qty : Number(line.splyAmt ?? 0) / qty;
 		const total = Number(line.totAmt ?? line.taxblAmt ?? unit * qty);
 		return {
-			id: crypto.randomUUID(),
+			id: newPdfId(),
 			position: Number(line.itemSeq ?? index + 1) || index,
 			name: stringOrNull(line.itemNm) ?? "Item",
 			description: stringOrNull(line.itemCd),
@@ -216,7 +233,7 @@ export function buildInvoiceDetailFromEtimsSale(
 	const customerTin = stringOrNull(sale.custTin);
 
 	const detail = {
-		id: crypto.randomUUID(),
+		id: newPdfId(),
 		invoiceNumber: documentNumber(sale),
 		customerName,
 		customerEmail: null,
@@ -322,7 +339,7 @@ export function buildCreditNoteDetailFromEtimsSale(
 
 	return {
 		id: invoiceLike.id,
-		invoiceId: crypto.randomUUID(),
+		invoiceId: newPdfId(),
 		teamId: null,
 		creditNumber: documentNumber(sale),
 		status: "ISSUED",

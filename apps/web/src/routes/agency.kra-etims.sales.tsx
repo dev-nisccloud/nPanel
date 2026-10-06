@@ -47,6 +47,8 @@ import {
     type EtimsSaleForCreditNote,
 } from "./agency.kra-etims/sales/_components/issue-etims-credit-note-sheet";
 import {
+    compareKraNewestFirst,
+    formatSaleTableDateTime,
     normalizeSalesListItem,
     type EtimsSaleRecord,
 } from "./agency.kra-etims/sales/_components/etims-sale-utils";
@@ -96,7 +98,10 @@ export default function ETimsSalesPage() {
         const data: any = payload?.data ?? payload;
         // KRA OSCU returns `salesList` from /selectTrnsSalesList; purchase search uses `saleList`
         const list = data?.salesList ?? data?.saleList ?? data?.itemList ?? [];
-        return Array.isArray(list) ? list.map((item: Record<string, unknown>) => normalizeSalesListItem(item)) : [];
+        const items = Array.isArray(list)
+            ? list.map((item: Record<string, unknown>) => normalizeSalesListItem(item))
+            : [];
+        return items.sort(compareKraNewestFirst);
     }, [salesData]);
 
     const etimsCfg = (etimsConfig as { config?: { kraPin?: string; branchId?: string; isSandbox?: boolean } } | undefined)?.config;
@@ -420,10 +425,8 @@ export default function ETimsSalesPage() {
                                                             </div>
                                                         ) : null}
                                                     </td>
-                                                    <td className="px-4 py-4 text-muted-foreground">
-                                                        {invoice.cfmDt
-                                                            ? String(invoice.cfmDt).replace("T", " ").slice(0, 19)
-                                                            : `${invoice.salesDt ?? ""} ${invoice.salesTime ?? ""}`.trim()}
+                                                    <td className="px-4 py-4 text-xs text-muted-foreground whitespace-normal max-w-[260px]">
+                                                        {formatSaleTableDateTime(invoice) || "-"}
                                                     </td>
                                                     <td className="px-4 py-4 font-medium">
                                                         {Number(invoice.displayAmount ?? 0).toLocaleString()} KES
@@ -547,12 +550,8 @@ export default function ETimsSalesPage() {
                                                             {invoice.displayKraRef ?? ""}
                                                         </div>
                                                     </td>
-                                                    <td className="px-4 py-4 text-muted-foreground">
-                                                        {invoice.rfdDt
-                                                            ? String(invoice.rfdDt).replace("T", " ").slice(0, 19)
-                                                            : invoice.cfmDt
-                                                                ? String(invoice.cfmDt).replace("T", " ").slice(0, 19)
-                                                                : `${invoice.salesDt ?? ""}`.trim()}
+                                                    <td className="px-4 py-4 text-xs text-muted-foreground whitespace-normal max-w-[260px]">
+                                                        {formatSaleTableDateTime(invoice) || "-"}
                                                     </td>
                                                     <td className="px-4 py-4 font-medium">
                                                         {Number(invoice.displayAmount ?? 0).toLocaleString()} KES

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { router } from "../../trpc";
 import { TRPCError } from "@trpc/server";
-import { getEtimsContext } from "../../lib/etims-config";
+import { getEtimsContext, saveTrnsSalesOnKra } from "../../lib/etims-config";
 import { etimsProcedure, skipEtimsAuthChecks } from "./_procedure";
 
 const isAgencyUser = (r: string | null | undefined) =>
@@ -102,9 +102,9 @@ export const etimsSalesRouter = router({
         .input(z.object({ transaction: salesTransactionSchema }))
         .mutation(async ({ ctx, input }) => {
             assertWrite(ctx.session?.user?.role);
-            const { client, oscu } = await getEtimsContext();
+            const { client, oscu, isSandbox } = await getEtimsContext();
             try {
-                const result = await client.saveTrnsSalesOsdc(oscu, input.transaction as Record<string, unknown>);
+                const result = await saveTrnsSalesOnKra(client, oscu, isSandbox, input.transaction as Record<string, unknown>);
                 return { success: true, data: result };
             } catch (e: unknown) {
                 const msg = (e as Error).message ?? "";
@@ -121,9 +121,9 @@ export const etimsSalesRouter = router({
         .input(z.object({ transaction: creditNoteTransactionSchema }))
         .mutation(async ({ ctx, input }) => {
             assertWrite(ctx.session?.user?.role);
-            const { client, oscu } = await getEtimsContext();
+            const { client, oscu, isSandbox } = await getEtimsContext();
             try {
-                const result = await client.saveTrnsSalesOsdc(oscu, input.transaction as Record<string, unknown>);
+                const result = await saveTrnsSalesOnKra(client, oscu, isSandbox, input.transaction as Record<string, unknown>);
                 const body = result as { resultCd?: string; resultMsg?: string };
                 if (body?.resultCd && body.resultCd !== "000") {
                     return { success: false, data: null, errorMessage: body.resultMsg ?? "Failed to send credit note" };

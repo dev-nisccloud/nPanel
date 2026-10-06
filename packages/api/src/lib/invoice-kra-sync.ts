@@ -1,7 +1,7 @@
 import { and, eq, isNull, or, sql } from "@npanel/db";
 import { db } from "@npanel/db";
 import { invoice } from "@npanel/db/schema/invoicing";
-import { getEtimsContext } from "./etims-config";
+import { getEtimsContext, saveTrnsSalesOnKra } from "./etims-config";
 import {
 	buildEtimsReceiptVerifyUrl,
 	extractRcptSignFromKraResponse,
@@ -164,8 +164,10 @@ export async function processInvoiceKraSync(invoiceId: string): Promise<InvoiceK
 	const payload = built.transaction;
 
 	try {
-		const response = await etimsContext.client.saveTrnsSalesOsdc(
+		const response = await saveTrnsSalesOnKra(
+			etimsContext.client,
 			etimsContext.oscu,
+			etimsContext.isSandbox,
 			payload as Record<string, unknown>,
 		);
 

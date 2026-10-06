@@ -22,6 +22,108 @@ export const TAX_TYPES = [
 
 export type TaxTypeCode = (typeof TAX_TYPES)[number]["code"];
 
+export type EtimsTaxpayerRow = {
+	tin: string;
+	taxprNm: string;
+	taxprSttsCd: string;
+	locDesc: string;
+	sctrNm: string;
+	dstrtNm: string;
+	prvncNm: string;
+	bhfId: string;
+	bhfNm: string;
+	bsnsActv: string;
+	mgrNm: string;
+	mgrTelNo: string;
+	mgrEmail: string;
+};
+
+function strField(rec: Record<string, unknown>, ...keys: string[]): string {
+	for (const key of keys) {
+		const value = rec[key];
+		if (typeof value === "string" && value.trim()) return value.trim();
+		if (typeof value === "number" && Number.isFinite(value)) return String(value);
+	}
+	return "";
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+	if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+	return value as Record<string, unknown>;
+}
+
+function collectTaxpayerCandidates(value: unknown, out: Record<string, unknown>[], depth = 0) {
+	if (depth > 8 || value == null) return;
+	if (Array.isArray(value)) {
+		for (const item of value) collectTaxpayerCandidates(item, out, depth + 1);
+		return;
+	}
+	const rec = asRecord(value);
+	if (!rec) return;
+	if (
+		strField(rec, "taxprNm", "taxpayerNm", "custmNm", "custNm", "bhfNm", "locDesc", "prvncNm", "dstrtNm", "sctrNm", "taxprSttsCd", "bsnsActv") ||
+		strField(rec, "tin", "custmTin", "custTin")
+	) {
+		out.push(rec);
+	}
+	for (const nested of [
+		rec.data,
+		rec.responseBody,
+		rec.info,
+		rec.customer,
+		rec.custList,
+		rec.infoList,
+		rec.itemList,
+		rec.bhfList,
+		rec.branchList,
+		rec.taxpayerList,
+		rec.taxPayerList,
+	]) {
+		collectTaxpayerCandidates(nested, out, depth + 1);
+	}
+}
+
+function taxpayerFromRecord(raw: Record<string, unknown>): EtimsTaxpayerRow {
+	return {
+		tin: strField(raw, "tin", "custmTin", "custTin", "taxprTin"),
+		taxprNm: strField(raw, "taxprNm", "taxpayerNm", "custmNm", "custNm", "bhfNm"),
+		taxprSttsCd: strField(raw, "taxprSttsCd", "bhfSttsCd"),
+		locDesc: strField(raw, "locDesc", "adrs"),
+		sctrNm: strField(raw, "sctrNm"),
+		dstrtNm: strField(raw, "dstrtNm"),
+		prvncNm: strField(raw, "prvncNm"),
+		bhfId: strField(raw, "bhfId"),
+		bhfNm: strField(raw, "bhfNm"),
+		bsnsActv: strField(raw, "bsnsActv"),
+		mgrNm: strField(raw, "mgrNm"),
+		mgrTelNo: strField(raw, "mgrTelNo", "telNo"),
+		mgrEmail: strField(raw, "mgrEmail", "email"),
+	};
+}
+
+/** Flatten KRA `/selectTaxpayerInfo`, `/customerPinInfo`, or branch rows into one taxpayer record. */
+export function extractTaxpayerRow(root: unknown): EtimsTaxpayerRow {
+	const data = unwrapKraData(root);
+	const candidates: Record<string, unknown>[] = [];
+	collectTaxpayerCandidates(root, candidates);
+	collectTaxpayerCandidates(data, candidates);
+	const info = asRecord(data.info);
+	if (info) candidates.unshift(info);
+
+	const scored = candidates
+		.map((rec) => ({
+			rec,
+			score:
+				(strField(rec, "taxprNm", "taxpayerNm", "custmNm", "custNm") ? 8 : 0) +
+				(strField(rec, "bhfNm") ? 2 : 0) +
+				(strField(rec, "locDesc", "prvncNm", "dstrtNm") ? 1 : 0),
+		}))
+		.sort((a, b) => b.score - a.score);
+
+	if (scored[0] && scored[0].score > 0) return taxpayerFromRecord(scored[0].rec);
+	return taxpayerFromRecord(data);
+}
+
 export function unwrapKraData(root: unknown): Record<string, unknown> {
 	if (!root || typeof root !== "object") return {};
 	const r = root as Record<string, unknown>;
