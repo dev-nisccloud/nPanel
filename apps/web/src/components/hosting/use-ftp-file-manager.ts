@@ -257,14 +257,16 @@ export function useFtpFileManager(
 		},
 	});
 
+	const suppressRenameToast = useRef(false);
 	const renameMutation = trpc.plesk.ftp.rename.useMutation({
 		onSuccess: () => {
 			captureEvent("file_renamed");
-
-			toast.success("Item renamed successfully");
 			void refetch();
+			if (suppressRenameToast.current) return;
+			toast.success("Item renamed successfully");
 		},
 		onError: (mutationError) => {
+			if (suppressRenameToast.current) return;
 			toast.error("Failed to rename item", {
 				description: ftpErrorTextRef.current(mutationError),
 			});
@@ -320,6 +322,76 @@ export function useFtpFileManager(
 			oldPath,
 			newPath,
 		});
+	};
+
+	const moveItems = async (
+		items: Array<{ path: string; type: "file" | "folder" }>,
+		destinationPath: string,
+	) => {
+		const destination = destinationPath === "/" ? "/" : destinationPath.replace(/\/+$/, "");
+		const blocked = items.find((item) => {
+			if (item.type !== "folder") return false;
+			const folder = item.path.replace(/\/+$/, "") || "/";
+			return destination === folder || destination.startsWith(`${folder}/`);
+		});
+		if (blocked) {
+			toast.error("A folder cannot be moved into itself.");
+			throw new Error("A folder cannot be moved into itself.");
+		}
+
+		suppressRenameToast.current = true;
+		try {
+			let moved = 0;
+			for (const item of items) {
+				const fileName = item.path.split("/").pop() || "";
+				const newPath = destination === "/" ? `/${fileName}` : `${destination}/${fileName}`;
+				if (newPath === item.path) continue;
+				await renameMutation.mutateAsync({
+					credentials: ftpCredentials,
+					oldPath: item.path,
+					newPath,
+				});
+				moved += 1;
+			}
+			if (moved === 0) {
+				toast.info("Those items are already in this folder");
+			} else {
+				toast.success(moved === 1 ? "Moved successfully" : `Moved ${moved} items`);
+			}
+			void refetch();
+		} catch (moveError) {
+			toast.error("Failed to move", {
+				description: ftpErrorTextRef.current(moveError),
+			});
+			throw moveError;
+		} finally {
+			suppressRenameToast.current = false;
+		}
+	};
+
+	const archiveMutation = trpc.plesk.ftp.archive.useMutation();
+
+	const archiveItems = async (
+		items: Array<{ path: string; type: "file" | "folder" }>,
+		destinationPath: string,
+		archiveName: string,
+	) => {
+		try {
+			const result = await archiveMutation.mutateAsync({
+				credentials: ftpCredentials,
+				sources: items,
+				destinationPath,
+				archiveName,
+			});
+			captureEvent("files_archived", { count: items.length });
+			toast.success(result.message || "Archived successfully");
+			void refetch();
+		} catch (archiveError) {
+			toast.error("Failed to archive", {
+				description: ftpErrorTextRef.current(archiveError),
+			});
+			throw archiveError;
+		}
 	};
 
 	const copyMutation = trpc.plesk.ftp.copy.useMutation();
@@ -467,6 +539,8 @@ export function useFtpFileManager(
 		deleteItem,
 		renameItem,
 		moveItem,
+		moveItems,
+		archiveItems,
 		copyItems,
 		changePermissions,
 		createFolder,
@@ -475,6 +549,7 @@ export function useFtpFileManager(
 		isDeleting: deleteFileMutation.isPending || deleteDirectoryMutation.isPending,
 		isRenaming: renameMutation.isPending,
 		isMoving: renameMutation.isPending,
+		isArchiving: archiveMutation.isPending,
 		isCopying: copyMutation.isPending,
 		isChangingPermissions: chmodMutation.isPending,
 		isCreating: createDirectoryMutation.isPending,

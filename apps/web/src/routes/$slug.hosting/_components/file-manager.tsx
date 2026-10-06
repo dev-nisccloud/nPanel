@@ -71,6 +71,7 @@ import { FileViewerSheet, isViewableFile } from "./file-viewer-sheet";
 import { MediaViewerDialog, isViewableMediaFile } from "./media-viewer-dialog";
 import { CopyFileDialog } from "@/components/hosting/copy-file-dialog";
 import { PermissionsDialog } from "@/components/hosting/permissions-dialog";
+import { ArchiveFileDialog } from "@/components/hosting/archive-file-dialog";
 import { ExtractZipDialog } from "./extract-zip-dialog";
 
 interface FileManagerProps {
@@ -185,6 +186,9 @@ function FileManagerContent({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+  const [moveTargets, setMoveTargets] = useState<FileManagerItem[]>([]);
+  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
+  const [archiveTargets, setArchiveTargets] = useState<FileManagerItem[]>([]);
   const [newFolderDialogOpen, setNewFolderDialogOpen] = useState(false);
   const [uploadSheetOpen, setUploadSheetOpen] = useState(false);
   const [fileViewerOpen, setFileViewerOpen] = useState(false);
@@ -250,7 +254,8 @@ function FileManagerContent({
     listDirectory,
     deleteItem,
     renameItem,
-    moveItem,
+    moveItems,
+    archiveItems,
     copyItems,
     changePermissions,
     createFolder,
@@ -259,6 +264,7 @@ function FileManagerContent({
     isDeleting,
     isRenaming,
     isMoving,
+    isArchiving,
     isCopying,
     isChangingPermissions,
     isCreating,
@@ -313,10 +319,36 @@ function FileManagerContent({
 
   const handleMoveClick = (item: FileManagerItem) => {
     setSelectedItem(item);
-    // Capture available directories at the time of opening the dialog
-    const directories = (data?.items || []).filter(item => item.type === "folder");
+    setMoveTargets([item]);
+    const directories = (data?.items || []).filter((entry) => entry.type === "folder");
     setAvailableDirectories(directories);
     setMoveDialogOpen(true);
+  };
+
+  const selectedFileItems = () =>
+    (data?.items || []).filter((item) => selectedItems.includes(item.id));
+
+  const handleSelectionMove = () => {
+    const items = selectedFileItems();
+    if (items.length === 0) {
+      toast.error("Select at least one file or folder to move");
+      return;
+    }
+    setMoveTargets(items);
+    setSelectedItem(items[0] ?? null);
+    const directories = (data?.items || []).filter((entry) => entry.type === "folder");
+    setAvailableDirectories(directories);
+    setMoveDialogOpen(true);
+  };
+
+  const handleSelectionArchive = () => {
+    const items = selectedFileItems();
+    if (items.length === 0) {
+      toast.error("Select at least one file or folder to archive");
+      return;
+    }
+    setArchiveTargets(items);
+    setArchiveDialogOpen(true);
   };
 
   const handleCopyClick = (items: FileManagerItem[]) => {
@@ -417,9 +449,21 @@ function FileManagerContent({
   };
 
   const handleMoveConfirm = async (destinationPath: string) => {
-    if (selectedItem) {
-      await moveItem(selectedItem.path, destinationPath);
-    }
+    if (moveTargets.length === 0) return;
+    await moveItems(
+      moveTargets.map((item) => ({ path: item.path, type: item.type })),
+      destinationPath,
+    );
+    setSelectedItems([]);
+  };
+
+  const handleArchiveConfirm = async (archiveName: string) => {
+    await archiveItems(
+      archiveTargets.map((item) => ({ path: item.path, type: item.type })),
+      currentPath,
+      archiveName,
+    );
+    setSelectedItems([]);
   };
 
   const handleDownloadClick = async (item: FileManagerItem) => {
@@ -511,10 +555,8 @@ function FileManagerContent({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  // Move bulk action
-                  toast.info("Move functionality coming soon");
-                }}
+                onClick={handleSelectionMove}
+                disabled={isMoving}
               >
                 <Move className="h-4 w-4 mr-2" />
                 Move
@@ -522,10 +564,8 @@ function FileManagerContent({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  // Archive action - placeholder
-                  toast.info("Archive functionality coming soon");
-                }}
+                onClick={handleSelectionArchive}
+                disabled={isArchiving}
               >
                 <Archive className="h-4 w-4 mr-2" />
                 Archive
@@ -857,10 +897,23 @@ function FileManagerContent({
             setAvailableDirectories([]); // Clear when dialog closes
           }
         }}
-        item={selectedItem}
+        item={moveTargets[0] ?? selectedItem}
+        items={moveTargets}
         availableDirectories={availableDirectories}
         onConfirm={handleMoveConfirm}
         isMoving={isMoving}
+      />
+
+      <ArchiveFileDialog
+        open={archiveDialogOpen}
+        onOpenChange={(open) => {
+          setArchiveDialogOpen(open);
+          if (!open) setArchiveTargets([]);
+        }}
+        items={archiveTargets}
+        currentPath={currentPath}
+        isArchiving={isArchiving}
+        onConfirm={handleArchiveConfirm}
       />
 
       <PermissionsDialog
