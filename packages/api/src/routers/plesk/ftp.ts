@@ -1,7 +1,9 @@
 import { AsyncLocalStorage } from "node:async_hooks";
+import { createWriteStream } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import archiver from "archiver";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { Client, FileInfo, enterPassiveModeIPv4 } from "basic-ftp";
@@ -9,6 +11,7 @@ import { posix } from "path";
 
 import {
   createFtpDownloadUrl,
+  isOptionalFtpSizeError,
   safeFtpDownloadName,
 } from "../../lib/plesk/ftp-download";
 import {
@@ -286,6 +289,24 @@ const chmodSchema = z.object({
   mode: z.string().regex(/^[0-7]{3}$/, "Permissions must be a mode like 644 or 755"),
   recursive: z.boolean().default(false),
 });
+
+const archiveSchema = z.object({
+  credentials: ftpConnectionSchema,
+  sources: z
+    .array(
+      z.object({
+        path: z.string().min(1),
+        type: z.enum(["file", "folder"]),
+      }),
+    )
+    .min(1)
+    .max(100),
+  destinationPath: z.string().min(1, "Destination path is required"),
+  archiveName: z.string().min(1).max(180),
+});
+
+const ARCHIVE_MAX_BYTES = 500 * 1024 * 1024;
+const ARCHIVE_MAX_FILES = 5000;
 
 const copySchema = z.object({
   credentials: ftpConnectionSchema,
@@ -708,6 +729,73 @@ function uniqueCopyName(existing: Set<string>, name: string, isFolder: boolean):
   }
   existing.add(candidate);
   return candidate;
+}
+
+function uniqueZipName(existing: Set<string>, requested: string): string {
+  const cleaned = requested.split(/[/\\]/).pop()?.replace(/[\r\n"]/g, "").trim() || "archive.zip";
+  const withExt = cleaned.toLowerCase().endsWith(".zip") ? cleaned : `${cleaned}.zip`;
+  if (!existing.has(withExt)) return withExt;
+  const base = withExt.slice(0, -4);
+  let suffix = 2;
+  let candidate = `${base} ${suffix}.zip`;
+  while (existing.has(candidate)) {
+    suffix += 1;
+    candidate = `${base} ${suffix}.zip`;
+  }
+  return candidate;
+}
+
+async function collectArchiveEntries(
+  client: Client,
+  remotePath: string,
+  zipName: string,
+  isFolder: boolean,
+  entries: Array<{ remotePath: string; zipName: string; size: number }>,
+  depth: number,
+): Promise<number> {
+  if (depth > 40) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "This folder is nested too deeply to archive.",
+    });
+  }
+  if (!isFolder) {
+    let size = 0;
+    try {
+      size = await client.size(remotePath);
+    } catch (error) {
+      if (!isOptionalFtpSizeError(error)) throw error;
+    }
+    entries.push({ remotePath, zipName, size });
+    return size;
+  }
+
+  const listing = await client.list(remotePath);
+  let total = 0;
+  let children = 0;
+  for (const entry of listing) {
+    if (entry.name === "." || entry.name === ".." || entry.name.includes("/") || entry.isSymbolicLink) continue;
+    children += 1;
+    const childPath = joinFtpPath(remotePath, entry.name);
+    const childZip = `${zipName}/${entry.name}`;
+    if (entry.isDirectory) {
+      total += await collectArchiveEntries(client, childPath, childZip, true, entries, depth + 1);
+    } else {
+      const size = entry.size || 0;
+      entries.push({ remotePath: childPath, zipName: childZip, size });
+      total += size;
+    }
+    if (entries.length > ARCHIVE_MAX_FILES || total > ARCHIVE_MAX_BYTES) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "The selection is too large to archive. The limit is 500MB.",
+      });
+    }
+  }
+  if (children === 0) {
+    entries.push({ remotePath, zipName: zipName.endsWith("/") ? zipName : `${zipName}/`, size: 0 });
+  }
+  return total;
 }
 
 function isUnsupportedCopyCommand(error: unknown): boolean {
@@ -1152,6 +1240,106 @@ export const ftpRouter = router({
         throw ftpUserError(error);
       } finally {
         client.close();
+      }
+    }),
+
+  archive: ftpProcedure
+    .input(archiveSchema)
+    .mutation(async ({ input }) => {
+      const destinationPath = normalizeFtpPath(input.destinationPath);
+      const sources = input.sources.map((source) => {
+        const remote = safeRemotePath(source.path.startsWith("/") ? source.path : `/${source.path}`);
+        if (!remote || remote === "/") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "The file path is not allowed.",
+          });
+        }
+        return { path: remote, type: source.type, name: remote.split("/").pop() || "item" };
+      });
+
+      const credentials = {
+        ...input.credentials,
+        timeout: Math.max(input.credentials.timeout ?? 30_000, 600_000),
+      };
+      const client = await createFtpClient(credentials);
+      let workDir: string | null = null;
+      try {
+        workDir = await mkdtemp(join(tmpdir(), "ftp-archive-"));
+        let listing: FileInfo[] = [];
+        try {
+          listing = await client.list(destinationPath);
+        } catch (error) {
+          if (!isNoSuchFileError(error)) throw error;
+        }
+        const existingNames = new Set(listing.map((entry) => entry.name));
+        const archiveName = uniqueZipName(existingNames, input.archiveName);
+        const remoteZip = joinFtpPath(destinationPath, archiveName);
+
+        const entries: Array<{ remotePath: string; zipName: string; size: number }> = [];
+        for (const source of sources) {
+          await collectArchiveEntries(
+            client,
+            source.path,
+            source.name,
+            source.type === "folder",
+            entries,
+            0,
+          );
+        }
+        const files = entries.filter((entry) => !entry.zipName.endsWith("/"));
+        const totalBytes = entries.reduce((sum, entry) => sum + entry.size, 0);
+        if (files.length === 0 && entries.length === 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "There is nothing to archive.",
+          });
+        }
+        if (files.length > ARCHIVE_MAX_FILES || totalBytes > ARCHIVE_MAX_BYTES) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "The selection is too large to archive. The limit is 500MB.",
+          });
+        }
+
+        const downloaded: Array<{ local: string; zipName: string }> = [];
+        for (const [index, entry] of files.entries()) {
+          const local = join(workDir, `part-${index}`);
+          await client.downloadTo(local, entry.remotePath);
+          downloaded.push({ local, zipName: entry.zipName });
+        }
+
+        const zipPath = join(workDir, "archive.zip");
+        const output = createWriteStream(zipPath);
+        const zip = archiver("zip", { zlib: { level: 1 } });
+        const finished = new Promise<void>((resolve, reject) => {
+          output.on("close", () => resolve());
+          output.on("error", reject);
+          zip.on("error", reject);
+        });
+        zip.pipe(output);
+        for (const entry of entries) {
+          if (entry.zipName.endsWith("/")) zip.append("", { name: entry.zipName });
+        }
+        for (const part of downloaded) {
+          zip.file(part.local, { name: part.zipName });
+        }
+        await zip.finalize();
+        await finished;
+        await client.uploadFrom(zipPath, remoteZip);
+
+        return {
+          success: true as const,
+          path: remoteZip,
+          message: `Archived to ${remoteZip}`,
+        };
+      } catch (error) {
+        throw ftpUserError(error);
+      } finally {
+        client.close();
+        if (workDir) {
+          await rm(workDir, { recursive: true, force: true }).catch(() => undefined);
+        }
       }
     }),
 

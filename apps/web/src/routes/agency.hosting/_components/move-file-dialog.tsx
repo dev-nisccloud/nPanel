@@ -24,6 +24,7 @@ interface MoveFileDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   item: FileManagerItem | null;
+  items?: FileManagerItem[];
   availableDirectories: FileManagerItem[];
   onConfirm: (destinationPath: string) => Promise<void>;
   isMoving: boolean;
@@ -33,26 +34,28 @@ export function MoveFileDialog({
   open,
   onOpenChange,
   item,
+  items,
   availableDirectories,
   onConfirm,
   isMoving,
 }: MoveFileDialogProps) {
+  const targets = items && items.length > 0 ? items : item ? [item] : [];
   const [selectedDirectory, setSelectedDirectory] = useState("");
   const [customPath, setCustomPath] = useState("");
 
   // Reset form when dialog opens/closes or item changes
   React.useEffect(() => {
-    if (open && item) {
+    if (open && targets.length > 0) {
       setSelectedDirectory("");
       setCustomPath("");
     } else {
       setSelectedDirectory("");
       setCustomPath("");
     }
-  }, [open, item]);
+  }, [open, item, items]);
 
   const handleConfirm = async () => {
-    if (!item) return;
+    if (targets.length === 0) return;
 
     const destinationPath = customPath.trim() || selectedDirectory;
     if (!destinationPath) return;
@@ -71,10 +74,11 @@ export function MoveFileDialog({
     }
   };
 
-  if (!item) return null;
+  if (targets.length === 0) return null;
+  const primary = targets[0];
 
-  const isDirectory = item.type === "folder";
-  const itemType = isDirectory ? "directory" : "file";
+  const isDirectory = primary.type === "folder";
+  const itemType = targets.length > 1 ? "items" : isDirectory ? "directory" : "file";
   const isValidDestination = customPath.trim() || selectedDirectory;
 
   return (
@@ -83,10 +87,12 @@ export function MoveFileDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Move className="h-5 w-5 text-primary" />
-            Move {isDirectory ? "Directory" : "File"}
+            Move {targets.length > 1 ? `${targets.length} items` : isDirectory ? "Directory" : "File"}
           </DialogTitle>
           <DialogDescription>
-            Choose a destination for this {itemType}.
+            {targets.length > 1
+              ? "Choose a destination. Every selected item will be moved there."
+              : `Choose a destination for this ${itemType}.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -105,11 +111,11 @@ export function MoveFileDialog({
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate" title={item.name}>
-                {item.name}
+              <p className="text-sm font-medium text-foreground truncate" title={primary.name}>
+                {targets.length > 1 ? `${targets.length} selected items` : primary.name}
               </p>
-              <p className="text-xs text-muted-foreground truncate" title={item.path}>
-                {item.path}
+              <p className="text-xs text-muted-foreground truncate" title={primary.path}>
+                {targets.length > 1 ? "Multiple paths" : primary.path}
               </p>
             </div>
           </div>
@@ -187,12 +193,14 @@ export function MoveFileDialog({
           {/* Preview */}
           {isValidDestination && (
             <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-              <p className="text-sm text-green-800 dark:text-green-200 truncate" title={item.name}>
-                <strong>Ready to move:</strong> {item.name}
+              <p className="text-sm text-green-800 dark:text-green-200 truncate" title={primary.name}>
+                <strong>Ready to move:</strong> {targets.length > 1 ? `${targets.length} items` : primary.name}
               </p>
-              <p className="text-xs text-green-600 dark:text-green-300 mt-1 truncate" title={item.path}>
-                <strong>From:</strong> {item.path}
+              {targets.length === 1 ? (
+              <p className="text-xs text-green-600 dark:text-green-300 mt-1 truncate" title={primary.path}>
+                <strong>From:</strong> {primary.path}
               </p>
+              ) : null}
               <p className="text-xs text-green-600 dark:text-green-300 truncate" title={customPath.trim() || selectedDirectory}>
                 <strong>To:</strong> {customPath.trim() || selectedDirectory}
               </p>

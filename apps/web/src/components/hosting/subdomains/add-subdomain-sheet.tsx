@@ -38,6 +38,7 @@ const DEFAULT_PHP_HANDLER = "plesk-php82-fpm";
 const FormSchema = z.object({
   subdomainName: z.string().min(1, "Subdomain name is required"),
   parentDomain: z.string(),
+  documentRoot: z.string().min(1, "Document root is required"),
   phpEnabled: z.boolean().default(true),
   phpHandler: z.string().min(1, "PHP handler is required"),
 });
@@ -49,6 +50,13 @@ interface AddSubdomainSheetProps {
   onOpenChange: (open: boolean) => void;
   domainName?: string;
   onSuccess?: () => void;
+}
+
+function defaultDocumentRoot(name: string, parentDomain?: string): string {
+  const local = localSubdomainName(name, parentDomain);
+  const parent = parentDomain?.trim().replace(/^\./, "");
+  if (!local || !parent) return "";
+  return `${local}.${parent}`;
 }
 
 function localSubdomainName(value: string, parentDomain?: string): string {
@@ -68,12 +76,14 @@ function localSubdomainName(value: string, parentDomain?: string): string {
 
 export function AddSubdomainSheet({ open, onOpenChange, domainName, onSuccess }: AddSubdomainSheetProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const documentRootEdited = React.useRef(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
       subdomainName: "",
       parentDomain: domainName || "",
+      documentRoot: "",
       phpEnabled: true,
       phpHandler: DEFAULT_PHP_HANDLER,
     },
@@ -114,20 +124,37 @@ export function AddSubdomainSheet({ open, onOpenChange, domainName, onSuccess }:
   });
 
   React.useEffect(() => {
-    if (domainName) {
-      form.setValue("parentDomain", domainName);
-    }
-  }, [domainName, form]);
+    if (!open) return;
+    documentRootEdited.current = false;
+    form.reset({
+      subdomainName: "",
+      parentDomain: domainName || "",
+      documentRoot: "",
+      phpEnabled: true,
+      phpHandler: DEFAULT_PHP_HANDLER,
+    });
+  }, [open, domainName, form]);
 
   const parentDomain = form.watch("parentDomain") || domainName || "";
+  const subdomainName = form.watch("subdomainName");
+  const suggestedDocumentRoot = defaultDocumentRoot(subdomainName, parentDomain);
+
+  React.useEffect(() => {
+    if (documentRootEdited.current) return;
+    if (form.getValues("documentRoot") === suggestedDocumentRoot) return;
+    form.setValue("documentRoot", suggestedDocumentRoot);
+  }, [suggestedDocumentRoot, form]);
 
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
 
     try {
+      const name = localSubdomainName(data.subdomainName, data.parentDomain);
+      const documentRoot = data.documentRoot.trim() || defaultDocumentRoot(name, data.parentDomain);
       await createSubdomain.mutateAsync({
         parent: data.parentDomain,
-        name: localSubdomainName(data.subdomainName, data.parentDomain),
+        name,
+        wwwRoot: documentRoot.startsWith("/") ? documentRoot : `/${documentRoot}`,
         php: data.phpEnabled ? data.phpHandler : undefined,
         cgi: false,
         perl: false,
@@ -214,6 +241,38 @@ export function AddSubdomainSheet({ open, onOpenChange, domainName, onSuccess }:
                               <span className="font-mono">.{parentDomain}</span> automatically.
                             </div>
                           ) : null}
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="documentRoot"
+                      render={({ field }) => (
+                        <FormItem className="mt-4">
+                          <FormLabel>Document root</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder={parentDomain ? `blog.${parentDomain}` : "blog.example.com"}
+                              autoCapitalize="none"
+                              autoCorrect="off"
+                              spellCheck={false}
+                              className="font-mono"
+                              value={field.value}
+                              onChange={(event) => {
+                                const next = event.target.value;
+                                documentRootEdited.current =
+                                  next.trim().length > 0 && next.trim() !== suggestedDocumentRoot;
+                                field.onChange(next);
+                              }}
+                              onBlur={field.onBlur}
+                            />
+                          </FormControl>
+                          <div className="text-xs text-muted-foreground">
+                            Plesk creates the subdomain in this folder. It stays set to the subdomain
+                            name plus the domain name until you change it.
+                          </div>
                           <FormMessage />
                         </FormItem>
                       )}
