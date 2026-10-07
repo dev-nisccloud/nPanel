@@ -403,7 +403,6 @@ export const agencysidebarItems: NavGroup[] = [
         icon: (props: any) => React.createElement(Icons.SALES, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
           { title: "Quotations", url: "/agency/quotations", },
-          { title: "CRM", url: "/agency/crm", },
         ],
       },
       {
@@ -484,6 +483,22 @@ export const agencysidebarItems: NavGroup[] = [
       //     { title: "Transaction Reports", url: "/agency/reports", },
       //   ],
       // },
+    ],
+  },
+  {
+    id: 6,
+    label: "CRM",
+    items: [
+      {
+        title: "CRM",
+        url: "/agency/crm/companies",
+        icon: (props: any) => React.createElement(Icons.Clients, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        subItems: [
+          { title: "Companies", url: "/agency/crm/companies", },
+          { title: "Contacts", url: "/agency/crm/contacts", },
+          { title: "Deals", url: "/agency/crm/deals", },
+        ],
+      },
     ],
   },
 ];
