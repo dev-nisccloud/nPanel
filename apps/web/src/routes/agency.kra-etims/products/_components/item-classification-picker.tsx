@@ -31,7 +31,7 @@ type ClassRow = {
 
 type Props = {
   value?: string;
-  onChange: (itemClsCd: string) => void;
+  onChange: (itemClsCd: string, taxTyCd?: string | null) => void;
   onBlur?: () => void;
   disabled?: boolean;
   enabled?: boolean;
@@ -153,9 +153,9 @@ export function ItemClassificationPicker({ value, onChange, onBlur, disabled, en
     loadingMoreRef.current = false;
   };
 
-  const handleSelectCode = (itemClsCd: string) => {
+  const handleSelectCode = (itemClsCd: string, taxTyCd?: string | null) => {
     if (disabled) return;
-    onChange(itemClsCd);
+    onChange(itemClsCd, taxTyCd);
     onBlur?.();
   };
 
@@ -277,7 +277,7 @@ export function ItemClassificationPicker({ value, onChange, onBlur, disabled, en
                     onMouseDown={(event) => event.stopPropagation()}
                     onClick={(event) => {
                       event.stopPropagation();
-                      handleSelectCode(row.itemClsCd);
+                      handleSelectCode(row.itemClsCd, row.taxTyCd);
                     }}
                     className={cn(
                       "w-full px-3 py-2 text-left text-sm hover:bg-muted/50 transition-colors flex items-start gap-2",

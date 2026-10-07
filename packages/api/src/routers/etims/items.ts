@@ -64,10 +64,47 @@ function sanitizeSaveItem(item: Record<string, unknown> & {
         itemNm,
         itemStdNm: (item.itemStdNm && String(item.itemStdNm).trim()) || itemNm,
         itemClsCd: item.itemClsCd.trim(),
+        taxTyCd: String(item.taxTyCd) === "E" ? "B" : item.taxTyCd,
         itemCd: `${orgnNatCd}${itemTyCd}${pkgUnitCd}${qtyUnitCd}${seq}`,
         sftyQty: item.sftyQty ?? 0,
         grpPrcL5: item.grpPrcL5 ?? 0,
     };
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
+
+function unwrapItemList(root: unknown): Record<string, unknown>[] {
+    const r = asRecord(root);
+    if (!r) return [];
+    const payload =
+        asRecord(asRecord(asRecord(r.data)?.responseBody)?.data) ??
+        asRecord(r.data) ??
+        asRecord(asRecord(r.responseBody)?.data) ??
+        r;
+    const data = asRecord(payload?.data) ?? payload;
+    if (!data) return [];
+    const list = data.itemList ?? data.items;
+    return Array.isArray(list) ? list.filter((row) => asRecord(row)) as Record<string, unknown>[] : [];
+}
+
+/** KRA /selectItemList has no date fields. Attach timestamps we stored on saveItem. */
+async function attachLocalItemTimestamps(result: unknown) {
+    const local = await db.select({
+        itemCd: eTimsItem.itemCd,
+        createdAt: eTimsItem.createdAt,
+        updatedAt: eTimsItem.updatedAt,
+    }).from(eTimsItem);
+    if (local.length === 0) return;
+    const byCd = new Map(local.map((row) => [row.itemCd, row]));
+    for (const row of unwrapItemList(result)) {
+        const saved = byCd.get(String(row.itemCd ?? ""));
+        if (!saved) continue;
+        row.createdAt = saved.createdAt.toISOString();
+        row.updatedAt = saved.updatedAt.toISOString();
+    }
 }
 
 async function saveItemOnKra(
@@ -100,6 +137,7 @@ export const etimsItemsRouter = router({
             const { client, oscu } = await getEtimsContext();
             try {
                 const result = await client.selectItemList(oscu, input.lastReqDt);
+                await attachLocalItemTimestamps(result);
                 return { success: true, data: result };
             } catch (e: unknown) {
                 throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: (e as Error).message || "Failed to retrieve item list" });
@@ -117,7 +155,7 @@ export const etimsItemsRouter = router({
                 orgnNatCd: z.string().length(2).default("KE"),
                 pkgUnitCd: z.string().default("OU"),
                 qtyUnitCd: z.string().default("OU"),
-                taxTyCd: z.enum(["A", "B", "C", "D", "E"]),
+                taxTyCd: z.enum(["A", "B", "C", "D", "E"]).transform((v) => (v === "E" ? "B" : v)),
                 btchNo: z.string().nullable().optional(),
                 bcd: z.string().nullable().optional(),
                 dftPrc: z.number().min(0),

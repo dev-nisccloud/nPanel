@@ -1,3 +1,5 @@
+import { formatKraHumanDateTime, kraStampMillis } from "../../_lib/etims-kra";
+
 export type EtimsItemRecord = {
     itemCd: string;
     itemClsCd: string;
@@ -21,7 +23,36 @@ export type EtimsItemRecord = {
     useYn?: string | null;
     regBhfId?: string | null;
     rraModYn?: string | null;
+    createdAt?: string | Date | null;
+    updatedAt?: string | Date | null;
 };
+
+export function isServiceItem(item: EtimsItemRecord) {
+    if (String(item.itemTyCd ?? "") === "3") return true;
+    return /^[A-Z]{2}3/.test(String(item.itemCd ?? ""));
+}
+
+function itemStamp(item: EtimsItemRecord) {
+    const value = item.createdAt ?? item.updatedAt;
+    if (value instanceof Date) return value.toISOString();
+    return String(value ?? "");
+}
+
+function itemSeq(item: EtimsItemRecord) {
+    const match = String(item.itemCd ?? "").match(/(\d{7})$/);
+    return match ? Number(match[1]) : 0;
+}
+
+export function compareItemsNewestFirst(a: EtimsItemRecord, b: EtimsItemRecord) {
+    const aT = kraStampMillis(itemStamp(a));
+    const bT = kraStampMillis(itemStamp(b));
+    if (bT !== aT) return bT - aT;
+    return itemSeq(b) - itemSeq(a);
+}
+
+export function formatItemTableDateTime(item: EtimsItemRecord) {
+    return formatKraHumanDateTime(itemStamp(item));
+}
 
 export function itemTypeLabel(code?: string | null) {
     switch (code) {

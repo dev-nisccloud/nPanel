@@ -35,7 +35,7 @@ import { ItemClassificationPicker } from "./item-classification-picker";
 const formSchema = z.object({
   itemNm: z.string().min(1, "Service name is required"),
   itemClsCd: z.string().min(8, "Pick an 8–10 digit classification code"),
-  taxTyCd: z.enum(["A", "B", "C", "D", "E"]).default("B"),
+  taxTyCd: z.enum(["A", "B", "C", "D"]).default("B"),
   priceMode: z.enum(["dynamic", "fixed"]).default("dynamic"),
   dftPrc: z.coerce.number().min(0, "Price must be >= 0").default(0),
 
@@ -76,7 +76,7 @@ export type NiscProductKraSyncSource = {
 };
 
 function parseTaxTyCd(value?: string | null): FormData["taxTyCd"] {
-  if (value === "A" || value === "B" || value === "C" || value === "D" || value === "E") return value;
+  if (value === "A" || value === "B" || value === "C" || value === "D") return value;
   return "B";
 }
 
@@ -129,9 +129,7 @@ export function RegisterETimsItemSheet({
   const buildFormValues = React.useCallback((item: EtimsItemRecord): FormData => ({
     itemNm: item.itemNm,
     itemClsCd: String(item.itemClsCd ?? "").trim(),
-    taxTyCd: (item.taxTyCd === "A" || item.taxTyCd === "B" || item.taxTyCd === "C" || item.taxTyCd === "D" || item.taxTyCd === "E")
-      ? item.taxTyCd
-      : "B",
+    taxTyCd: parseTaxTyCd(item.taxTyCd),
     priceMode: priceModeFromAmount(item.dftPrc),
     dftPrc: Number(item.dftPrc ?? 0),
     itemCd: item.itemCd,
@@ -448,7 +446,12 @@ export function RegisterETimsItemSheet({
                         }
                         enabled={open}
                         value={field.value}
-                        onChange={field.onChange}
+                        onChange={(itemClsCd, taxTyCd) => {
+                          field.onChange(itemClsCd);
+                          if (taxTyCd) {
+                            form.setValue("taxTyCd", parseTaxTyCd(taxTyCd), { shouldDirty: true, shouldTouch: true });
+                          }
+                        }}
                         onBlur={field.onBlur}
                       />
                     </div>
@@ -476,7 +479,6 @@ export function RegisterETimsItemSheet({
                         <SelectItem value="B">B (16%)</SelectItem>
                         <SelectItem value="C">C (0%)</SelectItem>
                         <SelectItem value="D">D (Non-VAT)</SelectItem>
-                        <SelectItem value="E">E (8%)</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

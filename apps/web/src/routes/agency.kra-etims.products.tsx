@@ -41,7 +41,14 @@ import { ETimsInitializationGuard } from "@/components/etims/etims-initializatio
 import { ETimsBranchSwitcher } from "@/components/etims/etims-branch-switcher";
 import { RegisterETimsItemSheet } from "./agency.kra-etims/products/_components/register-etims-item-sheet";
 import { ViewETimsItemSheet } from "./agency.kra-etims/products/_components/view-etims-item-sheet";
-import { itemToSavePayload, itemTypeLabel, type EtimsItemRecord } from "./agency.kra-etims/products/_components/etims-item-utils";
+import {
+    compareItemsNewestFirst,
+    formatItemTableDateTime,
+    isServiceItem,
+    itemToSavePayload,
+    itemTypeLabel,
+    type EtimsItemRecord,
+} from "./agency.kra-etims/products/_components/etims-item-utils";
 
 export default function ETimsProductsPage() {
     const [searchQuery, setSearchQuery] = React.useState("");
@@ -81,7 +88,9 @@ export default function ETimsProductsPage() {
         const data: any = payload?.data ?? payload;
         const list = data?.itemList ?? [];
         const all = Array.isArray(list) ? list : [];
-        return all.filter((item: EtimsItemRecord) => item.useYn !== "N");
+        return all
+            .filter((item: EtimsItemRecord) => item.useYn !== "N" && isServiceItem(item))
+            .sort(compareItemsNewestFirst);
     }, [items]);
 
     const filteredItems = React.useMemo(() => {
@@ -279,6 +288,7 @@ export default function ETimsProductsPage() {
                                             <th className="px-4 py-3">KRA Code</th>
                                             <th className="px-4 py-3">Classification</th>
                                             <th className="px-4 py-3">Tax Type</th>
+                                            <th className="px-4 py-3">Registered</th>
                                             <th className="px-4 py-3">Price</th>
                                             <th className="px-4 py-3 text-right">Actions</th>
                                         </tr>
@@ -291,13 +301,14 @@ export default function ETimsProductsPage() {
                                                     <td className="px-4 py-4"><Skeleton className="h-4 w-24" /></td>
                                                     <td className="px-4 py-4"><Skeleton className="h-4 w-40" /></td>
                                                     <td className="px-4 py-4"><Skeleton className="h-6 w-12 rounded-full" /></td>
+                                                    <td className="px-4 py-4"><Skeleton className="h-4 w-40" /></td>
                                                     <td className="px-4 py-4"><Skeleton className="h-4 w-20" /></td>
                                                     <td className="px-4 py-4"><Skeleton className="h-8 w-8 ml-auto rounded-md" /></td>
                                                 </tr>
                                             ))
                                         ) : filteredItems.length === 0 ? (
                                             <tr>
-                                                <td colSpan={6} className="px-4 py-12 text-center">
+                                                <td colSpan={7} className="px-4 py-12 text-center">
                                                     <div className="flex flex-col items-center justify-center">
                                                         <Tag className="h-12 w-12 text-muted-foreground/30 mb-4" />
                                                         <h3 className="text-lg font-medium">No services registered</h3>
@@ -343,6 +354,9 @@ export default function ETimsProductsPage() {
                                                             `}>
                                                                 Type {item.taxTyCd ?? ""}
                                                             </Badge>
+                                                        </td>
+                                                        <td className="px-4 py-4 text-xs text-muted-foreground whitespace-normal max-w-[260px]">
+                                                            {formatItemTableDateTime(item) || "-"}
                                                         </td>
                                                         <td className="px-4 py-4 font-medium">
                                                             {item.dftPrc ? `KES ${item.dftPrc}` : "Dynamic"}

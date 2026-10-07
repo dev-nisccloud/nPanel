@@ -1,5 +1,7 @@
 /** Shared KRA OSCU helpers for agency eTIMS forms (service sales/purchases, not stock). */
 
+import { format, formatDistanceToNowStrict } from "date-fns";
+
 export const LAST_REQ_DT = "20180101000000";
 
 export const PAYMENT_TYPES = [
@@ -212,6 +214,40 @@ export function kraDate8(d = new Date()) {
 export function kraDateTime14(d = new Date()) {
 	const p = kraNowParts(d);
 	return `${p.y}${p.m}${p.d}${p.hh}${p.mm}${p.ss}`;
+}
+
+export function parseKraStamp(value?: string | null): Date | null {
+	if (!value) return null;
+	const raw = String(value).trim();
+	if (!raw) return null;
+	if (/^\d{14}$/.test(raw)) {
+		const parsed = new Date(
+			Number(raw.slice(0, 4)),
+			Number(raw.slice(4, 6)) - 1,
+			Number(raw.slice(6, 8)),
+			Number(raw.slice(8, 10)),
+			Number(raw.slice(10, 12)),
+			Number(raw.slice(12, 14)),
+		);
+		return Number.isNaN(parsed.getTime()) ? null : parsed;
+	}
+	if (/^\d{8}$/.test(raw)) {
+		const parsed = new Date(Number(raw.slice(0, 4)), Number(raw.slice(4, 6)) - 1, Number(raw.slice(6, 8)));
+		return Number.isNaN(parsed.getTime()) ? null : parsed;
+	}
+	const parsed = new Date(raw);
+	return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+/** e.g. `1 day ago (06 October 2026, 11:32:05 AM)` */
+export function formatKraHumanDateTime(value?: string | null): string {
+	const date = parseKraStamp(value);
+	if (!date) return "";
+	return `${formatDistanceToNowStrict(date, { addSuffix: true })} (${format(date, "dd MMMM yyyy, hh:mm:ss a")})`;
+}
+
+export function kraStampMillis(value?: string | null): number {
+	return parseKraStamp(value)?.getTime() ?? 0;
 }
 
 export function isoDateInNairobi(d = new Date()) {
