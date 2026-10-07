@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useFieldArray, useForm } from "react-hook-form";
+import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
@@ -42,6 +42,7 @@ import {
 	nextInvcNo,
 	parseExpectedInvcNo,
 	round2,
+	taxRatePct,
 	unwrapKraList,
 	customerFromLookup,
 	extractTaxpayerRow,
@@ -192,35 +193,52 @@ export function SendETimsSaleSheet({
 
 	const sendSale = trpc.etims.sales.sendSalesTransaction.useMutation();
 
-	const watchedLines = form.watch("lines");
-	const totals = React.useMemo(() => {
-		const mapped = (watchedLines ?? []).map((line) =>
-			lineAmountsFromInclusive({
-				inclusiveUnitPrice: Number(line.inclusivePrc) || 0,
-				qty: Number(line.qty) || 0,
-				taxTyCd: line.taxTyCd,
-				dcRt: Number(line.dcRt) || 0,
-			}),
-		);
-		return aggregateTaxBands(
-			mapped.map((m, i) => ({
-				taxTyCd: watchedLines?.[i]?.taxTyCd ?? "B",
-				taxblAmt: m.taxblAmt,
-				taxAmt: m.taxAmt,
-				totAmt: m.totAmt,
-			})),
-		);
-	}, [watchedLines]);
+	const watchedLines = useWatch({ control: form.control, name: "lines" }) ?? [];
+	const lineAmounts = React.useMemo(
+		() =>
+			watchedLines.map((line) =>
+				lineAmountsFromInclusive({
+					inclusiveUnitPrice: Number(line.inclusivePrc) || 0,
+					qty: Number(line.qty) || 0,
+					taxTyCd: line.taxTyCd ?? "B",
+					dcRt: Number(line.dcRt) || 0,
+				}),
+			),
+		[watchedLines],
+	);
+	const totals = React.useMemo(
+		() =>
+			aggregateTaxBands(
+				lineAmounts.map((m, i) => ({
+					taxTyCd: watchedLines[i]?.taxTyCd ?? "B",
+					taxblAmt: m.taxblAmt,
+					taxAmt: m.taxAmt,
+					totAmt: m.totAmt,
+				})),
+			),
+		[lineAmounts, watchedLines],
+	);
+	const vatLabel =
+		totals.taxAmtE > 0 && totals.taxAmtB <= 0
+			? "VAT (8%)"
+			: totals.taxAmtB > 0 && totals.taxAmtE <= 0
+				? "VAT (16%)"
+				: "VAT";
 
 	const applyItem = (index: number, item: ItemOption) => {
-		form.setValue(`lines.${index}.itemCd`, item.itemCd);
-		form.setValue(`lines.${index}.itemNm`, item.itemNm);
-		form.setValue(`lines.${index}.itemClsCd`, item.itemClsCd);
-		form.setValue(`lines.${index}.pkgUnitCd`, item.pkgUnitCd ?? "OU");
-		form.setValue(`lines.${index}.qtyUnitCd`, item.qtyUnitCd ?? "NO");
-		form.setValue(`lines.${index}.taxTyCd`, (item.taxTyCd as FormData["lines"][number]["taxTyCd"]) ?? "B");
+		const opts = { shouldDirty: true, shouldTouch: true } as const;
+		form.setValue(`lines.${index}.itemCd`, item.itemCd, opts);
+		form.setValue(`lines.${index}.itemNm`, item.itemNm, opts);
+		form.setValue(`lines.${index}.itemClsCd`, item.itemClsCd, opts);
+		form.setValue(`lines.${index}.pkgUnitCd`, item.pkgUnitCd ?? "OU", opts);
+		form.setValue(`lines.${index}.qtyUnitCd`, item.qtyUnitCd ?? "NO", opts);
+		form.setValue(
+			`lines.${index}.taxTyCd`,
+			(item.taxTyCd as FormData["lines"][number]["taxTyCd"]) ?? "B",
+			opts,
+		);
 		const price = Number(item.dftPrc ?? 0);
-		if (price > 0) form.setValue(`lines.${index}.inclusivePrc`, round2(price));
+		if (price > 0) form.setValue(`lines.${index}.inclusivePrc`, round2(price), opts);
 	};
 
 	const buildPayload = (data: FormData, invcNo: number) => {
@@ -486,12 +504,13 @@ export function SendETimsSaleSheet({
 								</Button>
 							</div>
 							{fields.map((field, index) => {
-								const selected = itemOptions.find((it) => it.id === form.watch(`lines.${index}.itemCd`));
-								const amts = lineAmountsFromInclusive({
-									inclusiveUnitPrice: Number(form.watch(`lines.${index}.inclusivePrc`)) || 0,
-									qty: Number(form.watch(`lines.${index}.qty`)) || 0,
-									taxTyCd: form.watch(`lines.${index}.taxTyCd`) ?? "B",
-									dcRt: Number(form.watch(`lines.${index}.dcRt`)) || 0,
+								const line = watchedLines[index];
+								const selected = itemOptions.find((it) => it.id === line?.itemCd);
+								const amts = lineAmounts[index] ?? lineAmountsFromInclusive({
+									inclusiveUnitPrice: Number(line?.inclusivePrc) || 0,
+									qty: Number(line?.qty) || 0,
+									taxTyCd: line?.taxTyCd ?? "B",
+									dcRt: Number(line?.dcRt) || 0,
 								});
 								return (
 									<div key={field.id} className="rounded-xl border p-4 space-y-3">
@@ -612,7 +631,7 @@ export function SendETimsSaleSheet({
 											/>
 										</div>
 										<p className="text-xs text-muted-foreground">
-											Taxable {amts.taxblAmt.toFixed(2)} · VAT {amts.taxAmt.toFixed(2)} · Line total {amts.totAmt.toFixed(2)}
+											Taxable {amts.taxblAmt.toFixed(2)} · VAT {amts.taxAmt.toFixed(2)} ({taxRatePct(line?.taxTyCd ?? "B")}%) · Line total {amts.totAmt.toFixed(2)}
 										</p>
 									</div>
 								);
@@ -639,7 +658,7 @@ export function SendETimsSaleSheet({
 								<span>{totals.totTaxblAmt.toFixed(2)} KES</span>
 							</div>
 							<div className="flex justify-between">
-								<span className="text-muted-foreground">VAT</span>
+								<span className="text-muted-foreground">{vatLabel}</span>
 								<span>{totals.totTaxAmt.toFixed(2)} KES</span>
 							</div>
 							<div className="flex justify-between font-semibold">
