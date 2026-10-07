@@ -9,7 +9,6 @@ import {
 	type NiscEmailMarketingRouteConfig,
 } from "./nisc-email-marketing-route-context";
 import { NiscEmailMarketingSubscriptionGate } from "./nisc-email-marketing-subscription-gate";
-import { NiscEmailMarketingOnboarding } from "./nisc-email-marketing-onboarding";
 
 export function CustomerNiscEmRouteShell({ children }: { children: React.ReactNode }) {
 	const params = useParams();
@@ -62,11 +61,6 @@ export function CustomerNiscEmRouteShell({ children }: { children: React.ReactNo
 	return (
 		<NiscEmailMarketingRouteProvider config={config}>
 			<NiscEmailMarketingSubscriptionGate>
-				<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
-					<div className="w-full max-w-7xl mx-auto">
-						<NiscEmailMarketingOnboarding />
-					</div>
-				</div>
 				{children}
 			</NiscEmailMarketingSubscriptionGate>
 		</NiscEmailMarketingRouteProvider>

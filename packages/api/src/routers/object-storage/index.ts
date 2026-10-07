@@ -25,6 +25,7 @@ const CUSTOMER_UPLOAD_LIMITS: Record<string, number> = {
 	[STORAGE_PREFIXES.ZEEPO_AGENT]: 16 * 1024 * 1024, // 16MB (chat attachments)
 	[STORAGE_PREFIXES.ZEEPO_AI]: 16 * 1024 * 1024, // 16MB (Zeepo AI chat attachments)
 	[STORAGE_PREFIXES.FILES]: 50 * 1024 * 1024, // 50MB (support ticket attachments)
+	[STORAGE_PREFIXES.EMAIL_MARKETING_UPLOADS]: 50 * 1024 * 1024, // 50MB (image-only campaign emails)
 };
 
 /** Customer uploads per user per hour (presigned URL grants). */

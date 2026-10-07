@@ -1,32 +1,17 @@
 "use client";
 
 import * as React from "react";
-import { Link } from "react-router";
-import { useNavigate } from "react-router";
-import { Mail, EllipsisVertical, CheckCircle2, Clock, XCircle, Trash2, RefreshCw, Ban } from "lucide-react";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
+import { Link, useNavigate } from "react-router";
+import { Ban, CheckCircle2, Clock, Trash2, XCircle } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CleanListCell } from "@/components/ui/clean-list";
 import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from "@/components/ui/tooltip";
+	SearchableCleanList,
+	type SearchableCleanListItem,
+} from "@/components/ui/searchable-clean-list";
+import { ViewDetailsButton } from "@/components/ui/list-row-actions";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -41,11 +26,13 @@ import { trpc, type RouterOutputs } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { useNiscEmailMarketingRoute } from "@/components/nisc-email-marketing/nisc-email-marketing-route-context";
 import {
+	NiscEmLinkOrganizationButton,
 	NiscEmLinkOrganizationDialog,
-	NiscEmLinkOrganizationMenuItem,
 } from "@/components/nisc-email-marketing/nisc-em-link-organization";
 
 type CampaignSummary = RouterOutputs["niscEmailMarketing"]["campaigns"]["list"]["campaigns"][0];
+
+const ACTION_BTN = "h-7 px-2.5 text-xs";
 
 const getStatusBadge = (status: string) => {
 	switch (status) {
@@ -84,65 +71,60 @@ const getStatusBadge = (status: string) => {
 				</Badge>
 			);
 		default:
-			return (
-				<Badge variant="outline">
-					{status}
-				</Badge>
-			);
+			return <Badge variant="outline">{status}</Badge>;
 	}
 };
 
 const formatDate = (value: Date | string | null | undefined) => {
-	if (!value) return "- ";
+	if (!value) return "—";
 	const d = value instanceof Date ? value : new Date(value);
-	return Number.isNaN(d.getTime()) ? "- " : d.toLocaleDateString();
+	return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
 };
 
 const formatNumber = (value: number | null | undefined) => {
-	if (value === null || value === undefined) return "- ";
+	if (value === null || value === undefined) return "—";
 	return value.toLocaleString();
 };
 
-interface CampaignRowActionsProps {
-	campaign: CampaignSummary;
-	onRefetch?: () => void;
+export interface CampaignsTableProps {
+	campaigns: CampaignSummary[];
+	isLoading?: boolean;
+	isError?: boolean;
+	error?: Error | null;
+	onRetry?: () => void;
+	onRefetch?: () => void | Promise<unknown>;
+	toolbarActions?: React.ReactNode;
 }
 
-function CampaignRowActions({ campaign, onRefetch }: CampaignRowActionsProps) {
+export function CampaignsTable({
+	campaigns,
+	isLoading,
+	isError,
+	error,
+	onRetry,
+	onRefetch,
+	toolbarActions,
+}: CampaignsTableProps) {
 	const navigate = useNavigate();
 	const { basePath, showAdminFeatures } = useNiscEmailMarketingRoute();
 	const utils = trpc.useUtils();
+	const [searchQuery, setSearchQuery] = React.useState("");
+	const [deleteTarget, setDeleteTarget] = React.useState<CampaignSummary | null>(null);
+	const [cancelTarget, setCancelTarget] = React.useState<CampaignSummary | null>(null);
+	const [linkTarget, setLinkTarget] = React.useState<CampaignSummary | null>(null);
 	const [isDeleting, setIsDeleting] = React.useState(false);
-	const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
-	const [showCancelDialog, setShowCancelDialog] = React.useState(false);
 	const [isCancelling, setIsCancelling] = React.useState(false);
-	const [isRefreshing, setIsRefreshing] = React.useState(false);
-	const [linkOpen, setLinkOpen] = React.useState(false);
-	const alreadyLinked = Boolean(campaign.teamId);
-
-	const handleRefresh = async () => {
-		if (isRefreshing) return;
-		setIsRefreshing(true);
-		toast.loading("Refreshing…", { id: "campaigns-list-refresh" });
-		try {
-			await utils.niscEmailMarketing.campaigns.list.invalidate();
-			await onRefetch?.();
-			toast.success("Campaigns list refreshed", { id: "campaigns-list-refresh" });
-		} catch {
-			toast.error("Failed to refresh", { id: "campaigns-list-refresh" });
-		} finally {
-			setIsRefreshing(false);
-		}
-	};
 
 	const deleteMutation = trpc.niscEmailMarketing.campaigns.delete.useMutation({
-		onSuccess: () => {
+		onSuccess: (_data, variables) => {
+			const name = campaigns.find((campaign) => campaign.id === variables.id)?.name;
 			toast.success("Campaign deleted successfully", {
-				description: `Campaign ${campaign.name} has been deleted.`,
+				description: name ? `Campaign ${name} has been deleted.` : undefined,
 			});
 			utils.niscEmailMarketing.campaigns.list.invalidate();
 			onRefetch?.();
 			setIsDeleting(false);
+			setDeleteTarget(null);
 		},
 		onError: (e: { message: string }) => {
 			toast.error("Failed to delete campaign", { description: e.message });
@@ -158,7 +140,7 @@ function CampaignRowActions({ campaign, onRefetch }: CampaignRowActionsProps) {
 			utils.niscEmailMarketing.campaigns.list.invalidate();
 			onRefetch?.();
 			setIsCancelling(false);
-			setShowCancelDialog(false);
+			setCancelTarget(null);
 		},
 		onError: (e: { message: string }) => {
 			toast.error("Failed to cancel campaign", { description: e.message });
@@ -169,118 +151,168 @@ function CampaignRowActions({ campaign, onRefetch }: CampaignRowActionsProps) {
 	const linkMutation = trpc.niscEmailMarketing.campaigns.linkOrganization.useMutation({
 		onSuccess: () => {
 			toast.success("Organization linked", {
-				description: `"${campaign.name}" is now linked to the selected organization.`,
+				description: linkTarget
+					? `"${linkTarget.name}" is now linked to the selected organization.`
+					: undefined,
 			});
 			utils.niscEmailMarketing.campaigns.list.invalidate();
 			onRefetch?.();
-			setLinkOpen(false);
+			setLinkTarget(null);
 		},
 		onError: (e: { message: string }) => {
 			toast.error("Failed to link organization", { description: e.message });
 		},
 	});
 
-	const handleDelete = async () => {
-		setIsDeleting(true);
-		try {
-			await deleteMutation.mutateAsync({ id: campaign.id });
-		} catch {
-			// Error handled in mutation
-		}
-	};
+	const filteredCampaigns = React.useMemo(() => {
+		const query = searchQuery.trim().toLowerCase();
+		if (!query) return campaigns;
+		return campaigns.filter((campaign) => {
+			const organization = campaign.teamId ? "linked" : "not linked";
+			return (
+				campaign.name?.toLowerCase().includes(query) ||
+				campaign.subject?.toLowerCase().includes(query) ||
+				campaign.status?.toLowerCase().includes(query) ||
+				organization.includes(query)
+			);
+		});
+	}, [campaigns, searchQuery]);
 
-	// Refetch from DB before opening cancel dialog to avoid acting on stale data (e.g. cache said SCHEDULED but campaign was already sent)
-	const handleCancelScheduledClick = async () => {
+	const requestCancel = async (campaign: CampaignSummary) => {
 		try {
 			const fresh = await utils.niscEmailMarketing.campaigns.getById.fetch({ id: campaign.id });
 			if (fresh.status !== "SCHEDULED") {
 				toast.error("Campaign is no longer scheduled", {
-					description: fresh.status === "COMPLETED" ? "It has already been sent." : fresh.status === "CANCELLED" ? "It has already been cancelled." : "You cannot cancel this campaign.",
+					description:
+						fresh.status === "COMPLETED"
+							? "It has already been sent."
+							: fresh.status === "CANCELLED"
+								? "It has already been cancelled."
+								: "You cannot cancel this campaign.",
 				});
 				utils.niscEmailMarketing.campaigns.list.invalidate();
 				onRefetch?.();
 				return;
 			}
-			setShowCancelDialog(true);
+			setCancelTarget(campaign);
 		} catch {
 			toast.error("Could not load campaign status. Please try again.");
 		}
 	};
 
-	const handleConfirmCancel = async () => {
-		setIsCancelling(true);
-		try {
-			await cancelMutation.mutateAsync({ id: campaign.id });
-		} catch {
-			// Error handled in mutation
-		}
-	};
+	const items: SearchableCleanListItem[] = filteredCampaigns.map((campaign) => ({
+		key: campaign.id,
+		title: (
+			<Link
+				to={`${basePath}/campaigns/${campaign.id}`}
+				className="text-foreground hover:underline"
+				onClick={(event) => event.stopPropagation()}
+			>
+				{campaign.name}
+			</Link>
+		),
+		description: campaign.subject || undefined,
+		cells: {
+			status: getStatusBadge(campaign.status),
+			recipients: <CleanListCell>{formatNumber(campaign.recipientCount)}</CleanListCell>,
+			organization: (
+				<CleanListCell>{campaign.teamId ? "Linked" : "Not linked"}</CleanListCell>
+			),
+			created: <CleanListCell>{formatDate(campaign.createdAt)}</CleanListCell>,
+		},
+		actions: (
+			<>
+				<ViewDetailsButton
+					onClick={() => navigate(`${basePath}/campaigns/${campaign.id}`)}
+				/>
+				{campaign.status === "SCHEDULED" ? (
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						className={ACTION_BTN}
+						disabled={isCancelling}
+						onClick={() => void requestCancel(campaign)}
+					>
+						<Ban className="mr-1 h-3.5 w-3.5" />
+						Cancel
+					</Button>
+				) : null}
+				{showAdminFeatures ? (
+					<NiscEmLinkOrganizationButton
+						alreadyLinked={Boolean(campaign.teamId)}
+						disabled={linkMutation.isPending}
+						className={ACTION_BTN}
+						onClick={() => setLinkTarget(campaign)}
+					/>
+				) : null}
+				<Button
+					type="button"
+					variant="outline"
+					size="sm"
+					className={`${ACTION_BTN} text-destructive hover:text-destructive`}
+					disabled={isDeleting}
+					onClick={() => setDeleteTarget(campaign)}
+				>
+					<Trash2 className="mr-1 h-3.5 w-3.5" />
+					Delete
+				</Button>
+			</>
+		),
+		onClick: () => navigate(`${basePath}/campaigns/${campaign.id}`),
+	}));
 
-	const busy = isDeleting || isRefreshing || isCancelling || linkMutation.isPending;
+	const columns = [
+		{ key: "name", label: "Campaign" },
+		{ key: "status", label: "Status", className: "w-40", hideBelow: "@md" as const },
+		{ key: "recipients", label: "Recipients", className: "w-28", hideBelow: "@lg" as const },
+		...(showAdminFeatures
+			? [{ key: "organization", label: "Organization", className: "w-36", hideBelow: "@xl" as const }]
+			: []),
+		{ key: "created", label: "Created", className: "w-32", hideBelow: "@2xl" as const },
+		{ key: "actions", label: "Actions", align: "end" as const },
+	];
 
 	return (
 		<>
-			<TooltipProvider>
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<Button variant="ghost" size="icon" className="h-8 w-8">
-									<EllipsisVertical className="h-4 w-4" />
-									<span className="sr-only">Actions</span>
-								</Button>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent align="end" className="w-48">
-								<DropdownMenuItem onClick={() => navigate(`${basePath}/campaigns/${campaign.id}`)}>
-									View Details
-								</DropdownMenuItem>
-								<DropdownMenuItem onClick={handleRefresh} disabled={isRefreshing}>
-									<RefreshCw className={`mr-2 h-4 w-4 shrink-0 ${isRefreshing ? "animate-spin" : ""}`} />
-									{isRefreshing ? "Refreshing…" : "Refresh"}
-								</DropdownMenuItem>
-								{campaign.status === "SCHEDULED" && (
-									<DropdownMenuItem onClick={handleCancelScheduledClick} disabled={busy}>
-										<Ban className="mr-2 h-4 w-4 shrink-0" />
-										Cancel scheduled
-									</DropdownMenuItem>
-								)}
-								{showAdminFeatures ? (
-									<NiscEmLinkOrganizationMenuItem
-										alreadyLinked={alreadyLinked}
-										disabled={busy}
-										onSelect={() => setLinkOpen(true)}
-									/>
-								) : null}
-								<DropdownMenuSeparator />
-								<DropdownMenuItem
-									onClick={() => setShowDeleteDialog(true)}
-									disabled={busy}
-									className="text-destructive focus:text-destructive"
-								>
-									{isDeleting ? "Deleting..." : "Delete Campaign"}
-								</DropdownMenuItem>
-							</DropdownMenuContent>
-						</DropdownMenu>
-					</TooltipTrigger>
-					<TooltipContent>Actions</TooltipContent>
-				</Tooltip>
-			</TooltipProvider>
+			<SearchableCleanList
+				items={items}
+				searchQuery={searchQuery}
+				onSearchChange={setSearchQuery}
+				totalCount={campaigns.length}
+				toolbarActions={toolbarActions}
+				isLoading={isLoading}
+				isError={isError}
+				error={error}
+				onRetry={onRetry}
+				searchPlaceholder="Search campaigns..."
+				errorTitle="Unable to load campaigns"
+				emptyMessage={
+					searchQuery.trim()
+						? "No campaigns match your search."
+						: "No campaigns yet. Create one to start sending."
+				}
+				columns={columns}
+			/>
 
-			{/* Delete Confirmation Dialog */}
-			<AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+			<AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !isDeleting && !open && setDeleteTarget(null)}>
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>Delete Campaign</AlertDialogTitle>
 						<AlertDialogDescription>
-							Are you sure you want to delete campaign "{campaign.name}"? This action cannot be undone and will permanently delete the campaign and all associated data.
+							Are you sure you want to delete campaign "{deleteTarget?.name}"? This action cannot be undone and will permanently delete the campaign and all associated data.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
 						<AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-						<AlertDialogAction 
-							onClick={handleDelete} 
-							disabled={isDeleting}
+						<AlertDialogAction
+							disabled={isDeleting || !deleteTarget}
 							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+							onClick={() => {
+								if (!deleteTarget) return;
+								setIsDeleting(true);
+								deleteMutation.mutate({ id: deleteTarget.id });
+							}}
 						>
 							{isDeleting ? "Deleting..." : "Delete Campaign"}
 						</AlertDialogAction>
@@ -288,18 +320,24 @@ function CampaignRowActions({ campaign, onRefetch }: CampaignRowActionsProps) {
 				</AlertDialogContent>
 			</AlertDialog>
 
-			{/* Cancel scheduled confirmation */}
-			<AlertDialog open={showCancelDialog} onOpenChange={(open) => !isCancelling && setShowCancelDialog(open)}>
+			<AlertDialog open={Boolean(cancelTarget)} onOpenChange={(open) => !isCancelling && !open && setCancelTarget(null)}>
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>Cancel scheduled campaign</AlertDialogTitle>
 						<AlertDialogDescription>
-							Are you sure you want to cancel the scheduled send for "{campaign.name}"? The campaign will not be sent at the scheduled time. You can schedule it again later from the campaign details.
+							Are you sure you want to cancel the scheduled send for "{cancelTarget?.name}"? The campaign will not be sent at the scheduled time. You can schedule it again later from the campaign details.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
 						<AlertDialogCancel disabled={isCancelling}>Keep scheduled</AlertDialogCancel>
-						<AlertDialogAction onClick={handleConfirmCancel} disabled={isCancelling}>
+						<AlertDialogAction
+							disabled={isCancelling || !cancelTarget}
+							onClick={() => {
+								if (!cancelTarget) return;
+								setIsCancelling(true);
+								cancelMutation.mutate({ id: cancelTarget.id });
+							}}
+						>
 							{isCancelling ? "Cancelling…" : "Cancel scheduled send"}
 						</AlertDialogAction>
 					</AlertDialogFooter>
@@ -308,74 +346,19 @@ function CampaignRowActions({ campaign, onRefetch }: CampaignRowActionsProps) {
 
 			{showAdminFeatures ? (
 				<NiscEmLinkOrganizationDialog
-					open={linkOpen}
-					onOpenChange={setLinkOpen}
-					alreadyLinked={alreadyLinked}
+					open={Boolean(linkTarget)}
+					onOpenChange={(open) => {
+						if (!linkMutation.isPending && !open) setLinkTarget(null);
+					}}
+					alreadyLinked={Boolean(linkTarget?.teamId)}
 					isPending={linkMutation.isPending}
-					resourceLabel={campaign.name}
+					resourceLabel={linkTarget?.name}
 					onConfirm={async (teamId) => {
-						await linkMutation.mutateAsync({ id: campaign.id, teamId });
+						if (!linkTarget) return;
+						await linkMutation.mutateAsync({ id: linkTarget.id, teamId });
 					}}
 				/>
 			) : null}
 		</>
-	);
-}
-
-export interface CampaignsTableProps {
-	campaigns: CampaignSummary[];
-	onRefetch?: () => void | Promise<unknown>;
-}
-
-export function CampaignsTable({ campaigns, onRefetch }: CampaignsTableProps) {
-	const { basePath, showAdminFeatures } = useNiscEmailMarketingRoute();
-
-	return (
-		<div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-			<Table>
-				<TableHeader>
-					<TableRow>
-						<TableHead className="pl-6">Campaign Name</TableHead>
-						<TableHead>Status</TableHead>
-						<TableHead>Recipients</TableHead>
-						{showAdminFeatures ? <TableHead>Organization</TableHead> : null}
-						<TableHead>Created At</TableHead>
-						<TableHead className="w-12 pr-6"></TableHead>
-					</TableRow>
-				</TableHeader>
-				<TableBody>
-					{campaigns.map((campaign) => (
-						<TableRow key={campaign.id}>
-							<TableCell className="pl-6">
-								<Link
-							to={`${basePath}/campaigns/${campaign.id}`}
-									className="flex items-center gap-2 font-medium text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded"
-								>
-									<Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-									<span>{campaign.name}</span>
-								</Link>
-							</TableCell>
-							<TableCell>
-								{getStatusBadge(campaign.status)}
-							</TableCell>
-							<TableCell>
-								{formatNumber(campaign.recipientCount)}
-							</TableCell>
-							{showAdminFeatures ? (
-								<TableCell className="text-sm text-muted-foreground">
-									{campaign.teamId ? "Linked" : "Not linked"}
-								</TableCell>
-							) : null}
-							<TableCell>
-								{formatDate(campaign.createdAt)}
-							</TableCell>
-							<TableCell className="pr-6">
-								<CampaignRowActions campaign={campaign} onRefetch={onRefetch} />
-							</TableCell>
-						</TableRow>
-					))}
-				</TableBody>
-			</Table>
-		</div>
 	);
 }

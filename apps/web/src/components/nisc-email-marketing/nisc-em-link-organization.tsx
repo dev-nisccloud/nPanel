@@ -125,17 +125,19 @@ export function NiscEmLinkOrganizationButton({
 	alreadyLinked,
 	disabled,
 	onClick,
+	className,
 }: {
 	alreadyLinked: boolean;
 	disabled?: boolean;
 	onClick: () => void;
+	className?: string;
 }) {
 	const { showAdminFeatures } = useNiscEmailMarketingRoute();
 	if (!showAdminFeatures) return null;
 
 	const locked = alreadyLinked || disabled;
 	const button = (
-		<Button variant="outline" size="sm" disabled={locked} onClick={onClick}>
+		<Button variant="outline" size="sm" className={className} disabled={locked} onClick={onClick}>
 			<Link2 className="size-3.5 mr-1.5" />
 			{alreadyLinked ? "Linked to organization" : "Link organization"}
 		</Button>
