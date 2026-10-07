@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import {
     Sheet,
     SheetContent,
-    SheetDescription,
     SheetFooter,
     SheetHeader,
     SheetTitle,
@@ -35,6 +34,20 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { trpc } from "@/utils/trpc";
+import {
+    AUDITOR,
+    aggregateTaxBands,
+    kraDate8,
+    kraDateTime14,
+    kraResultError,
+    lineAmountsFromInclusive,
+    parseExpectedInvcNo,
+    round2,
+} from "../../_lib/etims-kra";
+import {
+    mergeEtimsSaleWithDetails,
+    unwrapEtimsInvoiceDetails,
+} from "@npanel/api/agency-invoice-pdf/etims-sale-to-invoice-detail";
 
 export const CREDIT_NOTE_REASONS = [
     { code: "01", label: "Missing Quantity" },
@@ -66,96 +79,67 @@ export function creditNoteReasonLabel(code?: string | null) {
     return CREDIT_NOTE_REASONS.find((r) => r.code === code)?.label ?? code ?? "";
 }
 
-export function buildCreditNotePayload(sale: EtimsSaleForCreditNote, rfdRsnCd: FormData["rfdRsnCd"], remark?: string) {
-    const now = new Date();
-    const p = (x: number) => String(x).padStart(2, "0");
-    const salesDt = `${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}`;
-    const dt14 = `${salesDt}${p(now.getHours())}${p(now.getMinutes())}${p(now.getSeconds())}`;
-    const newInvcNo = Math.floor(Math.random() * 900000) + 100000;
+function qtyUnitForKra(code?: unknown) {
+    const raw = String(code ?? "NO").trim() || "NO";
+    return raw === "U" ? "NO" : raw;
+}
 
-    const lines = Array.isArray(sale.itemList) ? sale.itemList : [];
-    const mappedLines = lines.map((line, idx) => {
-        const taxblAmt = Number(line.taxblAmt ?? 0);
-        const taxAmt = Number(line.taxAmt ?? 0);
-        const totAmt = Number(line.totAmt ?? 0) || taxblAmt + taxAmt || Number(line.splyAmt ?? 0);
-        const taxTyCd = String(line.taxTyCd ?? "B");
-        return {
-            itemSeq: idx + 1,
-            itemCd: String(line.itemCd ?? ""),
-            itemClsCd: line.itemClsCd ? String(line.itemClsCd) : undefined,
-            itemNm: String(line.itemNm ?? "Item"),
-            pkgUnitCd: String(line.pkgUnitCd ?? "OU"),
-            pkg: Number(line.pkg ?? 1),
-            qtyUnitCd: String(line.qtyUnitCd ?? "U"),
-            qty: Number(line.qty ?? 1),
-            prc: Number(line.prc ?? taxblAmt),
-            splyAmt: Number(line.splyAmt ?? taxblAmt),
-            dcRt: 0,
-            dcAmt: 0,
-            taxTyCd,
-            taxblAmt,
-            taxAmt,
-            totAmt,
-        };
+function mapCreditLine(line: Record<string, unknown>, idx: number) {
+    const taxTyCd = String(line.taxTyCd ?? "B");
+    const qty = Number(line.qty ?? 1) > 0 ? Number(line.qty ?? 1) : 1;
+    const copiedTaxbl = round2(Number(line.taxblAmt ?? 0));
+    const copiedTax = round2(Number(line.taxAmt ?? 0));
+    const copiedTot = round2(Number(line.totAmt ?? 0));
+    const inclusive =
+        round2(Number(line.prc ?? 0)) ||
+        (copiedTot > 0 ? round2(copiedTot / qty) : 0) ||
+        round2(Number(line.splyAmt ?? 0) / qty);
+    const amts = lineAmountsFromInclusive({
+        inclusiveUnitPrice: inclusive,
+        qty,
+        taxTyCd,
+        dcRt: Number(line.dcRt ?? 0),
     });
-
-    const taxblAmtB = mappedLines.filter((l) => l.taxTyCd === "B").reduce((s, l) => s + l.taxblAmt, 0);
-    const taxAmtB = mappedLines.filter((l) => l.taxTyCd === "B").reduce((s, l) => s + l.taxAmt, 0);
-    const totTaxblAmt = mappedLines.reduce((s, l) => s + l.taxblAmt, 0);
-    const totTaxAmt = mappedLines.reduce((s, l) => s + l.taxAmt, 0);
-    const totAmt = mappedLines.reduce((s, l) => s + l.totAmt, 0);
-
+    const useCopied = copiedTaxbl > 0 || copiedTot > 0;
     return {
-        trdInvcNo: `CN${newInvcNo}`,
-        invcNo: newInvcNo,
-        orgInvcNo: sale.invcNo,
-        custTin: sale.custTin ?? null,
-        custNm: sale.custNm ?? null,
-        salesTyCd: "N",
-        rcptTyCd: "R" as const,
-        pmtTyCd: sale.pmtTyCd ?? "01",
-        salesSttsCd: "02",
-        cfmDt: dt14,
-        salesDt,
-        rfdDt: dt14,
-        rfdRsnCd,
-        totItemCnt: mappedLines.length || 1,
-        taxblAmtA: 0,
-        taxblAmtB,
-        taxblAmtC: 0,
-        taxblAmtD: 0,
-        taxblAmtE: 0,
-        taxRtA: 0,
-        taxRtB: 16,
-        taxRtC: 0,
-        taxRtD: 0,
-        taxRtE: 0,
-        taxAmtA: 0,
-        taxAmtB,
-        taxAmtC: 0,
-        taxAmtD: 0,
-        taxAmtE: 0,
-        totTaxblAmt,
-        totTaxAmt,
-        totAmt,
-        prchrAcptcYn: "N" as const,
-        remark: remark?.trim() || null,
-        regrId: "Admin",
-        regrNm: "Admin",
-        modrId: "Admin",
-        modrNm: "Admin",
-        receipt: {
-            custTin: sale.custTin ?? null,
-            rcptPbctDt: dt14,
-            prchrAcptcYn: "N" as const,
-        },
-        itemList: mappedLines.length ? mappedLines : [{
+        itemSeq: idx + 1,
+        itemCd: String(line.itemCd ?? ""),
+        itemClsCd: line.itemClsCd ? String(line.itemClsCd) : undefined,
+        itemNm: String(line.itemNm ?? "Item"),
+        pkgUnitCd: String(line.pkgUnitCd ?? "OU"),
+        pkg: 1,
+        qtyUnitCd: qtyUnitForKra(line.qtyUnitCd),
+        qty: round2(qty),
+        prc: useCopied ? round2(Number(line.prc ?? inclusive)) : amts.prc,
+        splyAmt: useCopied ? round2(Number(line.splyAmt ?? (copiedTot || copiedTaxbl))) : amts.splyAmt,
+        dcRt: round2(Number(line.dcRt ?? 0)),
+        dcAmt: round2(Number(line.dcAmt ?? 0)),
+        taxTyCd,
+        taxblAmt: useCopied ? copiedTaxbl || round2(copiedTot - copiedTax) : amts.taxblAmt,
+        taxAmt: useCopied ? copiedTax : amts.taxAmt,
+        totAmt: useCopied ? copiedTot || round2(copiedTaxbl + copiedTax) : amts.totAmt,
+    };
+}
+
+export function buildCreditNotePayload(
+    sale: EtimsSaleForCreditNote,
+    rfdRsnCd: FormData["rfdRsnCd"],
+    remark?: string,
+    invcNo = 1,
+) {
+    const salesDt = kraDate8();
+    const dt14 = kraDateTime14();
+    const lines = Array.isArray(sale.itemList) ? sale.itemList : [];
+    const mappedLines = lines.map((line, idx) => mapCreditLine(line, idx));
+    const itemList = mappedLines.length
+        ? mappedLines
+        : [{
             itemSeq: 1,
-            itemCd: "KE3OUXU0000001",
+            itemCd: "KE3OUNO0000001",
             itemNm: "Credit adjustment",
             pkgUnitCd: "OU",
             pkg: 1,
-            qtyUnitCd: "U",
+            qtyUnitCd: "NO",
             qty: 1,
             prc: 0,
             splyAmt: 0,
@@ -165,7 +149,35 @@ export function buildCreditNotePayload(sale: EtimsSaleForCreditNote, rfdRsnCd: F
             taxblAmt: 0,
             taxAmt: 0,
             totAmt: 0,
-        }],
+        }];
+    const bands = aggregateTaxBands(itemList);
+
+    return {
+        trdInvcNo: `CN${invcNo}`,
+        invcNo,
+        orgInvcNo: sale.invcNo,
+        custTin: sale.custTin ?? null,
+        custNm: sale.custNm ?? null,
+        salesTyCd: "N",
+        rcptTyCd: "R" as const,
+        pmtTyCd: sale.pmtTyCd ?? "01",
+        salesSttsCd: "02",
+        cfmDt: dt14,
+        salesDt,
+        stockRlsDt: null,
+        rfdDt: dt14,
+        rfdRsnCd,
+        totItemCnt: itemList.length,
+        ...bands,
+        prchrAcptcYn: "N" as const,
+        remark: remark?.trim() || null,
+        ...AUDITOR,
+        receipt: {
+            custTin: sale.custTin ?? null,
+            rcptPbctDt: dt14,
+            prchrAcptcYn: "N" as const,
+        },
+        itemList,
     };
 }
 
@@ -174,6 +186,7 @@ export function IssueETimsCreditNoteSheet({
     onOpenChange,
     sale,
     availableSales = [],
+    nextInvcNo = 1,
     onSuccess,
 }: {
     open: boolean;
@@ -182,6 +195,7 @@ export function IssueETimsCreditNoteSheet({
     sale?: EtimsSaleForCreditNote | null;
     /** Signed sales available for manual original-invoice selection. */
     availableSales?: EtimsSaleForCreditNote[];
+    nextInvcNo?: number;
     onSuccess?: () => void;
 }) {
     const [confirmOpen, setConfirmOpen] = React.useState(false);
@@ -207,28 +221,56 @@ export function IssueETimsCreditNoteSheet({
         });
     }, [open, sale, form]);
 
-    const sendCreditNote = trpc.etims.sales.sendCreditNote.useMutation({
-        onSuccess: (res) => {
-            if (res?.success === false) {
-                toast.error(res?.errorMessage ?? "Failed to issue credit note");
-                return;
-            }
-            toast.success("Credit note issued to KRA eTIMS");
-            onOpenChange(false);
-            onSuccess?.();
-        },
-        onError: (err) => toast.error(err.message || "Failed to issue credit note"),
-    });
+    const utils = trpc.useUtils();
+    const sendCreditNote = trpc.etims.sales.sendCreditNote.useMutation();
 
-    const submitCreditNote = (values: FormData) => {
+    const resolveSaleLines = async (source: EtimsSaleForCreditNote): Promise<EtimsSaleForCreditNote> => {
+        if (Array.isArray(source.itemList) && source.itemList.length > 0) return source;
+        try {
+            const detailsRes = await utils.etims.sales.getInvoiceDetails.fetch({ invcNo: source.invcNo });
+            const merged = mergeEtimsSaleWithDetails(source, unwrapEtimsInvoiceDetails(detailsRes));
+            const itemList = Array.isArray(merged.itemList) ? merged.itemList : [];
+            return { ...source, itemList };
+        } catch {
+            return source;
+        }
+    };
+
+    const submitCreditNote = async (values: FormData) => {
         const source = sale ?? availableSales.find((s) => String(s.invcNo) === values.orgInvcNo);
         if (!source) {
             toast.error("Select the original invoice to credit");
             return;
         }
-        sendCreditNote.mutate({
-            transaction: buildCreditNotePayload(source, values.rfdRsnCd, values.remark),
-        });
+        const resolved = await resolveSaleLines(source);
+        let invcNo = nextInvcNo;
+        try {
+            for (let attempt = 0; attempt < 4; attempt++) {
+                const res = await sendCreditNote.mutateAsync({
+                    transaction: buildCreditNotePayload(resolved, values.rfdRsnCd, values.remark, invcNo),
+                });
+                const err = res?.success === false
+                    ? (res.errorMessage ?? "Failed to issue credit note")
+                    : kraResultError(res);
+                if (!err) {
+                    toast.success("Credit note issued");
+                    onOpenChange(false);
+                    onSuccess?.();
+                    return;
+                }
+                const expected = parseExpectedInvcNo(err);
+                if (expected && expected !== invcNo) {
+                    invcNo = expected;
+                    toast.message(`KRA expected invoice ${expected}. Retrying…`);
+                    continue;
+                }
+                toast.error(err);
+                return;
+            }
+            toast.error("Could not allocate the next KRA invoice number");
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to issue credit note");
+        }
     };
 
     const onSubmit = (values: FormData) => {
@@ -250,44 +292,13 @@ export function IssueETimsCreditNoteSheet({
         <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Submit credit note to KRA?</AlertDialogTitle>
-                    <AlertDialogDescription asChild>
-                        <div className="space-y-3 text-sm text-muted-foreground">
-                            <p>
-                                You are about to register a fiscal credit note against original invoice{" "}
-                                <span className="font-mono font-semibold text-foreground">
-                                    #{pendingSource?.invcNo ?? pendingSubmit?.orgInvcNo}
-                                </span>
-                                {pendingSource?.custNm ? (
-                                    <>
-                                        {" "}for{" "}
-                                        <span className="font-semibold text-foreground">{pendingSource.custNm}</span>
-                                    </>
-                                ) : null}
-                                .
-                            </p>
-                            {pendingSource ? (
-                                <p>
-                                    Amount:{" "}
-                                    <span className="font-semibold text-foreground">
-                                        {Number(pendingSource.displayAmount ?? 0).toLocaleString()} KES
-                                    </span>
-                                </p>
-                            ) : null}
-                            {pendingSubmit ? (
-                                <p>
-                                    Reason:{" "}
-                                    <span className="font-semibold text-foreground">
-                                        {creditNoteReasonLabel(pendingSubmit.rfdRsnCd)}
-                                    </span>
-                                </p>
-                            ) : null}
-                            <p>
-                                This sends <code className="text-xs">/saveTrnsSalesOsdc</code> with{" "}
-                                <code className="text-xs">rcptTyCd=R</code> to KRA eTIMS. The credit note is
-                                recorded on KRA and will appear under Credit Notes once signed.
-                            </p>
-                        </div>
+                    <AlertDialogTitle>Issue credit note?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Reverse invoice #{pendingSource?.invcNo ?? pendingSubmit?.orgInvcNo}
+                        {pendingSource?.displayAmount != null
+                            ? ` (${Number(pendingSource.displayAmount).toLocaleString()} KES)`
+                            : ""}
+                        {pendingSubmit ? ` as ${creditNoteReasonLabel(pendingSubmit.rfdRsnCd).toLowerCase()}` : ""}.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -297,18 +308,19 @@ export function IssueETimsCreditNoteSheet({
                         onClick={(e) => {
                             e.preventDefault();
                             if (!pendingSubmit) return;
-                            submitCreditNote(pendingSubmit);
+                            const values = pendingSubmit;
                             setConfirmOpen(false);
                             setPendingSubmit(null);
+                            void submitCreditNote(values);
                         }}
                     >
                         {sendCreditNote.isPending ? (
                             <>
                                 <Spinner size={16} className="mr-2" />
-                                Submitting...
+                                Issuing…
                             </>
                         ) : (
-                            "Submit to KRA"
+                            "Issue credit note"
                         )}
                     </AlertDialogAction>
                 </AlertDialogFooter>
@@ -319,10 +331,6 @@ export function IssueETimsCreditNoteSheet({
             <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
                 <SheetHeader>
                     <SheetTitle>Issue credit note</SheetTitle>
-                    <SheetDescription>
-                        Submits to KRA via <code className="text-xs">/saveTrnsSalesOsdc</code> with{" "}
-                        <code className="text-xs">rcptTyCd=R</code> against a signed sale.
-                    </SheetDescription>
                 </SheetHeader>
 
                 <Form {...form}>
@@ -414,7 +422,7 @@ export function IssueETimsCreditNoteSheet({
                                 {sendCreditNote.isPending ? (
                                     <>
                                         <Spinner size={16} className="mr-2" />
-                                        Submitting...
+                                        Issuing…
                                     </>
                                 ) : (
                                     "Issue credit note"

@@ -74,11 +74,14 @@ export const agencyMenuKeys = [
 	"/agency/manage-organizations",
 	"/agency/manage-users",
 
+	"/agency/sales",
+	"/agency/quotations",
+	"/agency/crm",
+
 	"/agency/billing",
 	"/agency/transactions",
 	"/agency/invoices",
 	"/agency/subscriptions",
-	"/agency/quotations",
 
 	"/agency/nisc-payment-gateway",
 
