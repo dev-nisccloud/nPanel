@@ -14,9 +14,11 @@ import {
   KeyboardSensor,
   MouseSensor,
   TouchSensor,
+  pointerWithin,
   useDroppable,
   useSensor,
   useSensors,
+  type CollisionDetection,
 } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -24,6 +26,7 @@ import type { ReactNode, HTMLAttributes } from "react";
 import { 
   createContext,
   useContext,
+  useRef,
   useState,
 } from "react";
 import { createPortal } from 'react-dom';
@@ -33,6 +36,11 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
 const t = tunnel();
+
+const collisionDetection: CollisionDetection = (args) => {
+  const hits = pointerWithin(args);
+  return hits.length > 0 ? hits : closestCenter(args);
+};
 
 export type { DragEndEvent } from '@dnd-kit/core';
 
@@ -211,6 +219,12 @@ export const KanbanProvider = <
   ...props
 }: KanbanProviderProps<T, C>) => {
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
+  const dataRef = useRef(data);
+  const propDataRef = useRef(data);
+  if (propDataRef.current !== data) {
+    propDataRef.current = data;
+    dataRef.current = data;
+  }
 
   const sensors = useSensors(
     useSensor(MouseSensor),
@@ -218,8 +232,13 @@ export const KanbanProvider = <
     useSensor(KeyboardSensor)
   );
 
+  const publish = (next: T[]) => {
+    dataRef.current = next;
+    onDataChange?.(next);
+  };
+
   const handleDragStart = (event: DragStartEvent) => {
-    const card = data.find((item) => item.id === event.active.id);
+    const card = dataRef.current.find((item) => item.id === event.active.id);
     if (card) {
       setActiveCardId(event.active.id as string);
     }
@@ -233,28 +252,29 @@ export const KanbanProvider = <
       return;
     }
 
-    const activeItem = data.find((item) => item.id === active.id);
-    const overItem = data.find((item) => item.id === over.id);
+    const current = dataRef.current;
+    const activeItem = current.find((item) => item.id === active.id);
+    const overItem = current.find((item) => item.id === over.id);
 
-    if (!(activeItem)) {
+    if (!activeItem) {
       return;
     }
 
-    const activeColumn = activeItem.column;
     const overColumn =
-      overItem?.column ||
-      columns.find(col => col.id === over.id)?.id ||
-      columns[0]?.id;
+      overItem?.column || columns.find((col) => col.id === over.id)?.id;
 
-    if (activeColumn !== overColumn) {
-      let newData = [...data];
-      const activeIndex = newData.findIndex((item) => item.id === active.id);
-      const overIndex = newData.findIndex((item) => item.id === over.id);
+    if (overColumn && activeItem.column !== overColumn) {
+      const activeIndex = current.findIndex((item) => item.id === active.id);
+      const overIndex = current.findIndex((item) => item.id === over.id);
+      let newData = current.map((item) =>
+        item.id === active.id ? { ...item, column: overColumn } : item,
+      );
 
-      newData[activeIndex].column = overColumn;
-      newData = arrayMove(newData, activeIndex, overIndex);
+      if (activeIndex >= 0 && overIndex >= 0) {
+        newData = arrayMove(newData, activeIndex, overIndex);
+      }
 
-      onDataChange?.(newData);
+      publish(newData);
     }
 
     onDragOver?.(event);
@@ -263,22 +283,34 @@ export const KanbanProvider = <
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveCardId(null);
 
-    onDragEnd?.(event);
-
     const { active, over } = event;
+    const current = dataRef.current;
 
-    if (!over || active.id === over.id) {
-      return;
+    if (over && active.id !== over.id) {
+      const activeItem = current.find((item) => item.id === active.id);
+      const overItem = current.find((item) => item.id === over.id);
+      const overColumn =
+        overItem?.column || columns.find((col) => col.id === over.id)?.id;
+
+      let next = current;
+      if (activeItem && overColumn && activeItem.column !== overColumn) {
+        next = current.map((item) =>
+          item.id === active.id ? { ...item, column: overColumn } : item,
+        );
+      }
+
+      const oldIndex = next.findIndex((item) => item.id === active.id);
+      const newIndex = next.findIndex((item) => item.id === over.id);
+      if (oldIndex >= 0 && newIndex >= 0) {
+        next = arrayMove([...next], oldIndex, newIndex);
+      }
+
+      if (next !== current) {
+        publish(next);
+      }
     }
 
-    let newData = [...data];
-
-    const oldIndex = newData.findIndex((item) => item.id === active.id);
-    const newIndex = newData.findIndex((item) => item.id === over.id);
-
-    newData = arrayMove(newData, oldIndex, newIndex);
-
-    onDataChange?.(newData);
+    onDragEnd?.(event);
   };
 
   const announcements: Announcements = {
@@ -309,13 +341,13 @@ export const KanbanProvider = <
   return (
     <KanbanContext.Provider value={{ columns, data, activeCardId }}>
       <DndContext
+        {...props}
         accessibility={{ announcements }}
-        collisionDetection={closestCenter}
+        collisionDetection={collisionDetection}
         onDragEnd={handleDragEnd}
         onDragOver={handleDragOver}
         onDragStart={handleDragStart}
-        sensors={sensors}
-        {...props}
+        sensors={props.sensors ?? sensors}
       >
         <div
           className={cn(

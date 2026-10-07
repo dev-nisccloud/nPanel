@@ -174,7 +174,7 @@ export function DealsDataTable({
                       <div>
                         <button
                           type="button"
-                          className="font-medium hover:underline"
+                          className="font-semibold text-foreground hover:underline"
                           onClick={() => setViewingDealId(deal.id)}
                         >
                           {deal.name}
@@ -187,7 +187,7 @@ export function DealsDataTable({
                     {deal.company ? (
                       <Link
                         to={`/agency/crm/companies/${deal.company.id}`}
-                        className="flex items-center gap-1 text-sm hover:underline"
+                        className="flex items-center gap-1 text-sm font-semibold text-foreground hover:underline"
                       >
                         <Building2 className="h-3 w-3" />
                         {deal.company.name}
@@ -216,7 +216,7 @@ export function DealsDataTable({
                   <TableCell>
                     <div className="flex items-center gap-1">
                       <DollarSign className="h-3 w-3 text-muted-foreground" />
-                      <span className="font-medium">
+                      <span className="font-semibold text-foreground">
                         {formatCurrency(deal.amount != null ? Number(deal.amount) : null)}
                       </span>
                     </div>

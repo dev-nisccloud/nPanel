@@ -80,7 +80,7 @@ export function RecordNotes({ scope }: { scope: Scope }) {
                 </p>
                 <p className="text-xs text-muted-foreground">{formatCrmDate(note.createdAt)}</p>
               </div>
-              <p className="mt-1 text-sm text-primary">{note.content}</p>
+              <p className="mt-1 text-sm text-foreground">{note.content}</p>
             </div>
           ))}
         </div>
@@ -149,7 +149,7 @@ export function RecordTasks({ scope }: { scope: Scope }) {
           {tasks.map((task) => (
             <div key={task.id} className="flex items-start justify-between gap-3 px-4 py-3">
               <div className="min-w-0">
-                <p className="text-sm font-medium text-primary">{task.title}</p>
+                <p className="text-sm font-semibold text-foreground">{task.title}</p>
                 <p className="text-xs text-muted-foreground">
                   {task.assignedTo?.name || "Unassigned"}
                   {task.dueDate ? ` · Due ${formatCrmDate(task.dueDate)}` : ""}
@@ -229,7 +229,7 @@ export function RecordActivities({ scope }: { scope: Scope }) {
           {activities.map((activity) => (
             <div key={activity.id} className="flex items-start justify-between gap-3 px-4 py-3">
               <div className="min-w-0">
-                <p className="text-sm font-medium text-primary">{activity.subject}</p>
+                <p className="text-sm font-semibold text-foreground">{activity.subject}</p>
                 <p className="text-xs capitalize text-muted-foreground">
                   {activity.activityType.replaceAll("_", " ")}
                 </p>

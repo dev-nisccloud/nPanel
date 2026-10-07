@@ -62,6 +62,12 @@ export function DealsBoard({
   const [viewingDealId, setViewingDealId] = useState<string | null>(null);
   const [columnSearch, setColumnSearch] = useState<Record<string, string>>({});
   const originStage = useRef<string | null>(null);
+  const itemsRef = useRef<BoardDeal[]>([]);
+
+  const commitItems = (next: BoardDeal[]) => {
+    itemsRef.current = next;
+    setItems(next);
+  };
 
   const pipelinesQuery = trpc.crm.pipelines.list.useQuery({ page: 1, limit: 100 });
   const dealsQuery = trpc.crm.deals.list.useQuery({
@@ -93,7 +99,7 @@ export function DealsBoard({
       companyName: deal.company?.name ?? null,
       closeDate: deal.expectedCloseDate,
     }));
-    setItems(next);
+    commitItems(next);
   }, [dealsQuery.data]);
 
   const updateStage = trpc.crm.deals.update.useMutation({
@@ -114,17 +120,13 @@ export function DealsBoard({
   );
 
   const onDragStart = (event: DragStartEvent) => {
-    const card = items.find((item) => item.id === event.active.id);
+    const card = itemsRef.current.find((item) => item.id === event.active.id);
     originStage.current = card?.column ?? null;
   };
 
   const onDragEnd = (event: DragEndEvent) => {
-    const overId = event.over ? String(event.over.id) : "";
-    const overCard = items.find((item) => item.id === overId);
-    const targetStage = columns.some((column) => column.id === overId)
-      ? overId
-      : overCard?.column;
     const dealId = String(event.active.id);
+    const targetStage = itemsRef.current.find((item) => item.id === dealId)?.column;
     if (!targetStage || !originStage.current || targetStage === originStage.current) return;
     const stage = columns.find((column) => column.id === targetStage);
     updateStage.mutate({
@@ -156,7 +158,7 @@ export function DealsBoard({
         <KanbanProvider
           columns={columns}
           data={items}
-          onDataChange={setItems}
+          onDataChange={commitItems}
           onDragStart={onDragStart}
           onDragEnd={onDragEnd}
           sensors={sensors}
@@ -185,7 +187,7 @@ export function DealsBoard({
                     </Badge>
                   </div>
                 </KanbanHeader>
-                <p className="shrink-0 border-b bg-background px-3 py-1.5 text-[11px] text-muted-foreground">
+                <p className="shrink-0 border-b bg-background px-3 py-1.5 text-xs font-semibold text-foreground">
                   {formatCrmMoney(total, visibleDeals[0]?.currency || stageDeals[0]?.currency || "KES")}
                 </p>
                 <div className="relative shrink-0 border-b bg-background px-2 py-2">
@@ -216,11 +218,11 @@ export function DealsBoard({
                           className="w-full text-left"
                           onClick={() => setViewingDealId(deal.id)}
                         >
-                          <p className="text-sm font-medium text-primary">{deal.name}</p>
+                          <p className="text-sm font-semibold text-foreground">{deal.name}</p>
                           <p className="mt-1 truncate text-xs text-muted-foreground">
                             {deal.companyName || "No company"}
                           </p>
-                          <p className="mt-2 text-xs font-medium">
+                          <p className="mt-2 text-xs font-semibold text-foreground">
                             {formatCrmMoney(deal.amount, deal.currency)}
                           </p>
                         </button>

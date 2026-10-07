@@ -103,7 +103,7 @@ export function CompanyOverviewTab({ company }: CompanyOverviewTabProps) {
           {company.description ? (
             <div className="space-y-1 px-4 py-3">
               <p className="text-xs text-muted-foreground">Description</p>
-              <p className="text-sm text-primary">{company.description}</p>
+              <p className="text-sm text-foreground">{company.description}</p>
             </div>
           ) : null}
         </CrmFieldGrid>
@@ -134,7 +134,7 @@ export function CompanyOverviewTab({ company }: CompanyOverviewTabProps) {
                 href={company.linkedinUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm font-medium text-primary hover:underline"
+                className="text-sm font-semibold text-foreground hover:underline"
               >
                 {company.linkedinUrl.replace(/^https?:\/\//, "")}
               </a>
