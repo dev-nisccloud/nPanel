@@ -398,6 +398,15 @@ export const agencysidebarItems: NavGroup[] = [
       //   ],
       // },
       {
+        title: "Sales",
+        url: "/agency/sales",
+        icon: (props: any) => React.createElement(Icons.SALES, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        subItems: [
+          { title: "Quotations", url: "/agency/quotations", },
+          { title: "CRM", url: "/agency/crm", },
+        ],
+      },
+      {
         title: "Billing",
         url: "/agency/billing",
         icon: (props: any) => React.createElement(Icons.Billing, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
@@ -405,7 +414,6 @@ export const agencysidebarItems: NavGroup[] = [
           { title: "Transactions", url: "/agency/transactions", },
           { title: "Invoices", url: "/agency/invoices", },
           { title: "Subscriptions", url: "/agency/subscriptions", },
-          { title: "Quotations", url: "/agency/quotations", },
         ],
       },
       {

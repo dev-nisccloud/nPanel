@@ -52,6 +52,7 @@ import {
     normalizeSalesListItem,
     type EtimsSaleRecord,
 } from "./agency.kra-etims/sales/_components/etims-sale-utils";
+import { nextInvcNo } from "./agency.kra-etims/_lib/etims-kra";
 import { ViewETimsSaleSheet } from "./agency.kra-etims/sales/_components/view-etims-sale-sheet";
 import { useEtimsReceiptDownload } from "./agency.kra-etims/sales/_components/download-etims-receipt";
 import { buildEtimsReceiptVerifyUrl, extractRcptSign } from "@/lib/etims-receipt-url";
@@ -206,44 +207,10 @@ export default function ETimsSalesPage() {
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Issue credit note?</AlertDialogTitle>
-                        <AlertDialogDescription asChild>
-                            <div className="space-y-3 text-sm text-muted-foreground">
-                                {creditNoteConfirmTarget ? (
-                                    <>
-                                        <p>
-                                            You are about to issue a credit note against signed sale{" "}
-                                            <span className="font-mono font-semibold text-foreground">
-                                                #{creditNoteConfirmTarget.invcNo}
-                                            </span>
-                                            {creditNoteConfirmTarget.custNm ? (
-                                                <>
-                                                    {" "}for{" "}
-                                                    <span className="font-semibold text-foreground">
-                                                        {creditNoteConfirmTarget.custNm}
-                                                    </span>
-                                                </>
-                                            ) : null}
-                                            .
-                                        </p>
-                                        <p>
-                                            Sale amount:{" "}
-                                            <span className="font-semibold text-foreground">
-                                                {Number(creditNoteConfirmTarget.displayAmount ?? 0).toLocaleString()} KES
-                                            </span>
-                                        </p>
-                                    </>
-                                ) : (
-                                    <p>
-                                        You are about to create a credit note against a signed sale. You will choose
-                                        the original invoice, reason, and optional remark in the next step.
-                                    </p>
-                                )}
-                                <p>
-                                    Credit notes are submitted to KRA eTIMS as fiscal documents (
-                                    <code className="text-xs">rcptTyCd=R</code>). Only proceed if you intend to reverse
-                                    or adjust this sale on KRA.
-                                </p>
-                            </div>
+                        <AlertDialogDescription>
+                            {creditNoteConfirmTarget
+                                ? `Reverse invoice #${creditNoteConfirmTarget.invcNo}${creditNoteConfirmTarget.custNm ? ` for ${creditNoteConfirmTarget.custNm}` : ""}. You will pick a reason next.`
+                                : "You will choose the original invoice and reason next."}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -263,6 +230,7 @@ export default function ETimsSalesPage() {
                 }}
                 sale={creditNoteSale}
                 availableSales={creditableSales}
+                nextInvcNo={nextInvcNo(invoices)}
                 onSuccess={() => {
                     refetch();
                     setActiveTab("credit-notes");

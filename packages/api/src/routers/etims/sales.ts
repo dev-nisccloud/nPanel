@@ -85,6 +85,33 @@ const salesTransactionSchema = z.object({
     itemList: z.array(salesItemSchema).min(1),
 });
 
+function roundKra2(n: unknown) {
+    return Math.round((Number(n) || 0) * 100) / 100;
+}
+
+/** KRA NUMBER(18,2) rejects float leftovers such as 862.0689655172414. */
+function roundTransactionMoney(transaction: Record<string, unknown>) {
+    const moneyKeys = [
+        "taxblAmtA", "taxblAmtB", "taxblAmtC", "taxblAmtD", "taxblAmtE",
+        "taxAmtA", "taxAmtB", "taxAmtC", "taxAmtD", "taxAmtE",
+        "totTaxblAmt", "totTaxAmt", "totAmt",
+    ] as const;
+    const out: Record<string, unknown> = { ...transaction };
+    for (const key of moneyKeys) {
+        if (key in out) out[key] = roundKra2(out[key]);
+    }
+    if (Array.isArray(out.itemList)) {
+        out.itemList = (out.itemList as Record<string, unknown>[]).map((line) => {
+            const next = { ...line };
+            for (const key of ["prc", "splyAmt", "dcRt", "dcAmt", "taxblAmt", "taxAmt", "totAmt", "qty", "pkg"]) {
+                if (key in next) next[key] = roundKra2(next[key]);
+            }
+            return next;
+        });
+    }
+    return out;
+}
+
 /** Credit notes use the same KRA endpoint with rcptTyCd=R and orgInvcNo set. */
 const creditNoteTransactionSchema = salesTransactionSchema.extend({
     rcptTyCd: z.literal("R"),
@@ -123,7 +150,12 @@ export const etimsSalesRouter = router({
             assertWrite(ctx.session?.user?.role);
             const { client, oscu, isSandbox } = await getEtimsContext();
             try {
-                const result = await saveTrnsSalesOnKra(client, oscu, isSandbox, input.transaction as Record<string, unknown>);
+                const result = await saveTrnsSalesOnKra(
+                    client,
+                    oscu,
+                    isSandbox,
+                    roundTransactionMoney(input.transaction as Record<string, unknown>),
+                );
                 const body = result as { resultCd?: string; resultMsg?: string };
                 if (body?.resultCd && body.resultCd !== "000") {
                     return { success: false, data: null, errorMessage: body.resultMsg ?? "Failed to send credit note" };
