@@ -9,11 +9,13 @@ import { trpc } from "@/utils/trpc";
 import { DealsDataTable } from "./agency.crm/_components/deals/deals-data-table";
 import { DealsBoard } from "./agency.crm/_components/deals/deals-board";
 import { DealFormSheet } from "./agency.crm/_components/deals/deal-form-sheet";
+import { PipelineFormSheet } from "./agency.crm/_components/deals/pipeline-form-sheet";
 
 type DealsView = "list" | "board";
 
 export default function DealsListRoute() {
   const [createOpen, setCreateOpen] = useState(false);
+  const [pipelineOpen, setPipelineOpen] = useState(false);
   const [view, setView] = useState<DealsView>("list");
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
@@ -79,21 +81,27 @@ export default function DealsListRoute() {
               }}
               className="w-full sm:max-w-xs"
             />
-            <div className="w-full sm:w-64">
-              <ComboboxDropdown
-                placeholder="Select pipeline"
-                searchPlaceholder="Search pipelines..."
-                items={pipelineItems}
-                selectedItem={pipelineItems.find((item) => item.id === pipelineId)}
-                onSelect={(item) => {
-                  setPipelineId(item.id);
-                  setStageId(undefined);
-                  setPage(1);
-                }}
-                emptyResults="No pipelines found"
-                disabled={pipelinesQuery.isLoading}
-                className="w-full"
-              />
+            <div className="flex w-full gap-2 sm:w-auto">
+              <div className="min-w-0 flex-1 sm:w-64">
+                <ComboboxDropdown
+                  placeholder="Select pipeline"
+                  searchPlaceholder="Search pipelines..."
+                  items={pipelineItems}
+                  selectedItem={pipelineItems.find((item) => item.id === pipelineId)}
+                  onSelect={(item) => {
+                    setPipelineId(item.id);
+                    setStageId(undefined);
+                    setPage(1);
+                  }}
+                  emptyResults="No pipelines found"
+                  disabled={pipelinesQuery.isLoading}
+                  className="w-full"
+                />
+              </div>
+              <Button type="button" variant="outline" onClick={() => setPipelineOpen(true)}>
+                <Plus className="h-4 w-4" />
+                New pipeline
+              </Button>
             </div>
           </div>
           <ToggleGroup
@@ -143,6 +151,16 @@ export default function DealsListRoute() {
           onSuccess={() => {
             setCreateOpen(false);
             refetch();
+          }}
+        />
+        <PipelineFormSheet
+          open={pipelineOpen}
+          onOpenChange={setPipelineOpen}
+          onCreated={(id) => {
+            setPipelineOpen(false);
+            setPipelineId(id);
+            setStageId(undefined);
+            setPage(1);
           }}
         />
       </div>

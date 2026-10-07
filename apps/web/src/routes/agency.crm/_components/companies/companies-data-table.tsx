@@ -161,7 +161,7 @@ export function CompaniesDataTable({
                       <div>
                         <Link
                           to={`/agency/crm/companies/${company.id}`}
-                          className="font-medium hover:underline"
+                          className="font-semibold text-foreground hover:underline"
                         >
                           {company.name}
                         </Link>

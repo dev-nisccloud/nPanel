@@ -169,7 +169,7 @@ export function ContactsDataTable({
                       <div>
                         <Link
                           to={`/agency/crm/contacts/${contact.id}`}
-                          className="font-medium hover:underline"
+                          className="font-semibold text-foreground hover:underline"
                         >
                           {[contact.firstName, contact.lastName].filter(Boolean).join(" ") ||
                             "Unnamed Contact"}
@@ -182,7 +182,7 @@ export function ContactsDataTable({
                     {contact.email ? (
                       <a
                         href={`mailto:${contact.email}`}
-                        className="flex items-center gap-1 text-sm hover:underline"
+                        className="flex items-center gap-1 text-sm font-semibold text-foreground hover:underline"
                       >
                         <Mail className="h-3 w-3" />
                         {contact.email}
@@ -195,7 +195,7 @@ export function ContactsDataTable({
                     {contact.phone ? (
                       <a
                         href={`tel:${contact.phone}`}
-                        className="flex items-center gap-1 text-sm hover:underline"
+                        className="flex items-center gap-1 text-sm font-semibold text-foreground hover:underline"
                       >
                         <Phone className="h-3 w-3" />
                         {contact.phone}
@@ -208,7 +208,7 @@ export function ContactsDataTable({
                     {contact.company ? (
                       <Link
                         to={`/agency/crm/companies/${contact.company.id}`}
-                        className="flex items-center gap-1 text-sm hover:underline"
+                        className="flex items-center gap-1 text-sm font-semibold text-foreground hover:underline"
                       >
                         <Building2 className="h-3 w-3" />
                         {contact.company.name}
