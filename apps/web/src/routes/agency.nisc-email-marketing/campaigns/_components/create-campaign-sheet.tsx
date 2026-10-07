@@ -15,8 +15,6 @@ import {
 	Calendar as CalendarIcon,
 	Send,
 	X,
-	LayoutTemplate,
-	Loader2,
 	AlertCircle,
 } from "lucide-react";
 import { useNavigate } from "react-router";
@@ -52,8 +50,12 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { format } from "date-fns";
 import { ChevronDownIcon } from "lucide-react";
 import type { FieldErrors, UseFormReturn } from "react-hook-form";
-import { useGetEmailBuilderDesigns } from "@/routes/agency.email-marketing/email-builder/_api/use-get-email-builder-designs";
-import { renderToHtml } from "@/routes/agency.email-marketing/email-builder/_components/email-builder/utils";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import {
+	CampaignImageEmailUpload,
+	CampaignTemplateCombobox,
+	type CampaignImageEmail,
+} from "@/components/email-marketing/campaign-content-fields";
 import {
 	niscEmTeamScopedInput,
 	useNiscEmailMarketingRoute,
@@ -62,7 +64,7 @@ import { NiscEmOrganizationSelect } from "@/components/nisc-email-marketing/nisc
 
 const STEPS = [
 	{ title: "Setup", description: "Domain, from address, and subject" },
-	{ title: "Email Template", description: "Start from a template or provide HTML" },
+	{ title: "Email Template", description: "Start from a template, HTML, or an image" },
 	{ title: "Recipients", description: "Choose an audience and load its contacts" },
 	{ title: "Preview", description: "See how the email will look for recipients" },
 	{ title: "Schedule", description: "Schedule or send immediately" },
@@ -369,6 +371,8 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 	const [isSending, setIsSending] = React.useState(false);
 	const [selectedTemplateId, setSelectedTemplateId] = React.useState<string | null>(null);
 	const [isApplyingTemplate, setIsApplyingTemplate] = React.useState(false);
+	const [imageEmail, setImageEmail] = React.useState<CampaignImageEmail | null>(null);
+	const [isUploadingImage, setIsUploadingImage] = React.useState(false);
 	const submitButtonRef = React.useRef<HTMLButtonElement | null>(null);
 
 	const utils = trpc.useUtils();
@@ -392,14 +396,30 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 			},
 		);
 
-	// Load available email builder designs for this workspace (agency-side usage)
 	const {
 		data: designsPages,
 		isLoading: designsLoading,
 		hasNextPage: designsHasNextPage,
 		fetchNextPage: fetchMoreDesigns,
 		isFetchingNextPage: designsFetchingNextPage,
-	} = useGetEmailBuilderDesigns();
+	} = useInfiniteQuery({
+		queryKey: [["niscEmailBuilder", "design", "list", "campaign"], { teamId: scopedTeamId ?? null }],
+		queryFn: async ({ pageParam = 1 }) =>
+			utils.niscEmailBuilder.design.list.fetch({
+				page: pageParam,
+				limit: 50,
+				...(scopedTeamId ? { teamId: scopedTeamId } : {}),
+			}),
+		getNextPageParam: (lastPage) => lastPage.nextPage ?? undefined,
+		initialPageParam: 1,
+		enabled: open && (!route.isCustomer || Boolean(route.teamId)),
+		staleTime: 30_000,
+	});
+
+	React.useEffect(() => {
+		if (!open || !designsHasNextPage || designsFetchingNextPage) return;
+		void fetchMoreDesigns();
+	}, [open, designsHasNextPage, designsFetchingNextPage, fetchMoreDesigns]);
 
 	const emailBuilderDesigns = React.useMemo(
 		() => designsPages?.pages.flatMap((page) => page.data ?? []) ?? [],
@@ -584,28 +604,19 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 			setIsApplyingTemplate(true);
 			setSelectedTemplateId(designId);
 
-			const result = await utils.emailBuilder.get.fetch({ id: designId });
-			const design = result.data;
+			const design = await utils.niscEmailBuilder.design.get.fetch({ designId });
+			const html = design.htmlContent?.trim() ?? "";
 
-			if (!design?.json) {
-				toast.error("Template has no design JSON", {
-					description: "Open this design in the email builder and save it again.",
+			if (!html) {
+				toast.error("Template has no email content", {
+					description: "Open this design in the AI Email Builder and save it again.",
 				});
+				setSelectedTemplateId(null);
 				return;
 			}
 
-			let parsedDocument: unknown;
-			try {
-				parsedDocument = JSON.parse(design.json);
-			} catch (error) {
-				toast.error("Failed to load template", {
-					description: "Stored template JSON is invalid.",
-				});
-				return;
-			}
-
-			const html = renderToHtml(parsedDocument);
-
+			setImageEmail(null);
+			setHtmlFile(null);
 			setHtmlContent(html);
 			form.setValue("htmlContent", html, { shouldValidate: false });
 
@@ -686,6 +697,9 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 			form.reset();
 			setHtmlFile(null);
 			setHtmlContent("");
+			setImageEmail(null);
+			setIsUploadingImage(false);
+			setSelectedTemplateId(null);
 			setEmailInputText("");
 			setParsedEmails([]);
 			setSelectedAudienceId(null);
@@ -708,6 +722,8 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 		}
 
 		setHtmlFile(file);
+		setImageEmail(null);
+		setSelectedTemplateId(null);
 		const reader = new FileReader();
 		reader.onload = (event) => {
 			const content = event.target?.result as string;
@@ -715,6 +731,20 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 			form.setValue("htmlContent", content, { shouldValidate: false });
 		};
 		reader.readAsText(file);
+	};
+
+	const handleImageEmailChange = (next: (CampaignImageEmail & { html: string }) | null) => {
+		if (!next) {
+			setImageEmail(null);
+			setHtmlContent("");
+			form.setValue("htmlContent", "", { shouldValidate: false });
+			return;
+		}
+		setImageEmail({ url: next.url, fileName: next.fileName });
+		setHtmlFile(null);
+		setSelectedTemplateId(null);
+		setHtmlContent(next.html);
+		form.setValue("htmlContent", next.html, { shouldValidate: false });
 	};
 
 	// Handle email text input change
@@ -794,8 +824,12 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 					return;
 				}
 			} else if (step === 2) {
+				if (isUploadingImage) {
+					toast.error("Upload in progress", { description: "Wait for the image to finish uploading." });
+					return;
+				}
 				if (!htmlContent) {
-					toast.error("Content required", { description: "Please write or upload HTML content." });
+					toast.error("Content required", { description: "Write HTML, upload an HTML file, or upload an image." });
 					return;
 				}
 			} else if (step === 3) {
@@ -1052,6 +1086,7 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 												form.setValue("emailDomainId", null);
 												form.setValue("fromEmail", "");
 												setSelectedAudienceId(null);
+												setSelectedTemplateId(null);
 											}}
 											disabled={isSending}
 										/>
@@ -1167,88 +1202,27 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 										<p className="text-sm text-muted-foreground">{STEPS[1].description}</p>
 									</div>
 
-									{/* Templates from Email Builder (dropdown) */}
-									<div className="space-y-3 rounded-lg border bg-muted/40 px-3 py-3">
-										<div className="flex items-center gap-2">
-											<div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-												<LayoutTemplate className="h-4 w-4 text-primary" />
-											</div>
-											<div className="space-y-0.5">
-												<p className="text-sm font-medium">Start from an email builder template</p>
-												<p className="text-xs text-muted-foreground">
-													Select any saved design and we’ll convert it to ready-to-send HTML for this campaign.
-												</p>
-											</div>
-										</div>
+									<CampaignTemplateCombobox
+										designs={emailBuilderDesigns}
+										isLoading={designsLoading}
+										isFetchingMore={designsFetchingNextPage}
+										selectedId={selectedTemplateId}
+										isApplying={isApplyingTemplate}
+										emptyMessage="No saved designs yet. Create one in the AI Email Builder and it will appear here."
+										onSelect={(designId) => {
+											void handleApplyTemplateFromDesign(designId);
+										}}
+										onClear={clearSelectedTemplate}
+									/>
 
-										<div className="mt-3 space-y-2">
-											{designsLoading ? (
-												<div className="flex items-center gap-2 text-xs text-muted-foreground">
-													<Spinner size={14} className="shrink-0" />
-													<span>Loading templates…</span>
-												</div>
-											) : emailBuilderDesigns.length === 0 ? (
-												<p className="text-xs text-muted-foreground">
-													No saved designs yet. Create one from the Email Builder and it will appear here.
-												</p>
-											) : (
-												<FormItem>
-													<FormLabel className="text-xs">Choose a template</FormLabel>
-													<Select
-														value={selectedTemplateId ?? ""}
-														onValueChange={async (value) => {
-															if (!value) {
-																clearSelectedTemplate();
-																return;
-															}
-															await handleApplyTemplateFromDesign(value);
-														}}
-													>
-														<FormControl>
-															<SelectTrigger className="h-9 text-sm">
-																<SelectValue placeholder="Select a saved template" />
-															</SelectTrigger>
-														</FormControl>
-														<SelectContent>
-															{emailBuilderDesigns.map((design) => (
-																<SelectItem key={design.id} value={design.id}>
-																	<div className="flex flex-col">
-																		<span className="text-sm font-medium">{design.name}</span>
-																		{design.description && (
-																			<span className="text-[11px] text-muted-foreground">
-																				{design.description}
-																			</span>
-																		)}
-																	</div>
-																</SelectItem>
-															))}
-														</SelectContent>
-													</Select>
-												</FormItem>
-											)}
-
-											<div className="flex items-center justify-between">
-												{selectedTemplateId && (
-													<Button
-														type="button"
-														variant="ghost"
-														size="sm"
-														className="h-7 text-[11px]"
-														onClick={clearSelectedTemplate}
-													>
-														Clear selection
-													</Button>
-												)}
-												{isApplyingTemplate && (
-													<div className="flex items-center gap-2 text-[11px] text-muted-foreground ml-auto">
-														<Loader2 className="h-3 w-3 animate-spin" />
-														Applying template…
-													</div>
-												)}
-											</div>
-										</div>
-									</div>
-
+									{imageEmail ? (
+										<CampaignImageEmailUpload
+											image={imageEmail}
+											disabled={isSending}
+											onChange={handleImageEmailChange}
+											onUploadingChange={setIsUploadingImage}
+										/>
+									) : (
 									<div className="space-y-4">
 										<div className="min-w-0">
 											<Label>Write or paste content</Label>
@@ -1304,7 +1278,21 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 												</div>
 											)}
 										</div>
+
+										<div className="flex items-center gap-2">
+											<div className="flex-1 border-t" />
+											<span className="text-xs text-muted-foreground">OR</span>
+											<div className="flex-1 border-t" />
+										</div>
+
+										<CampaignImageEmailUpload
+											image={null}
+											disabled={isSending}
+											onChange={handleImageEmailChange}
+											onUploadingChange={setIsUploadingImage}
+										/>
 									</div>
+									)}
 								</div>
 							)}
 

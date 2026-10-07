@@ -1,45 +1,38 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { formatDistanceToNow } from "date-fns";
-import {
-	AlertTriangle,
-	CopyIcon,
-	FileIcon,
-	MoreHorizontal,
-	Search,
-	Trash,
-	Pencil,
-} from "lucide-react";
+import { CopyIcon, Trash } from "lucide-react";
 
 import { useGetNebDesigns } from "../_api/use-get-neb-designs";
 import { useDeleteNebDesign } from "../_api/use-delete-neb-design";
 import { useDuplicateNebDesign } from "../_api/use-duplicate-neb-design";
 import { useNiscEmailMarketingRoute } from "@/components/nisc-email-marketing/nisc-email-marketing-route-context";
 import {
+	NiscEmLinkOrganizationButton,
 	NiscEmLinkOrganizationDialog,
-	NiscEmLinkOrganizationMenuItem,
 } from "@/components/nisc-email-marketing/nisc-em-link-organization";
 import { toast } from "@/components/ui/sonner";
 import { trpc } from "@/utils/trpc";
-
-import {
-	DropdownMenuContent,
-	DropdownMenu,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Table, TableRow, TableBody, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { CleanListCell } from "@/components/ui/clean-list";
+import {
+	SearchableCleanList,
+	type SearchableCleanListItem,
+} from "@/components/ui/searchable-clean-list";
+import { ViewDetailsButton } from "@/components/ui/list-row-actions";
 import { useConfirm } from "@/hooks/use-confirm";
 import { NebSpinner } from "./neb-loading";
 
-export const ProjectsSection = () => {
+const ACTION_BTN = "h-7 px-2.5 text-xs";
+
+export const ProjectsSection = ({ toolbarActions }: { toolbarActions?: React.ReactNode }) => {
 	const [ConfirmDialog, confirm] = useConfirm(
 		"Are you sure?",
 		"You are about to delete this email design.",
 	);
+	const [searchQuery, setSearchQuery] = useState("");
 	const [navigatingDesignId, setNavigatingDesignId] = useState<string | null>(null);
 	const [duplicatingDesignId, setDuplicatingDesignId] = useState<string | null>(null);
 	const [deletingDesignId, setDeletingDesignId] = useState<string | null>(null);
@@ -67,8 +60,28 @@ export const ProjectsSection = () => {
 
 	const teamId = route.isCustomer ? route.teamId ?? undefined : undefined;
 
-	const isDeleteInProgress =
-		deletingDesignId !== null || removeMutation.isPending;
+	const isDeleteInProgress = deletingDesignId !== null || removeMutation.isPending;
+
+	const { data, status, error, fetchNextPage, isFetchingNextPage, hasNextPage, refetch } =
+		useGetNebDesigns({ teamId });
+
+	const designs = useMemo(
+		() => data?.pages.flatMap((page) => page.data ?? []) ?? [],
+		[data],
+	);
+
+	const filteredDesigns = useMemo(() => {
+		const query = searchQuery.trim().toLowerCase();
+		if (!query) return designs;
+		return designs.filter((design) => {
+			const visibility = design.isPublic ? "public" : "private";
+			return (
+				design.name.toLowerCase().includes(query) ||
+				design.description?.toLowerCase().includes(query) ||
+				visibility.includes(query)
+			);
+		});
+	}, [designs, searchQuery]);
 
 	const handleDesignClick = (designId: string) => {
 		if (isDeleteInProgress || duplicatingDesignId || navigatingDesignId) return;
@@ -76,8 +89,7 @@ export const ProjectsSection = () => {
 		navigate(`${route.emailBuilderBasePath}/${designId}`);
 	};
 
-	const onCopy = (designId: string, e: React.MouseEvent) => {
-		e.stopPropagation();
+	const onCopy = (designId: string) => {
 		if (isDeleteInProgress) return;
 		setDuplicatingDesignId(designId);
 		duplicateMutation.mutate(
@@ -88,63 +100,102 @@ export const ProjectsSection = () => {
 		);
 	};
 
-	const onDelete = async (designId: string, e: React.MouseEvent) => {
-		e.stopPropagation();
+	const onDelete = async (designId: string) => {
 		const ok = await confirm();
-		if (ok) {
-			setDeletingDesignId(designId);
-			removeMutation.mutate(
-				{ designId },
-				{
-					onSettled: () => setDeletingDesignId(null),
-				},
-			);
-		}
+		if (!ok) return;
+		setDeletingDesignId(designId);
+		removeMutation.mutate(
+			{ designId },
+			{
+				onSettled: () => setDeletingDesignId(null),
+			},
+		);
 	};
 
-	const { data, status, fetchNextPage, isFetchingNextPage, hasNextPage } =
-		useGetNebDesigns({ teamId });
+	const items: SearchableCleanListItem[] = filteredDesigns.map((design) => {
+		const isDeleting =
+			deletingDesignId === design.id ||
+			(removeMutation.isPending && removeMutation.variables?.designId === design.id);
+		const isDuplicating = duplicatingDesignId === design.id;
+		const isNavigating = navigatingDesignId === design.id;
+		const isRowBusy = isDeleting || isDuplicating || isNavigating;
+		const canOpen =
+			!isDeleteInProgress && !duplicatingDesignId && !navigatingDesignId && !isRowBusy;
 
-	if (status === "pending" || !data) {
-		return (
-			<div className="space-y-4 mt-8">
-				<h3 className="font-semibold text-lg">Recent designs</h3>
-				<div className="flex flex-col gap-y-4 items-center justify-center h-32">
-					<NebSpinner context="page" size={32} className="text-primary" />
-				</div>
-			</div>
-		);
-	}
-
-	if (status === "error") {
-		return (
-			<div className="space-y-4 mt-8">
-				<h3 className="font-semibold text-lg">Recent designs</h3>
-				<div className="flex flex-col gap-y-4 items-center justify-center h-32">
-					<AlertTriangle className="size-6 text-muted-foreground" />
-					<p className="text-muted-foreground text-sm">Failed to load designs</p>
-				</div>
-			</div>
-		);
-	}
-
-	const firstPageData = data.pages[0]?.data;
-	if (!data.pages.length || !firstPageData?.length) {
-		return (
-			<div className="space-y-4 mt-8">
-				<h3 className="font-semibold text-lg">Recent designs</h3>
-				<div className="flex flex-col gap-y-4 items-center justify-center h-32 bg-muted/20 rounded-lg border border-dashed">
-					<Search className="size-6 text-muted-foreground" />
-					<p className="text-muted-foreground text-sm">
-						No designs found. Create one to get started!
-					</p>
-				</div>
-			</div>
-		);
-	}
+		return {
+			key: design.id,
+			title: design.name,
+			description: design.description || undefined,
+			cells: {
+				visibility: (
+					<span
+						className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+							design.isPublic
+								? "bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20"
+								: "bg-muted text-muted-foreground ring-1 ring-inset ring-border"
+						}`}
+					>
+						{design.isPublic ? "Public" : "Private"}
+					</span>
+				),
+				updated: (
+					<CleanListCell>
+						{formatDistanceToNow(new Date(design.updatedAt), { addSuffix: true })}
+					</CleanListCell>
+				),
+			},
+			actions: isRowBusy ? (
+				<NebSpinner context="inline" size={16} />
+			) : (
+				<>
+					<ViewDetailsButton
+						label="Edit"
+						onClick={() => canOpen && handleDesignClick(design.id)}
+					/>
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						className={ACTION_BTN}
+						disabled={duplicateMutation.isPending || isDeleteInProgress}
+						onClick={() => onCopy(design.id)}
+					>
+						<CopyIcon className="mr-1 h-3.5 w-3.5" />
+						Copy
+					</Button>
+					{route.showAdminFeatures ? (
+						<NiscEmLinkOrganizationButton
+							alreadyLinked={Boolean(design.teamId)}
+							disabled={isDeleteInProgress}
+							className={ACTION_BTN}
+							onClick={() =>
+								setLinkDesign({
+									id: design.id,
+									name: design.name,
+									teamId: design.teamId ?? null,
+								})
+							}
+						/>
+					) : null}
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						className={`${ACTION_BTN} text-destructive hover:text-destructive`}
+						disabled={isDeleteInProgress}
+						onClick={() => void onDelete(design.id)}
+					>
+						<Trash className="mr-1 h-3.5 w-3.5" />
+						Delete
+					</Button>
+				</>
+			),
+			onClick: canOpen ? () => handleDesignClick(design.id) : undefined,
+		};
+	});
 
 	return (
-		<div className="space-y-4 mt-8">
+		<div className="space-y-4">
 			<ConfirmDialog />
 			{route.showAdminFeatures ? (
 				<NiscEmLinkOrganizationDialog
@@ -155,168 +206,45 @@ export const ProjectsSection = () => {
 					alreadyLinked={Boolean(linkDesign?.teamId)}
 					isPending={linkMutation.isPending}
 					resourceLabel={linkDesign?.name ?? "this email design"}
-					onConfirm={async (teamId) => {
+					onConfirm={async (nextTeamId) => {
 						if (!linkDesign) return;
-						await linkMutation.mutateAsync({ designId: linkDesign.id, teamId });
+						await linkMutation.mutateAsync({ designId: linkDesign.id, teamId: nextTeamId });
 					}}
 				/>
 			) : null}
-			<h3 className="font-semibold text-lg">Recent designs</h3>
-			<div className="rounded-md border">
-				<Table>
-					<TableBody>
-						{data.pages.map((group, i) => (
-							<React.Fragment key={i}>
-								{(group.data ?? []).map((design) => {
-									const isDeleting =
-										deletingDesignId === design.id ||
-										(removeMutation.isPending &&
-											removeMutation.variables?.designId === design.id);
-									const isDuplicating = duplicatingDesignId === design.id;
-									const isNavigating = navigatingDesignId === design.id;
-									const isRowBusy = isDeleting || isDuplicating || isNavigating;
-									const canOpen =
-										!isDeleteInProgress &&
-										!duplicatingDesignId &&
-										!navigatingDesignId &&
-										!isRowBusy;
 
-									return (
-										<TableRow
-											key={design.id}
-											className={`hover:bg-muted/50 ${isDeleting ? "pointer-events-none opacity-60" : ""}`}
-										>
-											<TableCell
-												onClick={() => canOpen && handleDesignClick(design.id)}
-												className={`font-medium flex items-center gap-x-3 py-4 ${
-													canOpen
-														? "cursor-pointer"
-														: "cursor-not-allowed opacity-50"
-												}`}
-											>
-												<div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-md">
-													<FileIcon className="size-5 text-blue-600 dark:text-blue-400" />
-												</div>
-												<div>
-													<p className="font-medium text-sm">{design.name}</p>
-													{design.description && (
-														<p className="text-xs text-muted-foreground">
-															{design.description}
-														</p>
-													)}
-												</div>
-											</TableCell>
-											<TableCell
-												onClick={() => canOpen && handleDesignClick(design.id)}
-												className={`hidden md:table-cell py-4 ${
-													canOpen
-														? "cursor-pointer"
-														: "cursor-not-allowed opacity-50"
-												}`}
-											>
-												<span
-													className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-														design.isPublic
-															? "bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20"
-															: "bg-gray-50 text-gray-600 ring-1 ring-inset ring-gray-500/10"
-													}`}
-												>
-													{design.isPublic ? "Public" : "Private"}
-												</span>
-											</TableCell>
-											<TableCell
-												onClick={() => canOpen && handleDesignClick(design.id)}
-												className={`hidden md:table-cell py-4 text-muted-foreground text-sm ${
-													canOpen
-														? "cursor-pointer"
-														: "cursor-not-allowed opacity-50"
-												}`}
-											>
-												{formatDistanceToNow(new Date(design.updatedAt), {
-													addSuffix: true,
-												})}
-											</TableCell>
-											<TableCell className="flex items-center justify-end py-4">
-												{isRowBusy ? (
-													<div className="flex items-center justify-center w-8 h-8">
-														<NebSpinner context="inline" size={16} />
-													</div>
-												) : (
-													<DropdownMenu modal={false}>
-														<DropdownMenuTrigger asChild>
-															<Button
-																disabled={isDeleteInProgress || Boolean(duplicatingDesignId)}
-																size="icon"
-																variant="ghost"
-																className="h-8 w-8"
-															>
-																<MoreHorizontal className="size-4" />
-															</Button>
-														</DropdownMenuTrigger>
-														<DropdownMenuContent align="end" className="w-56">
-															<DropdownMenuItem
-																className="cursor-pointer"
-																disabled={!canOpen}
-																onClick={() => canOpen && handleDesignClick(design.id)}
-															>
-																<Pencil className="size-4 mr-2" />
-																Edit
-															</DropdownMenuItem>
-															<DropdownMenuItem
-																className="cursor-pointer"
-																disabled={
-																	duplicateMutation.isPending ||
-																	isDeleteInProgress
-																}
-																onClick={(e) => onCopy(design.id, e)}
-															>
-																<CopyIcon className="size-4 mr-2" />
-																Make a copy
-															</DropdownMenuItem>
-															{route.showAdminFeatures ? (
-																<NiscEmLinkOrganizationMenuItem
-																	alreadyLinked={Boolean(design.teamId)}
-																	disabled={isDeleteInProgress}
-																	onSelect={() =>
-																		setLinkDesign({
-																			id: design.id,
-																			name: design.name,
-																			teamId: design.teamId ?? null,
-																		})
-																	}
-																/>
-															) : null}
-															<DropdownMenuItem
-																className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
-																disabled={isDeleteInProgress}
-																onClick={(e) => onDelete(design.id, e)}
-															>
-																<Trash className="size-4 mr-2" />
-																Delete
-															</DropdownMenuItem>
-														</DropdownMenuContent>
-													</DropdownMenu>
-												)}
-											</TableCell>
-										</TableRow>
-									);
-								})}
-							</React.Fragment>
-						))}
-					</TableBody>
-				</Table>
-			</div>
-			{hasNextPage && (
-				<div className="w-full flex items-center justify-center pt-4">
-					<Button
-						variant="ghost"
-						onClick={() => fetchNextPage()}
-						disabled={isFetchingNextPage}
-					>
-						Load more
+			<SearchableCleanList
+				items={items}
+				searchQuery={searchQuery}
+				onSearchChange={setSearchQuery}
+				totalCount={designs.length}
+				toolbarActions={toolbarActions}
+				isLoading={status === "pending"}
+				isError={status === "error"}
+				error={error instanceof Error ? error : null}
+				onRetry={() => void refetch()}
+				searchPlaceholder="Search designs..."
+				errorTitle="Failed to load designs"
+				emptyMessage={
+					searchQuery.trim()
+						? "No designs match your search."
+						: "No designs yet. Create one to get started."
+				}
+				columns={[
+					{ key: "name", label: "Design" },
+					{ key: "visibility", label: "Visibility", className: "w-28", hideBelow: "@md" },
+					{ key: "updated", label: "Updated", className: "w-40", hideBelow: "@lg" },
+					{ key: "actions", label: "Actions", align: "end" },
+				]}
+			/>
+
+			{hasNextPage ? (
+				<div className="flex w-full items-center justify-center pt-2">
+					<Button variant="ghost" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
+						{isFetchingNextPage ? "Loading…" : "Load more"}
 					</Button>
 				</div>
-			)}
+			) : null}
 		</div>
 	);
 };

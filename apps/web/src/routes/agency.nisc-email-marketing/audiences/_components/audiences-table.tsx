@@ -2,24 +2,15 @@
 
 import * as React from "react";
 import { useNavigate } from "react-router";
-import { Users, EllipsisVertical, Trash2, Eye } from "lucide-react";
+import { Trash2 } from "lucide-react";
 
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { CleanListCell } from "@/components/ui/clean-list";
 import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+	SearchableCleanList,
+	type SearchableCleanListItem,
+} from "@/components/ui/searchable-clean-list";
+import { ViewDetailsButton } from "@/components/ui/list-row-actions";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -34,41 +25,56 @@ import { trpc, type RouterOutputs } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { useNiscEmailMarketingRoute } from "@/components/nisc-email-marketing/nisc-email-marketing-route-context";
 import {
+	NiscEmLinkOrganizationButton,
 	NiscEmLinkOrganizationDialog,
-	NiscEmLinkOrganizationMenuItem,
 } from "@/components/nisc-email-marketing/nisc-em-link-organization";
 
 type AudienceSummary = RouterOutputs["niscEmailMarketing"]["audiences"]["list"]["audiences"][0];
 
+const ACTION_BTN = "h-7 px-2.5 text-xs";
+
 const formatDate = (value: Date | string | null | undefined) => {
-	if (!value) return "- ";
+	if (!value) return "—";
 	const d = value instanceof Date ? value : new Date(value);
-	return Number.isNaN(d.getTime()) ? "- " : d.toLocaleDateString();
+	return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
 };
 
-interface AudienceRowActionsProps {
-	audience: AudienceSummary;
+export interface AudiencesTableProps {
+	audiences: AudienceSummary[];
+	isLoading?: boolean;
+	isError?: boolean;
+	error?: Error | null;
+	onRetry?: () => void;
 	onRefetch?: () => void;
-	onView: () => void;
+	toolbarActions?: React.ReactNode;
 }
 
-function AudienceRowActions({ audience, onRefetch, onView }: AudienceRowActionsProps) {
+export function AudiencesTable({
+	audiences,
+	isLoading,
+	isError,
+	error,
+	onRetry,
+	onRefetch,
+	toolbarActions,
+}: AudiencesTableProps) {
+	const navigate = useNavigate();
+	const { basePath, showAdminFeatures } = useNiscEmailMarketingRoute();
 	const utils = trpc.useUtils();
-	const { showAdminFeatures } = useNiscEmailMarketingRoute();
+	const [searchQuery, setSearchQuery] = React.useState("");
+	const [deleteTarget, setDeleteTarget] = React.useState<AudienceSummary | null>(null);
+	const [linkTarget, setLinkTarget] = React.useState<AudienceSummary | null>(null);
 	const [isDeleting, setIsDeleting] = React.useState(false);
-	const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
-	const [linkOpen, setLinkOpen] = React.useState(false);
-	const alreadyLinked = Boolean(audience.teamId);
 
 	const deleteMutation = trpc.niscEmailMarketing.audiences.delete.useMutation({
 		onSuccess: () => {
 			toast.success("Audience deleted", {
-				description: `Audience "${audience.name}" has been deleted.`,
+				description: deleteTarget ? `Audience "${deleteTarget.name}" has been deleted.` : undefined,
 			});
 			utils.niscEmailMarketing.audiences.list.invalidate();
 			onRefetch?.();
 			setIsDeleting(false);
-			setShowDeleteDialog(false);
+			setDeleteTarget(null);
 		},
 		onError: (e) => {
 			toast.error("Failed to delete audience", { description: e.message });
@@ -79,74 +85,118 @@ function AudienceRowActions({ audience, onRefetch, onView }: AudienceRowActionsP
 	const linkMutation = trpc.niscEmailMarketing.audiences.linkOrganization.useMutation({
 		onSuccess: () => {
 			toast.success("Organization linked", {
-				description: `"${audience.name}" is now linked to the selected organization.`,
+				description: linkTarget
+					? `"${linkTarget.name}" is now linked to the selected organization.`
+					: undefined,
 			});
 			utils.niscEmailMarketing.audiences.list.invalidate();
 			onRefetch?.();
-			setLinkOpen(false);
+			setLinkTarget(null);
 		},
 		onError: (e) => {
 			toast.error("Failed to link organization", { description: e.message });
 		},
 	});
 
-	const handleDelete = async () => {
-		setIsDeleting(true);
-		try {
-			await deleteMutation.mutateAsync({ id: audience.id });
-		} catch {
-			// handled in mutation
-		}
-	};
+	const filteredAudiences = React.useMemo(() => {
+		const query = searchQuery.trim().toLowerCase();
+		if (!query) return audiences;
+		return audiences.filter((audience) => {
+			const organization = audience.teamId ? "linked" : "not linked";
+			return audience.name?.toLowerCase().includes(query) || organization.includes(query);
+		});
+	}, [audiences, searchQuery]);
+
+	const items: SearchableCleanListItem[] = filteredAudiences.map((audience) => {
+		const href = `${basePath}/audiences/${audience.id}`;
+		return {
+			key: audience.id,
+			title: audience.name,
+			cells: {
+				contacts: <CleanListCell>{audience.contactsCount.toLocaleString()}</CleanListCell>,
+				organization: (
+					<CleanListCell>{audience.teamId ? "Linked" : "Not linked"}</CleanListCell>
+				),
+				created: <CleanListCell>{formatDate(audience.createdAt)}</CleanListCell>,
+			},
+			actions: (
+				<>
+					<ViewDetailsButton onClick={() => navigate(href)} />
+					{showAdminFeatures ? (
+						<NiscEmLinkOrganizationButton
+							alreadyLinked={Boolean(audience.teamId)}
+							disabled={linkMutation.isPending}
+							className={ACTION_BTN}
+							onClick={() => setLinkTarget(audience)}
+						/>
+					) : null}
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						className={`${ACTION_BTN} text-destructive hover:text-destructive`}
+						disabled={isDeleting}
+						onClick={() => setDeleteTarget(audience)}
+					>
+						<Trash2 className="mr-1 h-3.5 w-3.5" />
+						Delete
+					</Button>
+				</>
+			),
+			onClick: () => navigate(href),
+		};
+	});
+
+	const columns = [
+		{ key: "name", label: "Audience" },
+		{ key: "contacts", label: "Contacts", className: "w-28", hideBelow: "@md" as const },
+		...(showAdminFeatures
+			? [{ key: "organization", label: "Organization", className: "w-36", hideBelow: "@lg" as const }]
+			: []),
+		{ key: "created", label: "Created", className: "w-32", hideBelow: "@xl" as const },
+		{ key: "actions", label: "Actions", align: "end" as const },
+	];
 
 	return (
 		<>
-			<DropdownMenu>
-				<DropdownMenuTrigger asChild>
-					<Button variant="ghost" size="icon" className="h-8 w-8">
-						<EllipsisVertical className="h-4 w-4" />
-						<span className="sr-only">Actions</span>
-					</Button>
-				</DropdownMenuTrigger>
-				<DropdownMenuContent align="end" className="w-48">
-					<DropdownMenuItem onClick={onView}>
-						<Eye className="mr-2 h-4 w-4" />
-						View
-					</DropdownMenuItem>
-					{showAdminFeatures ? (
-						<NiscEmLinkOrganizationMenuItem
-							alreadyLinked={alreadyLinked}
-							disabled={isDeleting || linkMutation.isPending}
-							onSelect={() => setLinkOpen(true)}
-						/>
-					) : null}
-					<DropdownMenuSeparator />
-					<DropdownMenuItem
-						onClick={() => setShowDeleteDialog(true)}
-						disabled={isDeleting}
-						className="text-destructive focus:text-destructive"
-					>
-						<Trash2 className="mr-2 h-4 w-4" />
-						{isDeleting ? "Deleting..." : "Delete"}
-					</DropdownMenuItem>
-				</DropdownMenuContent>
-			</DropdownMenu>
+			<SearchableCleanList
+				items={items}
+				searchQuery={searchQuery}
+				onSearchChange={setSearchQuery}
+				totalCount={audiences.length}
+				toolbarActions={toolbarActions}
+				isLoading={isLoading}
+				isError={isError}
+				error={error}
+				onRetry={onRetry}
+				searchPlaceholder="Search audiences..."
+				errorTitle="Unable to load audiences"
+				emptyMessage={
+					searchQuery.trim()
+						? "No audiences match your search."
+						: "No audiences yet. Create one to start grouping contacts."
+				}
+				columns={columns}
+			/>
 
-			<AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+			<AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !isDeleting && !open && setDeleteTarget(null)}>
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>Delete audience</AlertDialogTitle>
 						<AlertDialogDescription>
-							Are you sure you want to delete audience "{audience.name}"? This will remove all contacts in
-							this audience. This action cannot be undone.
+							Are you sure you want to delete audience "{deleteTarget?.name}"? This will remove all contacts in this audience. This action cannot be undone.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
 						<AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
 						<AlertDialogAction
-							onClick={handleDelete}
-							disabled={isDeleting}
+							disabled={isDeleting || !deleteTarget}
 							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+							onClick={() => {
+								if (!deleteTarget) return;
+								setIsDeleting(true);
+								deleteMutation.mutate({ id: deleteTarget.id });
+							}}
 						>
 							{isDeleting ? "Deleting..." : "Delete audience"}
 						</AlertDialogAction>
@@ -156,88 +206,19 @@ function AudienceRowActions({ audience, onRefetch, onView }: AudienceRowActionsP
 
 			{showAdminFeatures ? (
 				<NiscEmLinkOrganizationDialog
-					open={linkOpen}
-					onOpenChange={setLinkOpen}
-					alreadyLinked={alreadyLinked}
+					open={Boolean(linkTarget)}
+					onOpenChange={(open) => {
+						if (!linkMutation.isPending && !open) setLinkTarget(null);
+					}}
+					alreadyLinked={Boolean(linkTarget?.teamId)}
 					isPending={linkMutation.isPending}
-					resourceLabel={audience.name}
+					resourceLabel={linkTarget?.name}
 					onConfirm={async (teamId) => {
-						await linkMutation.mutateAsync({ id: audience.id, teamId });
+						if (!linkTarget) return;
+						await linkMutation.mutateAsync({ id: linkTarget.id, teamId });
 					}}
 				/>
 			) : null}
 		</>
 	);
 }
-
-export interface AudiencesTableProps {
-	audiences: AudienceSummary[];
-	onRefetch?: () => void;
-}
-
-export function AudiencesTable({ audiences, onRefetch }: AudiencesTableProps) {
-	const navigate = useNavigate();
-	const { basePath, showAdminFeatures } = useNiscEmailMarketingRoute();
-
-	return (
-		<div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-			<Table>
-				<TableHeader>
-					<TableRow>
-						<TableHead className="pl-6">Audience</TableHead>
-						<TableHead>Contacts</TableHead>
-						{showAdminFeatures ? <TableHead>Organization</TableHead> : null}
-						<TableHead>Created</TableHead>
-						<TableHead className="w-12 pr-6" />
-					</TableRow>
-				</TableHeader>
-				<TableBody>
-					{audiences.map((audience) => (
-						<TableRow key={audience.id}>
-							<TableCell className="pl-6">
-								<button
-									type="button"
-									className="flex items-center gap-2 text-left hover:text-primary focus:outline-none cursor-pointer"
-									onClick={() =>
-										navigate(
-											`${basePath}/audiences/${audience.id}`,
-										)
-									}
-								>
-									<Users className="h-4 w-4 text-muted-foreground" />
-									<span className="font-medium">{audience.name}</span>
-								</button>
-							</TableCell>
-							<TableCell>{audience.contactsCount}</TableCell>
-							{showAdminFeatures ? (
-								<TableCell className="text-sm text-muted-foreground">
-									{audience.teamId ? "Linked" : "Not linked"}
-								</TableCell>
-							) : null}
-							<TableCell>{formatDate(audience.createdAt)}</TableCell>
-							<TableCell className="pr-6">
-								<div
-									onClick={(event) => {
-										// prevent triggering row click
-										event.stopPropagation();
-									}}
-								>
-									<AudienceRowActions
-										audience={audience}
-										onRefetch={onRefetch}
-										onView={() =>
-											navigate(
-												`${basePath}/audiences/${audience.id}`,
-											)
-										}
-									/>
-								</div>
-							</TableCell>
-						</TableRow>
-					))}
-				</TableBody>
-			</Table>
-		</div>
-	);
-}
-

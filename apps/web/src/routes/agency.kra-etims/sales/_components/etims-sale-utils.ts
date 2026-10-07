@@ -1,5 +1,7 @@
-import { format, formatDistanceToNowStrict } from "date-fns";
 import { creditNoteReasonLabel } from "./issue-etims-credit-note-sheet";
+import { formatKraHumanDateTime, kraStampMillis, parseKraStamp } from "../../_lib/etims-kra";
+
+export { formatKraHumanDateTime, kraStampMillis, parseKraStamp };
 
 export type EtimsSaleRecord = Record<string, unknown> & {
     invcNo: number;
@@ -98,41 +100,6 @@ export function lineTaxableAmount(line: Record<string, unknown>) {
 export function formatKraDateTime(value?: string | null) {
     if (!value) return "";
     return String(value).replace("T", " ").replace(/\.0+$/, "").trim();
-}
-
-export function parseKraStamp(value?: string | null): Date | null {
-    if (!value) return null;
-    const raw = String(value).trim();
-    if (!raw) return null;
-    if (/^\d{14}$/.test(raw)) {
-        const parsed = new Date(
-            Number(raw.slice(0, 4)),
-            Number(raw.slice(4, 6)) - 1,
-            Number(raw.slice(6, 8)),
-            Number(raw.slice(8, 10)),
-            Number(raw.slice(10, 12)),
-            Number(raw.slice(12, 14)),
-        );
-        return Number.isNaN(parsed.getTime()) ? null : parsed;
-    }
-    if (/^\d{8}$/.test(raw)) {
-        const parsed = new Date(Number(raw.slice(0, 4)), Number(raw.slice(4, 6)) - 1, Number(raw.slice(6, 8)));
-        return Number.isNaN(parsed.getTime()) ? null : parsed;
-    }
-    const parsed = new Date(raw);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
-/** e.g. `1 day ago (06 October 2026, 11:32:05 AM)` */
-export function formatKraHumanDateTime(value?: string | null): string {
-    const date = parseKraStamp(value);
-    if (!date) return "";
-    const relative = formatDistanceToNowStrict(date, { addSuffix: true });
-    return `${relative} (${format(date, "dd MMMM yyyy, hh:mm:ss a")})`;
-}
-
-export function kraStampMillis(value?: string | null): number {
-    return parseKraStamp(value)?.getTime() ?? 0;
 }
 
 export function compareKraNewestFirst(a: EtimsSaleRecord, b: EtimsSaleRecord): number {
