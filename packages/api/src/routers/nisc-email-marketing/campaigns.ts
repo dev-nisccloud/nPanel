@@ -54,6 +54,11 @@ function isAgencySuperAdminRole(role: string | null | undefined): boolean {
   return role === "AGENCY_SUPER_ADMIN";
 }
 
+// Postgres rejects one statement with more than 65,535 bind parameters.
+// Each recipient row binds about 24 values, so a few thousand recipients must be inserted in batches.
+// Message HTML stays on the campaign row. The dispatcher reads it from there.
+const RECIPIENT_INSERT_BATCH = 500;
+
 async function assertCampaignAccess(campaignId: string, userId: string, role?: string | null) {
   const [campaign] = await db
     .select({
@@ -397,36 +402,36 @@ export const niscEmailMarketingCampaignsRouter = router({
         updatedAt: now,
       });
 
-      await tx.insert(niscEmEmail).values(
-        input.recipientEmails.map((toEmail) => ({
-          id: randomUUID(),
-          campaignId,
-          contactId: null,
-          toEmail,
-          fromEmail: input.fromEmail,
-          fromName: input.fromName ?? null,
-          replyTo: null,
-          subject: input.subject,
-          htmlContent: input.htmlContent ?? null,
-          textContent: input.textContent ?? null,
-          sesMessageId: null,
-          status: "QUEUED",
-          opens: 0,
-          clicks: 0,
-          sentAt: null,
-          deliveredAt: null,
-          openedAt: null,
-          clickedAt: null,
-          bouncedAt: null,
-          bounceType: null,
-          bounceSubType: null,
-          complainedAt: null,
-          complaintFeedbackType: null,
-          errorMessage: null,
-          createdAt: now,
-          updatedAt: now,
-        })),
-      );
+      const recipientRows = input.recipientEmails.map((toEmail) => ({
+        id: randomUUID(),
+        campaignId,
+        contactId: null,
+        toEmail,
+        fromEmail: input.fromEmail,
+        fromName: input.fromName ?? null,
+        replyTo: null,
+        subject: input.subject,
+        sesMessageId: null,
+        status: "QUEUED" as const,
+        opens: 0,
+        clicks: 0,
+        sentAt: null,
+        deliveredAt: null,
+        openedAt: null,
+        clickedAt: null,
+        bouncedAt: null,
+        bounceType: null,
+        bounceSubType: null,
+        complainedAt: null,
+        complaintFeedbackType: null,
+        errorMessage: null,
+        createdAt: now,
+        updatedAt: now,
+      }));
+
+      for (let offset = 0; offset < recipientRows.length; offset += RECIPIENT_INSERT_BATCH) {
+        await tx.insert(niscEmEmail).values(recipientRows.slice(offset, offset + RECIPIENT_INSERT_BATCH));
+      }
     });
 
     return { id: campaignId };

@@ -136,6 +136,7 @@ import { objectStorageRouter } from "./object-storage";
 import { whoisRouter } from "./whois";
 import { niscPaymentGatewayRouter } from "./nisc-payment-gateway";
 import { customerOAuthRouter } from "./customer-oauth";
+import { crmRouter } from "./crm";
 
 
 export const appRouter = router({
@@ -374,5 +375,7 @@ export const appRouter = router({
 	customerOAuth: customerOAuthRouter,
 	// Nisc Payment Gateway (White-label Payment Gateway)
 	niscPaymentGateway: niscPaymentGatewayRouter,
+	// CRM (Customer Relationship Management)
+	crm: crmRouter,
 });
 export type AppRouter = typeof appRouter;

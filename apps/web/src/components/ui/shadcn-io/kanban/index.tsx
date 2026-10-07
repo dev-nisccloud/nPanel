@@ -149,24 +149,25 @@ export type KanbanCardsProps<T extends KanbanItemProps = KanbanItemProps> =
   Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'id'> & {
     children: (item: T) => ReactNode;
     id: string;
+    filter?: (item: T) => boolean;
   };
 
 export const KanbanCards = <T extends KanbanItemProps = KanbanItemProps>({
   children,
   className,
+  filter,
   ...props
 }: KanbanCardsProps<T>) => {
   const { data } = useContext(KanbanContext) as KanbanContextProps<T>;
-  const filteredData = data.filter((item) => item.column === props.id);
+  const filteredData = data.filter(
+    (item) => item.column === props.id && (filter ? filter(item) : true),
+  );
   const items = filteredData.map((item) => item.id);
 
   return (
-    <ScrollArea className="overflow-hidden">
+    <ScrollArea className={cn('h-full', className)} viewportClassName="overscroll-contain">
       <SortableContext items={items}>
-        <div
-          className={cn('flex flex-grow flex-col gap-2 p-2', className)}
-          {...props}
-        >
+        <div className="flex flex-col gap-2 p-2" {...props}>
           {filteredData.map(children)}
         </div>
       </SortableContext>

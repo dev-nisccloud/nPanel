@@ -1,0 +1,316 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "nPanel CRM Data Model",
+    "subtitle": "Entity relationships and data flow",
+    "output": "crm-dataflow.html"
+  },
+  "stages": [
+    { "label": "Core Entities" },
+    { "label": "Activities" },
+    { "label": "Configuration" },
+    { "label": "Integration" }
+  ],
+  "nodes": [
+    {
+      "id": "user",
+      "type": "external",
+      "label": "User",
+      "stage": 0,
+      "row": 0,
+      "sublabel": "agency user"
+    },
+    {
+      "id": "company",
+      "type": "database",
+      "label": "Company",
+      "stage": 0,
+      "row": 1,
+      "sublabel": "organizations"
+    },
+    {
+      "id": "contact",
+      "type": "database",
+      "label": "Contact",
+      "stage": 0,
+      "row": 2,
+      "sublabel": "people"
+    },
+    {
+      "id": "pipeline",
+      "type": "database",
+      "label": "Pipeline",
+      "stage": 0,
+      "row": 3,
+      "sublabel": "sales process"
+    },
+    {
+      "id": "deal",
+      "type": "database",
+      "label": "Deal",
+      "stage": 1,
+      "row": 1,
+      "sublabel": "opportunities"
+    },
+    {
+      "id": "activity",
+      "type": "database",
+      "label": "Activity",
+      "stage": 1,
+      "row": 2,
+      "sublabel": "interactions"
+    },
+    {
+      "id": "task",
+      "type": "database",
+      "label": "Task",
+      "stage": 1,
+      "row": 3,
+      "sublabel": "to-dos"
+    },
+    {
+      "id": "note",
+      "type": "database",
+      "label": "Note",
+      "stage": 1,
+      "row": 4,
+      "sublabel": "annotations"
+    },
+    {
+      "id": "customfield",
+      "type": "backend",
+      "label": "Custom Fields",
+      "stage": 2,
+      "row": 0,
+      "sublabel": "definitions",
+      "tag": "extensible"
+    },
+    {
+      "id": "tag",
+      "type": "backend",
+      "label": "Tags",
+      "stage": 2,
+      "row": 1,
+      "sublabel": "categorization"
+    },
+    {
+      "id": "activitylog",
+      "type": "backend",
+      "label": "Activity Log",
+      "stage": 2,
+      "row": 2,
+      "sublabel": "audit trail"
+    },
+    {
+      "id": "aiconfig",
+      "type": "cloud",
+      "label": "AI Config",
+      "stage": 2,
+      "row": 3,
+      "sublabel": "ML settings",
+      "tag": "AI"
+    },
+    {
+      "id": "external",
+      "type": "external",
+      "label": "External CRM",
+      "stage": 3,
+      "row": 1,
+      "sublabel": "Salesforce/HubSpot"
+    },
+    {
+      "id": "syncconfig",
+      "type": "backend",
+      "label": "Sync Config",
+      "stage": 3,
+      "row": 2,
+      "sublabel": "integration"
+    }
+  ],
+  "flows": [
+    {
+      "from": "user",
+      "to": "company",
+      "label": "creates",
+      "variant": "emphasis",
+      "labelDy": -23
+    },
+    {
+      "from": "user",
+      "to": "contact",
+      "label": "creates",
+      "variant": "emphasis",
+      "labelDy": -23
+    },
+    {
+      "from": "user",
+      "to": "pipeline",
+      "variant": "emphasis"
+    },
+    {
+      "from": "company",
+      "to": "contact",
+      "label": "contains",
+      "labelDy": -23
+    },
+    {
+      "from": "company",
+      "to": "deal",
+      "label": "relates"
+    },
+    {
+      "from": "contact",
+      "to": "deal",
+      "labelDy": 24
+    },
+    {
+      "from": "pipeline",
+      "to": "deal"
+    },
+    {
+      "from": "deal",
+      "to": "activity"
+    },
+    {
+      "from": "deal",
+      "to": "task",
+      "labelDy": 24
+    },
+    {
+      "from": "deal",
+      "to": "note",
+      "labelDy": 48
+    },
+    {
+      "from": "contact",
+      "to": "activity",
+      "labelDy": -23
+    },
+    {
+      "from": "company",
+      "to": "activity",
+      "labelDy": 24
+    },
+    {
+      "from": "customfield",
+      "to": "contact",
+      "label": "extends",
+      "variant": "dashed",
+      "labelDy": -40
+    },
+    {
+      "from": "customfield",
+      "to": "company",
+      "variant": "dashed"
+    },
+    {
+      "from": "customfield",
+      "to": "deal",
+      "variant": "dashed"
+    },
+    {
+      "from": "tag",
+      "to": "contact",
+      "variant": "dashed"
+    },
+    {
+      "from": "tag",
+      "to": "company",
+      "variant": "dashed"
+    },
+    {
+      "from": "tag",
+      "to": "deal",
+      "variant": "dashed"
+    },
+    {
+      "from": "activitylog",
+      "to": "company",
+      "label": "audits",
+      "variant": "security",
+      "classification": "audit",
+      "labelDy": 24
+    },
+    {
+      "from": "activitylog",
+      "to": "contact",
+      "variant": "security",
+      "classification": "audit"
+    },
+    {
+      "from": "activitylog",
+      "to": "deal",
+      "variant": "security",
+      "classification": "audit"
+    },
+    {
+      "from": "aiconfig",
+      "to": "contact",
+      "label": "AI",
+      "variant": "emphasis",
+      "classification": "ML features",
+      "labelDy": -40
+    },
+    {
+      "from": "aiconfig",
+      "to": "deal",
+      "variant": "emphasis",
+      "classification": "ML features"
+    },
+    {
+      "from": "external",
+      "to": "syncconfig"
+    },
+    {
+      "from": "syncconfig",
+      "to": "company",
+      "label": "sync",
+      "variant": "security",
+      "classification": "bidirectional",
+      "labelDy": 48
+    },
+    {
+      "from": "syncconfig",
+      "to": "contact",
+      "variant": "security",
+      "classification": "bidirectional"
+    },
+    {
+      "from": "syncconfig",
+      "to": "deal",
+      "variant": "security",
+      "classification": "bidirectional"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "violet",
+      "title": "Custom Fields System",
+      "items": [
+        "Define fields per entity type",
+        "18 field types supported",
+        "No schema migrations needed"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "AI-Powered Features",
+      "items": [
+        "Contact enrichment",
+        "Deal scoring & prediction",
+        "Sentiment analysis",
+        "Next best action suggestions"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "External Sync",
+      "items": [
+        "Bidirectional sync",
+        "Salesforce, HubSpot, Pipedrive",
+        "Field mappings & filters"
+      ]
+    }
+  ]
+}

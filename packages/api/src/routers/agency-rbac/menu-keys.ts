@@ -76,7 +76,10 @@ export const agencyMenuKeys = [
 
 	"/agency/sales",
 	"/agency/quotations",
-	"/agency/crm",
+	
+	"/agency/crm/companies",
+	"/agency/crm/contacts",
+	"/agency/crm/deals",
 
 	"/agency/billing",
 	"/agency/transactions",
