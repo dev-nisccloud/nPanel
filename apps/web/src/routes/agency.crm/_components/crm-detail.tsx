@@ -195,7 +195,7 @@ export function CrmField({
   return (
     <div className="space-y-1 px-4 py-3">
       <p className="text-xs text-muted-foreground">{label}</p>
-      <div className="truncate text-sm font-medium text-primary">{children}</div>
+      <div className="truncate text-sm font-semibold text-foreground">{children}</div>
     </div>
   );
 }

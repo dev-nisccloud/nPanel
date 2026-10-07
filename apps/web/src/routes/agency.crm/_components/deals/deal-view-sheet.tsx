@@ -29,7 +29,7 @@ function SheetField({ label, children }: { label: string; children: ReactNode })
   return (
     <div className="space-y-1 px-4 py-3">
       <p className="text-xs text-muted-foreground">{label}</p>
-      <div className="truncate text-sm font-medium text-primary">{children}</div>
+      <div className="truncate text-sm font-semibold text-foreground">{children}</div>
     </div>
   );
 }
@@ -167,7 +167,7 @@ export function DealViewSheet({
                 {deal.description ? (
                   <div className="space-y-1 px-4 py-3">
                     <p className="text-xs text-muted-foreground">Description</p>
-                    <p className="text-sm text-primary">{deal.description}</p>
+                    <p className="text-sm text-foreground">{deal.description}</p>
                   </div>
                 ) : null}
               </div>

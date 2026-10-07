@@ -242,7 +242,7 @@ export function ContactDetailPage({ contactId }: { contactId: string }) {
                         <TableCell className="px-4">
                           <button
                             type="button"
-                            className="text-sm font-medium text-primary hover:underline"
+                            className="text-sm font-semibold text-foreground hover:underline"
                             onClick={() => setDealId(deal.id)}
                           >
                             {deal.name}

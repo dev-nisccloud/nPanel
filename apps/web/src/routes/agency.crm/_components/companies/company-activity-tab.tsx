@@ -39,7 +39,7 @@ export function CompanyActivityTab({ companyId }: { companyId: string }) {
           {logs.map((entry) => (
             <div key={entry.id} className="flex items-start justify-between gap-4 px-4 py-3">
               <div className="min-w-0">
-                <p className="text-sm font-medium capitalize text-primary">{entry.action}</p>
+                <p className="text-sm font-semibold capitalize text-foreground">{entry.action}</p>
                 {entry.description ? (
                   <p className="mt-0.5 text-xs text-muted-foreground">{entry.description}</p>
                 ) : null}
