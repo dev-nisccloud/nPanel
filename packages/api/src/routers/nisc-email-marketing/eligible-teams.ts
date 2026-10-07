@@ -1,7 +1,9 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { asc } from "@npanel/db";
+import { db } from "@npanel/db";
+import { team } from "@npanel/db/schema";
 import { protectedProcedure, router } from "../../trpc";
-import { listTeamsWithNiscEmailMarketingSubscription } from "../../lib/nisc-email-marketing-billing";
 
 function isAgencyUserRole(role: string | null | undefined): boolean {
 	return ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
@@ -18,6 +20,13 @@ export const niscEmailMarketingEligibleTeamsRouter = router({
 					message: "Only agency users can list organizations for email marketing linking",
 				});
 			}
-			return listTeamsWithNiscEmailMarketingSubscription();
+			return db
+				.select({
+					id: team.id,
+					name: team.name,
+					slug: team.slug,
+				})
+				.from(team)
+				.orderBy(asc(team.name));
 		}),
 });

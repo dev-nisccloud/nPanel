@@ -1,11 +1,12 @@
 "use client";
 
+import * as React from "react";
+import { ComboboxDropdown, type ComboboxItem } from "@npanel/ui/components/combobox-dropdown";
+
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNiscEmailMarketingRoute } from "@/components/nisc-email-marketing/nisc-email-marketing-route-context";
 import { trpc } from "@/utils/trpc";
-
-const NONE = "__none__";
 
 export function NiscEmOrganizationSelect({
 	value,
@@ -19,37 +20,53 @@ export function NiscEmOrganizationSelect({
 	optional?: boolean;
 }) {
 	const { showAdminFeatures } = useNiscEmailMarketingRoute();
-	const { data: teams, isLoading } = trpc.niscEmailMarketing.eligibleTeams.list.useQuery(
+	const { data: teams, isLoading, isError } = trpc.niscEmailMarketing.eligibleTeams.list.useQuery(
 		{},
 		{ enabled: showAdminFeatures, staleTime: 5 * 60 * 1000 },
 	);
 
-	const selectValue = value && value !== "" ? value : NONE;
-	const locked = disabled || !showAdminFeatures;
+	const items = React.useMemo((): ComboboxItem[] => {
+		return (teams ?? []).map((team) => ({
+			id: team.id,
+			label: team.name,
+			keywords: team.slug ? [team.slug] : undefined,
+		}));
+	}, [teams]);
+
+	if (!showAdminFeatures) return null;
+
+	const selectedItem = items.find((item) => item.id === value);
 
 	return (
 		<div className="grid gap-2">
-			<Label>Organization{optional ? " (optional)" : ""}</Label>
-			<Select
-				value={selectValue}
-				onValueChange={(next) => onChange(next === NONE ? "" : next)}
-				disabled={locked || isLoading}
-			>
-				<SelectTrigger className="w-1/2">
-					<SelectValue
-						placeholder={isLoading ? "Loading organizations…" : "Select an organization"}
-					/>
-				</SelectTrigger>
-				<SelectContent>
-					{optional ? <SelectItem value={NONE}>None</SelectItem> : null}
-					{teams?.map((team) => (
-						<SelectItem key={team.id} value={team.id}>
-							{team.name}
-						</SelectItem>
-					))}
-				</SelectContent>
-			</Select>
-			{!isLoading && showAdminFeatures && (teams?.length ?? 0) === 0 ? (
+			<div className="flex items-center justify-between gap-2">
+				<Label>Organization{optional ? " (optional)" : ""}</Label>
+				{optional && value ? (
+					<Button
+						type="button"
+						variant="ghost"
+						size="sm"
+						className="h-6 px-2 text-xs"
+						disabled={disabled}
+						onClick={() => onChange("")}
+					>
+						Clear
+					</Button>
+				) : null}
+			</div>
+			<ComboboxDropdown
+				items={items}
+				selectedItem={selectedItem}
+				onSelect={(item) => onChange(item.id)}
+				placeholder={isLoading ? "Loading organizations…" : "Select an organization"}
+				searchPlaceholder="Search organizations..."
+				emptyResults="No organizations found"
+				disabled={disabled || isLoading}
+				inDialog
+			/>
+			{isError ? (
+				<p className="text-xs text-destructive">Could not load organizations.</p>
+			) : !isLoading && items.length === 0 ? (
 				<p className="text-xs text-muted-foreground">No organizations available.</p>
 			) : null}
 		</div>
