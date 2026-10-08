@@ -63,7 +63,7 @@ const STEPS: Step[] = [
     {
         id: "itemCreated",
         title: "Create / register an item",
-        detail: "Register a service on KRA eTIMS Products. Capture a screenshot showing item code, tax category, and price.",
+        detail: "Register an item on KRA eTIMS Products. Capture a screenshot showing item code, tax category, and price.",
         href: "/agency/kra-etims/products",
         hrefLabel: "Open Products",
         endpoint: "/saveItem",

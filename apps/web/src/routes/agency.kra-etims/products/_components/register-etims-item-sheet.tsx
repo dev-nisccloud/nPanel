@@ -29,18 +29,33 @@ import {
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { trpc } from "@/utils/trpc";
-import type { EtimsItemRecord } from "./etims-item-utils";
+import { isRawMaterial, type EtimsItemRecord } from "./etims-item-utils";
 import { ItemClassificationPicker } from "./item-classification-picker";
+import {
+  COUNTRY_CODES,
+  GOODS_PKG_PREFERENCE,
+  GOODS_QTY_PREFERENCE,
+  ITEM_TYPES,
+  KRA_CODE_CLASS,
+  LAST_REQ_DT,
+  PACKAGING_UNITS,
+  QTY_UNITS,
+  SERVICE_PKG_PREFERENCE,
+  SERVICE_QTY_PREFERENCE,
+  activeKraCodes,
+  flattenKraCodeList,
+  kraMutationError,
+  preferKraCode,
+  type KraCodeOption,
+} from "../../_lib/etims-kra";
 
 const formSchema = z.object({
-  itemNm: z.string().min(1, "Service name is required"),
+  itemNm: z.string().min(1, "Item name is required"),
+  itemTyCd: z.enum(["1", "2", "3"]).default("3"),
   itemClsCd: z.string().min(8, "Pick an 8–10 digit classification code"),
   taxTyCd: z.enum(["A", "B", "C", "D"]).default("B"),
   priceMode: z.enum(["dynamic", "fixed"]).default("dynamic"),
   dftPrc: z.coerce.number().min(0, "Price must be >= 0").default(0),
-
-  // Official KRA itemCd (OSCU §4.19): {orgnNatCd}{itemTyCd}{pkgUnitCd}{qtyUnitCd}{seq7}
-  // Example: KE2NTBA0000012  do NOT insert X between pkg and qty (Apigee rejects "XU").
   itemCd: z.string()
     .min(1, "Item code is required")
     .regex(
@@ -50,13 +65,16 @@ const formSchema = z.object({
   itemStdNm: z.string().nullable().optional(),
   orgnNatCd: z.string().length(2).default("KE"),
   pkgUnitCd: z.string().min(1).default("OU"),
-  // Apigee rejects 1-char qty units in itemCd ("U"); prefer 2-char codes like NO.
   qtyUnitCd: z.string().min(2, "Quantity unit must be 2 characters, e.g. NO").default("NO"),
   btchNo: z.string().nullable().optional(),
   bcd: z.string().nullable().optional(),
   addInfo: z.string().nullable().optional(),
   sftyQty: z.coerce.number().nullable().optional(),
+  isrcAplcbYn: z.enum(["Y", "N"]).default("N"),
   useYn: z.enum(["Y", "N"]).default("Y"),
+  openingQty: z.coerce.number().min(0).optional().default(0),
+  cpstItemCd: z.string().optional().default(""),
+  cpstQty: z.coerce.number().min(0).optional().default(1),
 }).superRefine((data, ctx) => {
   if (data.priceMode === "fixed" && data.dftPrc <= 0) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Enter a price", path: ["dftPrc"] });
@@ -80,12 +98,47 @@ function parseTaxTyCd(value?: string | null): FormData["taxTyCd"] {
   return "B";
 }
 
+function parseItemTyCd(value?: string | null): FormData["itemTyCd"] {
+  if (value === "1" || value === "2" || value === "3") return value;
+  return "3";
+}
+
+function twoCharQty(value?: string | null) {
+  const unit = String(value ?? "").trim().toUpperCase();
+  if (unit.length >= 2) return unit.slice(0, 2);
+  return "NO";
+}
+
+function optionsWithCurrent(options: KraCodeOption[], current?: string) {
+  const code = String(current ?? "").trim().toUpperCase();
+  if (!code || options.some((row) => row.code === code)) return options;
+  return [{ code, label: code }, ...options];
+}
+
+function defaultsForType(
+  itemTyCd: FormData["itemTyCd"],
+  packaging: KraCodeOption[],
+  quantity: KraCodeOption[],
+): Pick<FormData, "pkgUnitCd" | "qtyUnitCd"> {
+  if (itemTyCd === "3") {
+    return {
+      pkgUnitCd: preferKraCode(packaging, SERVICE_PKG_PREFERENCE, "OU"),
+      qtyUnitCd: preferKraCode(quantity, SERVICE_QTY_PREFERENCE, "NO"),
+    };
+  }
+  return {
+    pkgUnitCd: preferKraCode(packaging, GOODS_PKG_PREFERENCE, "BX"),
+    qtyUnitCd: preferKraCode(quantity, GOODS_QTY_PREFERENCE, "NO"),
+  };
+}
+
 function priceModeFromAmount(value?: number | string | null): FormData["priceMode"] {
   return Number(value ?? 0) > 0 ? "fixed" : "dynamic";
 }
 
 const EMPTY_FORM_VALUES: FormData = {
   itemNm: "",
+  itemTyCd: "3",
   itemClsCd: "",
   taxTyCd: "B",
   priceMode: "dynamic",
@@ -99,8 +152,15 @@ const EMPTY_FORM_VALUES: FormData = {
   bcd: null,
   addInfo: null,
   sftyQty: 0,
+  isrcAplcbYn: "N",
   useYn: "Y",
+  openingQty: 0,
+  cpstItemCd: "",
+  cpstQty: 1,
 };
+
+const STATIC_QTY_OPTIONS = QTY_UNITS.filter((u) => u.code.length === 2);
+const STATIC_PKG_OPTIONS = PACKAGING_UNITS.filter((u) => u.code.length === 2 && u.code !== "NT");
 
 const KRA_ITEM_LIST_INPUT = { lastReqDt: "20230101000000" } as const;
 
@@ -128,6 +188,7 @@ export function RegisterETimsItemSheet({
 
   const buildFormValues = React.useCallback((item: EtimsItemRecord): FormData => ({
     itemNm: item.itemNm,
+    itemTyCd: parseItemTyCd(item.itemTyCd),
     itemClsCd: String(item.itemClsCd ?? "").trim(),
     taxTyCd: parseTaxTyCd(item.taxTyCd),
     priceMode: priceModeFromAmount(item.dftPrc),
@@ -136,12 +197,16 @@ export function RegisterETimsItemSheet({
     itemStdNm: item.itemStdNm ?? null,
     orgnNatCd: item.orgnNatCd ?? "KE",
     pkgUnitCd: item.pkgUnitCd ?? "OU",
-    qtyUnitCd: item.qtyUnitCd && item.qtyUnitCd.trim().length >= 2 ? item.qtyUnitCd : "NO",
+    qtyUnitCd: twoCharQty(item.qtyUnitCd),
     btchNo: item.btchNo ?? null,
     bcd: item.bcd ?? null,
     addInfo: item.addInfo ?? null,
     sftyQty: item.sftyQty != null ? Number(item.sftyQty) : 0,
+    isrcAplcbYn: item.isrcAplcbYn === "Y" ? "Y" : "N",
     useYn: item.useYn === "N" ? "N" : "Y",
+    openingQty: 0,
+    cpstItemCd: "",
+    cpstQty: 1,
   }), []);
 
   const pendingItemCdRef = React.useRef(false);
@@ -156,23 +221,15 @@ export function RegisterETimsItemSheet({
     }
     if (syncNiscProduct) {
       form.reset({
+        ...EMPTY_FORM_VALUES,
         itemNm: syncNiscProduct.name,
+        itemTyCd: "3",
         itemClsCd: String(syncNiscProduct.etimsItemClsCd ?? "").trim(),
         taxTyCd: parseTaxTyCd(syncNiscProduct.etimsTaxTyCd),
         priceMode: priceModeFromAmount(syncNiscProduct.etimsDefaultPrice),
         dftPrc: Number(syncNiscProduct.etimsDefaultPrice ?? 0) || 0,
-        itemCd: "",
-        itemStdNm: null,
-        orgnNatCd: "KE",
         pkgUnitCd: syncNiscProduct.etimsPkgUnitCd ?? "OU",
-        qtyUnitCd: syncNiscProduct.etimsQtyUnitCd && syncNiscProduct.etimsQtyUnitCd.trim().length >= 2
-          ? syncNiscProduct.etimsQtyUnitCd
-          : "NO",
-        btchNo: null,
-        bcd: null,
-        addInfo: null,
-        sftyQty: 0,
-        useYn: "Y",
+        qtyUnitCd: twoCharQty(syncNiscProduct.etimsQtyUnitCd),
       });
       pendingItemCdRef.current = true;
       return;
@@ -192,6 +249,23 @@ export function RegisterETimsItemSheet({
     refetchOnMount: "always",
   });
 
+  const codesQuery = trpc.etims.data.getCodeList.useQuery(
+    { lastReqDt: LAST_REQ_DT },
+    { enabled: open, staleTime: 10 * 60 * 1000 },
+  );
+
+  const codeRows = React.useMemo(() => flattenKraCodeList(codesQuery.data), [codesQuery.data]);
+
+  const packagingOptions = React.useMemo(() => {
+    const live = activeKraCodes(codeRows, KRA_CODE_CLASS.PACKAGING, 2);
+    return live.length > 0 ? live : STATIC_PKG_OPTIONS;
+  }, [codeRows]);
+
+  const qtyOptions = React.useMemo(() => {
+    const live = activeKraCodes(codeRows, KRA_CODE_CLASS.QTY_UNIT, 2);
+    return live.length > 0 ? live : STATIC_QTY_OPTIONS;
+  }, [codeRows]);
+
   React.useEffect(() => {
     if (!open) return;
     awaitingFreshItemListRef.current = true;
@@ -206,54 +280,27 @@ export function RegisterETimsItemSheet({
 
   const saveItem = trpc.etims.items.saveItem.useMutation();
   const updateProduct = trpc.products.update.useMutation();
-
-  const handleKraSaveSuccess = React.useCallback((data: FormData, res: { success?: boolean; data?: unknown; errorMessage?: string; requiresReinitialization?: boolean }) => {
-    if (res?.success === false) {
-      if (res?.requiresReinitialization) {
-        toast.error(
-          "KRA session expired  please re-initialize your device in Settings, then try again.",
-          {
-            duration: 8000,
-            action: {
-              label: "Go to Settings",
-              onClick: () => {
-                window.location.href = "/agency/kra-etims/settings";
-              },
-            },
-          },
-        );
-      } else {
-        toast.error(res?.errorMessage ?? "Failed to register item on KRA");
-      }
-      return false;
-    }
-    const body = (res?.data as { responseBody?: { resultCd?: string; resultMsg?: string }; resultCd?: string; resultMsg?: string })?.responseBody
-      ?? (res?.data as { resultCd?: string; resultMsg?: string })
-      ?? res;
-    const resultCd = (body as { resultCd?: string })?.resultCd;
-    if (resultCd && resultCd !== "000" && resultCd !== "001") {
-      toast.error((body as { resultMsg?: string })?.resultMsg ?? "Failed to register item on KRA");
-      return false;
-    }
-    return true;
-  }, []);
+  const saveStockMaster = trpc.etims.stock.saveStockMaster.useMutation();
+  const saveComposition = trpc.etims.items.saveItemComposition.useMutation();
 
   const kraItemList = React.useMemo(() => {
     const root: any = itemsQuery.data;
     const payload = root?.data?.responseBody?.data ?? root?.data ?? root?.responseBody?.data ?? root;
     const data: any = payload?.data ?? payload;
     const list: unknown = data?.itemList;
-    return Array.isArray(list) ? list : [];
+    return Array.isArray(list) ? (list as EtimsItemRecord[]) : [];
   }, [itemsQuery.data]);
 
+  const rawMaterials = React.useMemo(
+    () => kraItemList.filter((item) => item.useYn !== "N" && isRawMaterial(item)),
+    [kraItemList],
+  );
+
   const generateNextItemCd = React.useCallback(() => {
-    const orgnNatCd = form.getValues("orgnNatCd");
-    const pkgUnitCd = form.getValues("pkgUnitCd");
-    const rawQty = (form.getValues("qtyUnitCd") || "NO").trim().toUpperCase();
-    const qtyUnitCd = rawQty.length >= 2 ? rawQty : "NO";
-    // For npanel we register services only.
-    const itemTyCd = "3";
-    // Official format: Country + Type + Pkg + Qty + Seq7 (no X separator)
+    const orgnNatCd = form.getValues("orgnNatCd") || "KE";
+    const itemTyCd = form.getValues("itemTyCd") || "3";
+    const pkgUnitCd = form.getValues("pkgUnitCd") || "OU";
+    const qtyUnitCd = twoCharQty(form.getValues("qtyUnitCd"));
     const prefix = `${orgnNatCd}${itemTyCd}${pkgUnitCd}${qtyUnitCd}`;
 
     let maxSeq = 0;
@@ -266,10 +313,13 @@ export function RegisterETimsItemSheet({
       if (Number.isFinite(seq)) maxSeq = Math.max(maxSeq, seq);
     }
 
-    const nextSeq = maxSeq + 1;
-    const seqStr = String(nextSeq).padStart(7, "0");
-    return `${prefix}${seqStr}`;
+    return `${prefix}${String(maxSeq + 1).padStart(7, "0")}`;
   }, [form, kraItemList]);
+
+  const refreshItemCd = React.useCallback(() => {
+    if (isEdit) return;
+    form.setValue("itemCd", generateNextItemCd(), { shouldValidate: true });
+  }, [form, generateNextItemCd, isEdit]);
 
   React.useEffect(() => {
     if (!open || isEdit || !pendingItemCdRef.current || awaitingFreshItemListRef.current) return;
@@ -287,19 +337,38 @@ export function RegisterETimsItemSheet({
     form,
   ]);
 
+  React.useEffect(() => {
+    if (!open || isEdit) return;
+    if (codesQuery.isLoading || codesQuery.isFetching) return;
+    const pkg = form.getValues("pkgUnitCd");
+    if (packagingOptions.some((row) => row.code === pkg)) return;
+    const units = defaultsForType(form.getValues("itemTyCd"), packagingOptions, qtyOptions);
+    form.setValue("pkgUnitCd", units.pkgUnitCd, { shouldDirty: true });
+    pendingItemCdRef.current = true;
+    refreshItemCd();
+  }, [
+    open,
+    isEdit,
+    codesQuery.isLoading,
+    codesQuery.isFetching,
+    packagingOptions,
+    qtyOptions,
+    form,
+    refreshItemCd,
+  ]);
+
   const buildSaveItemInput = (data: FormData) => {
-    const itemTyCd = isEdit ? String(initialItem?.itemTyCd ?? "3") : "3";
     const dftPrc = data.priceMode === "dynamic" ? 0 : data.dftPrc;
     return {
       item: {
         itemCd: data.itemCd,
         itemClsCd: data.itemClsCd,
-        itemTyCd: itemTyCd as "1" | "2" | "3",
+        itemTyCd: data.itemTyCd,
         itemNm: data.itemNm,
         itemStdNm: data.itemStdNm ?? null,
         orgnNatCd: data.orgnNatCd,
         pkgUnitCd: data.pkgUnitCd,
-        qtyUnitCd: data.qtyUnitCd,
+        qtyUnitCd: twoCharQty(data.qtyUnitCd),
         taxTyCd: data.taxTyCd,
         btchNo: data.btchNo ?? null,
         bcd: data.bcd ?? null,
@@ -311,7 +380,7 @@ export function RegisterETimsItemSheet({
         grpPrcL5: 0,
         addInfo: data.addInfo ?? null,
         sftyQty: data.sftyQty ?? 0,
-        isrcAplcbYn: "N" as const,
+        isrcAplcbYn: data.isrcAplcbYn,
         useYn: data.useYn,
         regrNm: "Admin",
         regrId: "Admin",
@@ -322,15 +391,62 @@ export function RegisterETimsItemSheet({
   };
 
   const onSubmit = async (data: FormData) => {
-    const itemTyCd = isEdit ? String(initialItem?.itemTyCd ?? "3") : "3";
-    if (itemTyCd !== "1" && itemTyCd !== "2" && itemTyCd !== "3") {
-      toast.error("Invalid item type on record");
-      return;
-    }
-
     try {
+      if (!packagingOptions.some((row) => row.code === data.pkgUnitCd)) {
+        toast.error("Pick a packaging unit from the KRA code list.");
+        return;
+      }
       const kraRes = await saveItem.mutateAsync(buildSaveItemInput(data));
-      if (!handleKraSaveSuccess(data, kraRes as Parameters<typeof handleKraSaveSuccess>[1])) return;
+      const error = kraMutationError(kraRes);
+      if (error) {
+        const rec = kraRes as { requiresReinitialization?: boolean };
+        if (rec?.requiresReinitialization) {
+          toast.error("KRA session expired  please re-initialize your device in Settings, then try again.", {
+            duration: 8000,
+            action: {
+              label: "Go to Settings",
+              onClick: () => { window.location.href = "/agency/kra-etims/settings"; },
+            },
+          });
+        } else {
+          toast.error(error);
+        }
+        return;
+      }
+
+      const isGoodsItem = data.itemTyCd === "1" || data.itemTyCd === "2";
+      const followUpErrors: string[] = [];
+
+      if (isGoodsItem && Number(data.openingQty) > 0) {
+        const stockRes = await saveStockMaster.mutateAsync({
+          stockMaster: {
+            itemCd: data.itemCd,
+            rsdQty: Number(data.openingQty),
+            regrId: "Admin",
+            regrNm: "Admin",
+            modrId: "Admin",
+            modrNm: "Admin",
+          },
+        });
+        const stockError = kraMutationError(stockRes);
+        if (stockError) followUpErrors.push(`Quantity: ${stockError}`);
+      }
+
+      if (data.itemTyCd === "2" && data.cpstItemCd) {
+        const compositionRes = await saveComposition.mutateAsync({
+          composition: {
+            itemCd: data.itemCd,
+            cpstItemCd: data.cpstItemCd,
+            cpstQty: Number(data.cpstQty) > 0 ? Number(data.cpstQty) : 1,
+            regrId: "Admin",
+            regrNm: "Admin",
+            modrId: "Admin",
+            modrNm: "Admin",
+          },
+        });
+        const compositionError = kraMutationError(compositionRes);
+        if (compositionError) followUpErrors.push(`Made from: ${compositionError}`);
+      }
 
       if (syncNiscProduct) {
         await updateProduct.mutateAsync({
@@ -340,12 +456,16 @@ export function RegisterETimsItemSheet({
           etimsTaxTyCd: data.taxTyCd,
           etimsDefaultPrice: String(data.priceMode === "dynamic" ? 0 : data.dftPrc),
           etimsPkgUnitCd: data.pkgUnitCd,
-          etimsQtyUnitCd: data.qtyUnitCd,
+          etimsQtyUnitCd: twoCharQty(data.qtyUnitCd),
         });
-        toast.success("Service synced to KRA and saved to Nisc catalog");
+        toast.success("Item synced to KRA and saved to Nisc catalog");
       } else {
-        toast.success(isEdit ? "Product updated in KRA eTIMS" : "Service registered in KRA eTIMS");
-        if (!isEdit) captureEvent("etims_product_registered", { product_type: itemTyCd });
+        toast.success(isEdit ? "Item updated in KRA eTIMS" : "Item registered in KRA eTIMS");
+        if (!isEdit) captureEvent("etims_product_registered", { product_type: data.itemTyCd });
+      }
+
+      if (followUpErrors.length) {
+        toast.error(followUpErrors.join(" "));
       }
 
       await utils.etims.items.getItemList.invalidate(KRA_ITEM_LIST_INPUT);
@@ -353,43 +473,82 @@ export function RegisterETimsItemSheet({
       onOpenChange(false);
       onSuccess?.();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to sync service");
+      toast.error(err instanceof Error ? err.message : "Failed to save item");
     }
   };
 
-  const isPending = saveItem.isPending || updateProduct.isPending;
+  const isPending = saveItem.isPending || updateProduct.isPending || saveStockMaster.isPending || saveComposition.isPending;
+  const itemTyCd = form.watch("itemTyCd");
+  const isGoods = itemTyCd === "1" || itemTyCd === "2";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+      <SheetContent size="wide" className="w-full min-w-0 overflow-y-auto">
         <SheetHeader>
           <SheetTitle>
-            {isSyncFromNisc ? "Sync with KRA" : isEdit ? "Edit product" : "Register Service"}
+            {isSyncFromNisc ? "Sync with KRA" : isEdit ? "Edit item" : "Register item"}
           </SheetTitle>
           <SheetDescription>
             {isSyncFromNisc
-              ? "Registers this Nisc service on KRA eTIMS, then saves the fiscal fields on the product."
+              ? "Registers this Nisc catalog item on KRA eTIMS, then saves the fiscal fields on the product."
               : isEdit
-                ? "Updates the item on KRA eTIMS via /saveItem (same endpoint used to register)."
-                : "Registers a service item in KRA eTIMS."}
+                ? "Updates the item on KRA eTIMS via /saveItem."
+                : "Registers a raw material, finished product, or service on KRA eTIMS."}
           </SheetDescription>
         </SheetHeader>
 
         <Form {...form} key={isSyncFromNisc ? `sync-${syncNiscProduct?.id}` : isEdit ? `edit-${initialItem?.itemCd}` : "create"}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-6">
-            <FormField
-              control={form.control}
-              name="itemNm"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Service name</FormLabel>
-                  <FormControl>
-                    <Input placeholder='e.g. "Website Development"' {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="itemNm"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Item name</FormLabel>
+                    <FormControl>
+                      <Input placeholder='e.g. "Website Development"' {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="itemTyCd"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Product type</FormLabel>
+                    <Select
+                      key={`type-${field.value}`}
+                      value={field.value}
+                      disabled={isEdit || isSyncFromNisc}
+                      onValueChange={(next) => {
+                        if (next !== "1" && next !== "2" && next !== "3") return;
+                        field.onChange(next);
+                        const units = defaultsForType(next, packagingOptions, qtyOptions);
+                        form.setValue("pkgUnitCd", units.pkgUnitCd, { shouldDirty: true });
+                        form.setValue("qtyUnitCd", units.qtyUnitCd, { shouldDirty: true });
+                        pendingItemCdRef.current = true;
+                        refreshItemCd();
+                      }}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {ITEM_TYPES.map((t) => (
+                          <SelectItem key={t.code} value={t.code}>{t.code} — {t.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={form.control}
@@ -399,7 +558,6 @@ export function RegisterETimsItemSheet({
                   <FormLabel>Item code (itemCd)</FormLabel>
                   <FormControl>
                     <div className="flex gap-2">
-                      {/* Read-only styled input   only the Generate button or useEffect changes this */}
                       <Input
                         className="font-mono bg-muted/40 cursor-not-allowed"
                         readOnly
@@ -415,9 +573,7 @@ export function RegisterETimsItemSheet({
                         type="button"
                         variant="outline"
                         disabled={isEdit || itemsQuery.isLoading || itemsQuery.isFetching}
-                        onClick={() =>
-                          form.setValue("itemCd", generateNextItemCd(), { shouldValidate: true })
-                        }
+                        onClick={refreshItemCd}
                       >
                         Generate
                       </Button>
@@ -537,16 +693,64 @@ export function RegisterETimsItemSheet({
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <FormField
+                control={form.control}
+                name="orgnNatCd"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Origin country</FormLabel>
+                    <Select
+                      value={field.value}
+                      disabled={isEdit}
+                      onValueChange={(next) => {
+                        field.onChange(next);
+                        pendingItemCdRef.current = true;
+                        refreshItemCd();
+                      }}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Country" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {COUNTRY_CODES.map((c) => (
+                          <SelectItem key={c.code} value={c.code}>{c.code} — {c.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={form.control}
                 name="pkgUnitCd"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Packaging unit code</FormLabel>
-                    <FormControl>
-                      <Input placeholder="OU" {...field} />
-                    </FormControl>
+                    <FormLabel>Packaging unit</FormLabel>
+                    <Select
+                      key={`pkg-${field.value}`}
+                      value={field.value}
+                      disabled={isEdit}
+                      onValueChange={(next) => {
+                        field.onChange(next);
+                        pendingItemCdRef.current = true;
+                        refreshItemCd();
+                      }}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Packaging" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {optionsWithCurrent(packagingOptions, field.value).map((u) => (
+                          <SelectItem key={u.code} value={u.code}>{u.code} — {u.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -556,15 +760,158 @@ export function RegisterETimsItemSheet({
                 name="qtyUnitCd"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Quantity unit code</FormLabel>
-                    <FormControl>
-                      <Input placeholder="NO" {...field} />
-                    </FormControl>
+                    <FormLabel>Quantity unit</FormLabel>
+                    <Select
+                      key={`qty-${field.value}`}
+                      value={field.value}
+                      disabled={isEdit}
+                      onValueChange={(next) => {
+                        field.onChange(next);
+                        pendingItemCdRef.current = true;
+                        refreshItemCd();
+                      }}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Quantity" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {optionsWithCurrent(qtyOptions, field.value).map((u) => (
+                          <SelectItem key={u.code} value={u.code}>{u.code} — {u.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
+
+            {isGoods ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="sftyQty"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Safety stock</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={field.value ?? 0}
+                          onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="isrcAplcbYn"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Insurance applicable</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="N">No</SelectItem>
+                          <SelectItem value="Y">Yes</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            ) : null}
+
+            {isGoods ? (
+              <div className="rounded-lg border p-4 space-y-4">
+                <div>
+                  <p className="text-sm font-medium">Opening quantity</p>
+                  <p className="text-xs text-muted-foreground">
+                    Optional. After registration, this number is sent as KRA stock taking (remaining quantity). Leave 0 if you will set stock later.
+                  </p>
+                </div>
+                <FormField
+                  control={form.control}
+                  name="openingQty"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Units on hand</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          value={field.value ?? 0}
+                          onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            ) : null}
+
+            {itemTyCd === "2" && rawMaterials.length > 0 ? (
+              <div className="rounded-lg border p-4 space-y-4">
+                <div>
+                  <p className="text-sm font-medium">Made from</p>
+                  <p className="text-xs text-muted-foreground">
+                    Optional. Only if this finished product is assembled from a registered raw material. Skip for bought-in goods.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="cpstItemCd"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Raw material</FormLabel>
+                        <Select value={field.value || "none"} onValueChange={(next) => field.onChange(next === "none" ? "" : next)}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Skip" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="none">Skip</SelectItem>
+                            {rawMaterials.map((item) => (
+                              <SelectItem key={item.itemCd} value={item.itemCd}>
+                                {item.itemNm} ({item.itemCd})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="cpstQty"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Qty per unit</FormLabel>
+                        <FormControl>
+                          <Input type="number" min={0} step="0.01" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+            ) : null}
 
             <SheetFooter className="gap-2 sm:gap-0">
               <Button
@@ -582,10 +929,10 @@ export function RegisterETimsItemSheet({
                 {isPending ? (
                   <>
                     <Spinner size={16} className="mr-2" />
-                    {isSyncFromNisc ? "Syncing..." : "Registering..."}
+                    {isSyncFromNisc ? "Syncing..." : isEdit ? "Saving..." : "Registering..."}
                   </>
                 ) : (
-                  isSyncFromNisc ? "Sync now" : isEdit ? "Save changes" : "Register Service"
+                  isSyncFromNisc ? "Sync now" : isEdit ? "Save changes" : "Register item"
                 )}
               </Button>
             </SheetFooter>
@@ -595,5 +942,3 @@ export function RegisterETimsItemSheet({
     </Sheet>
   );
 }
-
-

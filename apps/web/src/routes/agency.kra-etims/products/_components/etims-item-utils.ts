@@ -20,7 +20,9 @@ export type EtimsItemRecord = {
     grpPrcL5?: number | string | null;
     addInfo?: string | null;
     sftyQty?: number | string | null;
+    rsdQty?: number | string | null;
     useYn?: string | null;
+    isrcAplcbYn?: string | null;
     regBhfId?: string | null;
     rraModYn?: string | null;
     createdAt?: string | Date | null;
@@ -30,6 +32,16 @@ export type EtimsItemRecord = {
 export function isServiceItem(item: EtimsItemRecord) {
     if (String(item.itemTyCd ?? "") === "3") return true;
     return /^[A-Z]{2}3/.test(String(item.itemCd ?? ""));
+}
+
+export function isRawMaterial(item: EtimsItemRecord) {
+    if (String(item.itemTyCd ?? "") === "1") return true;
+    return /^[A-Z]{2}1/.test(String(item.itemCd ?? ""));
+}
+
+export function isFinishedProduct(item: EtimsItemRecord) {
+    if (String(item.itemTyCd ?? "") === "2") return true;
+    return /^[A-Z]{2}2/.test(String(item.itemCd ?? ""));
 }
 
 function itemStamp(item: EtimsItemRecord) {
@@ -101,7 +113,7 @@ export function itemToSavePayload(item: EtimsItemRecord, overrides?: { useYn?: "
         grpPrcL5: Number(item.grpPrcL5 ?? 0),
         addInfo: item.addInfo ?? null,
         sftyQty: item.sftyQty != null ? Number(item.sftyQty) : null,
-        isrcAplcbYn: "N" as const,
+        isrcAplcbYn: (item.isrcAplcbYn === "Y" ? "Y" : "N") as "Y" | "N",
         useYn: overrides?.useYn ?? ((item.useYn === "N" ? "N" : "Y") as "Y" | "N"),
         regrId: "Admin",
         regrNm: "Admin",
