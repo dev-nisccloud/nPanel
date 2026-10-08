@@ -134,13 +134,7 @@ export function DealViewSheet({
                 </div>
                 <div className="grid grid-cols-2 divide-x divide-border">
                   <SheetField label="Company">
-                    {deal.company ? (
-                      <Link to={`/agency/crm/companies/${deal.company.id}`} className="hover:underline">
-                        {deal.company.name}
-                      </Link>
-                    ) : (
-                      "—"
-                    )}
+                    {deal.company ? deal.company.name : "—"}
                   </SheetField>
                   <SheetField label="Primary contact">
                     {deal.primaryContact ? (

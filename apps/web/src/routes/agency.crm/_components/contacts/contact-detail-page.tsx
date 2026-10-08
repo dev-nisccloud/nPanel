@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import { Briefcase, CheckSquare, LayoutDashboard, Pencil, Phone, StickyNote, Trash2, User } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -163,16 +163,7 @@ export function ContactDetailPage({ contactId }: { contactId: string }) {
                 <CrmFieldGrid>
                   <CrmFieldRow>
                     <CrmField label="Company">
-                      {contact.company ? (
-                        <Link
-                          to={`/agency/crm/companies/${contact.company.id}`}
-                          className="hover:underline"
-                        >
-                          {contact.company.name}
-                        </Link>
-                      ) : (
-                        "—"
-                      )}
+                      {contact.company ? contact.company.name : "—"}
                     </CrmField>
                     <CrmField label="Owner">{displayText(contact.owner?.name)}</CrmField>
                   </CrmFieldRow>
