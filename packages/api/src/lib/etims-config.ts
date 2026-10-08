@@ -122,14 +122,42 @@ export async function getEtimsContext(): Promise<EtimsContext> {
 const CLASSIC_SANDBOX_BASE = "https://etims-api-sbx.kra.go.ke/etims-api";
 const CLASSIC_PROD_BASE = "https://etims-api.kra.go.ke/etims-api";
 
-function shouldRetryClassicSales(message: string) {
+/** Gava item catalog is separate from classic OSCU. `saveItem` often lands on classic. */
+export function isClassicOscuFallbackError(message: string) {
     return /does not exist in your inventory/i.test(message)
         || /Item itemCd provided/i.test(message)
         || /item management package/i.test(message)
         || /Expected a value but found null/i.test(message)
         || /getTestSessionApiLog/i.test(message)
         || /TestSessionApiLog/i.test(message)
-        || /getApiNo\(\)/i.test(message);
+        || /getApiNo\(\)/i.test(message)
+        || /HTTP 400:\s*Error:?\s*$/i.test(message)
+        || /HTTP 400:\s*Error:\s*—/i.test(message);
+}
+
+export function createClassicOscuClient(isSandbox: boolean) {
+    return createEtimsClient({
+        ...buildClientConfigFromEnv(isSandbox),
+        baseUrl: isSandbox ? CLASSIC_SANDBOX_BASE : CLASSIC_PROD_BASE,
+        memoryTokenOnly: true,
+    });
+}
+
+export async function withClassicOscuFallback<T>(
+    client: EtimsOscuClient,
+    isSandbox: boolean,
+    action: (c: EtimsOscuClient) => Promise<T>,
+    label: string,
+): Promise<T> {
+    try {
+        return await action(client);
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (!isClassicOscuFallbackError(message)) throw error;
+        const classic = createClassicOscuClient(isSandbox);
+        console.warn(`[eTIMS] ${label} Gava failed, retrying classic OSCU`);
+        return await action(classic);
+    }
 }
 
 /**
@@ -143,18 +171,10 @@ export async function saveTrnsSalesOnKra(
     isSandbox: boolean,
     transaction: Record<string, unknown>,
 ) {
-    try {
-        return await client.saveTrnsSalesOsdc(oscu, transaction);
-    } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        if (!shouldRetryClassicSales(message)) throw error;
-
-        const classic = createEtimsClient({
-            ...buildClientConfigFromEnv(isSandbox),
-            baseUrl: isSandbox ? CLASSIC_SANDBOX_BASE : CLASSIC_PROD_BASE,
-            memoryTokenOnly: true,
-        });
-        console.warn("[eTIMS] saveTrnsSalesOsdc Gava failed, retrying classic OSCU");
-        return await classic.saveTrnsSalesOsdc(oscu, transaction);
-    }
+    return withClassicOscuFallback(
+        client,
+        isSandbox,
+        (c) => c.saveTrnsSalesOsdc(oscu, transaction),
+        "saveTrnsSalesOsdc",
+    );
 }

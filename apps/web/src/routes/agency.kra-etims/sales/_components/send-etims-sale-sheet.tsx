@@ -125,9 +125,7 @@ export function SendETimsSaleSheet({
 
 	const itemOptions = React.useMemo((): ItemOption[] => {
 		const list = unwrapKraList(itemsData, "itemList", "items") as EtimsItemRecord[];
-		const active = list.filter((it) => it.useYn !== "N" && it.itemCd);
-		const services = active.filter((it) => String(it.itemTyCd ?? "3") === "3");
-		const pool = services.length ? services : active;
+		const pool = list.filter((it) => it.useYn !== "N" && it.itemCd);
 		return pool.map((it) => ({
 			...it,
 			id: String(it.itemCd),

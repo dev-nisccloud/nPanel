@@ -1,8 +1,8 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { ComboboxDropdown } from "@npanel/ui/components/combobox-dropdown";
 import { trpc } from "@/utils/trpc";
 import { toast } from "sonner";
+import { CompanyFormSheet } from "../companies/company-form-sheet";
 
 const contactFormSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -59,6 +60,8 @@ export function ContactFormSheet({
 }: ContactFormSheetProps) {
   const isEditing = !!contact;
   const utils = trpc.useUtils();
+  const [companyOpen, setCompanyOpen] = useState(false);
+  const [createdCompanies, setCreatedCompanies] = useState<{ id: string; label: string }[]>([]);
   const companiesQuery = trpc.crm.companies.list.useQuery(
     { page: 1, limit: 100, isActive: true },
     { enabled: open },
@@ -68,11 +71,14 @@ export function ContactFormSheet({
       id: company.id,
       label: company.name,
     }));
+    for (const created of createdCompanies) {
+      if (!items.some((item) => item.id === created.id)) items.unshift(created);
+    }
     if (contact?.company && !items.some((item) => item.id === contact.company.id)) {
       items.unshift({ id: contact.company.id, label: contact.company.name });
     }
     return [{ id: NONE, label: "No company" }, ...items];
-  }, [companiesQuery.data?.data, contact]);
+  }, [companiesQuery.data?.data, contact, createdCompanies]);
 
   const form = useForm<ContactFormValues>({
     resolver: zodResolver(contactFormSchema),
@@ -165,6 +171,7 @@ export function ContactFormSheet({
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
 
   return (
+    <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
@@ -232,23 +239,29 @@ export function ContactFormSheet({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Company</FormLabel>
-                    <FormControl>
-                      <ComboboxDropdown
-                        placeholder="Select company"
-                        searchPlaceholder="Search companies..."
-                        items={companyItems}
-                        selectedItem={
-                          field.value
-                            ? companyItems.find((item) => item.id === field.value)
-                            : undefined
-                        }
-                        onSelect={(item) => field.onChange(item.id === NONE ? "" : item.id)}
-                        emptyResults="No companies found"
-                        disabled={companiesQuery.isLoading}
-                        inDialog
-                        className="w-full"
-                      />
-                    </FormControl>
+                    <div className="flex gap-2">
+                      <FormControl>
+                        <ComboboxDropdown
+                          placeholder="Select company"
+                          searchPlaceholder="Search companies..."
+                          items={companyItems}
+                          selectedItem={
+                            field.value
+                              ? companyItems.find((item) => item.id === field.value)
+                              : undefined
+                          }
+                          onSelect={(item) => field.onChange(item.id === NONE ? "" : item.id)}
+                          emptyResults="No companies found"
+                          disabled={companiesQuery.isLoading}
+                          inDialog
+                          className="w-full"
+                        />
+                      </FormControl>
+                      <Button type="button" variant="outline" onClick={() => setCompanyOpen(true)}>
+                        <Plus className="h-4 w-4" />
+                        New company
+                      </Button>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -413,5 +426,21 @@ export function ContactFormSheet({
         </Form>
       </SheetContent>
     </Sheet>
+    <CompanyFormSheet
+      open={companyOpen}
+      onOpenChange={setCompanyOpen}
+      onSuccess={(company) => {
+        if (company?.id && company.name) {
+          setCreatedCompanies((current) => [
+            { id: company.id, label: company.name },
+            ...current.filter((item) => item.id !== company.id),
+          ]);
+          form.setValue("companyId", company.id, { shouldDirty: true });
+        }
+        setCompanyOpen(false);
+        utils.crm.companies.list.invalidate();
+      }}
+    />
+    </>
   );
 }

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Link } from "react-router";
 import {
   Briefcase,
   Building2,
@@ -185,13 +184,10 @@ export function DealsDataTable({
                   </TableCell>
                   <TableCell>
                     {deal.company ? (
-                      <Link
-                        to={`/agency/crm/companies/${deal.company.id}`}
-                        className="flex items-center gap-1 text-sm font-semibold text-foreground hover:underline"
-                      >
+                      <span className="flex items-center gap-1 text-sm font-semibold text-foreground">
                         <Building2 className="h-3 w-3" />
                         {deal.company.name}
-                      </Link>
+                      </span>
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}

@@ -3,9 +3,12 @@ import { Outlet, useLocation, Navigate } from "react-router";
 export default function AgencyCrmLayout() {
   const location = useLocation();
   
-  // Redirect /agency/crm to /agency/crm/companies
-  if (location.pathname === "/agency/crm") {
-    return <Navigate to="/agency/crm/companies" replace />;
+  if (
+    location.pathname === "/agency/crm" ||
+    location.pathname === "/agency/crm/companies" ||
+    location.pathname.startsWith("/agency/crm/companies/")
+  ) {
+    return <Navigate to="/agency/crm/contacts" replace />;
   }
   
   return <Outlet />;

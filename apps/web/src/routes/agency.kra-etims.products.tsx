@@ -12,7 +12,10 @@ import {
     Eye,
     Pencil,
     Trash2,
+    Layers,
+    Warehouse,
 } from "lucide-react";
+import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -41,9 +44,12 @@ import { ETimsInitializationGuard } from "@/components/etims/etims-initializatio
 import { ETimsBranchSwitcher } from "@/components/etims/etims-branch-switcher";
 import { RegisterETimsItemSheet } from "./agency.kra-etims/products/_components/register-etims-item-sheet";
 import { ViewETimsItemSheet } from "./agency.kra-etims/products/_components/view-etims-item-sheet";
+import { SaveETimsCompositionSheet } from "./agency.kra-etims/products/_components/save-etims-composition-sheet";
+import { SaveETimsStockMasterSheet } from "./agency.kra-etims/stock/_components/save-etims-stock-master-sheet";
 import {
     compareItemsNewestFirst,
     formatItemTableDateTime,
+    isFinishedProduct,
     isServiceItem,
     itemToSavePayload,
     itemTypeLabel,
@@ -52,13 +58,19 @@ import {
 
 export default function ETimsProductsPage() {
     const [searchQuery, setSearchQuery] = React.useState("");
+    const [typeFilter, setTypeFilter] = React.useState<"all" | "1" | "2" | "3">("all");
+    const [showInactive, setShowInactive] = React.useState(false);
     const [selectedBhfId, setSelectedBhfId] = React.useState<string | null>(null);
     const [isRegisterOpen, setIsRegisterOpen] = React.useState(false);
     const [isViewOpen, setIsViewOpen] = React.useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
+    const [isCompositionOpen, setIsCompositionOpen] = React.useState(false);
+    const [isStockOpen, setIsStockOpen] = React.useState(false);
     const [editingItem, setEditingItem] = React.useState<EtimsItemRecord | null>(null);
     const [viewingItem, setViewingItem] = React.useState<EtimsItemRecord | null>(null);
     const [itemToDelete, setItemToDelete] = React.useState<EtimsItemRecord | null>(null);
+    const [compositionParent, setCompositionParent] = React.useState<EtimsItemRecord | null>(null);
+    const [stockItem, setStockItem] = React.useState<EtimsItemRecord | null>(null);
 
     const { data: etimsConfig } = trpc.etims.auth.getConfiguration.useQuery();
     const { data: branchesData } = trpc.etims.branch.getBranchList.useQuery({ lastReqDt: "20230101000000" });
@@ -88,20 +100,24 @@ export default function ETimsProductsPage() {
         const data: any = payload?.data ?? payload;
         const list = data?.itemList ?? [];
         const all = Array.isArray(list) ? list : [];
-        return all
-            .filter((item: EtimsItemRecord) => item.useYn !== "N" && isServiceItem(item))
-            .sort(compareItemsNewestFirst);
+        return all.sort(compareItemsNewestFirst);
     }, [items]);
 
     const filteredItems = React.useMemo(() => {
-        if (!searchQuery.trim()) return itemList;
         const query = searchQuery.toLowerCase().trim();
-        return itemList.filter((item: EtimsItemRecord) =>
-            String(item.itemNm ?? "").toLowerCase().includes(query) ||
-            String(item.itemCd ?? "").toLowerCase().includes(query) ||
-            String(item.itemClsCd ?? "").toLowerCase().includes(query)
-        );
-    }, [itemList, searchQuery]);
+        return itemList.filter((item: EtimsItemRecord) => {
+            if (!showInactive && item.useYn === "N") return false;
+            if (typeFilter === "3" && !isServiceItem(item)) return false;
+            if (typeFilter === "1" && item.itemTyCd !== "1" && !/^[A-Z]{2}1/.test(item.itemCd)) return false;
+            if (typeFilter === "2" && item.itemTyCd !== "2" && !/^[A-Z]{2}2/.test(item.itemCd)) return false;
+            if (!query) return true;
+            return (
+                String(item.itemNm ?? "").toLowerCase().includes(query) ||
+                String(item.itemCd ?? "").toLowerCase().includes(query) ||
+                String(item.itemClsCd ?? "").toLowerCase().includes(query)
+            );
+        });
+    }, [itemList, searchQuery, typeFilter, showInactive]);
 
     const openCreate = () => {
         setEditingItem(null);
@@ -170,6 +186,26 @@ export default function ETimsProductsPage() {
                 onSuccess={() => refetch()}
             />
 
+            <SaveETimsCompositionSheet
+                open={isCompositionOpen}
+                onOpenChange={(open) => {
+                    setIsCompositionOpen(open);
+                    if (!open) setCompositionParent(null);
+                }}
+                items={itemList}
+                initialParent={compositionParent}
+            />
+
+            <SaveETimsStockMasterSheet
+                open={isStockOpen}
+                onOpenChange={(open) => {
+                    setIsStockOpen(open);
+                    if (!open) setStockItem(null);
+                }}
+                items={itemList}
+                initialItem={stockItem}
+            />
+
             <ViewETimsItemSheet
                 open={isViewOpen}
                 onOpenChange={(open) => {
@@ -233,12 +269,13 @@ export default function ETimsProductsPage() {
                             <div className="flex flex-col gap-2">
                                 <h1 className="text-base font-semibold tracking-tight">Products & Services</h1>
                                 <p className="text-xs text-muted-foreground">
-                                    Manage the classification and registration of your local items with KRA eTIMS.
+                                    Register raw materials, finished products, and services with KRA eTIMS. Set on-hand quantity on Stock taking, or in the register sheet for goods.
                                 </p>
                             </div>
                         </div>
 
                         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1 w-full">
                             <div className="relative flex-1 max-w-sm w-full">
                                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input
@@ -247,6 +284,25 @@ export default function ETimsProductsPage() {
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     className="pl-9"
                                 />
+                            </div>
+                            <select
+                                className="h-9 rounded-md border bg-background px-3 text-sm"
+                                value={typeFilter}
+                                onChange={(e) => setTypeFilter(e.target.value as typeof typeFilter)}
+                            >
+                                <option value="all">All types</option>
+                                <option value="1">Raw material</option>
+                                <option value="2">Finished product</option>
+                                <option value="3">Service</option>
+                            </select>
+                            <Button
+                                type="button"
+                                variant={showInactive ? "secondary" : "outline"}
+                                size="sm"
+                                onClick={() => setShowInactive((v) => !v)}
+                            >
+                                {showInactive ? "Hiding inactive" : "Show inactive"}
+                            </Button>
                             </div>
                             <div className="flex items-center gap-2 w-full md:w-auto">
                                 {selectedBhfId && branches.length ? (
@@ -272,9 +328,15 @@ export default function ETimsProductsPage() {
                                 >
                                     <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
                                 </Button>
+                                <Button variant="outline" asChild>
+                                    <Link to="/agency/kra-etims/stock">
+                                        <Warehouse className="mr-2 h-4 w-4" />
+                                        Stock taking
+                                    </Link>
+                                </Button>
                                 <Button className="flex-1 md:flex-none" onClick={openCreate}>
                                     <Plus className="mr-2 h-4 w-4" />
-                                    Register Service
+                                    Register item
                                 </Button>
                             </div>
                         </div>
@@ -311,13 +373,13 @@ export default function ETimsProductsPage() {
                                                 <td colSpan={7} className="px-4 py-12 text-center">
                                                     <div className="flex flex-col items-center justify-center">
                                                         <Tag className="h-12 w-12 text-muted-foreground/30 mb-4" />
-                                                        <h3 className="text-lg font-medium">No services registered</h3>
+                                                        <h3 className="text-lg font-medium">No items registered</h3>
                                                         <p className="text-sm text-muted-foreground mt-1 mb-6">
-                                                            Map your first hosting or startup service to get started.
+                                                            Register a raw material, finished product, or service on KRA eTIMS.
                                                         </p>
                                                         <Button variant="outline" size="sm" onClick={openCreate}>
                                                             <Plus className="mr-2 h-3 w-3" />
-                                                            Register First Item
+                                                            Register first item
                                                         </Button>
                                                     </div>
                                                 </td>
@@ -375,16 +437,50 @@ export default function ETimsProductsPage() {
                                                                     </DropdownMenuItem>
                                                                     <DropdownMenuItem onClick={() => openEdit(item)}>
                                                                         <Pencil className="mr-2 h-4 w-4" />
-                                                                        Edit product
+                                                                        Edit item
                                                                     </DropdownMenuItem>
+                                                                    {!isService ? (
+                                                                        <DropdownMenuItem onClick={() => {
+                                                                            setStockItem(item);
+                                                                            setIsStockOpen(true);
+                                                                        }}>
+                                                                            <Warehouse className="mr-2 h-4 w-4" />
+                                                                            Set quantity
+                                                                        </DropdownMenuItem>
+                                                                    ) : null}
+                                                                    {isFinishedProduct(item) ? (
+                                                                        <DropdownMenuItem onClick={() => {
+                                                                            setCompositionParent(item);
+                                                                            setIsCompositionOpen(true);
+                                                                        }}>
+                                                                            <Layers className="mr-2 h-4 w-4" />
+                                                                            Made from
+                                                                        </DropdownMenuItem>
+                                                                    ) : null}
                                                                     <DropdownMenuSeparator />
-                                                                    <DropdownMenuItem
-                                                                        className="text-destructive focus:text-destructive"
-                                                                        onClick={() => requestDelete(item)}
-                                                                    >
-                                                                        <Trash2 className="mr-2 h-4 w-4" />
-                                                                        Delete product
-                                                                    </DropdownMenuItem>
+                                                                    {item.useYn === "N" ? (
+                                                                        <DropdownMenuItem
+                                                                            onClick={() => {
+                                                                                try {
+                                                                                    deactivateItem.mutate({
+                                                                                        item: itemToSavePayload(item, { useYn: "Y" }),
+                                                                                    });
+                                                                                } catch (e) {
+                                                                                    toast.error((e as Error).message || "Invalid item data");
+                                                                                }
+                                                                            }}
+                                                                        >
+                                                                            Reactivate item
+                                                                        </DropdownMenuItem>
+                                                                    ) : (
+                                                                        <DropdownMenuItem
+                                                                            className="text-destructive focus:text-destructive"
+                                                                            onClick={() => requestDelete(item)}
+                                                                        >
+                                                                            <Trash2 className="mr-2 h-4 w-4" />
+                                                                            Deactivate item
+                                                                        </DropdownMenuItem>
+                                                                    )}
                                                                 </DropdownMenuContent>
                                                             </DropdownMenu>
                                                         </td>

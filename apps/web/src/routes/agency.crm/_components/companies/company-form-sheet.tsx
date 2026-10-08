@@ -52,7 +52,7 @@ interface CompanyFormSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   company?: any;
-  onSuccess: () => void;
+  onSuccess: (company?: { id: string; name: string }) => void;
 }
 
 export function CompanyFormSheet({
@@ -105,10 +105,10 @@ export function CompanyFormSheet({
   }, [company, form]);
 
   const createMutation = trpc.crm.companies.create.useMutation({
-    onSuccess: () => {
+    onSuccess: (company) => {
       toast.success("Company created successfully");
       utils.crm.companies.list.invalidate();
-      onSuccess();
+      onSuccess(company);
       form.reset();
     },
     onError: (error) => {

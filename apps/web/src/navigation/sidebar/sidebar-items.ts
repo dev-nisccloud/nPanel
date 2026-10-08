@@ -443,8 +443,11 @@ export const agencysidebarItems: NavGroup[] = [
           { title: "Sales", url: "/agency/kra-etims/sales", },
           { title: "Purchases", url: "/agency/kra-etims/purchases", },
           { title: "Products", url: "/agency/kra-etims/products", },
+          { title: "Stock taking", url: "/agency/kra-etims/stock", },
+          { title: "Imports", url: "/agency/kra-etims/imports", },
           { title: "Customers", url: "/agency/kra-etims/customers", },
           { title: "Branches", url: "/agency/kra-etims/branches", },
+          { title: "Codes", url: "/agency/kra-etims/codes", },
           { title: "Notices", url: "/agency/kra-etims/notices", },
           { title: "Settings", url: "/agency/kra-etims/settings", },
         ],
@@ -491,10 +494,9 @@ export const agencysidebarItems: NavGroup[] = [
     items: [
       {
         title: "CRM",
-        url: "/agency/crm/companies",
+        url: "/agency/crm/contacts",
         icon: (props: any) => React.createElement(Icons.Clients, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
-          { title: "Companies", url: "/agency/crm/companies", },
           { title: "Contacts", url: "/agency/crm/contacts", },
           { title: "Deals", url: "/agency/crm/deals", },
         ],

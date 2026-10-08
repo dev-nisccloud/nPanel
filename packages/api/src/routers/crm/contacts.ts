@@ -1,5 +1,5 @@
-import { and, db, desc, eq, ilike, or, sql } from "@npanel/db";
-import { crmActivityLog, crmContact } from "@npanel/db/schema";
+import { and, db, desc, eq, ilike, isNull, or, sql } from "@npanel/db";
+import { crmActivityLog, crmContact, crmContactTag } from "@npanel/db/schema";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 
@@ -43,10 +43,21 @@ export const contactsRouter = router({
           ),
         );
       }
-      if (input.companyId) conditions.push(eq(crmContact.companyId, input.companyId));
+      if (input.withoutCompany) conditions.push(isNull(crmContact.companyId));
+      else if (input.companyId) conditions.push(eq(crmContact.companyId, input.companyId));
       if (input.ownerId) conditions.push(eq(crmContact.ownerId, input.ownerId));
       if (input.leadStatus) conditions.push(eq(crmContact.leadStatus, input.leadStatus));
+      if (input.leadSource) conditions.push(eq(crmContact.leadSource, input.leadSource));
       if (input.isActive !== undefined) conditions.push(eq(crmContact.isActive, input.isActive));
+      if (input.tags && input.tags.length > 0) {
+        const tagIds = sql.join(
+          input.tags.map((tagId) => sql`${tagId}`),
+          sql`, `,
+        );
+        conditions.push(
+          sql`${crmContact.id} in (select ${crmContactTag.contactId} from ${crmContactTag} where ${crmContactTag.tagId} in (${tagIds}))`,
+        );
+      }
 
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 

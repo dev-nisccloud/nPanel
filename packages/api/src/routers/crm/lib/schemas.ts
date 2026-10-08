@@ -140,8 +140,10 @@ export const updateContactSchema = createContactSchema.partial().extend({
 export const listContactsSchema = z.object({
   ...searchSchema.shape,
   companyId: z.string().optional(),
+  withoutCompany: z.boolean().optional(),
   ownerId: z.string().optional(),
   leadStatus: z.string().optional(),
+  leadSource: z.string().optional(),
   isActive: z.boolean().optional(),
   tags: z.array(z.string()).optional(),
 });
