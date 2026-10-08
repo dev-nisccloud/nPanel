@@ -26,3 +26,17 @@ export declare function buildClientConfigFromEnv(isSandbox: boolean): EtimsClien
  * Throws PRECONDITION_FAILED if the device has not been initialized yet.
  */
 export declare function getEtimsContext(): Promise<EtimsContext>;
+export declare function isClassicOscuFallbackError(message: string): boolean;
+export declare function createClassicOscuClient(isSandbox: boolean): EtimsOscuClient;
+export declare function withClassicOscuFallback<T>(
+    client: EtimsOscuClient,
+    isSandbox: boolean,
+    action: (c: EtimsOscuClient) => Promise<T>,
+    label: string,
+): Promise<T>;
+export declare function saveTrnsSalesOnKra(
+    client: EtimsOscuClient,
+    oscu: EtimsOscuHeaders,
+    isSandbox: boolean,
+    transaction: Record<string, unknown>,
+): Promise<unknown>;

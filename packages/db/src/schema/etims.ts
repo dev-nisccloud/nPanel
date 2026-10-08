@@ -41,6 +41,7 @@ export const eTimsItem = pgTable(
     packagingUnit: text("packaging_unit"),
     quantityUnit: text("quantity_unit"),
     unitPrice: text("unit_price"),
+    rsdQty: text("rsd_qty"),
 
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
@@ -49,6 +50,23 @@ export const eTimsItem = pgTable(
       .notNull(),
   },
   (table) => [uniqueIndex("etims_item_itemCd_unique").on(table.itemCd)],
+);
+
+/** Local ledger of /insertStockIO rows. KRA has no select for stock I/O. */
+export const eTimsStockMovement = pgTable(
+  "etims_stock_movement",
+  {
+    id: text("id").primaryKey(),
+    itemCd: text("item_cd").notNull(),
+    itemNm: text("item_nm").notNull(),
+    sarTyCd: text("sar_ty_cd").notNull(),
+    sarNo: integer("sar_no"),
+    qty: text("qty").notNull(),
+    ocrnDt: text("ocrn_dt").notNull(),
+    remark: text("remark"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [index("etims_stock_movement_itemCd_idx").on(table.itemCd)],
 );
 
 /** KRA UNSPSC item classification codes synced from POST /selectItemClsList. */

@@ -1,9 +1,11 @@
+import * as crypto from "node:crypto";
 import { z } from "zod";
+import { desc, eq } from "drizzle-orm";
 import { router } from "../../trpc";
 import { TRPCError } from "@trpc/server";
 import { db } from "@npanel/db";
-import { eTimsItem } from "@npanel/db/schema/etims";
-import { getEtimsContext } from "../../lib/etims-config";
+import { eTimsItem, eTimsStockMovement } from "@npanel/db/schema/etims";
+import { createClassicOscuClient, getEtimsContext, withClassicOscuFallback } from "../../lib/etims-config";
 import type { EtimsOscuClient, EtimsOscuHeaders } from "../../lib/etims-client";
 import { etimsProcedure, skipEtimsAuthChecks } from "./_procedure";
 
@@ -130,7 +132,24 @@ function rowToSavedItem(row: Record<string, unknown>): SavedItem | null {
     };
 }
 
-async function lookupSavedItems(client: EtimsOscuClient, oscu: EtimsOscuHeaders): Promise<Map<string, SavedItem>> {
+async function mergeItemList(result: unknown, byCd: Map<string, SavedItem>) {
+    for (const row of extractItemList(result)) {
+        const mapped = rowToSavedItem(row);
+        if (!mapped) continue;
+        const prev = byCd.get(mapped.itemCd);
+        byCd.set(mapped.itemCd, {
+            ...prev,
+            ...mapped,
+            itemTyCd: mapped.itemTyCd ?? prev?.itemTyCd ?? null,
+        });
+    }
+}
+
+async function lookupSavedItems(
+    client: EtimsOscuClient,
+    oscu: EtimsOscuHeaders,
+    isSandbox: boolean,
+): Promise<Map<string, SavedItem>> {
     const byCd = new Map<string, SavedItem>();
 
     try {
@@ -152,19 +171,18 @@ async function lookupSavedItems(client: EtimsOscuClient, oscu: EtimsOscuHeaders)
     }
 
     try {
-        const result = await client.selectItemList(oscu, "20180101000000");
-        for (const row of extractItemList(result)) {
-            const mapped = rowToSavedItem(row);
-            if (!mapped) continue;
-            const prev = byCd.get(mapped.itemCd);
-            byCd.set(mapped.itemCd, {
-                ...prev,
-                ...mapped,
-                itemTyCd: mapped.itemTyCd ?? prev?.itemTyCd ?? null,
-            });
-        }
+        await mergeItemList(await client.selectItemList(oscu, "20180101000000"), byCd);
     } catch (e) {
         console.warn("[eTIMS] KRA item list lookup failed:", errMsg(e));
+    }
+
+    try {
+        await mergeItemList(
+            await createClassicOscuClient(isSandbox).selectItemList(oscu, "20180101000000"),
+            byCd,
+        );
+    } catch (e) {
+        console.warn("[eTIMS] classic item list lookup failed:", errMsg(e));
     }
 
     return byCd;
@@ -242,9 +260,40 @@ function buildAdjustmentIo(
     };
 }
 
+async function recordLocalStockIo(stockData: StockIoInput) {
+    const now = new Date();
+    if (stockData.itemList.length === 0) return;
+    await db.insert(eTimsStockMovement).values(
+        stockData.itemList.map((line) => ({
+            id: crypto.randomUUID(),
+            itemCd: line.itemCd,
+            itemNm: line.itemNm,
+            sarTyCd: stockData.sarTyCd,
+            sarNo: stockData.sarNo,
+            qty: String(line.qty),
+            ocrnDt: stockData.ocrnDt,
+            remark: stockData.remark ?? null,
+            createdAt: now,
+        })),
+    );
+}
+
+async function recordLocalStockMaster(itemCd: string, rsdQty: number) {
+    await db.update(eTimsItem)
+        .set({ rsdQty: String(rsdQty), updatedAt: new Date() })
+        .where(eq(eTimsItem.itemCd, itemCd));
+}
+
+function needsStockIoSeed(message: string) {
+    return /stock io is empty/i.test(message)
+        || /does not exist in your inventory/i.test(message)
+        || /item management package/i.test(message);
+}
+
 async function insertStockIoWithRetry(
     client: EtimsOscuClient,
     oscu: EtimsOscuHeaders,
+    isSandbox: boolean,
     stockData: StockIoInput,
 ): Promise<unknown> {
     let body: Record<string, unknown> = {
@@ -258,7 +307,18 @@ async function insertStockIoWithRetry(
 
     for (let attempt = 0; attempt < 6; attempt++) {
         try {
-            return await client.insertStockIO(oscu, body);
+            const result = await withClassicOscuFallback(
+                client,
+                isSandbox,
+                (c) => c.insertStockIO(oscu, body),
+                "insertStockIO",
+            );
+            try {
+                await recordLocalStockIo(stockData);
+            } catch (persistErr) {
+                console.warn("[eTIMS] local stock I/O persist failed:", errMsg(persistErr));
+            }
+            return result;
         } catch (e: unknown) {
             lastMsg = errMsg(e);
             const expected = parseExpectedCounter(lastMsg);
@@ -295,14 +355,44 @@ export const etimsStockRouter = router({
         .input(z.object({ lastReqDt: z.string().regex(/^\d{14}$/) }))
         .query(async ({ ctx, input }) => {
             assertRead(ctx.session?.user?.role);
-            const { client, oscu } = await getEtimsContext();
+            const { client, oscu, isSandbox } = await getEtimsContext();
+            const localMoves = await db.select().from(eTimsStockMovement).orderBy(desc(eTimsStockMovement.createdAt));
+            const onHand = await db.select({
+                itemCd: eTimsItem.itemCd,
+                itemNm: eTimsItem.itemNm,
+                rsdQty: eTimsItem.rsdQty,
+                updatedAt: eTimsItem.updatedAt,
+            }).from(eTimsItem);
+            const itemList = localMoves.map((row) => ({
+                itemCd: row.itemCd,
+                itemNm: row.itemNm,
+                sarTyCd: row.sarTyCd,
+                sarNo: row.sarNo,
+                qty: row.qty,
+                ocrnDt: row.ocrnDt,
+                remark: row.remark,
+                createdAt: row.createdAt.toISOString(),
+            }));
+            const stockList = onHand
+                .filter((row) => row.rsdQty != null && row.rsdQty !== "")
+                .map((row) => ({
+                    itemCd: row.itemCd,
+                    itemNm: row.itemNm,
+                    rsdQty: row.rsdQty,
+                    updatedAt: row.updatedAt.toISOString(),
+                }));
             try {
-                const result = await client.selectStockMoveList(oscu, input.lastReqDt);
-                return { success: true, data: result };
+                const result = await withClassicOscuFallback(
+                    client,
+                    isSandbox,
+                    (c) => c.selectStockMoveList(oscu, input.lastReqDt),
+                    "selectStockMoveList",
+                );
+                return { success: true, data: { itemList, stockList, kra: result } };
             } catch (e: unknown) {
                 const msg = errMsg(e);
-                console.warn("[eTIMS] getStockMovements failed:", msg);
-                return { success: false, data: null, errorMessage: msg || "Failed to retrieve stock movements" };
+                console.warn("[eTIMS] getStockMovements KRA list failed:", msg);
+                return { success: true, data: { itemList, stockList } };
             }
         }),
 
@@ -316,9 +406,9 @@ export const etimsStockRouter = router({
         .input(z.object({ stockData: stockIOSchema }))
         .mutation(async ({ ctx, input }) => {
             assertWrite(ctx.session?.user?.role);
-            const { client, oscu } = await getEtimsContext();
+            const { client, oscu, isSandbox } = await getEtimsContext();
             try {
-                const saved = await lookupSavedItems(client, oscu);
+                const saved = await lookupSavedItems(client, oscu, isSandbox);
                 const itemList = input.stockData.itemList.map((line) => overlayStockLine(line, saved.get(line.itemCd)));
                 for (const line of itemList) {
                     const item = saved.get(line.itemCd);
@@ -333,7 +423,7 @@ export const etimsStockRouter = router({
                         };
                     }
                 }
-                const result = await insertStockIoWithRetry(client, oscu, { ...input.stockData, itemList });
+                const result = await insertStockIoWithRetry(client, oscu, isSandbox, { ...input.stockData, itemList });
                 return { success: true, data: result };
             } catch (e: unknown) {
                 const msg = errMsg(e);
@@ -362,18 +452,25 @@ export const etimsStockRouter = router({
         }))
         .mutation(async ({ ctx, input }) => {
             assertWrite(ctx.session?.user?.role);
-            const { client, oscu } = await getEtimsContext();
+            const { client, oscu, isSandbox } = await getEtimsContext();
+            const saveMaster = (c: typeof client) =>
+                c.saveStockMaster(oscu, input.stockMaster as Record<string, unknown>);
             try {
-                const result = await client.saveStockMaster(oscu, input.stockMaster as Record<string, unknown>);
+                const result = await withClassicOscuFallback(client, isSandbox, saveMaster, "saveStockMaster");
+                try {
+                    await recordLocalStockMaster(input.stockMaster.itemCd, input.stockMaster.rsdQty);
+                } catch (persistErr) {
+                    console.warn("[eTIMS] local stock master persist failed:", errMsg(persistErr));
+                }
                 return { success: true, data: result };
             } catch (e: unknown) {
                 const msg = errMsg(e);
-                if (!/stock io is empty/i.test(msg)) {
+                if (!needsStockIoSeed(msg)) {
                     console.warn("[eTIMS] saveStockMaster failed:", msg);
                     return { success: false, data: null, errorMessage: msg || "Failed to save stock master" };
                 }
 
-                const saved = (await lookupSavedItems(client, oscu)).get(input.stockMaster.itemCd);
+                const saved = (await lookupSavedItems(client, oscu, isSandbox)).get(input.stockMaster.itemCd);
                 if (!saved) {
                     return {
                         success: false,
@@ -398,9 +495,15 @@ export const etimsStockRouter = router({
                     await insertStockIoWithRetry(
                         client,
                         oscu,
+                        isSandbox,
                         buildAdjustmentIo(saved, qty, input.stockMaster),
                     );
-                    const retry = await client.saveStockMaster(oscu, input.stockMaster as Record<string, unknown>);
+                    const retry = await withClassicOscuFallback(client, isSandbox, saveMaster, "saveStockMaster");
+                    try {
+                        await recordLocalStockMaster(input.stockMaster.itemCd, input.stockMaster.rsdQty);
+                    } catch (persistErr) {
+                        console.warn("[eTIMS] local stock master persist failed:", errMsg(persistErr));
+                    }
                     return { success: true, data: retry };
                 } catch (seedErr: unknown) {
                     const seedMsg = errMsg(seedErr);

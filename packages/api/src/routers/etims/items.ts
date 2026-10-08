@@ -30,10 +30,9 @@ function isOpaqueKraError(message: string) {
         || /HTTP 400:\s*Error:\s*—/i.test(message);
 }
 
-function twoCharUnit(value: string, fallback: string) {
+function kraUnitCode(value: string, fallback: string, maxLen: number) {
     const unit = value.trim().toUpperCase();
-    if (unit.length >= 2) return unit.slice(0, 5);
-    if (unit.length === 1) return fallback;
+    if (unit.length >= 2) return unit.slice(0, maxLen);
     return fallback;
 }
 
@@ -49,8 +48,8 @@ function sanitizeSaveItem(item: Record<string, unknown> & {
     sftyQty?: number | null;
     grpPrcL5?: number | null;
 }) {
-    const pkgUnitCd = twoCharUnit(item.pkgUnitCd, "OU");
-    const qtyUnitCd = twoCharUnit(item.qtyUnitCd, "NO");
+    const pkgUnitCd = kraUnitCode(item.pkgUnitCd, "OU", 2);
+    const qtyUnitCd = kraUnitCode(item.qtyUnitCd, "NO", 5);
     const orgnNatCd = item.orgnNatCd.trim().toUpperCase().slice(0, 2) || "KE";
     const itemTyCd = String(item.itemTyCd).trim().slice(0, 1) || "3";
     const seq = /^\d{7}$/.test(item.itemCd.slice(-7)) ? item.itemCd.slice(-7) : "0000001";
@@ -96,6 +95,7 @@ async function attachLocalItemTimestamps(result: unknown) {
         itemCd: eTimsItem.itemCd,
         createdAt: eTimsItem.createdAt,
         updatedAt: eTimsItem.updatedAt,
+        rsdQty: eTimsItem.rsdQty,
     }).from(eTimsItem);
     if (local.length === 0) return;
     const byCd = new Map(local.map((row) => [row.itemCd, row]));
@@ -104,6 +104,7 @@ async function attachLocalItemTimestamps(result: unknown) {
         if (!saved) continue;
         row.createdAt = saved.createdAt.toISOString();
         row.updatedAt = saved.updatedAt.toISOString();
+        if (saved.rsdQty != null) row.rsdQty = saved.rsdQty;
     }
 }
 
@@ -154,7 +155,7 @@ export const etimsItemsRouter = router({
                 itemStdNm: z.string().nullable().optional(),
                 orgnNatCd: z.string().length(2).default("KE"),
                 pkgUnitCd: z.string().default("OU"),
-                qtyUnitCd: z.string().default("OU"),
+                qtyUnitCd: z.string().default("NO"),
                 taxTyCd: z.enum(["A", "B", "C", "D", "E"]).transform((v) => (v === "E" ? "B" : v)),
                 btchNo: z.string().nullable().optional(),
                 bcd: z.string().nullable().optional(),
@@ -180,8 +181,13 @@ export const etimsItemsRouter = router({
             const item = sanitizeSaveItem(input.item);
             try {
                 const result = await saveItemOnKra(client, oscu, isSandbox, item);
-                const data = result as { resultCd?: string };
-                if (data.resultCd === "000" || data.resultCd === "001") {
+                const resultCd = String(
+                    asRecord(asRecord(result)?.responseBody)?.resultCd
+                    ?? asRecord(asRecord(result)?.data)?.resultCd
+                    ?? asRecord(result)?.resultCd
+                    ?? "",
+                );
+                if (resultCd === "000" || resultCd === "001") {
                     const now = new Date();
                     await db.insert(eTimsItem).values({
                         id: crypto.randomUUID(),
@@ -205,7 +211,12 @@ export const etimsItemsRouter = router({
                 return { success: true, data: result };
             } catch (e: unknown) {
                 const msg = (e as Error).message ?? "";
-                console.warn("[eTIMS] saveItem failed:", msg);
+                console.warn("[eTIMS] saveItem failed:", msg, {
+                    itemCd: item.itemCd,
+                    itemTyCd: item.itemTyCd,
+                    pkgUnitCd: item.pkgUnitCd,
+                    qtyUnitCd: item.qtyUnitCd,
+                });
                 if (msg.includes("TestSessionApiLog")) {
                     return { success: false, data: null, requiresReinitialization: true, errorMessage: "KRA sandbox session expired. Re-initialize the device in Settings." };
                 }

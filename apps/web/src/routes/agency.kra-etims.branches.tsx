@@ -28,8 +28,12 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ETimsInitializationGuard } from "@/components/etims/etims-initialization-guard";
+import { SaveETimsBranchUserSheet } from "./agency.kra-etims/branches/_components/save-etims-branch-user-sheet";
+import { SaveETimsBranchInsuranceSheet } from "./agency.kra-etims/branches/_components/save-etims-branch-insurance-sheet";
 
 export default function ETimsBranchesPage() {
+    const [isUserOpen, setIsUserOpen] = React.useState(false);
+    const [isInsuranceOpen, setIsInsuranceOpen] = React.useState(false);
     const utils = trpc.useUtils();
 
     const { data: branches, isLoading, refetch } = trpc.etims.branch.getBranchList.useQuery({
@@ -66,6 +70,8 @@ export default function ETimsBranchesPage() {
 
     return (
         <ETimsInitializationGuard>
+            <SaveETimsBranchUserSheet open={isUserOpen} onOpenChange={setIsUserOpen} />
+            <SaveETimsBranchInsuranceSheet open={isInsuranceOpen} onOpenChange={setIsInsuranceOpen} />
             <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
                 <div className="w-full max-w-7xl mx-auto">
                     <div className="flex flex-col gap-6">
@@ -87,6 +93,12 @@ export default function ETimsBranchesPage() {
                             >
                                 <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
                                 Refresh
+                            </Button>
+                            <Button variant="outline" onClick={() => setIsUserOpen(true)}>
+                                Add user
+                            </Button>
+                            <Button variant="outline" onClick={() => setIsInsuranceOpen(true)}>
+                                Add insurance
                             </Button>
                             <Button onClick={onHandleSync} disabled={syncMutation.isPending}>
                                 {syncMutation.isPending ? <Spinner size={16} className="mr-2" /> : <RefreshCw className="mr-2 h-4 w-4" />}
@@ -183,10 +195,8 @@ export default function ETimsBranchesPage() {
                                                             <DropdownMenuContent align="end">
                                                                 <DropdownMenuLabel>Branch Options</DropdownMenuLabel>
                                                                 <DropdownMenuSeparator />
-                                                                <DropdownMenuItem>View Device Details</DropdownMenuItem>
-                                                                <DropdownMenuItem>Update Local Metadata</DropdownMenuItem>
-                                                                <DropdownMenuSeparator />
-                                                                <DropdownMenuItem className="text-destructive">Close Branch</DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => setIsUserOpen(true)}>Add branch user</DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => setIsInsuranceOpen(true)}>Add insurance</DropdownMenuItem>
                                                             </DropdownMenuContent>
                                                         </DropdownMenu>
                                                     </td>

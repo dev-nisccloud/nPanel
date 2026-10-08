@@ -24,6 +24,103 @@ export const TAX_TYPES = [
 
 export type TaxTypeCode = (typeof TAX_TYPES)[number]["code"];
 
+export const ITEM_TYPES = [
+	{ code: "1", label: "Raw material" },
+	{ code: "2", label: "Finished product" },
+	{ code: "3", label: "Service" },
+] as const;
+
+/** `/selectCodeList` `cdCls` values from OSCU spec. */
+export const KRA_CODE_CLASS = {
+	TAX_TYPE: "04",
+	COUNTRY: "05",
+	QTY_UNIT: "10",
+	PACKAGING: "17",
+	PRODUCT_TYPE: "24",
+} as const;
+
+export type KraCodeOption = { code: string; label: string };
+
+export const PACKAGING_UNITS: KraCodeOption[] = [
+	{ code: "AM", label: "Ampoule" },
+	{ code: "BA", label: "Barrel" },
+	{ code: "BG", label: "Bag" },
+	{ code: "BO", label: "Bottle" },
+	{ code: "BX", label: "Box" },
+	{ code: "CA", label: "Can" },
+	{ code: "CR", label: "Crate" },
+	{ code: "CT", label: "Carton" },
+	{ code: "DR", label: "Drum" },
+	{ code: "NE", label: "Unpacked" },
+	{ code: "NT", label: "Net" },
+	{ code: "OU", label: "Non-exterior" },
+	{ code: "PK", label: "Package" },
+	{ code: "RO", label: "Roll" },
+];
+
+/** Goods default to Box, not Net — `NT` is often unused on live `/selectCodeList` and KRA returns 913. */
+export const GOODS_PKG_PREFERENCE = ["BX", "CT", "PK", "NE", "OU"] as const;
+export const SERVICE_PKG_PREFERENCE = ["OU", "NE", "BX"] as const;
+export const GOODS_QTY_PREFERENCE = ["NO", "EA", "KG"] as const;
+export const SERVICE_QTY_PREFERENCE = ["NO", "HR", "EA"] as const;
+
+export const QTY_UNITS = [
+	{ code: "NO", label: "Number" },
+	{ code: "BA", label: "Barrel" },
+	{ code: "KG", label: "Kilogram" },
+	{ code: "G", label: "Gram" },
+	{ code: "L", label: "Litre" },
+	{ code: "ML", label: "Millilitre" },
+	{ code: "M", label: "Metre" },
+	{ code: "M2", label: "Square metre" },
+	{ code: "M3", label: "Cubic metre" },
+	{ code: "SET", label: "Set" },
+	{ code: "DZ", label: "Dozen" },
+	{ code: "BX", label: "Box" },
+	{ code: "PA", label: "Packet" },
+	{ code: "PR", label: "Pair" },
+	{ code: "HR", label: "Hour" },
+	{ code: "U", label: "Pieces" },
+	{ code: "EA", label: "Each" },
+] as const;
+
+export const COUNTRY_CODES = [
+	{ code: "KE", label: "Kenya" },
+	{ code: "UG", label: "Uganda" },
+	{ code: "TZ", label: "Tanzania" },
+	{ code: "RW", label: "Rwanda" },
+	{ code: "CN", label: "China" },
+	{ code: "IN", label: "India" },
+	{ code: "AE", label: "United Arab Emirates" },
+	{ code: "US", label: "United States" },
+	{ code: "GB", label: "United Kingdom" },
+	{ code: "ZA", label: "South Africa" },
+	{ code: "DE", label: "Germany" },
+	{ code: "NL", label: "Netherlands" },
+] as const;
+
+export const STOCK_IO_TYPES = [
+	{ code: "01", label: "Import (in)" },
+	{ code: "02", label: "Purchase (in)" },
+	{ code: "03", label: "Return (in)" },
+	{ code: "04", label: "Stock movement (in)" },
+	{ code: "05", label: "Processing (in)" },
+	{ code: "06", label: "Adjustment (in)" },
+	{ code: "11", label: "Sale (out)" },
+	{ code: "12", label: "Return (out)" },
+	{ code: "13", label: "Stock movement (out)" },
+	{ code: "14", label: "Processing (out)" },
+	{ code: "15", label: "Discarding (out)" },
+	{ code: "16", label: "Adjustment (out)" },
+] as const;
+
+export const IMPORT_ITEM_STATUSES = [
+	{ code: "1", label: "Unsent" },
+	{ code: "2", label: "Waiting" },
+	{ code: "3", label: "Approved" },
+	{ code: "4", label: "Cancelled" },
+] as const;
+
 export type EtimsTaxpayerRow = {
 	tin: string;
 	taxprNm: string;
@@ -188,6 +285,101 @@ export function unwrapKraList(root: unknown, ...keys: string[]): Record<string, 
 	const top = (root as { data?: unknown })?.data;
 	if (Array.isArray(top)) return top as Record<string, unknown>[];
 	return [];
+}
+
+export type KraCodeRow = {
+	cdCls: string;
+	cdClsNm: string;
+	cd: string;
+	cdNm: string;
+	useYn: string;
+};
+
+function listOf(value: unknown): unknown[] {
+	return Array.isArray(value) ? value : [];
+}
+
+/** Flatten `/selectCodeList` `clsList` / `dtllist` into rows. */
+export function flattenKraCodeList(root: unknown): KraCodeRow[] {
+	const data = unwrapKraData(root);
+	const rows: KraCodeRow[] = [];
+	for (const cls of listOf(data.clsList)) {
+		const c = asRecord(cls);
+		if (!c) continue;
+		const details = listOf(c.dtllist ?? c.dtlList ?? c.codeList);
+		if (details.length === 0 && c.cd) {
+			rows.push({
+				cdCls: String(c.cdCls ?? "").trim(),
+				cdClsNm: String(c.cdClsNm ?? "").trim(),
+				cd: String(c.cd ?? "").trim(),
+				cdNm: String(c.cdNm ?? "").trim(),
+				useYn: c.useYn === "N" ? "N" : "Y",
+			});
+			continue;
+		}
+		for (const d of details) {
+			const row = asRecord(d);
+			if (!row) continue;
+			rows.push({
+				cdCls: String(c.cdCls ?? row.cdCls ?? "").trim(),
+				cdClsNm: String(c.cdClsNm ?? row.cdClsNm ?? "").trim(),
+				cd: String(row.cd ?? "").trim(),
+				cdNm: String(row.cdNm ?? "").trim(),
+				useYn: row.useYn === "N" ? "N" : "Y",
+			});
+		}
+	}
+	for (const d of listOf(data.codeList)) {
+		const row = asRecord(d);
+		if (!row) continue;
+		rows.push({
+			cdCls: String(row.cdCls ?? "").trim(),
+			cdClsNm: String(row.cdClsNm ?? "").trim(),
+			cd: String(row.cd ?? "").trim(),
+			cdNm: String(row.cdNm ?? "").trim(),
+			useYn: row.useYn === "N" ? "N" : "Y",
+		});
+	}
+	return rows;
+}
+
+/** Active codes for a class. ItemCd packaging/qty prefixes are 2 characters. */
+export function activeKraCodes(rows: KraCodeRow[], cdCls: string, length?: number): KraCodeOption[] {
+	const seen = new Set<string>();
+	const options: KraCodeOption[] = [];
+	for (const row of rows) {
+		if (row.cdCls !== cdCls || row.useYn === "N") continue;
+		const code = row.cd.trim().toUpperCase();
+		if (!code || seen.has(code)) continue;
+		if (length != null && code.length !== length) continue;
+		seen.add(code);
+		options.push({ code, label: row.cdNm.trim() || code });
+	}
+	return options.sort((a, b) => a.code.localeCompare(b.code));
+}
+
+export function preferKraCode(
+	options: KraCodeOption[],
+	preferred: readonly string[],
+	fallback: string,
+) {
+	for (const code of preferred) {
+		if (options.some((row) => row.code === code)) return code;
+	}
+	return options[0]?.code ?? fallback;
+}
+
+export function kraMutationError(res: unknown): string | null {
+	const rec = asRecord(res);
+	if (!rec) return null;
+	if (rec.success === false) return String(rec.errorMessage ?? "Request failed");
+	const body = asRecord(rec.data) ?? rec;
+	const nestedBody = asRecord(body.responseBody) ?? body;
+	const resultCd = String(nestedBody.resultCd ?? body.resultCd ?? "");
+	if (resultCd && resultCd !== "000" && resultCd !== "001") {
+		return String(nestedBody.resultMsg ?? body.resultMsg ?? "KRA request failed");
+	}
+	return null;
 }
 
 export function kraNowParts(d = new Date()) {
