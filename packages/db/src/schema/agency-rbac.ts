@@ -36,6 +36,8 @@ export const agencyRolePermission = pgTable(
     permissionId: text("permission_id")
       .notNull()
       .references(() => agencyPermission.id, { onDelete: "cascade" }),
+    /** read | write. Write includes read. Missing row means no access. */
+    access: text("access").default("write").notNull(),
     createdAt: timestamp("created_at").notNull(),
   },
   (table) => [
@@ -59,6 +61,31 @@ export const agencyPermissionRelations = relations(
   ({ many }) => ({
     roles: many(agencyRolePermission),
   }),
+);
+
+/** Denied agency permission checks. Written when a restricted role calls an API it cannot use. */
+export const agencyPermissionDenialLog = pgTable(
+  "agency_permission_denial_log",
+  {
+    id: text("id").primaryKey(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    userId: text("user_id").notNull(),
+    userEmail: text("user_email"),
+    agencyRoleId: text("agency_role_id"),
+    agencyRoleName: text("agency_role_name"),
+    procedurePath: text("procedure_path").notNull(),
+    procedureType: text("procedure_type").notNull(),
+    permissionKey: text("permission_key").notNull(),
+    requiredAccess: text("required_access").notNull(),
+    grantedAccess: text("granted_access"),
+    ipAddress: text("ip_address"),
+    input: jsonb("input"),
+  },
+  (table) => [
+    index("agency_permission_denial_log_created_at_idx").on(table.createdAt),
+    index("agency_permission_denial_log_user_id_idx").on(table.userId),
+    index("agency_permission_denial_log_permission_key_idx").on(table.permissionKey),
+  ],
 );
 
 export const agencyRolePermissionRelations = relations(

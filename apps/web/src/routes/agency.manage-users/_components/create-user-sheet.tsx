@@ -6,10 +6,8 @@ import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { RefreshCw, Eye, EyeOff } from "lucide-react";
+import { RefreshCw, Eye, EyeOff, Check } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
-import { ComboboxDropdown } from "@npanel/ui/components/combobox-dropdown";
-import type { ComboboxItem } from "@npanel/ui/components/combobox-dropdown";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -36,26 +34,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
-
-/** Sentinel for "no agency RBAC role" → stored as null (full/default sidebar access). */
-const FULL_RIGHTS_ROLE_ID = "__none__";
-
-const FULL_RIGHTS_ITEM: ComboboxItem = {
-  id: FULL_RIGHTS_ROLE_ID,
-  label: "Full rights (no role)",
-};
+import {
+  grantsFromEditor,
+  RoleAccessEditor,
+  type AgencyAccessLevel,
+} from "@/routes/agency.agency-roles/_components/role-access-editor";
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   role: z.enum(["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"]),
-  agencyRoleId: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
+
+const steps = ["Account", "Permissions"] as const;
 
 interface CreateUserSheetProps {
   open: boolean;
@@ -69,6 +66,9 @@ export function CreateUserSheet({
   onSuccess,
 }: CreateUserSheetProps) {
   const [showPassword, setShowPassword] = React.useState(false);
+  const [step, setStep] = React.useState<0 | 1>(0);
+  const [createdUserId, setCreatedUserId] = React.useState<string | null>(null);
+  const [accessDraft, setAccessDraft] = React.useState<Record<string, AgencyAccessLevel>>({});
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -77,92 +77,87 @@ export function CreateUserSheet({
       email: "",
       password: "",
       role: "AGENCY_USER",
-      agencyRoleId: FULL_RIGHTS_ROLE_ID,
     },
   });
 
-  const { data: roles, isLoading: isLoadingRoles, error: rolesError, refetch: refetchRoles } =
-    trpc.agencyRbac.rolesList.useQuery(undefined, {
-      enabled: open,
-      staleTime: 60_000,
-    });
+  const utils = trpc.useUtils();
 
-  const assignRoleMutation = trpc.agencyRbac.userAgencyRoleAssign.useMutation({
+  const saveAccessMutation = trpc.agencyRbac.userAccessSet.useMutation({
     onError: (error) => {
-      toast.error(error.message || "User created, but assigning agency role failed");
+      toast.error(error.message || "Failed to save permissions");
     },
   });
 
   const createUserMutation = trpc.manageUsers.create.useMutation({
-    onSuccess: async (user) => {
-      const selectedAgencyRoleId = form.getValues("agencyRoleId");
-      const roleId =
-        selectedAgencyRoleId && selectedAgencyRoleId !== FULL_RIGHTS_ROLE_ID
-          ? selectedAgencyRoleId
-          : null;
-
-      if (roleId) {
-        try {
-          await assignRoleMutation.mutateAsync({
-            userId: user.id,
-            roleId,
-          });
-        } catch {
-          // error already handled by mutation onError
-        }
+    onSuccess: async (user, variables) => {
+      if (variables.role === "AGENCY_SUPER_ADMIN") {
+        toast.success("User created");
+        captureEvent("agency_user_created");
+        resetSheet();
+        onOpenChange(false);
+        onSuccess?.();
+        return;
       }
 
-      toast.success("User created successfully");
-      if (roleId) captureEvent("agency_role_assigned", { role_name: roleId });
-      form.reset({
-        name: "",
-        email: "",
-        password: "",
-        role: "AGENCY_USER",
-        agencyRoleId: FULL_RIGHTS_ROLE_ID,
-      });
-      onOpenChange(false);
-      onSuccess?.();
+      setCreatedUserId(user.id);
+      try {
+        await saveAccessMutation.mutateAsync({ userId: user.id, grants: [] });
+      } catch {
+        // The permissions step can save again.
+      }
+      toast.success("User created");
+      captureEvent("agency_user_created");
+      setStep(1);
     },
     onError: (error) => {
       toast.error(error.message || "Failed to create user");
     },
   });
 
-  const roleOptions: ComboboxItem[] = React.useMemo(() => {
-    const fromApi = (roles ?? []).map((role) => ({
-      id: role.id,
-      label: role.name,
-    }));
-    return [FULL_RIGHTS_ITEM, ...fromApi];
-  }, [roles]);
-
-  // Password generator function
   const generatePassword = () => {
-    const uppers = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const lowers = 'abcdefghijklmnopqrstuvwxyz';
-    const digits = '0123456789';
-    const specials = '!@#$%^&*()-_=+[]{};:,.<>/?';
+    const uppers = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const lowers = "abcdefghijklmnopqrstuvwxyz";
+    const digits = "0123456789";
+    const specials = "!@#$%^&*()-_=+[]{};:,.<>/?";
     const all = uppers + lowers + digits + specials;
     const length = 14;
 
-    let pwd = [
+    const pwd = [
       uppers[Math.floor(Math.random() * uppers.length)],
       lowers[Math.floor(Math.random() * lowers.length)],
       digits[Math.floor(Math.random() * digits.length)],
       specials[Math.floor(Math.random() * specials.length)],
     ];
     for (let i = pwd.length; i < length; i++) {
-      pwd.push(all[Math.floor(Math.random() * all.length)]);
+      pwd.push(all[Math.floor(Math.random() * all.length)]!);
     }
     for (let i = pwd.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [pwd[i], pwd[j]] = [pwd[j], pwd[i]];
+      [pwd[i], pwd[j]] = [pwd[j]!, pwd[i]!];
     }
-    form.setValue('password', pwd.join(''));
+    form.setValue("password", pwd.join(""));
+  };
+
+  const resetSheet = () => {
+    form.reset({
+      name: "",
+      email: "",
+      password: "",
+      role: "AGENCY_USER",
+    });
+    setShowPassword(false);
+    setStep(0);
+    setCreatedUserId(null);
+    setAccessDraft({});
+  };
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) resetSheet();
+    onOpenChange(nextOpen);
   };
 
   const onSubmit = (data: FormData) => {
+    if (step !== 0 || createdUserId) return;
     createUserMutation.mutate({
       name: data.name,
       email: data.email,
@@ -171,210 +166,198 @@ export function CreateUserSheet({
     });
   };
 
+  const savePermissions = async () => {
+    if (!createdUserId) return;
+    try {
+      await saveAccessMutation.mutateAsync({
+        userId: createdUserId,
+        grants: grantsFromEditor(accessDraft),
+      });
+      await utils.agencyRbac.myPermissions.invalidate();
+      toast.success("Permissions saved");
+      resetSheet();
+      onOpenChange(false);
+      onSuccess?.();
+    } catch {
+      // mutation onError already toasted
+    }
+  };
+
+  const isCreating = createUserMutation.isPending || (step === 0 && saveAccessMutation.isPending);
+
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>Create User</SheetTitle>
-          <SheetDescription>
-            Create a new agency user account. Credentials will be sent to the provided email address.
-          </SheetDescription>
-        </SheetHeader>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
+      <SheetContent className="flex h-full w-full flex-col p-0 sm:max-w-2xl">
+        <div className="flex h-full flex-col overflow-hidden">
+          <SheetHeader className="flex-shrink-0 border-b px-6 pt-6 pb-4">
+            <SheetTitle>Create User</SheetTitle>
+            <SheetDescription>
+              {step === 0
+                ? "Create a new agency user account. Credentials will be sent to the provided email address."
+                : "Choose what this user can open, then save."}
+            </SheetDescription>
+            <div className="flex items-center gap-2 pt-2 text-xs text-muted-foreground">
+              {steps.map((label, index) => (
+                <div key={label} className="flex items-center gap-1">
+                  <span
+                    className={
+                      index === step ? "font-medium text-foreground" : index < step ? "text-foreground" : undefined
+                    }
+                  >
+                    {index < step ? <Check className="mr-1 inline h-3 w-3" /> : null}
+                    {label}
+                  </span>
+                  {index < steps.length - 1 ? <span>/</span> : null}
+                </div>
+              ))}
+            </div>
+          </SheetHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-6">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="John Doe" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input type="email" placeholder="john@example.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="role"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Role</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select a role" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="AGENCY_USER">Agency User</SelectItem>
-                      <SelectItem value="AGENCY_ADMIN">Agency Admin</SelectItem>
-                      <SelectItem value="AGENCY_SUPER_ADMIN">Agency Super Admin</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="agencyRoleId"
-              render={({ field }) => {
-                const selectedRole =
-                  roleOptions.find((r) => r.id === field.value) ?? FULL_RIGHTS_ITEM;
-
-                return (
-                  <FormItem>
-                    <FormLabel>
-                      Agency Role
-                      <span className="ml-1 text-[10px] font-normal text-muted-foreground">(optional)</span>
-                    </FormLabel>
-                    <FormControl>
-                      {isLoadingRoles ? (
-                        <div className="flex h-10 items-center justify-center rounded-md border">
-                          <Spinner variant="ellipsis" size="sm" />
-                        </div>
-                      ) : rolesError ? (
-                        <div className="flex items-center justify-between gap-2">
-                          <ComboboxDropdown
-                            placeholder="Failed to load agency roles"
-                            searchPlaceholder="Search roles..."
-                            items={[]}
-                            selectedItem={undefined}
-                            onSelect={() => undefined}
-                            emptyResults="Failed to load roles"
-                            disabled
-                            inDialog
-                            className="w-full"
-                          />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            onClick={() => refetchRoles()}
-                            aria-label="Retry"
-                          >
-                            <RefreshCw className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <ComboboxDropdown
-                          placeholder="Select agency role"
-                          searchPlaceholder="Search roles..."
-                          items={roleOptions}
-                          selectedItem={selectedRole}
-                          onSelect={(item) => {
-                            field.onChange(item.id);
-                          }}
-                          emptyResults="No roles found"
-                          inDialog
-                          className="w-full"
-                        />
+          {step === 0 ? (
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col">
+                <ScrollArea className="min-h-0 flex-1">
+                  <div className="space-y-6 px-6 py-6">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="John Doe" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
                       )}
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                );
-              }}
-            />
+                    />
 
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <div className="flex gap-2">
-                      <Input
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Enter password or generate one"
-                        className="w-full"
-                        {...field}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setShowPassword((v) => !v)}
-                        aria-label={showPassword ? "Hide password" : "Show password"}
-                      >
-                        {showPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={generatePassword}
-                        aria-label="Generate password"
-                      >
-                        <RefreshCw className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input type="email" placeholder="john@example.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-            <SheetFooter className="gap-2 sm:gap-0">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  form.reset({
-                    name: "",
-                    email: "",
-                    password: "",
-                    role: "AGENCY_USER",
-                  });
-                  onOpenChange(false);
-                }}
-                disabled={createUserMutation.isPending}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={createUserMutation.isPending}
-              >
-                {createUserMutation.isPending ? (
-                  <>
-                    <Spinner size={16} className="mr-2" />
-                    Creating...
-                  </>
-                ) : (
-                  "Create User"
-                )}
-              </Button>
-            </SheetFooter>
-          </form>
-        </Form>
+                    <FormField
+                      control={form.control}
+                      name="role"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Role</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select a role" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="AGENCY_USER">Agency User</SelectItem>
+                              <SelectItem value="AGENCY_ADMIN">Agency Admin</SelectItem>
+                              <SelectItem value="AGENCY_SUPER_ADMIN">Agency Super Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Password</FormLabel>
+                          <FormControl>
+                            <div className="flex gap-2">
+                              <Input
+                                type={showPassword ? "text" : "password"}
+                                placeholder="Enter password or generate one"
+                                className="w-full"
+                                {...field}
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                onClick={() => setShowPassword((value) => !value)}
+                                aria-label={showPassword ? "Hide password" : "Show password"}
+                              >
+                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                onClick={generatePassword}
+                                aria-label="Generate password"
+                              >
+                                <RefreshCw className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </ScrollArea>
+                <SheetFooter className="flex-shrink-0 gap-2 border-t px-6 py-4 sm:gap-0">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleOpenChange(false)}
+                    disabled={isCreating}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={isCreating}>
+                    {isCreating ? (
+                      <>
+                        <Spinner size={16} className="mr-2" />
+                        Creating...
+                      </>
+                    ) : (
+                      "Create user"
+                    )}
+                  </Button>
+                </SheetFooter>
+              </form>
+            </Form>
+          ) : (
+            <div className="flex min-h-0 flex-1 flex-col">
+              <ScrollArea className="min-h-0 flex-1">
+                <div className="px-6 py-6">
+                  <RoleAccessEditor value={accessDraft} onChange={setAccessDraft} />
+                </div>
+              </ScrollArea>
+              <SheetFooter className="flex-shrink-0 gap-2 border-t px-6 py-4 sm:gap-0">
+                <Button
+                  type="button"
+                  disabled={saveAccessMutation.isPending || !createdUserId}
+                  onClick={() => void savePermissions()}
+                >
+                  {saveAccessMutation.isPending ? (
+                    <>
+                      <Spinner size={16} className="mr-2" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save permissions"
+                  )}
+                </Button>
+              </SheetFooter>
+            </div>
+          )}
+        </div>
       </SheetContent>
     </Sheet>
   );
 }
-
-

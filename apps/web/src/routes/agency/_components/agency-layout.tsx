@@ -25,6 +25,10 @@ import { NavigationLoadingProvider } from "@/contexts/navigation-loading-context
 import { apiUrl, authClient } from "@/lib/auth-client";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { IntercomSupport } from "@/components/intercom-support";
+import {
+  AgencyPermissionRouteGuard,
+  AgencyPermissionsProvider,
+} from "@/contexts/agency-permissions-context";
 
 function readSidebarDefaultOpen(): boolean {
   if (typeof document === "undefined") return true;
@@ -134,27 +138,31 @@ export default function AgencyLayout({ children }: Readonly<{ children: ReactNod
   return (
     <NavigationLoadingProvider>
       {/* <IntercomSupport user={session.user} /> */}
-      <SidebarProvider defaultOpen={defaultOpen}>
-        <AppSidebar variant={sidebarVariant} collapsible={sidebarCollapsible} />
-        <AgencyContentArea contentLayout={contentLayout}>
-          <header className="flex h-12 shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-            <div className="flex w-full items-center justify-between px-4 lg:px-6">
-              <div className="flex items-center gap-1 lg:gap-2">
-                <SidebarTrigger className="-ml-1" />
-                <Separator orientation="vertical" className="mx-2 data-[orientation=vertical]:h-4" />
-                <SearchDialog />
+      <AgencyPermissionsProvider>
+        <SidebarProvider defaultOpen={defaultOpen}>
+          <AppSidebar variant={sidebarVariant} collapsible={sidebarCollapsible} />
+          <AgencyContentArea contentLayout={contentLayout}>
+            <header className="flex h-12 shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+              <div className="flex w-full items-center justify-between px-4 lg:px-6">
+                <div className="flex items-center gap-1 lg:gap-2">
+                  <SidebarTrigger className="-ml-1" />
+                  <Separator orientation="vertical" className="mx-2 data-[orientation=vertical]:h-4" />
+                  <SearchDialog />
+                </div>
+                <div className="flex items-center gap-2">
+                  <NotificationSwitcher />
+                  <CartSwitcher />
+                  <ThemeSwitcher />
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <NotificationSwitcher />
-                <CartSwitcher />
-                <ThemeSwitcher />
-              </div>
-            </div>
-          </header>
-          <AgencyContentInner>{children}</AgencyContentInner>
-          <NavigationLoader />
-        </AgencyContentArea>
-      </SidebarProvider>
+            </header>
+            <AgencyContentInner>
+              <AgencyPermissionRouteGuard>{children}</AgencyPermissionRouteGuard>
+            </AgencyContentInner>
+            <NavigationLoader />
+          </AgencyContentArea>
+        </SidebarProvider>
+      </AgencyPermissionsProvider>
     </NavigationLoadingProvider>
   );
 }

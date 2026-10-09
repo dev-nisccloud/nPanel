@@ -17,6 +17,8 @@ import {
   type TeamPermissionGrantedAccess,
 } from "@/lib/team-permissions";
 import { TeamPermissionDenied } from "@/components/team-permissions/team-permission-denied";
+import { useOptionalAgencyPermissions } from "@/contexts/agency-permissions-context";
+import { authClient } from "@/lib/auth-client";
 import { trpc } from "@/utils/trpc";
 
 type TeamPermissionsValue = {
@@ -102,23 +104,42 @@ export function useOptionalTeamPermissions(): TeamPermissionsValue | null {
 
 export function useCanTeamPermission() {
   const ctx = useOptionalTeamPermissions();
+  const agency = useOptionalAgencyPermissions();
+  const { data: session } = authClient.useSession();
+  const isSuperAdmin =
+    (session?.user as { role?: string } | undefined)?.role === "AGENCY_SUPER_ADMIN";
+  if (isSuperAdmin || agency?.unrestricted) {
+    return {
+      isLoading: false,
+      isOwner: true,
+      can: () => true,
+      canModule: () => true,
+    };
+  }
+  const active = ctx ?? agency;
   return {
-    isLoading: ctx?.isLoading ?? false,
-    isOwner: ctx?.isOwner ?? true,
+    isLoading: active?.isLoading ?? false,
+    isOwner: ctx ? ctx.isOwner : agency ? agency.unrestricted : true,
     can: (key: string, access: TeamPermissionGrantedAccess = "read") => {
-      if (!ctx) return true;
-      return ctx.can(key, access);
+      if (ctx) return ctx.can(key, access);
+      if (agency) return agency.can(key, access);
+      return true;
     },
     canModule: (module: string, access: TeamPermissionGrantedAccess = "read") => {
-      if (!ctx) return true;
-      return ctx.canModule(module, access);
+      if (ctx) return ctx.canModule(module, access);
+      if (agency) return agency.canModule(module, access);
+      return true;
     },
   };
 }
 
 export function TeamPermissionRouteGuard({ children }: { children: ReactNode }) {
   const ctx = useTeamPermissions();
+  const { data: session } = authClient.useSession();
   const { pathname } = useLocation();
+  if ((session?.user as { role?: string } | undefined)?.role === "AGENCY_SUPER_ADMIN") {
+    return children;
+  }
   const rule = matchCustomerRoutePermission(pathname, ctx.teamSlug);
 
   if (rule.type === "allow") return children;

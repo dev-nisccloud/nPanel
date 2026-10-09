@@ -7,15 +7,21 @@ import { db } from "@npanel/db";
 import { user as userTable } from "@npanel/db/schema/auth";
 import {
 	agencyPermission,
+	agencyPermissionDenialLog,
 	agencyRole,
 	agencyRolePermission,
 } from "@npanel/db/schema/agency-rbac";
 import { protectedProcedure, router } from "../trpc";
 import {
-	agencyMenuKeySchema,
-	agencyMenuKeys,
-	remapAgencyMenuKeys,
-} from "./agency-rbac/menu-keys";
+	AGENCY_PERMISSION_CATALOG,
+	AGENCY_PERMISSION_MODULES,
+	isAgencyPermissionKey,
+} from "../lib/agency-permissions/catalog";
+import {
+	grantsFromStoredRole,
+	invalidateAgencyAccessCache,
+	loadAgencyAccess,
+} from "../lib/agency-permissions/assert";
 
 // ============================================================================
 // ZOD SCHEMAS – independent from database schema (including enums)
@@ -25,27 +31,23 @@ const agencyRoleOutputSchema = z.object({
 	id: z.string(),
 	name: z.string(),
 	description: z.string().nullable(),
-	menus: z.array(z.string()),
 	isSystem: z.boolean(),
 	createdAt: z.date(),
 	updatedAt: z.date(),
 });
 
-const agencyPermissionOutputSchema = z.object({
-	id: z.string(),
-	key: agencyMenuKeySchema,
-	description: z.string().nullable(),
-	createdAt: z.date(),
-	updatedAt: z.date(),
+const agencyGrantSchema = z.object({
+	key: z.string(),
+	access: z.enum(["read", "write"]),
 });
 
-const listRolesOutputSchema = z.array(agencyRoleOutputSchema);
-const listPermissionsOutputSchema = z.array(agencyPermissionOutputSchema);
+const listRolesOutputSchema = z.array(
+	agencyRoleOutputSchema.extend({ grantCount: z.number() }),
+);
 
 const createRoleInputSchema = z.object({
 	name: z.string().min(2).max(80),
 	description: z.string().max(400).optional(),
-	menus: z.array(z.string()).default([]),
 });
 
 const updateRoleInputSchema = z
@@ -53,7 +55,6 @@ const updateRoleInputSchema = z
 		roleId: z.string(),
 		name: z.string().min(2).max(80).optional(),
 		description: z.string().max(400).optional(),
-		menus: z.array(z.string()).optional(),
 	})
 	.refine((data) => data.name !== undefined || data.description !== undefined, {
 		message: "At least one field must be provided for update",
@@ -61,14 +62,9 @@ const updateRoleInputSchema = z
 
 const deleteRoleInputSchema = z.object({ roleId: z.string() });
 
-const upsertPermissionInputSchema = z.object({
-	key: agencyMenuKeySchema,
-	description: z.string().max(400).optional(),
-});
-
 const setRolePermissionsInputSchema = z.object({
 	roleId: z.string(),
-	permissionKeys: z.array(agencyMenuKeySchema).default([]),
+	grants: z.array(agencyGrantSchema),
 });
 
 const assignUserAgencyRoleInputSchema = z.object({
@@ -78,19 +74,68 @@ const assignUserAgencyRoleInputSchema = z.object({
 
 const okSchema = z.object({ success: z.boolean() });
 
-const myMenuAccessOutputSchema = z.object({
-	roleId: z.string().nullable(),
-	roleName: z.string().nullable(),
-	allowedKeys: z.array(z.string()),
-});
-
 const getRoleByIdInputSchema = z.object({
 	roleId: z.string(),
 });
 
 const roleWithPermissionsOutputSchema = agencyRoleOutputSchema.extend({
-	permissionKeys: z.array(agencyMenuKeySchema),
+	permissionKeys: z.array(z.string()),
+	grants: z.array(agencyGrantSchema),
 });
+
+const catalogOutputSchema = z.object({
+	entries: z.array(
+		z.object({
+			key: z.string(),
+			module: z.string(),
+			moduleLabel: z.string(),
+			label: z.string(),
+			description: z.string(),
+		}),
+	),
+	modules: z.array(
+		z.object({
+			id: z.string(),
+			label: z.string(),
+			keys: z.array(z.string()),
+		}),
+	),
+});
+
+const myPermissionsOutputSchema = z.object({
+	unrestricted: z.boolean(),
+	roleId: z.string().nullable(),
+	roleName: z.string().nullable(),
+	permissions: z.record(z.string(), z.enum(["read", "write"])),
+});
+
+const denialLogOutputSchema = z.array(
+	z.object({
+		id: z.string(),
+		createdAt: z.date(),
+		userId: z.string(),
+		userEmail: z.string().nullable(),
+		agencyRoleId: z.string().nullable(),
+		agencyRoleName: z.string().nullable(),
+		procedurePath: z.string(),
+		procedureType: z.string(),
+		permissionKey: z.string(),
+		requiredAccess: z.string(),
+		grantedAccess: z.string().nullable(),
+		ipAddress: z.string().nullable(),
+	}),
+);
+
+function normalizeRoleGrants(
+	grants: { key: string; access: "read" | "write" }[],
+): { key: string; access: "read" | "write" }[] {
+	const map = new Map<string, "read" | "write">();
+	for (const grant of grants) {
+		if (!isAgencyPermissionKey(grant.key)) continue;
+		map.set(grant.key, grant.access);
+	}
+	return [...map.entries()].map(([key, access]) => ({ key, access }));
+}
 
 function requireAgencySuperAdmin(userRole: string | null | undefined) {
 	if (userRole !== "AGENCY_SUPER_ADMIN") {
@@ -98,34 +143,128 @@ function requireAgencySuperAdmin(userRole: string | null | undefined) {
 	}
 }
 
+const userAccessOutputSchema = z.object({
+	userId: z.string(),
+	name: z.string(),
+	email: z.string(),
+	role: z.string(),
+	unrestricted: z.boolean(),
+	grants: z.array(agencyGrantSchema),
+});
+
+const userAccessSetInputSchema = z.object({
+	userId: z.string(),
+	grants: z.array(agencyGrantSchema),
+});
+
+async function replaceRoleGrants(
+	roleId: string,
+	grants: { key: string; access: "read" | "write" }[],
+) {
+	await db.transaction(async (tx) => {
+		for (const grant of grants) {
+			await tx
+				.insert(agencyPermission)
+				.values({
+					id: crypto.randomUUID(),
+					key: grant.key,
+					description: null,
+					createdAt: new Date(),
+					updatedAt: new Date(),
+				})
+				.onConflictDoUpdate({
+					target: agencyPermission.key,
+					set: { updatedAt: new Date() },
+				});
+		}
+
+		await tx.delete(agencyRolePermission).where(eq(agencyRolePermission.roleId, roleId));
+
+		if (grants.length > 0) {
+			const perms = await tx.query.agencyPermission.findMany({
+				where: inArray(
+					agencyPermission.key,
+					grants.map((grant) => grant.key),
+				),
+				columns: { id: true, key: true },
+			});
+			const accessByKey = new Map(grants.map((grant) => [grant.key, grant.access]));
+			if (perms.length > 0) {
+				await tx.insert(agencyRolePermission).values(
+					perms.map((perm) => ({
+						id: crypto.randomUUID(),
+						roleId,
+						permissionId: perm.id,
+						access: accessByKey.get(perm.key) ?? "write",
+						createdAt: new Date(),
+					})),
+				);
+			}
+		}
+
+		await tx.update(agencyRole).set({ updatedAt: new Date() }).where(eq(agencyRole.id, roleId));
+	});
+
+	invalidateAgencyAccessCache();
+}
+
+async function ensurePersonalAccessRole(userId: string, label: string) {
+	const name = `user-access:${userId}`;
+	const existing = await db.query.agencyRole.findFirst({
+		where: eq(agencyRole.name, name),
+		columns: { id: true },
+	});
+	if (existing) return existing.id;
+
+	const id = crypto.randomUUID();
+	await db.insert(agencyRole).values({
+		id,
+		name,
+		description: label,
+		menus: [],
+		isSystem: false,
+		createdAt: new Date(),
+		updatedAt: new Date(),
+	});
+	return id;
+}
+
 // ============================================================================
 // tRPC ROUTER
 // ============================================================================
 
 export const agencyRbacRouter = router({
-	permissionCatalog: protectedProcedure
-		.output(z.array(agencyMenuKeySchema))
-		.query(async ({ ctx }) => {
-			requireAgencySuperAdmin(ctx.session?.user?.role);
-			return [...agencyMenuKeys];
-		}),
-
 	rolesList: protectedProcedure.output(listRolesOutputSchema).query(async ({ ctx }) => {
 		requireAgencySuperAdmin(ctx.session?.user?.role);
 
 		const roles = await db.query.agencyRole.findMany({
 			orderBy: [desc(agencyRole.isSystem), asc(agencyRole.name)],
+			with: {
+				permissions: {
+					with: {
+						permission: { columns: { key: true } },
+					},
+				},
+			},
 		});
 
-		return roles.map((r) => ({
-			id: r.id,
-			name: r.name,
-			description: r.description ?? null,
-			menus: remapAgencyMenuKeys((r.menus as string[]) ?? []),
-			isSystem: r.isSystem,
-			createdAt: r.createdAt,
-			updatedAt: r.updatedAt,
-		}));
+		return roles.map((r) => {
+			const grants = grantsFromStoredRole(
+				r.permissions.map((row) => ({
+					key: row.permission.key,
+					access: row.access,
+				})),
+			);
+			return {
+				id: r.id,
+				name: r.name,
+				description: r.description ?? null,
+				grantCount: Object.keys(grants).length,
+				isSystem: r.isSystem,
+				createdAt: r.createdAt,
+				updatedAt: r.updatedAt,
+			};
+		});
 	}),
 
 	roleById: protectedProcedure
@@ -151,22 +290,23 @@ export const agencyRbacRouter = router({
 				throw new TRPCError({ code: "NOT_FOUND", message: "Role not found" });
 			}
 
-			const dbMenus = remapAgencyMenuKeys((role.menus as string[]) ?? []);
-			const permissionKeys =
-				role.permissions
-					.map((rp) => rp.permission.key)
-					.map((key) => remapAgencyMenuKeys([key])[0] ?? key)
-					.filter((key): key is z.infer<typeof agencyMenuKeySchema> => agencyMenuKeySchema.safeParse(key).success) ?? [];
+			const grants = grantsFromStoredRole(
+				role.permissions.map((rp) => ({
+					key: rp.permission.key,
+					access: rp.access,
+				})),
+			);
+			const grantList = Object.entries(grants).map(([key, access]) => ({ key, access }));
 
 			return {
 				id: role.id,
 				name: role.name,
 				description: role.description ?? null,
-				menus: dbMenus,
 				isSystem: role.isSystem,
 				createdAt: role.createdAt,
 				updatedAt: role.updatedAt,
-				permissionKeys: Array.from(new Set([...dbMenus, ...permissionKeys])),
+				permissionKeys: grantList.map((grant) => grant.key),
+				grants: grantList,
 			};
 		}),
 
@@ -182,7 +322,7 @@ export const agencyRbacRouter = router({
 					id: crypto.randomUUID(),
 					name: input.name,
 					description: input.description ?? null,
-					menus: input.menus,
+					menus: [],
 					isSystem: false,
 					createdAt: new Date(),
 					updatedAt: new Date(),
@@ -197,7 +337,6 @@ export const agencyRbacRouter = router({
 				id: role.id,
 				name: role.name,
 				description: role.description ?? null,
-				menus: remapAgencyMenuKeys((role.menus as string[]) ?? []),
 				isSystem: role.isSystem,
 				createdAt: role.createdAt,
 				updatedAt: role.updatedAt,
@@ -222,7 +361,6 @@ export const agencyRbacRouter = router({
 				.set({
 					name: input.name ?? undefined,
 					description: input.description ?? undefined,
-					menus: input.menus ?? undefined,
 					updatedAt: new Date(),
 				})
 				.where(eq(agencyRole.id, input.roleId))
@@ -236,7 +374,6 @@ export const agencyRbacRouter = router({
 				id: updated.id,
 				name: updated.name,
 				description: updated.description ?? null,
-				menus: remapAgencyMenuKeys((updated.menus as string[]) ?? []),
 				isSystem: updated.isSystem,
 				createdAt: updated.createdAt,
 				updatedAt: updated.updatedAt,
@@ -263,59 +400,6 @@ export const agencyRbacRouter = router({
 			return { success: true };
 		}),
 
-	permissionsList: protectedProcedure.output(listPermissionsOutputSchema).query(async ({ ctx }) => {
-		requireAgencySuperAdmin(ctx.session?.user?.role);
-
-		const perms = await db.query.agencyPermission.findMany({
-			orderBy: [asc(agencyPermission.key)],
-		});
-
-		return perms.map((p) => ({
-			id: p.id,
-			key: p.key as z.infer<typeof agencyMenuKeySchema>,
-			description: p.description ?? null,
-			createdAt: p.createdAt,
-			updatedAt: p.updatedAt,
-		}));
-	}),
-
-	permissionUpsert: protectedProcedure
-		.input(upsertPermissionInputSchema)
-		.output(agencyPermissionOutputSchema)
-		.mutation(async ({ ctx, input }) => {
-			requireAgencySuperAdmin(ctx.session?.user?.role);
-
-			const [upserted] = await db
-				.insert(agencyPermission)
-				.values({
-					id: crypto.randomUUID(),
-					key: input.key,
-					description: input.description ?? null,
-					createdAt: new Date(),
-					updatedAt: new Date(),
-				})
-				.onConflictDoUpdate({
-					target: agencyPermission.key,
-					set: {
-						description: input.description ?? null,
-						updatedAt: new Date(),
-					},
-				})
-				.returning();
-
-			if (!upserted) {
-				throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to upsert permission" });
-			}
-
-			return {
-				id: upserted.id,
-				key: upserted.key as z.infer<typeof agencyMenuKeySchema>,
-				description: upserted.description ?? null,
-				createdAt: upserted.createdAt,
-				updatedAt: upserted.updatedAt,
-			};
-		}),
-
 	rolePermissionsSet: protectedProcedure
 		.input(setRolePermissionsInputSchema)
 		.output(okSchema)
@@ -329,52 +413,78 @@ export const agencyRbacRouter = router({
 				throw new TRPCError({ code: "NOT_FOUND", message: "Role not found" });
 			}
 
-			const uniqueKeys = Array.from(new Set(input.permissionKeys));
+			await replaceRoleGrants(input.roleId, normalizeRoleGrants(input.grants));
+			return { success: true };
+		}),
 
-			await db.transaction(async (tx) => {
-				// ensure all permissions exist
-				for (const key of uniqueKeys) {
-					await tx
-						.insert(agencyPermission)
-						.values({
-							id: crypto.randomUUID(),
-							key,
-							description: null,
-							createdAt: new Date(),
-							updatedAt: new Date(),
-						})
-						.onConflictDoUpdate({
-							target: agencyPermission.key,
-							set: {
-								updatedAt: new Date(),
+	userAccessGet: protectedProcedure
+		.input(z.object({ userId: z.string() }))
+		.output(userAccessOutputSchema)
+		.query(async ({ ctx, input }) => {
+			requireAgencySuperAdmin(ctx.session?.user?.role);
+
+			const userRes = await db.query.user.findFirst({
+				where: eq(userTable.id, input.userId),
+				columns: { id: true, name: true, email: true, role: true, agencyRoleId: true },
+				with: {
+					agencyRole: {
+						with: {
+							permissions: {
+								with: { permission: { columns: { key: true } } },
 							},
-						});
-				}
-
-				// clear existing mappings
-				await tx.delete(agencyRolePermission).where(eq(agencyRolePermission.roleId, input.roleId));
-
-				if (uniqueKeys.length === 0) {
-					return;
-				}
-
-				const perms = await tx.query.agencyPermission.findMany({
-					where: inArray(agencyPermission.key, uniqueKeys),
-					columns: { id: true },
-				});
-
-				if (perms.length > 0) {
-					await tx.insert(agencyRolePermission).values(
-						perms.map((p) => ({
-							id: crypto.randomUUID(),
-							roleId: input.roleId,
-							permissionId: p.id,
-							createdAt: new Date(),
-						})),
-					);
-				}
+						},
+					},
+				},
 			});
+			if (!userRes || !["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"].includes(userRes.role)) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Agency user not found" });
+			}
 
+			const grants = grantsFromStoredRole(
+				userRes.agencyRole?.permissions.map((row) => ({
+					key: row.permission.key,
+					access: row.access,
+				})) ?? [],
+			);
+
+			return {
+				userId: userRes.id,
+				name: userRes.name,
+				email: userRes.email,
+				role: userRes.role,
+				unrestricted: userRes.role === "AGENCY_SUPER_ADMIN" || !userRes.agencyRole,
+				grants: Object.entries(grants).map(([key, access]) => ({ key, access })),
+			};
+		}),
+
+	userAccessSet: protectedProcedure
+		.input(userAccessSetInputSchema)
+		.output(okSchema)
+		.mutation(async ({ ctx, input }) => {
+			requireAgencySuperAdmin(ctx.session?.user?.role);
+
+			const userRes = await db.query.user.findFirst({
+				where: eq(userTable.id, input.userId),
+				columns: { id: true, name: true, email: true, role: true, agencyRoleId: true },
+			});
+			if (!userRes || !["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"].includes(userRes.role)) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Agency user not found" });
+			}
+
+			if (userRes.role === "AGENCY_SUPER_ADMIN") {
+				return { success: true };
+			}
+
+			const roleId = await ensurePersonalAccessRole(userRes.id, userRes.email || userRes.name);
+			if (userRes.agencyRoleId !== roleId) {
+				await db
+					.update(userTable)
+					.set({ agencyRoleId: roleId, updatedAt: new Date() })
+					.where(eq(userTable.id, userRes.id));
+			}
+
+			await replaceRoleGrants(roleId, normalizeRoleGrants(input.grants));
+			invalidateAgencyAccessCache(userRes.id);
 			return { success: true };
 		}),
 
@@ -411,63 +521,58 @@ export const agencyRbacRouter = router({
 				})
 				.where(eq(userTable.id, input.userId));
 
+			invalidateAgencyAccessCache(input.userId);
 			return { success: true };
 		}),
 
-	myMenuAccess: protectedProcedure.output(myMenuAccessOutputSchema).query(async ({ ctx }) => {
-		const userId = ctx.session?.user?.id;
-		if (!userId) {
-			throw new TRPCError({ code: "UNAUTHORIZED" });
-		}
-
-		// Only relevant for agency users; customers get empty keys by default.
-		const userRes = await db.query.user.findFirst({
-			where: eq(userTable.id, userId),
-			with: {
-				agencyRole: {
-					with: {
-						permissions: {
-							with: {
-								permission: {
-									columns: { key: true },
-								},
-							},
-						},
-					},
-				},
-			},
-		});
-
-		if (!userRes) {
-			throw new TRPCError({ code: "UNAUTHORIZED" });
-		}
-
-		if (!["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"].includes(userRes.role)) {
-			return { roleId: null, roleName: null, allowedKeys: [] };
-		}
-
-		// Super admins always get full sidebar access.
-		// Agency users with no assigned RBAC role (null agencyRoleId) also get full/default access.
-		if (userRes.role === "AGENCY_SUPER_ADMIN" || !userRes.agencyRole) {
-			return {
-				roleId: userRes.agencyRole?.id ?? null,
-				roleName: userRes.agencyRole?.name ?? null,
-				allowedKeys: Array.from(agencyMenuKeys),
-			};
-		}
-
-		const dbMenus = remapAgencyMenuKeys((userRes.agencyRole.menus as string[]) ?? []);
-		const permissionKeys =
-			userRes.agencyRole.permissions
-				.map((p) => p.permission.key)
-				.map((k) => remapAgencyMenuKeys([k])[0] ?? k)
-				.filter((k): k is z.infer<typeof agencyMenuKeySchema> => agencyMenuKeySchema.safeParse(k).success) ?? [];
-
+	catalog: protectedProcedure.output(catalogOutputSchema).query(async ({ ctx }) => {
+		requireAgencySuperAdmin(ctx.session?.user?.role);
 		return {
-			roleId: userRes.agencyRole.id,
-			roleName: userRes.agencyRole.name,
-			allowedKeys: Array.from(new Set([...dbMenus, ...permissionKeys])),
+			entries: AGENCY_PERMISSION_CATALOG.map((entry) => ({ ...entry })),
+			modules: AGENCY_PERMISSION_MODULES.map((mod) => ({ ...mod, keys: [...mod.keys] })),
 		};
 	}),
+
+	myPermissions: protectedProcedure.output(myPermissionsOutputSchema).query(async ({ ctx }) => {
+		const userId = ctx.session?.user?.id;
+		if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+		const access = await loadAgencyAccess(userId);
+		if (!access) {
+			return { unrestricted: false, roleId: null, roleName: null, permissions: {} };
+		}
+		return {
+			unrestricted: access.unrestricted,
+			roleId: access.agencyRoleId,
+			roleName: access.agencyRoleName,
+			permissions: access.permissions,
+		};
+	}),
+
+	denialLog: protectedProcedure
+		.input(z.object({ limit: z.number().int().min(1).max(200).default(50) }).optional())
+		.output(denialLogOutputSchema)
+		.query(async ({ ctx, input }) => {
+			requireAgencySuperAdmin(ctx.session?.user?.role);
+			const rows = await db
+				.select()
+				.from(agencyPermissionDenialLog)
+				.orderBy(desc(agencyPermissionDenialLog.createdAt))
+				.limit(input?.limit ?? 50);
+			return rows.map((row) => ({
+				id: row.id,
+				createdAt: row.createdAt,
+				userId: row.userId,
+				userEmail: row.userEmail,
+				agencyRoleId: row.agencyRoleId,
+				agencyRoleName: row.agencyRoleName,
+				procedurePath: row.procedurePath,
+				procedureType: row.procedureType,
+				permissionKey: row.permissionKey,
+				requiredAccess: row.requiredAccess,
+				grantedAccess: row.grantedAccess,
+				ipAddress: row.ipAddress,
+			}));
+		}),
+
 });
 

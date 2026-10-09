@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Plus, RefreshCw, Search, User, EllipsisVertical, Eye, ShieldAlert } from "lucide-react";
+import { Plus, RefreshCw, Search, User, EllipsisVertical, Eye, Shield, ShieldAlert } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { CreateUserSheet } from "./agency.manage-users/_components/create-user-sheet";
+import { UserAccessSheet } from "./agency.manage-users/_components/user-access-sheet";
 import { UserViewSheet } from "./agency.manage-users/_components/user-view-sheet";
 import {
   AlertDialog,
@@ -58,6 +59,7 @@ export default function ManageUsersPage() {
     (session?.user as { role?: string } | undefined)?.role === "AGENCY_SUPER_ADMIN";
   const [isCreateSheetOpen, setIsCreateSheetOpen] = React.useState(false);
   const [selectedUserId, setSelectedUserId] = React.useState<string | null>(null);
+  const [accessUserId, setAccessUserId] = React.useState<string | null>(null);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [statusChangeDialog, setStatusChangeDialog] = React.useState<{
     open: boolean;
@@ -332,10 +334,14 @@ export default function ManageUsersPage() {
                                     <span className="sr-only">Actions</span>
                                   </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-40">
+                                <DropdownMenuContent align="end" className="w-56">
                                   <DropdownMenuItem onSelect={() => handleView(user.id)}>
                                     <Eye className="mr-2 h-4 w-4" />
                                     View details
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onSelect={() => setAccessUserId(user.id)}>
+                                    <Shield className="mr-2 h-4 w-4" />
+                                    Permissions and access
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
@@ -357,6 +363,14 @@ export default function ManageUsersPage() {
         open={isCreateSheetOpen}
         onOpenChange={setIsCreateSheetOpen}
         onSuccess={handleSuccess}
+      />
+
+      <UserAccessSheet
+        open={!!accessUserId}
+        onOpenChange={(open) => {
+          if (!open) setAccessUserId(null);
+        }}
+        userId={accessUserId}
       />
 
       {selectedUserId && (
