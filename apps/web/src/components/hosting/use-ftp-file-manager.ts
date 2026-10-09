@@ -11,7 +11,7 @@ import { useFtpErrorMessage } from "@/components/hosting/ftp-error-message";
 import {
 	fileManagerItemSchema,
 	fileManagerSchema,
-} from "@/routes/agency.hosting/_components/file-manager-schema";
+} from "@/components/hosting/file-manager-schema";
 
 function startBrowserDownload(url: string, filename: string) {
 	const anchor = document.createElement("a");
