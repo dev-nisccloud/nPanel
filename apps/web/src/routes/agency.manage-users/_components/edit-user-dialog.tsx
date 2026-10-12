@@ -1,15 +1,11 @@
 "use client";
 
-import { captureEvent } from "@/lib/posthog";
-
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { KeyRound } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
-import { ComboboxDropdown } from "@npanel/ui/components/combobox-dropdown";
-import type { ComboboxItem } from "@npanel/ui/components/combobox-dropdown";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -40,43 +36,16 @@ import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 
-/** Sentinel for "no agency RBAC role" → stored as null (full/default sidebar access). */
-const FULL_RIGHTS_ROLE_ID = "__none__";
-
-const FULL_RIGHTS_ITEM: ComboboxItem = {
-  id: FULL_RIGHTS_ROLE_ID,
-  label: "Full rights (no role)",
-};
-
 const editFormSchema = z.object({
   name: z.string().min(1, "Name is required").optional(),
   email: z.string().email("Invalid email address").optional(),
   role: z.enum(["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"]).optional(),
-  agencyRoleId: z.string().optional(),
 }).refine(
-  (data) => {
-    return (
-      data.name !== undefined ||
-      data.email !== undefined ||
-      data.role !== undefined ||
-      data.agencyRoleId !== undefined
-    );
-  },
-  {
-    message: "At least one field must be provided for update",
-  },
+  (data) => data.name !== undefined || data.email !== undefined || data.role !== undefined,
+  { message: "At least one field must be provided for update" },
 );
 
 type FormData = z.infer<typeof editFormSchema>;
-
-function toFormAgencyRoleId(agencyRoleId: string | null | undefined): string {
-  return agencyRoleId?.trim() ? agencyRoleId : FULL_RIGHTS_ROLE_ID;
-}
-
-function toDbAgencyRoleId(agencyRoleId: string | null | undefined): string | null {
-  if (!agencyRoleId || agencyRoleId === FULL_RIGHTS_ROLE_ID) return null;
-  return agencyRoleId;
-}
 
 interface EditUserDialogProps {
   open: boolean;
@@ -104,7 +73,6 @@ export function EditUserDialog({
       name: initialData.name,
       email: initialData.email,
       role: initialData.role,
-      agencyRoleId: toFormAgencyRoleId(initialData.agencyRoleId),
     },
   });
 
@@ -114,23 +82,8 @@ export function EditUserDialog({
       name: initialData.name,
       email: initialData.email,
       role: initialData.role,
-      agencyRoleId: toFormAgencyRoleId(initialData.agencyRoleId),
     });
   }, [open, initialData, form]);
-
-  const { data: roles, isLoading: isLoadingRoles, error: rolesError, refetch: refetchRoles } =
-    trpc.agencyRbac.rolesList.useQuery(undefined, {
-      enabled: open,
-      staleTime: 60_000,
-    });
-
-  const utils = trpc.useUtils();
-
-  const assignRoleMutation = trpc.agencyRbac.userAgencyRoleAssign.useMutation({
-    onError: (error) => {
-      toast.error(error.message || "Failed to update agency role");
-    },
-  });
 
   const updateUserMutation = trpc.manageUsers.update.useMutation({
     onError: (error) => {
@@ -147,15 +100,7 @@ export function EditUserDialog({
     },
   });
 
-  const roleOptions: ComboboxItem[] = React.useMemo(() => {
-    const fromApi = (roles ?? []).map((role) => ({
-      id: role.id,
-      label: role.name,
-    }));
-    return [FULL_RIGHTS_ITEM, ...fromApi];
-  }, [roles]);
-
-  const isSaving = updateUserMutation.isPending || assignRoleMutation.isPending;
+  const isSaving = updateUserMutation.isPending;
 
   const onSubmit = async (data: FormData) => {
     const submitData: {
@@ -177,39 +122,21 @@ export function EditUserDialog({
       submitData.role = data.role;
     }
 
-    const selectedAgencyRoleId = toDbAgencyRoleId(data.agencyRoleId);
-    const initialAgencyRoleId = toDbAgencyRoleId(initialData.agencyRoleId);
-
     const hasProfileChanges = Object.keys(submitData).length > 1;
-    const agencyRoleChanged = selectedAgencyRoleId !== initialAgencyRoleId;
 
-    if (!hasProfileChanges && !agencyRoleChanged) {
+    if (!hasProfileChanges) {
       toast.info("No changes to save");
       return;
     }
 
     try {
-      if (hasProfileChanges) {
-        await updateUserMutation.mutateAsync(submitData);
-      }
-
-      if (agencyRoleChanged) {
-        await assignRoleMutation.mutateAsync({
-          userId,
-          roleId: selectedAgencyRoleId,
-        });
-        captureEvent("agency_role_assigned", {
-          role_name: selectedAgencyRoleId || "none",
-        });
-        void utils.agencyRbac.myMenuAccess.invalidate();
-      }
+      await updateUserMutation.mutateAsync(submitData);
 
       toast.success("User updated successfully");
       form.reset({
         name: data.name ?? initialData.name,
         email: data.email ?? initialData.email,
         role: data.role ?? initialData.role,
-        agencyRoleId: toFormAgencyRoleId(selectedAgencyRoleId),
       });
       onOpenChange(false);
       onSuccess?.();
@@ -286,68 +213,6 @@ export function EditUserDialog({
                   <FormMessage />
                 </FormItem>
               )}
-            />
-
-            <FormField
-              control={form.control}
-              name="agencyRoleId"
-              render={({ field }) => {
-                const selectedRole =
-                  roleOptions.find((r) => r.id === field.value) ?? FULL_RIGHTS_ITEM;
-
-                return (
-                  <FormItem>
-                    <FormLabel>
-                      Agency Role
-                      <span className="ml-1 text-[10px] font-normal text-muted-foreground">(optional)</span>
-                    </FormLabel>
-                    <FormControl>
-                      {isLoadingRoles ? (
-                        <div className="flex h-10 items-center justify-center rounded-md border">
-                          <Spinner variant="ellipsis" size="sm" />
-                        </div>
-                      ) : rolesError ? (
-                        <div className="flex items-center justify-between gap-2">
-                          <ComboboxDropdown
-                            placeholder="Failed to load agency roles"
-                            searchPlaceholder="Search roles..."
-                            items={[]}
-                            selectedItem={undefined}
-                            onSelect={() => undefined}
-                            emptyResults="Failed to load roles"
-                            disabled
-                            inDialog
-                            className="w-full"
-                          />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            onClick={() => refetchRoles()}
-                            aria-label="Retry"
-                          >
-                            <Spinner size={14} className="mr-0" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <ComboboxDropdown
-                          placeholder="Select agency role"
-                          searchPlaceholder="Search roles..."
-                          items={roleOptions}
-                          selectedItem={selectedRole}
-                          onSelect={(item) => {
-                            field.onChange(item.id);
-                          }}
-                          emptyResults="No roles found"
-                          inDialog
-                          className="w-full"
-                        />
-                      )}
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                );
-              }}
             />
 
             <Separator />
