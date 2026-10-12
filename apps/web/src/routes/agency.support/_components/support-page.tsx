@@ -5,7 +5,7 @@ import { captureEvent } from "@/lib/posthog";
 import * as React from "react";
 import { useSearchParams } from "react-router";
 import { formatDistanceToNow } from "date-fns";
-import { Bot, Search, RefreshCw } from "lucide-react";
+import { Bot, Plus, Search, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +29,7 @@ import type {
   TicketType,
 } from "@/routes/agency/_components/tickets/schema";
 import { TicketChatSheet } from "./ticket-chat-sheet";
+import { CreateAgencyTicketDialog } from "./create-agency-ticket-dialog";
 
 const STATUS_OPTIONS: { value: TicketStatus | "ALL"; label: string }[] = [
   { value: "ALL", label: "All statuses" },
@@ -104,6 +105,14 @@ function formatStatusLabel(status: string) {
     .join(" ");
 }
 
+const AUDIENCE_OPTIONS = [
+  { value: "ALL", label: "All tickets" },
+  { value: "CUSTOMER", label: "Customer tickets" },
+  { value: "AGENCY", label: "Internal tickets" },
+] as const;
+
+type AudienceFilter = (typeof AUDIENCE_OPTIONS)[number]["value"];
+
 function TicketListSkeleton() {
   return (
     <div className="overflow-hidden rounded-lg border bg-card divide-y">
@@ -177,6 +186,14 @@ function TicketRow({
               AI
             </Badge>
           ) : null}
+          {ticket.visibility === "AGENCY" ? (
+            <Badge
+              variant="outline"
+              className="h-5 shrink-0 border-amber-500/40 bg-amber-500/10 px-1.5 text-[10px] font-normal text-amber-800 dark:text-amber-200"
+            >
+              Internal
+            </Badge>
+          ) : null}
           <span className="hidden shrink-0 text-[11px] text-muted-foreground sm:inline">
             {ticket.ticketNumber}
           </span>
@@ -228,6 +245,8 @@ export function SupportPage() {
     TicketPriority | "ALL"
   >("ALL");
   const [typeFilter, setTypeFilter] = React.useState<TicketType | "ALL">("ALL");
+  const [audienceFilter, setAudienceFilter] = React.useState<AudienceFilter>("ALL");
+  const [createOpen, setCreateOpen] = React.useState(false);
   const [selectedTicketId, setSelectedTicketId] = React.useState<string | null>(
     null,
   );
@@ -241,9 +260,11 @@ export function SupportPage() {
     });
 
   const filteredTickets = React.useMemo(() => {
-    if (!searchQuery.trim()) return tickets;
-    const q = searchQuery.toLowerCase().trim();
     return tickets.filter((ticket) => {
+      if (audienceFilter === "AGENCY" && ticket.visibility !== "AGENCY") return false;
+      if (audienceFilter === "CUSTOMER" && ticket.visibility === "AGENCY") return false;
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase().trim();
       return (
         ticket.ticketNumber.toLowerCase().includes(q) ||
         (ticket.subject?.toLowerCase().includes(q) ?? false) ||
@@ -251,7 +272,7 @@ export function SupportPage() {
         (ticket.lastMessage?.toLowerCase().includes(q) ?? false)
       );
     });
-  }, [tickets, searchQuery]);
+  }, [tickets, searchQuery, audienceFilter]);
 
   const openTicket = (id: string) => {
     setSelectedTicketId(id);
@@ -275,15 +296,21 @@ export function SupportPage() {
               Support & Help
             </h1>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              View and respond to customer support tickets in one place.
+              Reply to customers, or open an internal ticket for a customer and discuss it with the agency team.
             </p>
           </div>
-          {!isLoading && !isError && filteredTickets.length > 0 && (
-            <p className="text-xs text-muted-foreground">
-              {filteredTickets.length} ticket
-              {filteredTickets.length === 1 ? "" : "s"}
-            </p>
-          )}
+          <div className="flex items-center gap-3">
+            {!isLoading && !isError && filteredTickets.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {filteredTickets.length} ticket
+                {filteredTickets.length === 1 ? "" : "s"}
+              </p>
+            )}
+            <Button size="sm" className="h-8 gap-1.5" onClick={() => setCreateOpen(true)}>
+              <Plus className="h-3.5 w-3.5" />
+              New ticket
+            </Button>
+          </div>
         </div>
 
         <div className="flex flex-col gap-2 @lg/main:flex-row @lg/main:items-center">
@@ -350,6 +377,22 @@ export function SupportPage() {
               </SelectContent>
             </Select>
 
+            <Select
+              value={audienceFilter}
+              onValueChange={(v) => setAudienceFilter(v as AudienceFilter)}
+            >
+              <SelectTrigger className="h-9 w-[150px]">
+                <SelectValue placeholder="Audience" />
+              </SelectTrigger>
+              <SelectContent>
+                {AUDIENCE_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             <Button
               variant="outline"
               size="icon"
@@ -383,14 +426,25 @@ export function SupportPage() {
               <Icons.LiveChat className="size-5" />
             </div>
             <p className="mb-1 text-sm font-semibold">No tickets found</p>
-            <p className="max-w-sm text-xs text-muted-foreground">
+            <p className="mb-3 max-w-sm text-xs text-muted-foreground">
               {searchQuery ||
               statusFilter !== "ALL" ||
               priorityFilter !== "ALL" ||
-              typeFilter !== "ALL"
+              typeFilter !== "ALL" ||
+              audienceFilter !== "ALL"
                 ? "Try adjusting your search or filters."
-                : "When customers open support tickets, they will show up here."}
+                : "Open an internal ticket for a customer, or wait for customers to write in."}
             </p>
+            {!searchQuery &&
+            statusFilter === "ALL" &&
+            priorityFilter === "ALL" &&
+            typeFilter === "ALL" &&
+            audienceFilter === "ALL" ? (
+              <Button size="sm" className="gap-1.5" onClick={() => setCreateOpen(true)}>
+                <Plus className="h-3.5 w-3.5" />
+                New ticket
+              </Button>
+            ) : null}
           </div>
         ) : (
           <div className="overflow-hidden rounded-lg border bg-card divide-y">
@@ -404,6 +458,15 @@ export function SupportPage() {
           </div>
         )}
       </div>
+
+      <CreateAgencyTicketDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onCreated={(id) => {
+          void refetch();
+          openTicket(id);
+        }}
+      />
 
       <TicketChatSheet
         ticketId={selectedTicketId}

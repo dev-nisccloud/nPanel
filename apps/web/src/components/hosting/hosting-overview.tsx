@@ -44,6 +44,12 @@ export interface HostingOverviewProps {
   teamSlug?: string;
   /** Switch the parent detail page to another tab; optionally open that tab's create sheet */
   onNavigateTab?: (tab: HostingDetailTab, options?: { openCreate?: boolean }) => void;
+  /** Web hosting shows FTP connection details. Email hosting does not. */
+  showFtpDetails?: boolean;
+  /** Web hosting shows PageSpeed. Email hosting does not. */
+  showPerformance?: boolean;
+  /** Web hosting shows overview shortcuts. Email hosting does not. */
+  showQuickActions?: boolean;
 }
 
 const QUICK_ACTIONS: Array<{
@@ -355,6 +361,9 @@ export function HostingOverview({
   showOverusePolicy = true,
   teamSlug,
   onNavigateTab,
+  showFtpDetails = true,
+  showPerformance = true,
+  showQuickActions = true,
 }: HostingOverviewProps) {
   const billingQuery = trpc.clientSubscriptions.getHostingOverviewBilling.useQuery(
     {
@@ -368,6 +377,10 @@ export function HostingOverview({
   const planName = billingQuery.data?.planName?.trim() || null;
   const renewalDate = linkedSubscription?.expiryDate ?? linkedSubscription?.nextRenewalDate ?? null;
   const renewalLabel = linkedSubscription?.expiryDate ? "Expires" : "Next renewal";
+  const billingCycleText = linkedSubscription?.billingCycle
+    ? BILLING_CYCLE_LABELS[linkedSubscription.billingCycle] ??
+      formatEnumLabel(linkedSubscription.billingCycle)
+    : "Not available";
 
   const formatBytes = (bytes: number) => {
     if (!Number.isFinite(bytes) || bytes < 0) return "-";
@@ -391,6 +404,7 @@ export function HostingOverview({
     const limit = hostingData.limits?.limit?.find((l: any) => l.name === name);
     return limit?.value;
   };
+  const mailboxQuotaText = formatPleskBytesLimit(getLimitValue("mbox_quota"), formatBytes);
 
   // Copy to clipboard helper (Clipboard API + textarea fallback)
   const copyToClipboard = React.useCallback(async (text: string, label: string) => {
@@ -442,7 +456,7 @@ export function HostingOverview({
               General Information
             </CardTitle>
             <CardDescription className="text-xs">
-              Basic hosting account details
+              {showFtpDetails ? "Basic hosting account details" : "Basic email account details"}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-1 flex-col p-0">
@@ -551,26 +565,21 @@ export function HostingOverview({
                 ) : null}
               </div>
 
-              {linkedSubscription ? (
-                <>
-                  <div className="grid flex-1 grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
-                    <div className="space-y-1 px-4 py-3">
-                      <p className="text-xs text-muted-foreground">Billing cycle</p>
-                      <p className="truncate text-sm font-medium text-primary">
-                        {linkedSubscription.billingCycle
-                          ? BILLING_CYCLE_LABELS[linkedSubscription.billingCycle] ??
-                            formatEnumLabel(linkedSubscription.billingCycle)
-                          : "Not available"}
-                      </p>
-                    </div>
-                    <div className="space-y-1 px-4 py-3">
-                      <p className="text-xs text-muted-foreground">{renewalLabel}</p>
-                      <p className="truncate text-sm font-medium text-primary">
-                        {formatOverviewDate(renewalDate)}
-                      </p>
-                    </div>
+              {linkedSubscription && showFtpDetails ? (
+                <div className="grid flex-1 grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
+                  <div className="space-y-1 px-4 py-3">
+                    <p className="text-xs text-muted-foreground">Billing cycle</p>
+                    <p className="truncate text-sm font-medium text-primary">
+                      {billingCycleText}
+                    </p>
                   </div>
-                </>
+                  <div className="space-y-1 px-4 py-3">
+                    <p className="text-xs text-muted-foreground">{renewalLabel}</p>
+                    <p className="truncate text-sm font-medium text-primary">
+                      {formatOverviewDate(renewalDate)}
+                    </p>
+                  </div>
+                </div>
               ) : null}
             </div>
           </CardContent>
@@ -581,10 +590,12 @@ export function HostingOverview({
           <CardHeader className="border-b bg-muted/30 px-4 py-3">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
               <ShieldCheck className="h-4 w-4 text-muted-foreground" />
-              Security & Access
+              {showFtpDetails ? "Security & Access" : "Protection"}
             </CardTitle>
             <CardDescription className="text-xs">
-              Protection and connection details
+              {showFtpDetails
+                ? "Protection and connection details"
+                : "Security, connection, and billing"}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-1 flex-col p-0">
@@ -608,73 +619,77 @@ export function HostingOverview({
                 </div>
               </div>
 
-              <div className="grid flex-1 grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
-                <div className="space-y-1 px-4 py-3">
-                  <p className="text-xs text-muted-foreground">FTP Hostname</p>
-                  <div className="flex items-center gap-1 min-w-0">
-                    <p className="truncate text-sm font-medium text-primary flex-1">
-                      {ftpHost}
-                    </p>
-                    <CopyButton
-                      value={ftpHost}
-                      label="FTP hostname"
-                      onCopy={copyToClipboard}
-                    />
+              {showFtpDetails ? (
+                <>
+                  <div className="grid flex-1 grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
+                    <div className="space-y-1 px-4 py-3">
+                      <p className="text-xs text-muted-foreground">FTP Hostname</p>
+                      <div className="flex items-center gap-1 min-w-0">
+                        <p className="truncate text-sm font-medium text-primary flex-1">
+                          {ftpHost}
+                        </p>
+                        <CopyButton
+                          value={ftpHost}
+                          label="FTP hostname"
+                          onCopy={copyToClipboard}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1 px-4 py-3">
+                      <p className="text-xs text-muted-foreground">FTP Username</p>
+                      <div className="flex items-center gap-1 min-w-0">
+                        <p className="truncate text-sm font-medium text-primary flex-1">
+                          {String(ftpLogin)}
+                        </p>
+                        <CopyButton
+                          value={String(ftpLogin)}
+                          label="FTP username"
+                          onCopy={copyToClipboard}
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-1 px-4 py-3">
-                  <p className="text-xs text-muted-foreground">FTP Username</p>
-                  <div className="flex items-center gap-1 min-w-0">
-                    <p className="truncate text-sm font-medium text-primary flex-1">
-                      {String(ftpLogin)}
-                    </p>
-                    <CopyButton
-                      value={String(ftpLogin)}
-                      label="FTP username"
-                      onCopy={copyToClipboard}
-                    />
-                  </div>
-                </div>
-              </div>
 
-              <div className="grid flex-1 grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
-                <div className="space-y-1 px-4 py-3">
-                  <p className="text-xs text-muted-foreground">FTP Port</p>
-                  <p className="text-sm font-medium text-primary">{ftpPort}</p>
-                </div>
-                <div className="space-y-1 px-4 py-3">
-                  <p className="text-xs text-muted-foreground">Password</p>
-                  <div className="flex items-center gap-1 min-w-0">
-                    <p className="truncate font-mono text-sm font-medium text-primary flex-1">
-                      {showPassword ? String(ftpPassword) : "••••••••"}
-                    </p>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 shrink-0"
-                      title={showPassword ? "Hide password" : "Show password"}
-                      aria-label={showPassword ? "Hide password" : "Show password"}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setShowPassword((prev) => !prev);
-                      }}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-3.5 w-3.5" />
-                      ) : (
-                        <Eye className="h-3.5 w-3.5" />
-                      )}
-                    </Button>
-                    <CopyButton
-                      value={String(ftpPassword)}
-                      label="FTP password"
-                      onCopy={copyToClipboard}
-                    />
+                  <div className="grid flex-1 grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
+                    <div className="space-y-1 px-4 py-3">
+                      <p className="text-xs text-muted-foreground">FTP Port</p>
+                      <p className="text-sm font-medium text-primary">{ftpPort}</p>
+                    </div>
+                    <div className="space-y-1 px-4 py-3">
+                      <p className="text-xs text-muted-foreground">Password</p>
+                      <div className="flex items-center gap-1 min-w-0">
+                        <p className="truncate font-mono text-sm font-medium text-primary flex-1">
+                          {showPassword ? String(ftpPassword) : "••••••••"}
+                        </p>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 shrink-0"
+                          title={showPassword ? "Hide password" : "Show password"}
+                          aria-label={showPassword ? "Hide password" : "Show password"}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setShowPassword((prev) => !prev);
+                          }}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-3.5 w-3.5" />
+                          ) : (
+                            <Eye className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
+                        <CopyButton
+                          value={String(ftpPassword)}
+                          label="FTP password"
+                          onCopy={copyToClipboard}
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
+                </>
+              ) : null}
 
               <div className="grid flex-1 grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
                 <div className="space-y-1 px-4 py-3">
@@ -690,8 +705,42 @@ export function HostingOverview({
                     />
                   </div>
                 </div>
-                <div className="px-4 py-3" aria-hidden />
+                {showFtpDetails ? (
+                  <div className="px-4 py-3" aria-hidden />
+                ) : (
+                  <div className="space-y-1 px-4 py-3">
+                    <p className="text-xs text-muted-foreground">Billing cycle</p>
+                    {billingQuery.isLoading ? (
+                      <Skeleton className="h-4 w-24" />
+                    ) : (
+                      <p className="truncate text-sm font-medium text-primary">
+                        {billingCycleText}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
+
+              {showFtpDetails ? null : (
+                <div className="grid flex-1 grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
+                  <div className="space-y-1 px-4 py-3">
+                    <p className="text-xs text-muted-foreground">{renewalLabel}</p>
+                    {billingQuery.isLoading ? (
+                      <Skeleton className="h-4 w-28" />
+                    ) : (
+                      <p className="truncate text-sm font-medium text-primary">
+                        {formatOverviewDate(renewalDate)}
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-1 px-4 py-3">
+                    <p className="text-xs text-muted-foreground">Mailbox quota</p>
+                    <p className="truncate text-sm font-medium text-primary">
+                      {mailboxQuotaText}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -956,88 +1005,93 @@ export function HostingOverview({
         </Card>
       </div>
 
-      {/* Performance + Quick Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {domainName && domainName !== "Not Available" ? (
-          <PageSpeedInsightsCard domainName={domainName} />
-        ) : (
-          <Card className="overflow-hidden py-0 gap-0">
-            <CardHeader className="border-b bg-muted/30 px-4 py-3">
-              <CardTitle className="text-sm font-semibold">Performance</CardTitle>
-              <CardDescription className="text-xs">
-                Domain required to run a speed test
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="px-4 py-8">
-              <p className="text-sm text-muted-foreground">
-                No domain is available for PageSpeed Insights on this subscription.
-              </p>
-            </CardContent>
-          </Card>
-        )}
+      {showPerformance || showQuickActions ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {showPerformance ? (
+            domainName && domainName !== "Not Available" ? (
+              <PageSpeedInsightsCard domainName={domainName} />
+            ) : (
+              <Card className="overflow-hidden py-0 gap-0">
+                <CardHeader className="border-b bg-muted/30 px-4 py-3">
+                  <CardTitle className="text-sm font-semibold">Performance</CardTitle>
+                  <CardDescription className="text-xs">
+                    Domain required to run a speed test
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="px-4 py-8">
+                  <p className="text-sm text-muted-foreground">
+                    No domain is available for PageSpeed Insights on this subscription.
+                  </p>
+                </CardContent>
+              </Card>
+            )
+          ) : null}
 
-        <Card className="overflow-hidden py-0 gap-0">
-          <CardHeader className="border-b bg-muted/30 px-4 py-3">
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-              <Zap className="h-4 w-4 text-muted-foreground" />
-              Quick Actions
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Jump to common management tasks
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
-              {QUICK_ACTIONS.map((action) => {
-                const Icon = action.icon;
-                return (
-                  <div
-                    key={action.tab}
-                    className="flex items-center gap-3 px-4 py-3"
-                  >
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border bg-muted/40">
-                      <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-                    </div>
-                    <div className="min-w-0 flex-1 space-y-0.5">
-                      <p className="truncate text-sm font-medium text-primary">
-                        {action.label}
-                      </p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {action.description}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1.5">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-7 px-2.5 text-xs"
-                        disabled={!onNavigateTab}
-                        onClick={() => onNavigateTab?.(action.tab)}
+          {showQuickActions ? (
+            <Card className="overflow-hidden py-0 gap-0">
+              <CardHeader className="border-b bg-muted/30 px-4 py-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                  <Zap className="h-4 w-4 text-muted-foreground" />
+                  Quick Actions
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Jump to common management tasks
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
+                  {QUICK_ACTIONS.map((action) => {
+                    const Icon = action.icon;
+                    return (
+                      <div
+                        key={action.tab}
+                        className="flex items-center gap-3 px-4 py-3"
                       >
-                        View
-                      </Button>
-                      {action.hasCreate ? (
-                        <Button
-                          type="button"
-                          size="sm"
-                          className="h-7 px-2.5 text-xs"
-                          disabled={!onNavigateTab}
-                          onClick={() =>
-                            onNavigateTab?.(action.tab, { openCreate: true })
-                          }
-                        >
-                          {action.createLabel}
-                        </Button>
-                      ) : null}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border bg-muted/40">
+                          <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                        </div>
+                        <div className="min-w-0 flex-1 space-y-0.5">
+                          <p className="truncate text-sm font-medium text-primary">
+                            {action.label}
+                          </p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {action.description}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1.5">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2.5 text-xs"
+                            disabled={!onNavigateTab}
+                            onClick={() => onNavigateTab?.(action.tab)}
+                          >
+                            View
+                          </Button>
+                          {action.hasCreate ? (
+                            <Button
+                              type="button"
+                              size="sm"
+                              className="h-7 px-2.5 text-xs"
+                              disabled={!onNavigateTab}
+                              onClick={() =>
+                                onNavigateTab?.(action.tab, { openCreate: true })
+                              }
+                            >
+                              {action.createLabel}
+                            </Button>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

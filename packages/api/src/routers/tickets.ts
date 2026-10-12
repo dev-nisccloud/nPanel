@@ -149,6 +149,8 @@ const ticketSchema = z.object({
   createdById: z.string(),
   teamId: z.string().nullable(),
   assignedToId: z.string().nullable(),
+  customerUserId: z.string().nullable(),
+  visibility: z.enum(["CUSTOMER", "AGENCY"]),
   lastMessageId: z.string().nullable(),
   lastMessageAt: z.date().nullable(),
   lastMessagePreview: z.string().nullable(),
@@ -168,6 +170,7 @@ const ticketSchema = z.object({
   createdBy: userSchema.optional(),
   team: teamSchema.nullable().optional(),
   assignedTo: userSchema.nullable().optional(),
+  customerUser: userSchema.nullable().optional(),
 });
 
 // Ticket List Item Schema (for chat list)
@@ -181,6 +184,7 @@ const ticketListItemSchema = z.object({
   customerName: z.string().optional(), // For agency side
   assignedToName: z.string().nullable().optional(), // For customer side
   isGuest: z.boolean().optional(),
+  visibility: z.enum(["CUSTOMER", "AGENCY"]),
   status: ticketStatusSchema,
   priority: ticketPrioritySchema,
 });
@@ -194,6 +198,8 @@ const createTicketInputSchema = z.object({
   source: ticketSourceSchema.default("WEB"),
   teamId: z.string().optional(),
   metadata: z.unknown().optional(),
+  visibility: z.enum(["CUSTOMER", "AGENCY"]).optional(),
+  customerUserId: z.string().optional(),
 });
 
 const updateTicketInputSchema = z.object({
@@ -285,6 +291,8 @@ function transformTicket(ticket: any) {
     createdById: ticket.createdById,
     teamId: ticket.teamId,
     assignedToId: ticket.assignedToId,
+    customerUserId: ticket.customerUserId ?? null,
+    visibility: ticket.visibility === "AGENCY" ? "AGENCY" : "CUSTOMER",
     lastMessageId: ticket.lastMessageId,
     lastMessageAt: ticket.lastMessageAt,
     lastMessagePreview: ticket.lastMessagePreview,
@@ -315,6 +323,11 @@ function transformTicket(ticket: any) {
       id: ticket.assignedTo.id,
       name: ticket.assignedTo.name,
       email: ticket.assignedTo.email,
+    } : null,
+    customerUser: ticket.customerUser ? {
+      id: ticket.customerUser.id,
+      name: ticket.customerUser.name,
+      email: ticket.customerUser.email,
     } : null,
   };
 }
@@ -361,6 +374,7 @@ function transformTicketListItem(ticket: any, isAgency: boolean) {
     unreadCount: isAgency ? ticket.unreadCount : ticket.customerUnreadCount,
     status: ticket.status as TicketStatusType,
     priority: ticket.priority as TicketPriorityType,
+    visibility: ticket.visibility === "AGENCY" ? "AGENCY" : "CUSTOMER",
   };
 
   if (isAgency) {
@@ -371,6 +385,8 @@ function transformTicketListItem(ticket: any, isAgency: boolean) {
       result.customerName = guestContact.email
         ? `${guestContact.name} (${guestContact.email})`
         : guestContact.name;
+    } else if (ticket.visibility === "AGENCY" && ticket.customerUser) {
+      result.customerName = ticket.customerUser.name || ticket.customerUser.email;
     } else if (ticket.createdBy) {
       result.customerName = ticket.createdBy.name || ticket.createdBy.email;
     }
@@ -488,14 +504,24 @@ async function ensureTeamReadAccess(teamId: string, userId: string, role: string
   }
 }
 
+function hideAgencyOnlyTickets() {
+  return ne(ticket.visibility, "AGENCY");
+}
+
 function ensureTicketMutationAccess(
-  ticketRow: { createdById: string },
+  ticketRow: { createdById: string; visibility?: string | null },
   userId: string,
   role: string | null | undefined,
   ownerIds?: string[],
 ) {
   // Agency staff can reply / update any ticket; customers only own / cookie-bound guest tickets.
   if (roleIsAgency(role)) return;
+  if (ticketRow.visibility === "AGENCY") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "You do not have permission to modify this ticket",
+    });
+  }
   const allowed = ownerIds?.length
     ? customerOwnsTicket(ticketRow.createdById, ownerIds)
     : ticketRow.createdById === userId;
@@ -511,6 +537,7 @@ const ticketWithRelations = {
   createdBy: { columns: { id: true, name: true, email: true } as const },
   team: { columns: { id: true, name: true, slug: true } as const },
   assignedTo: { columns: { id: true, name: true, email: true } as const },
+  customerUser: { columns: { id: true, name: true, email: true } as const },
 } as const;
 
 const messageWithRelations = {
@@ -609,6 +636,7 @@ export const ticketsRouter = router({
             ? eq(ticket.createdById, ownerIds[0]!)
             : inArray(ticket.createdById, ownerIds),
         );
+        conds.push(hideAgencyOnlyTickets());
       }
 
       if (input.status) {
@@ -631,6 +659,7 @@ export const ticketsRouter = router({
         with: {
           createdBy: { columns: { id: true, name: true, email: true } },
           assignedTo: { columns: { id: true, name: true, email: true } },
+          customerUser: { columns: { id: true, name: true, email: true } },
         },
       });
 
@@ -658,6 +687,7 @@ export const ticketsRouter = router({
             ? eq(ticket.createdById, ownerIds[0]!)
             : inArray(ticket.createdById, ownerIds),
         );
+        conds.push(hideAgencyOnlyTickets());
       }
 
       const ticketRow = await db.query.ticket.findFirst({
@@ -684,6 +714,47 @@ export const ticketsRouter = router({
       const userRole = await fetchUserRole(sessionUser.id);
       const isAgency = roleIsAgency(userRole);
 
+      // Agency-only tickets are an internal thread about a customer. The customer is not a participant.
+      const visibility = isAgency && input.visibility === "AGENCY" ? "AGENCY" : "CUSTOMER";
+      const subject = input.subject?.trim() || null;
+      const description = input.description?.trim() || null;
+      let customerUserId: string | null = null;
+
+      if (visibility === "AGENCY") {
+        if (!subject) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Subject is required",
+          });
+        }
+        if (!description) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Add a message so the team has context",
+          });
+        }
+        if (!input.customerUserId) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Select the customer this ticket is about",
+          });
+        }
+
+        const [customer] = await db
+          .select({ id: user.id, role: user.role })
+          .from(user)
+          .where(eq(user.id, input.customerUserId))
+          .limit(1);
+
+        if (!customer || customer.role !== "CUSTOMER") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Customer not found",
+          });
+        }
+        customerUserId = customer.id;
+      }
+
       // Customers never attach tickets to teams; agency may still set teamId.
       let teamId: string | null = null;
       if (isAgency && input.teamId) {
@@ -693,37 +764,68 @@ export const ticketsRouter = router({
       const ticketNumber = await generateTicketNumber();
       const id = randomUUID();
       const now = new Date();
+      const openingMessageId = visibility === "AGENCY" ? randomUUID() : null;
+      const openingPreview = description
+        ? description.length > 100
+          ? `${description.substring(0, 100)}...`
+          : description
+        : null;
 
-      await db.insert(ticket).values({
-        id,
-        ticketNumber,
-        subject: input.subject ?? null,
-        description: input.description ?? null,
-        type: input.type,
-        priority: input.priority,
-        status: "OPEN",
-        source: input.source,
-        createdById: sessionUser.id,
-        teamId,
-        assignedToId: null,
-        lastMessageId: null,
-        lastMessageAt: null,
-        lastMessagePreview: null,
-        unreadCount: 0,
-        customerUnreadCount: 0,
-        metadata: input.metadata as any,
-        internalNotes: null,
-        createdAt: now,
-        updatedAt: now,
+      await db.transaction(async (tx) => {
+        await tx.insert(ticket).values({
+          id,
+          ticketNumber,
+          subject,
+          description,
+          type: input.type,
+          priority: input.priority,
+          status: "OPEN",
+          source: input.source,
+          createdById: sessionUser.id,
+          teamId,
+          assignedToId: null,
+          customerUserId,
+          visibility,
+          lastMessageId: openingMessageId,
+          lastMessageAt: openingMessageId ? now : null,
+          lastMessagePreview: openingMessageId ? openingPreview : null,
+          unreadCount: 0,
+          customerUnreadCount: 0,
+          metadata: input.metadata as any,
+          internalNotes: null,
+          createdAt: now,
+          updatedAt: now,
+          lastAgentResponseAt: openingMessageId ? now : null,
+        });
+
+        if (openingMessageId && description) {
+          await tx.insert(ticketMessage).values({
+            id: openingMessageId,
+            ticketId: id,
+            senderId: sessionUser.id,
+            content: description,
+            isInternal: true,
+            isSystem: false,
+            readStatus: "SENT",
+            readAt: null,
+            metadata: null,
+            createdAt: now,
+            updatedAt: now,
+            editedAt: null,
+            deletedAt: null,
+          });
+        }
       });
 
       await logTicketActivity(
         id,
         sessionUser.id,
         "CREATE",
-        `Ticket ${ticketNumber} created`,
+        visibility === "AGENCY"
+          ? `Internal ticket ${ticketNumber} opened for a customer`
+          : `Ticket ${ticketNumber} created`,
         null,
-        { status: "OPEN", type: input.type, priority: input.priority },
+        { status: "OPEN", type: input.type, priority: input.priority, visibility, customerUserId },
       );
 
       const full = await db.query.ticket.findFirst({
@@ -859,6 +961,7 @@ export const ticketsRouter = router({
             ? eq(ticket.createdById, ownerIds[0]!)
             : inArray(ticket.createdById, ownerIds),
         );
+        ticketConds.push(hideAgencyOnlyTickets());
       }
 
       const [ticketRow] = await db
@@ -926,7 +1029,10 @@ export const ticketsRouter = router({
       }
       ensureTicketMutationAccess(ticketRow, sessionUser.id, userRole, ownerIds);
 
-      if (input.isInternal && !isAgency) {
+      const agencyOnly = ticketRow.visibility === "AGENCY";
+      const isInternal = agencyOnly || input.isInternal === true;
+
+      if (isInternal && !isAgency) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "Only agency users can send internal messages",
@@ -944,7 +1050,7 @@ export const ticketsRouter = router({
             ticketId: input.ticketId,
             senderId: sessionUser.id,
             content: input.content,
-            isInternal: input.isInternal,
+            isInternal,
             isSystem: false,
             readStatus: "SENT",
             readAt: null,
@@ -984,34 +1090,42 @@ export const ticketsRouter = router({
 
         const preview =
           input.content.length > 100 ? `${input.content.substring(0, 100)}...` : input.content;
-        const isInternal = input.isInternal === true;
 
         const ticketUpdate: Record<string, unknown> = {
           updatedAt: now,
           lastResponseAt: now,
         };
 
-        if (!isInternal) {
+        // Agency-only threads stay off the customer inbox, but the agency list still shows the latest note.
+        if (!isInternal || agencyOnly) {
           ticketUpdate.lastMessageId = messageRow.id;
           ticketUpdate.lastMessageAt = now;
           ticketUpdate.lastMessagePreview = preview;
         }
 
-        if (isAgency && !isInternal) {
+        if (agencyOnly) {
+          ticketUpdate.lastAgentResponseAt = now;
+          if (ticketRow.firstResponseAt === null) {
+            ticketUpdate.firstResponseAt = now;
+          }
+          if (ticketRow.status === "OPEN") {
+            ticketUpdate.status = "IN_PROGRESS";
+          }
+        } else if (isAgency && !isInternal) {
           ticketUpdate.customerUnreadCount = ticketRow.customerUnreadCount + 1;
         } else if (!isAgency) {
           ticketUpdate.unreadCount = ticketRow.unreadCount + 1;
         }
 
-        if (ticketRow.firstResponseAt === null && isAgency && !isInternal) {
+        if (!agencyOnly && ticketRow.firstResponseAt === null && isAgency && !isInternal) {
           ticketUpdate.firstResponseAt = now;
         }
-        if (isAgency && !isInternal) {
+        if (!agencyOnly && isAgency && !isInternal) {
           ticketUpdate.lastAgentResponseAt = now;
         } else if (!isAgency) {
           ticketUpdate.lastCustomerResponseAt = now;
         }
-        if (ticketRow.status === "OPEN" && isAgency && !isInternal) {
+        if (!agencyOnly && ticketRow.status === "OPEN" && isAgency && !isInternal) {
           ticketUpdate.status = "IN_PROGRESS";
         }
         if (ticketRow.status === "WAITING" && !isAgency) {
@@ -1026,7 +1140,7 @@ export const ticketsRouter = router({
           "MESSAGE",
           "New message sent",
           null,
-          { messageId: messageRow.id, isInternal: input.isInternal },
+          { messageId: messageRow.id, isInternal },
         );
 
         const messageWithAttachments = await tx.query.ticketMessage.findFirst({
@@ -1057,6 +1171,7 @@ export const ticketsRouter = router({
               assignedToId: true,
               unreadCount: true,
               customerUnreadCount: true,
+              visibility: true,
             },
           },
         },
@@ -1331,10 +1446,11 @@ export const ticketsRouter = router({
             ? eq(ticket.createdById, ownerIds[0]!)
             : inArray(ticket.createdById, ownerIds),
         );
+        ticketConds.push(hideAgencyOnlyTickets());
       }
 
       const [ticketRow] = await db
-        .select({ id: ticket.id, createdById: ticket.createdById })
+        .select({ id: ticket.id, createdById: ticket.createdById, visibility: ticket.visibility })
         .from(ticket)
         .where(and(...ticketConds))
         .limit(1);
@@ -1437,7 +1553,10 @@ export const ticketsRouter = router({
         whereConditions = undefined;
       } else {
         // Regular users can only see their own tickets
-        whereConditions = eq(ticket.createdById, sessionUser.id);
+        whereConditions = and(
+          eq(ticket.createdById, sessionUser.id),
+          hideAgencyOnlyTickets(),
+        );
       }
 
       // Get total count
