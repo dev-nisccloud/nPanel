@@ -60,6 +60,7 @@ function toChatBubbles(
   messages: TicketMessage[],
   currentUserId: string | undefined,
   guestContact?: { name: string; email: string; phone: string | null } | null,
+  agencyOnly = false,
 ): ChatBubble[] {
   return messages
     .filter((msg) => !msg.deletedAt)
@@ -75,18 +76,24 @@ function toChatBubbles(
           : guestContact.name
         : null;
 
-      const senderLabel = isAgencyMessage
-        ? msg.sender?.name?.trim() ||
-          msg.sender?.email ||
-          (isFromCurrentUser ? "You" : "Support agent")
-        : guestLabel ||
-          msg.sender?.name?.trim() ||
-          msg.sender?.email ||
-          "Customer";
+      const senderLabel = agencyOnly
+        ? isFromCurrentUser
+          ? "You"
+          : msg.sender?.name?.trim() || msg.sender?.email || "Agency"
+        : isAgencyMessage
+          ? msg.sender?.name?.trim() ||
+            msg.sender?.email ||
+            (isFromCurrentUser ? "You" : "Support agent")
+          : guestLabel ||
+            msg.sender?.name?.trim() ||
+            msg.sender?.email ||
+            "Customer";
+
+      const alignAsAgency = agencyOnly ? isFromCurrentUser : isAgencyMessage;
 
       return {
         id: msg.id,
-        type: isAgencyMessage ? ("agency" as const) : ("customer" as const),
+        type: alignAsAgency ? ("agency" as const) : ("customer" as const),
         message: msg.content,
         timestamp: msg.createdAt,
         senderLabel,
@@ -182,9 +189,11 @@ export function TicketChatSheet({
     markAllTicketMessagesAsRead,
   } = useTicketMutations({ currentUserId });
 
+  const agencyOnly = ticket?.visibility === "AGENCY";
+
   const bubbles = React.useMemo(
-    () => toChatBubbles(messages, currentUserId, ticket?.guestContact),
-    [messages, currentUserId, ticket?.guestContact],
+    () => toChatBubbles(messages, currentUserId, ticket?.guestContact, agencyOnly),
+    [messages, currentUserId, ticket?.guestContact, agencyOnly],
   );
 
   const scrollToBottom = React.useCallback((behavior: ScrollBehavior = "smooth") => {
@@ -218,7 +227,7 @@ export function TicketChatSheet({
       await createMessage.mutateAsync({
         ticketId,
         content,
-        isInternal: false,
+        isInternal: agencyOnly,
       });
       captureEvent("support_ticket_replied", { is_agent: true });
       scrollToBottom();
@@ -248,16 +257,20 @@ export function TicketChatSheet({
   };
 
   const guestContact = ticket?.guestContact;
-  const title =
-    (guestContact
-      ? guestContact.email
-        ? `${guestContact.name} (${guestContact.email})`
-        : guestContact.name
-      : null) ||
-    ticket?.createdBy?.name ||
-    ticket?.createdBy?.email ||
-    ticket?.subject ||
-    "Support ticket";
+  const customerLabel = ticket?.customerUser
+    ? ticket.customerUser.name?.trim() || ticket.customerUser.email
+    : null;
+  const title = agencyOnly
+    ? customerLabel || ticket?.subject || "Internal ticket"
+    : (guestContact
+        ? guestContact.email
+          ? `${guestContact.name} (${guestContact.email})`
+          : guestContact.name
+        : null) ||
+      ticket?.createdBy?.name ||
+      ticket?.createdBy?.email ||
+      ticket?.subject ||
+      "Support ticket";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -288,6 +301,14 @@ export function TicketChatSheet({
                   {guestContact ? (
                     <Badge variant="secondary" className="font-normal">
                       Guest
+                    </Badge>
+                  ) : null}
+                  {agencyOnly ? (
+                    <Badge
+                      variant="outline"
+                      className="border-amber-500/40 bg-amber-500/10 font-normal text-amber-800 dark:text-amber-200"
+                    >
+                      Internal
                     </Badge>
                   ) : null}
                   {guestContact?.phone ? (
@@ -365,6 +386,20 @@ export function TicketChatSheet({
             )}
           </SheetHeader>
 
+          {agencyOnly && ticket ? (
+            <div className="shrink-0 border-b bg-amber-500/10 px-4 py-3 sm:px-6">
+              <p className="text-sm font-medium text-amber-950 dark:text-amber-100">
+                Agency only
+              </p>
+              <p className="mt-0.5 text-xs leading-relaxed text-amber-900/80 dark:text-amber-100/80">
+                {customerLabel
+                  ? `Opened for ${customerLabel}. `
+                  : "Opened for a customer. "}
+                Only agency staff can see and reply. The customer is not included.
+              </p>
+            </div>
+          ) : null}
+
           {ticket?.metadata &&
             typeof ticket.metadata === "object" &&
             !Array.isArray(ticket.metadata) &&
@@ -439,8 +474,9 @@ export function TicketChatSheet({
               <div className="flex h-full flex-col items-center justify-center text-center">
                 <p className="text-sm font-medium">No messages yet</p>
                 <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-                  Send a reply below to start the conversation with the
-                  customer.
+                  {agencyOnly
+                    ? "Write the first note for the agency team. The customer will not see it."
+                    : "Send a reply below to start the conversation with the customer."}
                 </p>
               </div>
             ) : (
@@ -483,7 +519,11 @@ export function TicketChatSheet({
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Write a reply… (Enter to send, Shift+Enter for new line)"
+                placeholder={
+                  agencyOnly
+                    ? "Message the agency team… (the customer will not see this)"
+                    : "Write a reply… (Enter to send, Shift+Enter for new line)"
+                }
                 className="min-h-[44px] max-h-36 flex-1 resize-none"
                 rows={2}
                 disabled={!ticketId || createMessage.isPending}
