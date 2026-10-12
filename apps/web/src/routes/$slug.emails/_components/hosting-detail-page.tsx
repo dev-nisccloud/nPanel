@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ArrowLeft, LayoutDashboard, Network, Mail, Folder } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, Network, Mail } from "lucide-react";
 import { Link } from "react-router";
 import { useLocation } from "react-router";
 
@@ -16,8 +16,6 @@ import { PleskLinkedSubscriptionUpgradeButton } from "@/routes/agency.subscripti
 import { HostingOverview } from "@/components/hosting/hosting-overview";
 import { DnsTable } from "@/components/hosting/dns";
 import { MailTable } from "@/components/hosting/mail";
-import { FileManager } from "./file-manager";
-import { hostingDetailSchema } from "@/components/hosting/hosting-detail-schema";
 import { useHostingDetailBatched } from "./use-hosting-detail-batched";
 
 interface HostingDetailPageProps {
@@ -50,8 +48,6 @@ function HostingDetailSkeleton() {
             <Skeleton className="h-10 w-20" />
             <Skeleton className="h-10 w-16" />
             <Skeleton className="h-10 w-16" />
-            <Skeleton className="h-10 w-24" />
-            <Skeleton className="h-10 w-24" />
           </div>
           <Skeleton className="h-64 w-full" />
         </div>
@@ -183,15 +179,19 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
                 {can("emails.mail") ? (
                 <DetailCardTabsTrigger value="mail" icon={Mail} title="Mail" subtitle="Accounts" />
                 ) : null}
-                {can("emails.file_manager") ? (
-                <DetailCardTabsTrigger value="file-manager" icon={Folder} title="File Manager" subtitle="Files" />
-                ) : null}
               </TabsList>
               <ScrollBar orientation="horizontal" className="flex mt-0.5" />
             </ScrollArea>
 
             <TabsContent value="overview" className="mt-10">
-              <HostingOverview hostingData={hostingData} showOverusePolicy={false} teamSlug={teamSlug} />
+              <HostingOverview
+                hostingData={hostingData}
+                showOverusePolicy={false}
+                teamSlug={teamSlug}
+                showFtpDetails={false}
+                showPerformance={false}
+                showQuickActions={false}
+              />
             </TabsContent>
 
             <TabsContent value="dns" className="mt-10">
@@ -204,10 +204,6 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
                 domainName={hostingData.gen_info?.name}
                 maxMailboxQuotaBytes={mailboxQuotaLimitBytes}
               />
-            </TabsContent>
-
-            <TabsContent value="file-manager" className="mt-10">
-              <FileManager hostingData={hostingData} />
             </TabsContent>
           </Tabs>
         </div>
