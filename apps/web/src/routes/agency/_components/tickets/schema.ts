@@ -54,6 +54,7 @@ export const ticketListItemSchema = z.object({
   customerName: z.string().optional(), // For agency side
   assignedToName: z.string().nullable().optional(), // For customer side
   isGuest: z.boolean().optional(),
+  visibility: z.enum(["CUSTOMER", "AGENCY"]).optional(),
   status: ticketStatusSchema,
   priority: ticketPrioritySchema,
   metadata: z.unknown().nullable().optional(),
@@ -135,6 +136,13 @@ export const ticketSchema = z.object({
     slug: z.string(),
   }).nullable().optional(),
   assignedTo: z.object({
+    id: z.string(),
+    name: z.string().nullable(),
+    email: z.string(),
+  }).nullable().optional(),
+  visibility: z.enum(["CUSTOMER", "AGENCY"]).optional(),
+  customerUserId: z.string().nullable().optional(),
+  customerUser: z.object({
     id: z.string(),
     name: z.string().nullable(),
     email: z.string(),

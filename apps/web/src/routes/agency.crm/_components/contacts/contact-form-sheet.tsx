@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -239,29 +239,27 @@ export function ContactFormSheet({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Company</FormLabel>
-                    <div className="flex gap-2">
-                      <FormControl>
-                        <ComboboxDropdown
-                          placeholder="Select company"
-                          searchPlaceholder="Search companies..."
-                          items={companyItems}
-                          selectedItem={
-                            field.value
-                              ? companyItems.find((item) => item.id === field.value)
-                              : undefined
-                          }
-                          onSelect={(item) => field.onChange(item.id === NONE ? "" : item.id)}
-                          emptyResults="No companies found"
-                          disabled={companiesQuery.isLoading}
-                          inDialog
-                          className="w-full"
-                        />
-                      </FormControl>
-                      <Button type="button" variant="outline" onClick={() => setCompanyOpen(true)}>
-                        <Plus className="h-4 w-4" />
-                        New company
-                      </Button>
-                    </div>
+                    <FormControl>
+                      <ComboboxDropdown
+                        placeholder="Select company"
+                        searchPlaceholder="Search companies..."
+                        items={companyItems}
+                        selectedItem={
+                          field.value
+                            ? companyItems.find((item) => item.id === field.value)
+                            : undefined
+                        }
+                        onSelect={(item) => field.onChange(item.id === NONE ? "" : item.id)}
+                        emptyResults="No companies found"
+                        disabled={companiesQuery.isLoading}
+                        inDialog
+                        className="w-full"
+                        leadingAction={{
+                          label: "Create company",
+                          onSelect: () => setCompanyOpen(true),
+                        }}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

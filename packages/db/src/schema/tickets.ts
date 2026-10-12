@@ -35,6 +35,12 @@ export const ticket = pgTable(
     assignedToId: text("assigned_to_id").references(() => user.id, {
       onDelete: "set null",
     }),
+    // Customer the ticket is about when agency staff open it internally.
+    customerUserId: text("customer_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    // CUSTOMER: the customer can see and reply. AGENCY: agency staff only.
+    visibility: text("visibility").default("CUSTOMER").notNull(),
 
     lastMessageId: text("last_message_id"),
     lastMessageAt: timestamp("last_message_at"),
@@ -63,6 +69,8 @@ export const ticket = pgTable(
     index("ticket_createdById_idx").on(table.createdById),
     index("ticket_teamId_idx").on(table.teamId),
     index("ticket_assignedToId_idx").on(table.assignedToId),
+    index("ticket_customerUserId_idx").on(table.customerUserId),
+    index("ticket_visibility_idx").on(table.visibility),
     index("ticket_status_idx").on(table.status),
     index("ticket_priority_idx").on(table.priority),
     index("ticket_type_idx").on(table.type),
@@ -225,6 +233,11 @@ export const ticketRelations = relations(ticket, ({ many, one }) => ({
     fields: [ticket.assignedToId],
     references: [user.id],
     relationName: "AssignedTickets",
+  }),
+  customerUser: one(user, {
+    fields: [ticket.customerUserId],
+    references: [user.id],
+    relationName: "CustomerTickets",
   }),
   messages: many(ticketMessage),
   attachments: many(ticketAttachment),
