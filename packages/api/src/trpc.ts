@@ -6,6 +6,7 @@ import {
   sanitizeDomainProviderMessage,
 } from "./lib/domain-provider-copy";
 import type { Context } from "./context";
+import { assertAgencyProcedureAccess } from "./lib/agency-permissions/assert";
 
 export type { Context } from "./context";
 
@@ -132,7 +133,7 @@ export const publicProcedure = t.procedure
   .use(loggingMiddleware)
   .use(apiKeyGuard);
 
-export const protectedProcedure = publicProcedure.use(async ({ ctx, next }) => {
+const authenticatedProcedure = publicProcedure.use(async ({ ctx, next }) => {
   if (!ctx.session?.user) {
     throw new TRPCError({
       code: "UNAUTHORIZED",
@@ -182,3 +183,25 @@ export const protectedProcedure = publicProcedure.use(async ({ ctx, next }) => {
     },
   });
 });
+
+/**
+ * Agency staff with a custom role are checked here, before the handler runs.
+ * AGENCY_SUPER_ADMIN is root access and is not checked.
+ * Customer users are unchanged.
+ */
+const agencyPermissionGuard = t.middleware(async ({ ctx, next, path, type, rawInput }) => {
+  const user = ctx.session?.user;
+  if (user?.id && user.role !== "AGENCY_SUPER_ADMIN") {
+    await assertAgencyProcedureAccess({
+      userId: user.id,
+      userRole: user.role,
+      path,
+      type,
+      ipAddress: ctx.ipAddress,
+      input: rawInput,
+    });
+  }
+  return next();
+});
+
+export const protectedProcedure = authenticatedProcedure.use(agencyPermissionGuard);

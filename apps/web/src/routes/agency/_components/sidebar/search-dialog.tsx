@@ -15,6 +15,7 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 import { agencysidebarItems } from "@/navigation/sidebar/sidebar-items";
+import { useAgencyPermissions } from "@/contexts/agency-permissions-context";
 
 // Transform agency sidebar items to search dialog format
 const searchItems = agencysidebarItems.flatMap((group) =>
@@ -29,6 +30,8 @@ const searchItems = agencysidebarItems.flatMap((group) =>
         comingSoon: subItem.comingSoon,
         newTab: subItem.newTab,
         isNew: subItem.isNew,
+        permissionKey: subItem.permissionKey,
+        permissionModule: subItem.permissionModule,
       }));
     }
 
@@ -42,6 +45,8 @@ const searchItems = agencysidebarItems.flatMap((group) =>
         comingSoon: item.comingSoon,
         newTab: item.newTab,
         isNew: item.isNew,
+        permissionKey: item.permissionKey,
+        permissionModule: item.permissionModule,
       },
     ];
   })
@@ -50,6 +55,14 @@ const searchItems = agencysidebarItems.flatMap((group) =>
 export function SearchDialog() {
   const [open, setOpen] = React.useState(false);
   const navigate = useNavigate();
+  const { can, canModule, isLoading, unrestricted } = useAgencyPermissions();
+  const visibleItems = searchItems.filter((item) => {
+    if (unrestricted) return true;
+    if (isLoading) return false;
+    if (item.permissionKey) return can(item.permissionKey);
+    if (item.permissionModule) return canModule(item.permissionModule);
+    return false;
+  });
 
   const handleSelect = (item: any) => {
     if (item.comingSoon) return; // Don't navigate if coming soon
@@ -93,11 +106,11 @@ export function SearchDialog() {
         <CommandInput placeholder="Search dashboards, users, and more?" />
         <CommandList>
           <CommandEmpty>No results found.</CommandEmpty>
-          {[...new Set(searchItems.map((item) => item.group))].map((group, i) => (
+          {[...new Set(visibleItems.map((item) => item.group))].map((group, i) => (
             <React.Fragment key={group}>
               {i !== 0 && <CommandSeparator />}
               <CommandGroup heading={group} key={group}>
-                {searchItems
+                {visibleItems
                   .filter((item) => item.group === group)
                   .map((item) => (
                     <CommandItem 

@@ -142,7 +142,7 @@ export function UserViewSheet({
                                                 </div>
                                             </div>
                                             <div className="space-y-1">
-                                                <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Agency Role</span>
+                                                <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Account type</span>
                                                 <p className="text-sm font-medium">
                                                     <Badge variant="outline">{user.role}</Badge>
                                                 </p>

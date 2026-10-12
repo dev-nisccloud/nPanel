@@ -12,53 +12,46 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { SidebarBrandMenu } from "@/components/sidebar-brand-menu";
-import { trpc } from "@/utils/trpc";
-import { type NavGroup, type NavMainItem, agencysidebarItems } from "@/navigation/sidebar/sidebar-items";
+import { type NavGroup, type NavMainItem, type NavSubItem, agencysidebarItems } from "@/navigation/sidebar/sidebar-items";
+import { useAgencyPermissions } from "@/contexts/agency-permissions-context";
 
 import { NavMain } from "./nav-main";
 import { NavUser } from "./nav-user";
 import { isZeepoAiChatSessionPath, NavZeepoAiHistory } from "./nav-zeepo-ai-history";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
-const NISC_REPORTS_PREFIX = "/agency/nisc-reports";
-
-function hasMenuKey(url: string, allowedKeys: Set<string>): boolean {
-  if (allowedKeys.has(url)) return true;
-  if (url === NISC_REPORTS_PREFIX) {
-    return [...allowedKeys].some((key) => key.startsWith(NISC_REPORTS_PREFIX));
-  }
-  // Activity lives under Zeepo AI  inherit parent access when not granted separately.
-  if (url === "/agency/zeepo-ai/activity" && allowedKeys.has("/agency/zeepo-ai")) {
-    return true;
-  }
+function navEntryAllowed(
+  entry: { permissionKey?: string; permissionModule?: string },
+  can: (key: string) => boolean,
+  canModule: (module: string) => boolean,
+): boolean {
+  if (entry.permissionKey) return can(entry.permissionKey);
+  if (entry.permissionModule) return canModule(entry.permissionModule);
   return false;
 }
 
-/**
- * Recursively filters sidebar items based on allowed keys.
- */
 function filterSidebarItems(
   groups: readonly NavGroup[],
-  allowedKeys: Set<string>
+  can: (key: string) => boolean,
+  canModule: (module: string) => boolean,
 ): NavGroup[] {
   return groups
     .map((group) => {
       const filteredItems = group.items
         .map((item) => {
-          const filteredSubItems = item.subItems?.filter((sub) =>
-            hasMenuKey(sub.url, allowedKeys)
-          );
+          if (item.subItems?.length) {
+            const filteredSubItems = item.subItems.filter((sub: NavSubItem) =>
+              navEntryAllowed(sub, can, canModule),
+            );
+            if (filteredSubItems.length === 0) return null;
+            return {
+              ...item,
+              subItems: filteredSubItems,
+            } as NavMainItem;
+          }
 
-          const isItemVisible =
-            hasMenuKey(item.url, allowedKeys) ||
-            (filteredSubItems && filteredSubItems.length > 0);
-
-          if (!isItemVisible) return null;
-
-          return {
-            ...item,
-            subItems: filteredSubItems,
-          } as NavMainItem;
+          if (!navEntryAllowed(item, can, canModule)) return null;
+          return item;
         })
         .filter((item): item is NavMainItem => item !== null);
 
@@ -75,16 +68,14 @@ function filterSidebarItems(
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { pathname } = useLocation();
   const showZeepoAiHistory = isZeepoAiChatSessionPath(pathname);
-  const { data: menuAccess, isLoading } = trpc.agencyRbac.myMenuAccess.useQuery(undefined, {
-    enabled: !showZeepoAiHistory,
-  });
+  const { can, canModule, isLoading, unrestricted } = useAgencyPermissions();
 
   const filteredItems = React.useMemo(() => {
     if (showZeepoAiHistory) return [];
-    if (isLoading || !menuAccess) return [];
-    const allowedKeys = new Set(menuAccess.allowedKeys);
-    return filterSidebarItems(agencysidebarItems, allowedKeys);
-  }, [menuAccess, isLoading, showZeepoAiHistory]);
+    if (unrestricted) return agencysidebarItems;
+    if (isLoading) return [];
+    return filterSidebarItems(agencysidebarItems, can, canModule);
+  }, [can, canModule, isLoading, showZeepoAiHistory, unrestricted]);
 
   return (
     <Sidebar {...props}>
@@ -98,11 +89,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         {showZeepoAiHistory ? (
           <NavZeepoAiHistory />
-        ) : isLoading ? (
+        ) : isLoading && !unrestricted ? (
           <div className="flex grow flex-col items-center justify-center gap-2 p-4">
             <Spinner variant="ellipsis" className="text-primary" />
             <span className="text-muted-foreground animate-pulse text-[10px] font-medium uppercase tracking-wider">
-              Loading roles...
+              Loading...
             </span>
           </div>
         ) : (

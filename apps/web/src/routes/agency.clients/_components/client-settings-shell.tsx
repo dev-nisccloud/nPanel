@@ -1,19 +1,20 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
+import { useCanTeamPermission } from "@/contexts/team-permissions-context";
 
 export const CLIENT_TABS = [
-  { value: "overview", label: "Overview" },
-  { value: "profile", label: "Profile" },
-  { value: "activity", label: "Sessions" },
-  { value: "integrations", label: "Integrations" },
-  { value: "organizations", label: "Organizations" },
-  { value: "invoices", label: "Invoices" },
-  { value: "subscriptions", label: "Subscriptions" },
-  { value: "quotations", label: "Quotations" },
-  { value: "transactions", label: "Transactions" },
+  { value: "overview", label: "Overview", permissionKey: "clients.list" },
+  { value: "profile", label: "Profile", permissionKey: "clients.profile" },
+  { value: "activity", label: "Sessions", permissionKey: "clients.activity" },
+  { value: "integrations", label: "Integrations", permissionKey: "clients.integrations" },
+  { value: "organizations", label: "Organizations", permissionKey: "clients.organizations" },
+  { value: "invoices", label: "Invoices", permissionKey: "billing.invoices" },
+  { value: "subscriptions", label: "Subscriptions", permissionKey: "billing.subscriptions" },
+  { value: "quotations", label: "Quotations", permissionKey: "billing.quotations" },
+  { value: "transactions", label: "Transactions", permissionKey: "billing.transactions" },
 ] as const;
 
 export type ClientTab = (typeof CLIENT_TABS)[number]["value"];
@@ -37,6 +38,18 @@ export function ClientSettingsShell({
   backAction,
   children,
 }: ClientSettingsShellProps) {
+  const { can, isLoading } = useCanTeamPermission();
+  const visibleTabs = useMemo(
+    () => CLIENT_TABS.filter((tab) => can(tab.permissionKey)),
+    [can],
+  );
+  useEffect(() => {
+    if (isLoading) return;
+    if (!visibleTabs.some((tab) => tab.value === activeTab) && visibleTabs[0]) {
+      onTabChange(visibleTabs[0].value);
+    }
+  }, [activeTab, isLoading, onTabChange, visibleTabs]);
+
   return (
     <div className="mx-auto w-full max-w-4xl space-y-5">
       {backAction}
@@ -53,7 +66,7 @@ export function ClientSettingsShell({
           aria-label="Client details"
           className="flex shrink-0 gap-1 overflow-x-auto rounded-lg bg-muted p-1 md:w-44 md:max-h-[min(70vh,520px)] md:flex-col md:overflow-y-auto md:overflow-x-visible"
         >
-          {CLIENT_TABS.map((tab) => (
+          {visibleTabs.map((tab) => (
             <button
               key={tab.value}
               type="button"
