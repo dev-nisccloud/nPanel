@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, Plus } from "lucide-react";
 import * as React from "react";
 
 import { cn } from "@npanel/ui/lib/utils/index";
@@ -43,6 +43,11 @@ type Props<T> = {
   className?: string;
   /** Render popover inside the nearest open dialog so search inputs stay interactive in sheets. */
   inDialog?: boolean;
+  /** Action pinned to the top of the list. Stays visible while searching. */
+  leadingAction?: {
+    label: string;
+    onSelect: () => void;
+  };
 };
 
 function itemMatchesQuery<T extends ComboboxItem>(item: T, query: string) {
@@ -69,6 +74,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
   onCreate,
   className,
   inDialog = false,
+  leadingAction,
 }: Props<T>) {
   const [open, setOpen] = React.useState(false);
   const [internalSelectedItem, setInternalSelectedItem] = React.useState<
@@ -140,11 +146,31 @@ export function ComboboxDropdown<T extends ComboboxItem>({
         className="max-h-[min(18rem,var(--available-height,18rem))] overflow-y-auto overscroll-contain scrollbar-thin overflow-x-hidden p-1"
         onWheel={(e) => e.stopPropagation()}
       >
-        <CommandEmpty className="py-6 text-center text-xs text-muted-foreground">
-          {emptyResults ?? "No item found"}
-        </CommandEmpty>
+        {!leadingAction ? (
+          <CommandEmpty className="py-6 text-center text-xs text-muted-foreground">
+            {emptyResults ?? "No item found"}
+          </CommandEmpty>
+        ) : null}
 
         <CommandGroup className="overflow-visible p-0">
+          {leadingAction ? (
+            <CommandItem
+              value="__combobox_leading_action__"
+              className="cursor-pointer rounded-lg mx-1 my-0.5 font-medium"
+              onSelect={() => {
+                leadingAction.onSelect();
+                handleOpenChange(false);
+              }}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              {leadingAction.label}
+            </CommandItem>
+          ) : null}
+          {leadingAction && filteredItems.length === 0 ? (
+            <p className="px-3 py-4 text-center text-xs text-muted-foreground">
+              {emptyResults ?? "No item found"}
+            </p>
+          ) : null}
           {filteredItems.map((item) => {
             const isChecked = selectedItem?.id === item.id;
 
