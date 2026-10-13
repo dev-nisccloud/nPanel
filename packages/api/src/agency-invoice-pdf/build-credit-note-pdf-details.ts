@@ -32,6 +32,7 @@ export function buildCreditNotePdfDetails(creditNote: CreditNoteDetail): {
 		kraQrCode: creditNote.kraQrCode,
 		kraSyncResponse: creditNote.kraSyncResponse,
 		kraVerifiedDate: creditNote.kraVerifiedDate,
+		etimsFiscal: creditNote.etimsFiscal,
 	} as unknown as InvoiceDetail;
 
 	const pdfData = buildInvoicePdfDetails(invoiceLike);
@@ -46,12 +47,14 @@ export function buildCreditNotePdfDetails(creditNote: CreditNoteDetail): {
 		creditNote.kraVerificationUrl ??
 		undefined;
 
+	const storedSdcId = creditNote.etimsFiscal?.sdcId ?? pdfData.etimsFiscal?.sdcId ?? null;
 	const etimsFiscal =
 		extractEtimsFiscalFieldsFromCreditNote(creditNote, {
 			tisReceiptNumber: creditNote.creditNumber,
 			tisIssuedAt: creditNote.issuedAt,
 			originalCuInvoiceNo,
 			itemCount: pdfData.invoiceDetails.items.length,
+			sdcId: storedSdcId,
 		}) ??
 		ensureEtimsPrintFields(creditNote.etimsFiscal, {
 			isCreditNote: true,
@@ -59,6 +62,7 @@ export function buildCreditNotePdfDetails(creditNote: CreditNoteDetail): {
 			tisIssuedAt: creditNote.issuedAt,
 			originalCuInvoiceNo,
 			itemCount: pdfData.invoiceDetails.items.length,
+			sdcId: storedSdcId,
 		});
 
 	return {
@@ -73,6 +77,7 @@ export function buildCreditNotePdfDetails(creditNote: CreditNoteDetail): {
 		etimsFiscal,
 		invoiceTerms: {
 			invoiceNumber: creditNote.creditNumber ?? undefined,
+			scuId: etimsFiscal?.sdcId ?? undefined,
 			issueDate: creditNote.issuedAt ?? undefined,
 			issuedAtDisplay:
 				formatKraSdcDateTimeDisplay(etimsFiscal.sdcDateTime) ??

@@ -2,7 +2,7 @@ import type { InvoiceDetail } from "@/routes/agency.invoices/create/api/schemas"
 import { DEFAULT_INVOICE_LOGO } from "@/routes/agency.invoices/create/constants";
 import { formatInvoiceLineItemForPdf, normalizeStoredInvoicePeriodDescription } from "@npanel/api/lib/nisc-order-invoice-line-items";
 import { resolveInvoiceEtimsVerificationUrl } from "@npanel/api/agency-invoice-pdf/build-invoice-pdf-details";
-import { taxBucketsFromKraPayload } from "@npanel/api/agency-invoice-pdf/tis-receipt-totals";
+import { resolveLineEtimsTaxBand, taxBucketsFromKraPayload } from "@npanel/api/agency-invoice-pdf/tis-receipt-totals";
 import type {
 	YourDetails,
 	CompanyDetails,
@@ -52,14 +52,24 @@ export function transformInvoiceToPreviewData(invoice: InvoiceDetail): {
 			: {};
 	const invoiceSource = typeof invoiceMeta.source === "string" ? invoiceMeta.source : null;
 
-	const items: Item[] = invoice.lineItems.map((lineItem) => {
+	const items: Item[] = invoice.lineItems.map((lineItem, index, lines) => {
 		const lineMeta =
-			lineItem.metadata && typeof lineItem.metadata === "object"
+			lineItem.metadata && typeof lineItem.metadata === "object" && !Array.isArray(lineItem.metadata)
 				? (lineItem.metadata as Record<string, unknown>)
 				: {};
 		const description = normalizeStoredInvoicePeriodDescription(lineItem.description, {
 			invoiceSource,
 			lineSource: typeof lineMeta.source === "string" ? lineMeta.source : null,
+		});
+		const billingCycle = lineMeta.billingCycle;
+		const etimsTaxTyCd = resolveLineEtimsTaxBand({
+			metadata: lineMeta,
+			kraPayloads: [
+				(invoice as { kraSyncPayload?: unknown }).kraSyncPayload,
+				(invoice as { kraSyncResponse?: unknown }).kraSyncResponse,
+			],
+			index,
+			lineCount: lines.length,
 		});
 		return {
 			id: lineItem.id,
@@ -69,6 +79,8 @@ export function transformInvoiceToPreviewData(invoice: InvoiceDetail): {
 			),
 			amount: lineItem.price ? parseFloat(lineItem.price) : undefined,
 			qty: lineItem.quantity || undefined,
+			...(typeof billingCycle === "string" && billingCycle !== "__unset__" ? { billingCycle } : {}),
+			...(etimsTaxTyCd ? { etimsTaxTyCd } : {}),
 		};
 	});
 

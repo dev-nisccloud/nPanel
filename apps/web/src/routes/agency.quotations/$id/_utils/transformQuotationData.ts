@@ -4,14 +4,61 @@ import type {
 	QuotationItemDetails,
 	QuotationTerms,
 	Item,
+	ItemCommissionContext,
 } from "@/routes/agency.quotations/create/types";
 
 import { COMPANY_LOGO_URL as DEFAULT_LOGO } from "@npanel/api/lib/company-branding";
 
-function billingCycleFromMetadata(metadata: Record<string, unknown> | unknown[] | null | undefined): string | undefined {
+function metadataRecord(
+	metadata: Record<string, unknown> | unknown[] | null | undefined,
+): Record<string, unknown> | undefined {
 	if (!metadata || Array.isArray(metadata) || typeof metadata !== "object") return undefined;
-	const cycle = metadata.billingCycle;
+	return metadata;
+}
+
+function etimsTaxTyCdFromMetadata(metadata: Record<string, unknown> | unknown[] | null | undefined): string | undefined {
+	const value = metadataRecord(metadata)?.etimsTaxTyCd;
+	return typeof value === "string" && value.trim() ? value.trim().toUpperCase() : undefined;
+}
+
+function billingCycleFromMetadata(metadata: Record<string, unknown> | unknown[] | null | undefined): string | undefined {
+	const record = metadataRecord(metadata);
+	const cycle = record?.billingCycle;
 	return typeof cycle === "string" && cycle && cycle !== "__unset__" ? cycle : undefined;
+}
+
+function productIdFromMetadata(metadata: Record<string, unknown> | unknown[] | null | undefined): string | undefined {
+	const value = metadataRecord(metadata)?.productId;
+	return typeof value === "string" && value ? value : undefined;
+}
+
+function productPlanIdFromMetadata(metadata: Record<string, unknown> | unknown[] | null | undefined): string | undefined {
+	const value = metadataRecord(metadata)?.productPlanId;
+	return typeof value === "string" && value ? value : undefined;
+}
+
+function commissionContextFromMetadata(
+	metadata: Record<string, unknown> | unknown[] | null | undefined,
+): ItemCommissionContext | undefined {
+	const raw = metadataRecord(metadata)?.commissionContext;
+	if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+	const context = raw as Record<string, unknown>;
+	if (typeof context.metaAdsAccountId !== "string" || typeof context.metaAdsCampaignId !== "string") {
+		return undefined;
+	}
+	return {
+		metaAdsAccountId: context.metaAdsAccountId,
+		metaAdsAccountName: typeof context.metaAdsAccountName === "string" ? context.metaAdsAccountName : undefined,
+		metaAdsCampaignId: context.metaAdsCampaignId,
+		metaAdsCampaignName: typeof context.metaAdsCampaignName === "string" ? context.metaAdsCampaignName : "",
+		dateRangeSince: typeof context.dateRangeSince === "string" ? context.dateRangeSince : "",
+		dateRangeUntil: typeof context.dateRangeUntil === "string" ? context.dateRangeUntil : "",
+		adSpend: typeof context.adSpend === "number" ? context.adSpend : Number(context.adSpend) || 0,
+		commissionRatePercent:
+			typeof context.commissionRatePercent === "number"
+				? context.commissionRatePercent
+				: Number(context.commissionRatePercent) || 0,
+	};
 }
 
 /** Quotation shape as received from tRPC (dates may be serialized as strings). */
@@ -70,7 +117,11 @@ export function transformQuotationToPreviewData(quotation: QuotationForPreview):
 		itemDescription: lineItem.description || lineItem.name || "",
 		amount: lineItem.price ? parseFloat(lineItem.price) : undefined,
 		qty: lineItem.quantity ?? undefined,
+		productId: productIdFromMetadata(lineItem.metadata),
+		productPlanId: productPlanIdFromMetadata(lineItem.metadata),
+		commissionContext: commissionContextFromMetadata(lineItem.metadata),
 		billingCycle: billingCycleFromMetadata(lineItem.metadata),
+		etimsTaxTyCd: etimsTaxTyCdFromMetadata(lineItem.metadata),
 	}));
 
 	const quotationDetails: QuotationItemDetails = {
@@ -132,10 +183,15 @@ export function quotationToFormDefaultValues(quotation: QuotationForPreview): Re
 		items:
 			preview.quotationDetails.items?.length > 0
 				? preview.quotationDetails.items.map((i) => ({
+						id: i.id,
 						itemDescription: i.itemDescription ?? "",
 						amount: i.amount,
 						qty: i.qty,
+						productId: i.productId,
+						productPlanId: i.productPlanId,
+						commissionContext: i.commissionContext,
 						billingCycle: i.billingCycle,
+						etimsTaxTyCd: i.etimsTaxTyCd,
 					}))
 				: [{ itemDescription: "" }],
 		quotationNo: preview.quotationTerms.quotationNumber ?? "",

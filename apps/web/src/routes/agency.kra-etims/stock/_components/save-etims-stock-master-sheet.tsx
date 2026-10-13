@@ -9,21 +9,14 @@ import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetFooter,
   SheetHeader,
   SheetTitle,
 } from "@/components/npanel-ui/sheet";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { ComboboxDropdown } from "@npanel/ui/components/combobox-dropdown";
 import { trpc } from "@/utils/trpc";
 import { kraMutationError } from "../../_lib/etims-kra";
 import { isServiceItem, type EtimsItemRecord } from "../../products/_components/etims-item-utils";
@@ -35,25 +28,30 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
+type ItemOption = EtimsItemRecord & { id: string; label: string };
+
 export function SaveETimsStockMasterSheet({
   open = false,
   onOpenChange,
   items,
   initialItem,
   onSuccess,
-  embedded = false,
 }: {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   items: EtimsItemRecord[];
   initialItem?: EtimsItemRecord | null;
   onSuccess?: () => void;
-  embedded?: boolean;
 }) {
-  const goods = React.useMemo(
-    () => items.filter((item) => item.useYn !== "N" && !isServiceItem(item)),
-    [items],
-  );
+  const goods = React.useMemo((): ItemOption[] => {
+    return items
+      .filter((item) => item.useYn !== "N" && !isServiceItem(item) && item.itemCd)
+      .map((item) => ({
+        ...item,
+        id: String(item.itemCd),
+        label: `${item.itemNm} (${item.itemCd})`,
+      }));
+  }, [items]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -61,14 +59,15 @@ export function SaveETimsStockMasterSheet({
   });
 
   React.useEffect(() => {
-    if (!embedded && !open) return;
+    if (!open) return;
     form.reset({
       itemCd: initialItem?.itemCd ?? goods[0]?.itemCd ?? "",
       rsdQty: Number(initialItem?.rsdQty ?? initialItem?.sftyQty ?? 0),
     });
-  }, [open, embedded, initialItem, goods, form]);
+  }, [open, initialItem, goods, form]);
 
   const save = trpc.etims.stock.saveStockMaster.useMutation();
+  const selected = goods.find((item) => item.id === form.watch("itemCd"));
 
   const onSubmit = async (data: FormData) => {
     try {
@@ -87,7 +86,7 @@ export function SaveETimsStockMasterSheet({
         toast.error(error);
         return;
       }
-      toast.success("Remaining quantity saved on KRA eTIMS");
+      toast.success("Remaining quantity saved");
       onOpenChange?.(false);
       onSuccess?.();
     } catch (err) {
@@ -95,29 +94,30 @@ export function SaveETimsStockMasterSheet({
     }
   };
 
-  const fields = (
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>Set remaining quantity</SheetTitle>
+        </SheetHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className={embedded ? "space-y-4" : "mt-6 space-y-4"}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="mt-6 space-y-4">
             <FormField
               control={form.control}
               name="itemCd"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Item</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select item" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {goods.map((item) => (
-                        <SelectItem key={item.itemCd} value={item.itemCd}>
-                          {item.itemNm} ({item.itemCd})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <ComboboxDropdown
+                    inDialog
+                    placeholder="Select item"
+                    searchPlaceholder="Search item…"
+                    items={goods}
+                    selectedItem={selected}
+                    onSelect={(item) => field.onChange(item.itemCd)}
+                    emptyResults="Register a goods item on Products first."
+                    disabled={goods.length === 0}
+                  />
                   <FormMessage />
                 </FormItem>
               )}
@@ -127,7 +127,7 @@ export function SaveETimsStockMasterSheet({
               name="rsdQty"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Remaining quantity (on hand)</FormLabel>
+                  <FormLabel>On hand</FormLabel>
                   <FormControl>
                     <Input type="number" min={0} step="0.01" {...field} />
                   </FormControl>
@@ -135,52 +135,16 @@ export function SaveETimsStockMasterSheet({
                 </FormItem>
               )}
             />
-            {embedded ? (
-              <div className="flex justify-end">
-                <Button type="submit" disabled={save.isPending || goods.length === 0}>
-                  {save.isPending ? <><Spinner size={16} className="mr-2" />Saving...</> : "Save remaining quantity"}
-                </Button>
-              </div>
-            ) : (
             <SheetFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange?.(false)} disabled={save.isPending}>
                 Cancel
               </Button>
               <Button type="submit" disabled={save.isPending || goods.length === 0}>
-                {save.isPending ? <><Spinner size={16} className="mr-2" />Saving...</> : "Save remaining quantity"}
+                {save.isPending ? <><Spinner size={16} className="mr-2" />Saving…</> : "Save"}
               </Button>
             </SheetFooter>
-            )}
           </form>
         </Form>
-  );
-
-  if (embedded) {
-    return (
-      <div className="rounded-lg border bg-card shadow-sm p-4 md:p-6 space-y-4">
-        <div>
-          <h2 className="text-sm font-semibold">Stock taking</h2>
-          <p className="text-xs text-muted-foreground">
-            Set how many units KRA should show on hand for a goods item. The required stock movement is recorded for you.
-          </p>
-        </div>
-        {goods.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Register a raw material or finished product on Products first.</p>
-        ) : fields}
-      </div>
-    );
-  }
-
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>Stock taking</SheetTitle>
-          <SheetDescription>
-            Set remaining on-hand quantity for a goods item. KRA records the required stock movement automatically.
-          </SheetDescription>
-        </SheetHeader>
-        {fields}
       </SheetContent>
     </Sheet>
   );

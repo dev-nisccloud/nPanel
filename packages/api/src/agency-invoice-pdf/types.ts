@@ -6,6 +6,8 @@ export type Item = {
   amount?: number;
   qty?: number;
   billingCycle?: string;
+  /** Product KRA tax band (A–E). Printed with the tax table rate label. */
+  etimsTaxTyCd?: string;
 };
 
 export type YourDetails = {
@@ -74,6 +76,8 @@ export type PaymentDetails = {
 
 export type InvoiceTerms = {
   invoiceNumber?: string;
+  /** KRA SCU / CU ID (`sdcId`), printed under the invoice number. */
+  scuId?: string;
   issueDate?: string | Date;
   /** Full `dd/mm/yyyy hh:mm:ss` from the KRA SCU stamp. Preferred over formatting `issueDate`. */
   issuedAtDisplay?: string;

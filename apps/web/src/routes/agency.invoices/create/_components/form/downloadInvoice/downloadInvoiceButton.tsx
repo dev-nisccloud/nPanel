@@ -14,6 +14,7 @@ import { captureEvent } from "@/lib/posthog";
 import { InvoiceStatusSelect, type InvoiceStatusOption } from "../invoice-status-select";
 import { buildKraPersistFieldsFromManual } from "@npanel/api/lib/etims-fiscal-fields";
 import { AgencyInvoicePdfPage } from "@npanel/api/agency-invoice-pdf/agency-invoice-pdf-page";
+import { invoiceLineItemMetadata } from "../../../types";
 import { useInvoiceEtimsFiscalPreview } from "../../../hooks/useEtimsFiscalPreview";
 
 // Font registration state
@@ -188,7 +189,11 @@ export const DownloadInvoiceButton = () => {
           <AgencyInvoicePdfPage
             companyDetails={companyDetails}
             invoiceDetails={invoiceDetails}
-            invoiceTerms={{ ...invoiceTerms, status: draftStatus }}
+            invoiceTerms={{
+              ...invoiceTerms,
+              status: draftStatus,
+              scuId: invoiceTerms.scuId || etimsFiscal.sdcId || undefined,
+            }}
             paymentDetails={paymentDetails}
             yourDetails={yourDetails}
             etimsFiscal={etimsFiscal}
@@ -231,7 +236,7 @@ export const DownloadInvoiceButton = () => {
         price: String(item.amount || 0),
         discount: null,
         total: String((item.amount || 0) * (item.qty || 1)),
-        metadata: (item.billingCycle && item.billingCycle !== '__unset__') ? { billingCycle: item.billingCycle } : null,
+        metadata: invoiceLineItemMetadata(item),
       }));
 
       // Prepare payment details JSON

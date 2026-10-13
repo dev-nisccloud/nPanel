@@ -99,16 +99,33 @@ export function formatKraSdcDateTimeFull(value: string | Date | null | undefined
 	return `${parts.date} ${parts.time}`;
 }
 
+const SDC_ID_KEY = /^sdc[_-]?id$/i;
+
 export function extractSdcIdFromKraBody(raw: unknown): string | null {
-	if (!raw || typeof raw !== "object") return null;
-	const root = raw as Record<string, unknown>;
-	const body = (root.responseBody ?? root.data ?? root) as Record<string, unknown>;
-	const info = (body.info ?? (body.data as Record<string, unknown> | undefined)?.info) as
-		| Record<string, unknown>
-		| undefined;
-	const candidates = [body.sdcId, body.sdcID, info?.sdcId, info?.sdcID, root.sdcId];
-	for (const c of candidates) {
-		if (c != null && String(c).trim()) return String(c).trim();
+	return walkSdcId(raw, 0);
+}
+
+function walkSdcId(raw: unknown, depth: number): string | null {
+	if (raw == null || depth > 8) return null;
+	if (typeof raw !== "object") return null;
+	if (Array.isArray(raw)) {
+		for (const item of raw) {
+			const hit = walkSdcId(item, depth + 1);
+			if (hit) return hit;
+		}
+		return null;
+	}
+	const rec = raw as Record<string, unknown>;
+	for (const [key, value] of Object.entries(rec)) {
+		if (!SDC_ID_KEY.test(key) || value == null) continue;
+		const text = String(value).trim();
+		if (text) return text;
+	}
+	for (const value of Object.values(rec)) {
+		if (value && typeof value === "object") {
+			const hit = walkSdcId(value, depth + 1);
+			if (hit) return hit;
+		}
 	}
 	return null;
 }

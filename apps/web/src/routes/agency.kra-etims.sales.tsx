@@ -105,11 +105,12 @@ export default function ETimsSalesPage() {
         return items.sort(compareKraNewestFirst);
     }, [salesData]);
 
-    const etimsCfg = (etimsConfig as { config?: { kraPin?: string; branchId?: string; isSandbox?: boolean } } | undefined)?.config;
+    const etimsCfg = (etimsConfig as { config?: { kraPin?: string; branchId?: string; isSandbox?: boolean; sdcId?: string | null } } | undefined)?.config;
     const { download: downloadReceipt, downloadingInvcNo } = useEtimsReceiptDownload({
         kraPin: etimsCfg?.kraPin,
         branchId: selectedBhfId ?? etimsCfg?.branchId,
         isSandbox: etimsCfg?.isSandbox,
+        sdcId: etimsCfg?.sdcId,
         salesList: invoices,
     });
 

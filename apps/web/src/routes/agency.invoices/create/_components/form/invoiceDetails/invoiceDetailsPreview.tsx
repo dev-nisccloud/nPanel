@@ -6,6 +6,8 @@ import {
   buildTisReceiptTotals,
   formatTisMoney,
   tisCreditNoteBandLines,
+  tisTaxRateLabel,
+  type TisReceiptTotals,
 } from "@npanel/api/agency-invoice-pdf/tis-receipt-totals";
 
 export const InvoiceDetailsPreview: React.FC<
@@ -74,7 +76,9 @@ export const InvoiceDetailsPreview: React.FC<
           </div>
         </div>
       </div>
-      {items.map(({ itemDescription, amount, qty, billingCycle }, index) => (
+      {items.map(({ itemDescription, amount, qty, billingCycle, etimsTaxTyCd }, index) => {
+        const taxRateLabel = tisTaxRateLabel(etimsTaxTyCd);
+        return (
         <div
           className={`grid grid-cols-2 items-start border-b ${
             index === 0 ? "border-t" : ""
@@ -88,6 +92,11 @@ export const InvoiceDetailsPreview: React.FC<
             {billingCycle && (
               <p className="text-[10px] text-gray-500 mt-1">
                 Billing: {formatBillingCycle(billingCycle)}
+              </p>
+            )}
+            {taxRateLabel && (
+              <p className="text-[10px] text-gray-500 mt-1">
+                Tax rate: {taxRateLabel}
               </p>
             )}
           </div>
@@ -104,7 +113,8 @@ export const InvoiceDetailsPreview: React.FC<
             </p>
           </div>
         </div>
-      ))}
+        );
+      })}
       <div className="grid grid-cols-2">
         {note ? (
           <div className="pt-6 pb-4">
@@ -130,6 +140,7 @@ export const InvoiceDetailsPreview: React.FC<
               ))}
               <PreviewTotalsRow label="Total Tax" value={money(totals.vat)} />
               <PreviewTotalsRow label="Items Number" value={String(totals.itemCount)} last />
+              <PreviewTaxTable totals={totals} money={money} />
             </>
           ) : (
             <>
@@ -144,24 +155,7 @@ export const InvoiceDetailsPreview: React.FC<
               <PreviewTotalsRow label="VAT" value={money(totals.vat)} />
               <PreviewTotalsRow label="Total" value={money(totals.total)} bold />
               <PreviewTotalsRow label="Items Number" value={String(totals.itemCount)} />
-              <table className="mx-10 mt-2 w-[calc(100%-5rem)] border-collapse border border-gray-400 text-[10px] text-gray-600">
-                <thead>
-                  <tr>
-                    <th className="border border-gray-300 px-2 py-1 text-left font-medium">Rate</th>
-                    <th className="border border-gray-300 px-2 py-1 text-right font-medium">Taxable Amount</th>
-                    <th className="border border-gray-300 px-2 py-1 text-right font-medium">VAT</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {totals.taxTable.map((row) => (
-                    <tr key={row.band}>
-                      <td className="border border-gray-300 px-2 py-1">{row.rateLabel}</td>
-                      <td className="border border-gray-300 px-2 py-1 text-right">{money(row.taxable)}</td>
-                      <td className="border border-gray-300 px-2 py-1 text-right">{money(row.vat)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <PreviewTaxTable totals={totals} money={money} />
             </>
           )}
         </div>
@@ -169,6 +163,35 @@ export const InvoiceDetailsPreview: React.FC<
     </div>
   );
 };
+
+function PreviewTaxTable({
+  totals,
+  money,
+}: {
+  totals: TisReceiptTotals;
+  money: (n: number) => string;
+}) {
+  return (
+    <table className="mx-10 mt-2 w-[calc(100%-5rem)] border-collapse border border-gray-400 text-[10px] text-gray-600">
+      <thead>
+        <tr>
+          <th className="border border-gray-300 px-2 py-1 text-left font-medium">Rate</th>
+          <th className="border border-gray-300 px-2 py-1 text-right font-medium">Taxable Amount</th>
+          <th className="border border-gray-300 px-2 py-1 text-right font-medium">VAT</th>
+        </tr>
+      </thead>
+      <tbody>
+        {totals.taxTable.map((row) => (
+          <tr key={row.band}>
+            <td className="border border-gray-300 px-2 py-1">{row.rateLabel}</td>
+            <td className="border border-gray-300 px-2 py-1 text-right">{money(row.taxable)}</td>
+            <td className="border border-gray-300 px-2 py-1 text-right">{money(row.vat)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
 
 function PreviewTotalsRow({
   label,
@@ -200,6 +223,7 @@ const formatBillingCycle = (cycle: string): string => {
     'monthly': 'Monthly',
     'quarterly': 'Quarterly',
     'annually': 'Annually',
+    'biennially': 'Biennially',
   };
   return cycleMap[cycle] || cycle;
 };

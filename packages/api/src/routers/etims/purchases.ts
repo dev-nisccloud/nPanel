@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { router } from "../../trpc";
 import { TRPCError } from "@trpc/server";
-import { getEtimsContext } from "../../lib/etims-config";
+import { getEtimsContext, insertTrnsPurchaseOnKra } from "../../lib/etims-config";
 import { etimsProcedure, skipEtimsAuthChecks } from "./_procedure";
 
 const isAgencyUser = (r: string | null | undefined) =>
@@ -104,9 +104,14 @@ export const etimsPurchasesRouter = router({
         .input(z.object({ purchase: purchaseSchema }))
         .mutation(async ({ ctx, input }) => {
             assertWrite(ctx.session?.user?.role);
-            const { client, oscu } = await getEtimsContext();
+            const { client, oscu, isSandbox } = await getEtimsContext();
             try {
-                const result = await client.insertTrnsPurchase(oscu, input.purchase as Record<string, unknown>);
+                const result = await insertTrnsPurchaseOnKra(
+                    client,
+                    oscu,
+                    isSandbox,
+                    input.purchase as Record<string, unknown>,
+                );
                 return { success: true, data: result };
             } catch (e: unknown) {
                 const msg = (e as Error).message;

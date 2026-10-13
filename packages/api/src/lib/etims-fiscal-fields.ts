@@ -50,6 +50,10 @@ export type EtimsFiscalExtractExtras = {
 	originalCuInvoiceNo?: string | null;
 	itemCount?: number | null;
 	sdcId?: string | null;
+	/** OSCU identity for the QR / verify URL (same values as "Verify on KRA Portal"). */
+	tin?: string | null;
+	bhfId?: string | null;
+	isSandbox?: boolean;
 };
 
 function readKraResponseBody(kraSyncResponse: unknown): Record<string, unknown> | null {
@@ -149,21 +153,23 @@ function assembleFiscalFields(
 	const receiptLabel = kraReceiptLabel({ isCreditNote: extras?.isCreditNote });
 	const scu = formatScuDateTimeParts(base.sdcDateTime);
 	const tis = formatTisDateTimeParts(base.sdcDateTime ?? extras?.tisIssuedAt ?? null);
+	const tisReceiptNumber = extras?.tisReceiptNumber?.trim() || null;
+	const sdcId = base.sdcId?.trim() || null;
 	return {
 		...base,
+		sdcId,
 		sdcDateTimeDisplay: formatKraSdcDateTimeDisplay(base.sdcDateTime),
 		receiptLabel,
-		cuInvoiceNo: buildCuInvoiceNo({
-			sdcId: base.sdcId,
-			curRcptNo: base.curRcptNo,
-			receiptLabel,
-		}),
+		cuInvoiceNo:
+			sdcId && tisReceiptNumber
+				? `${sdcId}/${tisReceiptNumber}`
+				: sdcId || tisReceiptNumber,
 		intrlDataDashed: dashEvery4(base.intrlData),
 		rcptSignDashed: dashEvery4(base.rcptSign),
 		rcptSign: stringOrNull(base.rcptSign),
 		scuDate: scu?.date ?? null,
 		scuTime: scu?.time ?? null,
-		tisReceiptNumber: extras?.tisReceiptNumber?.trim() || null,
+		tisReceiptNumber,
 		tisDate: tis?.date ?? null,
 		tisTime: tis?.time ?? null,
 		originalCuInvoiceNo: extras?.originalCuInvoiceNo?.trim() || null,
@@ -268,6 +274,7 @@ export function extractEtimsFiscalFieldsFromInvoice(
 		invoiceNumber?: string | null;
 		issueDate?: string | Date | null;
 		lineItems?: unknown[] | null;
+		etimsFiscal?: { sdcId?: string | null } | null;
 	},
 	extras?: EtimsFiscalExtractExtras,
 ): EtimsFiscalFields {
@@ -300,9 +307,15 @@ export function extractEtimsFiscalFieldsFromInvoice(
 			curRcptNo,
 			totRcptNo,
 			sdcDateTime,
-			verificationUrl: resolveInvoiceEtimsVerificationUrl(invoice) ?? null,
+			verificationUrl:
+				resolveInvoiceEtimsVerificationUrl(invoice, {
+					tin: extras?.tin,
+					bhfId: extras?.bhfId,
+					isSandbox: extras?.isSandbox,
+				}) ?? null,
 			sdcId:
-				extras?.sdcId ??
+				stringOrNull(extras?.sdcId) ??
+				stringOrNull(invoice.etimsFiscal?.sdcId) ??
 				extractSdcIdFromKraBody(invoice.kraSyncResponse) ??
 				stringOrNull(body?.sdcId),
 		},
@@ -370,6 +383,7 @@ export function extractEtimsFiscalFieldsFromCreditNote(
 		issuedAt?: string | Date | null;
 		lineItems?: unknown[] | null;
 		originalCuInvoiceNo?: string | null;
+		etimsFiscal?: { sdcId?: string | null } | null;
 	},
 	extras?: EtimsFiscalExtractExtras,
 ): EtimsFiscalFields {
@@ -389,6 +403,7 @@ export function extractEtimsFiscalFieldsFromCreditNote(
 			invoiceNumber?: string | null;
 			issueDate?: string | Date | null;
 			lineItems?: unknown[] | null;
+			etimsFiscal?: { sdcId?: string | null } | null;
 		},
 		{
 			isCreditNote: true,
@@ -396,7 +411,10 @@ export function extractEtimsFiscalFieldsFromCreditNote(
 			tisIssuedAt: extras?.tisIssuedAt ?? creditNote.issuedAt ?? null,
 			originalCuInvoiceNo: extras?.originalCuInvoiceNo ?? creditNote.originalCuInvoiceNo ?? null,
 			itemCount: extras?.itemCount ?? (Array.isArray(creditNote.lineItems) ? creditNote.lineItems.length : null),
-			sdcId: extras?.sdcId,
+			sdcId: extras?.sdcId ?? creditNote.etimsFiscal?.sdcId,
+			tin: extras?.tin,
+			bhfId: extras?.bhfId,
+			isSandbox: extras?.isSandbox,
 		},
 	);
 }
