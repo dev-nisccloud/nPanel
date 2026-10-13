@@ -3,8 +3,6 @@ import type { CustomerHostingPlansPricingConfig } from "./types";
 
 export const SHARED_HOSTING_PRICING_CONFIG: CustomerHostingPlansPricingConfig = {
 	title: "Choose Your Hosting Plan",
-	description:
-		"Fast, reliable shared hosting with NVMe SSD servers, free SSL, cPanel, and daily backups.",
 	planIcon: Server,
 	highlightBadge: "NVMe SSD",
 	fallbackFeatures: [
@@ -28,8 +26,6 @@ export const SHARED_HOSTING_PRICING_CONFIG: CustomerHostingPlansPricingConfig = 
 
 export const WORDPRESS_HOSTING_PRICING_CONFIG: CustomerHostingPlansPricingConfig = {
 	title: "Choose Your WordPress Plan",
-	description:
-		"WordPress-optimised hosting with LiteSpeed cache, staging environments, auto-updates, and free SSL.",
 	planIcon: Zap,
 	highlightBadge: "WP Optimised",
 	fallbackFeatures: [
@@ -58,8 +54,6 @@ export const WORDPRESS_HOSTING_PRICING_CONFIG: CustomerHostingPlansPricingConfig
 
 export const EMAIL_HOSTING_PRICING_CONFIG: CustomerHostingPlansPricingConfig = {
 	title: "Choose Your Business Email Plan",
-	description:
-		"Professional email on your domain with DKIM, SPF, webmail, and mobile sync  hosted in Nairobi.",
 	planIcon: Mail,
 	highlightBadge: "DKIM Ready",
 	fallbackFeatures: [

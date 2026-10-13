@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { Briefcase, CheckSquare, LayoutDashboard, Pencil, Phone, StickyNote, Trash2, User } from "lucide-react";
+import { Briefcase, CheckSquare, LayoutDashboard, Pencil, Phone, Plus, StickyNote, Target, Trash2, User } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,7 @@ import { RecordActivities, RecordNotes, RecordTasks } from "../record-activity";
 import { RecordCustomFields } from "../record-custom-fields";
 import { RecordTags, tagRefsFromAssignments } from "../record-tags";
 import { DealViewSheet } from "../deals/deal-view-sheet";
+import { DealFormSheet } from "../deals/deal-form-sheet";
 import { ContactFormSheet } from "./contact-form-sheet";
 import { DeleteContactDialog } from "./delete-contact-dialog";
 
@@ -43,6 +44,7 @@ export function ContactDetailPage({ contactId }: { contactId: string }) {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [dealId, setDealId] = useState<string | null>(null);
+  const [dealFormOpen, setDealFormOpen] = useState(false);
 
   const { data: contact, isLoading, refetch } = trpc.crm.contacts.get.useQuery({
     id: contactId,
@@ -107,6 +109,7 @@ export function ContactDetailPage({ contactId }: { contactId: string }) {
                 title="Deals"
                 subtitle={String(deals.length)}
               />
+              <DetailCardTabsTrigger value="source" icon={Target} title="Source" subtitle="Lead" />
               <DetailCardTabsTrigger value="notes" icon={StickyNote} title="Notes" subtitle="Saved" />
               <DetailCardTabsTrigger value="tasks" icon={CheckSquare} title="Tasks" subtitle="Work" />
               <DetailCardTabsTrigger value="activities" icon={Phone} title="Activities" subtitle="Log" />
@@ -198,6 +201,39 @@ export function ContactDetailPage({ contactId }: { contactId: string }) {
                 values={contact.customFields}
               />
             </div>
+            <div className="mt-6">
+              <CrmInfoCard
+                icon={Briefcase}
+                title="Deals"
+                description={`${deals.length} ${deals.length === 1 ? "deal" : "deals"} on this contact`}
+              >
+                <div className="flex justify-end border-b px-4 py-2">
+                  <Button size="sm" onClick={() => setDealFormOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add deal
+                  </Button>
+                </div>
+                {deals.length === 0 ? (
+                  <CrmEmptyLine>No deals yet. Add one here without leaving this contact.</CrmEmptyLine>
+                ) : (
+                  <div className="divide-y">
+                    {deals.map((deal) => (
+                      <button
+                        key={deal.id}
+                        type="button"
+                        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-muted/40"
+                        onClick={() => setDealId(deal.id)}
+                      >
+                        <span className="truncate text-sm font-semibold text-foreground">{deal.name}</span>
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                          {deal.stage?.name || "No stage"} · {formatCrmMoney(deal.amount, deal.currency)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </CrmInfoCard>
+            </div>
           </TabsContent>
 
           <TabsContent value="notes" className="mt-10">
@@ -209,11 +245,32 @@ export function ContactDetailPage({ contactId }: { contactId: string }) {
           <TabsContent value="activities" className="mt-10">
             <RecordActivities scope={{ contactId }} />
           </TabsContent>
+          <TabsContent value="source" className="mt-10">
+            <CrmInfoCard icon={Target} title="Source" description="Where this contact came from">
+              <CrmFieldGrid>
+                <CrmFieldRow>
+                  <CrmField label="Lead source">{displayText(contact.leadSource)}</CrmField>
+                  <CrmField label="Lead status">{displayText(contact.leadStatus)}</CrmField>
+                </CrmFieldRow>
+                <CrmFieldRow>
+                  <CrmField label="Seniority">{displayText(contact.seniority)}</CrmField>
+                  <CrmField label="Job title">{displayText(contact.title)}</CrmField>
+                </CrmFieldRow>
+              </CrmFieldGrid>
+            </CrmInfoCard>
+          </TabsContent>
+
           <TabsContent value="deals" className="mt-10">
+            <div className="mb-3 flex justify-end">
+              <Button size="sm" onClick={() => setDealFormOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add deal
+              </Button>
+            </div>
             <CrmInfoCard
               icon={Briefcase}
               title="Deals"
-              description={`${deals.length} ${deals.length === 1 ? "deal" : "deals"}`}
+              description={`${deals.length} ${deals.length === 1 ? "deal" : "deals"} on this contact`}
             >
               {deals.length === 0 ? (
                 <CrmEmptyLine>No deals for this contact.</CrmEmptyLine>
@@ -264,6 +321,19 @@ export function ContactDetailPage({ contactId }: { contactId: string }) {
         </Tabs>
       </div>
 
+      <DealFormSheet
+        open={dealFormOpen}
+        onOpenChange={setDealFormOpen}
+        fixedContact={{
+          id: contact.id,
+          name: contactName,
+          companyId: contact.companyId,
+        }}
+        onSuccess={() => {
+          setDealFormOpen(false);
+          refetch();
+        }}
+      />
       <DealViewSheet
         dealId={dealId}
         open={!!dealId}

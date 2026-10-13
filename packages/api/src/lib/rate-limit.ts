@@ -64,6 +64,9 @@ export function resolveProcedureRateLimit(path: string): {
   if (path === "storefront.auth.createOrganization") {
     return { authenticated: 5, apiKey: 5, anonymous: 2, windowSec: 60 };
   }
+  if (path === "storefront.leads.submit") {
+    return { authenticated: 10, apiKey: 10, anonymous: 5, windowSec: 3600 };
+  }
 
   // Presigned uploads  keep below the default so spam cannot mint endless URLs.
   if (path === "objectStorage.createUploadUrl") {
