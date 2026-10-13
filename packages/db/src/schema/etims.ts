@@ -1,4 +1,4 @@
-import { index, integer, pgTable, text, timestamp, boolean, uniqueIndex } from "drizzle-orm/pg-core";
+import { index, integer, pgTable, primaryKey, text, timestamp, boolean, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const eTimsConfiguration = pgTable(
   "etims_configuration",
@@ -10,6 +10,8 @@ export const eTimsConfiguration = pgTable(
 
     deviceSerialNumber: text("device_serial_number").notNull(),
     cmcKey: text("cmc_key"),
+    /** KRA control-unit id from initialize (`info.sdcId`). Used as CU ID / SCU ID on receipts. */
+    sdcId: text("sdc_id"),
 
     isSandbox: boolean("is_sandbox").default(true).notNull(),
     isInitialized: boolean("is_initialized").default(false).notNull(),
@@ -82,4 +84,21 @@ export const eTimsItemClassification = pgTable(
     syncedAt: timestamp("synced_at").defaultNow().notNull(),
   },
   (table) => [index("etims_item_classification_level_idx").on(table.itemClsLvl)],
+);
+
+/** KRA standard codes synced from POST /selectCodeList (tax, units, countries, …). */
+export const eTimsCode = pgTable(
+  "etims_code",
+  {
+    cdCls: text("cd_cls").notNull(),
+    cdClsNm: text("cd_cls_nm").notNull(),
+    cd: text("cd").notNull(),
+    cdNm: text("cd_nm").notNull(),
+    useYn: text("use_yn").default("Y"),
+    syncedAt: timestamp("synced_at").defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ name: "etims_code_pk", columns: [table.cdCls, table.cd] }),
+    index("etims_code_cls_idx").on(table.cdCls),
+  ],
 );

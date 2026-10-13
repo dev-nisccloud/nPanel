@@ -131,7 +131,12 @@ export const etimsSalesRouter = router({
             assertWrite(ctx.session?.user?.role);
             const { client, oscu, isSandbox } = await getEtimsContext();
             try {
-                const result = await saveTrnsSalesOnKra(client, oscu, isSandbox, input.transaction as Record<string, unknown>);
+                const result = await saveTrnsSalesOnKra(
+                    client,
+                    oscu,
+                    isSandbox,
+                    roundTransactionMoney(input.transaction as Record<string, unknown>),
+                );
                 return { success: true, data: result };
             } catch (e: unknown) {
                 const msg = (e as Error).message ?? "";

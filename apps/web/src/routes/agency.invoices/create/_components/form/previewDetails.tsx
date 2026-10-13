@@ -81,7 +81,11 @@ export const PreviewDetails = ({
           <CompanyDetailsPreview {...companyDetails} />
         </div>
         <div className="py-4 px-10 border-dashed">
-          <InvoiceTermsPreview {...invoiceTerms} onClick={onClick} />
+          <InvoiceTermsPreview
+            {...invoiceTerms}
+            scuId={invoiceTerms.scuId || etimsFiscal?.sdcId || undefined}
+            onClick={onClick}
+          />
         </div>
       </div>
       

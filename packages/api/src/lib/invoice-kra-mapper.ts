@@ -1,4 +1,4 @@
-import { eq } from "@npanel/db";
+import { eq, inArray } from "@npanel/db";
 import { db } from "@npanel/db";
 import { invoice } from "@npanel/db/schema/invoicing";
 import { niscOrder } from "@npanel/db/schema/nisc-orders";
@@ -87,7 +87,7 @@ function normalizeTaxBand(value: string | null | undefined): KraTaxBand {
 	return "B";
 }
 
-function readMainProductIdFromLineMetadata(metadata: unknown): string | null {
+export function readMainProductIdFromLineMetadata(metadata: unknown): string | null {
 	if (!metadata || typeof metadata !== "object") return null;
 	const meta = metadata as Record<string, unknown>;
 	const id =
@@ -574,6 +574,37 @@ export async function buildKraCreditNoteTransactionForInvoice(
 	};
 
 	return { ok: true, transaction };
+}
+
+/** Copy the product's KRA tax band onto line metadata when the line does not already have one. */
+export async function stampInvoiceLineProductTaxBands(
+	lineItems: Array<{ metadata?: unknown }>,
+): Promise<void> {
+	const ids = new Set<string>();
+	for (const item of lineItems) {
+		const id = readMainProductIdFromLineMetadata(item.metadata);
+		if (id) ids.add(id);
+	}
+	if (ids.size === 0) return;
+
+	const products = await db.query.niscProduct.findMany({
+		where: inArray(niscProduct.id, [...ids]),
+		columns: { id: true, etimsTaxTyCd: true },
+	});
+	const taxByProductId = new Map(products.map((product) => [product.id, product.etimsTaxTyCd]));
+
+	for (const item of lineItems) {
+		const productId = readMainProductIdFromLineMetadata(item.metadata);
+		const band = productId ? taxByProductId.get(productId) : null;
+		if (!productId || !band) continue;
+		const meta =
+			item.metadata && typeof item.metadata === "object" && !Array.isArray(item.metadata)
+				? { ...(item.metadata as Record<string, unknown>) }
+				: {};
+		if (typeof meta.etimsTaxTyCd === "string" && meta.etimsTaxTyCd.trim()) continue;
+		meta.etimsTaxTyCd = band;
+		item.metadata = meta;
+	}
 }
 
 /** Main nisc product id on the invoice line (service; add-ons roll into line total). */

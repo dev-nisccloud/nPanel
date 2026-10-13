@@ -4,7 +4,7 @@ import type { Style } from "@react-pdf/types";
 import { currencyList } from "@/lib/currency";
 import { pdfTypography, pdfUtils } from "@/lib/pdfStyles";
 import type { InvoiceItemDetails, Item } from "@/routes/agency.invoicing/types";
-import { buildTisReceiptTotals, formatTisMoney } from "@npanel/api/agency-invoice-pdf/tis-receipt-totals";
+import { buildTisReceiptTotals, formatTisMoney, tisTaxRateLabel } from "@npanel/api/agency-invoice-pdf/tis-receipt-totals";
 
 function LineItemDescriptionCell({
   text,
@@ -109,7 +109,8 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
           </View>
         </View>
       </View>
-      {itemsNormalized.map(({ itemDescription, amount, qty }, index) => {
+      {itemsNormalized.map(({ itemDescription, amount, qty, etimsTaxTyCd }, index) => {
+        const taxRateLabel = tisTaxRateLabel(etimsTaxTyCd);
         const containerStyle = {
           marginHorizontal: 40,
           paddingVertical: compactLineItems ? 5 : 14,
@@ -132,6 +133,11 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
                 lineStyle={lineText}
                 compactLineItems={!!compactLineItems}
               />
+              {taxRateLabel && (
+                <Text style={{ ...lineText, fontSize: compactLineItems ? 7 : 9, color: "#666", marginTop: compactLineItems ? 2 : 4 }}>
+                  Tax rate: {taxRateLabel}
+                </Text>
+              )}
             </View>
             <View
               style={{

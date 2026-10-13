@@ -1795,6 +1795,27 @@ export function MediaBuyingEomTotalSpendInvoicesFlow({
                     const tr = toTimeRange(dateRange);
                     const rangeLabel =
                       tr?.since && tr?.until ? `${tr.since} – ${tr.until}` : " ";
+                    const productTaxBand = (() => {
+                      const raw = (productWithPlansQuery.data as { etimsTaxTyCd?: string | null } | undefined)
+                        ?.etimsTaxTyCd;
+                      const band = typeof raw === "string" ? raw.trim().toUpperCase() : "";
+                      return band === "A" || band === "B" || band === "C" || band === "D" || band === "E"
+                        ? band
+                        : undefined;
+                    })();
+                    const productLineMetadata =
+                      mediaBuyingProduct?.id || productTaxBand
+                        ? {
+                            ...(mediaBuyingProduct?.id
+                              ? {
+                                  productId: mediaBuyingProduct.id,
+                                  niscProductId: mediaBuyingProduct.id,
+                                  mainProductId: mediaBuyingProduct.id,
+                                }
+                              : {}),
+                            ...(productTaxBand ? { etimsTaxTyCd: productTaxBand } : {}),
+                          }
+                        : null;
                     const items = lines.map((l, idx) => {
                       const commissionAmountKes = (l.spendKes * commissionRatePercent) / 100;
                       return {
@@ -1808,7 +1829,7 @@ export function MediaBuyingEomTotalSpendInvoicesFlow({
                         vat: null,
                         discount: null,
                         total: String(commissionAmountKes),
-                        metadata: null,
+                        metadata: productLineMetadata,
                       };
                     });
                     const feeLine = {
@@ -1822,7 +1843,7 @@ export function MediaBuyingEomTotalSpendInvoicesFlow({
                       vat: null,
                       discount: null,
                       total: String(feeKes),
-                      metadata: null,
+                      metadata: productLineMetadata,
                     };
                     const lineItems = [...items, feeLine];
                     const subtotal = lineItems.reduce((s, it) => s + Number(it.total || 0), 0);
@@ -1886,6 +1907,7 @@ export function MediaBuyingEomTotalSpendInvoicesFlow({
                               itemDescription: li.name,
                               amount: Number(li.price),
                               qty: li.quantity,
+                              ...(productTaxBand ? { etimsTaxTyCd: productTaxBand } : {}),
                             })),
                             currency: "KES",
                             compactLineItems: true,
@@ -2110,6 +2132,7 @@ export function MediaBuyingEomTotalSpendInvoicesFlow({
     productsQuery.isError,
     productsQuery.error?.message,
     mediaBuyingProduct,
+    productWithPlansQuery.data,
     productWithPlansQuery.isLoading,
     productWithPlansQuery.isError,
     productWithPlansQuery.error?.message,

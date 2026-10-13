@@ -8,7 +8,7 @@ import { useState } from "react";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { useData } from "@/routes/agency.quotations/create/hooks/useData";
-import type { Item } from "@/routes/agency.quotations/create/types";
+import { quotationLineItemMetadata, type Item } from "@/routes/agency.quotations/create/types";
 import { captureEvent } from "@/lib/posthog";
 
 function roundTotalIfExceeds(amount: number): number {
@@ -70,7 +70,7 @@ export const DownloadQuotationButton = () => {
 				price: String(item.amount ?? 0),
 				discount: null,
 				total: String((item.amount ?? 0) * (item.qty ?? 1)),
-				metadata: (item.billingCycle && item.billingCycle !== "__unset__") ? { billingCycle: item.billingCycle } : null,
+				metadata: quotationLineItemMetadata(item),
 			}));
 
 			const fromDetails = {
@@ -123,31 +123,30 @@ export const DownloadQuotationButton = () => {
 	};
 
 	return (
-		<div className="flex h-[calc(100vh-208px)] justify-center items-center">
-			<div>
-				<h1 className="text-5xl font-semibold pb-6">Your quotation is ready</h1>
-				<p className="text-neutral-500 text-xl pb-7">
+		<div className="flex min-h-[calc(100vh-280px)] flex-col items-center justify-center text-center">
+			<div className="flex max-w-md flex-col items-center">
+				<h2 className="text-2xl font-semibold tracking-tight">Your quotation is ready</h2>
+				<p className="text-sm text-muted-foreground pt-2 pb-6">
 					Review the details carefully before submitting. The quotation will be saved and you can view or download it from the list.
 				</p>
 				<Button
 					disabled={status === "submitting" || status === "submitted"}
 					onClick={handleSubmit}
 					type="button"
-					className="w-full h-12 rounded-lg text-lg"
 				>
 					{status === "not-submitted" && (
 						<>
-							<Send className="mr-2 h-6 w-6" /> Submit Quotation
+							<Send /> Submit quotation
 						</>
 					)}
 					{status === "submitting" && (
 						<>
-							<LoaderIcon className="mr-2 h-6 w-6 animate-spin" /> Submitting...
+							<LoaderIcon className="animate-spin" /> Submitting...
 						</>
 					)}
 					{status === "submitted" && (
 						<>
-							<CheckCircle2 className="mr-2 h-6 w-6" /> Quotation Created
+							<CheckCircle2 /> Quotation created
 						</>
 					)}
 				</Button>

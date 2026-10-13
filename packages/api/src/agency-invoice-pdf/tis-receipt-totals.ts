@@ -20,6 +20,60 @@ export type TisReceiptTotals = {
 	taxTable: TisTaxTableRow[];
 };
 
+const TIS_TAX_BANDS = new Set<string>(["A", "B", "C", "D", "E"]);
+
+/** Rate column text from the TIS tax table for a product tax band. */
+export function tisTaxRateLabel(band: string | null | undefined): string | undefined {
+	const key = (band ?? "").trim().toUpperCase();
+	if (!TIS_TAX_BANDS.has(key)) return undefined;
+	return TIS_TAX_TABLE_SPEC.find((row) => row.band === key)?.rateLabel;
+}
+
+export function etimsTaxBandFromLineMetadata(metadata: unknown): string | undefined {
+	if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return undefined;
+	const meta = metadata as Record<string, unknown>;
+	const raw = meta.etimsTaxTyCd ?? meta.taxTyCd;
+	if (typeof raw !== "string") return undefined;
+	const key = raw.trim().toUpperCase();
+	return tisTaxRateLabel(key) ? key : undefined;
+}
+
+function kraSaleBody(raw: unknown): Record<string, unknown> | null {
+	if (!raw || typeof raw !== "object") return null;
+	const root = raw as Record<string, unknown>;
+	const body = (root.data ?? root.responseBody ?? root) as Record<string, unknown>;
+	if (!body || typeof body !== "object") return null;
+	return body;
+}
+
+export function resolveLineEtimsTaxBand(opts: {
+	metadata: unknown;
+	kraPayloads?: unknown[];
+	index: number;
+	lineCount: number;
+}): string | undefined {
+	const fromMeta = etimsTaxBandFromLineMetadata(opts.metadata);
+	if (fromMeta) return fromMeta;
+	for (const payload of opts.kraPayloads ?? []) {
+		const band = taxTyCdFromKraPayload(payload, opts.index, opts.lineCount);
+		if (band) return band;
+	}
+	return undefined;
+}
+
+/** Tax band filed on a KRA sale line, only when the payload line list matches the invoice lines. */
+export function taxTyCdFromKraPayload(raw: unknown, index: number, lineCount: number): string | undefined {
+	const body = kraSaleBody(raw);
+	const items = body?.itemList;
+	if (!Array.isArray(items) || items.length !== lineCount || index < 0 || index >= items.length) return undefined;
+	const line = items[index];
+	if (!line || typeof line !== "object") return undefined;
+	const taxTyCd = (line as Record<string, unknown>).taxTyCd;
+	if (typeof taxTyCd !== "string") return undefined;
+	const key = taxTyCd.trim().toUpperCase();
+	return tisTaxRateLabel(key) ? key : undefined;
+}
+
 export const TIS_TAX_TABLE_SPEC: Array<{
 	band: TisTaxBand;
 	rateLabel: string;
