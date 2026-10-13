@@ -26,7 +26,7 @@ export function formatCrmMoney(
   const value = typeof amount === "number" ? amount : Number(amount);
   if (!Number.isFinite(value)) return "—";
   try {
-    return new Intl.NumberFormat("en-KE", {
+    return new Intl.NumberFormat(currency === "USD" ? "en-US" : "en-KE", {
       style: "currency",
       currency,
     }).format(value);

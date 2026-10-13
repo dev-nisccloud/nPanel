@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
@@ -21,12 +21,25 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ComboboxDropdown } from "@npanel/ui/components/combobox-dropdown";
 import { trpc } from "@/utils/trpc";
 import { toast } from "sonner";
 import { CompanyFormSheet } from "../companies/company-form-sheet";
 
-const contactFormSchema = z.object({
+const NONE = "__none__";
+const LEAD_STATUSES = ["New", "Contacted", "Qualified", "Unqualified"];
+const LEAD_SOURCES = ["Website", "Referral", "Inbound", "Outbound", "Event", "LinkedIn"];
+const SENIORITY_LEVELS = ["Entry", "Mid", "Senior", "Manager", "Director", "Executive"];
+
+const contactFormSchema = z
+  .object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   email: z.string().email("Must be a valid email").optional().or(z.literal("")),
@@ -39,11 +52,30 @@ const contactFormSchema = z.object({
   country: z.string().optional(),
   postalCode: z.string().optional(),
   notes: z.string().optional(),
-});
+  leadStatus: z.string().optional(),
+  leadSource: z.string().optional(),
+  seniority: z.string().optional(),
+  dealName: z.string().optional(),
+  dealAmount: z.number().optional(),
+  currency: z.enum(["KES", "USD"]),
+  pipelineId: z.string().optional(),
+  stageId: z.string().optional(),
+})
+  .superRefine((value, ctx) => {
+    const hasDeal = Boolean(value.dealName?.trim()) || value.dealAmount != null;
+    if (!hasDeal) return;
+    if (!value.dealName?.trim()) {
+      ctx.addIssue({ code: "custom", path: ["dealName"], message: "Deal name is required" });
+    }
+    if (!value.pipelineId) {
+      ctx.addIssue({ code: "custom", path: ["pipelineId"], message: "Pipeline is required" });
+    }
+    if (!value.stageId) {
+      ctx.addIssue({ code: "custom", path: ["stageId"], message: "Stage is required" });
+    }
+  });
 
 type ContactFormValues = z.infer<typeof contactFormSchema>;
-
-const NONE = "__none__";
 
 interface ContactFormSheetProps {
   open: boolean;
@@ -95,8 +127,37 @@ export function ContactFormSheet({
       country: "",
       postalCode: "",
       notes: "",
+      leadStatus: "",
+      leadSource: "",
+      seniority: "",
+      dealName: "",
+      dealAmount: undefined,
+      currency: "KES",
+      pipelineId: "",
+      stageId: "",
     },
   });
+
+  const pipelineId = useWatch({ control: form.control, name: "pipelineId" });
+  const pipelinesQuery = trpc.crm.pipelines.list.useQuery(
+    { page: 1, limit: 100 },
+    { enabled: open },
+  );
+  const pipelines = pipelinesQuery.data?.data ?? [];
+  const pipelineItems = pipelines.map((pipeline) => ({ id: pipeline.id, label: pipeline.name }));
+  const selectedPipeline = pipelines.find((pipeline) => pipeline.id === pipelineId);
+  const stageItems = (selectedPipeline?.stages ?? []).map((stage) => ({
+    id: stage.id,
+    label: stage.name,
+  }));
+
+  useEffect(() => {
+    if (!open || contact || pipelineId || pipelines.length === 0) return;
+    const pipeline = pipelines.find((item) => item.isDefault) ?? pipelines[0];
+    if (!pipeline) return;
+    form.setValue("pipelineId", pipeline.id);
+    form.setValue("stageId", pipeline.stages?.[0]?.id ?? "");
+  }, [open, contact, pipelineId, pipelines, form]);
 
   useEffect(() => {
     if (contact) {
@@ -113,37 +174,25 @@ export function ContactFormSheet({
         country: contact.country || "",
         postalCode: contact.postalCode || "",
         notes: contact.notes || "",
+        leadStatus: contact.leadStatus || "",
+        leadSource: contact.leadSource || "",
+        seniority: contact.seniority || "",
+        dealName: "",
+        dealAmount: undefined,
+        currency: "KES",
+        pipelineId: "",
+        stageId: "",
       });
     } else {
       form.reset();
     }
   }, [contact, form]);
 
-  const createMutation = trpc.crm.contacts.create.useMutation({
-    onSuccess: () => {
-      toast.success("Contact created successfully");
-      utils.crm.contacts.list.invalidate();
-      onSuccess();
-      form.reset();
-    },
-    onError: (error) => {
-      toast.error(error.message || "Failed to create contact");
-    },
-  });
+  const createMutation = trpc.crm.contacts.create.useMutation();
+  const updateMutation = trpc.crm.contacts.update.useMutation();
+  const createDeal = trpc.crm.deals.create.useMutation();
 
-  const updateMutation = trpc.crm.contacts.update.useMutation({
-    onSuccess: () => {
-      toast.success("Contact updated successfully");
-      utils.crm.contacts.list.invalidate();
-      utils.crm.contacts.get.invalidate({ id: contact.id });
-      onSuccess();
-    },
-    onError: (error) => {
-      toast.error(error.message || "Failed to update contact");
-    },
-  });
-
-  const onSubmit = (data: ContactFormValues) => {
+  const onSubmit = async (data: ContactFormValues) => {
     const payload = {
       firstName: data.firstName,
       lastName: data.lastName,
@@ -156,19 +205,55 @@ export function ContactFormSheet({
       state: data.state || null,
       country: data.country || null,
       postalCode: data.postalCode || null,
+      leadStatus: data.leadStatus || null,
+      leadSource: data.leadSource || null,
+      seniority: data.seniority || null,
     };
 
-    if (isEditing) {
-      updateMutation.mutate({
-        id: contact.id,
-        ...payload,
+    const stage = selectedPipeline?.stages?.find((item) => item.id === data.stageId);
+    const saveDeal = async (contactId: string) => {
+      if (!data.dealName?.trim()) return;
+      await createDeal.mutateAsync({
+        name: data.dealName.trim(),
+        pipelineId: data.pipelineId || "",
+        stageId: data.stageId || "",
+        companyId: data.companyId || null,
+        primaryContactId: contactId,
+        amount: data.dealAmount != null ? String(data.dealAmount) : null,
+        currency: data.currency,
+        probability: stage?.probability ?? null,
       });
-    } else {
-      createMutation.mutate(payload);
+    };
+
+    try {
+      if (isEditing) {
+        await updateMutation.mutateAsync({ id: contact.id, ...payload });
+        await saveDeal(contact.id);
+        toast.success(data.dealName?.trim() ? "Contact updated and deal added" : "Contact updated successfully");
+        utils.crm.contacts.get.invalidate({ id: contact.id });
+      } else {
+        const created = await createMutation.mutateAsync(payload);
+        await saveDeal(created.id);
+        if ("reused" in created && created.reused) {
+          toast.success(
+            data.dealName?.trim()
+              ? "This email already has a contact. The deal was added to that profile."
+              : "This email already has a contact, so a second profile was not created.",
+          );
+        } else {
+          toast.success(data.dealName?.trim() ? "Contact and deal created" : "Contact created successfully");
+        }
+      }
+      utils.crm.contacts.list.invalidate();
+      utils.crm.deals.list.invalidate();
+      onSuccess();
+      form.reset();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save contact");
     }
   };
 
-  const isSubmitting = createMutation.isPending || updateMutation.isPending;
+  const isSubmitting = createMutation.isPending || updateMutation.isPending || createDeal.isPending;
 
   return (
     <>
@@ -374,6 +459,222 @@ export function ContactFormSheet({
                       <FormLabel>Postal Code</FormLabel>
                       <FormControl>
                         <Input placeholder="94105" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium">Source</h3>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <FormField
+                  control={form.control}
+                  name="leadStatus"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Lead status</FormLabel>
+                      <Select
+                        value={field.value || NONE}
+                        onValueChange={(value) => field.onChange(value === NONE ? "" : value)}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Lead status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value={NONE}>No status</SelectItem>
+                          {(field.value && !LEAD_STATUSES.includes(field.value)
+                            ? [field.value, ...LEAD_STATUSES]
+                            : LEAD_STATUSES
+                          ).map((status) => (
+                            <SelectItem key={status} value={status}>
+                              {status}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="leadSource"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Lead source</FormLabel>
+                      <Select
+                        value={field.value || NONE}
+                        onValueChange={(value) => field.onChange(value === NONE ? "" : value)}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Source" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value={NONE}>No source</SelectItem>
+                          {(field.value && !LEAD_SOURCES.includes(field.value)
+                            ? [field.value, ...LEAD_SOURCES]
+                            : LEAD_SOURCES
+                          ).map((source) => (
+                            <SelectItem key={source} value={source}>
+                              {source}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="seniority"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Seniority</FormLabel>
+                      <Select
+                        value={field.value || NONE}
+                        onValueChange={(value) => field.onChange(value === NONE ? "" : value)}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Seniority" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value={NONE}>No seniority</SelectItem>
+                          {(field.value && !SENIORITY_LEVELS.includes(field.value)
+                            ? [field.value, ...SENIORITY_LEVELS]
+                            : SENIORITY_LEVELS
+                          ).map((level) => (
+                            <SelectItem key={level} value={level}>
+                              {level}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium">Deal</h3>
+              <p className="text-xs text-muted-foreground">
+                {isEditing
+                  ? "Add another deal on this same contact. Leave the name blank to skip."
+                  : "Optional. A filled deal is attached to this contact, not saved as another contact."}
+              </p>
+              <FormField
+                control={form.control}
+                name="dealName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Deal name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Q4 enterprise deal" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="dealAmount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Amount</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="50000"
+                          value={field.value ?? ""}
+                          onChange={(event) =>
+                            field.onChange(event.target.value ? Number(event.target.value) : undefined)
+                          }
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="currency"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Currency</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Currency" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="KES">KES</SelectItem>
+                          <SelectItem value="USD">USD ($)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="pipelineId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Sales pipeline</FormLabel>
+                      <FormControl>
+                        <ComboboxDropdown
+                          placeholder="Select pipeline"
+                          searchPlaceholder="Search pipelines..."
+                          items={pipelineItems}
+                          selectedItem={pipelineItems.find((item) => item.id === field.value)}
+                          onSelect={(item) => {
+                            field.onChange(item.id);
+                            const next = pipelines.find((pipeline) => pipeline.id === item.id);
+                            form.setValue("stageId", next?.stages?.[0]?.id ?? "");
+                          }}
+                          emptyResults="No pipelines found"
+                          disabled={pipelinesQuery.isLoading}
+                          inDialog
+                          className="w-full"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="stageId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status in the pipeline</FormLabel>
+                      <FormControl>
+                        <ComboboxDropdown
+                          placeholder={pipelineId ? "Select stage" : "Select a pipeline first"}
+                          searchPlaceholder="Search stages..."
+                          items={stageItems}
+                          selectedItem={stageItems.find((item) => item.id === field.value)}
+                          onSelect={(item) => field.onChange(item.id)}
+                          emptyResults="No stages found"
+                          disabled={!pipelineId || pipelinesQuery.isLoading}
+                          inDialog
+                          className="w-full"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

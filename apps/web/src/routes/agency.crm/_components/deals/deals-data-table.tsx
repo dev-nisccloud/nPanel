@@ -6,7 +6,6 @@ import {
   Eye,
   Pencil,
   Trash2,
-  DollarSign,
 } from "lucide-react";
 import {
   Table,
@@ -29,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { TagChips, tagRefsFromAssignments } from "../record-tags";
+import { formatCrmMoney } from "../crm-detail";
 import { DealFormSheet } from "./deal-form-sheet";
 import { DealViewSheet } from "./deal-view-sheet";
 import { DeleteDealDialog } from "./delete-deal-dialog";
@@ -71,14 +71,6 @@ export function DealsDataTable({
   const [viewingDealId, setViewingDealId] = useState<string | null>(null);
   const [editingDeal, setEditingDeal] = useState<any>(null);
   const [deletingDeal, setDeletingDeal] = useState<any>(null);
-
-  const formatCurrency = (amount?: number | null) => {
-    if (!amount) return "—";
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
 
   if (isLoading) {
     return (
@@ -210,12 +202,9 @@ export function DealsDataTable({
                     )}
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1">
-                      <DollarSign className="h-3 w-3 text-muted-foreground" />
-                      <span className="font-semibold text-foreground">
-                        {formatCurrency(deal.amount != null ? Number(deal.amount) : null)}
-                      </span>
-                    </div>
+                    <span className="font-semibold text-foreground">
+                      {formatCrmMoney(deal.amount, deal.currency)}
+                    </span>
                   </TableCell>
                   <TableCell>
                     {deal.expectedCloseDate

@@ -124,6 +124,7 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
     getHostingPlansForPricing: import("@trpc/server").TRPCQueryProcedure<{
         input: void;
         output: {
+            description: string | null;
             productFeatures: {
                 key: string;
                 label: string;
@@ -151,6 +152,7 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
     getEmailHostingPlansForPricing: import("@trpc/server").TRPCQueryProcedure<{
         input: void;
         output: {
+            description: string | null;
             productFeatures: {
                 key: string;
                 label: string;
@@ -178,6 +180,7 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
     getWordPressPlansForPricing: import("@trpc/server").TRPCQueryProcedure<{
         input: void;
         output: {
+            description: string | null;
             productFeatures: {
                 key: string;
                 label: string;

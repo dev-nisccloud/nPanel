@@ -17,6 +17,7 @@ export function WordPressPricing({ className }: WordPressPricingProps) {
 		<CustomerHostingPricing
 			className={className}
 			config={WORDPRESS_HOSTING_PRICING_CONFIG}
+			productDescription={pricingData?.description}
 			subType="WORDPRESS_HOSTING"
 			plans={(pricingData?.plans ?? []).map((plan) => ({
 				...plan,
