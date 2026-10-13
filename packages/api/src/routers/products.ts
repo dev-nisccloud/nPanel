@@ -471,6 +471,16 @@ function assertAgencySuperAdminMutationAccess(role: string | null | undefined) {
     }
 }
 
+function productDescriptionFrom(
+    products: Array<{ description: string | null | undefined }>,
+): string | null {
+    for (const product of products) {
+        const description = product.description?.trim();
+        if (description) return description;
+    }
+    return null;
+}
+
 // ============================================================================
 // ROUTER
 // ============================================================================
@@ -642,6 +652,7 @@ export const productsRouter = router({
     getHostingPlansForPricing: publicProcedure
         .output(
             z.object({
+                description: z.string().nullable(),
                 productFeatures: z.array(z.object({ key: z.string(), label: z.string(), description: z.string().optional() })),
                 plans: z.array(
                     z.object({
@@ -745,13 +756,14 @@ export const productsRouter = router({
                 }
             }
 
-            return { productFeatures, plans };
+            return { description: productDescriptionFrom(products), productFeatures, plans };
         }),
 
     /** Get plans for pricing table from products named "email hosting" (case-insensitive). Same shape as getHostingPlansForPricing. */
     getEmailHostingPlansForPricing: publicProcedure
         .output(
             z.object({
+                description: z.string().nullable(),
                 productFeatures: z.array(z.object({ key: z.string(), label: z.string(), description: z.string().optional() })),
                 plans: z.array(
                     z.object({
@@ -848,13 +860,14 @@ export const productsRouter = router({
                 }
             }
 
-            return { productFeatures, plans };
+            return { description: productDescriptionFrom(products), productFeatures, plans };
         }),
 
     /** Get plans for pricing table from products named "wordpress hosting" or "wordpress managed" (case-insensitive). Same shape as getHostingPlansForPricing. */
     getWordPressPlansForPricing: publicProcedure
         .output(
             z.object({
+                description: z.string().nullable(),
                 productFeatures: z.array(z.object({ key: z.string(), label: z.string(), description: z.string().optional() })),
                 plans: z.array(
                     z.object({
@@ -954,7 +967,7 @@ export const productsRouter = router({
                 }
             }
 
-            return { productFeatures, plans };
+            return { description: productDescriptionFrom(products), productFeatures, plans };
         }),
 
     /**
