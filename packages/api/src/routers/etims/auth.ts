@@ -2,6 +2,7 @@ import { router } from "../../trpc";
 import { TRPCError } from "@trpc/server";
 import { db } from "@npanel/db";
 import { eTimsConfiguration } from "@npanel/db/schema/etims";
+import { loadDeviceSdcId } from "../../lib/etims-config";
 import { etimsProcedure, skipEtimsAuthChecks } from "./_procedure";
 
 const isAgencyUser = (role: string | null | undefined) =>
@@ -30,6 +31,8 @@ export const etimsAuthRouter = router({
                 return { isInitialized: false, config: null };
             }
 
+            const sdcId = await loadDeviceSdcId(config);
+
             return {
                 isInitialized: config.isInitialized,
                 config: {
@@ -37,6 +40,7 @@ export const etimsAuthRouter = router({
                     branchId: config.branchId,
                     deviceSerialNumber: config.deviceSerialNumber,
                     isSandbox: config.isSandbox,
+                    sdcId,
                     updatedAt: config.updatedAt,
                 },
             };

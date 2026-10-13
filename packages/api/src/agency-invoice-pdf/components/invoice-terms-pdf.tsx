@@ -25,6 +25,7 @@ function formatIssuedAt(issueDate?: string | Date, issuedAtDisplay?: string): st
 
 export const InvoiceTermsPdf: React.FC<InvoiceTerms> = ({
   invoiceNumber,
+  scuId,
   issueDate,
   issuedAtDisplay,
   dueDate,
@@ -58,6 +59,14 @@ export const InvoiceTermsPdf: React.FC<InvoiceTerms> = ({
             {invoiceNumber || "-"}
           </Text>
         </View>
+        {scuId?.trim() ? (
+          <View style={pdfInvoiceMeta.rowTerms}>
+            <Text style={pdfInvoiceMeta.label}>SCU ID</Text>
+            <Text style={[pdfInvoiceMeta.value, { maxWidth: 160, textAlign: "right" }]} wrap>
+              {scuId.trim()}
+            </Text>
+          </View>
+        ) : null}
         <View style={pdfInvoiceMeta.rowTerms}>
           <Text style={pdfInvoiceMeta.label}>ISSUED</Text>
           <Text wrap={false} style={pdfInvoiceMeta.value}>

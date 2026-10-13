@@ -107,6 +107,7 @@ export const etimsInitializationRouter = router({
                 branchName: info?.bhfNm ?? existing?.branchName ?? null,
                 deviceSerialNumber: dvcSrlNo,
                 cmcKey,
+                sdcId: info?.sdcId?.trim() || existing?.sdcId || null,
                 isSandbox: input.isSandbox,
                 isInitialized: true,
                 updatedAt: now,

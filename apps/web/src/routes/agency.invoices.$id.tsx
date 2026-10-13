@@ -59,6 +59,8 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { buildKraPersistFieldsFromManual } from "@npanel/api/lib/etims-fiscal-fields";
+import { invoiceLineItemMetadata, type Item } from "@/routes/agency.invoices/create/types";
+import { resolveLineEtimsTaxBand } from "@npanel/api/agency-invoice-pdf/tis-receipt-totals";
 
 let fontsRegistered = false;
 let fontsRegistering = false;
@@ -165,7 +167,7 @@ type InvoiceEditorFormValues = {
 	note: string;
 	discount: string;
 	taxPercentage: number;
-	items: Array<{ itemDescription: string; amount?: number; qty?: number }>;
+	items: Item[];
 	currency: string;
 
 	paymentMethod: "bank" | "mpesa" | "cheque";
@@ -221,11 +223,41 @@ function buildInvoiceEditorDefaults(
 	const customerDetails = (invoice.customerDetails as any) ?? {};
 	const paymentDetails = (invoice.paymentDetails as any) ?? {};
 
-	const items = (invoice.lineItems ?? []).map((li) => ({
-		itemDescription: li.name?.trim() || li.description?.trim() || "",
-		amount: li.price != null ? Number(li.price) : undefined,
-		qty: li.quantity ?? undefined,
-	}));
+	const lineCount = invoice.lineItems?.length ?? 0;
+	const items = (invoice.lineItems ?? []).map((li, index) => {
+		const meta =
+			li.metadata && typeof li.metadata === "object" && !Array.isArray(li.metadata)
+				? (li.metadata as Record<string, unknown>)
+				: undefined;
+		const productId =
+			(typeof meta?.productId === "string" && meta.productId) ||
+			(typeof meta?.niscProductId === "string" && meta.niscProductId) ||
+			(typeof meta?.mainProductId === "string" && meta.mainProductId) ||
+			undefined;
+		const billingCycle =
+			typeof meta?.billingCycle === "string" && meta.billingCycle !== "__unset__"
+				? meta.billingCycle
+				: undefined;
+		const etimsTaxTyCd = resolveLineEtimsTaxBand({
+			metadata: meta,
+			kraPayloads: [
+				(invoice as { kraSyncPayload?: unknown }).kraSyncPayload,
+				(invoice as { kraSyncResponse?: unknown }).kraSyncResponse,
+			],
+			index,
+			lineCount,
+		});
+		return {
+			id: li.id,
+			itemDescription: li.name?.trim() || li.description?.trim() || "",
+			amount: li.price != null ? Number(li.price) : undefined,
+			qty: li.quantity ?? undefined,
+			...(productId ? { productId } : {}),
+			...(billingCycle ? { billingCycle } : {}),
+			...(etimsTaxTyCd ? { etimsTaxTyCd } : {}),
+			...(meta ? { sourceMetadata: meta } : {}),
+		};
+	});
 
 	return {
 		step: "1",
@@ -636,6 +668,9 @@ export default function InvoiceViewPage() {
 		const totalAmount = roundTotalIfExceeds(subtotal - discountValue + taxAmount);
 
 		const lineItems = items.map((item, index) => ({
+			...(item.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(item.id)
+				? { id: item.id }
+				: {}),
 			position: index,
 			name: item.itemDescription || "Service",
 			description: null,
@@ -644,7 +679,7 @@ export default function InvoiceViewPage() {
 			price: String(item.amount || 0),
 			discount: null,
 			total: String((item.amount || 0) * (item.qty || 1)),
-			metadata: null,
+			metadata: invoiceLineItemMetadata(item),
 		}));
 
 		const payloadBase: Record<string, unknown> = { id: invoice.id };

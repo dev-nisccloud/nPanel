@@ -29,6 +29,7 @@ import {
 	sendQuotationEmailSchema,
 } from "./schemas";
 import type { QuotationDetail } from "./schemas";
+import { stampInvoiceLineProductTaxBands } from "../../lib/invoice-kra-mapper";
 
 /** DB or transaction   both support query/insert/update used here */
 type DbLike = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -334,6 +335,9 @@ async function fetchQuotationDetail(_db: DbLike, quotationId: string) {
 	});
 	if (!q) {
 		throw new TRPCError({ code: "NOT_FOUND", message: "Quotation not found." });
+	}
+	if (Array.isArray(q.lineItems)) {
+		await stampInvoiceLineProductTaxBands(q.lineItems);
 	}
 	return q;
 }
@@ -665,7 +669,7 @@ export const quotationsRouter = router({
 							price: stringOrNull(item.price),
 							discount: stringOrNull(item.discount),
 							total: stringOrNull(item.total),
-							...(item.metadata != null && { metadata: item.metadata }),
+							metadata: item.metadata ?? null,
 							updatedAt: new Date(),
 						};
 						if (item.id) {

@@ -29,6 +29,7 @@ export function useEtimsReceiptDownload(opts: {
 	kraPin?: string | null;
 	branchId?: string | null;
 	isSandbox?: boolean;
+	sdcId?: string | null;
 	salesList: EtimsSaleRecord[];
 }) {
 	const utils = trpc.useUtils();
@@ -46,23 +47,30 @@ export function useEtimsReceiptDownload(opts: {
 				setDownloadingInvcNo(invcNo);
 
 				let saleForPdf: Record<string, unknown> = sale;
-				const existingItems = Array.isArray(sale.itemList) ? sale.itemList : [];
-				if (existingItems.length === 0) {
-					try {
-						const detailsRes = await utils.etims.sales.getInvoiceDetails.fetch({ invcNo });
-						saleForPdf = mergeEtimsSaleWithDetails(
-							sale,
-							unwrapEtimsInvoiceDetails(detailsRes),
-						);
-					} catch {
-						// List row is enough for a header-only receipt if KRA details fail.
-					}
+				try {
+					const detailsRes = await utils.etims.sales.getInvoiceDetails.fetch({ invcNo });
+					saleForPdf = mergeEtimsSaleWithDetails(
+						sale,
+						unwrapEtimsInvoiceDetails(detailsRes),
+					);
+				} catch {
+					// List row is enough for a header-only receipt if KRA details fail.
+				}
+
+				let deviceSdcId = opts.sdcId?.trim() || null;
+				try {
+					const configRes = await utils.etims.auth.getConfiguration.fetch();
+					const fromConfig = (configRes as { config?: { sdcId?: string | null } } | null)?.config?.sdcId;
+					if (fromConfig?.trim()) deviceSdcId = fromConfig.trim();
+				} catch {
+					// Use the already-loaded device CU ID when config cannot be refreshed.
 				}
 
 				const ctx = {
 					kraPin: opts.kraPin,
 					branchId: opts.branchId,
 					isSandbox: opts.isSandbox,
+					sdcId: deviceSdcId,
 					originalSale:
 						opts.salesList.find((row) => Number(row.invcNo) === Number(sale.orgInvcNo)) ?? null,
 				};
@@ -123,7 +131,7 @@ export function useEtimsReceiptDownload(opts: {
 				setDownloadingInvcNo(null);
 			}
 		},
-		[opts.branchId, opts.isSandbox, opts.kraPin, opts.salesList, utils],
+		[opts.branchId, opts.isSandbox, opts.kraPin, opts.sdcId, opts.salesList, utils],
 	);
 
 	return { download, downloadingInvcNo };

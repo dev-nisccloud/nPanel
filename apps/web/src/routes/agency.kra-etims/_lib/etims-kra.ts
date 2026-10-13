@@ -34,10 +34,40 @@ export const ITEM_TYPES = [
 export const KRA_CODE_CLASS = {
 	TAX_TYPE: "04",
 	COUNTRY: "05",
+	PAYMENT: "07",
 	QTY_UNIT: "10",
+	TXN_STATUS: "11",
+	STOCK_IO: "12",
+	SALES_TYPE: "14",
+	TAXPAYER_STATUS: "15",
 	PACKAGING: "17",
 	PRODUCT_TYPE: "24",
+	IMPORT_STATUS: "26",
+	REGISTRATION_TYPE: "31",
+	CREDIT_NOTE_REASON: "32",
+	CURRENCY: "33",
+	SALES_RECEIPT_TYPE: "37",
+	PURCHASE_RECEIPT_TYPE: "38",
 } as const;
+
+export const KRA_CODE_CLASS_LABEL: Record<string, string> = {
+	"04": "Tax types",
+	"05": "Countries",
+	"07": "Payment",
+	"10": "Quantity units",
+	"11": "Transaction status",
+	"12": "Stock I/O",
+	"14": "Sales type",
+	"15": "Taxpayer status",
+	"17": "Packaging",
+	"24": "Product type",
+	"26": "Import status",
+	"31": "Registration type",
+	"32": "Credit note reason",
+	"33": "Currency",
+	"37": "Sales receipt",
+	"38": "Purchase receipt",
+};
 
 export type KraCodeOption = { code: string; label: string };
 
@@ -59,7 +89,7 @@ export const PACKAGING_UNITS: KraCodeOption[] = [
 ];
 
 /** Goods default to Box, not Net — `NT` is often unused on live `/selectCodeList` and KRA returns 913. */
-export const GOODS_PKG_PREFERENCE = ["BX", "CT", "PK", "NE", "OU"] as const;
+export const GOODS_PKG_PREFERENCE = ["BG", "NT", "NE", "OU", "BX", "CT", "PK"] as const;
 export const SERVICE_PKG_PREFERENCE = ["OU", "NE", "BX"] as const;
 export const GOODS_QTY_PREFERENCE = ["NO", "EA", "KG"] as const;
 export const SERVICE_QTY_PREFERENCE = ["NO", "HR", "EA"] as const;

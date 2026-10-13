@@ -49,7 +49,9 @@ export const EtimsFiscalFooterPdf: React.FC<EtimsFiscalFooterPdfProps> = ({
 }) => {
 	const internal = fields.intrlDataDashed ?? fields.intrlData;
 	const signature = fields.rcptSignDashed ?? fields.rcptSign;
-	const counter = `${display(fields.curRcptNo)}/${display(fields.totRcptNo)} ${display(fields.receiptLabel)}`;
+	const scuDateTime =
+		fields.sdcDateTimeDisplay?.trim() ||
+		[fields.scuDate, fields.scuTime].filter(Boolean).join(" ");
 
 	return (
 		<View
@@ -77,27 +79,11 @@ export const EtimsFiscalFooterPdf: React.FC<EtimsFiscalFooterPdfProps> = ({
 			<View style={{ flexDirection: "row", alignItems: "flex-start" }}>
 				<View style={{ flex: 1, paddingRight: qrCodeDataUrl ? 12 : 0 }}>
 					<Text style={heading}>SCU Information</Text>
-					<Text style={muted}>
-						<Text style={label}>Date: </Text>
-						<Text>{display(fields.scuDate)}    </Text>
-						<Text style={label}>Time: </Text>
-						<Text>{display(fields.scuTime)}</Text>
-					</Text>
-					<Row k="CU ID" v={fields.sdcId} />
-					<Row k="CU INVOICE NO." v={fields.cuInvoiceNo} />
-					<Row k="Receipt Counter" v={counter} />
-					<View style={{ marginTop: 2 }}>
-						<Text style={label}>Internal Data:</Text>
-						<Text style={muted} wrap>
-							{display(internal)}
-						</Text>
-					</View>
-					<View style={{ marginTop: 2 }}>
-						<Text style={label}>Receipt Signature:</Text>
-						<Text style={muted} wrap>
-							{display(signature)}
-						</Text>
-					</View>
+					<Row k="Date" v={scuDateTime} />
+					<Row k="Control Unit Number" v={fields.sdcId} />
+					<Row k="Invoice Number" v={fields.cuInvoiceNo} />
+					<Row k="Internal Data" v={internal} />
+					<Row k="Receipt Signature" v={signature} />
 				</View>
 				{qrCodeDataUrl ? (
 					<View style={{ width: 72, alignItems: "center" }}>

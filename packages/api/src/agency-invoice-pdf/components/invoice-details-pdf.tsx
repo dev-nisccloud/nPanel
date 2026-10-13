@@ -8,6 +8,7 @@ import {
   buildTisReceiptTotals,
   formatTisMoney,
   tisCreditNoteBandLines,
+  tisTaxRateLabel,
   type TisReceiptTotals,
 } from "../tis-receipt-totals";
 
@@ -111,7 +112,8 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
           Amount
         </Text>
       </View>
-      {itemsNormalized.map(({ itemDescription, amount, qty, billingCycle }, index) => {
+      {itemsNormalized.map(({ itemDescription, amount, qty, billingCycle, etimsTaxTyCd }, index) => {
+        const taxRateLabel = tisTaxRateLabel(etimsTaxTyCd);
         const containerStyle = {
           paddingVertical: compactLineItems ? 5 : 14,
           ...pdfUtils.borderBottom,
@@ -138,6 +140,11 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
                   Billing: {formatBillingCycle(billingCycle)}
                 </Text>
               )}
+              {taxRateLabel && (
+                <Text style={{ ...lineText, fontSize: compactLineItems ? 7 : 9, color: "#666", marginTop: compactLineItems ? 2 : 4 }}>
+                  Tax rate: {taxRateLabel}
+                </Text>
+              )}
             </View>
             <Text style={{ ...lineText, width: QTY_COL_WIDTH, textAlign: "right" }}>
               {qty ? qty : "-"}
@@ -155,25 +162,32 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
           </View>
         );
       })}
-      <View style={pdfUtils.flexRowItemCenter}>
-        <View style={{ flex: 1, paddingTop: 24 }}>
-          {note && (
-            <View style={{ paddingHorizontal: 40 }}>
-              <Text style={headerText}>Note</Text>
-              <Text style={lineText}>{note}</Text>
-            </View>
-          )}
+      {note ? (
+        <View style={{ width: "50%", paddingTop: 24 }}>
+          <View style={{ paddingHorizontal: 40 }}>
+            <Text style={headerText}>Note</Text>
+            <Text style={lineText}>{note}</Text>
+          </View>
         </View>
-        <View style={{ flex: 1 }}>
-          <TisTotalsBlock
-            totals={totals}
-            symbol={symbol}
-            sign={sign}
-            negateAmounts={negateAmounts}
-            compactLineItems={compactLineItems}
-            totalsText={totalsText}
-          />
-        </View>
+      ) : (
+        <View style={{ paddingTop: 24 }} />
+      )}
+      <View wrap={false} style={{ width: "50%", alignSelf: "flex-end" }}>
+        <TisTotalsBlock
+          totals={totals}
+          symbol={symbol}
+          sign={sign}
+          negateAmounts={negateAmounts}
+          compactLineItems={compactLineItems}
+          totalsText={totalsText}
+        />
+        <TisTaxTablePdf
+          totals={totals}
+          symbol={symbol}
+          sign={sign}
+          compactLineItems={compactLineItems}
+          totalsText={totalsText}
+        />
       </View>
     </View>
   );
@@ -260,7 +274,7 @@ function TisTotalsBlock({
   if (negateAmounts) {
     const bands = tisCreditNoteBandLines(totals);
     return (
-      <View>
+      <View wrap={false}>
         {row("Total", totals.total)}
         {bands.map((band) => (
           <View key={band.taxableLabel}>
@@ -275,7 +289,7 @@ function TisTotalsBlock({
   }
 
   return (
-    <View>
+    <View wrap={false}>
       {row("Total before discount", totals.totalBeforeDiscount)}
       {totals.discountAwarded
         ? row("Total discount awarded", totals.discountAwarded, { parens: true })
@@ -284,13 +298,6 @@ function TisTotalsBlock({
       {row("VAT", totals.vat)}
       {row("Total", totals.total, { bold: true })}
       {row("Items Number", totals.itemCount, { count: true })}
-      <TisTaxTablePdf
-        totals={totals}
-        symbol={symbol}
-        sign={sign}
-        compactLineItems={compactLineItems}
-        totalsText={totalsText}
-      />
     </View>
   );
 }
@@ -311,6 +318,7 @@ function TisTaxTablePdf({
   const cell = { ...totalsText, fontSize: compactLineItems ? 7 : 8 };
   return (
     <View
+      wrap={false}
       style={{
         marginHorizontal: 40,
         marginTop: compactLineItems ? 6 : 10,
@@ -362,6 +370,7 @@ const formatBillingCycle = (cycle: string): string => {
     'monthly': 'Monthly',
     'quarterly': 'Quarterly',
     'annually': 'Annually',
+    'biennially': 'Biennially',
   };
   return cycleMap[cycle] || cycle;
 };

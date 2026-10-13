@@ -47,10 +47,16 @@ import {
 	customerFromLookup,
 	extractTaxpayerRow,
 } from "../../_lib/etims-kra";
-import { type EtimsItemRecord } from "../../products/_components/etims-item-utils";
+import {
+	isFinishedProduct,
+	isRawMaterial,
+	isServiceItem,
+	itemTypeLabel,
+	type EtimsItemRecord,
+} from "../../products/_components/etims-item-utils";
 
 const lineSchema = z.object({
-	itemCd: z.string().min(1, "Select a service"),
+	itemCd: z.string().min(1, "Select an item"),
 	itemNm: z.string().min(1, "Enter a name for this line").max(200),
 	itemClsCd: z.string().min(1),
 	pkgUnitCd: z.string().min(1),
@@ -70,7 +76,7 @@ const formSchema = z.object({
 	pmtTyCd: z.string().min(1),
 	salesDt: z.string().min(1),
 	remark: z.string().max(400).optional().or(z.literal("")),
-	lines: z.array(lineSchema).min(1, "Add at least one service line"),
+	lines: z.array(lineSchema).min(1, "Add at least one line"),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -126,11 +132,16 @@ export function SendETimsSaleSheet({
 	const itemOptions = React.useMemo((): ItemOption[] => {
 		const list = unwrapKraList(itemsData, "itemList", "items") as EtimsItemRecord[];
 		const pool = list.filter((it) => it.useYn !== "N" && it.itemCd);
-		return pool.map((it) => ({
-			...it,
-			id: String(it.itemCd),
-			label: `${it.itemNm} (${it.itemCd})`,
-		}));
+		return pool.map((it) => {
+			const type =
+				itemTypeLabel(it.itemTyCd)
+				|| (isServiceItem(it) ? "Service" : isFinishedProduct(it) ? "Finished product" : isRawMaterial(it) ? "Raw material" : "Item");
+			return {
+				...it,
+				id: String(it.itemCd),
+				label: `${type} · ${it.itemNm} (${it.itemCd})`,
+			};
+		});
 	}, [itemsData]);
 
 	const customerOptions = React.useMemo(() => {
@@ -271,6 +282,10 @@ export function SendETimsSaleSheet({
 		const bands = aggregateTaxBands(itemList);
 		const custTin = data.custTin?.trim() || null;
 		const custNm = data.custNm?.trim() || null;
+		const hasGoods = data.lines.some((line) => {
+			const item = itemOptions.find((it) => it.itemCd === line.itemCd);
+			return item ? !isServiceItem(item) : !/^[A-Z]{2}3/.test(line.itemCd);
+		});
 		return {
 			trdInvcNo: data.trdInvcNo.trim(),
 			invcNo,
@@ -283,7 +298,7 @@ export function SendETimsSaleSheet({
 			salesSttsCd: "02",
 			cfmDt,
 			salesDt,
-			stockRlsDt: null,
+			stockRlsDt: hasGoods ? cfmDt : null,
 			totItemCnt: itemList.length,
 			...bands,
 			prchrAcptcYn: "N" as const,
@@ -478,7 +493,7 @@ export function SendETimsSaleSheet({
 
 						<div className="space-y-3">
 							<div className="flex items-center justify-between">
-								<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Services</p>
+								<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Lines</p>
 								<Button
 									type="button"
 									variant="outline"
@@ -519,15 +534,15 @@ export function SendETimsSaleSheet({
 													name={`lines.${index}.itemCd`}
 													render={() => (
 														<FormItem>
-															<FormLabel>Service</FormLabel>
+															<FormLabel>Item</FormLabel>
 															<ComboboxDropdown
 																inDialog
-																placeholder="Select registered service…"
+																placeholder="Select product or service…"
 																searchPlaceholder="Search item code or name…"
 																items={itemOptions}
 																selectedItem={selected}
 																onSelect={(item) => applyItem(index, item)}
-																emptyResults="No services registered. Add one under Products first."
+																emptyResults="No items registered. Add one under Products first."
 															/>
 															{selected?.itemCd ? (
 																<p className="text-[11px] text-muted-foreground">

@@ -278,10 +278,93 @@ async function recordLocalStockIo(stockData: StockIoInput) {
     );
 }
 
-async function recordLocalStockMaster(itemCd: string, rsdQty: number) {
-    await db.update(eTimsItem)
-        .set({ rsdQty: String(rsdQty), updatedAt: new Date() })
-        .where(eq(eTimsItem.itemCd, itemCd));
+async function recordLocalStockMaster(itemCd: string, rsdQty: number, line?: StockIoLine) {
+    const now = new Date();
+    const qty = String(rsdQty);
+    const updated = await db.update(eTimsItem)
+        .set({ rsdQty: qty, updatedAt: now })
+        .where(eq(eTimsItem.itemCd, itemCd))
+        .returning({ itemCd: eTimsItem.itemCd });
+    if (updated.length || !line) return;
+    await db.insert(eTimsItem).values({
+        id: crypto.randomUUID(),
+        localItemId: null,
+        itemCd: line.itemCd,
+        itemClsCd: line.itemClsCd,
+        itemNm: line.itemNm,
+        taxTyCd: line.taxTyCd,
+        pkgUnitCd: line.pkgUnitCd,
+        quantityUnit: line.qtyUnitCd,
+        packagingUnit: line.pkgUnitCd,
+        rsdQty: qty,
+        createdAt: now,
+        updatedAt: now,
+    }).onConflictDoUpdate({
+        target: eTimsItem.itemCd,
+        set: { rsdQty: qty, updatedAt: now },
+    });
+}
+
+function stockIoSign(sarTyCd: string): 1 | -1 | 0 {
+    if (/^0\d$/.test(sarTyCd)) return 1;
+    if (/^1\d$/.test(sarTyCd)) return -1;
+    return 0;
+}
+
+async function currentOnHand(itemCd: string): Promise<number> {
+    const [row] = await db
+        .select({ rsdQty: eTimsItem.rsdQty })
+        .from(eTimsItem)
+        .where(eq(eTimsItem.itemCd, itemCd))
+        .limit(1);
+    const qty = Number(row?.rsdQty ?? 0);
+    return Number.isFinite(qty) ? qty : 0;
+}
+
+/** After insertStockIO, remaining qty on KRA is still whatever last saveStockMaster sent. */
+async function applyMovementToOnHand(
+    client: EtimsOscuClient,
+    oscu: EtimsOscuHeaders,
+    isSandbox: boolean,
+    stockData: StockIoInput,
+) {
+    const sign = stockIoSign(stockData.sarTyCd);
+    if (sign === 0) return;
+    const totals = new Map<string, { line: StockIoLine; delta: number }>();
+    for (const line of stockData.itemList) {
+        const qty = Number(line.qty) || 0;
+        const prev = totals.get(line.itemCd);
+        if (prev) {
+            prev.delta = roundMoney(prev.delta + sign * qty);
+            continue;
+        }
+        totals.set(line.itemCd, { line, delta: roundMoney(sign * qty) });
+    }
+    for (const [itemCd, { line, delta }] of totals) {
+        const rsdQty = Math.max(0, roundMoney(await currentOnHand(itemCd) + delta));
+        try {
+            await recordLocalStockMaster(itemCd, rsdQty, line);
+        } catch (persistErr) {
+            console.warn("[eTIMS] local on-hand persist failed:", errMsg(persistErr));
+        }
+        try {
+            await withClassicOscuFallback(
+                client,
+                isSandbox,
+                (c) => c.saveStockMaster(oscu, {
+                    itemCd,
+                    rsdQty,
+                    regrId: stockData.regrId,
+                    regrNm: stockData.regrNm,
+                    modrId: stockData.modrId,
+                    modrNm: stockData.modrNm,
+                }),
+                "saveStockMaster",
+            );
+        } catch (masterErr) {
+            console.warn("[eTIMS] saveStockMaster after movement failed:", errMsg(masterErr));
+        }
+    }
 }
 
 function needsStockIoSeed(message: string) {
@@ -423,7 +506,9 @@ export const etimsStockRouter = router({
                         };
                     }
                 }
-                const result = await insertStockIoWithRetry(client, oscu, isSandbox, { ...input.stockData, itemList });
+                const stockData = { ...input.stockData, itemList };
+                const result = await insertStockIoWithRetry(client, oscu, isSandbox, stockData);
+                await applyMovementToOnHand(client, oscu, isSandbox, stockData);
                 return { success: true, data: result };
             } catch (e: unknown) {
                 const msg = errMsg(e);

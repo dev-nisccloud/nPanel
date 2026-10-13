@@ -204,6 +204,7 @@ export default function ETimsProductsPage() {
                 }}
                 items={itemList}
                 initialItem={stockItem}
+                onSuccess={() => void refetch()}
             />
 
             <ViewETimsItemSheet
