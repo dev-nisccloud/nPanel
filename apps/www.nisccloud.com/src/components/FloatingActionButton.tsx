@@ -20,6 +20,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover.tsx";
+import { trpcMutation } from "@/lib/domain-search/api.ts";
 import { cn } from "@/lib/utils.ts";
 import { useNavbarAuth } from "@/pages/_components/NavbarAuth.tsx";
 import {
@@ -216,6 +217,13 @@ export function FloatingActionButton({ className }: { className?: string }) {
     }
     setStartingGuest(true);
     try {
+      await trpcMutation("storefront.leads.submit", {
+        name: guestName.trim(),
+        email: guestEmail.trim(),
+        phone: guestPhone.trim() || undefined,
+        message: "Started a conversation from the website.",
+        source: "chat",
+      });
       await startGuestSupportSession({
         name: guestName.trim(),
         email: guestEmail.trim(),

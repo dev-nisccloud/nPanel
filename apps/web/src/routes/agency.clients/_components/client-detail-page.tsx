@@ -16,6 +16,7 @@ import {
   Ban,
   Plus,
   Edit,
+  KeyRound,
   MonitorSmartphone,
 } from "lucide-react";
 
@@ -43,6 +44,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { toast } from "@/components/ui/sonner";
+import { authClient } from "@/lib/auth-client";
 import { SettingsSection } from "@/components/account-settings/settings-section";
 import { trpc } from "@/utils/trpc";
 
@@ -51,6 +53,7 @@ import { EditProfileDialog } from "./edit-profile-dialog";
 import { IntegrationsDisplay } from "./integrations-display";
 import { AddIntegrationDialog } from "./add-integration-dialog";
 import { EditClientDialog } from "./edit-client-dialog";
+import { ResetClientPasswordDialog } from "./reset-client-password-dialog";
 import { OverviewInvoicesBilling } from "./overview-invoices-billing";
 import { ClientSettingsShell, type ClientTab } from "./client-settings-shell";
 import { ClientProfileHeader } from "./client-profile-header";
@@ -642,6 +645,7 @@ export function ClientDetailPage({ clientId }: { clientId: string }) {
   const { client, isLoading, error } = useClientData(clientId);
 
   const [isEditAccountOpen, setIsEditAccountOpen] = React.useState(false);
+  const [isResetPasswordOpen, setIsResetPasswordOpen] = React.useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = React.useState(false);
   const [isAddIntegrationOpen, setIsAddIntegrationOpen] = React.useState(false);
   const [isActionMenuOpen, setIsActionMenuOpen] = React.useState(false);
@@ -650,6 +654,10 @@ export function ClientDetailPage({ clientId }: { clientId: string }) {
     status: "ACTIVE" | "SUSPENDED" | "BANNED" | "DEACTIVATED" | null;
     label: string;
   }>({ open: false, status: null, label: "" });
+
+  const { data: session } = authClient.useSession();
+  const isSuperAdmin =
+    (session?.user as { role?: string } | undefined)?.role === "AGENCY_SUPER_ADMIN";
 
   const utils = trpc.useUtils();
 
@@ -718,6 +726,12 @@ export function ClientDetailPage({ clientId }: { clientId: string }) {
           <Edit className="mr-2 h-4 w-4" />
           Edit account
         </DropdownMenuItem>
+        {isSuperAdmin && (
+          <DropdownMenuItem onSelect={() => { setIsActionMenuOpen(false); setIsResetPasswordOpen(true); }}>
+            <KeyRound className="mr-2 h-4 w-4" />
+            Reset password
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         {isDeactivated ? (
           <DropdownMenuItem onSelect={() => { setIsActionMenuOpen(false); setStatusDialog({ open: true, status: "ACTIVE", label: "reactivate" }); }}>
@@ -792,6 +806,16 @@ export function ClientDetailPage({ clientId }: { clientId: string }) {
         initialData={{ name: client.name, email: client.email, role: client.role }}
         onSuccess={handleEditSuccess}
       />
+
+      {isSuperAdmin && (
+        <ResetClientPasswordDialog
+          open={isResetPasswordOpen}
+          onOpenChange={setIsResetPasswordOpen}
+          clientId={clientId}
+          clientName={client.name}
+          clientEmail={client.email}
+        />
+      )}
 
       <EditProfileDialog
         open={isEditProfileOpen}

@@ -12,6 +12,14 @@ import { NISC_SEO_REPORTS_PRODUCT_ID, SEO_PRODUCT_FEATURES } from "../lib/seo-re
 import { NISC_MEDIA_BUYING_PRODUCT_ID } from "../lib/media-buying-billing";
 import { getEtimsContext } from "../lib/etims-config";
 import { eTimsItem } from "@npanel/db/schema/etims";
+function productDescriptionFrom(products) {
+    for (const product of products) {
+        const description = product.description?.trim();
+        if (description)
+            return description;
+    }
+    return null;
+}
 // ============================================================================
 // ZOD SCHEMAS   independent from the database schema layer
 // ============================================================================
@@ -531,6 +539,7 @@ export const productsRouter = router({
     /** Get plans for pricing table from products named "web hosting" or "website hosting" (case-insensitive). Returns product-level feature list (table rows) and plans with per-feature values (enabled + valueOverride exactly as stored, no number conversion). */
     getHostingPlansForPricing: publicProcedure
         .output(z.object({
+        description: z.string().nullable(),
         productFeatures: z.array(z.object({ key: z.string(), label: z.string(), description: z.string().optional() })),
         plans: z.array(z.object({
             id: z.string(),
@@ -602,11 +611,12 @@ export const productsRouter = router({
                 });
             }
         }
-        return { productFeatures, plans };
+        return { description: productDescriptionFrom(products), productFeatures, plans };
     }),
     /** Get plans for pricing table from products named "email hosting" (case-insensitive). Same shape as getHostingPlansForPricing. */
     getEmailHostingPlansForPricing: publicProcedure
         .output(z.object({
+        description: z.string().nullable(),
         productFeatures: z.array(z.object({ key: z.string(), label: z.string(), description: z.string().optional() })),
         plans: z.array(z.object({
             id: z.string(),
@@ -676,11 +686,12 @@ export const productsRouter = router({
                 });
             }
         }
-        return { productFeatures, plans };
+        return { description: productDescriptionFrom(products), productFeatures, plans };
     }),
     /** Get plans for pricing table from products named "wordpress hosting" or "wordpress managed" (case-insensitive). Same shape as getHostingPlansForPricing. */
     getWordPressPlansForPricing: publicProcedure
         .output(z.object({
+        description: z.string().nullable(),
         productFeatures: z.array(z.object({ key: z.string(), label: z.string(), description: z.string().optional() })),
         plans: z.array(z.object({
             id: z.string(),
@@ -750,7 +761,7 @@ export const productsRouter = router({
                 });
             }
         }
-        return { productFeatures, plans };
+        return { description: productDescriptionFrom(products), productFeatures, plans };
     }),
     /**
      * Digital marketing upsell catalog (category MARKETING) for domain checkout.

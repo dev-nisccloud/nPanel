@@ -112,58 +112,49 @@ export type ProductFeatureRow = {
 };
 
 export type SharedHostingPricingData = {
+  description: string | null;
   plans: SharedHostingPlan[];
   productFeatures: ProductFeatureRow[];
 };
 
-export async function fetchSharedHostingPlansPublic(): Promise<SharedHostingPricingData> {
-  const res = await trpcQuery<{ success?: boolean; plans?: SharedHostingPlan[]; productFeatures?: ProductFeatureRow[] }>(
-    "products.getHostingPlansForPricing"
-  );
+type HostingPricingResponse = {
+  success?: boolean;
+  description?: string | null;
+  plans?: SharedHostingPlan[];
+  productFeatures?: ProductFeatureRow[];
+};
+
+function toHostingPricingData(res: HostingPricingResponse | null | undefined): SharedHostingPricingData {
   return {
+    description: res?.description?.trim() || null,
     plans: res?.plans ?? [],
     productFeatures: res?.productFeatures ?? [],
   };
+}
+
+export async function fetchSharedHostingPlansPublic(): Promise<SharedHostingPricingData> {
+  const res = await trpcQuery<HostingPricingResponse>("products.getHostingPlansForPricing");
+  return toHostingPricingData(res);
 }
 
 export async function fetchEmailHostingPlansPublic(): Promise<SharedHostingPricingData> {
-  const res = await trpcQuery<{ success?: boolean; plans?: SharedHostingPlan[]; productFeatures?: ProductFeatureRow[] }>(
-    "products.getEmailHostingPlansForPricing"
-  );
-  return {
-    plans: res?.plans ?? [],
-    productFeatures: res?.productFeatures ?? [],
-  };
+  const res = await trpcQuery<HostingPricingResponse>("products.getEmailHostingPlansForPricing");
+  return toHostingPricingData(res);
 }
 
 export async function fetchWordPressHostingPlansPublic(): Promise<SharedHostingPricingData> {
-  const res = await trpcQuery<{ success?: boolean; plans?: SharedHostingPlan[]; productFeatures?: ProductFeatureRow[] }>(
-    "products.getWordPressPlansForPricing"
-  );
-  return {
-    plans: res?.plans ?? [],
-    productFeatures: res?.productFeatures ?? [],
-  };
+  const res = await trpcQuery<HostingPricingResponse>("products.getWordPressPlansForPricing");
+  return toHostingPricingData(res);
 }
 
 export async function fetchSeoPlansPublic(): Promise<SharedHostingPricingData> {
-  const res = await trpcQuery<{ success?: boolean; plans?: SharedHostingPlan[]; productFeatures?: ProductFeatureRow[] }>(
-    "products.getSeoPlansForPricing"
-  );
-  return {
-    plans: res?.plans ?? [],
-    productFeatures: res?.productFeatures ?? [],
-  };
+  const res = await trpcQuery<HostingPricingResponse>("products.getSeoPlansForPricing");
+  return toHostingPricingData(res);
 }
 
 export async function fetchEmailMarketingPlansPublic(): Promise<SharedHostingPricingData> {
-  const res = await trpcQuery<{ success?: boolean; plans?: SharedHostingPlan[]; productFeatures?: ProductFeatureRow[] }>(
-    "products.getNiscEmailMarketingPlansForPricing"
-  );
-  return {
-    plans: res?.plans ?? [],
-    productFeatures: res?.productFeatures ?? [],
-  };
+  const res = await trpcQuery<HostingPricingResponse>("products.getNiscEmailMarketingPlansForPricing");
+  return toHostingPricingData(res);
 }
 
 // --- Specific fetchers ---

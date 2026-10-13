@@ -27,9 +27,7 @@ export type HostingPlanFallbackFeature = {
 
 export type CustomerHostingPlansPricingConfig = {
 	title: string;
-	description: string;
 	planIcon: LucideIcon;
-	locationLabel?: string;
 	highlightBadge: string;
 	fallbackFeatures: HostingPlanFallbackFeature[];
 };

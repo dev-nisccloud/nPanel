@@ -9,8 +9,6 @@ import type { HostingPlansPricingConfig } from "./HostingPlansPricingSection.tsx
 export const SHARED_HOSTING_PRICING_CONFIG: HostingPlansPricingConfig = {
   sectionId: "plans",
   title: "Choose Your Hosting Plan",
-  description:
-    "Fast, reliable shared hosting with NVMe SSD servers, free SSL, cPanel, and daily backups.",
   serviceType: "web_hosting",
   fetchPlans: fetchSharedHostingPlansPublic,
   planIcon: Server,
@@ -37,8 +35,6 @@ export const SHARED_HOSTING_PRICING_CONFIG: HostingPlansPricingConfig = {
 export const WORDPRESS_HOSTING_PRICING_CONFIG: HostingPlansPricingConfig = {
   sectionId: "plans",
   title: "Choose Your WordPress Plan",
-  description:
-    "WordPress-optimised hosting with LiteSpeed cache, staging environments, auto-updates, and free SSL.",
   serviceType: "wordpress_hosting",
   fetchPlans: fetchWordPressHostingPlansPublic,
   planIcon: Zap,
@@ -70,8 +66,6 @@ export const WORDPRESS_HOSTING_PRICING_CONFIG: HostingPlansPricingConfig = {
 export const EMAIL_HOSTING_PRICING_CONFIG: HostingPlansPricingConfig = {
   sectionId: "plans",
   title: "Choose Your Business Email Plan",
-  description:
-    "Professional email on your domain with DKIM, SPF, webmail, and mobile sync.",
   serviceType: "email_hosting",
   fetchPlans: fetchEmailHostingPlansPublic,
   planIcon: Mail,

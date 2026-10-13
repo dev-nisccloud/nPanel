@@ -17,6 +17,7 @@ export function HostingPricing({ className }: EmailHostingPricingProps) {
 		<CustomerHostingPricing
 			className={className}
 			config={EMAIL_HOSTING_PRICING_CONFIG}
+			productDescription={pricingData?.description}
 			subType="EMAIL_HOSTING"
 			plans={(pricingData?.plans ?? []).map((plan) => ({
 				...plan,
