@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/react";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { DefaultProviders } from "./components/providers/default.tsx";
 import Index from "./pages/Index.tsx";
@@ -123,6 +124,7 @@ export default function App() {
     <DefaultProviders>
       <BrowserRouter>
         <AppRoutes />
+        <Analytics />
       </BrowserRouter>
     </DefaultProviders>
   );
