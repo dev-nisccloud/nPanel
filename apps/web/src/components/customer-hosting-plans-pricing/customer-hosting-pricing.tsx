@@ -18,6 +18,7 @@ type HostingSubType = "WEB_HOSTING" | "EMAIL_HOSTING" | "WORDPRESS_HOSTING";
 export type CustomerHostingPricingProps = {
 	className?: string;
 	config: CustomerHostingPlansPricingConfig;
+	productDescription?: string | null;
 	subType: HostingSubType;
 	plans: HostingPlan[];
 	productFeatures: ProductFeatureRow[];
@@ -29,6 +30,7 @@ export type CustomerHostingPricingProps = {
 export function CustomerHostingPricing({
 	className,
 	config,
+	productDescription,
 	subType,
 	plans,
 	productFeatures,
@@ -77,6 +79,7 @@ export function CustomerHostingPricing({
 				<div className="min-w-0 pb-4">
 					<CustomerHostingPlansPricingSection
 						config={config}
+						productDescription={productDescription}
 						plans={plans}
 						productFeatures={productFeatures}
 						isLoading={isLoading}

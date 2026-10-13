@@ -109,6 +109,30 @@ export const contactsRouter = router({
 
     return handleDatabaseOperation(async () => {
       const { ownerId, ...data } = input;
+      const email = data.email?.trim() || null;
+      if (email) {
+        data.email = email;
+        const existing = await db.query.crmContact.findFirst({
+          where: ilike(crmContact.email, email),
+        });
+        if (existing) {
+          const patch: Partial<typeof existing> = {};
+          if (data.leadStatus) patch.leadStatus = data.leadStatus;
+          if (data.leadSource) patch.leadSource = data.leadSource;
+          if (data.seniority) patch.seniority = data.seniority;
+          if (data.phone && !existing.phone) patch.phone = data.phone;
+          if (data.title && !existing.title) patch.title = data.title;
+          if (data.companyId && !existing.companyId) patch.companyId = data.companyId;
+          if (Object.keys(patch).length === 0) return { ...existing, reused: true };
+          const [updated] = await db
+            .update(crmContact)
+            .set(patch)
+            .where(eq(crmContact.id, existing.id))
+            .returning();
+          return { ...(updated ?? existing), reused: true };
+        }
+      }
+
       const [contact] = await db
         .insert(crmContact)
         .values({

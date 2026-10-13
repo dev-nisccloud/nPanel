@@ -17,6 +17,7 @@
 import { router } from "../../trpc";
 import { storefrontAuthRouter } from "./auth";
 import { storefrontCartRouter } from "./cart";
+import { storefrontLeadsRouter } from "./leads";
 import { storefrontPaymentRouter } from "./payment";
 import { storefrontOrdersRouter } from "./orders";
 
@@ -29,4 +30,6 @@ export const storefrontRouter = router({
   payment: storefrontPaymentRouter,
   /** Order creation + handoff to order processor after confirmed payment. */
   orders: storefrontOrdersRouter,
+  /** Public website forms → CRM contact, company, and Website Leads deal. */
+  leads: storefrontLeadsRouter,
 });

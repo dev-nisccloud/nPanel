@@ -21,6 +21,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ComboboxDropdown, type ComboboxItem } from "@npanel/ui/components/combobox-dropdown";
 import { trpc } from "@/utils/trpc";
 import { toast } from "sonner";
@@ -34,6 +41,7 @@ const dealFormSchema = z.object({
   companyId: z.string().optional(),
   primaryContactId: z.string().optional(),
   value: z.number().optional(),
+  currency: z.enum(["KES", "USD"]),
   probability: z.number().min(0).max(100).optional(),
   expectedCloseDate: z.string().optional(),
   description: z.string().optional(),
@@ -45,6 +53,8 @@ interface DealFormSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   deal?: any;
+  /** When set, the deal stays on this contact instead of picking another one. */
+  fixedContact?: { id: string; name: string; companyId?: string | null };
   onSuccess: () => void;
 }
 
@@ -57,6 +67,7 @@ export function DealFormSheet({
   open,
   onOpenChange,
   deal,
+  fixedContact,
   onSuccess,
 }: DealFormSheetProps) {
   const isEditing = !!deal;
@@ -71,6 +82,7 @@ export function DealFormSheet({
       companyId: "",
       primaryContactId: "",
       value: undefined,
+      currency: "KES",
       probability: undefined,
       expectedCloseDate: "",
       description: "",
@@ -163,6 +175,7 @@ export function DealFormSheet({
         companyId: deal.companyId || "",
         primaryContactId: deal.primaryContactId || "",
         value: deal.amount != null ? Number(deal.amount) : undefined,
+        currency: deal.currency === "USD" ? "USD" : "KES",
         probability: deal.probability ?? undefined,
         expectedCloseDate: deal.expectedCloseDate
           ? new Date(deal.expectedCloseDate).toISOString().split("T")[0]
@@ -175,14 +188,15 @@ export function DealFormSheet({
       name: "",
       pipelineId: "",
       stageId: "",
-      companyId: "",
-      primaryContactId: "",
+      companyId: fixedContact?.companyId || "",
+      primaryContactId: fixedContact?.id || "",
       value: undefined,
+      currency: "KES",
       probability: undefined,
       expectedCloseDate: "",
       description: "",
     });
-  }, [deal, form, open]);
+  }, [deal, form, open, fixedContact]);
 
   useEffect(() => {
     if (!open || deal || pipelineId || pipelines.length === 0) return;
@@ -225,9 +239,10 @@ export function DealFormSheet({
       name: data.name,
       pipelineId: data.pipelineId,
       stageId: data.stageId,
-      companyId: data.companyId || null,
-      primaryContactId: data.primaryContactId || null,
+      companyId: data.companyId || fixedContact?.companyId || null,
+      primaryContactId: fixedContact?.id || data.primaryContactId || null,
       amount: data.value != null ? String(data.value) : null,
+      currency: data.currency,
       probability: data.probability ?? null,
       expectedCloseDate: data.expectedCloseDate ? new Date(data.expectedCloseDate) : null,
       description: data.description || null,
@@ -280,7 +295,7 @@ export function DealFormSheet({
                   name="value"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Amount (KES)</FormLabel>
+                      <FormLabel>Amount</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -296,6 +311,30 @@ export function DealFormSheet({
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name="currency"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Currency</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Currency" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="KES">KES</SelectItem>
+                          <SelectItem value="USD">USD ($)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
 
                 <FormField
                   control={form.control}
@@ -431,7 +470,7 @@ export function DealFormSheet({
                         onSelect={(item) => {
                           const nextCompanyId = item.id === NONE ? "" : item.id;
                           field.onChange(nextCompanyId);
-                          if (nextCompanyId !== companyId) {
+                          if (!fixedContact && nextCompanyId !== companyId) {
                             form.setValue("primaryContactId", "");
                           }
                         }}
@@ -446,6 +485,12 @@ export function DealFormSheet({
                 )}
               />
 
+              {fixedContact ? (
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Contact</p>
+                  <p className="text-sm font-semibold text-foreground">{fixedContact.name}</p>
+                </div>
+              ) : (
               <FormField
                 control={form.control}
                 name="primaryContactId"
@@ -473,6 +518,7 @@ export function DealFormSheet({
                   </FormItem>
                 )}
               />
+              )}
             </div>
 
             <div className="flex justify-end gap-2 pt-4">

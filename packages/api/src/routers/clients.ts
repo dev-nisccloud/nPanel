@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, inArray, or } from "@npanel/db";
+import { and, desc, eq, inArray, like, or } from "@npanel/db";
 import { db } from "@npanel/db";
 import { invoice, invoiceTransaction } from "@npanel/db/schema/invoicing";
 import { quotation } from "@npanel/db/schema/quotations";
@@ -14,9 +14,10 @@ import {
 	userActivityLog,
 	userProfile,
 } from "@npanel/db/schema/auth-extras";
-import { session as sessionTable, user } from "@npanel/db/schema/auth";
+import { account, session as sessionTable, user, verification } from "@npanel/db/schema/auth";
 import * as crypto from "crypto";
 import { auth } from "@npanel/auth";
+import { hashCredentialPassword } from "@npanel/auth/hash-credential-password";
 import { renderAccountCreatedEmail } from "../lib/email-templates";
 import { sendEmail } from "../lib/email";
 import { sendPleskXmlRequest } from "../lib/plesk/xml-client";
@@ -217,6 +218,18 @@ const requestPasswordResetInputSchema = z.object({
 });
 
 const requestPasswordResetOutputSchema = z.object({
+	success: z.boolean(),
+});
+
+const resetPasswordInputSchema = z.object({
+	userId: z.string().min(1),
+	newPassword: z
+		.string()
+		.min(8, "Password must be at least 8 characters")
+		.max(128, "Password must be at most 128 characters"),
+});
+
+const resetPasswordOutputSchema = z.object({
 	success: z.boolean(),
 });
 
@@ -1141,15 +1154,120 @@ export const clientsRouter = router({
 					createdAt: new Date(),
 				});
 
-				return {
-					success: true,
-				};
+			return {
+				success: true,
+			};
 			} catch (error) {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to send password reset email",
 				});
 			}
+		}),
+
+	// Set a client's password directly. Agency super admin only. No email is sent.
+	resetPassword: protectedProcedure
+		.input(resetPasswordInputSchema)
+		.output(resetPasswordOutputSchema)
+		.mutation(async ({ ctx, input }) => {
+			const session = ctx.session;
+			if (!session?.user?.id) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You must be logged in to reset a password",
+				});
+			}
+
+			// Session role is not trusted for this override.
+			const [actor] = await db
+				.select({ role: user.role })
+				.from(user)
+				.where(eq(user.id, session.user.id))
+				.limit(1);
+
+			if (!actor || actor.role !== "AGENCY_SUPER_ADMIN") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only an agency super admin can reset a client password",
+				});
+			}
+
+			const [targetUser] = await db
+				.select({ id: user.id })
+				.from(user)
+				.where(eq(user.id, input.userId))
+				.limit(1);
+
+			if (!targetUser) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "User not found",
+				});
+			}
+
+			const hashedPassword = await hashCredentialPassword(input.newPassword);
+			const now = new Date();
+
+			await db.transaction(async (tx) => {
+				const [credentialAccount] = await tx
+					.select({ id: account.id })
+					.from(account)
+					.where(
+						and(
+							eq(account.userId, targetUser.id),
+							eq(account.providerId, "credential"),
+						),
+					)
+					.limit(1);
+
+				if (credentialAccount) {
+					await tx
+						.update(account)
+						.set({
+							password: hashedPassword,
+							updatedAt: now,
+						})
+						.where(eq(account.id, credentialAccount.id));
+				} else {
+					await tx.insert(account).values({
+						id: crypto.randomUUID(),
+						accountId: targetUser.id,
+						providerId: "credential",
+						userId: targetUser.id,
+						password: hashedPassword,
+						createdAt: now,
+						updatedAt: now,
+					});
+				}
+
+				// Drop unused email reset links so they cannot overwrite this password.
+				await tx
+					.delete(verification)
+					.where(
+						and(
+							eq(verification.value, targetUser.id),
+							like(verification.identifier, "reset-password:%"),
+						),
+					);
+
+				await tx.insert(userActivityLog).values({
+					id: crypto.randomUUID(),
+					userId: targetUser.id,
+					action: "PASSWORD_RESET_BY_ADMIN",
+					description: `Password reset by agency super admin: ${session.user.email}`,
+					metadata: {
+						resetBy: session.user.id,
+						resetByEmail: session.user.email,
+					},
+					ipAddress: null,
+					userAgent: null,
+					createdAt: now,
+				});
+			});
+
+			return {
+				success: true,
+			};
 		}),
 
 	// Get client sessions

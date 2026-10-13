@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { CheckCircle, Loader2, Sparkles } from "lucide-react";
+import { trpcMutation } from "@/lib/domain-search/api.ts";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
@@ -86,10 +87,25 @@ export default function ContactForm() {
   const serviceValue = watch("service");
   const budgetValue = watch("budget");
 
-  const onSubmit = async (_data: FormData) => {
-    await new Promise((r) => setTimeout(r, 1200));
-    setSubmitted(true);
-    toast.success("Message sent! We'll be in touch within 24 hours.");
+  const onSubmit = async (data: FormData) => {
+    try {
+      await trpcMutation("storefront.leads.submit", {
+        name: data.name,
+        email: data.email,
+        company: data.company?.trim() || undefined,
+        service: data.service,
+        serviceName: prefilledServiceName ?? undefined,
+        budget: data.budget || undefined,
+        message: data.message,
+        plan: prefilledPlan ?? undefined,
+        planPrice: prefilledPlanPrice ?? undefined,
+        source: "contact",
+      });
+      setSubmitted(true);
+      toast.success("Message sent! We'll be in touch within 24 hours.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not send your message. Please try again.");
+    }
   };
 
   if (submitted) {

@@ -4,7 +4,6 @@ import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { KeyRound } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 
 import { Button } from "@/components/ui/button";
@@ -32,7 +31,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 
@@ -108,15 +106,6 @@ export function EditClientDialog({
     },
   });
 
-  const requestPasswordResetMutation = trpc.clients.requestPasswordReset.useMutation({
-    onSuccess: () => {
-      toast.success("Password reset email sent successfully");
-    },
-    onError: (error) => {
-      toast.error(error.message || "Failed to send password reset email");
-    },
-  });
-
   const onSubmit = (data: FormData) => {
     // Only send changed fields
     const submitData: any = { userId: clientId };
@@ -139,10 +128,6 @@ export function EditClientDialog({
     } else {
       toast.info("No changes to save");
     }
-  };
-
-  const handlePasswordReset = () => {
-    requestPasswordResetMutation.mutate({ userId: clientId });
   };
 
   return (
@@ -211,36 +196,6 @@ export function EditClientDialog({
                 </FormItem>
               )}
             />
-
-            <Separator />
-
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm font-medium mb-2">Password Management</p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handlePasswordReset}
-                  disabled={requestPasswordResetMutation.isPending}
-                  className="w-full"
-                >
-                  {requestPasswordResetMutation.isPending ? (
-                    <>
-                      <Spinner size={16} className="mr-2" />
-                      Sending...
-                    </>
-                  ) : (
-                    <>
-                      <KeyRound className="mr-2 h-4 w-4" />
-                      Request Password Reset
-                    </>
-                  )}
-                </Button>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Send a password reset email to the client
-                </p>
-              </div>
-            </div>
 
             <DialogFooter className="gap-2 sm:gap-0">
               <Button

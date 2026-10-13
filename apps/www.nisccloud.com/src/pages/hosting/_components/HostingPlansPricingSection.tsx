@@ -3,7 +3,6 @@ import {
   Globe,
   HardDrive,
   Mail,
-  MapPin,
   Network,
   Server,
   ShieldCheck,
@@ -44,11 +43,9 @@ export type HostingPlanFallbackFeature = {
 export type HostingPlansPricingConfig = {
   sectionId?: string;
   title: string;
-  description: string;
   serviceType: string;
   fetchPlans: () => Promise<SharedHostingPricingData>;
   planIcon: LucideIcon;
-  locationLabel?: string;
   highlightBadge: string;
   fallbackFeatures: HostingPlanFallbackFeature[];
 };
@@ -170,43 +167,30 @@ function HostingPlanCard({
 
   return (
     <Card className="group flex h-full flex-col transition-all hover:border-primary/50 hover:shadow-md">
-      <CardHeader className="pb-3">
-        <div className="mb-1 flex items-start justify-between gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-primary/10">
-            <PlanIcon className="h-6 w-6 text-primary" />
-          </div>
-          <div className="flex flex-col items-end gap-2">
-            {plan.isPopular && <Badge variant="secondary">Popular</Badge>}
-            {plan.isRecommended && (
-              <Badge variant="outline" className="border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
-                Recommended
-              </Badge>
-            )}
-            <Badge variant="default" className="text-[10px] uppercase">
-              Available
-            </Badge>
-          </div>
-        </div>
-
-        <CardTitle className="line-clamp-2 text-base font-semibold" title={plan.name}>
-          {plan.name}
-        </CardTitle>
-
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Server location
-            </p>
-            <div className="mt-1 flex items-center gap-1.5">
-              <MapPin className="h-4 w-4 shrink-0 text-primary" />
-              <p className="line-clamp-1 text-sm font-semibold">
-                {config.locationLabel ?? "Cloud infrastructure"}
-              </p>
+      <CardHeader className="gap-3 pb-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-primary/10">
+              <PlanIcon className="h-5 w-5 text-primary" />
             </div>
+            <CardTitle className="line-clamp-2 text-base font-semibold leading-snug" title={plan.name}>
+              {plan.name}
+            </CardTitle>
           </div>
+          <Badge variant="default" className="shrink-0 text-[10px] uppercase">
+            Available
+          </Badge>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
           <Badge variant="outline" className="border-primary text-primary">
             {config.highlightBadge}
           </Badge>
+          {plan.isPopular ? <Badge variant="secondary">Popular</Badge> : null}
+          {plan.isRecommended ? (
+            <Badge variant="outline" className="border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
+              Recommended
+            </Badge>
+          ) : null}
         </div>
       </CardHeader>
 
@@ -272,13 +256,15 @@ function HostingPlanCard({
 function PlanSkeleton() {
   return (
     <Card className="flex h-full flex-col">
-      <CardHeader className="pb-3">
-        <div className="mb-2 flex justify-between">
-          <Skeleton className="h-12 w-12 rounded-xl" />
-          <Skeleton className="h-6 w-16" />
+      <CardHeader className="gap-3 pb-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-11 w-11 rounded-xl" />
+            <Skeleton className="h-5 w-24" />
+          </div>
+          <Skeleton className="h-5 w-16" />
         </div>
-        <Skeleton className="mb-2 h-6 w-3/4" />
-        <Skeleton className="h-4 w-1/2" />
+        <Skeleton className="h-5 w-28" />
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-4">
         <Skeleton className="h-48 w-full rounded-lg" />
@@ -296,6 +282,7 @@ export function HostingPlansPricingSection({
 }) {
   const [plans, setPlans] = React.useState<SharedHostingPlan[]>([]);
   const [productFeatures, setProductFeatures] = React.useState<ProductFeatureRow[]>([]);
+  const [productDescription, setProductDescription] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -307,6 +294,7 @@ export function HostingPlansPricingSection({
         if (!active) return;
         setPlans(data.plans);
         setProductFeatures(data.productFeatures);
+        setProductDescription(data.description?.trim() || null);
       })
       .catch((err: unknown) => {
         if (active) {
@@ -325,9 +313,15 @@ export function HostingPlansPricingSection({
     <TooltipProvider>
       <section id={config.sectionId ?? "plans"} className="bg-muted/10 py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-12 text-center">
-            <h2 className="mb-4 text-3xl font-bold tracking-tight">{config.title}</h2>
-            <p className="mx-auto max-w-2xl text-lg text-muted-foreground">{config.description}</p>
+          <div className="mb-12 flex flex-col items-center gap-2 text-center">
+            <h2 className="text-[36px] font-extrabold leading-[1.15] tracking-tight">{config.title}</h2>
+            {loading && !productDescription ? (
+              <Skeleton className="h-5 w-full max-w-xl" />
+            ) : productDescription ? (
+              <p className="mx-auto max-w-xl whitespace-pre-line text-lg leading-relaxed text-muted-foreground">
+                {productDescription}
+              </p>
+            ) : null}
           </div>
 
           {error && (
