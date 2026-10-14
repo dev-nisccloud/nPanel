@@ -1,13 +1,16 @@
 import { TRPCError } from "@trpc/server";
-import { db } from "@npanel/db";
+import { db, eq } from "@npanel/db";
 import { eTimsConfiguration } from "@npanel/db/schema/etims";
-import { type EtimsClientConfig, type EtimsOscuHeaders, getEtimsClient, createEtimsClient, type EtimsOscuClient } from "./etims-client";
+import { EtimsApiError, type EtimsClientConfig, type EtimsOscuHeaders, getEtimsClient, createEtimsClient, type EtimsOscuClient } from "./etims-client";
+import { extractSdcIdFromKraBody } from "./etims-scu-print";
 export { getEtimsClient };
 
 export interface EtimsContext {
     client: EtimsOscuClient;
     oscu: EtimsOscuHeaders;
     isSandbox: boolean;
+    /** Device CU ID from initialize. Same for every receipt from this OSCU. */
+    sdcId: string | null;
 }
 
 function trimUrl(value: string | undefined, fallback: string): string {
@@ -116,7 +119,91 @@ export async function getEtimsContext(): Promise<EtimsContext> {
         cmcKey: config.cmcKey,
     };
 
-    return { client, oscu, isSandbox: config.isSandbox };
+    const sdcId = await loadDeviceSdcId(config);
+
+    return { client, oscu, isSandbox: config.isSandbox, sdcId };
+}
+
+let sdcIdBackfill: Promise<string | null> | null = null;
+let cachedDeviceSdcId: string | null | undefined;
+
+/** Last loaded device CU ID. Sync fallback for invoice mapping. */
+export function peekDeviceSdcId(): string | null {
+    return cachedDeviceSdcId ?? null;
+}
+
+/**
+ * CU ID (`sdcId`) is assigned once at device initialize and does not change.
+ * Read it from `etims_configuration`. If an older install never stored it,
+ * persist it once from initialize, then reuse the saved value.
+ */
+export async function loadDeviceSdcId(
+    config?: typeof eTimsConfiguration.$inferSelect | null,
+): Promise<string | null> {
+    if (!config && cachedDeviceSdcId) return cachedDeviceSdcId;
+    try {
+        const row =
+            config ??
+            (await db.select().from(eTimsConfiguration).limit(1))[0];
+        if (!row) {
+            cachedDeviceSdcId = cachedDeviceSdcId ?? null;
+            return null;
+        }
+        const stored = row.sdcId?.trim() || null;
+        if (stored) {
+            cachedDeviceSdcId = stored;
+            return stored;
+        }
+        if (!row.isInitialized) return cachedDeviceSdcId ?? null;
+        if (!sdcIdBackfill) {
+            sdcIdBackfill = persistSdcIdFromInit(row)
+                .then((id) => {
+                    cachedDeviceSdcId = id;
+                    return id;
+                })
+                .catch((error) => {
+                    console.warn("[eTIMS] could not persist sdcId from initialize", error);
+                    sdcIdBackfill = null;
+                    return cachedDeviceSdcId ?? null;
+                });
+        }
+        return sdcIdBackfill;
+    } catch (error) {
+        console.warn("[eTIMS] could not load device sdcId; continuing without it", error);
+        if (cachedDeviceSdcId === undefined) cachedDeviceSdcId = null;
+        return cachedDeviceSdcId;
+    }
+}
+
+async function persistSdcIdFromInit(
+    config: typeof eTimsConfiguration.$inferSelect,
+): Promise<string | null> {
+    const payload = {
+        tin: config.kraPin,
+        bhfId: config.branchId,
+        dvcSrlNo: config.deviceSerialNumber,
+    };
+    const clients = [
+        getEtimsClient(buildClientConfigFromEnv(config.isSandbox)),
+        createClassicOscuClient(config.isSandbox),
+    ];
+    let fetched: string | null = null;
+    for (const client of clients) {
+        try {
+            fetched = extractSdcIdFromKraBody(await client.selectInitOsdcInfo(payload));
+        } catch (error) {
+            if (error instanceof EtimsApiError) {
+                fetched = extractSdcIdFromKraBody(error.response);
+            }
+        }
+        if (fetched) break;
+    }
+    if (!fetched) return null;
+    await db
+        .update(eTimsConfiguration)
+        .set({ sdcId: fetched, updatedAt: new Date() })
+        .where(eq(eTimsConfiguration.id, config.id));
+    return fetched;
 }
 
 const CLASSIC_SANDBOX_BASE = "https://etims-api-sbx.kra.go.ke/etims-api";
@@ -176,5 +263,20 @@ export async function saveTrnsSalesOnKra(
         isSandbox,
         (c) => c.saveTrnsSalesOsdc(oscu, transaction),
         "saveTrnsSalesOsdc",
+    );
+}
+
+/** Gava `/sendPurchaseTransactionInfo` often 400s with a null TestSessionApiLog. */
+export async function insertTrnsPurchaseOnKra(
+    client: EtimsOscuClient,
+    oscu: EtimsOscuHeaders,
+    isSandbox: boolean,
+    purchase: Record<string, unknown>,
+) {
+    return withClassicOscuFallback(
+        client,
+        isSandbox,
+        (c) => c.insertTrnsPurchase(oscu, purchase),
+        "insertTrnsPurchase",
     );
 }

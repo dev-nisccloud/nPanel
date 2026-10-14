@@ -40,3 +40,9 @@ export declare function saveTrnsSalesOnKra(
     isSandbox: boolean,
     transaction: Record<string, unknown>,
 ): Promise<unknown>;
+export declare function insertTrnsPurchaseOnKra(
+    client: EtimsOscuClient,
+    oscu: EtimsOscuHeaders,
+    isSandbox: boolean,
+    purchase: Record<string, unknown>,
+): Promise<unknown>;

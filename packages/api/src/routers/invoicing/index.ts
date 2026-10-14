@@ -34,11 +34,13 @@ import {
 	mapInvoiceKraDetailFields,
 } from "../../lib/invoice-kra-db-fields";
 import { buildCuInvoiceNo, extractSdcIdFromKraBody } from "../../lib/etims-scu-print";
+import { stampInvoiceLineProductTaxBands } from "../../lib/invoice-kra-mapper";
 import {
 	extractEtimsFiscalFieldsFromCreditNote,
 	extractEtimsFiscalFieldsFromInvoice,
 } from "../../lib/etims-fiscal-fields";
 import { resolveInvoiceEtimsVerificationUrl } from "../../lib/etims-receipt-url";
+import { getEtimsContext, loadDeviceSdcId, peekDeviceSdcId } from "../../lib/etims-config";
 import { scheduleInvoiceKraSyncAfterCreate } from "../../lib/qstash/invoice-kra-sync-worker";
 import {
 	prepareInvoiceEmailDelivery,
@@ -497,7 +499,7 @@ function buildInvoiceUpdateData(
 
 function buildOriginalCuInvoiceNo(inv: Record<string, unknown> | null | undefined): string | null {
 	if (!inv) return null;
-	const sdcId = extractSdcIdFromKraBody(inv.kraSyncResponse);
+	const sdcId = peekDeviceSdcId() ?? extractSdcIdFromKraBody(inv.kraSyncResponse);
 	const curRcptNo =
 		(typeof inv.kraReceiptNumber === "string" && inv.kraReceiptNumber.trim()) ||
 		null;
@@ -642,11 +644,18 @@ function mapInvoiceDetail(invoice: any): InvoiceDetail {
 			invoiceNumber: invoice.invoiceNumber,
 			issueDate: invoice.issueDate,
 			lineItems,
+		}, {
+			sdcId: peekDeviceSdcId(),
 		}),
 	});
 }
 
 async function fetchInvoiceDetail(tx: DbLike, invoiceId: string) {
+	try {
+		await loadDeviceSdcId();
+	} catch (error) {
+		console.warn("[invoicing] device CU ID unavailable; loading invoice without it", error);
+	}
 	const inv = await tx.query.invoice.findFirst({
 		where: eq(invoice.id, invoiceId),
 		with: {
@@ -679,6 +688,10 @@ async function fetchInvoiceDetail(tx: DbLike, invoiceId: string) {
 			code: "NOT_FOUND",
 			message: "Invoice not found.",
 		});
+	}
+
+	if (Array.isArray(inv.lineItems)) {
+		await stampInvoiceLineProductTaxBands(inv.lineItems);
 	}
 
 	return reconcileInvoicePaymentFromNiscOrder(tx, inv);
@@ -1138,11 +1151,18 @@ function mapCreditNoteDetail(raw: {
 			issuedAt: cn.issuedAt,
 			lineItems,
 			originalCuInvoiceNo: buildOriginalCuInvoiceNo(inv),
+		}, {
+			sdcId: peekDeviceSdcId(),
 		}),
 	});
 }
 
 async function fetchCreditNoteDetail(tx: DbLike, creditNoteId: string) {
+	try {
+		await loadDeviceSdcId();
+	} catch (error) {
+		console.warn("[invoicing] device CU ID unavailable; loading credit note without it", error);
+	}
 	const cn = await tx.query.creditNote.findFirst({
 		where: eq(creditNote.id, creditNoteId),
 		with: {
@@ -1164,6 +1184,11 @@ async function fetchCreditNoteDetail(tx: DbLike, creditNoteId: string) {
 			code: "NOT_FOUND",
 			message: "Credit note not found.",
 		});
+	}
+
+	const invoiceLines = cn.invoice?.lineItems;
+	if (Array.isArray(invoiceLines)) {
+		await stampInvoiceLineProductTaxBands(invoiceLines);
 	}
 
 	return mapCreditNoteDetail({ creditNote: cn, invoice: cn.invoice });
@@ -2677,7 +2702,18 @@ export const invoicingRouter = router({
 			await ensureInvoiceMutationAccess(db, user.id, user.role, input.invoiceId);
 
 			const current = await fetchInvoiceDetail(db, input.invoiceId);
-			const verificationUrl = resolveInvoiceEtimsVerificationUrl(current);
+			let receiptOpts: { tin?: string; bhfId?: string; isSandbox?: boolean } | undefined;
+			try {
+				const etims = await getEtimsContext();
+				receiptOpts = {
+					tin: etims.oscu.tin,
+					bhfId: etims.oscu.bhfId,
+					isSandbox: etims.isSandbox,
+				};
+			} catch {
+				receiptOpts = undefined;
+			}
+			const verificationUrl = resolveInvoiceEtimsVerificationUrl(current, receiptOpts);
 			if (!verificationUrl) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",

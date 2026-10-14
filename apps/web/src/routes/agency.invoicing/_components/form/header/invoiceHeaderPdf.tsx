@@ -1,6 +1,7 @@
 /* eslint-disable jsx-a11y/alt-text */
 import React from "react";
 import { Image, Text, View } from "@react-pdf/renderer";
+import { resolvePdfLogoUrl } from "@npanel/api/lib/company-branding";
 import { pdfBrandingLogoBox, pdfTypography } from "@/lib/pdfStyles";
 import type { YourDetails } from "@/routes/agency.invoicing/types";
 
@@ -16,6 +17,7 @@ export const InvoiceHeaderPdf: React.FC<YourDetails> = ({
   yourTaxId,
   yourZip,
 }) => {
+  const logoSrc = resolvePdfLogoUrl(yourLogo);
   const logoFrameW = yourLogoWidth ?? pdfBrandingLogoBox.width;
   const logoFrameH =
     (logoFrameW / pdfBrandingLogoBox.width) * pdfBrandingLogoBox.height;
@@ -35,10 +37,10 @@ export const InvoiceHeaderPdf: React.FC<YourDetails> = ({
     >
       {/* Logo on left */}
       <View style={{ justifyContent: "flex-start", alignItems: "flex-start" }}>
-        {yourLogo && (
+        {logoSrc ? (
           <View style={{ width: logoFrameW, height: logoFrameH }}>
             <Image
-              src={yourLogo}
+              src={logoSrc}
               style={{
                 width: "100%",
                 height: "100%",
@@ -47,7 +49,7 @@ export const InvoiceHeaderPdf: React.FC<YourDetails> = ({
               }}
             />
           </View>
-        )}
+        ) : null}
       </View>
       {/* From details on right */}
       <View style={{ flex: 1, alignItems: "flex-end" }}>

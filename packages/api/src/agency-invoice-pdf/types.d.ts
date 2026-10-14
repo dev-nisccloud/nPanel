@@ -3,6 +3,9 @@ export type Item = {
     itemDescription: string;
     amount?: number;
     qty?: number;
+    billingCycle?: string;
+    /** Product KRA tax band (A–E). Printed with the tax table rate label. */
+    etimsTaxTyCd?: string;
 };
 export type YourDetails = {
     yourEmail?: string;
@@ -35,6 +38,9 @@ export type InvoiceItemDetails = {
     currency?: string;
     /** Smaller, bold line typography (e.g. cron-generated media buying PDFs). */
     compactLineItems?: boolean;
+    negateAmounts?: boolean;
+    taxBuckets?: Record<string, { taxable: number; vat: number }>;
+    isCopyReceipt?: boolean;
 };
 export type PaymentMethod = "bank" | "mpesa" | "cheque";
 export type PaymentDetails = {

@@ -37,7 +37,17 @@ export type EtimsSalePdfContext = {
 	branchId?: string | null;
 	isSandbox?: boolean;
 	originalSale?: Record<string, unknown> | null;
+	/** Device CU ID from initialize (`info.sdcId`), used when the sale row omits it. */
+	sdcId?: string | null;
 };
+
+function receiptUrlExtras(ctx: EtimsSalePdfContext) {
+	return {
+		tin: ctx.kraPin,
+		bhfId: ctx.branchId,
+		isSandbox: ctx.isSandbox,
+	};
+}
 
 function asRecord(value: unknown): Record<string, unknown> | null {
 	if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -103,7 +113,7 @@ export function flattenEtimsSaleForKraBody(sale: Record<string, unknown>): Recor
 		curRcptNo: receipt.curRcptNo ?? sale.curRcptNo,
 		totRcptNo: receipt.totRcptNo ?? sale.totRcptNo,
 		sdcDateTime: receipt.sdcDateTime ?? sale.sdcDateTime ?? sale.cfmDt,
-		sdcId: receipt.sdcId ?? sale.sdcId,
+		sdcId: extractSdcIdFromKraBody(receipt) ?? extractSdcIdFromKraBody(sale) ?? receipt.sdcId ?? sale.sdcId,
 		receipt,
 	};
 }
@@ -135,14 +145,20 @@ export function mergeEtimsSaleWithDetails(
 	if (!details) return sale;
 	const saleItems = Array.isArray(sale.itemList) ? sale.itemList : [];
 	const detailItems = Array.isArray(details.itemList) ? details.itemList : [];
+	const receipt = {
+		...(asRecord(details.receipt) ?? {}),
+		...(asRecord(sale.receipt) ?? {}),
+	};
+	const sdcId =
+		extractSdcIdFromKraBody(sale) ??
+		extractSdcIdFromKraBody(details) ??
+		extractSdcIdFromKraBody(receipt);
 	return {
 		...details,
 		...sale,
 		itemList: saleItems.length > 0 ? saleItems : detailItems,
-		receipt: {
-			...(asRecord(details.receipt) ?? {}),
-			...(asRecord(sale.receipt) ?? {}),
-		},
+		receipt,
+		...(sdcId ? { sdcId } : {}),
 	};
 }
 
@@ -159,12 +175,13 @@ function lineItemsFromSale(sale: Record<string, unknown>, now: Date) {
 			id: newPdfId(),
 			position: Number(line.itemSeq ?? index + 1) || index,
 			name: stringOrNull(line.itemNm) ?? "Item",
-			description: stringOrNull(line.itemCd),
+			description: null,
 			quantity: qty,
 			unit: stringOrNull(line.qtyUnitCd),
 			price: moneyString(unit),
 			discount: Number(line.dcAmt ?? 0) > 0 ? moneyString(line.dcAmt) : null,
 			total: moneyString(total),
+			metadata: stringOrNull(line.taxTyCd) ? { etimsTaxTyCd: stringOrNull(line.taxTyCd) } : null,
 			createdAt: now,
 			updatedAt: now,
 		};
@@ -225,6 +242,7 @@ export function buildInvoiceDetailFromEtimsSale(
 	const tot = Number(sale.totAmt ?? 0);
 	const amount = tot > taxbl ? tot : taxbl + tax || tot;
 	const lineItems = lineItemsFromSale(sale, issuedAt);
+	const sdcId = stringOrNull(ctx.sdcId) ?? extractSdcIdFromKraBody(body);
 	const fromDetails = {
 		...SELLER_FROM_DETAILS,
 		taxId: ctx.kraPin?.trim() || SELLER_FROM_DETAILS.taxId,
@@ -283,14 +301,16 @@ export function buildInvoiceDetailFromEtimsSale(
 		kraAttemptCount: 1,
 		kraVerificationUrl: verificationUrl,
 		kraSyncPayload: sale,
-		kraSyncResponse: body,
+		kraSyncResponse: sdcId ? { ...body, sdcId } : body,
 	} satisfies Partial<InvoiceDetail> as InvoiceDetail;
 
 	detail.etimsFiscal = extractEtimsFiscalFieldsFromInvoice(detail, {
 		tisReceiptNumber: detail.invoiceNumber,
 		tisIssuedAt: issuedAt,
 		itemCount: lineItems.length,
-		sdcId: extractSdcIdFromKraBody(body),
+		sdcId,
+		salesTyCd: stringOrNull(sale.salesTyCd),
+		...receiptUrlExtras(ctx),
 	});
 
 	return detail;
@@ -318,7 +338,12 @@ export function overlayEtimsSaleFiscalOnInvoice(
 			tisReceiptNumber: merged.invoiceNumber,
 			tisIssuedAt: merged.issueDate,
 			itemCount: Array.isArray(merged.lineItems) ? merged.lineItems.length : null,
-			sdcId: extractSdcIdFromKraBody(merged.kraSyncResponse),
+			sdcId:
+				stringOrNull(ctx.sdcId) ??
+				extractSdcIdFromKraBody(flattenEtimsSaleForKraBody(sale)) ??
+				extractSdcIdFromKraBody(merged.kraSyncResponse),
+			salesTyCd: stringOrNull(sale.salesTyCd) ?? stringOrNull(merged.kraSyncPayload ? (merged.kraSyncPayload as Record<string, unknown>).salesTyCd : null),
+			...receiptUrlExtras(ctx),
 		}) ??
 		mapped.etimsFiscal ??
 		(invoice.etimsFiscal?.rcptSign ? invoice.etimsFiscal : null);
@@ -384,7 +409,11 @@ export function buildCreditNoteDetailFromEtimsSale(
 			tisIssuedAt: issuedAt,
 			originalCuInvoiceNo: originalCuInvoiceNo(ctx.originalSale),
 			itemCount: invoiceLike.lineItems.length,
-			sdcId: extractSdcIdFromKraBody(flattenEtimsSaleForKraBody(sale)),
+			sdcId:
+				stringOrNull(ctx.sdcId) ??
+				extractSdcIdFromKraBody(flattenEtimsSaleForKraBody(sale)),
+			salesTyCd: stringOrNull(sale.salesTyCd),
+			...receiptUrlExtras(ctx),
 		}),
 		originalCuInvoiceNo: originalCuInvoiceNo(ctx.originalSale),
 	} as CreditNoteDetail;
@@ -414,7 +443,12 @@ export function overlayEtimsSaleFiscalOnCreditNote(
 			tisIssuedAt: merged.issuedAt,
 			originalCuInvoiceNo: merged.originalCuInvoiceNo,
 			itemCount: Array.isArray(merged.lineItems) ? merged.lineItems.length : null,
-			sdcId: extractSdcIdFromKraBody(merged.kraSyncResponse),
+			sdcId:
+				stringOrNull(ctx.sdcId) ??
+				extractSdcIdFromKraBody(flattenEtimsSaleForKraBody(sale)) ??
+				extractSdcIdFromKraBody(merged.kraSyncResponse),
+			salesTyCd: stringOrNull(sale.salesTyCd),
+			...receiptUrlExtras(ctx),
 		}) ??
 		mapped.etimsFiscal ??
 		(creditNote.etimsFiscal?.rcptSign ? creditNote.etimsFiscal : null);

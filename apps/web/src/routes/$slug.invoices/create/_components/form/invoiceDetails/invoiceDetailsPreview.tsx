@@ -1,7 +1,8 @@
 import React from "react";
 import { currencyList } from "@/lib/currency";
 import { ChevronDown } from "lucide-react";
-import type { InvoiceItemDetails, Item } from "@/routes/agency.invoices/create/types";
+import type { InvoiceItemDetails, Item } from "@/routes/$slug.invoices/create/types";
+import { tisTaxRateLabel } from "@npanel/api/agency-invoice-pdf/tis-receipt-totals";
 
 export const InvoiceDetailsPreview: React.FC<
   InvoiceItemDetails & { onClick?: (step: string) => void }
@@ -52,16 +53,25 @@ export const InvoiceDetailsPreview: React.FC<
           </div>
         </div>
       </div>
-      {items.map(({ itemDescription, amount, qty }, index) => (
+      {items.map(({ itemDescription, amount, qty, etimsTaxTyCd }, index) => {
+        const taxRateLabel = tisTaxRateLabel(etimsTaxTyCd);
+        return (
         <div
           className={`grid grid-cols-2 items-start border-b ${
             index === 0 ? "border-t" : ""
           } border-dashed mx-10 py-3 gap-x-4`}
           key={index}
         >
-          <p className="min-w-0 text-xs font-medium text-gray-600 break-words whitespace-normal">
-            {itemDescription}
-          </p>
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-gray-600 break-words whitespace-normal">
+              {itemDescription}
+            </p>
+            {taxRateLabel && (
+              <p className="text-[10px] text-gray-500 mt-1">
+                Tax rate: {taxRateLabel}
+              </p>
+            )}
+          </div>
           <div className="pl-10 grid grid-cols-3 items-center">
             <p className="flex truncate text-xs font-medium text-gray-600">
               {qty || "-"}
@@ -75,7 +85,8 @@ export const InvoiceDetailsPreview: React.FC<
             </p>
           </div>
         </div>
-      ))}
+        );
+      })}
       <div className="grid grid-cols-2">
         {note ? (
           <div className="pt-6 pb-4">

@@ -1,0 +1,1 @@
+ALTER TABLE "etims_configuration" ADD COLUMN "sdc_id" text;
