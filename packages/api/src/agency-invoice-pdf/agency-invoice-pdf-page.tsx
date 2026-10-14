@@ -5,6 +5,7 @@ import { PdfDetails } from "./components/pdf-details";
 import { pdfContainers } from "./pdf-styles";
 import type { EtimsFiscalFields } from "./types";
 import { ensureEtimsPrintFields } from "../lib/etims-fiscal-fields";
+import { isKraCopyReceiptLabel, isKraCopySalesType } from "../lib/etims-scu-print";
 import type {
 	YourDetails,
 	CompanyDetails,
@@ -38,6 +39,10 @@ export function AgencyInvoicePdfPage({
 	documentTitle,
 }: AgencyInvoicePdfPageProps) {
 	const isCreditNote = (documentTitle ?? "").toLowerCase().includes("credit");
+	const isCopyReceipt =
+		Boolean(invoiceDetails.isCopyReceipt) ||
+		isKraCopySalesType(etimsFiscal?.salesTyCd) ||
+		isKraCopyReceiptLabel(etimsFiscal?.receiptLabel);
 	const fiscal = ensureEtimsPrintFields(etimsFiscal, {
 		tisReceiptNumber: invoiceTerms.invoiceNumber ?? etimsFiscal?.tisReceiptNumber ?? null,
 		tisIssuedAt: invoiceTerms.issueDate ?? null,
@@ -45,10 +50,31 @@ export function AgencyInvoicePdfPage({
 		itemCount: invoiceDetails.items.length,
 		isCreditNote,
 		sdcId: etimsFiscal?.sdcId ?? invoiceTerms.scuId ?? null,
+		salesTyCd: etimsFiscal?.salesTyCd,
 	});
 
 	return (
 		<Page size="A4" style={pdfContainers.pageWithEtimsFooter}>
+			{isCopyReceipt ? (
+				<Text
+					fixed
+					style={{
+						position: "absolute",
+						top: 320,
+						left: 40,
+						right: 40,
+						textAlign: "center",
+						fontSize: 72,
+						fontWeight: "bold",
+						color: "#9ca3af",
+						opacity: 0.16,
+						letterSpacing: 10,
+						transform: "rotate(-28deg)",
+					}}
+				>
+					COPY
+				</Text>
+			) : null}
 			<InvoicePageFooter
 				fields={fiscal}
 				qrCodeDataUrl={qrCodeDataUrl}

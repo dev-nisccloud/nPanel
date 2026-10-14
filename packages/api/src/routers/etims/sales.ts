@@ -1,6 +1,10 @@
+import * as crypto from "node:crypto";
 import { z } from "zod";
+import { eq } from "drizzle-orm";
 import { router } from "../../trpc";
 import { TRPCError } from "@trpc/server";
+import { db } from "@npanel/db";
+import { eTimsPartialOrder } from "@npanel/db/schema/etims";
 import { getEtimsContext, saveTrnsSalesOnKra } from "../../lib/etims-config";
 import { etimsProcedure, skipEtimsAuthChecks } from "./_procedure";
 
@@ -112,6 +116,13 @@ function roundTransactionMoney(transaction: Record<string, unknown>) {
     return out;
 }
 
+/** Gava: orgInvcNo must be 0 on every sale (rcptTyCd=S), including copies. Only credit notes keep the original. */
+function withKraOrgInvcNo(transaction: Record<string, unknown>): Record<string, unknown> {
+    const rcpt = String(transaction.rcptTyCd ?? "S").trim().toUpperCase();
+    if (rcpt === "R") return transaction;
+    return { ...transaction, orgInvcNo: 0 };
+}
+
 /** Credit notes use the same KRA endpoint with rcptTyCd=R and orgInvcNo set. */
 const creditNoteTransactionSchema = salesTransactionSchema.extend({
     rcptTyCd: z.literal("R"),
@@ -119,6 +130,29 @@ const creditNoteTransactionSchema = salesTransactionSchema.extend({
     rfdDt: z.string().regex(/^\d{14}$/),
     rfdRsnCd: z.enum(["01", "02", "03", "04", "05", "06"]),
 });
+
+const copyReceiptTransactionSchema = salesTransactionSchema.extend({
+    salesTyCd: z.literal("C"),
+    stockRlsDt: z.null().optional(),
+});
+
+const partialLineSchema = z.object({
+    itemCd: z.string().min(1).max(20),
+    itemNm: z.string().min(1).max(200),
+    itemClsCd: z.string().max(10).nullable().optional(),
+    pkgUnitCd: z.string().max(5).nullable().optional(),
+    qtyUnitCd: z.string().max(5).nullable().optional(),
+    taxTyCd: z.string().max(5).nullable().optional(),
+    inclusivePrc: z.number(),
+    dcRt: z.number().optional(),
+    orderedQty: z.number().positive(),
+    invoicedQty: z.number().min(0),
+});
+
+function qtyNum(value: string | number | null | undefined) {
+    const n = Number(value ?? 0);
+    return Number.isFinite(n) ? n : 0;
+}
 
 export const etimsSalesRouter = router({
     /**
@@ -135,7 +169,7 @@ export const etimsSalesRouter = router({
                     client,
                     oscu,
                     isSandbox,
-                    roundTransactionMoney(input.transaction as Record<string, unknown>),
+                    withKraOrgInvcNo(roundTransactionMoney(input.transaction as Record<string, unknown>)),
                 );
                 return { success: true, data: result };
             } catch (e: unknown) {
@@ -201,5 +235,173 @@ export const etimsSalesRouter = router({
             } catch (e: unknown) {
                 throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: (e as Error).message || "Failed to retrieve invoice details" });
             }
+        }),
+
+    /**
+     * Reprint as a KRA COPY receipt (CS/CC).
+     * POST /saveTrnsSalesOsdc with salesTyCd=C, orgInvcNo=0 for sales copies, no stock release.
+     */
+    sendCopyReceipt: etimsProcedure
+        .input(z.object({ transaction: copyReceiptTransactionSchema }))
+        .mutation(async ({ ctx, input }) => {
+            assertWrite(ctx.session?.user?.role);
+            const { client, oscu, isSandbox } = await getEtimsContext();
+            try {
+                const result = await saveTrnsSalesOnKra(
+                    client,
+                    oscu,
+                    isSandbox,
+                    withKraOrgInvcNo(
+                        roundTransactionMoney({
+                            ...input.transaction,
+                            salesTyCd: "C",
+                            stockRlsDt: null,
+                        } as Record<string, unknown>),
+                    ),
+                );
+                const body = result as { resultCd?: string; resultMsg?: string };
+                if (body?.resultCd && body.resultCd !== "000") {
+                    return { success: false, data: null, errorMessage: body.resultMsg ?? "Failed to send copy receipt" };
+                }
+                return { success: true, data: result };
+            } catch (e: unknown) {
+                const msg = (e as Error).message ?? "";
+                console.warn("[eTIMS] sendCopyReceipt failed:", msg);
+                return { success: false, data: null, errorMessage: msg || "Failed to send copy receipt" };
+            }
+        }),
+
+    listOpenPartials: etimsProcedure.query(async ({ ctx }) => {
+        assertRead(ctx.session?.user?.role);
+        const rows = await db.select().from(eTimsPartialOrder);
+        const bySeed = new Map<number, { seedInvcNo: number; hasRemaining: boolean }>();
+        for (const row of rows) {
+            const remaining = Math.max(0, qtyNum(row.orderedQty) - qtyNum(row.invoicedQty));
+            const current = bySeed.get(row.seedInvcNo) ?? { seedInvcNo: row.seedInvcNo, hasRemaining: false };
+            current.hasRemaining = current.hasRemaining || remaining > 0;
+            bySeed.set(row.seedInvcNo, current);
+        }
+        return { seeds: [...bySeed.values()].filter((row) => row.hasRemaining) };
+    }),
+
+    getPartialRemaining: etimsProcedure
+        .input(z.object({ seedInvcNo: z.number().int().min(1) }))
+        .query(async ({ ctx, input }) => {
+            assertRead(ctx.session?.user?.role);
+            const rows = await db
+                .select()
+                .from(eTimsPartialOrder)
+                .where(eq(eTimsPartialOrder.seedInvcNo, input.seedInvcNo));
+            const lines = rows.map((row) => {
+                const orderedQty = qtyNum(row.orderedQty);
+                const invoicedQty = qtyNum(row.invoicedQty);
+                return {
+                    ...row,
+                    orderedQty,
+                    invoicedQty,
+                    remainingQty: Math.max(0, Math.round((orderedQty - invoicedQty) * 100) / 100),
+                    inclusivePrc: qtyNum(row.inclusivePrc),
+                    dcRt: qtyNum(row.dcRt),
+                };
+            });
+            return {
+                seedInvcNo: input.seedInvcNo,
+                trdInvcNo: rows[0]?.trdInvcNo ?? null,
+                custTin: rows[0]?.custTin ?? null,
+                custNm: rows[0]?.custNm ?? null,
+                pmtTyCd: rows[0]?.pmtTyCd ?? null,
+                lines,
+                hasRemaining: lines.some((line) => line.remainingQty > 0),
+            };
+        }),
+
+    savePartialOrder: etimsProcedure
+        .input(z.object({
+            seedInvcNo: z.number().int().min(1),
+            trdInvcNo: z.string().max(50).nullable().optional(),
+            custTin: z.string().nullable().optional(),
+            custNm: z.string().nullable().optional(),
+            pmtTyCd: z.string().nullable().optional(),
+            lines: z.array(partialLineSchema).min(1),
+        }))
+        .mutation(async ({ ctx, input }) => {
+            assertWrite(ctx.session?.user?.role);
+            const now = new Date();
+            for (const line of input.lines) {
+                const existing = await db
+                    .select()
+                    .from(eTimsPartialOrder)
+                    .where(eq(eTimsPartialOrder.seedInvcNo, input.seedInvcNo));
+                const match = existing.find((row) => row.itemCd === line.itemCd);
+                if (match) {
+                    await db
+                        .update(eTimsPartialOrder)
+                        .set({
+                            itemNm: line.itemNm,
+                            itemClsCd: line.itemClsCd ?? match.itemClsCd,
+                            pkgUnitCd: line.pkgUnitCd ?? match.pkgUnitCd,
+                            qtyUnitCd: line.qtyUnitCd ?? match.qtyUnitCd,
+                            taxTyCd: line.taxTyCd ?? match.taxTyCd,
+                            inclusivePrc: String(line.inclusivePrc),
+                            dcRt: String(line.dcRt ?? 0),
+                            orderedQty: String(line.orderedQty),
+                            invoicedQty: String(line.invoicedQty),
+                            trdInvcNo: input.trdInvcNo ?? match.trdInvcNo,
+                            custTin: input.custTin ?? match.custTin,
+                            custNm: input.custNm ?? match.custNm,
+                            pmtTyCd: input.pmtTyCd ?? match.pmtTyCd,
+                            updatedAt: now,
+                        })
+                        .where(eq(eTimsPartialOrder.id, match.id));
+                    continue;
+                }
+                await db.insert(eTimsPartialOrder).values({
+                    id: crypto.randomUUID(),
+                    seedInvcNo: input.seedInvcNo,
+                    trdInvcNo: input.trdInvcNo ?? null,
+                    itemCd: line.itemCd,
+                    itemNm: line.itemNm,
+                    itemClsCd: line.itemClsCd ?? null,
+                    pkgUnitCd: line.pkgUnitCd ?? null,
+                    qtyUnitCd: line.qtyUnitCd ?? null,
+                    taxTyCd: line.taxTyCd ?? null,
+                    inclusivePrc: String(line.inclusivePrc),
+                    dcRt: String(line.dcRt ?? 0),
+                    orderedQty: String(line.orderedQty),
+                    invoicedQty: String(line.invoicedQty),
+                    custTin: input.custTin ?? null,
+                    custNm: input.custNm ?? null,
+                    pmtTyCd: input.pmtTyCd ?? null,
+                    createdAt: now,
+                    updatedAt: now,
+                });
+            }
+            return { success: true };
+        }),
+
+    applyPartialInvoice: etimsProcedure
+        .input(z.object({
+            seedInvcNo: z.number().int().min(1),
+            lines: z.array(z.object({
+                itemCd: z.string().min(1),
+                invoicedQty: z.number().positive(),
+            })).min(1),
+        }))
+        .mutation(async ({ ctx, input }) => {
+            assertWrite(ctx.session?.user?.role);
+            const rows = await db
+                .select()
+                .from(eTimsPartialOrder)
+                .where(eq(eTimsPartialOrder.seedInvcNo, input.seedInvcNo));
+            for (const line of input.lines) {
+                const match = rows.find((row) => row.itemCd === line.itemCd);
+                if (!match) continue;
+                const nextQty = Math.round((qtyNum(match.invoicedQty) + line.invoicedQty) * 100) / 100;
+                await db
+                    .update(eTimsPartialOrder)
+                    .set({ invoicedQty: String(nextQty), updatedAt: new Date() })
+                    .where(eq(eTimsPartialOrder.id, match.id));
+            }
+            return { success: true };
         }),
 });

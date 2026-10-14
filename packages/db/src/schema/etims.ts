@@ -102,3 +102,35 @@ export const eTimsCode = pgTable(
     index("etims_code_cls_idx").on(table.cdCls),
   ],
 );
+
+/** Remaining qty for a partial KRA sale (first NS is the seed invoice). */
+export const eTimsPartialOrder = pgTable(
+  "etims_partial_order",
+  {
+    id: text("id").primaryKey(),
+    seedInvcNo: integer("seed_invc_no").notNull(),
+    trdInvcNo: text("trd_invc_no"),
+    itemCd: text("item_cd").notNull(),
+    itemNm: text("item_nm").notNull(),
+    itemClsCd: text("item_cls_cd"),
+    pkgUnitCd: text("pkg_unit_cd"),
+    qtyUnitCd: text("qty_unit_cd"),
+    taxTyCd: text("tax_ty_cd"),
+    inclusivePrc: text("inclusive_prc").notNull(),
+    dcRt: text("dc_rt"),
+    orderedQty: text("ordered_qty").notNull(),
+    invoicedQty: text("invoiced_qty").notNull(),
+    custTin: text("cust_tin"),
+    custNm: text("cust_nm"),
+    pmtTyCd: text("pmt_ty_cd"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("etims_partial_order_seed_item_idx").on(table.seedInvcNo, table.itemCd),
+    index("etims_partial_order_seed_idx").on(table.seedInvcNo),
+  ],
+);

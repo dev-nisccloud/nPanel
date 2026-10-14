@@ -32,6 +32,8 @@
     "etims:sync-classifications:prod": "bun --no-env-file --env-file=./.env.production run src/scripts/etims-sync-item-classifications.ts",
     "etims:sync-codes": "bun --no-env-file --env-file=./.env run src/scripts/etims-sync-codes.ts",
     "etims:sync-codes:prod": "bun --no-env-file --env-file=./.env.production run src/scripts/etims-sync-codes.ts",
+    "etims:seed-sdc-id": "bun --no-env-file --env-file=./.env run src/scripts/etims-seed-sdc-id.ts",
+    "etims:seed-sdc-id:prod": "bun --no-env-file --env-file=./.env.production run src/scripts/etims-seed-sdc-id.ts",
     "etims:mixed-sale": "bun --no-env-file --env-file=./.env run src/scripts/etims-create-product-and-mixed-sale.ts",
     "etims:discount-sale": "bun --no-env-file --env-file=./.env run src/scripts/etims-three-products-discount-sale.ts",
     "mock:invoice-pdfs": "bun run src/scripts/mock-invoice-pdfs.ts"

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ExternalLink, FileMinus, User, Receipt, Calculator, Download, Loader2 } from "lucide-react";
+import { Copy, ExternalLink, FileMinus, User, Receipt, Calculator, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -18,6 +18,7 @@ import {
     formatKraDateTime,
     formatMoney,
     formatSalesDate,
+    isCopyReceipt,
     isCreditNote,
     lineDisplayAmount,
     lineTaxableAmount,
@@ -50,6 +51,7 @@ export function ViewETimsSaleSheet({
     onDownload,
     onVerifyKra,
     onIssueCreditNote,
+    onIssueCopy,
 }: {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -58,10 +60,12 @@ export function ViewETimsSaleSheet({
     onDownload?: (sale: EtimsSaleRecord) => void;
     onVerifyKra?: (sale: EtimsSaleRecord) => void;
     onIssueCreditNote?: (sale: EtimsSaleRecord) => void;
+    onIssueCopy?: (sale: EtimsSaleRecord) => void;
 }) {
     if (!sale) return null;
 
     const creditNote = isCreditNote(sale);
+    const copyReceipt = isCopyReceipt(sale);
     const receipt = (sale.receipt ?? {}) as Record<string, unknown>;
     const itemList = Array.isArray(sale.itemList) ? sale.itemList : [];
     const lineSums = sumLineItems(itemList);
@@ -89,12 +93,14 @@ export function ViewETimsSaleSheet({
                         </div>
                         <Badge
                             className={
-                                creditNote
+                                copyReceipt
+                                    ? "shrink-0 bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-200 border-slate-200 dark:border-slate-800"
+                                    : creditNote
                                     ? "shrink-0 bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 border-amber-200 dark:border-amber-800"
                                     : "shrink-0 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800"
                             }
                         >
-                            {creditNote ? "CREDIT NOTE" : "SIGNED"}
+                            {copyReceipt ? "COPY" : creditNote ? "CREDIT NOTE" : "SIGNED"}
                         </Badge>
                     </div>
                 </SheetHeader>
@@ -127,7 +133,9 @@ export function ViewETimsSaleSheet({
                                         { label: "Credit reason", value: creditNoteReason(sale) },
                                         { label: "Refund date", value: formatKraDateTime(sale.rfdDt) },
                                     ]
-                                    : [{ label: "Original invoice", value: sale.orgInvcNo ? `#${sale.orgInvcNo}` : "", mono: true }]),
+                                    : sale.orgInvcNo
+                                        ? [{ label: "Original invoice", value: `#${sale.orgInvcNo}`, mono: true }]
+                                        : []),
                                 { label: "Receipt type", value: receiptTypeLabel(sale.rcptTyCd) },
                                 { label: "Payment method", value: paymentTypeLabel(sale.pmtTyCd) },
                                 { label: "Status code", value: sale.salesSttsCd, mono: true },
@@ -287,7 +295,21 @@ export function ViewETimsSaleSheet({
                                 {creditNote ? "Download credit note" : "Download invoice"}
                             </Button>
                         ) : null}
-                        {!creditNote && onIssueCreditNote ? (
+                        {onIssueCopy && !copyReceipt ? (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full sm:w-auto"
+                                onClick={() => {
+                                    onOpenChange(false);
+                                    onIssueCopy(sale);
+                                }}
+                            >
+                                <Copy className="mr-2 h-4 w-4" />
+                                Issue copy receipt
+                            </Button>
+                        ) : null}
+                        {!creditNote && !copyReceipt && onIssueCreditNote ? (
                             <Button
                                 type="button"
                                 variant="outline"

@@ -309,6 +309,7 @@ export function buildInvoiceDetailFromEtimsSale(
 		tisIssuedAt: issuedAt,
 		itemCount: lineItems.length,
 		sdcId,
+		salesTyCd: stringOrNull(sale.salesTyCd),
 		...receiptUrlExtras(ctx),
 	});
 
@@ -341,6 +342,7 @@ export function overlayEtimsSaleFiscalOnInvoice(
 				stringOrNull(ctx.sdcId) ??
 				extractSdcIdFromKraBody(flattenEtimsSaleForKraBody(sale)) ??
 				extractSdcIdFromKraBody(merged.kraSyncResponse),
+			salesTyCd: stringOrNull(sale.salesTyCd) ?? stringOrNull(merged.kraSyncPayload ? (merged.kraSyncPayload as Record<string, unknown>).salesTyCd : null),
 			...receiptUrlExtras(ctx),
 		}) ??
 		mapped.etimsFiscal ??
@@ -410,6 +412,7 @@ export function buildCreditNoteDetailFromEtimsSale(
 			sdcId:
 				stringOrNull(ctx.sdcId) ??
 				extractSdcIdFromKraBody(flattenEtimsSaleForKraBody(sale)),
+			salesTyCd: stringOrNull(sale.salesTyCd),
 			...receiptUrlExtras(ctx),
 		}),
 		originalCuInvoiceNo: originalCuInvoiceNo(ctx.originalSale),
@@ -444,6 +447,7 @@ export function overlayEtimsSaleFiscalOnCreditNote(
 				stringOrNull(ctx.sdcId) ??
 				extractSdcIdFromKraBody(flattenEtimsSaleForKraBody(sale)) ??
 				extractSdcIdFromKraBody(merged.kraSyncResponse),
+			salesTyCd: stringOrNull(sale.salesTyCd),
 			...receiptUrlExtras(ctx),
 		}) ??
 		mapped.etimsFiscal ??

@@ -62,6 +62,7 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
   compactLineItems = false,
   negateAmounts = false,
   taxBuckets,
+  isCopyReceipt = false,
 }) => {
   const lineText = compactLineItems
     ? pdfTypography.itemLineCompact
@@ -189,6 +190,20 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
           totalsText={totalsText}
         />
       </View>
+      {isCopyReceipt ? (
+        <View wrap={false} style={{ width: "100%", paddingHorizontal: 40, paddingTop: compactLineItems ? 14 : 20 }}>
+          <Text
+            style={{
+              fontSize: (Number(totalsText.fontSize) || 9) * 2,
+              fontWeight: "bold",
+              textAlign: "center",
+              color: "#111827",
+            }}
+          >
+            THIS IS NOT AN OFFICIAL RECEIPT
+          </Text>
+        </View>
+      ) : null}
     </View>
   );
 };

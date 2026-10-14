@@ -38,6 +38,9 @@ export type InvoiceItemDetails = {
     currency?: string;
     /** Smaller, bold line typography (e.g. cron-generated media buying PDFs). */
     compactLineItems?: boolean;
+    negateAmounts?: boolean;
+    taxBuckets?: Record<string, { taxable: number; vat: number }>;
+    isCopyReceipt?: boolean;
 };
 export type PaymentMethod = "bank" | "mpesa" | "cheque";
 export type PaymentDetails = {

@@ -140,23 +140,39 @@ export function peekDeviceSdcId(): string | null {
 export async function loadDeviceSdcId(
     config?: typeof eTimsConfiguration.$inferSelect | null,
 ): Promise<string | null> {
-    const row =
-        config ??
-        (await db.select().from(eTimsConfiguration).limit(1))[0];
-    if (!row) return null;
-    const stored = row.sdcId?.trim() || null;
-    if (stored) {
-        cachedDeviceSdcId = stored;
-        return stored;
+    if (!config && cachedDeviceSdcId) return cachedDeviceSdcId;
+    try {
+        const row =
+            config ??
+            (await db.select().from(eTimsConfiguration).limit(1))[0];
+        if (!row) {
+            cachedDeviceSdcId = cachedDeviceSdcId ?? null;
+            return null;
+        }
+        const stored = row.sdcId?.trim() || null;
+        if (stored) {
+            cachedDeviceSdcId = stored;
+            return stored;
+        }
+        if (!row.isInitialized) return cachedDeviceSdcId ?? null;
+        if (!sdcIdBackfill) {
+            sdcIdBackfill = persistSdcIdFromInit(row)
+                .then((id) => {
+                    cachedDeviceSdcId = id;
+                    return id;
+                })
+                .catch((error) => {
+                    console.warn("[eTIMS] could not persist sdcId from initialize", error);
+                    sdcIdBackfill = null;
+                    return cachedDeviceSdcId ?? null;
+                });
+        }
+        return sdcIdBackfill;
+    } catch (error) {
+        console.warn("[eTIMS] could not load device sdcId; continuing without it", error);
+        if (cachedDeviceSdcId === undefined) cachedDeviceSdcId = null;
+        return cachedDeviceSdcId;
     }
-    if (!row.isInitialized) return null;
-    if (!sdcIdBackfill) {
-        sdcIdBackfill = persistSdcIdFromInit(row).then((id) => {
-            cachedDeviceSdcId = id;
-            return id;
-        });
-    }
-    return sdcIdBackfill;
 }
 
 async function persistSdcIdFromInit(
