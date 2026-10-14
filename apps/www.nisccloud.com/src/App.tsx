@@ -1,5 +1,8 @@
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { DefaultProviders } from "./components/providers/default.tsx";
+import { ThemeProvider } from "./components/providers/theme.tsx";
+import { isComingSoonEnabled } from "./lib/coming-soon.ts";
+import ComingSoonPage from "./pages/coming-soon/page.tsx";
 import Index from "./pages/Index.tsx";
 import ServicesPage from "./pages/services/page.tsx";
 import ContactPage from "./pages/contact/page.tsx";
@@ -119,6 +122,18 @@ function AppRoutes() {
 }
 
 export default function App() {
+  if (isComingSoonEnabled()) {
+    return (
+      <ThemeProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="*" element={<ComingSoonPage />} />
+          </Routes>
+        </BrowserRouter>
+      </ThemeProvider>
+    );
+  }
+
   return (
     <DefaultProviders>
       <BrowserRouter>
