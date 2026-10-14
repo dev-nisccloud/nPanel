@@ -47,6 +47,8 @@ export type InvoiceItemDetails = {
   negateAmounts?: boolean;
   /** A–E taxable/VAT from the KRA sales payload when the invoice is synced. */
   taxBuckets?: Record<TisTaxBand, { taxable: number; vat: number }>;
+  /** KRA TIS copy receipt (CS/CC): watermark, COPY header, unofficial-receipt notice. */
+  isCopyReceipt?: boolean;
 };
 
 export type PaymentMethod = "bank" | "mpesa" | "cheque";

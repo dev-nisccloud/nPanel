@@ -5,17 +5,30 @@ import {
   domainProviderAudienceFromContext,
   sanitizeDomainProviderMessage,
 } from "./lib/domain-provider-copy";
+import { formatUserFacingErrorMessage, isAgencySuperAdminRole } from "./lib/user-facing-error";
 import type { Context } from "./context";
 import { assertAgencyProcedureAccess } from "./lib/agency-permissions/assert";
 
 export type { Context } from "./context";
 
 export const t = initTRPC.context<Context>().create({
-  errorFormatter({ shape, ctx }) {
+  errorFormatter({ shape, error, ctx }) {
     const audience = domainProviderAudienceFromContext(ctx);
+    const role = ctx?.session?.user?.role ?? null;
+    const sanitizedProvider =
+      sanitizeDomainProviderMessage(shape.message, audience) ?? shape.message;
+    const message = formatUserFacingErrorMessage({
+      message: sanitizedProvider ?? "",
+      code: shape.data?.code ?? error.code,
+      role,
+    });
     return {
       ...shape,
-      message: sanitizeDomainProviderMessage(shape.message, audience) ?? shape.message,
+      message,
+      data: {
+        ...shape.data,
+        stack: isAgencySuperAdminRole(role) ? shape.data?.stack : undefined,
+      },
     };
   },
 });

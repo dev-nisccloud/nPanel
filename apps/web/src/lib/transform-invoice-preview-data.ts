@@ -1,4 +1,5 @@
 import type { InvoiceDetail } from "@/routes/agency.invoices/create/api/schemas";
+import { resolvePdfLogoUrl } from "@npanel/api/lib/company-branding";
 import { DEFAULT_INVOICE_LOGO } from "@/routes/agency.invoices/create/constants";
 import { formatInvoiceLineItemForPdf, normalizeStoredInvoicePeriodDescription } from "@npanel/api/lib/nisc-order-invoice-line-items";
 import { resolveInvoiceEtimsVerificationUrl } from "@npanel/api/agency-invoice-pdf/build-invoice-pdf-details";
@@ -31,7 +32,11 @@ export function transformInvoiceToPreviewData(invoice: InvoiceDetail): {
 		yourCountry: fromDetails?.country as string | undefined,
 		yourZip: fromDetails?.zip as string | undefined,
 		yourTaxId: fromDetails?.taxId as string | undefined,
-		yourLogo: DEFAULT_INVOICE_LOGO,
+		yourLogo: resolvePdfLogoUrl(
+			(typeof fromDetails?.logoUrl === "string" && fromDetails.logoUrl.trim()
+				? fromDetails.logoUrl
+				: DEFAULT_INVOICE_LOGO),
+		),
 	};
 
 	const customerDetails = invoice.customerDetails as Record<string, unknown> | null;

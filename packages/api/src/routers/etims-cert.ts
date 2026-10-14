@@ -21,6 +21,12 @@ async function kra<T>(fn: () => Promise<T>): Promise<{ success: true; data: T } 
         return { success: true, data: await fn() };
     } catch (e: unknown) {
         const msg = errMsg(e);
+        if (/there is no search result/i.test(msg)) {
+            return {
+                success: true,
+                data: { resultCd: "001", resultMsg: "There is no search result", data: null } as T,
+            };
+        }
         console.warn("[etimsCert]", msg);
         return { success: false, data: null, errorMessage: msg };
     }

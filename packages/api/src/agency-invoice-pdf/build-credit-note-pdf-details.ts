@@ -70,6 +70,7 @@ export function buildCreditNotePdfDetails(creditNote: CreditNoteDetail): {
 		invoiceDetails: {
 			...pdfData.invoiceDetails,
 			negateAmounts: true,
+			isCopyReceipt: pdfData.invoiceDetails.isCopyReceipt,
 		},
 		paymentDetails: {
 			etimsVerificationUrl: etimsFiscal?.verificationUrl ?? verificationUrl,

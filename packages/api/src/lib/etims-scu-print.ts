@@ -64,6 +64,16 @@ export function kraReceiptLabel(opts: { isCreditNote?: boolean; salesTyCd?: stri
 	return `${sales}${txn}`;
 }
 
+export function isKraCopySalesType(salesTyCd?: string | null): boolean {
+	return (salesTyCd ?? "").trim().toUpperCase() === "C";
+}
+
+/** COPY receipt labels are CS (copy sale) and CC (copy credit note). NC is a normal credit note. */
+export function isKraCopyReceiptLabel(label?: string | null): boolean {
+	const value = (label ?? "").trim().toUpperCase();
+	return value === "CS" || value === "CC";
+}
+
 export function buildCuInvoiceNo(opts: {
 	sdcId?: string | null;
 	curRcptNo?: string | null;

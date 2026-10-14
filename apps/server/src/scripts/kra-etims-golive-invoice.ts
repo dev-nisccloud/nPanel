@@ -33,42 +33,42 @@ import { buildEtimsReceiptVerifyUrl, parseKraSdcDateTime } from "@npanel/api/lib
 import { formatKraSdcDateTimeFull } from "@npanel/api/lib/etims-scu-print";
 
 const GOLIVE_META = { etimsGoliveSale1: true as const };
-const CERT_TIN = "P600004455A";
-const CERT_BHF_ID = "00";
+let CERT_TIN = process.env.ETIMS_CERT_APP_TEST_PIN?.trim() || "P600005001A";
+let CERT_BHF_ID = process.env.ETIMS_CERT_BHF_ID?.trim() || "00";
 const SDC_ID = "KRACU0400001023";
-const SALE_INVC_NO = 3;
-const CN_INVC_NO = 4;
+let SALE_INVC_NO = 1;
+let CN_INVC_NO = 2;
 const SUBTOTAL = "1000.00";
 const TAX = "160.00";
 const TOTAL = "1160.00";
 const TAX_PCT = 16;
 const NGROK = process.env.ETIMS_CERT_NGROK_URL ?? "https://loverlike-cinderella-signatureless.ngrok-free.dev";
 
-/** KRA `getInvoiceDetails` for cert sale invcNo 3 (nPanel 7 / P600004455A). */
+/** Filled from live `etimsCert.sales.getInvoiceDetails` (this cert session). */
 const SALE_FISCAL = {
 	resultCd: "000",
 	resultMsg: "Successful",
 	data: {
 		sdcId: SDC_ID,
-		curRcptNo: "3",
-		totRcptNo: "3",
-		intrlData: "CXXT7L7C4XOOMWXUIGPHTNFMB4",
-		rcptSign: "I625E27N3KDHWBFQ",
-		sdcDateTime: "2026-09-30 14:56:38.0",
+		curRcptNo: "1",
+		totRcptNo: "1",
+		intrlData: "",
+		rcptSign: "",
+		sdcDateTime: "",
 	},
 };
 
-/** KRA `getInvoiceDetails` for cert credit note invcNo 4 / org 3. */
+/** Filled from live `etimsCert.sales.getInvoiceDetails` for the credit note. */
 const CN_FISCAL = {
 	resultCd: "000",
 	resultMsg: "Successful",
 	data: {
 		sdcId: SDC_ID,
-		curRcptNo: "4",
-		totRcptNo: "4",
-		intrlData: "QFMMM4GLDGCOMHAHXCMYBJ43RQ",
-		rcptSign: "SBE4ZNHSOVGWM3KC",
-		sdcDateTime: "2026-09-30 15:01:11.0",
+		curRcptNo: "2",
+		totRcptNo: "2",
+		intrlData: "",
+		rcptSign: "",
+		sdcDateTime: "",
 	},
 };
 
@@ -167,36 +167,102 @@ function saleKraFields() {
 		kraVerificationUrl: verifyUrl,
 		kraSyncPayload: {
 			invcNo: SALE_INVC_NO,
-			trdInvcNo: "CERT145638",
-			source: "etims-oscu-sale-3",
+			trdInvcNo: `CERT${String(SALE_INVC_NO).padStart(4, "0")}`,
+			tin: CERT_TIN,
+			bhfId: CERT_BHF_ID,
+			source: "etims-oscu-golive",
 			sdcId: SALE_FISCAL.data.sdcId,
 		},
 		kraSyncResponse: SALE_FISCAL,
 	};
 }
 
+async function trpcGet(procedure: string, input?: unknown) {
+	let url = `${NGROK}/trpc/${procedure}`;
+	if (input !== undefined) url += `?input=${encodeURIComponent(JSON.stringify(input))}`;
+	const res = await fetch(url, { headers: { "ngrok-skip-browser-warning": "1" } });
+	return (await res.json()) as Record<string, unknown>;
+}
+
+function pickJsonString(text: string, key: string): string | null {
+	const quoted = text.match(new RegExp(`"${key}"\\s*:\\s*"([^"]+)"`));
+	if (quoted?.[1]) return quoted[1];
+	const num = text.match(new RegExp(`"${key}"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)`));
+	return num?.[1] ?? null;
+}
+
+function salesRows(json: unknown): Array<Record<string, unknown>> {
+	const walk = (v: unknown, depth: number): unknown[] => {
+		if (depth > 8 || !v || typeof v !== "object") return [];
+		const r = v as Record<string, unknown>;
+		for (const k of ["salesList", "saleList", "itemList"]) {
+			if (Array.isArray(r[k])) return r[k] as unknown[];
+		}
+		for (const k of ["data", "result", "responseBody", "json"]) {
+			const n = walk(r[k], depth + 1);
+			if (n.length) return n;
+		}
+		return [];
+	};
+	return walk(json, 0).filter((row): row is Record<string, unknown> => Boolean(row) && typeof row === "object");
+}
+
 async function overlayFromKra(invcNo: number, fallback: typeof SALE_FISCAL) {
 	try {
-		const url = `${NGROK}/trpc/etimsCert.sales.getInvoiceDetails?input=${encodeURIComponent(JSON.stringify({ invcNo }))}`;
-		const res = await fetch(url, { headers: { "ngrok-skip-browser-warning": "1" } });
-		const json = (await res.json()) as Record<string, unknown>;
+		const json = await trpcGet("etimsCert.sales.getInvoiceDetails", { invcNo });
 		const text = JSON.stringify(json);
-		const sdc = text.match(/"sdcDateTime"\s*:\s*"([^"]+)"/);
-		const sign = text.match(/"rcptSign"\s*:\s*"([^"]+)"/);
-		const intra = text.match(/"intrlData"\s*:\s*"([^"]+)"/);
-		const sdcId = text.match(/"sdcId"\s*:\s*"([^"]+)"/);
-		if (sdc?.[1]) {
-			fallback.data.sdcDateTime = sdc[1];
-			console.log(`KRA invcNo ${invcNo} sdcDateTime=${sdc[1]}`);
+		const sdc = pickJsonString(text, "sdcDateTime");
+		const sign = pickJsonString(text, "rcptSign");
+		const intra = pickJsonString(text, "intrlData");
+		const sdcId = pickJsonString(text, "sdcId");
+		const cur = pickJsonString(text, "curRcptNo");
+		const tot = pickJsonString(text, "totRcptNo");
+		if (sdc) {
+			fallback.data.sdcDateTime = sdc;
+			console.log(`KRA invcNo ${invcNo} sdcDateTime=${sdc}`);
 		}
-		if (sign?.[1]) fallback.data.rcptSign = sign[1];
-		if (intra?.[1]) fallback.data.intrlData = intra[1];
-		if (sdcId?.[1]) fallback.data.sdcId = sdcId[1];
+		if (sign) fallback.data.rcptSign = sign;
+		if (intra) fallback.data.intrlData = intra;
+		if (sdcId) fallback.data.sdcId = sdcId;
+		if (cur) fallback.data.curRcptNo = cur;
+		if (tot) fallback.data.totRcptNo = tot;
+		if (!fallback.data.rcptSign) {
+			throw new Error(`KRA invcNo ${invcNo} returned no rcptSign`);
+		}
+		console.log(`KRA invcNo ${invcNo} rcptSign=${fallback.data.rcptSign} sdcId=${fallback.data.sdcId}`);
 	} catch (err) {
-		console.warn(
+		throw new Error(
 			`Could not refresh invcNo ${invcNo} from ngrok: ${err instanceof Error ? err.message : String(err)}`,
 		);
 	}
+}
+
+async function loadCertSession() {
+	try {
+		const cfgJson = await trpcGet("etimsCert.auth.getConfiguration");
+		const cfgText = JSON.stringify(cfgJson);
+		const tin = pickJsonString(cfgText, "kraPin");
+		const bhf = pickJsonString(cfgText, "branchId");
+		if (tin) CERT_TIN = tin;
+		if (bhf) CERT_BHF_ID = bhf;
+		const salesJson = await trpcGet("etimsCert.sales.getSalesTransactions", { lastReqDt: "20180101000000" });
+		const rows = salesRows(salesJson);
+		const sale = rows.find((r) => String(r.rcptTyCd ?? "S").toUpperCase() !== "R" && String(r.salesTyCd ?? "N").toUpperCase() !== "C");
+		const cn = rows.find((r) => String(r.rcptTyCd ?? "").toUpperCase() === "R");
+		if (sale?.invcNo != null) SALE_INVC_NO = Number(sale.invcNo);
+		if (cn?.invcNo != null) CN_INVC_NO = Number(cn.invcNo);
+	} catch (err) {
+		console.warn(`Could not load cert session: ${err instanceof Error ? err.message : String(err)}`);
+	}
+	console.log(`Cert TIN=${CERT_TIN} bhf=${CERT_BHF_ID} sale=#${SALE_INVC_NO} credit=#${CN_INVC_NO}`);
+}
+
+function assertSandboxQr(kind: string, url: string | null) {
+	const expectedPrefix = `https://etims-sbx.kra.go.ke/common/link/etims/receipt/indexEtimsReceiptData?Data=${CERT_TIN}${CERT_BHF_ID}`;
+	if (!url?.startsWith(expectedPrefix)) {
+		throw new Error(`${kind} QR is not the KRA sandbox Data= URL: ${url}`);
+	}
+	console.log(`${kind} QR: ${url}`);
 }
 
 async function createInvoice(params: { teamId: string; createdBy: string }) {
@@ -281,7 +347,7 @@ async function createInvoice(params: { teamId: string; createdBy: string }) {
 		invoiceId,
 		position: 0,
 		name: "nPanel Cert VAT16",
-		description: "KE1NTBA0000003 · 1010150100 · Tax B · BA × NT",
+		description: "KE1NTBA0000001 · 1010150100 · Tax B · BA × NT",
 		quantity: 1,
 		unit: "BA",
 		price: SUBTOTAL,
@@ -346,6 +412,8 @@ async function stampCreditNoteFromKra(row: typeof creditNote.$inferSelect) {
 				invcNo: CN_INVC_NO,
 				orgInvcNo: SALE_INVC_NO,
 				rfdRsnCd: "06",
+				tin: CERT_TIN,
+				bhfId: CERT_BHF_ID,
 				sdcId: CN_FISCAL.data.sdcId,
 			},
 			kraSyncResponse: CN_FISCAL,
@@ -421,8 +489,11 @@ async function ensureCreditNote(params: {
 }
 
 async function main() {
+	await loadCertSession();
 	await overlayFromKra(SALE_INVC_NO, SALE_FISCAL);
 	await overlayFromKra(CN_INVC_NO, CN_FISCAL);
+	assertSandboxQr("Invoice", saleVerifyUrl());
+	assertSandboxQr("Credit note", cnVerifyUrl());
 
 	const actor = await findActor();
 	const teamRow = await findTeam();
@@ -442,12 +513,14 @@ async function main() {
 	await mkdir(OUT_DIR, { recursive: true });
 
 	const invoiceDetail = await getInvoiceDetailForPdf(db, inv.id);
+	assertSandboxQr("Invoice PDF", invoiceDetail.kraVerificationUrl ?? invoiceDetail.kraQrCode ?? null);
 	const invoicePdf = await generateInvoicePdfBuffer(invoiceDetail);
 	const invoiceName = sanitizeInvoicePdfFilename(inv.invoiceNumber ?? "INV-0001");
 	const invoicePath = path.join(OUT_DIR, invoiceName);
 	await writeFile(invoicePath, invoicePdf);
 
 	const creditDetail = await getCreditNoteDetailForPdf(db, cn.id);
+	assertSandboxQr("Credit note PDF", creditDetail.kraVerificationUrl ?? creditDetail.kraQrCode ?? null);
 	const creditPdf = await generateCreditNotePdfBuffer(creditDetail);
 	const creditName = sanitizeInvoicePdfFilename(cn.creditNumber ?? "CN-0004").replace(/^INV/i, "CN");
 	const creditPath = path.join(OUT_DIR, creditName.startsWith("CN") ? creditName : `CN-${creditName}`);

@@ -7,7 +7,7 @@ import type {
 	ItemCommissionContext,
 } from "@/routes/agency.quotations/create/types";
 
-import { COMPANY_LOGO_URL as DEFAULT_LOGO } from "@npanel/api/lib/company-branding";
+import { COMPANY_LOGO_URL as DEFAULT_LOGO, resolvePdfLogoUrl } from "@npanel/api/lib/company-branding";
 
 function metadataRecord(
 	metadata: Record<string, unknown> | unknown[] | null | undefined,
@@ -97,7 +97,7 @@ export function transformQuotationToPreviewData(quotation: QuotationForPreview):
 		yourCountry: fromDetails?.country as string | undefined,
 		yourZip: fromDetails?.zip as string | undefined,
 		yourTaxId: fromDetails?.taxId as string | undefined,
-		yourLogo: (fromDetails?.logoUrl as string | undefined) || DEFAULT_LOGO,
+		yourLogo: resolvePdfLogoUrl((fromDetails?.logoUrl as string | undefined) || DEFAULT_LOGO),
 	};
 
 	const customerDetails = quotation.customerDetails as Record<string, unknown> | null;

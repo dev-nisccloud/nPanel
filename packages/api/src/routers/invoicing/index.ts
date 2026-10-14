@@ -651,7 +651,11 @@ function mapInvoiceDetail(invoice: any): InvoiceDetail {
 }
 
 async function fetchInvoiceDetail(tx: DbLike, invoiceId: string) {
-	await loadDeviceSdcId();
+	try {
+		await loadDeviceSdcId();
+	} catch (error) {
+		console.warn("[invoicing] device CU ID unavailable; loading invoice without it", error);
+	}
 	const inv = await tx.query.invoice.findFirst({
 		where: eq(invoice.id, invoiceId),
 		with: {
@@ -1154,7 +1158,11 @@ function mapCreditNoteDetail(raw: {
 }
 
 async function fetchCreditNoteDetail(tx: DbLike, creditNoteId: string) {
-	await loadDeviceSdcId();
+	try {
+		await loadDeviceSdcId();
+	} catch (error) {
+		console.warn("[invoicing] device CU ID unavailable; loading credit note without it", error);
+	}
 	const cn = await tx.query.creditNote.findFirst({
 		where: eq(creditNote.id, creditNoteId),
 		with: {
