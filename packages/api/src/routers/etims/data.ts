@@ -9,6 +9,12 @@ import {
     getEtimsItemClassificationByCode,
     listEtimsItemClassifications,
 } from "../../lib/etims-item-classification-store";
+import {
+    getEtimsCodeListFromDb,
+    getEtimsCodeMeta,
+    listEtimsCodes,
+    syncEtimsCodeList,
+} from "../../lib/etims-code-store";
 import { etimsProcedure, skipEtimsAuthChecks } from "./_procedure";
 
 const unusedOscu = { tin: "", bhfId: "", cmcKey: "" };
@@ -284,23 +290,125 @@ function normalizeBranchCustomer(raw: Record<string, unknown>): EtimsBranchCusto
 
 export const etimsDataRouter = router({
     /**
-     * Retrieve standard code lists (payment types, receipt types, tax codes, etc.)
-     * POST /selectCodeList
+     * Standard code lists from `etims_code` (never live KRA).
+     * `lastReqDt` is ignored; kept so existing callers keep compiling.
      */
     getCodeList: etimsProcedure
         .input(z.object({
-            lastReqDt: z.string().regex(/^\d{14}$/, "Must be YYYYMMDDHHmmss"),
-        }))
-        .query(async ({ ctx, input }) => {
+            lastReqDt: z.string().regex(/^\d{14}$/, "Must be YYYYMMDDHHmmss").optional(),
+        }).optional())
+        .query(async ({ ctx }) => {
             assertReadAccess(ctx.session?.user?.role);
-            const { client, oscu } = await getEtimsContext();
-
             try {
-                const result = await client.selectCodeList(oscu, input.lastReqDt);
-                return { success: true, data: result };
+                const fromDb = await getEtimsCodeListFromDb();
+                if (!fromDb) {
+                    return {
+                        success: true,
+                        data: { clsList: [], codeList: [] },
+                        source: "db" as const,
+                        empty: true,
+                        needsSync: true,
+                        errorMessage: "No standard codes in the database. Use Sync now, or run `bun run etims:sync-codes` in apps/server.",
+                    };
+                }
+                return { success: true, data: fromDb, source: "db" as const, empty: false, needsSync: false };
             } catch (error: unknown) {
                 const msg = (error as Error).message;
-                throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: msg || "Failed to retrieve code list" });
+                return {
+                    success: false,
+                    data: { clsList: [], codeList: [] },
+                    source: "db" as const,
+                    empty: true,
+                    needsSync: true,
+                    errorMessage: msg || "Failed to read standard codes",
+                };
+            }
+        }),
+
+    /** Code-list metadata and rows from `etims_code` (never live KRA). */
+    listCodes: etimsProcedure
+        .input(z.object({
+            cdCls: z.string().optional(),
+            search: z.string().optional(),
+            includeUnused: z.boolean().optional(),
+        }).optional())
+        .query(async ({ ctx, input }) => {
+            assertReadAccess(ctx.session?.user?.role);
+            try {
+                const result = await listEtimsCodes({
+                    cdCls: input?.cdCls,
+                    search: input?.search,
+                    includeUnused: input?.includeUnused,
+                });
+                return {
+                    success: true,
+                    ...result,
+                    errorMessage: result.needsSync
+                        ? "No standard codes in the database. Use Sync now to pull them from KRA."
+                        : undefined,
+                };
+            } catch (error: unknown) {
+                const msg = (error as Error).message;
+                return {
+                    success: false,
+                    items: [],
+                    classes: [],
+                    total: 0,
+                    needsSync: true,
+                    empty: true,
+                    meta: null,
+                    errorMessage: msg || "Failed to list standard codes",
+                };
+            }
+        }),
+
+    getCodeMeta: etimsProcedure
+        .query(async ({ ctx }) => {
+            assertReadAccess(ctx.session?.user?.role);
+            try {
+                const meta = await getEtimsCodeMeta();
+                return {
+                    success: true,
+                    meta,
+                    empty: !meta,
+                    needsSync: !meta,
+                    errorMessage: meta ? undefined : "No standard codes in the database. Use Sync now to pull them from KRA.",
+                };
+            } catch (error: unknown) {
+                const msg = (error as Error).message;
+                return {
+                    success: false,
+                    meta: null,
+                    empty: true,
+                    needsSync: true,
+                    errorMessage: msg || "Failed to read standard codes",
+                };
+            }
+        }),
+
+    /** Pull `/selectCodeList` from KRA into `etims_code`. */
+    syncCodeList: etimsProcedure
+        .input(z.object({
+            reset: z.boolean().optional(),
+            lastReqDt: z.string().regex(/^\d{14}$/, "Must be YYYYMMDDHHmmss").optional(),
+        }).optional())
+        .mutation(async ({ ctx, input }) => {
+            assertReadAccess(ctx.session?.user?.role);
+            const { oscu, isSandbox } = await getEtimsContext();
+            const client = createEtimsClient({
+                ...buildClientConfigFromEnv(isSandbox),
+                baseUrl: isSandbox ? CLASSIC_SANDBOX_BASE : CLASSIC_PROD_BASE,
+                memoryTokenOnly: true,
+            });
+            try {
+                const result = await syncEtimsCodeList(client, oscu, {
+                    reset: input?.reset ?? true,
+                    lastReqDt: input?.lastReqDt,
+                });
+                return { success: true, ...result };
+            } catch (error: unknown) {
+                const msg = (error as Error).message;
+                throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: msg || "Failed to sync standard codes" });
             }
         }),
 

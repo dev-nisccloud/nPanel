@@ -1,19 +1,19 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Document, Font, Page } from "@react-pdf/renderer";
+import { Document, Font } from "@react-pdf/renderer";
 import { CheckCircle2, Send, LoaderIcon } from "lucide-react";
-import { PdfDetails } from "../pdfDetails";
 import { useData } from "../../../hooks/useData";
-import { pdfContainers } from "@/lib/pdfStyles";
 import { pdf } from "@react-pdf/renderer";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import QRCodeUtil from "qrcode";
 import { trpc } from "@/utils/trpc";
 import { useFormContext } from "react-hook-form";
 import { toast } from "@/components/ui/sonner";
-import { useNavigate, useLocation } from "react-router";
+import { useNavigate } from "react-router";
 import { captureEvent } from "@/lib/posthog";
+import { AgencyInvoicePdfPage } from "@npanel/api/agency-invoice-pdf/agency-invoice-pdf-page";
+import { useInvoiceEtimsFiscalPreview } from "@/routes/agency.invoices/create/hooks/useEtimsFiscalPreview";
 
 // Font registration state
 let fontsRegistered = false;
@@ -111,6 +111,7 @@ export const DownloadInvoiceButton = () => {
     paymentDetails,
     yourDetails,
   } = useData();
+  const etimsFiscal = useInvoiceEtimsFiscalPreview();
 
   const submitInvoiceMutation = trpc.invoicing.submitInvoice.useMutation({
     onSuccess: (data) => {
@@ -167,11 +168,11 @@ export const DownloadInvoiceButton = () => {
       // Ensure fonts are registered before generating PDF
       await registerFonts();
       
-      // Generate QR code data URL if qrCodeValue exists
       let qrCodeDataUrl: string | undefined;
-      if (paymentDetails.qrCodeValue) {
+      const etimsUrl = etimsFiscal.verificationUrl?.trim();
+      if (etimsUrl) {
         try {
-          qrCodeDataUrl = await QRCodeUtil.toDataURL(paymentDetails.qrCodeValue, {
+          qrCodeDataUrl = await QRCodeUtil.toDataURL(etimsUrl, {
             width: 120,
             margin: 1,
           });
@@ -180,21 +181,17 @@ export const DownloadInvoiceButton = () => {
         }
       }
 
-      // Generate PDF
       const blob = await pdf(
         <Document>
-          <Page size="A4" style={pdfContainers.page}>
-            <PdfDetails
-              companyDetails={companyDetails}
-              invoiceDetails={invoiceDetails}
-              invoiceTerms={invoiceTerms}
-              paymentDetails={{
-                ...paymentDetails,
-                qrCodeDataUrl,
-              }}
-              yourDetails={yourDetails}
-            />
-          </Page>
+          <AgencyInvoicePdfPage
+            companyDetails={companyDetails}
+            invoiceDetails={invoiceDetails}
+            invoiceTerms={invoiceTerms}
+            paymentDetails={paymentDetails}
+            yourDetails={yourDetails}
+            etimsFiscal={etimsFiscal}
+            qrCodeDataUrl={qrCodeDataUrl}
+          />
         </Document>
       ).toBlob();
 
@@ -232,7 +229,13 @@ export const DownloadInvoiceButton = () => {
         price: String(item.amount || 0),
         discount: null,
         total: String((item.amount || 0) * (item.qty || 1)),
-        metadata: null,
+        metadata:
+          item.productId || item.etimsTaxTyCd
+            ? {
+                ...(item.productId ? { productId: item.productId } : {}),
+                ...(item.etimsTaxTyCd ? { etimsTaxTyCd: item.etimsTaxTyCd } : {}),
+              }
+            : null,
       }));
 
       // Prepare payment details JSON

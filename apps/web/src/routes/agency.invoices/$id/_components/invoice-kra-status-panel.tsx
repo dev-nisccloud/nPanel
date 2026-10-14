@@ -142,16 +142,16 @@ export function InvoiceKraStatusPanel({
 							{etimsFiscal.sdcDateTimeDisplay}
 						</p>
 					) : null}
-					{invoice.kraVerificationUrl ? (
+					{(etimsFiscal?.verificationUrl ?? invoice.kraVerificationUrl) ? (
 						<p className="break-all pt-1 font-sans">
 							<span className="text-muted-foreground">Verify: </span>
 							<a
-								href={invoice.kraVerificationUrl}
+								href={etimsFiscal?.verificationUrl ?? invoice.kraVerificationUrl ?? undefined}
 								target="_blank"
 								rel="noopener noreferrer"
 								className="text-primary underline"
 							>
-								{invoice.kraVerificationUrl}
+								{etimsFiscal?.verificationUrl ?? invoice.kraVerificationUrl}
 							</a>
 						</p>
 					) : null}

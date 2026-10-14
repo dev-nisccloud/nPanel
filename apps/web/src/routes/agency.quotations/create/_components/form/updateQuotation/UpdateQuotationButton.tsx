@@ -8,8 +8,15 @@ import { useState } from "react";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { useData } from "@/routes/agency.quotations/create/hooks/useData";
-import type { Item } from "@/routes/agency.quotations/create/types";
+import { quotationLineItemMetadata, type Item } from "@/routes/agency.quotations/create/types";
 import { captureEvent } from "@/lib/posthog";
+
+const UUID_PATTERN =
+	/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isUuid(value: string | undefined): value is string {
+	return !!value && UUID_PATTERN.test(value);
+}
 
 function roundTotalIfExceeds(amount: number): number {
 	const decimalPlaces = (amount.toString().split(".")[1] ?? "").length;
@@ -60,6 +67,7 @@ export function UpdateQuotationButton({ quotationId }: UpdateQuotationButtonProp
 			const totalAmount = roundTotalIfExceeds(subtotal - discountValue + taxAmount);
 
 			const lineItems = items.map((item: Item, index: number) => ({
+				id: isUuid(item.id) ? item.id : undefined,
 				position: index,
 				name: item.itemDescription ?? "Service",
 				description: null,
@@ -68,7 +76,7 @@ export function UpdateQuotationButton({ quotationId }: UpdateQuotationButtonProp
 				price: String(item.amount ?? 0),
 				discount: null,
 				total: String((item.amount ?? 0) * (item.qty ?? 1)),
-				metadata: (item.billingCycle && item.billingCycle !== "__unset__") ? { billingCycle: item.billingCycle } : null,
+				metadata: quotationLineItemMetadata(item),
 			}));
 
 			const fromDetails = {
@@ -120,31 +128,30 @@ export function UpdateQuotationButton({ quotationId }: UpdateQuotationButtonProp
 	};
 
 	return (
-		<div className="flex h-[calc(100vh-208px)] justify-center items-center">
-			<div>
-				<h1 className="text-5xl font-semibold pb-6">Save your changes</h1>
-				<p className="text-neutral-500 text-xl pb-7">
+		<div className="flex min-h-[calc(100vh-280px)] flex-col items-center justify-center text-center">
+			<div className="flex max-w-md flex-col items-center">
+				<h2 className="text-2xl font-semibold tracking-tight">Save your changes</h2>
+				<p className="text-sm text-muted-foreground pt-2 pb-6">
 					Review the details above and click below to update the quotation. The quotation number cannot be changed.
 				</p>
 				<Button
 					disabled={status === "saving" || status === "saved"}
 					onClick={handleSave}
 					type="button"
-					className="w-full h-12 rounded-lg text-lg"
 				>
 					{status === "idle" && (
 						<>
-							<Save className="mr-2 h-6 w-6" /> Save changes
+							<Save /> Save changes
 						</>
 					)}
 					{status === "saving" && (
 						<>
-							<LoaderIcon className="mr-2 h-6 w-6 animate-spin" /> Saving...
+							<LoaderIcon className="animate-spin" /> Saving...
 						</>
 					)}
 					{status === "saved" && (
 						<>
-							<CheckCircle2 className="mr-2 h-6 w-6" /> Updated
+							<CheckCircle2 /> Updated
 						</>
 					)}
 				</Button>

@@ -12,6 +12,8 @@ import {
     FileMinus,
     Download,
     Loader2,
+    Copy,
+    Split,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,7 +42,13 @@ import {
 import { ETimsInitializationGuard } from "@/components/etims/etims-initialization-guard";
 import { ETimsBranchSwitcher } from "@/components/etims/etims-branch-switcher";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SendETimsSaleSheet } from "./agency.kra-etims/sales/_components/send-etims-sale-sheet";
+import { SendETimsSaleSheet, type SaleSheetPrefill } from "./agency.kra-etims/sales/_components/send-etims-sale-sheet";
+import { buildCopyReceiptPayload } from "./agency.kra-etims/sales/_components/build-etims-copy-receipt";
+import {
+    mergeEtimsSaleWithDetails,
+    unwrapEtimsInvoiceDetails,
+} from "@npanel/api/agency-invoice-pdf/etims-sale-to-invoice-detail";
+import { kraResultError, parseExpectedInvcNo } from "./agency.kra-etims/_lib/etims-kra";
 import {
     IssueETimsCreditNoteSheet,
     creditNoteReasonLabel,
@@ -49,6 +57,8 @@ import {
 import {
     compareKraNewestFirst,
     formatSaleTableDateTime,
+    isCopyReceipt,
+    isCreditNote,
     normalizeSalesListItem,
     type EtimsSaleRecord,
 } from "./agency.kra-etims/sales/_components/etims-sale-utils";
@@ -68,6 +78,9 @@ export default function ETimsSalesPage() {
     const [isViewOpen, setIsViewOpen] = React.useState(false);
     const [viewingRecord, setViewingRecord] = React.useState<EtimsSaleRecord | null>(null);
     const [creditNoteSale, setCreditNoteSale] = React.useState<EtimsSaleForCreditNote | null>(null);
+    const [salePrefill, setSalePrefill] = React.useState<SaleSheetPrefill | null>(null);
+    const [copyTarget, setCopyTarget] = React.useState<EtimsSaleRecord | null>(null);
+    const [copyingInvcNo, setCopyingInvcNo] = React.useState<number | null>(null);
 
     const { data: etimsConfig } = trpc.etims.auth.getConfiguration.useQuery();
     const { data: branchesData } = trpc.etims.branch.getBranchList.useQuery({ lastReqDt: "20230101000000" });
@@ -105,11 +118,12 @@ export default function ETimsSalesPage() {
         return items.sort(compareKraNewestFirst);
     }, [salesData]);
 
-    const etimsCfg = (etimsConfig as { config?: { kraPin?: string; branchId?: string; isSandbox?: boolean } } | undefined)?.config;
+    const etimsCfg = (etimsConfig as { config?: { kraPin?: string; branchId?: string; isSandbox?: boolean; sdcId?: string | null } } | undefined)?.config;
     const { download: downloadReceipt, downloadingInvcNo } = useEtimsReceiptDownload({
         kraPin: etimsCfg?.kraPin,
         branchId: selectedBhfId ?? etimsCfg?.branchId,
         isSandbox: etimsCfg?.isSandbox,
+        sdcId: etimsCfg?.sdcId,
         salesList: invoices,
     });
 
@@ -135,9 +149,14 @@ export default function ETimsSalesPage() {
         [invoices, filterBySearch],
     );
 
+    const { data: openPartials } = trpc.etims.sales.listOpenPartials.useQuery();
+    const openPartialSeeds = React.useMemo(() => {
+        return new Set((openPartials?.seeds ?? []).map((row) => row.seedInvcNo));
+    }, [openPartials]);
+
     const creditableSales = React.useMemo((): EtimsSaleForCreditNote[] => {
         return invoices
-            .filter((inv: any) => inv.rcptTyCd !== "R")
+            .filter((inv: any) => inv.rcptTyCd !== "R" && !isCopyReceipt(inv))
             .map((inv: any) => ({
                 invcNo: inv.invcNo,
                 custTin: inv.custTin,
@@ -179,6 +198,109 @@ export default function ETimsSalesPage() {
         setIsCreditNoteOpen(true);
         setCreditNoteConfirmTarget(undefined);
     }, [creditNoteConfirmTarget]);
+
+    const utils = trpc.useUtils();
+    const sendCopyReceipt = trpc.etims.sales.sendCopyReceipt.useMutation();
+
+    const resolveSaleLines = React.useCallback(async (source: EtimsSaleRecord): Promise<EtimsSaleRecord> => {
+        if (Array.isArray(source.itemList) && source.itemList.length > 0) return source;
+        try {
+            const detailsRes = await utils.etims.sales.getInvoiceDetails.fetch({ invcNo: source.invcNo });
+            return mergeEtimsSaleWithDetails(source, unwrapEtimsInvoiceDetails(detailsRes)) as EtimsSaleRecord;
+        } catch {
+            return source;
+        }
+    }, [utils]);
+
+    const issueCopyReceipt = React.useCallback(async (sale: EtimsSaleRecord) => {
+        if (isCopyReceipt(sale)) {
+            toast.error("This record is already a copy receipt.");
+            return;
+        }
+        setCopyingInvcNo(sale.invcNo);
+        try {
+            const resolved = await resolveSaleLines(sale);
+            if (!Array.isArray(resolved.itemList) || resolved.itemList.length === 0) {
+                toast.error("KRA did not return line items for this invoice, so a copy cannot be issued.");
+                return;
+            }
+            let invcNo = nextInvcNo(invoices);
+            for (let attempt = 0; attempt < 4; attempt++) {
+                const res = await sendCopyReceipt.mutateAsync({
+                    transaction: buildCopyReceiptPayload(resolved, invcNo),
+                });
+                const err = res?.success === false
+                    ? (res.errorMessage ?? "Failed to issue copy receipt")
+                    : kraResultError(res);
+                if (!err) {
+                    toast.success("Copy receipt sent to KRA");
+                    await refetch();
+                    const copyRow = {
+                        ...resolved,
+                        ...((res as { data?: Record<string, unknown> })?.data ?? {}),
+                        invcNo,
+                        orgInvcNo: sale.invcNo,
+                        salesTyCd: "C",
+                        rcptTyCd: isCreditNote(sale) ? "R" : "S",
+                        stockRlsDt: null,
+                    } as EtimsSaleRecord;
+                    await downloadReceipt(copyRow);
+                    return;
+                }
+                const expected = parseExpectedInvcNo(err);
+                if (expected && expected !== invcNo) {
+                    invcNo = expected;
+                    toast.message(`KRA expected invoice ${expected}. Retrying…`);
+                    continue;
+                }
+                toast.error(err);
+                return;
+            }
+            toast.error("Could not allocate the next KRA invoice number");
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to issue copy receipt");
+        } finally {
+            setCopyingInvcNo(null);
+            setCopyTarget(null);
+        }
+    }, [downloadReceipt, invoices, refetch, resolveSaleLines, sendCopyReceipt]);
+
+    const openRemainingInvoice = React.useCallback(async (sale: EtimsSaleRecord) => {
+        try {
+            const remaining = await utils.etims.sales.getPartialRemaining.fetch({ seedInvcNo: sale.invcNo });
+            const leftover = remaining.lines.filter((line) => line.remainingQty > 0);
+            if (!leftover.length) {
+                toast.error("There is no remaining quantity to invoice for this sale.");
+                return;
+            }
+            setSalePrefill({
+                mode: "remaining",
+                seedInvcNo: sale.invcNo,
+                trdInvcNo: remaining.trdInvcNo ?? `TINV${nextInvcNo(invoices)}`,
+                custTin: remaining.custTin ?? sale.custTin ?? "",
+                custNm: remaining.custNm ?? sale.custNm ?? "",
+                pmtTyCd: remaining.pmtTyCd ?? sale.pmtTyCd ?? "01",
+                lines: leftover.map((line) => ({
+                    itemCd: line.itemCd,
+                    itemNm: line.itemNm,
+                    itemClsCd: line.itemClsCd ?? "",
+                    pkgUnitCd: line.pkgUnitCd ?? "OU",
+                    qtyUnitCd: line.qtyUnitCd ?? "NO",
+                    taxTyCd: (["A", "B", "C", "D", "E"].includes(String(line.taxTyCd))
+                        ? line.taxTyCd
+                        : "B") as SaleSheetPrefill["lines"][number]["taxTyCd"],
+                    qty: line.remainingQty,
+                    inclusivePrc: line.inclusivePrc,
+                    dcRt: line.dcRt,
+                    maxQty: line.remainingQty,
+                    orderedQty: line.orderedQty,
+                })),
+            });
+            setIsSendOpen(true);
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to load remaining quantity");
+        }
+    }, [invoices, utils]);
 
     const openViewSale = React.useCallback((invoice: EtimsSaleRecord) => {
         setViewingRecord(invoice);
@@ -246,15 +368,58 @@ export default function ETimsSalesPage() {
                 onVerifyKra={(record) => openKraVerify(record)}
                 downloading={viewingRecord != null && downloadingInvcNo === viewingRecord.invcNo}
                 onDownload={(record) => downloadReceipt(record)}
+                onIssueCopy={(record) => {
+                    setIsViewOpen(false);
+                    setCopyTarget(record);
+                }}
                 onIssueCreditNote={(record) => {
                     setIsViewOpen(false);
                     requestCreditNote(toCreditNoteSale(record));
                 }}
             />
+            <AlertDialog open={!!copyTarget} onOpenChange={(open) => { if (!open) setCopyTarget(null); }}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Issue copy receipt?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {copyTarget
+                                ? `Issue a copy of invoice #${copyTarget.invcNo}.`
+                                : "Issue a copy of this invoice."}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={copyingInvcNo != null}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            disabled={copyingInvcNo != null || !copyTarget}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                if (!copyTarget) return;
+                                void issueCopyReceipt(copyTarget);
+                            }}
+                        >
+                            {copyingInvcNo != null ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Issuing…
+                                </>
+                            ) : (
+                                "Issue copy"
+                            )}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
             <SendETimsSaleSheet
                 open={isSendOpen}
-                onOpenChange={setIsSendOpen}
-                onSuccess={() => refetch()}
+                onOpenChange={(open) => {
+                    setIsSendOpen(open);
+                    if (!open) setSalePrefill(null);
+                }}
+                prefill={salePrefill}
+                onSuccess={() => {
+                    refetch();
+                    void utils.etims.sales.listOpenPartials.invalidate();
+                }}
             />
             <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
                 <div className="w-full max-w-7xl mx-auto">
@@ -378,7 +543,15 @@ export default function ETimsSalesPage() {
                                                                 <FileText className="h-4 w-4" />
                                                             </div>
                                                             <div>
-                                                                <div className="font-medium text-foreground">{invoice.invcNo}</div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="font-medium text-foreground">{invoice.invcNo}</div>
+                                                                    {isCopyReceipt(invoice) ? (
+                                                                        <Badge variant="outline" className="h-5 px-1.5 text-[10px]">COPY</Badge>
+                                                                    ) : null}
+                                                                    {openPartialSeeds.has(invoice.invcNo) ? (
+                                                                        <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">Partial</Badge>
+                                                                    ) : null}
+                                                                </div>
                                                                 <div className="text-xs text-muted-foreground">{invoice.custNm || "Cash Sale"}</div>
                                                             </div>
                                                         </div>
@@ -423,10 +596,25 @@ export default function ETimsSalesPage() {
                                                                     )}
                                                                     Download invoice
                                                                 </DropdownMenuItem>
-                                                                <DropdownMenuItem onClick={() => requestCreditNote(toCreditNoteSale(invoice))}>
-                                                                    <FileMinus className="mr-2 h-4 w-4" />
-                                                                    Issue credit note
+                                                                <DropdownMenuItem
+                                                                    disabled={isCopyReceipt(invoice) || copyingInvcNo === invoice.invcNo}
+                                                                    onClick={() => setCopyTarget(invoice)}
+                                                                >
+                                                                    <Copy className="mr-2 h-4 w-4" />
+                                                                    Issue copy receipt
                                                                 </DropdownMenuItem>
+                                                                {openPartialSeeds.has(invoice.invcNo) ? (
+                                                                    <DropdownMenuItem onClick={() => void openRemainingInvoice(invoice)}>
+                                                                        <Split className="mr-2 h-4 w-4" />
+                                                                        Invoice remaining
+                                                                    </DropdownMenuItem>
+                                                                ) : null}
+                                                                {!isCopyReceipt(invoice) ? (
+                                                                    <DropdownMenuItem onClick={() => requestCreditNote(toCreditNoteSale(invoice))}>
+                                                                        <FileMinus className="mr-2 h-4 w-4" />
+                                                                        Issue credit note
+                                                                    </DropdownMenuItem>
+                                                                ) : null}
                                                                 <DropdownMenuItem onClick={() => openViewSale(invoice)}>
                                                                     <Eye className="mr-2 h-4 w-4" /> View sale
                                                                 </DropdownMenuItem>
@@ -505,7 +693,12 @@ export default function ETimsSalesPage() {
                                                                 <FileMinus className="h-4 w-4" />
                                                             </div>
                                                             <div>
-                                                                <div className="font-medium text-foreground">{invoice.invcNo}</div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="font-medium text-foreground">{invoice.invcNo}</div>
+                                                                    {isCopyReceipt(invoice) ? (
+                                                                        <Badge variant="outline" className="h-5 px-1.5 text-[10px]">COPY</Badge>
+                                                                    ) : null}
+                                                                </div>
                                                                 <div className="text-xs text-muted-foreground">{invoice.custNm || "Cash Sale"}</div>
                                                             </div>
                                                         </div>
@@ -547,6 +740,13 @@ export default function ETimsSalesPage() {
                                                                         <Download className="mr-2 h-4 w-4" />
                                                                     )}
                                                                     Download credit note
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem
+                                                                    disabled={isCopyReceipt(invoice) || copyingInvcNo === invoice.invcNo}
+                                                                    onClick={() => setCopyTarget(invoice)}
+                                                                >
+                                                                    <Copy className="mr-2 h-4 w-4" />
+                                                                    Issue copy receipt
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuItem onClick={() => openViewSale(invoice)}>
                                                                     <Eye className="mr-2 h-4 w-4" /> View credit note

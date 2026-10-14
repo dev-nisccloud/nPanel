@@ -151,6 +151,9 @@ export const InvoiceDetailsForm = () => {
                     itemDescription: desc,
                     amount: Math.round((context.commissionRatePercent / 100) * context.adSpend * 100) / 100,
                     qty: 1,
+                    productId: items[idx]?.productId,
+                    etimsTaxTyCd: items[idx]?.etimsTaxTyCd,
+                    billingCycle: items[idx]?.billingCycle,
                   };
                 });
                 const next = [...items.slice(0, idx), ...newItems, ...items.slice(idx + 1)];
@@ -165,7 +168,7 @@ export const InvoiceDetailsForm = () => {
   );
 };
 
-type Product = { id: string; name: string };
+type Product = { id: string; name: string; etimsTaxTyCd?: string | null };
 type Plan = {
   id: string;
   name: string;
@@ -214,6 +217,7 @@ function InvoiceItemRow({
         productId: undefined,
         productPlanId: undefined,
         commissionContext: undefined,
+        etimsTaxTyCd: undefined,
         itemDescription: "",
         amount: undefined,
         qty: undefined,
@@ -225,6 +229,7 @@ function InvoiceItemRow({
       productId,
       productPlanId: undefined,
       commissionContext: undefined,
+      etimsTaxTyCd: product?.etimsTaxTyCd ?? undefined,
       itemDescription: product?.name ?? "",
       amount: undefined,
       qty: 1,

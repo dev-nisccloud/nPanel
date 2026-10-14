@@ -6,6 +6,7 @@ export const InvoiceTermsPreview: React.FC<
   InvoiceTerms & { onClick?: (step: string) => void }
 > = ({
   invoiceNumber,
+  scuId,
   issueDate,
   issuedAtDisplay,
   dueDate,
@@ -45,6 +46,14 @@ export const InvoiceTermsPreview: React.FC<
               {invoiceNumber || "-"}
             </span>
           </p>
+          {scuId?.trim() ? (
+            <p className="flex items-center justify-end gap-2 text-xs text-neutral-500 whitespace-nowrap">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
+                SCU ID
+              </span>
+              <span className="font-semibold text-gray-700">{scuId.trim()}</span>
+            </p>
+          ) : null}
           <p className="flex items-center justify-end gap-2 text-xs text-neutral-500 whitespace-nowrap">
             <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
               Issued

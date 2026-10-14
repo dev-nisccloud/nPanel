@@ -26,7 +26,37 @@ export type Item = {
   commissionContext?: ItemCommissionContext;
   /** Optional billing cycle for the item */
   billingCycle?: string;
+  /** Product KRA tax band (A–E). Shown with the tax table rate label. */
+  etimsTaxTyCd?: string;
+  /** Line metadata already stored on the invoice, kept so an edit does not drop it. */
+  sourceMetadata?: Record<string, unknown>;
 };
+
+export function invoiceLineItemMetadata(item: Item): Record<string, unknown> | null {
+  const metadata: Record<string, unknown> = { ...(item.sourceMetadata ?? {}) };
+  if (item.billingCycle && item.billingCycle !== "__unset__") {
+    metadata.billingCycle = item.billingCycle;
+  } else {
+    delete metadata.billingCycle;
+  }
+  if (item.productId) {
+    metadata.productId = item.productId;
+    if (typeof metadata.niscProductId === "string" && metadata.niscProductId !== item.productId) {
+      metadata.niscProductId = item.productId;
+    }
+    if (typeof metadata.mainProductId === "string" && metadata.mainProductId !== item.productId) {
+      metadata.mainProductId = item.productId;
+    }
+  } else if (item.sourceMetadata) {
+    delete metadata.productId;
+    delete metadata.niscProductId;
+    delete metadata.mainProductId;
+  }
+  if (item.etimsTaxTyCd) metadata.etimsTaxTyCd = item.etimsTaxTyCd;
+  else delete metadata.etimsTaxTyCd;
+  if (Object.keys(metadata).length > 0) return metadata;
+  return item.sourceMetadata ? {} : null;
+}
 
 export type YourDetails = {
   yourEmail?: string;
@@ -89,6 +119,7 @@ export type PaymentDetails = {
 
 export type InvoiceTerms = {
   invoiceNumber?: string;
+  scuId?: string;
   issueDate?: string | Date;
   issuedAtDisplay?: string;
   dueDate?: string | Date;

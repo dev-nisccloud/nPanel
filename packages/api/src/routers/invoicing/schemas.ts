@@ -88,6 +88,7 @@ export const etimsFiscalFieldsSchema = z.object({
 	tisTime: nullableStringSchema,
 	originalCuInvoiceNo: nullableStringSchema,
 	itemCount: z.number().int().min(0).nullable().optional(),
+	salesTyCd: nullableStringSchema,
 });
 export type EtimsFiscalFieldsType = z.infer<typeof etimsFiscalFieldsSchema>;
 

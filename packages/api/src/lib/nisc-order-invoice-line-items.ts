@@ -267,10 +267,15 @@ export function buildNiscOrderInvoiceLineItemCopy(
 	return { name, description: subscription };
 }
 
+/** KRA itemCd `{CC}{T}{PKG}{QTY}{seq7}` e.g. KE2BGNO0000003 — not shown on TIS PDFs. */
+function looksLikeKraItemCode(value: string): boolean {
+	return /^[A-Z]{2}[1-3][A-Z]{2}[A-Z]{2}\d{7}$/i.test(value.trim());
+}
+
 /** PDF / preview line text: title and subscription on separate lines for wrapping. */
 export function formatInvoiceLineItemForPdf(name: string, description?: string | null): string {
 	const desc = normalizeStoredInvoicePeriodDescription(description)?.trim();
-	if (!desc) return name;
+	if (!desc || looksLikeKraItemCode(desc)) return name;
 	return `${name}\n${desc}`;
 }
 

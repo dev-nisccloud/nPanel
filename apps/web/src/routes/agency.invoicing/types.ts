@@ -3,6 +3,8 @@ export type Item = {
   itemDescription: string;
   amount?: number;
   qty?: number;
+  /** Product KRA tax band (A–E). Shown with the tax table rate label. */
+  etimsTaxTyCd?: string;
 };
 
 export type YourDetails = {

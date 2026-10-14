@@ -97,6 +97,29 @@ function isPass(cd: string | null, success?: unknown) {
     return cd === "000" || cd === "001" || cd === "902";
 }
 
+function isEmptyLookup(payload: unknown): boolean {
+    const rec = asRecord(payload);
+    const msg = String(rec?.errorMessage ?? resultMsgOf(payload) ?? "");
+    const cd = resultCdOf(payload);
+    return cd === "001" || /no search result/i.test(msg);
+}
+
+function nestedRows(payload: unknown, keys: string[]): Array<Record<string, unknown>> {
+    const walk = (v: unknown, depth: number): unknown[] => {
+        if (depth > 8 || !v || typeof v !== "object") return [];
+        const r = v as Record<string, unknown>;
+        for (const k of keys) {
+            if (Array.isArray(r[k])) return r[k] as unknown[];
+        }
+        for (const k of ["data", "responseBody", "json"]) {
+            const n = walk(r[k], depth + 1);
+            if (n.length) return n;
+        }
+        return [];
+    };
+    return walk(payload, 0).map(asRecord).filter((row): row is Record<string, unknown> => Boolean(row));
+}
+
 function expectedCounter(message: string): number | null {
     const m = message.match(/Expected:\s*(\d+)\s+but\s+found/i);
     return m ? Number(m[1]) : null;
@@ -130,18 +153,12 @@ function fiscalOf(payload: unknown): { sdcDateTime: string | null; rcptSign: str
 }
 
 function firstImport(payload: unknown): Record<string, unknown> | null {
-    const walk = (v: unknown, depth: number): unknown[] => {
-        if (depth > 8 || !v || typeof v !== "object") return [];
-        const r = v as Record<string, unknown>;
-        if (Array.isArray(r.itemList)) return r.itemList;
-        for (const k of ["data", "responseBody"]) {
-            const n = walk(r[k], depth + 1);
-            if (n.length) return n;
-        }
-        return [];
-    };
-    const row = walk(payload, 0).map(asRecord).find((x) => x?.taskCd);
-    return row ?? null;
+    const rows = nestedRows(payload, ["itemList"]);
+    return rows.find((row) => row.taskCd && String(row.imptItemsttsCd ?? "2") !== "3") ?? rows.find((row) => row.taskCd) ?? null;
+}
+
+function queuedPurchases(payload: unknown): Array<Record<string, unknown>> {
+    return nestedRows(payload, ["saleList", "pchsList", "itemList"]).filter((row) => row.spplrInvcNo != null);
 }
 
 async function call(method: "GET" | "POST", procedure: string, input?: unknown): Promise<unknown> {
@@ -169,6 +186,19 @@ async function call(method: "GET" | "POST", procedure: string, input?: unknown):
     }
 }
 
+async function lookupUntilRows(
+    procedure: string,
+    input: unknown,
+    extract: (payload: unknown) => unknown[],
+): Promise<unknown> {
+    let payload: unknown = await call("GET", procedure, input);
+    for (let i = 0; i < 4 && extract(payload).length === 0; i++) {
+        await Bun.sleep(1500);
+        payload = await call("GET", procedure, input);
+    }
+    return payload;
+}
+
 function sessionCmcKey(): string | null {
     const p = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../.etims-certification/session.json");
     if (!existsSync(p)) return null;
@@ -187,8 +217,14 @@ async function main() {
     const rec = (step: string, payload: unknown, extra = "") => {
         const recObj = asRecord(payload);
         const cd = resultCdOf(payload);
-        const ok = isPass(cd, recObj?.success) || recObj?.isInitialized === true || recObj?.usesDatabase === false;
-        const detail = extra || resultMsgOf(payload) || (recObj?.errorMessage ? String(recObj.errorMessage) : "");
+        const ok =
+            isPass(cd, recObj?.success) ||
+            isEmptyLookup(payload) ||
+            recObj?.isInitialized === true ||
+            recObj?.usesDatabase === false;
+        const detail = [extra, resultMsgOf(payload) || (recObj?.errorMessage ? String(recObj.errorMessage) : "")]
+            .filter(Boolean)
+            .join(" | ");
         log.push({ step, ok: Boolean(ok || (cd && isPass(cd))), cd, detail });
         const mark = log[log.length - 1]!.ok ? "ok" : "FAIL";
         console.log(`${mark.padEnd(4)} ${step.padEnd(42)} cd=${cd ?? "-"} ${detail}`.trim());
@@ -289,7 +325,10 @@ async function main() {
             },
         }),
     );
-    rec("9 getItemList", await call("GET", "etimsCert.items.getItemList", last));
+    rec(
+        "9 getItemList",
+        await lookupUntilRows("etimsCert.items.getItemList", last, (p) => nestedRows(p, ["itemList"])),
+    );
 
     rec(
         "10 saveItem parent B",
@@ -408,7 +447,9 @@ async function main() {
         }),
     );
 
-    const imports = await call("GET", "etimsCert.imports.getImportedItems", last);
+    const imports = await lookupUntilRows("etimsCert.imports.getImportedItems", last, (p) =>
+        nestedRows(p, ["itemList"]).filter((row) => row.taskCd),
+    );
     rec("13 getImportedItems", imports);
     const importRow = firstImport(imports);
     if (importRow) {
@@ -514,49 +555,61 @@ async function main() {
     const fiscal = fiscalOf(salePayload);
     rec("15 sendSalesTransaction", salePayload, `invcNo=${saleInvc} sdc=${fiscal.sdcDateTime ?? "-"}`);
 
-    rec("16 getPurchaseTransactions", await call("GET", "etimsCert.purchases.getPurchaseTransactions", last));
+    const purchaseList = await lookupUntilRows("etimsCert.purchases.getPurchaseTransactions", last, queuedPurchases);
+    rec("16 getPurchaseTransactions", purchaseList);
+    const queued = queuedPurchases(purchaseList);
 
     let pInvc = saleInvc + 1;
-    for (let n = 1; n <= 3; n++) {
+    if (!queued.length) {
+        rec("17 sendPurchaseTransaction", { success: false, errorMessage: "no queued supplier invoice" }, "need a saleList row");
+    }
+    for (let n = 0; n < queued.length; n++) {
+        const row = queued[n]!;
+        const spplrInvcNo = Number(row.spplrInvcNo);
+        const itemList = Array.isArray(row.itemList) && row.itemList.length ? row.itemList : [saleLine];
         let payload: unknown = null;
         for (let i = 0; i < 6; i++) {
             payload = await call("POST", "etimsCert.purchases.sendPurchaseTransaction", {
                 purchase: {
-                    spplrTin: tin,
+                    spplrTin: String(row.spplrTin ?? tin),
                     invcNo: pInvc,
                     orgInvcNo: 0,
-                    spplrBhfId: "00",
-                    spplrNm: "Application Test Supplier",
-                    spplrInvcNo: pInvc,
+                    spplrBhfId: String(row.spplrBhfId ?? "00"),
+                    spplrNm: String(row.spplrNm ?? "Application Test Supplier"),
+                    spplrInvcNo,
                     regTyCd: "M",
                     pchsTyCd: "N",
                     rcptTyCd: "P",
-                    pmtTyCd: "01",
+                    pmtTyCd: String(row.pmtTyCd ?? "01"),
                     pchsSttsCd: "02",
                     cfmDt,
                     pchsDt: salesDt,
-                    totItemCnt: 1,
-                    taxblAmtA: 0,
-                    taxblAmtB: 1000,
-                    taxblAmtC: 0,
-                    taxblAmtD: 0,
-                    taxblAmtE: 0,
-                    taxRtA: 0,
-                    taxRtB: 16,
-                    taxRtC: 0,
-                    taxRtD: 0,
-                    taxRtE: 0,
-                    taxAmtA: 0,
-                    taxAmtB: 160,
-                    taxAmtC: 0,
-                    taxAmtD: 0,
-                    taxAmtE: 0,
-                    totTaxblAmt: 1000,
-                    totTaxAmt: 160,
-                    totAmt: 1160,
-                    remark: `purchase ${n} of 3`,
+                    wrhsDt: null,
+                    cnclReqDt: null,
+                    cnclDt: null,
+                    rfdDt: null,
+                    totItemCnt: itemList.length,
+                    taxblAmtA: Number(row.taxblAmtA ?? 0),
+                    taxblAmtB: Number(row.taxblAmtB ?? 0),
+                    taxblAmtC: Number(row.taxblAmtC ?? 0),
+                    taxblAmtD: Number(row.taxblAmtD ?? 0),
+                    taxblAmtE: Number(row.taxblAmtE ?? 0),
+                    taxRtA: Number(row.taxRtA ?? 0),
+                    taxRtB: Number(row.taxRtB ?? 16),
+                    taxRtC: Number(row.taxRtC ?? 0),
+                    taxRtD: Number(row.taxRtD ?? 0),
+                    taxRtE: Number(row.taxRtE ?? 0),
+                    taxAmtA: Number(row.taxAmtA ?? 0),
+                    taxAmtB: Number(row.taxAmtB ?? 0),
+                    taxAmtC: Number(row.taxAmtC ?? 0),
+                    taxAmtD: Number(row.taxAmtD ?? 0),
+                    taxAmtE: Number(row.taxAmtE ?? 0),
+                    totTaxblAmt: Number(row.totTaxblAmt ?? 0),
+                    totTaxAmt: Number(row.totTaxAmt ?? 0),
+                    totAmt: Number(row.totAmt ?? 0),
+                    remark: `purchase of supplier invc ${spplrInvcNo}`,
                     ...AUDITOR,
-                    itemList: [saleLine],
+                    itemList,
                 },
             });
             const recObj = asRecord(payload);
@@ -566,7 +619,7 @@ async function main() {
             console.log(`  purchase invcNo ${pInvc} rejected, retry ${next}`);
             pInvc = next;
         }
-        rec(`17 sendPurchaseTransaction #${n}`, payload, `invcNo=${pInvc}`);
+        rec(`17 sendPurchaseTransaction #${n + 1}`, payload, `invcNo=${pInvc} spplrInvcNo=${spplrInvcNo}`);
         pInvc += 1;
     }
 
