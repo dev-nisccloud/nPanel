@@ -102,7 +102,7 @@ export default function InvoiceViewPage() {
 	const teamSlug = pathname.split("/")[1];
 	const invoiceId = params.id as string;
 
-	const { data: invoice, isLoading, error } = trpc.invoicing.getById.useQuery(
+	const { data: invoice, isLoading, error, refetch, isFetching } = trpc.invoicing.getById.useQuery(
 		{ id: invoiceId },
 		{
 			enabled: !!invoiceId,
@@ -156,13 +156,36 @@ export default function InvoiceViewPage() {
 		);
 	}
 
-	if (error || !invoice) {
+	if (error) {
+		return (
+			<div className="@container/main flex flex-col gap-4 md:gap-6 min-h-screen items-center justify-center">
+				<div className="text-center max-w-md px-4">
+					<h1 className="text-base font-semibold mb-2">Something went wrong</h1>
+					<p className="text-xs text-muted-foreground mb-4 break-words">
+						{error.message}
+					</p>
+					<div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+						<Button onClick={() => refetch()} disabled={isFetching}>
+							{isFetching ? <Spinner className="mr-2 h-4 w-4" /> : null}
+							Try again
+						</Button>
+						<Button onClick={() => navigate(invoicesPath)} variant="outline">
+							<ArrowLeft className="mr-2 h-4 w-4" />
+							Back to Invoices
+						</Button>
+					</div>
+				</div>
+			</div>
+		);
+	}
+
+	if (!invoice) {
 		return (
 			<div className="@container/main flex flex-col gap-4 md:gap-6 min-h-screen items-center justify-center">
 				<div className="text-center">
 					<h1 className="text-base font-semibold mb-2">Invoice Not Found</h1>
 					<p className="text-xs text-muted-foreground mb-4">
-						{error?.message || "The invoice you're looking for doesn't exist."}
+						The invoice you're looking for doesn't exist.
 					</p>
 					<Button onClick={() => navigate(invoicesPath)} variant="outline">
 						<ArrowLeft className="mr-2 h-4 w-4" />

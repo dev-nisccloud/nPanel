@@ -1,6 +1,7 @@
 /* eslint-disable jsx-a11y/alt-text */
 import React from "react";
 import { Image, Text, View } from "@react-pdf/renderer";
+import { resolvePdfLogoUrl } from "@npanel/api/lib/company-branding";
 import { pdfContainers, pdfTypography } from "@/lib/pdfStyles";
 import type { YourDetails } from "@/routes/agency.invoices/create/types";
 
@@ -14,14 +15,16 @@ export const YourDetailsPDF: React.FC<YourDetails> = ({
   yourLogo,
   yourTaxId,
   yourZip,
-}) => (
+}) => {
+  const logoSrc = resolvePdfLogoUrl(yourLogo);
+  return (
   <View style={pdfContainers.YourDetails}>
     <Text style={{ ...pdfTypography.title, marginBottom: 14 }}>From</Text>
 
     <View style={pdfContainers.imageContainer}>
-      {yourLogo && (
-        <Image style={{ height: 40, borderRadius: 6 }} src={yourLogo} />
-      )}
+      {logoSrc ? (
+        <Image style={{ height: 40, borderRadius: 6 }} src={logoSrc} />
+      ) : null}
     </View>
     {yourName && <Text style={pdfTypography.text2xl}>{yourName}</Text>}
     {yourEmail && (
@@ -40,5 +43,6 @@ export const YourDetailsPDF: React.FC<YourDetails> = ({
       {yourTaxId && <Text>PIN: {yourTaxId}</Text>}
     </View>
   </View>
-);
+  );
+};
 
