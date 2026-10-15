@@ -30,21 +30,24 @@ export function SidebarBrandMenu() {
       <DropdownMenuTrigger asChild>
         <SidebarMenuButton
           type="button"
-          size="lg"
-          className="!h-auto min-h-12 !overflow-visible !px-4 !py-3 group-data-[collapsible=icon]:!size-auto group-data-[collapsible=icon]:!h-auto group-data-[collapsible=icon]:!w-full group-data-[collapsible=icon]:!p-2"
+          className="!h-auto !w-fit max-w-full justify-start overflow-visible px-2 py-1.5 group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-1"
           aria-label={`${APP_CONFIG.name} menu`}
         >
           {isExpanded ? (
             <img
               src="/nisclogooriginal.png"
               alt={APP_CONFIG.name}
-              className="h-12 w-auto max-w-full shrink-0"
+              width={1131}
+              height={203}
+              className="h-auto w-auto max-h-8 max-w-full object-contain object-left"
             />
           ) : (
             <img
               src="/nisciconoriginal.png"
               alt={APP_CONFIG.name}
-              className="h-11 w-auto max-w-full shrink-0 object-contain"
+              width={3459}
+              height={2124}
+              className="size-6 object-contain"
             />
           )}
         </SidebarMenuButton>

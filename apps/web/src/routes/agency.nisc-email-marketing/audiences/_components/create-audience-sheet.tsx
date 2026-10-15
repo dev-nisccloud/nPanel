@@ -26,6 +26,11 @@ import { trpc } from "@/utils/trpc";
 import { useNiscEmailMarketingRoute } from "@/components/nisc-email-marketing/nisc-email-marketing-route-context";
 import { NiscEmOrganizationSelect } from "@/components/nisc-email-marketing/nisc-em-organization-select";
 import { Badge } from "@/components/ui/badge";
+import {
+	addContactsInChunks,
+	describeContactImport,
+	parseContactsCsv,
+} from "../_lib/contacts-csv";
 
 const FormSchema = z.object({
 	name: z.string().min(1, "Audience name is required"),
@@ -35,7 +40,7 @@ const FormSchema = z.object({
 
 type FormData = z.infer<typeof FormSchema>;
 
-type DraftContactStatus = "SUBSCRIBED" | "UNSUBSCRIBED" | null;
+type DraftContactStatus = "SUBSCRIBED" | "UNSUBSCRIBED" | "BOUNCED" | "COMPLAINED" | null;
 
 type DraftContact = {
 	id: string;
@@ -60,51 +65,6 @@ function generateCSVTemplate(): string {
 		"John Smith,john@example.com,,Contoso Ltd,Agreed to receive product updates,SUBSCRIBED",
 		"Alex Roe,alex@example.com,+15555550456,,Unsubscribed from all emails,UNSUBSCRIBED",
 	].join("\n");
-}
-
-function parseContactsCsv(csvText: string): DraftContact[] {
-	const lines = csvText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-	if (lines.length <= 1) return [];
-
-	const header = lines[0].split(",").map((h) => h.trim().toLowerCase());
-
-	const idx = (key: string) => header.indexOf(key);
-
-	const nameIdx = idx("name");
-	const emailIdx = idx("emailaddress");
-	const phoneIdx = idx("phonenumber");
-	const companyIdx = idx("company");
-	const descriptionIdx = idx("description");
-	const statusIdx = idx("status");
-
-	const contacts: DraftContact[] = [];
-
-	for (let i = 1; i < lines.length; i++) {
-		const line = lines[i];
-		if (!line) continue;
-		const cols = line.split(",").map((c) => c.trim());
-
-		const rawStatus = statusIdx >= 0 ? cols[statusIdx] ?? "" : "";
-		let status: DraftContactStatus = null;
-		if (rawStatus) {
-			const upper = rawStatus.toUpperCase();
-			if (upper === "SUBSCRIBED" || upper === "UNSUBSCRIBED") {
-				status = upper as DraftContactStatus;
-			}
-		}
-
-		contacts.push({
-			id: `${i}-${Date.now()}`,
-			name: nameIdx >= 0 ? cols[nameIdx] ?? "" : "",
-			emailAddress: emailIdx >= 0 ? cols[emailIdx] ?? "" : "",
-			phoneNumber: phoneIdx >= 0 ? cols[phoneIdx] ?? "" : "",
-			company: companyIdx >= 0 ? cols[companyIdx] ?? "" : "",
-			description: descriptionIdx >= 0 ? cols[descriptionIdx] ?? "" : "",
-			status,
-		});
-	}
-
-	return contacts;
 }
 
 export function CreateAudienceSheet({ open, onOpenChange, onSuccess }: CreateAudienceSheetProps) {
@@ -219,11 +179,23 @@ export function CreateAudienceSheet({ open, onOpenChange, onSuccess }: CreateAud
 				});
 				return;
 			}
-			setContacts((prev) => [...parsed, ...prev]);
+			setContacts((prev) => [
+				...parsed.map((contact) => ({
+					id: contact.id,
+					name: contact.name,
+					phoneNumber: contact.phoneNumber,
+					emailAddress: contact.emailAddress,
+					description: contact.description,
+					company: contact.company,
+					status: contact.status,
+				})),
+				...prev,
+			]);
 			setCsvFileName(file.name);
-			toast.success(`Imported ${parsed.length} contact(s) from CSV`);
+			toast.success(`Read ${parsed.length.toLocaleString()} contact(s) from CSV`);
 		};
 		reader.readAsText(file);
+		event.target.value = "";
 	};
 
 	const handleDownloadCsvTemplate = () => {
@@ -254,26 +226,51 @@ export function CreateAudienceSheet({ open, onOpenChange, onSuccess }: CreateAud
 						: null,
 			});
 
+			let importResult = { added: 0, skippedDuplicate: 0, skippedMissingEmail: 0 };
 			if (contacts.length > 0) {
-				await addContactsBulkMutation.mutateAsync({
-					audienceId: audience.id,
-					contacts: contacts.map((c) => ({
-						name: c.name || undefined,
-						phoneNumber: c.phoneNumber || undefined,
-						emailAddress: c.emailAddress || undefined,
-						description: c.description || undefined,
-						company: c.company || undefined,
-						status: c.status ?? undefined,
-					})),
-				});
+				try {
+					importResult = await addContactsInChunks(
+						(chunk) =>
+							addContactsBulkMutation.mutateAsync({
+								audienceId: audience.id,
+								contacts: chunk,
+							}),
+						contacts.map((c) => ({
+							name: c.name || undefined,
+							phoneNumber: c.phoneNumber || undefined,
+							emailAddress: c.emailAddress || undefined,
+							description: c.description || undefined,
+							company: c.company || undefined,
+							status: c.status ?? undefined,
+						})),
+					);
+				} catch (error) {
+					toast.error("Audience was created, but contacts were not fully imported", {
+						description:
+							error instanceof Error
+								? `${error.message} Open the audience and upload the CSV again. Contacts already saved will be skipped.`
+								: "Open the audience and upload the CSV again. Contacts already saved will be skipped.",
+					});
+					handleOpenChange(false);
+					onSuccess?.();
+					return;
+				}
 			}
 
-			toast.success("Audience created", {
-				description:
-					contacts.length > 0
-						? `Created audience with ${contacts.length} contact(s).`
-						: "Created empty audience. You can add contacts later.",
-			});
+			const savedAll =
+				contacts.length === 0 ||
+				(importResult.added === contacts.length &&
+					importResult.skippedDuplicate === 0 &&
+					importResult.skippedMissingEmail === 0);
+			const description =
+				contacts.length === 0
+					? "Created an empty audience. You can add contacts later."
+					: describeContactImport(contacts.length, importResult);
+			if (savedAll) {
+				toast.success("Audience created", { description });
+			} else {
+				toast.warning("Audience created with some contacts skipped", { description });
+			}
 
 			handleOpenChange(false);
 			onSuccess?.();
@@ -500,7 +497,7 @@ export function CreateAudienceSheet({ open, onOpenChange, onSuccess }: CreateAud
 											Contacts in this audience
 										</p>
 										<Badge variant="outline" className="text-[11px]">
-											{contacts.length} total
+											{contacts.length.toLocaleString()} total
 										</Badge>
 									</div>
 									<div className="rounded-lg border bg-card max-h-[260px] overflow-auto">
@@ -510,7 +507,7 @@ export function CreateAudienceSheet({ open, onOpenChange, onSuccess }: CreateAud
 											</div>
 										) : (
 											<div className="divide-y text-xs">
-												{contacts.map((c) => (
+												{contacts.slice(0, 40).map((c) => (
 													<div
 														key={c.id}
 														className="px-3 py-2 flex items-start justify-between gap-3"
@@ -557,6 +554,11 @@ export function CreateAudienceSheet({ open, onOpenChange, onSuccess }: CreateAud
 														</Button>
 													</div>
 												))}
+												{contacts.length > 40 ? (
+													<div className="px-3 py-2 text-[11px] text-muted-foreground">
+														Showing the first 40 of {contacts.length.toLocaleString()}. All of them are included when the audience is created.
+													</div>
+												) : null}
 											</div>
 										)}
 									</div>
