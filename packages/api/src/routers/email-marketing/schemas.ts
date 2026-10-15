@@ -30,6 +30,8 @@ export type EmailCampaignStatus = z.infer<typeof emailCampaignStatusSchema>;
 export const audienceContactStatusSchema = z.enum([
 	"SUBSCRIBED",
 	"UNSUBSCRIBED",
+	"BOUNCED",
+	"COMPLAINED",
 ]);
 export type AudienceContactStatus = z.infer<typeof audienceContactStatusSchema>;
 
