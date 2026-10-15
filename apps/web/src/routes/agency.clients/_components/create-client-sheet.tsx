@@ -63,7 +63,6 @@ const formSchema = z
     name: z.string().min(1, "Name is required"),
     email: z.string().email("Invalid email address"),
     password: z.string().min(8, "Password must be at least 8 characters"),
-    role: z.enum(["CUSTOMER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"]),
     firstName: z.string().optional(),
     lastName: z.string().optional(),
     phone: z.string().optional(),
@@ -143,7 +142,6 @@ const DEFAULT_VALUES: FormData = {
   name: "",
   email: "",
   password: "",
-  role: "CUSTOMER",
   firstName: "",
   lastName: "",
   phone: "",
@@ -381,7 +379,7 @@ export function CreateClientSheet({
       name: data.name.trim(),
       email: data.email.trim(),
       password: data.password,
-      role: data.role,
+      role: "CUSTOMER",
       ...(hasProfile ? { profile } : {}),
       generalEmailsAccepted: radioToBool(data.generalEmailsAccepted),
       invoiceEmailsAccepted: radioToBool(data.invoiceEmailsAccepted),
@@ -449,45 +447,19 @@ export function CreateClientSheet({
                 )}
               />
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input type="email" placeholder="john@example.com" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="role"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Account role</FormLabel>
-                      <Select value={field.value} onValueChange={field.onChange} disabled={isPending}>
-                        <FormControl>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select role" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="CUSTOMER">Customer</SelectItem>
-                          <SelectItem value="AGENCY_USER">Agency user</SelectItem>
-                          <SelectItem value="AGENCY_ADMIN">Agency admin</SelectItem>
-                          <SelectItem value="AGENCY_SUPER_ADMIN">Agency super admin</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="john@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={form.control}
