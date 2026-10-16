@@ -100,7 +100,7 @@ export default function ResetPasswordPage() {
                 </svg>
               </div>
             </div>
-            <h1 className="text-3xl font-medium">Password reset successful!</h1>
+            <h1 className="text-xl font-medium">Password reset successful!</h1>
             <p className="text-muted-foreground text-sm">
               Your password has been successfully reset. You will be redirected to the login page shortly.
             </p>
@@ -135,7 +135,7 @@ export default function ResetPasswordPage() {
     <>
       <div className="mx-auto flex w-full flex-col justify-center space-y-8 sm:w-[350px]">
         <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-medium">Reset your password</h1>
+          <h1 className="text-xl font-medium">Reset your password</h1>
           <p className="text-muted-foreground text-sm">Enter your new password below.</p>
         </div>
 

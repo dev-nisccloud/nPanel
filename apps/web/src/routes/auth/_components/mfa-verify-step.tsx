@@ -145,7 +145,7 @@ export function MfaVerifyStep({
   return (
     <div className="space-y-6">
       <div className="space-y-2 text-center">
-        <h1 className="text-3xl font-medium">Verify your account</h1>
+        <h1 className="text-xl font-medium">Verify your account</h1>
         <p className="text-sm text-muted-foreground">
           Enter the 6-digit code sent to your email.
         </p>

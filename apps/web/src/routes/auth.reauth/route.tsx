@@ -72,7 +72,7 @@ export default function ReauthPage() {
     <>
       <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
         <div className="space-y-2 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">Confirm it&apos;s you</h1>
+          <h1 className="text-xl font-medium">Confirm it&apos;s you</h1>
           <p className="text-sm text-muted-foreground">
             We noticed a change in your network location. Enter your password to continue
             {email ? ` as ${email}` : ""}.
