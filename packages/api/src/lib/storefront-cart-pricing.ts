@@ -266,9 +266,17 @@ export async function resolveNiscPlanQuote(
 	billingCycle: StorefrontBillingCycle,
 ): Promise<{ monthly: number; yearly: number; planName: string; currency: string }> {
 	const plan = await db.query.niscProductPlan.findFirst({
-		where: and(eq(niscProductPlan.id, planId), eq(niscProductPlan.isActive, true)),
+		where: and(
+			eq(niscProductPlan.id, planId),
+			eq(niscProductPlan.isActive, true),
+			eq(niscProductPlan.hidden, false),
+		),
+		with: {
+			product: { columns: { hidden: true, isActive: true } },
+		},
 		columns: {
 			id: true,
+			productId: true,
 			name: true,
 			price: true,
 			billingCycle: true,
@@ -276,7 +284,7 @@ export async function resolveNiscPlanQuote(
 		},
 	});
 
-	if (!plan) {
+	if (!plan?.product || plan.product.hidden || !plan.product.isActive) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "The selected plan is no longer available.",

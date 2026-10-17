@@ -59,7 +59,13 @@ async function loadActiveProductById(id: string): Promise<NiscProductRow | null>
 	const [row] = await db
 		.select()
 		.from(niscProduct)
-		.where(and(eq(niscProduct.id, id), eq(niscProduct.isActive, true)))
+		.where(
+			and(
+				eq(niscProduct.id, id),
+				eq(niscProduct.isActive, true),
+				eq(niscProduct.hidden, false),
+			),
+		)
 		.limit(1);
 	return row ?? null;
 }
@@ -80,7 +86,7 @@ async function findActiveLegacyPlanlessProduct(canonicalId: string): Promise<Nis
 	const rows = await db
 		.select()
 		.from(niscProduct)
-		.where(and(eq(niscProduct.isActive, true), legacyMatch))
+		.where(and(eq(niscProduct.isActive, true), eq(niscProduct.hidden, false), legacyMatch))
 		.orderBy(asc(niscProduct.sortOrder), asc(niscProduct.createdAt));
 
 	const canonicalRow = rows.find((row) => row.id === canonicalId);

@@ -497,7 +497,7 @@ export const productsRouter = router({
             const cached = await getCached<z.infer<typeof productOutputSchema>[]>(listKey(cacheInput));
             if (cached != null) return cached;
 
-            const conditions = [];
+            const conditions = [eq(niscProduct.hidden, false)];
             if (input?.category !== undefined) {
                 conditions.push(eq(niscProduct.category, input.category));
             }
@@ -531,11 +531,12 @@ export const productsRouter = router({
             if (cached != null) return cached;
 
             const product = await db.query.niscProduct.findFirst({
-                where: eq(niscProduct.id, input.id),
+                where: and(eq(niscProduct.id, input.id), eq(niscProduct.hidden, false)),
                 ...(input.includePlans && {
                     with: {
                         plans: {
-                            where: eq(niscProductPlan.isActive, true),
+                            where: and(eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.hidden, false)),
                             orderBy: (plan, { asc: a }) => [
                                 a(plan.sortOrder),
                                 a(plan.createdAt),
@@ -586,7 +587,8 @@ export const productsRouter = router({
                     addOnProduct: {
                         with: {
                             plans: {
-                                where: eq(niscProductPlan.isActive, true),
+                                where: and(eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.hidden, false)),
                                 orderBy: (plan, { asc: a }) => [
                                     a(plan.sortOrder),
                                     a(plan.createdAt),
@@ -596,7 +598,9 @@ export const productsRouter = router({
                     },
                 },
             });
-            const result = relations.map((r) => ({
+            const result = relations
+                .filter((r) => !r.addOnProduct.hidden)
+                .map((r) => ({
                 product: mapProduct(r.addOnProduct),
                 plans: (r.addOnProduct as any).plans.map(mapPlan),
             }));
@@ -623,6 +627,7 @@ export const productsRouter = router({
             const products = await db.query.niscProduct.findMany({
                 where: and(
                     eq(niscProduct.isActive, true),
+                    eq(niscProduct.hidden, false),
                     or(
                         ilike(niscProduct.name, "%web hosting%"),
                         ilike(niscProduct.name, "%website hosting%"),
@@ -632,7 +637,8 @@ export const productsRouter = router({
                 orderBy: (p, { asc: a, desc: d }) => [a(p.sortOrder), d(p.createdAt)],
                 with: {
                     plans: {
-                        where: eq(niscProductPlan.isActive, true),
+                        where: and(eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.hidden, false)),
                         orderBy: (plan, { asc: a }) => [
                             a(plan.sortOrder),
                             a(plan.createdAt),
@@ -679,6 +685,7 @@ export const productsRouter = router({
             const products = await db.query.niscProduct.findMany({
                 where: and(
                     eq(niscProduct.isActive, true),
+                    eq(niscProduct.hidden, false),
                     or(
                         ilike(niscProduct.name, "%web hosting%"),
                         ilike(niscProduct.name, "%website hosting%"),
@@ -689,6 +696,7 @@ export const productsRouter = router({
                     plans: {
                         where: and(
                             eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.hidden, false),
                             eq(niscProductPlan.pricingModel, "FIXED"),
                         ),
                         orderBy: (plan, { asc: a }) => [
@@ -790,6 +798,7 @@ export const productsRouter = router({
             const products = await db.query.niscProduct.findMany({
                 where: and(
                     eq(niscProduct.isActive, true),
+                    eq(niscProduct.hidden, false),
                     ilike(niscProduct.name, "%email hosting%"),
                 ),
                 orderBy: (p, { asc: a, desc: d }) => [a(p.sortOrder), d(p.createdAt)],
@@ -797,6 +806,7 @@ export const productsRouter = router({
                     plans: {
                         where: and(
                             eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.hidden, false),
                             eq(niscProductPlan.pricingModel, "FIXED"),
                         ),
                         orderBy: (plan, { asc: a }) => [
@@ -894,6 +904,7 @@ export const productsRouter = router({
             const products = await db.query.niscProduct.findMany({
                 where: and(
                     eq(niscProduct.isActive, true),
+                    eq(niscProduct.hidden, false),
                     or(
                         ilike(niscProduct.name, "%wordpress hosting%"),
                         ilike(niscProduct.name, "%wordpress managed%"),
@@ -904,6 +915,7 @@ export const productsRouter = router({
                     plans: {
                         where: and(
                             eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.hidden, false),
                             eq(niscProductPlan.pricingModel, "FIXED"),
                         ),
                         orderBy: (plan, { asc: a }) => [
@@ -1021,6 +1033,7 @@ export const productsRouter = router({
             const products = await db.query.niscProduct.findMany({
                 where: and(
                     eq(niscProduct.isActive, true),
+                    eq(niscProduct.hidden, false),
                     eq(niscProduct.category, "MARKETING"),
                     eq(niscProduct.isAddOn, false),
                 ),
@@ -1029,6 +1042,7 @@ export const productsRouter = router({
                     plans: {
                         where: and(
                             eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.hidden, false),
                             eq(niscProductPlan.pricingModel, "FIXED"),
                         ),
                         orderBy: (plan, { asc: a }) => [a(plan.sortOrder), a(plan.createdAt)],
@@ -1152,6 +1166,7 @@ export const productsRouter = router({
             const products = await db.query.niscProduct.findMany({
                 where: and(
                     eq(niscProduct.isActive, true),
+                    eq(niscProduct.hidden, false),
                     or(
                         eq(niscProduct.id, NISC_SEO_REPORTS_PRODUCT_ID),
                         ilike(niscProduct.name, "%seo report%"),
@@ -1163,6 +1178,7 @@ export const productsRouter = router({
                     plans: {
                         where: and(
                             eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.hidden, false),
                             eq(niscProductPlan.pricingModel, "FIXED"),
                         ),
                         orderBy: (plan, { asc: a }) => [
@@ -1280,6 +1296,7 @@ export const productsRouter = router({
             const products = await db.query.niscProduct.findMany({
                 where: and(
                     eq(niscProduct.isActive, true),
+                    eq(niscProduct.hidden, false),
                     or(
                         eq(niscProduct.id, NISC_MEDIA_BUYING_PRODUCT_ID),
                         ilike(niscProduct.name, "%media buying%"),
@@ -1290,6 +1307,7 @@ export const productsRouter = router({
                     plans: {
                         where: and(
                             eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.hidden, false),
                             eq(niscProductPlan.pricingModel, "COMMISSION"),
                         ),
                         orderBy: (plan, { asc: a }) => [a(plan.sortOrder), a(plan.createdAt)],
@@ -1402,6 +1420,7 @@ export const productsRouter = router({
             const products = await db.query.niscProduct.findMany({
                 where: and(
                     eq(niscProduct.isActive, true),
+                    eq(niscProduct.hidden, false),
                     or(
                         eq(niscProduct.id, CREATIVES_DESIGN_PRODUCT_ID),
                         ilike(niscProduct.name, "%creatives design%"),
@@ -1414,6 +1433,7 @@ export const productsRouter = router({
                     plans: {
                         where: and(
                             eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.hidden, false),
                             eq(niscProductPlan.pricingModel, "FIXED"),
                         ),
                         orderBy: (plan, { asc: a }) => [
@@ -1519,6 +1539,7 @@ export const productsRouter = router({
             const products = await db.query.niscProduct.findMany({
                 where: and(
                     eq(niscProduct.isActive, true),
+                    eq(niscProduct.hidden, false),
                     or(
                         ilike(niscProduct.name, "%nisc email marketing%"),
                         ilike(niscProduct.name, "%email marketing%"),
@@ -1529,6 +1550,7 @@ export const productsRouter = router({
                     plans: {
                         where: and(
                             eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.hidden, false),
                             eq(niscProductPlan.pricingModel, "FIXED"),
                         ),
                         orderBy: (plan, { asc: a }) => [a(plan.sortOrder), a(plan.createdAt)],
@@ -1627,12 +1649,14 @@ export const productsRouter = router({
                 ...searchTerms.map((term) => ilike(niscProduct.name, `%${term}%`)),
             );
             const products = await db.query.niscProduct.findMany({
-                where: and(eq(niscProduct.isActive, true), nameMatch),
+                where: and(eq(niscProduct.isActive, true),
+                    eq(niscProduct.hidden, false), nameMatch),
                 orderBy: (p, { asc: a, desc: d }) => [a(p.sortOrder), d(p.createdAt)],
                 with: {
                     plans: {
                         where: and(
                             eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.hidden, false),
                             eq(niscProductPlan.pricingModel, "FIXED"),
                         ),
                         orderBy: (plan, { asc: a }) => [
@@ -1955,10 +1979,13 @@ export const productsRouter = router({
             const rows = await db
                 .select({ id: niscProductPlan.id })
                 .from(niscProductPlan)
+                .innerJoin(niscProduct, eq(niscProduct.id, niscProductPlan.productId))
                 .where(
                     and(
                         eq(niscProductPlan.productId, input.productId),
                         eq(niscProductPlan.isActive, true),
+                        eq(niscProductPlan.hidden, false),
+                        eq(niscProduct.hidden, false),
                     ),
                 )
                 .orderBy(
@@ -1981,7 +2008,7 @@ export const productsRouter = router({
             assertAgencyReadAccess(actor.role);
 
             const plan = await db.query.niscProductPlan.findFirst({
-                where: eq(niscProductPlan.id, input.id),
+                where: and(eq(niscProductPlan.id, input.id), eq(niscProductPlan.hidden, false)),
             });
             if (!plan) {
                 throw new TRPCError({ code: "NOT_FOUND", message: "Plan not found" });

@@ -52,9 +52,10 @@ async function fetchHostingPlans(
 	const whereCondition = serviceType
 		? and(
 				eq(niscProduct.isActive, true),
+				eq(niscProduct.hidden, false),
 				or(nameOr, eq(niscProduct.serviceType, serviceType)),
 			)
-		: and(eq(niscProduct.isActive, true), nameOr);
+		: and(eq(niscProduct.isActive, true), eq(niscProduct.hidden, false), nameOr);
 
 	const products = await db.query.niscProduct.findMany({
 		where: whereCondition,
@@ -63,6 +64,7 @@ async function fetchHostingPlans(
 			plans: {
 				where: and(
 					eq(niscProductPlan.isActive, true),
+					eq(niscProductPlan.hidden, false),
 					eq(niscProductPlan.pricingModel, "FIXED"),
 				),
 				orderBy: (plan, { asc: a }) => [a(plan.sortOrder), a(plan.createdAt)],

@@ -435,7 +435,7 @@ export const niscServiceOrdersRouter = router({
 					});
 				}
 				const plan = product.plans[0];
-				if (!plan || !plan.isActive) {
+				if (!plan || !plan.isActive || product.hidden || plan.hidden) {
 					throw new TRPCError({
 						code: "NOT_FOUND",
 						message: `Plan ${item.productPlanId} not found or inactive`,
