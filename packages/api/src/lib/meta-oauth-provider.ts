@@ -34,35 +34,17 @@ function getCustomerMetaTokenUrl(): string {
 }
 
 /**
- * Meta OAuth scopes for full platform access
+ * Scopes this Meta app can grant today.
+ * Facebook rejects the login dialog when a requested permission is not added
+ * to the app and marked ready for testing. Page publishing, Instagram, email,
+ * and the retired read_insights permission are left off until those use cases
+ * are enabled. ads_read already covers campaign insights.
  */
 export const META_OAUTH_SCOPES = {
-  // Pages & posting
-  pages: [
-    "pages_show_list",
-    "pages_read_engagement",
-    "pages_manage_posts",
-    "pages_manage_engagement",
-    "pages_read_user_content",
-    "pages_manage_metadata",
-  ],
-  // Instagram
-  instagram: [
-    "instagram_basic",
-    "instagram_content_publish",
-    "instagram_manage_comments",
-    "instagram_manage_insights",
-  ],
-  // Ads & Business
-  ads: [
-    "ads_read",
-    "ads_management",
-    "business_management",
-    "read_insights",
-    "catalog_management",
-  ],
-  // User info
-  basic: ["public_profile", "email"],
+  pages: ["pages_show_list", "pages_read_engagement"],
+  instagram: ["instagram_basic"],
+  ads: ["ads_read", "ads_management", "business_management", "catalog_management"],
+  basic: ["public_profile"],
 } as const;
 
 /**
