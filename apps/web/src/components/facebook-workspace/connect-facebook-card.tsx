@@ -7,50 +7,76 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { toast } from "@/components/ui/sonner";
+import { cn } from "@/lib/utils";
+import { trpc } from "@/utils/trpc";
 
-import { FACEBOOK_WORKSPACE_CONNECTED_KEY } from "./mock-data";
-
-export function ConnectFacebookCard({ onConnected }: { onConnected: () => void }) {
+export function ConnectFacebookButton({
+  label = "Connect Facebook",
+  size = "sm",
+  className,
+}: {
+  label?: string;
+  size?: "sm" | "lg";
+  className?: string;
+}) {
   const [isConnecting, setIsConnecting] = React.useState(false);
 
-  const handleConnect = () => {
-    setIsConnecting(true);
-    window.setTimeout(() => {
-      sessionStorage.setItem(FACEBOOK_WORKSPACE_CONNECTED_KEY, "1");
-      toast.success("Facebook connected");
+  const initiateOAuth = trpc.customerOAuth.auth.initiateOAuth.useMutation({
+    onSuccess: (data) => {
+      window.location.href = data.authUrl;
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to connect Facebook");
       setIsConnecting(false);
-      onConnected();
-    }, 700);
-  };
+    },
+  });
 
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Button
+      onClick={() => {
+        setIsConnecting(true);
+        initiateOAuth.mutate({
+          platform: "meta_facebook",
+          flowType: "connect",
+          returnUrl: `${window.location.origin}/agency/social-media-ads/facebook`,
+        });
+      }}
+      disabled={isConnecting}
+      className={cn("shrink-0", className)}
+      size={size}
+    >
+      {isConnecting ? (
+        <>
+          <Spinner size={16} className="mr-2" />
+          Connecting...
+        </>
+      ) : (
+        <>
+          <Facebook className="mr-2 h-4 w-4" />
+          {label}
+        </>
+      )}
+    </Button>
+  );
+}
+
+export function ConnectFacebookCard() {
+
+  return (
+    <Card className="mx-auto w-full max-w-md">
       <CardHeader className="text-center">
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
           <Facebook className="h-8 w-8 text-primary" />
         </div>
         <CardTitle>Connect with Meta</CardTitle>
         <CardDescription>
-          Connect your Facebook account to manage pages and ad campaigns. You'll be redirected to Meta to authorize
-          access.
+          Connect your Facebook account to manage ad campaigns. You'll be redirected to Meta to authorize access.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Button onClick={handleConnect} disabled={isConnecting} className="w-full" size="lg">
-          {isConnecting ? (
-            <>
-              <Spinner size={16} className="mr-2" />
-              Connecting...
-            </>
-          ) : (
-            <>
-              <Facebook className="mr-2 h-4 w-4" />
-              Connect with Meta
-            </>
-          )}
-        </Button>
-        <p className="mt-4 text-xs text-muted-foreground text-center">
-          By connecting, you agree to grant access to your Facebook pages and ad accounts.
+        <ConnectFacebookButton label="Connect with Meta" size="lg" className="w-full" />
+        <p className="mt-4 text-center text-xs text-muted-foreground">
+          By connecting, you agree to grant access to your Facebook ad accounts.
         </p>
       </CardContent>
     </Card>

@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
 import { FacebookContentCalendar } from "./content-calendar";
+import { FacebookPageAnalytics } from "./page-analytics";
 import { MOCK_FACEBOOK_PAGES, MOCK_SCHEDULED_CONTENT, type MockScheduledContent } from "./mock-data";
 
 export function FacebookPagesTab() {
@@ -57,15 +58,16 @@ export function FacebookPagesTab() {
       <Tabs defaultValue="analytics" className="w-full">
         <TabsList className="w-fit">
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="posts">Posts</TabsTrigger>
           <TabsTrigger value="calendar">Content calendar</TabsTrigger>
         </TabsList>
-        <TabsContent value="analytics" />
-        <TabsContent value="posts" />
+        <TabsContent value="analytics" className="mt-4">
+          <FacebookPageAnalytics pageId={selectedPageId} pageName={selectedPage?.name ?? "this page"} />
+        </TabsContent>
         <TabsContent value="calendar" className="mt-4">
           <FacebookContentCalendar
             pageId={selectedPageId}
             pageName={selectedPage?.name ?? "this page"}
+            pageColor={selectedPage?.color ?? "#1877F2"}
             items={scheduledContent}
             onItemsChange={setScheduledContent}
           />

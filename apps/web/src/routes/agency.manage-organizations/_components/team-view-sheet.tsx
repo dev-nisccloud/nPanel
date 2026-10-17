@@ -8,6 +8,8 @@ import {
     Mail,
     Calendar,
     Globe,
+    FileText,
+    Receipt,
     UserPlus,
     CheckCircle2,
     XCircle,
@@ -99,9 +101,17 @@ function displayServiceName(
 function getStatusBadgeClass(status: string): string {
     const statusColors: Record<string, string> = {
         ACTIVE: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200 border-green-200 dark:border-green-800",
+        PAID: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200 border-green-200 dark:border-green-800",
+        ACCEPTED: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200 border-green-200 dark:border-green-800",
         PENDING: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800",
+        UNPAID: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200 border-amber-200 dark:border-amber-800",
+        PARTIALLY_PAID: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200 border-amber-200 dark:border-amber-800",
+        DRAFT: "bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-200",
+        SENT: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200 border-blue-200 dark:border-blue-800",
         SUSPENDED: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-200 border-orange-200 dark:border-orange-800",
+        OVERDUE: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200 border-red-200 dark:border-red-800",
         CANCELLED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200 border-red-200 dark:border-red-800",
+        DECLINED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200 border-red-200 dark:border-red-800",
         EXPIRED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200 border-red-200 dark:border-red-800",
         PROCESSING: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200 border-blue-200 dark:border-blue-800",
         FAILED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200 border-red-200 dark:border-red-800",
@@ -109,6 +119,19 @@ function getStatusBadgeClass(status: string): string {
         DOWNGRADED: "bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-200",
     };
     return statusColors[status] ?? "";
+}
+
+const SHEET_SECTIONS = [
+    { id: "overview", label: "Overview" },
+    { id: "subscriptions", label: "Subscriptions" },
+    { id: "invoices", label: "Invoices" },
+    { id: "quotations", label: "Quotations" },
+    { id: "billing", label: "Billing" },
+] as const;
+
+function formatMoney(amount: string | null | undefined, currency: string | null | undefined): string {
+    if (!amount) return "—";
+    return `${currency || "KES"} ${amount}`;
 }
 
 export function TeamViewSheet({
@@ -158,6 +181,24 @@ export function TeamViewSheet({
             { teamId, limit: 200, offset: 0 },
             { enabled: open && !!teamId }
         );
+
+    const {
+        data: invoiceData,
+        isLoading: isLoadingInvoices,
+        error: invoicesError,
+    } = trpc.invoicing.list.useQuery(
+        { teamId, limit: 100 },
+        { enabled: open && !!teamId },
+    );
+
+    const {
+        data: quotationData,
+        isLoading: isLoadingQuotations,
+        error: quotationsError,
+    } = trpc.quotations.listByTeam.useQuery(
+        { teamId, limit: 100 },
+        { enabled: open && !!teamId },
+    );
 
     const utils = trpc.useUtils();
 
@@ -278,6 +319,28 @@ export function TeamViewSheet({
                         </SheetClose>
                     </SheetHeader>
 
+                    {!isLoadingTeam && team ? (
+                        <div className="border-b px-6 py-3">
+                            <div className="flex gap-1 overflow-x-auto rounded-lg bg-muted p-1">
+                                {SHEET_SECTIONS.map((item) => (
+                                    <button
+                                        key={item.id}
+                                        type="button"
+                                        onClick={() => {
+                                            document.getElementById(`org-sheet-${item.id}`)?.scrollIntoView({
+                                                behavior: "smooth",
+                                                block: "start",
+                                            });
+                                        }}
+                                        className="rounded-md px-3 py-1.5 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
+                                    >
+                                        {item.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    ) : null}
+
                     <ScrollArea className="flex-1 min-h-0 min-w-0 overflow-x-hidden" viewportClassName="overflow-x-hidden">
                         <div className="min-w-0 px-6 py-6 space-y-6">
                             {isLoadingTeam ? (
@@ -293,6 +356,7 @@ export function TeamViewSheet({
                                 </div>
                             ) : (
                                 <>
+                                    <div id="org-sheet-overview" className="space-y-6 scroll-mt-4">
                                     <Card className="min-w-0 overflow-hidden">
                                         <CardHeader>
                                             <CardTitle className="text-lg flex items-center gap-2">
@@ -482,8 +546,9 @@ export function TeamViewSheet({
                                             )}
                                         </CardContent>
                                     </Card>
+                                    </div>
 
-                                    <Card className="min-w-0 overflow-hidden">
+                                    <Card id="org-sheet-subscriptions" className="min-w-0 overflow-hidden scroll-mt-4">
                                         <CardHeader>
                                             <CardTitle className="text-lg flex items-center gap-2">
                                                 <Globe className="h-5 w-5" />
@@ -550,7 +615,133 @@ export function TeamViewSheet({
                                         </CardContent>
                                     </Card>
 
-                                    <Card className="min-w-0 overflow-hidden">
+                                    <Card id="org-sheet-invoices" className="min-w-0 overflow-hidden scroll-mt-4">
+                                        <CardHeader>
+                                            <CardTitle className="text-lg flex items-center gap-2">
+                                                <FileText className="h-5 w-5" />
+                                                Invoices
+                                            </CardTitle>
+                                            <CardDescription>Invoices linked to this organization</CardDescription>
+                                        </CardHeader>
+                                        <CardContent>
+                                            {isLoadingInvoices ? (
+                                                <div className="flex items-center justify-center py-6">
+                                                    <Spinner size={24} />
+                                                </div>
+                                            ) : invoicesError ? (
+                                                <p className="text-sm text-destructive py-4">{invoicesError.message}</p>
+                                            ) : !invoiceData?.invoices.length ? (
+                                                <div className="flex flex-col items-center justify-center py-6 text-center text-muted-foreground">
+                                                    <FileText className="h-10 w-10 mb-2 opacity-20" />
+                                                    <p>No invoices found.</p>
+                                                </div>
+                                            ) : (
+                                                <div className="grid gap-3">
+                                                    {invoiceData.invoices.map((invoice) => (
+                                                        <button
+                                                            key={invoice.id}
+                                                            type="button"
+                                                            className="p-3 border rounded-lg space-y-3 bg-muted/20 text-left hover:bg-muted/40 transition-colors"
+                                                            onClick={() => {
+                                                                onOpenChange(false);
+                                                                void navigate(`/agency/invoices/${invoice.id}`);
+                                                            }}
+                                                        >
+                                                            <div className="flex items-center justify-between gap-2">
+                                                                <div className="space-y-0.5 min-w-0">
+                                                                    <p className="text-sm font-semibold truncate">
+                                                                        {invoice.invoiceNumber ?? "Invoice"}
+                                                                    </p>
+                                                                    <p className="text-[10px] text-muted-foreground truncate">
+                                                                        {invoice.customerName ?? "No customer"}
+                                                                        {invoice.customerEmail ? ` · ${invoice.customerEmail}` : ""}
+                                                                    </p>
+                                                                </div>
+                                                                <Badge variant="outline" className={`text-[10px] shrink-0 ${getStatusBadgeClass(invoice.status)}`}>
+                                                                    {invoice.status.replace(/_/g, " ")}
+                                                                </Badge>
+                                                            </div>
+                                                            <div className="grid grid-cols-2 gap-4 text-[11px]">
+                                                                <div>
+                                                                    <p className="text-muted-foreground">Amount</p>
+                                                                    <p className="font-medium">{formatMoney(invoice.amount, invoice.currency)}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-muted-foreground">Due</p>
+                                                                    <p className="font-medium">{formatDate(invoice.dueDate)}</p>
+                                                                </div>
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+
+                                    <Card id="org-sheet-quotations" className="min-w-0 overflow-hidden scroll-mt-4">
+                                        <CardHeader>
+                                            <CardTitle className="text-lg flex items-center gap-2">
+                                                <Receipt className="h-5 w-5" />
+                                                Quotations
+                                            </CardTitle>
+                                            <CardDescription>Quotations issued to members of this organization</CardDescription>
+                                        </CardHeader>
+                                        <CardContent>
+                                            {isLoadingQuotations ? (
+                                                <div className="flex items-center justify-center py-6">
+                                                    <Spinner size={24} />
+                                                </div>
+                                            ) : quotationsError ? (
+                                                <p className="text-sm text-destructive py-4">{quotationsError.message}</p>
+                                            ) : !quotationData?.quotations.length ? (
+                                                <div className="flex flex-col items-center justify-center py-6 text-center text-muted-foreground">
+                                                    <Receipt className="h-10 w-10 mb-2 opacity-20" />
+                                                    <p>No quotations found.</p>
+                                                </div>
+                                            ) : (
+                                                <div className="grid gap-3">
+                                                    {quotationData.quotations.map((quote) => (
+                                                        <button
+                                                            key={quote.id}
+                                                            type="button"
+                                                            className="p-3 border rounded-lg space-y-3 bg-muted/20 text-left hover:bg-muted/40 transition-colors"
+                                                            onClick={() => {
+                                                                onOpenChange(false);
+                                                                void navigate(`/agency/quotations/${quote.id}`);
+                                                            }}
+                                                        >
+                                                            <div className="flex items-center justify-between gap-2">
+                                                                <div className="space-y-0.5 min-w-0">
+                                                                    <p className="text-sm font-semibold truncate">
+                                                                        {quote.quotationNumber ?? "Quotation"}
+                                                                    </p>
+                                                                    <p className="text-[10px] text-muted-foreground truncate">
+                                                                        {quote.customerName ?? "No customer"}
+                                                                        {quote.customerEmail ? ` · ${quote.customerEmail}` : ""}
+                                                                    </p>
+                                                                </div>
+                                                                <Badge variant="outline" className={`text-[10px] shrink-0 ${getStatusBadgeClass(quote.status)}`}>
+                                                                    {quote.status.replace(/_/g, " ")}
+                                                                </Badge>
+                                                            </div>
+                                                            <div className="grid grid-cols-2 gap-4 text-[11px]">
+                                                                <div>
+                                                                    <p className="text-muted-foreground">Amount</p>
+                                                                    <p className="font-medium">{formatMoney(quote.amount, quote.currency)}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-muted-foreground">Created</p>
+                                                                    <p className="font-medium">{formatDate(quote.createdAt)}</p>
+                                                                </div>
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+
+                                    <Card id="org-sheet-billing" className="min-w-0 overflow-hidden scroll-mt-4">
                                         <CardHeader>
                                             <CardTitle className="text-lg flex items-center gap-2">
                                                 <Building2 className="h-5 w-5" />
