@@ -50,6 +50,8 @@ export type SessionUser = {
   name?: string | null;
   email?: string | null;
   role?: string | null;
+  teamId?: string | null;
+  lastAccessedTeamId?: string | null;
 };
 
 /**
@@ -83,6 +85,10 @@ export type Context = {
   getCookie: (name: string) => string | undefined;
   /** Set a response cookie (used by guest support sessions). */
   setCookie: (name: string, value: string, options?: CookieOptions) => void;
+  /** Drizzle client used by customer OAuth routers. */
+  db: typeof db;
+  ip: string | null;
+  userAgent: string | null;
 };
 
 export type CreateContextOptions = {
@@ -107,6 +113,28 @@ function buildCookieHelpers(context: HonoContext): Pick<Context, "getCookie" | "
   };
 }
 
+/**
+ * Customer OAuth routers were written against `ctx.db`, `ctx.ip`, and `ctx.userAgent`.
+ * Attach those on every request so connect and campaign reads hit the real database.
+ */
+function attachOAuthContext<T extends { session?: Session | null; ipAddress?: string | null }>(
+  value: T,
+  headers: Headers,
+): T & { db: typeof db; ip: string | null; userAgent: string | null } {
+  const user = value.session?.user;
+  if (user && user.teamId == null && user.lastAccessedTeamId) {
+    value.session = {
+      ...value.session,
+      user: { ...user, teamId: user.lastAccessedTeamId },
+    } as T["session"];
+  }
+  return Object.assign(value, {
+    db,
+    ip: value.ipAddress ?? null,
+    userAgent: headers.get("user-agent"),
+  });
+}
+
 export async function createContext({
   context,
   createCaller,
@@ -126,33 +154,33 @@ export async function createContext({
         .limit(1);
 
       if (!keyRecord) {
-        return {
+        return attachOAuthContext({
           session: null,
           apiKeyError: "Invalid API Key",
           ipAddress: resolveIpAddress(context.req.raw.headers),
           req,
           ...cookies,
-        };
+        }, context.req.raw.headers);
       }
 
       if (!keyRecord.isActive) {
-        return {
+        return attachOAuthContext({
           session: null,
           apiKeyError: "API Key is revoked",
           ipAddress: resolveIpAddress(context.req.raw.headers),
           req,
           ...cookies,
-        };
+        }, context.req.raw.headers);
       }
 
       if (keyRecord.expiresAt && keyRecord.expiresAt < new Date()) {
-        return {
+        return attachOAuthContext({
           session: null,
           apiKeyError: "API Key has expired",
           ipAddress: resolveIpAddress(context.req.raw.headers),
           req,
           ...cookies,
-        };
+        }, context.req.raw.headers);
       }
 
       const [userRecord] = await db
@@ -162,13 +190,13 @@ export async function createContext({
         .limit(1);
 
       if (!userRecord || userRecord.status !== "ACTIVE") {
-        return {
+        return attachOAuthContext({
           session: null,
           apiKeyError: "Account associated with this API key is inactive",
           ipAddress: resolveIpAddress(context.req.raw.headers),
           req,
           ...cookies,
-        };
+        }, context.req.raw.headers);
       }
 
       // Found a valid API key and active user.
@@ -199,14 +227,14 @@ export async function createContext({
 
       const ipAddress = resolveIpAddress(context.req.raw.headers);
 
-      return {
+      return attachOAuthContext({
         session: { session: mockSessionObj, user: sessionUser } as unknown as Session,
         createCaller,
         apiKey: { id: keyRecord.id, permissions: keyRecord.permissions },
         ipAddress,
         req,
         ...cookies,
-      };
+      }, context.req.raw.headers);
     }
   }
 
@@ -282,7 +310,7 @@ export async function createContext({
     reauthRequired = await resolveReauthRequired(activeSessionId);
   }
 
-  return {
+  return attachOAuthContext({
     session: session as Session,
     mfaRequired,
     mfaVerified,
@@ -292,5 +320,5 @@ export async function createContext({
     ipAddress,
     req,
     ...cookies,
-  };
+  }, context.req.raw.headers);
 }

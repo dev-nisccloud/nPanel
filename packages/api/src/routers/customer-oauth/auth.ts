@@ -32,6 +32,28 @@ import {
 
 const metaProvider = new MetaOAuthProvider();
 
+const META_ACCOUNT_STATUS_LABELS: Record<number, string> = {
+  1: "ACTIVE",
+  2: "DISABLED",
+  3: "UNSETTLED",
+  7: "PENDING_RISK_REVIEW",
+  8: "PENDING_SETTLEMENT",
+  9: "IN_GRACE_PERIOD",
+  100: "PENDING_CLOSURE",
+  101: "CLOSED",
+  201: "ANY_ACTIVE",
+  202: "ANY_CLOSED",
+};
+
+function metaAccountStatusLabel(status: unknown): string | null {
+  if (typeof status === "string" && status.length > 0 && Number.isNaN(Number(status))) {
+    return status;
+  }
+  const code = typeof status === "number" ? status : Number(status);
+  if (!Number.isFinite(code)) return null;
+  return META_ACCOUNT_STATUS_LABELS[code] ?? String(code);
+}
+
 /**
  * Get OAuth redirect URI from environment
  */
@@ -458,20 +480,19 @@ export const customerOAuthAuthRouter = router({
       }
 
       try {
-        // Import selected assets
+        await ctx.db
+          .update(customerPlatformAsset)
+          .set({
+            isActive: false,
+            updatedAt: new Date(),
+          })
+          .where(eq(customerPlatformAsset.connectionId, connection.id));
+
+        // Import selected assets. Reconnect updates the same rows instead of inserting duplicates.
         const importedAssets = await Promise.all(
           selectedAssets.map(async (asset) => {
-            const assetId = crypto.randomUUID();
-
-            await ctx.db.insert(customerPlatformAsset).values({
-              id: assetId,
-              connectionId: connection.id,
-              userId: connection.userId,
-              teamId: connection.teamId,
-              platform: connection.platform,
-              assetType: asset.assetType,
-              platformAssetId: asset.platformAssetId,
-              platformParentId: asset.parentAssetId,
+            const metadata = (asset.metadata ?? {}) as Record<string, unknown>;
+            const stored = {
               name: asset.name,
               username: asset.username,
               profilePictureUrl: asset.profilePictureUrl,
@@ -486,10 +507,42 @@ export const customerOAuthAuthRouter = router({
               capabilities: asset.capabilities,
               businessId: asset.businessId,
               businessName: asset.businessName,
+              currency: typeof metadata.currency === "string" ? metadata.currency : null,
+              timezone: typeof metadata.timezone === "string" ? metadata.timezone : null,
+              accountStatus: metaAccountStatusLabel(metadata.account_status),
               metadata: asset.metadata,
               isActive: true,
               isVerified: true,
               lastVerifiedAt: new Date(),
+              updatedAt: new Date(),
+            };
+
+            const existing = await ctx.db.query.customerPlatformAsset.findFirst({
+              where: and(
+                eq(customerPlatformAsset.connectionId, connection.id),
+                eq(customerPlatformAsset.platformAssetId, asset.platformAssetId),
+              ),
+            });
+
+            if (existing) {
+              await ctx.db
+                .update(customerPlatformAsset)
+                .set(stored)
+                .where(eq(customerPlatformAsset.id, existing.id));
+              return { assetId: existing.id, ...asset };
+            }
+
+            const assetId = crypto.randomUUID();
+            await ctx.db.insert(customerPlatformAsset).values({
+              id: assetId,
+              connectionId: connection.id,
+              userId: connection.userId,
+              teamId: connection.teamId,
+              platform: connection.platform,
+              assetType: asset.assetType,
+              platformAssetId: asset.platformAssetId,
+              platformParentId: asset.parentAssetId,
+              ...stored,
             });
 
             return { assetId, ...asset };

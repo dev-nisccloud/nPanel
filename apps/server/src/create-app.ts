@@ -37,6 +37,7 @@ import { handleSeoSuiteRankCheck } from "./api/workers/seo-suite-rank";
 import { handleSeoSuiteAudit } from "./api/workers/seo-suite-audit";
 import { handleSubscriptionRenewalReminders } from "./api/workers/subscription-renewal-reminders";
 
+import { handleCustomerOAuthCallback } from "./api/customer-oauth-callback";
 import { handleHealth } from "./api/health";
 import { handleManifest } from "./api/manifest";
 import { handlePleskHealthCheck } from "./api/plesk-health-check";
@@ -236,6 +237,8 @@ export function createApp(options: CreateAppOptions = {}) {
 
     app.use("/trpc/*", trpcMiddleware);
     app.use("/api/trpc/*", trpcMiddleware);
+
+    app.get("/api/oauth/:platform/callback", handleCustomerOAuthCallback);
 
     app.get("/manifest.json", handleManifest);
     app.get("/api/manifest.json", handleManifest);

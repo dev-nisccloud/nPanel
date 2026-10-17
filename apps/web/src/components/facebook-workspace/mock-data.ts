@@ -35,6 +35,19 @@ export type MockFacebookPage = {
 
 export type ScheduledContentKind = "post" | "reel" | "story";
 export type ScheduledContentStatus = "draft" | "scheduled" | "published";
+export type ScheduledMediaKind = "photo" | "video";
+
+/** Facebook publishes a feed carousel in this array order, up to 10 cards. */
+export const FACEBOOK_CAROUSEL_MAX = 10;
+
+export type ScheduledMedia = {
+  id: string;
+  kind: ScheduledMediaKind;
+  name: string;
+  /** Blob or file URL from this session. Seed items use `color` when this is absent. */
+  src?: string;
+  color: string;
+};
 
 export type MockScheduledContent = {
   id: string;
@@ -45,7 +58,32 @@ export type MockScheduledContent = {
   status: ScheduledContentStatus;
   /** Local date-time, no timezone suffix, so the clock time stays stable in the UI. */
   scheduledAt: string;
+  /** Publish order. One item is a single photo or video. Two or more is a carousel. */
+  media?: ScheduledMedia[];
 };
+
+export function contentMediaRule(kind: ScheduledContentKind): {
+  max: number;
+  kinds: ScheduledMediaKind[];
+  hint: string;
+} {
+  if (kind === "reel") {
+    return { max: 1, kinds: ["video"], hint: "A reel is one video." };
+  }
+  if (kind === "story") {
+    return { max: 1, kinds: ["photo", "video"], hint: "A story is one photo or one video." };
+  }
+  return {
+    max: FACEBOOK_CAROUSEL_MAX,
+    kinds: ["photo", "video"],
+    hint: "One photo or video, or a carousel of up to 10. Facebook publishes the cards in this order.",
+  };
+}
+
+export function trimMediaForKind(media: ScheduledMedia[], kind: ScheduledContentKind) {
+  const rule = contentMediaRule(kind);
+  return media.filter((item) => rule.kinds.includes(item.kind)).slice(0, rule.max);
+}
 
 export const MOCK_AD_ACCOUNTS: MockAdAccount[] = [
   { accountId: "act_100284719", accountName: "Nisc Cloud Ads", status: "ACTIVE", currency: "KES" },
@@ -209,6 +247,11 @@ export const MOCK_SCHEDULED_CONTENT: MockScheduledContent[] = [
     kind: "post",
     status: "published",
     scheduledAt: "2026-10-01T09:00:00",
+    media: [
+      { id: "med_1a", kind: "photo", name: "Uptime chart", color: "#0F766E" },
+      { id: "med_1b", kind: "photo", name: "New plans", color: "#1877F2" },
+      { id: "med_1c", kind: "video", name: "What shipped", color: "#111827" },
+    ],
   },
   {
     id: "cnt_2",
@@ -218,6 +261,7 @@ export const MOCK_SCHEDULED_CONTENT: MockScheduledContent[] = [
     kind: "reel",
     status: "scheduled",
     scheduledAt: "2026-10-02T11:30:00",
+    media: [{ id: "med_2", kind: "video", name: "Hosting myth", color: "#4C1D95" }],
   },
   {
     id: "cnt_3",
@@ -227,6 +271,7 @@ export const MOCK_SCHEDULED_CONTENT: MockScheduledContent[] = [
     kind: "story",
     status: "draft",
     scheduledAt: "2026-10-03T15:00:00",
+    media: [{ id: "med_3", kind: "photo", name: "Nairobi cage", color: "#92400E" }],
   },
   {
     id: "cnt_4",
@@ -236,6 +281,7 @@ export const MOCK_SCHEDULED_CONTENT: MockScheduledContent[] = [
     kind: "post",
     status: "scheduled",
     scheduledAt: "2026-10-04T14:00:00",
+    media: [{ id: "med_4", kind: "photo", name: "Weekend sale", color: "#BE123C" }],
   },
   {
     id: "cnt_5",
@@ -299,6 +345,7 @@ export const MOCK_SCHEDULED_CONTENT: MockScheduledContent[] = [
     kind: "post",
     status: "scheduled",
     scheduledAt: "2026-10-10T09:30:00",
+    media: [{ id: "med_11", kind: "video", name: "Speed tips", color: "#1E3A8A" }],
   },
   {
     id: "cnt_12",
@@ -346,5 +393,3 @@ export const MOCK_SCHEDULED_CONTENT: MockScheduledContent[] = [
     scheduledAt: "2026-11-02T09:00:00",
   },
 ];
-
-export const FACEBOOK_WORKSPACE_CONNECTED_KEY = "npanel_facebook_workspace_connected";
