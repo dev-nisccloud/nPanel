@@ -182,7 +182,7 @@ export default function VerifyEmailPage() {
           <div className="flex justify-center">
             <Spinner variant="ellipsis" className="text-primary" />
           </div>
-          <h1 className="text-3xl font-medium">
+          <h1 className="text-xl font-medium">
             {requestType?.startsWith("change-email")
               ? "Processing email change"
               : "Verifying your email"}
@@ -207,7 +207,7 @@ export default function VerifyEmailPage() {
               <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
             </div>
           </div>
-          <h1 className="text-3xl font-medium">{successTitle}</h1>
+          <h1 className="text-xl font-medium">{successTitle}</h1>
           <p className="text-muted-foreground text-sm">{successDescription}</p>
           <div className="pt-4">
             <Link to={continueHref} className="text-primary hover:underline">
@@ -234,7 +234,7 @@ export default function VerifyEmailPage() {
               <XCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
             </div>
           </div>
-          <h1 className="text-3xl font-medium">Verification failed</h1>
+          <h1 className="text-xl font-medium">Verification failed</h1>
           <p className="text-muted-foreground text-sm">{errorMessage}</p>
           <div className="space-y-2 pt-4">
             <Link to="/auth/register" className="block text-primary hover:underline">

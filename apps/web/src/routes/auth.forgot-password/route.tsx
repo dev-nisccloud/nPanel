@@ -70,7 +70,7 @@ export default function ForgotPasswordPage() {
                 </svg>
               </div>
             </div>
-            <h1 className="text-3xl font-medium">Check your email</h1>
+            <h1 className="text-xl font-medium">Check your email</h1>
             <p className="text-muted-foreground text-sm">
               We've sent a password reset link to your email address. Please check your inbox and follow the instructions to reset your password.
             </p>
@@ -102,7 +102,7 @@ export default function ForgotPasswordPage() {
     <>
       <div className="mx-auto flex w-full flex-col justify-center space-y-8 sm:w-[350px]">
         <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-medium">Forgot your password?</h1>
+          <h1 className="text-xl font-medium">Forgot your password?</h1>
           <p className="text-muted-foreground text-sm">Enter your email address and we'll send you a reset link.</p>
         </div>
 

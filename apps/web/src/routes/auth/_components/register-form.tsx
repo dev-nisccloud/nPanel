@@ -189,7 +189,7 @@ export function RegisterForm({ termsAccepted, onTermsAcceptedChange }: RegisterF
             </svg>
           </div>
         </div>
-        <h1 className="mb-4 text-2xl font-bold">Check Your Email</h1>
+        <h1 className="mb-4 text-xl font-medium">Check Your Email</h1>
         <p className="mb-6 text-muted-foreground">
           {successMessage}
         </p>

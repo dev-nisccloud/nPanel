@@ -1066,6 +1066,7 @@ async function buildListUpgradePlansResult(
     }
 
     const plans = catalogPlans
+        .filter((plan) => !plan.hidden)
         .filter((plan) => isHigherCatalogPlan(toCatalogPlanIdentity(plan), currentCatalogPlan))
         .sort((a, b) => a.sortOrder - b.sortOrder)
         .map((plan) => ({
@@ -2567,12 +2568,12 @@ export const clientSubscriptionsRouter = router({
                 ? await db
                     .select()
                     .from(niscProduct)
-                    .where(eq(niscProduct.id, input.productId))
+                    .where(and(eq(niscProduct.id, input.productId), eq(niscProduct.hidden, false)))
                     .limit(1)
                 : (await db
                     .select()
                     .from(niscProduct)
-                    .where(eq(niscProduct.isActive, true)))
+                    .where(and(eq(niscProduct.isActive, true), eq(niscProduct.hidden, false))))
                     .filter(
                         (product) =>
                             HOSTING_CATALOG_SERVICE_TYPES.has(product.serviceType) ||
@@ -2592,6 +2593,7 @@ export const clientSubscriptionsRouter = router({
                         and(
                             inArray(niscProductPlan.productId, productIds),
                             eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.hidden, false),
                         ),
                     )
                     .orderBy(niscProductPlan.sortOrder)
@@ -2895,6 +2897,7 @@ export const clientSubscriptionsRouter = router({
             const product = await db.query.niscProduct.findFirst({
                 where: and(
                     eq(niscProduct.isActive, true),
+                    eq(niscProduct.hidden, false),
                     or(
                         eq(niscProduct.id, NISC_MEDIA_BUYING_PRODUCT_ID),
                         ilike(niscProduct.name, "%media buying%"),
@@ -2902,7 +2905,7 @@ export const clientSubscriptionsRouter = router({
                 ),
                 with: {
                     plans: {
-                        where: eq(niscProductPlan.isActive, true),
+                        where: and(eq(niscProductPlan.isActive, true), eq(niscProductPlan.hidden, false)),
                         orderBy: (plan, { asc: a }) => [a(plan.sortOrder), a(plan.createdAt)],
                     },
                 },
@@ -3009,7 +3012,9 @@ export const clientSubscriptionsRouter = router({
                     and(
                         eq(niscProductPlan.id, input.productPlanId),
                         eq(niscProductPlan.isActive, true),
+                        eq(niscProductPlan.hidden, false),
                         eq(niscProduct.isActive, true),
+                        eq(niscProduct.hidden, false),
                         or(
                             eq(niscProduct.id, NISC_MEDIA_BUYING_PRODUCT_ID),
                             ilike(niscProduct.name, "%media buying%"),
@@ -3115,6 +3120,7 @@ export const clientSubscriptionsRouter = router({
             const product = await db.query.niscProduct.findFirst({
                 where: and(
                     eq(niscProduct.isActive, true),
+                    eq(niscProduct.hidden, false),
                     or(
                         eq(niscProduct.id, NISC_SEO_REPORTS_PRODUCT_ID),
                         ilike(niscProduct.name, "%seo report%"),
@@ -3123,7 +3129,7 @@ export const clientSubscriptionsRouter = router({
                 ),
                 with: {
                     plans: {
-                        where: eq(niscProductPlan.isActive, true),
+                        where: and(eq(niscProductPlan.isActive, true), eq(niscProductPlan.hidden, false)),
                         orderBy: (plan, { asc: a }) => [a(plan.sortOrder), a(plan.createdAt)],
                     },
                 },
@@ -3236,7 +3242,9 @@ export const clientSubscriptionsRouter = router({
                     and(
                         eq(niscProductPlan.id, input.productPlanId),
                         eq(niscProductPlan.isActive, true),
+                        eq(niscProductPlan.hidden, false),
                         eq(niscProduct.isActive, true),
+                        eq(niscProduct.hidden, false),
                         ilike(niscProduct.name, "%seo%"),
                     ),
                 )
@@ -3520,7 +3528,7 @@ export const clientSubscriptionsRouter = router({
             const [product] = await db
                 .select({ id: niscProduct.id })
                 .from(niscProduct)
-                .where(eq(niscProduct.id, input.productId))
+                .where(and(eq(niscProduct.id, input.productId), eq(niscProduct.hidden, false)))
                 .limit(1);
             if (!product) {
                 throw new TRPCError({ code: "NOT_FOUND", message: "Product not found" });
@@ -3534,6 +3542,7 @@ export const clientSubscriptionsRouter = router({
                         and(
                             eq(niscProductPlan.id, input.productPlanId),
                             eq(niscProductPlan.productId, input.productId),
+                            eq(niscProductPlan.hidden, false),
                         ),
                     )
                     .limit(1);
@@ -4066,6 +4075,7 @@ export const clientSubscriptionsRouter = router({
                             and(
                                 eq(niscProductPlan.id, rest.productPlanId),
                                 eq(niscProductPlan.productId, existing.productId),
+                                eq(niscProductPlan.hidden, false),
                             ),
                         )
                         .limit(1);
