@@ -62,7 +62,13 @@ async function resolveDomainTransferProductId(): Promise<string> {
 	const [product] = await db
 		.select({ id: niscProduct.id })
 		.from(niscProduct)
-		.where(and(eq(niscProduct.isActive, true), eq(niscProduct.serviceType, "domain_transfer")))
+		.where(
+			and(
+				eq(niscProduct.isActive, true),
+				eq(niscProduct.hidden, false),
+				eq(niscProduct.serviceType, "domain_transfer"),
+			),
+		)
 		.limit(1);
 	if (!product) {
 		throw new TRPCError({
@@ -202,10 +208,14 @@ export async function buildStorefrontCartOrderLines(input: {
 				productId: niscProductPlan.productId,
 			})
 			.from(niscProductPlan)
+			.innerJoin(niscProduct, eq(niscProduct.id, niscProductPlan.productId))
 			.where(
 				and(
 					eq(niscProductPlan.id, parsed.upsellHosting.planId),
 					eq(niscProductPlan.isActive, true),
+					eq(niscProductPlan.hidden, false),
+					eq(niscProduct.isActive, true),
+					eq(niscProduct.hidden, false),
 				),
 			)
 			.limit(1);

@@ -36,6 +36,7 @@ export const storefrontCartRouter = router({
 					.where(
 						and(
 							eq(niscProduct.isActive, true),
+							eq(niscProduct.hidden, false),
 							eq(niscProduct.serviceType, "domain_transfer"),
 						),
 					)

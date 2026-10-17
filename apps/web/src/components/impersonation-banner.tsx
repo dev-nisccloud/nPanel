@@ -9,7 +9,8 @@ import { authClient } from "@/lib/auth-client";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
 /**
- * Sticky bar shown while an agency super admin is logged in as a customer.
+ * Fixed control shown while an agency super admin is logged in as a customer.
+ * It stays centered on the viewport and does not take space in the page.
  */
 export function ImpersonationBanner() {
   const queryClient = useQueryClient();
@@ -51,30 +52,32 @@ export function ImpersonationBanner() {
   };
 
   return (
-    <div className="sticky top-0 z-50 flex items-center justify-between gap-3 border-b border-amber-500/40 bg-amber-50 px-4 py-2 text-amber-950 dark:bg-amber-950/40 dark:text-amber-50">
-      <p className="text-sm">
-        You are viewing the dashboard as <span className="font-medium">{customerLabel}</span>.
-      </p>
-      <Button
-        type="button"
-        size="sm"
-        variant="outline"
-        className="shrink-0 border-amber-600/40 bg-white/80 hover:bg-white dark:bg-amber-950 dark:hover:bg-amber-900"
-        disabled={stopping}
-        onClick={() => void handleStop()}
-      >
-        {stopping ? (
-          <>
-            <Spinner variant="ellipsis" className="size-4 mr-2" />
-            Returning…
-          </>
-        ) : (
-          <>
-            <LogOut className="mr-2 h-3.5 w-3.5" />
-            Return to agency
-          </>
-        )}
-      </Button>
+    <div className="pointer-events-none fixed inset-x-0 bottom-4 z-40 flex justify-center px-4">
+      <div className="pointer-events-auto flex max-w-[min(100vw-2rem,24rem)] items-center gap-2 rounded-full border border-red-300 bg-red-100 px-3 py-1.5 text-red-950 shadow-lg dark:border-red-800 dark:bg-red-950/80 dark:text-red-50">
+        <p className="min-w-0 truncate text-xs">
+          Viewing as <span className="font-medium">{customerLabel}</span>
+        </p>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="h-7 shrink-0 rounded-full border-red-300 bg-white/80 px-2.5 text-xs text-red-950 hover:bg-white dark:border-red-700 dark:bg-red-950 dark:text-red-50 dark:hover:bg-red-900"
+          disabled={stopping}
+          onClick={() => void handleStop()}
+        >
+          {stopping ? (
+            <>
+              <Spinner variant="ellipsis" className="mr-1.5 size-3.5" />
+              Returning…
+            </>
+          ) : (
+            <>
+              <LogOut className="mr-1.5 h-3.5 w-3.5" />
+              Return
+            </>
+          )}
+        </Button>
+      </div>
     </div>
   );
 }
