@@ -69,7 +69,7 @@ export default function ManageTeamsPage() {
           <div>
             <h1 className="text-base font-semibold tracking-tight">Manage Organizations</h1>
             <p className="text-xs text-muted-foreground">
-              Manage all organizations, view their members, invites, subscriptions, and billing.
+              Manage all organizations, view their members, invites, subscriptions, invoices, and quotations.
             </p>
           </div>
           <OrganizationsListCreateButton onClick={() => setCreateTeamOpen(true)} />

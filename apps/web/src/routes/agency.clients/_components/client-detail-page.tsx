@@ -7,9 +7,7 @@ import {
   MoreVertical,
   Activity,
   Building2,
-  FileText,
-  CreditCard,
-  Receipt,
+  ChevronRight,
   Wallet,
   Lock,
   Unlock,
@@ -24,7 +22,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { captureEvent } from "@/lib/posthog";
-import { formatInvoiceDate } from "@/lib/invoice-date";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,6 +55,7 @@ import { OverviewInvoicesBilling } from "./overview-invoices-billing";
 import { ClientSettingsShell, type ClientTab } from "./client-settings-shell";
 import { ClientProfileHeader } from "./client-profile-header";
 import { ClientStatusBadge } from "./client-status-badge";
+import { TeamViewSheet } from "../../agency.manage-organizations/_components/team-view-sheet";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -303,6 +301,7 @@ function IntegrationsTab({
 }
 
 function OrganizationsTab({ clientId }: { clientId: string }) {
+  const [selectedTeamId, setSelectedTeamId] = React.useState<string | null>(null);
   const { data: orgs, isLoading, error } = trpc.clients.getTeams.useQuery({ userId: clientId });
 
   if (isLoading) return <PanelLoading />;
@@ -318,193 +317,45 @@ function OrganizationsTab({ clientId }: { clientId: string }) {
   }
 
   return (
-    <SettingsSection
-      title="Organizations"
-      description={`${orgs.length} organization${orgs.length !== 1 ? "s" : ""}.`}
-    >
-      <div className="divide-y overflow-hidden rounded-lg border bg-card">
-        {orgs.map((org) => (
-          <div key={org.id} className="flex items-center justify-between gap-3 px-4 py-3">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium">{org.name}</p>
-              <p className="text-xs text-muted-foreground">/{org.slug} · Created {fmt(org.createdAt)}</p>
-            </div>
-            <div className="flex shrink-0 items-center gap-1.5">
-              <Badge variant="outline" className="text-[10px]">{org.role}</Badge>
-              <Badge variant={org.isActive ? "default" : "secondary"} className="text-[10px]">
-                {org.isActive ? "Active" : "Inactive"}
-              </Badge>
-            </div>
-          </div>
-        ))}
-      </div>
-    </SettingsSection>
-  );
-}
-
-const INVOICE_STATUS_COLORS: Record<string, string> = {
-  PAID: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  OVERDUE: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-  SENT: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  UNPAID: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
-};
-
-function InvoicesTab({ clientId }: { clientId: string }) {
-  const { data: invoices, isLoading, error } = trpc.clients.getInvoices.useQuery({ userId: clientId });
-
-  if (isLoading) return <PanelLoading />;
-  if (error) return <p className="text-sm text-destructive py-4">{error.message}</p>;
-  if (!invoices?.length) {
-    return (
-      <EmptyPanel
-        icon={FileText}
-        title="No invoices"
-        description="No invoices have been issued for this client."
-      />
-    );
-  }
-
-  return (
-    <SettingsSection title="Invoices" description={`${invoices.length} invoice${invoices.length !== 1 ? "s" : ""}.`}>
-      <DataTable
-        headers={["Number", "Customer", "Status", "Amount", "Due"]}
-        rows={invoices.map((inv) => [
-          <span key="num" className="font-mono text-xs">{inv.invoiceNumber ?? "-"}</span>,
-          <div key="cust">
-            <p className="font-medium leading-none">{inv.customerName ?? "-"}</p>
-            {inv.customerEmail ? (
-              <p className="mt-0.5 text-xs text-muted-foreground">{inv.customerEmail}</p>
-            ) : null}
-          </div>,
-          <Badge key="status" variant="outline" className={`text-xs ${INVOICE_STATUS_COLORS[inv.status] ?? ""}`}>
-            {inv.status}
-          </Badge>,
-          inv.amount ? `${inv.currency} ${inv.amount}` : "-",
-          <span key="due" className="text-xs text-muted-foreground">{formatInvoiceDate(inv.dueDate)}</span>,
-        ])}
-      />
-    </SettingsSection>
-  );
-}
-
-const SUB_STATUS_COLORS: Record<string, string> = {
-  ACTIVE: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  EXPIRED: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-};
-
-function SubscriptionsTab({ clientId }: { clientId: string }) {
-  const { data: subs, isLoading, error } = trpc.clients.getSubscriptions.useQuery({ userId: clientId });
-
-  if (isLoading) return <PanelLoading />;
-  if (error) return <p className="text-sm text-destructive py-4">{error.message}</p>;
-  if (!subs?.length) {
-    return (
-      <EmptyPanel
-        icon={CreditCard}
-        title="No subscriptions"
-        description="No active subscriptions found for this client."
-      />
-    );
-  }
-
-  return (
-    <SettingsSection
-      title="Subscriptions"
-      description={`${subs.length} subscription${subs.length !== 1 ? "s" : ""}.`}
-    >
-      <div className="divide-y overflow-hidden rounded-lg border bg-card">
-        {subs.map((sub) => (
-          <div key={sub.id} className="space-y-2 px-4 py-3">
-            <div className="flex items-center justify-between gap-2">
-              <p className="font-mono text-xs text-muted-foreground">{sub.id}</p>
-              <Badge variant="outline" className={`text-xs ${SUB_STATUS_COLORS[sub.status] ?? ""}`}>
-                {sub.status}
-              </Badge>
-            </div>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <p className="text-xs text-muted-foreground">Billing cycle</p>
-                <p className="font-medium">{sub.billingCycle}</p>
+    <>
+      <SettingsSection
+        title="Organizations"
+        description={`${orgs.length} organization${orgs.length !== 1 ? "s" : ""}. Open one to view members, subscriptions, invoices, and quotations.`}
+      >
+        <div className="divide-y overflow-hidden rounded-lg border bg-card">
+          {orgs.map((org) => (
+            <button
+              key={org.id}
+              type="button"
+              onClick={() => setSelectedTeamId(org.id)}
+              className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50"
+            >
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">{org.name}</p>
+                <p className="text-xs text-muted-foreground">/{org.slug} · Created {fmt(org.createdAt)}</p>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Auto renew</p>
-                <p className="font-medium">{sub.autoRenew ? "Yes" : "No"}</p>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <Badge variant="outline" className="text-[10px]">{org.role}</Badge>
+                <Badge variant={org.isActive ? "default" : "secondary"} className="text-[10px]">
+                  {org.isActive ? "Active" : "Inactive"}
+                </Badge>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
               </div>
-              {sub.subscriptionDate ? (
-                <div>
-                  <p className="text-xs text-muted-foreground">Start date</p>
-                  <p className="font-medium">{fmt(sub.subscriptionDate)}</p>
-                </div>
-              ) : null}
-              {sub.nextRenewalDate ? (
-                <div>
-                  <p className="text-xs text-muted-foreground">Next renewal</p>
-                  <p className="font-medium">{fmt(sub.nextRenewalDate)}</p>
-                </div>
-              ) : null}
-            </div>
-            {sub.notes ? <p className="border-t pt-2 text-xs text-muted-foreground">{sub.notes}</p> : null}
-          </div>
-        ))}
-      </div>
-    </SettingsSection>
-  );
-}
+            </button>
+          ))}
+        </div>
+      </SettingsSection>
 
-const QUOTE_STATUS_COLORS: Record<string, string> = {
-  ACCEPTED: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  DECLINED: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-  SENT: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  UNPAID: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
-};
-
-function QuotationsTab({ clientId }: { clientId: string }) {
-  const { data: quotations, isLoading, error } = trpc.clients.getQuotations.useQuery({ userId: clientId });
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-xs text-muted-foreground">
-          {isLoading ? "Loading…" : `${quotations?.length ?? 0} quotation${(quotations?.length ?? 0) !== 1 ? "s" : ""}`}
-        </p>
-        <Button size="sm" asChild>
-          <Link to="/agency/quotations/create">
-            <Plus className="mr-2 h-4 w-4" />
-            New quotation
-          </Link>
-        </Button>
-      </div>
-
-      {isLoading ? (
-        <PanelLoading />
-      ) : error ? (
-        <p className="text-sm text-destructive py-4">{error.message}</p>
-      ) : !quotations?.length ? (
-        <EmptyPanel
-          icon={Receipt}
-          title="No quotations"
-          description="No quotations have been created for this client."
+      {selectedTeamId ? (
+        <TeamViewSheet
+          open
+          onOpenChange={(open) => {
+            if (!open) setSelectedTeamId(null);
+          }}
+          teamId={selectedTeamId}
         />
-      ) : (
-        <DataTable
-          headers={["Number", "Customer", "Status", "Amount", "Date"]}
-          rows={quotations.map((q) => [
-            <span key="num" className="font-mono text-xs">{q.quotationNumber ?? "-"}</span>,
-            <div key="cust">
-              <p className="font-medium leading-none">{q.customerName ?? "-"}</p>
-              {q.customerEmail ? (
-                <p className="mt-0.5 text-xs text-muted-foreground">{q.customerEmail}</p>
-              ) : null}
-            </div>,
-            <Badge key="status" variant="outline" className={`text-xs ${QUOTE_STATUS_COLORS[q.status] ?? ""}`}>
-              {q.status}
-            </Badge>,
-            q.amount ? `${q.currency} ${q.amount}` : "-",
-            <span key="date" className="text-xs text-muted-foreground">{fmt(q.issueDate ?? q.createdAt)}</span>,
-          ])}
-        />
-      )}
-    </div>
+      ) : null}
+    </>
   );
 }
 
@@ -793,9 +644,6 @@ export function ClientDetailPage({ clientId }: { clientId: string }) {
           <IntegrationsTab clientId={clientId} onAddIntegration={() => setIsAddIntegrationOpen(true)} />
         )}
         {activeTab === "organizations" && <OrganizationsTab clientId={clientId} />}
-        {activeTab === "invoices" && <InvoicesTab clientId={clientId} />}
-        {activeTab === "subscriptions" && <SubscriptionsTab clientId={clientId} />}
-        {activeTab === "quotations" && <QuotationsTab clientId={clientId} />}
         {activeTab === "transactions" && <TransactionsTab clientId={clientId} />}
       </ClientSettingsShell>
 

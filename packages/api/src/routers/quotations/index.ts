@@ -5,6 +5,7 @@ import { and, count, desc, eq, ilike, inArray, max, or, sql } from "@npanel/db";
 
 import { db } from "@npanel/db";
 import { user } from "@npanel/db/schema/auth";
+import { team, teamMember } from "@npanel/db/schema/teams";
 import {
 	quotation,
 	quotationActivityLog,
@@ -463,6 +464,103 @@ export const quotationsRouter = router({
 					}),
 				),
 				total,
+			});
+		}),
+
+	/** Quotations issued to members of an organization (linked user or customer email). */
+	listByTeam: protectedProcedure
+		.input(
+			z.object({
+				teamId: z.string().min(1),
+				limit: z.number().int().min(1).max(100).optional().default(100),
+			}),
+		)
+		.output(quotationListResponseSchema)
+		.query(async ({ ctx, input }) => {
+			const actor = await getAuthenticatedUser(ctx);
+			if (!isAgencyUser(actor.role)) {
+				const membership = await db
+					.select({ id: teamMember.id })
+					.from(teamMember)
+					.where(and(eq(teamMember.teamId, input.teamId), eq(teamMember.userId, actor.id)))
+					.limit(1);
+				if (!membership[0]) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "You do not have access to this organization.",
+					});
+				}
+			}
+
+			const org = await db
+				.select({ id: team.id })
+				.from(team)
+				.where(eq(team.id, input.teamId))
+				.limit(1);
+			if (!org[0]) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Organization not found." });
+			}
+
+			const members = await db
+				.select({ userId: teamMember.userId, email: user.email })
+				.from(teamMember)
+				.innerJoin(user, eq(teamMember.userId, user.id))
+				.where(eq(teamMember.teamId, input.teamId));
+
+			const userIds = [...new Set(members.map((member) => member.userId).filter(Boolean))];
+			const emails = [
+				...new Set(
+					members
+						.map((member) => member.email?.trim().toLowerCase())
+						.filter((email): email is string => !!email),
+				),
+			];
+
+			if (userIds.length === 0 && emails.length === 0) {
+				return { quotations: [], total: 0 };
+			}
+
+			const matchParts = [];
+			if (userIds.length > 0) {
+				matchParts.push(inArray(quotation.linkedUserId, userIds));
+			}
+			if (emails.length > 0) {
+				matchParts.push(
+					or(...emails.map((email) => sql`lower(${quotation.customerEmail}) = ${email}`))!,
+				);
+			}
+			const whereClause = matchParts.length === 1 ? matchParts[0] : or(...matchParts);
+
+			const [quotations, totalRow] = await Promise.all([
+				db
+					.select({
+						id: quotation.id,
+						quotationNumber: quotation.quotationNumber,
+						customerName: quotation.customerName,
+						customerEmail: quotation.customerEmail,
+						status: quotation.status,
+						amount: quotation.amount,
+						subtotal: quotation.subtotal,
+						currency: quotation.currency,
+						createdAt: quotation.createdAt,
+						updatedAt: quotation.updatedAt,
+					})
+					.from(quotation)
+					.where(whereClause)
+					.orderBy(desc(quotation.createdAt))
+					.limit(input.limit),
+				db.select({ c: count() }).from(quotation).where(whereClause),
+			]);
+
+			return quotationListResponseSchema.parse({
+				quotations: quotations.map((q) =>
+					quotationSummarySchema.parse({
+						...q,
+						amount: q.amount != null ? String(q.amount) : null,
+						subtotal: q.subtotal != null ? String(q.subtotal) : null,
+					}),
+				),
+				total: Number(totalRow[0]?.c ?? 0),
 			});
 		}),
 
