@@ -42,6 +42,7 @@ interface ChangeDatabasePasswordSheetProps {
   siteId: number;
   database: z.infer<typeof databaseSchema>;
   userId: number;
+  users?: { id: number; login: string }[];
   onSuccess?: () => void;
 }
 
@@ -51,10 +52,13 @@ export function ChangeDatabasePasswordSheet({
   siteId,
   database,
   userId,
+  users,
   onSuccess,
 }: ChangeDatabasePasswordSheetProps) {
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
+  const [activeUserId, setActiveUserId] = React.useState(userId);
+  const assignedUsers = users ?? [];
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -74,7 +78,8 @@ export function ChangeDatabasePasswordSheet({
     });
     setShowPassword(false);
     setShowConfirmPassword(false);
-  }, [open, form]);
+    setActiveUserId(userId);
+  }, [open, form, userId]);
 
   const changePassword = trpc.plesk.databasesSetUser.update.useMutation({
     onSuccess: () => {
@@ -93,7 +98,7 @@ export function ChangeDatabasePasswordSheet({
   });
 
   const onSubmit = async (data: z.infer<typeof FormSchema>) => {
-    if (!database.id || userId <= 0) {
+    if (!database.id || activeUserId <= 0) {
       toast.error("Database user is missing", {
         description: "Open the database details and try Change password again.",
       });
@@ -102,7 +107,7 @@ export function ChangeDatabasePasswordSheet({
     await changePassword.mutateAsync({
       siteId,
       databaseId: database.id,
-      userId,
+      userId: activeUserId,
       password: data.password,
       passwordType: data.passwordType,
     });
@@ -120,6 +125,31 @@ export function ChangeDatabasePasswordSheet({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-6">
+            {assignedUsers.length > 1 ? (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Database user</p>
+                <Select
+                  value={String(activeUserId || "")}
+                  onValueChange={(value) => setActiveUserId(Number(value))}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a user" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {assignedUsers.map((user) => (
+                      <SelectItem key={user.id} value={String(user.id)}>
+                        {user.login}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : assignedUsers[0] ? (
+              <p className="text-sm text-muted-foreground">
+                User: <span className="font-medium text-foreground">{assignedUsers[0].login}</span>
+              </p>
+            ) : null}
+
             <FormField
               control={form.control}
               name="password"
@@ -233,7 +263,7 @@ export function ChangeDatabasePasswordSheet({
                   Cancel
                 </Button>
               </SheetClose>
-              <Button type="submit" disabled={changePassword.isPending || userId <= 0 || !database.id}>
+              <Button type="submit" disabled={changePassword.isPending || activeUserId <= 0 || !database.id}>
                 {changePassword.isPending ? (
                   <>
                     <Spinner size={16} className="mr-2" />

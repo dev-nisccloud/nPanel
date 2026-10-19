@@ -293,7 +293,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
                   <DetailCardTabsTrigger value="subdomains" icon={Layers} title="Subdomains" subtitle="Domains" />
                 ) : null}
                 {hostingTabAllowed.databases ? (
-                  <DetailCardTabsTrigger value="databases" icon={Database} title="Databases" subtitle="MySQL/PostgreSQL" />
+                  <DetailCardTabsTrigger value="databases" icon={Database} title="Databases" subtitle="MariaDB/PostgreSQL" />
                 ) : null}
                 {hostingTabAllowed.wordpress ? (
                   <DetailCardTabsTrigger value="wordpress" icon={Icons.Wordpress} title="WordPress" subtitle="Instances" />

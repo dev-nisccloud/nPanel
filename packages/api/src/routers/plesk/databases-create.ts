@@ -4,11 +4,11 @@ import { protectedProcedure, router } from "../../trpc";
 import { assertCanAccessPleskSite } from "../../lib/plesk/hosting-access";
 import {
   addPleskDatabaseUser,
+  assertDatabaseEngineAllowed,
   fetchPleskDatabaseById,
   fetchPleskDatabaseUsers,
   generateDatabasePassword,
   getSharedHostingDbHost,
-  portForDatabaseType,
   setPleskDefaultDatabaseUser,
 } from "../../lib/plesk/database-ops";
 import {
@@ -67,7 +67,8 @@ export const databasesCreateRouter = router({
           .string()
           .min(1, { message: "Database name is required" })
           .max(64, { message: "Database name must be at most 64 characters" }),
-        type: z.enum(["mysql", "postgresql", "mssql"]).optional().default("mysql"),
+        engine: z.enum(["mariadb", "postgresql", "mysql"]).optional(),
+        type: z.enum(["mysql", "postgresql", "mssql"]).optional(),
         dbServerId: z.number().optional(),
         username: usernameSchema,
         password: passwordSchema.optional(),
@@ -79,6 +80,8 @@ export const databasesCreateRouter = router({
           siteId: input.siteId,
           userId: ctx.session.user.id,
           role: ctx.session.user.role,
+          key: "hosting.databases",
+          access: "write",
         });
 
         if (!/^[a-zA-Z0-9_]+$/.test(input.name)) {
@@ -88,11 +91,23 @@ export const databasesCreateRouter = router({
           });
         }
 
+        const engine = await assertDatabaseEngineAllowed({
+          siteId: input.siteId,
+          engine: input.engine,
+          type: input.type,
+        });
+        if (input.dbServerId != null && input.dbServerId !== engine.serverId) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "That database server is not available for this subscription.",
+          });
+        }
+
         const { xml, parsed } = await sendPleskXmlOrThrow(
           buildDatabaseCreateXml(input.siteId, {
             name: input.name,
-            type: input.type ?? "mysql",
-            dbServerId: input.dbServerId,
+            type: engine.pleskType,
+            dbServerId: engine.serverId,
           }),
         );
 
@@ -152,9 +167,12 @@ export const databasesCreateRouter = router({
           username: createdUser?.login ?? input.username,
           password,
           type: created.type,
+          engine: engine.id,
+          engineLabel: engine.label,
+          version: engine.version,
           localHost: "localhost",
           remoteHost: getSharedHostingDbHost(),
-          port: portForDatabaseType(created.type),
+          port: engine.port,
         };
       } catch (error) {
         console.error("Plesk Database Create API Error:", error);

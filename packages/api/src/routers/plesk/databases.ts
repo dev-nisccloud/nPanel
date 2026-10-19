@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../../trpc";
 import { assertCanAccessPleskSite } from "../../lib/plesk/hosting-access";
-import { getPleskDatabaseConnectionInfo } from "../../lib/plesk/database-ops";
+import { getPleskDatabaseConnectionInfo, listPleskDatabaseCatalog } from "../../lib/plesk/database-ops";
 import { getRelatedSitesByDatabaseId } from "../../lib/plesk/database-related-site";
 import { createPhpMyAdminSsoRedirect } from "../../lib/plesk/phpmyadmin-sso";
 import { sendPleskXmlOrThrow } from "../../lib/plesk/xml-utils";
@@ -45,6 +45,30 @@ export const databasesRouter = router({
         if (error instanceof TRPCError) {
           throw error;
         }
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch databases",
+          cause: error,
+        });
+      }
+    }),
+
+  listBySiteId: protectedProcedure
+    .input(z.object({ siteId: z.number().int().positive() }))
+    .query(async ({ input, ctx }) => {
+      await assertCanAccessPleskSite({
+        siteId: input.siteId,
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+        key: "hosting.databases",
+        access: "read",
+      });
+
+      try {
+        return await listPleskDatabaseCatalog(input.siteId);
+      } catch (error) {
+        console.error("Plesk database catalog error:", error);
+        if (error instanceof TRPCError) throw error;
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to fetch databases",

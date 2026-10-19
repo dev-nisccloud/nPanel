@@ -1,17 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { z } from "zod";
 import { trpc } from "@/utils/trpc";
-import { pleskDatabasesResponseSchema, databaseSchema } from "./databases-schema";
+import { databaseSchema } from "./databases-schema";
 import { toast } from "@/components/ui/sonner";
-
-/**
- * True if the item is a real DB row (skip Plesk `{ status: "ok" }` stubs and id: 0 placeholders).
- */
-function isNonEmptyDbItem(db: { id?: number; name?: string; status?: string }): boolean {
-  if (db.name != null && String(db.name).trim() !== "") return true;
-  if (db.id != null && Number(db.id) > 0) return true;
-  return false;
-}
 
 type RelatedSitesMap = Record<string, { id: number; name: string }>;
 export type RelatedSitesStatus = "loading" | "ready" | "error";
@@ -22,34 +13,19 @@ const queryOptions = {
   refetchOnWindowFocus: false,
 } as const;
 
-/**
- * Transform Plesk databases API response to component format.
- * Result is normalized to an array (schema handles single object vs array); we filter empty placeholders.
- */
-function transformPleskDatabasesToComponent(
-  pleskResponse: z.infer<typeof pleskDatabasesResponseSchema>,
+function withRelatedSite(
+  database: z.infer<typeof databaseSchema>,
   relatedSites: RelatedSitesMap | undefined,
   relatedStatus: RelatedSitesStatus,
-): z.infer<typeof databaseSchema>[] {
-  const raw = pleskResponse.parsed.packet.database["get-db"].result;
-  const databases = raw.filter(isNonEmptyDbItem);
-
-  return databases.map((db) => {
-    const related = relatedStatus === "ready" && db.id != null
-      ? relatedSites?.[String(db.id)]
-      : undefined;
-    return {
-      id: db.id ?? 0,
-      name: db.name ?? "Unknown Database",
-      type: (db.type as "mysql" | "postgresql" | "mssql") ?? "mysql",
-      status: db.status ?? "unknown",
-      "filter-id": db["filter-id"] ?? 0,
-      "webspace-id": db["webspace-id"] ?? 0,
-      "db-server-id": db["db-server-id"] ?? 0,
-      "related-site-id": relatedStatus === "ready" ? (related?.id ?? 0) : null,
-      "related-site-name": related?.name ?? null,
-    };
-  });
+): z.infer<typeof databaseSchema> {
+  const related = relatedStatus === "ready" && database.id != null
+    ? relatedSites?.[String(database.id)]
+    : undefined;
+  return {
+    ...database,
+    "related-site-id": relatedStatus === "ready" ? (related?.id ?? 0) : null,
+    "related-site-name": related?.name ?? null,
+  };
 }
 
 /**
@@ -57,20 +33,21 @@ function transformPleskDatabasesToComponent(
  */
 export function useDatabasesBySiteId(siteId: number) {
   const {
-    data: pleskData,
+    data: catalog,
     isLoading,
     isError,
     error,
     refetch,
-  } = trpc.plesk.databases.getBySiteId.useQuery(
+  } = trpc.plesk.databases.listBySiteId.useQuery(
     { siteId },
     {
       enabled: siteId > 0,
       ...queryOptions,
-      retry: (failureCount, error: any) => {
+      retry: (failureCount, error: { data?: { code?: string } }) => {
         if (error?.data?.code === "UNAUTHORIZED") return false;
         if (error?.data?.code === "SERVICE_UNAVAILABLE") return false;
         if (error?.data?.code === "NOT_FOUND") return false;
+        if (error?.data?.code === "FORBIDDEN") return false;
         return failureCount < 3;
       },
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -110,52 +87,45 @@ export function useDatabasesBySiteId(siteId: number) {
     }
   }, [error]);
 
-  let transformedData: z.infer<typeof databaseSchema>[] = [];
-  let transformationError: Error | null = null;
-
-  if (pleskData) {
-    const getDb = (pleskData as any)?.parsed?.packet?.database?.["get-db"];
-    if (getDb == null) {
-      transformedData = [];
-    } else {
-      try {
-        const validatedData = pleskDatabasesResponseSchema.parse(pleskData);
-        transformedData = transformPleskDatabasesToComponent(
-          validatedData,
-          relatedQuery.data?.relatedSites,
-          relatedStatus,
-        );
-      } catch (error) {
-        console.error("Data transformation error:", error);
-        console.error("Raw API response:", pleskData);
-        transformationError = error as Error;
-
-        if (error instanceof z.ZodError) {
-          console.error("Zod validation errors:", error.issues);
-          toast.error(`Data validation failed: ${error.issues.length} field(s) have invalid data.`);
-        } else {
-          toast.error("Failed to process databases data. Please refresh the page.");
-        }
-      }
+  const transformed = useMemo(() => {
+    if (!catalog) return { data: [] as z.infer<typeof databaseSchema>[], error: null as Error | null };
+    try {
+      return {
+        data: catalog.databases.map((database) =>
+          withRelatedSite(databaseSchema.parse(database), relatedQuery.data?.relatedSites, relatedStatus),
+        ),
+        error: null as Error | null,
+      };
+    } catch (parseError) {
+      console.error("Data transformation error:", parseError);
+      return { data: [] as z.infer<typeof databaseSchema>[], error: parseError as Error };
     }
-  }
+  }, [catalog, relatedQuery.data?.relatedSites, relatedStatus]);
+
+  useEffect(() => {
+    if (transformed.error) {
+      toast.error("Failed to process databases data. Please refresh the page.");
+    }
+  }, [transformed.error]);
 
   return {
-    data: transformedData,
+    data: transformed.data,
+    engines: catalog?.engines ?? [],
+    subscriptionDatabaseBytes: catalog?.subscriptionDatabaseBytes ?? null,
     isLoading,
-    isError: isError || !!transformationError,
-    error: error || transformationError,
+    isError: isError || !!transformed.error,
+    error: error || transformed.error,
     relatedSitesStatus: relatedStatus,
     refetch: async () => {
       await Promise.all([refetch(), relatedQuery.refetch()]);
     },
-    rawData: pleskData,
+    rawData: catalog,
   };
 }
 
 export function usePrefetchDatabasesBySiteId(siteId: number | undefined) {
   const enabled = (siteId ?? 0) > 0;
-  trpc.plesk.databases.getBySiteId.useQuery(
+  trpc.plesk.databases.listBySiteId.useQuery(
     { siteId: siteId ?? 0 },
     {
       enabled,

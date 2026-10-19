@@ -27,6 +27,8 @@ export const databasesSetUserRouter = router({
         siteId: input.siteId,
         userId: ctx.session.user.id,
         role: ctx.session.user.role,
+        key: "hosting.databases",
+        access: "write",
       });
 
       if (!input.password && !input.role && !input.acl && !input.allowAccessFrom) {
