@@ -45,11 +45,34 @@ export const pleskDatabasesResponseSchema = z.object({
   }),
 });
 
+export const databaseUserSchema = z.object({
+  id: z.number(),
+  login: z.string(),
+});
+
+export const databaseEngineSchema = z.object({
+  id: z.enum(["mariadb", "postgresql", "mysql"]),
+  pleskType: z.enum(["mysql", "postgresql"]),
+  label: z.string(),
+  serverId: z.number(),
+  port: z.number(),
+  version: z.string().nullable(),
+});
+
 // Schema for individual database (used in components)
 export const databaseSchema = z.object({
   id: z.number().optional(),
   name: z.string().optional(),
-  type: z.enum(["mysql", "postgresql", "mssql"]).optional(),
+  type: z.string().optional(),
+  engine: z.enum(["mariadb", "postgresql", "mysql", "other"]).optional(),
+  engineLabel: z.string().optional(),
+  version: z.string().nullable().optional(),
+  sizeBytes: z.number().nullable().optional(),
+  port: z.number().optional(),
+  localHost: z.string().optional(),
+  remoteHost: z.string().optional(),
+  users: z.array(databaseUserSchema).optional(),
+  defaultUserId: z.number().nullable().optional(),
   status: z.string().optional(),
   "filter-id": z.number().optional(),
   "webspace-id": z.number().optional(),
@@ -60,6 +83,7 @@ export const databaseSchema = z.object({
 
 export type PleskDatabasesResponse = z.infer<typeof pleskDatabasesResponseSchema>;
 export type Database = z.infer<typeof databaseSchema>;
+export type DatabaseEngine = z.infer<typeof databaseEngineSchema>;
 
 export function relatedSiteLabel(
   db: {

@@ -63,7 +63,7 @@ export async function applySuccessfulPaymentToInvoice(
 		.where(eq(invoice.id, invoiceId))
 		.limit(1);
 	if (!inv) return { ok: false, error: "Invoice not found" };
-	if (inv.status === "CANCELLED" || inv.status === "WRITTEN_OFF") {
+	if (inv.status === "CANCELLED" || inv.status === "WRITTEN_OFF" || inv.status === "REFUNDED") {
 		return { ok: true, skipped: true, reason: "invoice_closed" };
 	}
 

@@ -72,7 +72,7 @@ export function InvoiceKraStatusPanel({
 		invoice.kraStatus !== "NOT_APPLICABLE";
 
 	return (
-		<div className="w-full max-w-3xl mx-auto rounded-lg border bg-muted/30 p-4 space-y-3">
+		<div className="w-full rounded-lg border bg-muted/30 p-4 space-y-3">
 			<div className="flex flex-wrap items-center justify-between gap-3">
 				<div className="flex items-center gap-2">
 					<span className="text-sm font-medium">KRA eTIMS</span>

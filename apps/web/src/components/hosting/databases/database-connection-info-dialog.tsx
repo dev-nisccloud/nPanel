@@ -17,6 +17,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/utils/trpc";
 import { copyTextToClipboard } from "@/lib/copy-to-clipboard";
 import { databaseSchema, relatedSiteLabel } from "./databases-schema";
+import { formatDatabaseSize } from "./connection-string";
+import { useCanTeamPermission } from "@/contexts/team-permissions-context";
 import { z } from "zod";
 import type { RelatedSitesStatus } from "./use-databases-by-site-id";
 
@@ -70,16 +72,19 @@ export function DatabaseConnectionInfoDialog({
   onCreateUser,
   onChangePassword,
 }: DatabaseConnectionInfoDialogProps) {
+  const { can } = useCanTeamPermission();
+  const canManage = can("hosting.databases", "write");
   const databaseId = database.id ?? 0;
   const { data, isLoading, isError, error, refetch } = trpc.plesk.databases.getConnectionInfo.useQuery(
     { siteId, databaseId },
     { enabled: open && siteId > 0 && databaseId > 0 },
   );
 
-  const username = data?.defaultUserLogin || data?.users[0]?.login;
-  const userId = data?.defaultUserId || data?.users[0]?.id;
-  const dbType = data?.type || database.type || "mysql";
   const dbName = data?.name || database.name || "";
+  const dbType = data?.engineLabel || database.engineLabel || data?.type || database.type || "Database";
+  const version = data?.version ?? database.version ?? null;
+  const sizeBytes = data?.sizeBytes ?? database.sizeBytes;
+  const users = data?.users ?? database.users ?? [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -112,13 +117,23 @@ export function DatabaseConnectionInfoDialog({
         ) : (
           <div className="space-y-4 mt-4">
             <div className="space-y-1">
-              <p className="text-sm font-medium text-muted-foreground">Database Type</p>
+              <p className="text-sm font-medium text-muted-foreground">Engine</p>
               <Badge variant="outline" className="text-sm">
-                {dbType.toUpperCase()}
+                {dbType}
               </Badge>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Version</p>
+              <p className="text-base font-bold text-primary">
+                {version?.trim() ? version : "Not reported"}
+              </p>
             </div>
 
             <CopyRow label="Database Name" value={dbName || "Not available"} />
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Size</p>
+              <p className="text-base font-bold text-primary">{formatDatabaseSize(sizeBytes)}</p>
+            </div>
             <div className="space-y-1">
               <p className="text-sm font-medium text-muted-foreground">Related site</p>
               <p className="text-base font-bold text-primary">
@@ -132,14 +147,27 @@ export function DatabaseConnectionInfoDialog({
               <p className="text-base font-bold text-primary">{data?.port ?? 3306}</p>
             </div>
 
-            {username ? (
-              <CopyRow label="Username" value={username} />
+            {users.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">Assigned users</p>
+                {users.map((user) => (
+                  <div key={user.id} className="flex items-center justify-between gap-2">
+                    <p className="text-base font-bold text-primary break-all">{user.login}</p>
+                    {canManage && onChangePassword ? (
+                      <Button type="button" variant="outline" size="sm" onClick={() => onChangePassword(user.id)}>
+                        <Key className="mr-2 h-4 w-4" />
+                        Reset password
+                      </Button>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
             ) : (
               <div className="space-y-2 rounded-md border border-dashed p-3">
                 <p className="text-sm text-muted-foreground">
                   No database user exists yet. Create one to connect from your site and to open phpMyAdmin.
                 </p>
-                {onCreateUser ? (
+                {canManage && onCreateUser ? (
                   <Button type="button" size="sm" variant="outline" onClick={onCreateUser}>
                     <UserPlus className="mr-2 h-4 w-4" />
                     Create database user
@@ -149,15 +177,8 @@ export function DatabaseConnectionInfoDialog({
             )}
 
             <p className="text-xs text-muted-foreground pt-2 border-t">
-              Passwords cannot be retrieved after creation. Reset the password if you no longer have it.
+              Database user passwords cannot be retrieved after creation. Reset the password if you no longer have it. The database server administrator login is not shown.
             </p>
-
-            {userId && onChangePassword ? (
-              <Button type="button" variant="outline" size="sm" onClick={() => onChangePassword(userId)}>
-                <Key className="mr-2 h-4 w-4" />
-                Change password
-              </Button>
-            ) : null}
           </div>
         )}
       </DialogContent>

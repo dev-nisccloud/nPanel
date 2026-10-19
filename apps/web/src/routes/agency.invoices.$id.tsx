@@ -32,6 +32,7 @@ import { captureEvent } from "@/lib/posthog";
 import { InvoicePayDialog } from "@/components/invoice-pay-dialog";
 import { InvoiceKraStatusPanel } from "./agency.invoices/$id/_components/invoice-kra-status-panel";
 import { IssueCreditNoteDialog } from "./agency.invoices/$id/_components/issue-credit-note-dialog";
+import { RefundInvoiceDialog } from "./agency.invoices/$id/_components/refund-invoice-dialog";
 import { InvoicePaymentSummary } from "./agency.invoices/$id/_components/invoice-payment-summary";
 import { InvoiceTransactionsSection } from "./agency.invoices/$id/_components/invoice-transactions-section";
 import { InvoiceTransactionViewSheet } from "./agency.invoices/$id/_components/invoice-transaction-view-sheet";
@@ -333,6 +334,7 @@ export default function InvoiceViewPage() {
 
 	const [isDownloading, setIsDownloading] = React.useState(false);
 	const [issueCreditNoteOpen, setIssueCreditNoteOpen] = React.useState(false);
+	const [refundInvoiceOpen, setRefundInvoiceOpen] = React.useState(false);
 	const [isSending, setIsSending] = React.useState(false);
 	const [updatePaymentOpen, setUpdatePaymentOpen] = React.useState(false);
 	const [markUnpaidConfirmOpen, setMarkUnpaidConfirmOpen] = React.useState(false);
@@ -618,6 +620,11 @@ export default function InvoiceViewPage() {
 		isInvoiceKraSynced(invoice.kraStatus) && !invoice.creditNote;
 	const existingCreditNoteId = invoice.creditNote?.id;
 	const paymentTotals = resolveInvoicePaymentTotals(invoice);
+	const canRefund =
+		invoice.status !== "REFUNDED" &&
+		invoice.status !== "CANCELLED" &&
+		invoice.status !== "WRITTEN_OFF";
+	const wasKraSynced = isInvoiceKraSynced(invoice.kraStatus);
 
 	const handleOpenEdit = (step: string) => {
 		const s = step as InvoiceEditStep;
@@ -753,8 +760,8 @@ export default function InvoiceViewPage() {
 	};
 
 	return (
-		<div className="@container/main flex flex-col gap-4 md:gap-6 py-6">
-			<div className="flex items-center justify-between">
+		<div className="flex h-[calc(100dvh-6rem)] min-h-0 flex-col overflow-hidden px-3 pb-3 md:h-[calc(100dvh-8.5rem)] md:px-4 md:pb-4">
+			<div className="flex shrink-0 flex-wrap items-start justify-between gap-3 pb-4">
 				<div className="flex items-center gap-4">
 					<Button
 						onClick={() => navigate(invoicesBackPath)}
@@ -802,11 +809,20 @@ export default function InvoiceViewPage() {
 							isDownloading ||
 							isSending ||
 							invoice.status === "CANCELLED" ||
-							invoice.status === "WRITTEN_OFF"
+							invoice.status === "WRITTEN_OFF" ||
+							invoice.status === "REFUNDED"
 						}
 					>
 						<DollarSign className="mr-2 h-4 w-4" />
 						Pay now
+					</Button>
+					<Button
+						onClick={() => setRefundInvoiceOpen(true)}
+						disabled={!canRefund || isDownloading || isSending}
+						variant="outline"
+					>
+						<Ban className="mr-2 h-4 w-4" />
+						Refund
 					</Button>
 					{existingCreditNoteId ? (
 						<Button
@@ -926,50 +942,45 @@ export default function InvoiceViewPage() {
 				</AlertDialogContent>
 			</AlertDialog>
 
-			<div className="flex flex-col items-center gap-4 px-4">
-				<InvoicePaymentSummary
-					amount={invoice.amount}
-					amountPaid={invoice.amountPaid}
-					amountRemaining={invoice.amountRemaining}
-					creditBalance={invoice.creditBalance}
-					status={invoice.status}
-					dueDate={invoice.dueDate}
-					currency={invoice.currency}
-					transactions={invoice.transactions ?? []}
-				/>
-			</div>
-
-			<div className="px-4">
-				<InvoiceTransactionsSection
-					transactions={invoice.transactions ?? []}
-					onViewTransaction={(tx) => {
-						setViewingTransaction(tx);
-						setTransactionSheetOpen(true);
-					}}
-				/>
-			</div>
-
-			<div className="flex flex-col items-center gap-4 px-4">
-				<InvoiceKraStatusPanel
-					invoice={invoice}
-					etimsFiscal={pdfMeta.etimsFiscal}
-					onInvoiceUpdated={() => utils.invoicing.getById.invalidate({ id: invoiceId })}
-				/>
-			</div>
-
-			{/* Center the preview */}
-			<div className="flex justify-center items-start">
-				<PreviewDetails
-					yourDetails={previewData.yourDetails}
-					companyDetails={previewData.companyDetails}
-					invoiceDetails={previewData.invoiceDetails}
-					paymentDetails={previewData.paymentDetails}
-					invoiceTerms={pdfMeta.invoiceTerms}
-					etimsFiscal={pdfMeta.etimsFiscal}
-					onClick={handleOpenEdit}
-					onRegenerateQr={() => regenerateQrMutation.mutate({ invoiceId })}
-					regeneratingQr={regenerateQrMutation.isPending}
-				/>
+			<div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-2 gap-4 lg:grid-cols-[minmax(0,1.75fr)_minmax(17rem,0.72fr)] lg:grid-rows-1">
+				<section className="min-h-0 overflow-y-auto overscroll-contain rounded-xl border bg-muted/30 p-4 sm:p-5">
+					<PreviewDetails
+						fillWidth
+						yourDetails={previewData.yourDetails}
+						companyDetails={previewData.companyDetails}
+						invoiceDetails={previewData.invoiceDetails}
+						paymentDetails={previewData.paymentDetails}
+						invoiceTerms={pdfMeta.invoiceTerms}
+						etimsFiscal={pdfMeta.etimsFiscal}
+						onClick={handleOpenEdit}
+						onRegenerateQr={() => regenerateQrMutation.mutate({ invoiceId })}
+						regeneratingQr={regenerateQrMutation.isPending}
+					/>
+				</section>
+				<aside className="@container flex min-h-0 flex-col gap-4 overflow-y-auto overscroll-contain">
+					<InvoicePaymentSummary
+						amount={invoice.amount}
+						amountPaid={invoice.amountPaid}
+						amountRemaining={invoice.amountRemaining}
+						creditBalance={invoice.creditBalance}
+						status={invoice.status}
+						dueDate={invoice.dueDate}
+						currency={invoice.currency}
+						transactions={invoice.transactions ?? []}
+					/>
+					<InvoiceTransactionsSection
+						transactions={invoice.transactions ?? []}
+						onViewTransaction={(tx) => {
+							setViewingTransaction(tx);
+							setTransactionSheetOpen(true);
+						}}
+					/>
+					<InvoiceKraStatusPanel
+						invoice={invoice}
+						etimsFiscal={pdfMeta.etimsFiscal}
+						onInvoiceUpdated={() => utils.invoicing.getById.invalidate({ id: invoiceId })}
+					/>
+				</aside>
 			</div>
 
 			<InvoiceTransactionViewSheet
@@ -1103,6 +1114,17 @@ export default function InvoiceViewPage() {
 				onSuccess={(creditNoteId) =>
 					navigate(`/agency/invoices/credit-notes/${creditNoteId}`)
 				}
+			/>
+
+			<RefundInvoiceDialog
+				open={refundInvoiceOpen}
+				onOpenChange={setRefundInvoiceOpen}
+				invoiceId={invoice.id}
+				invoiceNumber={invoice.invoiceNumber}
+				invoiceAmount={invoice.amount}
+				currency={invoice.currency}
+				customerName={invoice.customerName}
+				wasKraSynced={wasKraSynced}
 			/>
 		</div>
 	);

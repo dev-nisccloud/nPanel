@@ -45,14 +45,14 @@ export function InvoicePaymentSummary(props: InvoicePaymentSummaryProps) {
 	const remainingLabel = totals.isOverdue ? "Overdue" : "Remaining";
 
 	return (
-		<div className="w-full max-w-3xl mx-auto space-y-3">
+		<div className="w-full space-y-3">
 			<div className="flex flex-col gap-1">
 				<h2 className="text-sm font-semibold tracking-tight">Payments</h2>
 				<p className="text-xs text-muted-foreground">
 					Amount paid, remaining balance, and any credit on this invoice.
 				</p>
 			</div>
-			<div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+			<div className="grid grid-cols-2 gap-3">
 				<Stat label="Invoice total" value={formatInvoiceMoney(totals.total, currency)} />
 				<Stat
 					label="Amount paid"

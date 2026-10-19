@@ -53,6 +53,7 @@ export function computeInvoicePaymentState(input: {
 	const locked =
 		currentStatus === "CANCELLED" ||
 		currentStatus === "WRITTEN_OFF" ||
+		currentStatus === "REFUNDED" ||
 		currentStatus === "DRAFT";
 
 	let status = currentStatus;

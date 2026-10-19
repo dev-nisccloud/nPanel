@@ -21,6 +21,7 @@ export interface RevealedDatabaseCredentials {
   username: string;
   password: string;
   type?: string;
+  engineLabel?: string;
   localHost: string;
   remoteHost: string;
   port: number;
@@ -73,6 +74,7 @@ export function DatabaseCredentialsRevealDialog({
           {(
             [
               ["Database", credentials.name],
+              ...(credentials.engineLabel ? [["Engine", credentials.engineLabel] as const] : []),
               ["Username", credentials.username],
               ["Password", credentials.password],
               ["Host (this server)", credentials.localHost],

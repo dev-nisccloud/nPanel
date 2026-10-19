@@ -681,7 +681,7 @@ export default function SalesReportsPage() {
 									<CardTitle className="text-sm font-bold uppercase opacity-80">Invoice status mix</CardTitle>
 								</CardHeader>
 								<CardContent className="space-y-1 text-xs">
-									{(["DRAFT", "SENT", "UNPAID", "PARTIALLY_PAID", "PAID", "OVERDUE", "CANCELLED", "WRITTEN_OFF"] as const).map((s) => (
+									{(["DRAFT", "SENT", "UNPAID", "PARTIALLY_PAID", "PAID", "OVERDUE", "CANCELLED", "WRITTEN_OFF", "REFUNDED"] as const).map((s) => (
 										<div key={s} className="flex justify-between">
 											<span>{s.replace("_", " ")}</span>
 											<span className="font-mono">{(invoiceStatusMix as Record<string, number>)[s] ?? 0}</span>

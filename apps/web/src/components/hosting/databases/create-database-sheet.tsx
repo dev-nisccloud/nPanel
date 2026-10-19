@@ -19,9 +19,11 @@ import {
 } from "@/components/npanel-ui/sheet";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import { captureEvent } from "@/lib/posthog";
+import { databaseEngineSchema, type DatabaseEngine } from "./databases-schema";
 import { generateDatabasePassword } from "./connection-string";
 import {
   DatabaseCredentialsRevealDialog,
@@ -29,6 +31,7 @@ import {
 } from "./database-credentials-reveal-dialog";
 
 const FormSchema = z.object({
+  engine: z.string().min(1, { message: "Choose a database type." }),
   name: z.string()
     .min(1, { message: "Database name is required." })
     .max(64, { message: "Database name must be at most 64 characters." })
@@ -50,6 +53,7 @@ interface CreateDatabaseSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   siteId: number;
+  engines: DatabaseEngine[];
   onSuccess?: () => void;
 }
 
@@ -57,6 +61,7 @@ export function CreateDatabaseSheet({
   open,
   onOpenChange,
   siteId,
+  engines,
   onSuccess,
 }: CreateDatabaseSheetProps) {
   const [showPassword, setShowPassword] = React.useState(false);
@@ -64,6 +69,7 @@ export function CreateDatabaseSheet({
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
+      engine: "",
       name: "",
       username: "",
       password: generateDatabasePassword(),
@@ -72,12 +78,15 @@ export function CreateDatabaseSheet({
 
   React.useEffect(() => {
     if (!open) return;
+    const parsed = z.array(databaseEngineSchema).safeParse(engines);
+    const available = parsed.success ? parsed.data : [];
     form.reset({
+      engine: available[0]?.id ?? "",
       name: "",
       username: "",
       password: generateDatabasePassword(),
     });
-  }, [open, form]);
+  }, [open, form, engines]);
 
   const nameValue = form.watch("name");
   React.useEffect(() => {
@@ -88,13 +97,14 @@ export function CreateDatabaseSheet({
 
   const createDatabase = trpc.plesk.databasesCreate.create.useMutation({
     onSuccess: (data) => {
-      captureEvent("database_created", { database_type: "mysql" });
+      captureEvent("database_created", { database_type: data.engine ?? data.type });
       toast.success("Database created successfully");
       setRevealed({
         name: data.name,
         username: data.username,
         password: data.password,
         type: data.type,
+        engineLabel: data.engineLabel,
         localHost: data.localHost,
         remoteHost: data.remoteHost,
         port: data.port,
@@ -112,12 +122,19 @@ export function CreateDatabaseSheet({
   });
 
   const onSubmit = async (data: z.infer<typeof FormSchema>) => {
+    const selected = engines.find((engine) => engine.id === data.engine);
+    if (!selected) {
+      toast.error("Choose a database type this subscription can create.");
+      return;
+    }
     try {
       await createDatabase.mutateAsync({
         siteId,
         name: data.name,
         username: data.username,
         password: data.password,
+        engine: selected.id,
+        dbServerId: selected.serverId,
       });
     } catch (e) {
       console.error("[CreateDatabaseSheet] Error in onSubmit:", e);
@@ -142,6 +159,35 @@ export function CreateDatabaseSheet({
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-6">
               <FormField
                 control={form.control}
+                name="engine"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Database Type</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={engines.length === 0}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select database type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {engines.map((engine) => (
+                          <SelectItem key={engine.id} value={engine.id}>
+                            {engine.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="name"
                 render={({ field }) => (
                   <FormItem>
@@ -150,7 +196,7 @@ export function CreateDatabaseSheet({
                       <Input placeholder="Enter database name" {...field} autoComplete="off" />
                     </FormControl>
                     <FormDescription>
-                      Only letters, numbers, and underscores. Plesk may prefix the final name.
+                      Only letters, numbers, and underscores.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -218,7 +264,7 @@ export function CreateDatabaseSheet({
                     Cancel
                   </Button>
                 </SheetClose>
-                <Button type="submit" disabled={createDatabase.isPending}>
+                <Button type="submit" disabled={createDatabase.isPending || engines.length === 0}>
                   {createDatabase.isPending ? (
                     <>
                       <Spinner size={16} className="mr-2" />
