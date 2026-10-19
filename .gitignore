@@ -55,6 +55,7 @@ tmp
 temp
 
 /logic_inspo
+/features
 Get-AWSSESCampaignData.ps1
 
 /POSTHOG_*.md
