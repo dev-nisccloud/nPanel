@@ -1,8 +1,7 @@
 "use client";
 
-import { CleanList, CleanListCell, CleanListRow } from "@/components/ui/clean-list";
+import { ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { ViewDetailsButton } from "@/components/ui/list-row-actions";
 import type { InvoiceTransaction } from "@/routes/agency.invoices/create/api/schemas";
 import { formatInvoiceDate } from "@/lib/invoice-date";
 
@@ -53,7 +52,7 @@ function getMethodDisplay(method: string): string {
 		case "CARD":
 			return "Card";
 		default:
-			return method;
+			return method.replace(/_/g, " ");
 	}
 }
 
@@ -69,57 +68,63 @@ export function InvoiceTransactionsSection({
 	emptyMessage = "No transactions yet. Use \"Update payment\" to record one.",
 }: InvoiceTransactionsSectionProps) {
 	return (
-		<div className="w-full space-y-3">
-			<div className="flex flex-col gap-1">
-				<h2 className="text-sm font-semibold tracking-tight">Transactions</h2>
-				<p className="text-xs text-muted-foreground">
-					Payments recorded against this invoice.
-				</p>
+		<section className="w-full space-y-3 rounded-lg border bg-card p-4">
+			<div className="flex items-baseline justify-between gap-3">
+				<div className="min-w-0">
+					<h2 className="text-sm font-semibold tracking-tight">Transactions</h2>
+					<p className="text-xs text-muted-foreground">
+						Payments recorded against this invoice.
+					</p>
+				</div>
+				{transactions.length > 0 ? (
+					<span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+						{transactions.length}
+					</span>
+				) : null}
 			</div>
 
-			<CleanList
-				emptyMessage={emptyMessage}
-				columns={[
-					{ key: "reference", label: "Reference" },
-					{ key: "method", label: "Method", className: "w-32", hideBelow: "@lg" },
-					{ key: "amount", label: "Amount", className: "w-40", hideBelow: "@xl" },
-					{ key: "actions", label: "Actions", align: "end" },
-				]}
-			>
-				{transactions.map((tx) => {
-					const dateLabel = formatDate(tx.paidAt ?? tx.createdAt);
-					return (
-						<CleanListRow
-							key={tx.id}
-							title={
-								<span className="text-foreground hover:underline">
-									{tx.reference || tx.providerReference || `${tx.id.slice(0, 8)}…`}
-								</span>
-							}
-							description={
-								<Badge variant="outline" className={getStatusBadgeClass(tx.status)}>
-									{tx.status.replace(/_/g, " ")}
-								</Badge>
-							}
-							cells={{
-								method: <CleanListCell>{getMethodDisplay(tx.method)}</CleanListCell>,
-								amount: (
-									<div className="min-w-0">
-										<p className="truncate text-sm font-medium text-foreground">
-											{formatCurrency(tx.amount, tx.currency)}
+			{transactions.length === 0 ? (
+				<p className="rounded-md border border-dashed px-3 py-6 text-center text-xs text-muted-foreground">
+					{emptyMessage}
+				</p>
+			) : (
+				<ul className="space-y-2">
+					{transactions.map((tx) => {
+						const dateLabel = formatDate(tx.paidAt ?? tx.createdAt);
+						const reference =
+							tx.reference || tx.providerReference || `${tx.id.slice(0, 8)}…`;
+						return (
+							<li key={tx.id}>
+								<button
+									type="button"
+									onClick={() => onViewTransaction(tx)}
+									className="flex w-full items-start gap-3 rounded-md border bg-background px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
+								>
+									<div className="min-w-0 flex-1 space-y-1">
+										<div className="flex items-start justify-between gap-2">
+											<p className="truncate text-sm font-medium tabular-nums">
+												{formatCurrency(tx.amount, tx.currency)}
+											</p>
+											<Badge
+												variant="outline"
+												className={`shrink-0 ${getStatusBadgeClass(tx.status)}`}
+											>
+												{tx.status.replace(/_/g, " ")}
+											</Badge>
+										</div>
+										<p className="truncate text-xs text-muted-foreground">
+											{getMethodDisplay(tx.method)}
+											{dateLabel ? ` · ${dateLabel}` : ""}
 										</p>
-										{dateLabel ? <CleanListCell>{dateLabel}</CleanListCell> : null}
+										<p className="truncate text-xs text-muted-foreground">{reference}</p>
 									</div>
-								),
-							}}
-							onClick={() => onViewTransaction(tx)}
-							actions={
-								<ViewDetailsButton onClick={() => onViewTransaction(tx)} />
-							}
-						/>
-					);
-				})}
-			</CleanList>
-		</div>
+									<ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+								</button>
+							</li>
+						);
+					})}
+				</ul>
+			)}
+		</section>
 	);
 }
