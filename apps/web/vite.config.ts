@@ -68,15 +68,24 @@ export default defineConfig(async (config) => {
         skip: (dir) => dir.includes("previous_codebase"),
       }),
       VitePWA({
-        registerType: "autoUpdate",
+        // The app registers public/sw.js itself. Do not emit or register a second
+        // Workbox worker at /sw.js: the React Router build has no precached
+        // index.html, and Workbox then throws non-precached-url on every deploy.
+        injectRegister: false,
+        filename: "pwa-manifest-sw.js",
         manifest: {
           name: "Nisc Cloud - nPanel",
           short_name: "nPanel",
           description: "nPanel - Nisc Cloud, Cloud Services & Digital Marketing Management Platform",
           theme_color: "#38b6ff",
         },
+        workbox: {
+          navigateFallback: null,
+          globPatterns: [],
+          runtimeCaching: [],
+        },
         pwaAssets: { disabled: false, config: true },
-        devOptions: { enabled: true },
+        devOptions: { enabled: false },
       }),
     ],
     // Prefer source over stale sibling .js next to .ts in workspace packages.
