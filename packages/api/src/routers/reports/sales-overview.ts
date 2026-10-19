@@ -380,7 +380,7 @@ export async function computeSalesReportOverview(params: {
 		.select({ amount: invoice.amount })
 		.from(invoice)
 		.where(
-			notInArray(invoice.status, ["PAID", "CANCELLED", "WRITTEN_OFF"]),
+			notInArray(invoice.status, ["PAID", "CANCELLED", "WRITTEN_OFF", "REFUNDED"]),
 		);
 	let outstandingAmount = 0;
 	for (const inv of outstandingInvoices) {
@@ -750,7 +750,7 @@ export async function computeSalesReportOverview(params: {
 		.from(invoice)
 		.where(
 			and(
-				notInArray(invoice.status, ["PAID", "CANCELLED", "WRITTEN_OFF"]),
+				notInArray(invoice.status, ["PAID", "CANCELLED", "WRITTEN_OFF", "REFUNDED"]),
 				lt(invoice.dueDate, now),
 			),
 		);

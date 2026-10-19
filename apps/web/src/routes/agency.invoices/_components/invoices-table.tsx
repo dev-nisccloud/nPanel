@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useNavigate } from "react-router";
-import { FileText, EllipsisVertical, Download, Send, Trash2, Eye, Link2 } from "lucide-react";
+import { FileText, EllipsisVertical, Download, Send, Trash2, Eye, Link2, Undo2 } from "lucide-react";
 import {
 	Table,
 	TableBody,
@@ -44,7 +44,11 @@ import { captureEvent } from "@/lib/posthog";
 import { formatInvoiceDate } from "@/lib/invoice-date";
 import { registerFonts } from "./invoices-list";
 import { LinkInvoiceOrganizationDialog } from "./link-invoice-organization-dialog";
+import { RefundInvoiceDialog } from "../$id/_components/refund-invoice-dialog";
+import { isInvoiceKraSynced } from "@npanel/api/lib/invoice-kra-status";
 import type { InvoiceSummary } from "@/routes/agency.invoices/create/api/schemas";
+
+type AgencyInvoiceRow = InvoiceSummary & { kraStatus?: string | null };
 
 const formatCurrency = (amount: string | null | undefined, currency: string) => {
 	if (!amount) return "- ";
@@ -63,13 +67,14 @@ const formatDate = (value: string | Date | null | undefined) =>
 	formatInvoiceDate(value, "- ");
 
 interface InvoiceRowActionsProps {
-	invoice: InvoiceSummary;
+	invoice: AgencyInvoiceRow;
 	onRefetch?: () => void;
 }
 
 function InvoiceRowActions({ invoice, onRefetch }: InvoiceRowActionsProps) {
 	const navigate = useNavigate();
 	const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
+	const [isRefundOpen, setIsRefundOpen] = React.useState(false);
 	const [isDownloading, setIsDownloading] = React.useState(false);
 	const [isResending, setIsResending] = React.useState(false);
 	const [isDeleting, setIsDeleting] = React.useState(false);
@@ -159,6 +164,10 @@ function InvoiceRowActions({ invoice, onRefetch }: InvoiceRowActionsProps) {
 	};
 
 	const busy = isDownloading || isResending || isDeleting;
+	const canRefund =
+		invoice.status !== "REFUNDED" &&
+		invoice.status !== "CANCELLED" &&
+		invoice.status !== "WRITTEN_OFF";
 
 	return (
 		<>
@@ -190,6 +199,13 @@ function InvoiceRowActions({ invoice, onRefetch }: InvoiceRowActionsProps) {
 									{isResending ? <Spinner className="mr-2 h-4 w-4" /> : <Send className="mr-2 h-4 w-4" />}
 									{isResending ? "Sending..." : "Resend Email Reminder"}
 								</DropdownMenuItem>
+								<DropdownMenuItem
+									onClick={() => setIsRefundOpen(true)}
+									disabled={busy || !canRefund}
+								>
+									<Undo2 className="mr-2 h-4 w-4" />
+									Refund
+								</DropdownMenuItem>
 								<DropdownMenuSeparator />
 								<DropdownMenuItem onClick={() => setIsDeleteOpen(true)} disabled={busy} className="text-destructive focus:text-destructive">
 									<Trash2 className="mr-2 h-4 w-4" />
@@ -201,6 +217,18 @@ function InvoiceRowActions({ invoice, onRefetch }: InvoiceRowActionsProps) {
 					<TooltipContent>Actions</TooltipContent>
 				</Tooltip>
 			</TooltipProvider>
+
+			<RefundInvoiceDialog
+				open={isRefundOpen}
+				onOpenChange={setIsRefundOpen}
+				invoiceId={invoice.id}
+				invoiceNumber={invoice.invoiceNumber}
+				invoiceAmount={invoice.amount}
+				currency={invoice.currency}
+				customerName={invoice.customerName}
+				wasKraSynced={isInvoiceKraSynced(invoice.kraStatus)}
+				onSuccess={onRefetch}
+			/>
 
 			<LinkInvoiceOrganizationDialog
 				open={isLinkOpen}
@@ -235,7 +263,7 @@ function InvoiceRowActions({ invoice, onRefetch }: InvoiceRowActionsProps) {
 }
 
 export interface InvoicesTableProps {
-	invoices: InvoiceSummary[];
+	invoices: AgencyInvoiceRow[];
 	onRefetch?: () => void;
 }
 

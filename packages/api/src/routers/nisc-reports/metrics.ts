@@ -23,6 +23,7 @@ export const INVOICE_REPORT_STATUSES = [
   "OVERDUE",
   "CANCELLED",
   "WRITTEN_OFF",
+  "REFUNDED",
 ] as const;
 
 export type { InvoicePaymentMethod };
@@ -95,7 +96,8 @@ export function invoiceOutstandingAmount(
     inv.status === "PAID" ||
     inv.status === "CANCELLED" ||
     inv.status === "CREDITED" ||
-    inv.status === "WRITTEN_OFF"
+    inv.status === "WRITTEN_OFF" ||
+    inv.status === "REFUNDED"
   ) {
     return 0;
   }

@@ -18,6 +18,7 @@ export const INVOICE_STATUS_OPTIONS = [
 	{ value: "OVERDUE", label: "Overdue" },
 	{ value: "CANCELLED", label: "Cancelled" },
 	{ value: "WRITTEN_OFF", label: "Written off" },
+	{ value: "REFUNDED", label: "Refunded" },
 ] as const;
 
 export type InvoiceStatusOption = (typeof INVOICE_STATUS_OPTIONS)[number]["value"];

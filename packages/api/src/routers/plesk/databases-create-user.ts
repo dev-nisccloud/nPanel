@@ -36,6 +36,8 @@ export const databasesCreateUserRouter = router({
         siteId: input.siteId,
         userId: ctx.session.user.id,
         role: ctx.session.user.role,
+        key: "hosting.databases",
+        access: "write",
       });
 
       try {
