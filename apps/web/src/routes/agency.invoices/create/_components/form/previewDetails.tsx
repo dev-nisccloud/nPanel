@@ -24,6 +24,7 @@ export const PreviewDetails = ({
   documentTitle,
   onRegenerateQr,
   regeneratingQr,
+  fillWidth = false,
 }: {
   yourDetails: YourDetails;
   companyDetails: CompanyDetails;
@@ -35,6 +36,8 @@ export const PreviewDetails = ({
   documentTitle?: string;
   onRegenerateQr?: () => void;
   regeneratingQr?: boolean;
+  /** Stretch the sheet to the column width on the invoice view. */
+  fillWidth?: boolean;
 }) => {
   const title = documentTitle ?? "Invoice";
   const isCreditNote = title.toLowerCase().includes("credit");
@@ -45,8 +48,14 @@ export const PreviewDetails = ({
       : undefined);
 
   return (
-  <div className="overflow-x-auto overflow-y-visible">
-    <div className="w-[595px] min-h-[842px] bg-white rounded-2xl border border-dashed justify-center items-center">
+  <div className={fillWidth ? "w-full" : "overflow-x-auto overflow-y-visible"}>
+    <div
+      className={
+        fillWidth
+          ? "w-full min-h-[842px] bg-white rounded-2xl border border-dashed justify-center items-center"
+          : "w-[595px] min-h-[842px] bg-white rounded-2xl border border-dashed justify-center items-center"
+      }
+    >
       <InvoiceHeaderPreview {...yourDetails} onClick={onClick} title={title} />
 
       {isCreditNote ? (

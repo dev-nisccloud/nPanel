@@ -29,7 +29,7 @@ function getInvoiceStatusLabel(status: string) {
 
 function invoiceStatusClass(status: string) {
 	if (status === "PAID") return "text-green-600";
-	if (status === "OVERDUE" || status === "CANCELLED" || status === "WRITTEN_OFF") return "text-destructive";
+	if (status === "OVERDUE" || status === "CANCELLED" || status === "WRITTEN_OFF" || status === "REFUNDED") return "text-destructive";
 	if (status === "SENT" || status === "UNPAID") return "text-primary";
 	return "text-muted-foreground";
 }

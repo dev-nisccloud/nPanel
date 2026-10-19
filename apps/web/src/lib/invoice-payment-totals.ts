@@ -60,7 +60,7 @@ export function resolveInvoicePaymentTotals(invoice: {
 	const duePassed = !!due && !Number.isNaN(due.getTime()) && due.getTime() < Date.now();
 	const isOverdue =
 		invoice.status === "OVERDUE" ||
-		(remaining > 0 && duePassed && invoice.status !== "CANCELLED" && invoice.status !== "WRITTEN_OFF");
+		(remaining > 0 && duePassed && invoice.status !== "CANCELLED" && invoice.status !== "WRITTEN_OFF" && invoice.status !== "REFUNDED");
 
 	return { total, paid, remaining, credit, isOverdue };
 }

@@ -69,7 +69,7 @@ export function InvoiceTransactionsSection({
 	emptyMessage = "No transactions yet. Use \"Update payment\" to record one.",
 }: InvoiceTransactionsSectionProps) {
 	return (
-		<div className="w-full max-w-3xl mx-auto space-y-3">
+		<div className="w-full space-y-3">
 			<div className="flex flex-col gap-1">
 				<h2 className="text-sm font-semibold tracking-tight">Transactions</h2>
 				<p className="text-xs text-muted-foreground">

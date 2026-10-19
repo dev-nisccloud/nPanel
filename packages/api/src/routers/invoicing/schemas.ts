@@ -13,6 +13,7 @@ export const invoiceStatusSchema = z.enum([
 	"OVERDUE",
 	"CANCELLED",
 	"WRITTEN_OFF",
+	"REFUNDED",
 ]);
 export type InvoiceStatusType = z.infer<typeof invoiceStatusSchema>;
 
@@ -284,6 +285,15 @@ export const issueCreditNoteInputSchema = z.object({
 	note: nullableStringSchema,
 });
 export type IssueCreditNoteInput = z.infer<typeof issueCreditNoteInputSchema>;
+
+export const refundInvoiceInputSchema = z.object({
+	invoiceId: z.string().uuid(),
+	reason: z.string().min(1, "Refund reason is required"),
+	note: nullableStringSchema,
+	/** KRA refund reason code (01-06). Only required if invoice was KRA-synced. */
+	rfdRsnCd: z.enum(["01", "02", "03", "04", "05", "06"]).optional(),
+});
+export type RefundInvoiceInput = z.infer<typeof refundInvoiceInputSchema>;
 
 /**
  * Core invoice schemas.
