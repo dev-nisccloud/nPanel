@@ -191,7 +191,7 @@ async function fetchSessionContext(params: {
 }): Promise<AgentSessionContext> {
 	const u = await db.query.user.findFirst({
 		where: eq(userTable.id, params.userId),
-		columns: { name: true, email: true },
+		columns: { name: true, email: true, role: true },
 	});
 	let teamInfo = {
 		id: params.teamId,
@@ -215,7 +215,7 @@ async function fetchSessionContext(params: {
 	}
 	return {
 		nowIso: new Date().toISOString(),
-		user: { name: u?.name ?? null, email: u?.email ?? null },
+		user: { name: u?.name ?? null, email: u?.email ?? null, role: u?.role ?? null },
 		team: teamInfo,
 		sessionTitle: params.sessionTitle,
 		sessionCreatedAtIso: params.sessionCreatedAt.toISOString(),
