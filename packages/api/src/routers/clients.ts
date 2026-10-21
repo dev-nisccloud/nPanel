@@ -389,6 +389,16 @@ function isAgencyRole(role: string): boolean {
 	return ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
 }
 
+/** Finer access is enforced by agency RBAC before the handler runs. */
+function assertAgencyStaff(role: string, message: string): void {
+	if (!isAgencyRole(role)) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message,
+		});
+	}
+}
+
 function parseInvoiceAmount(amount: string | null | undefined): number {
 	if (!amount) return 0;
 	const normalized = amount.replace(/,/g, "").trim();
@@ -497,14 +507,8 @@ export const clientsRouter = router({
 				});
 			}
 
-			// Only allow AGENCY_SUPER_ADMIN to create clients
 			const userRole = await getUserRole(session.user.id);
-			if (userRole !== "AGENCY_SUPER_ADMIN") {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "You do not have permission to create clients",
-				});
-			}
+			assertAgencyStaff(userRole, "You do not have permission to create clients");
 
 			const userId = session.user.id;
 
@@ -884,14 +888,8 @@ export const clientsRouter = router({
 				});
 			}
 
-			// Only allow AGENCY_SUPER_ADMIN to update clients
 			const userRole = await getUserRole(session.user.id);
-			if (userRole !== "AGENCY_SUPER_ADMIN") {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "You do not have permission to update clients",
-				});
-			}
+			assertAgencyStaff(userRole, "You do not have permission to update clients");
 
 			const userId = session.user.id;
 
@@ -1013,14 +1011,8 @@ export const clientsRouter = router({
 				});
 			}
 
-			// Only allow AGENCY_SUPER_ADMIN to change status
 			const userRole = await getUserRole(session.user.id);
-			if (userRole !== "AGENCY_SUPER_ADMIN") {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "You do not have permission to change client status",
-				});
-			}
+			assertAgencyStaff(userRole, "You do not have permission to change client status");
 
 			const userId = session.user.id;
 
@@ -1397,14 +1389,8 @@ export const clientsRouter = router({
 				});
 			}
 
-			// Only allow AGENCY_SUPER_ADMIN to update profiles
 			const userRole = await getUserRole(session.user.id);
-			if (userRole !== "AGENCY_SUPER_ADMIN") {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "You do not have permission to update profiles",
-				});
-			}
+			assertAgencyStaff(userRole, "You do not have permission to update profiles");
 
 			const userId = session.user.id;
 
@@ -1589,14 +1575,8 @@ export const clientsRouter = router({
 				});
 			}
 
-			// Only allow AGENCY_SUPER_ADMIN to create integrations
 			const userRole = await getUserRole(session.user.id);
-			if (userRole !== "AGENCY_SUPER_ADMIN") {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "You do not have permission to create integrations",
-				});
-			}
+			assertAgencyStaff(userRole, "You do not have permission to create integrations");
 
 			const userId = session.user.id;
 
@@ -1989,14 +1969,8 @@ export const clientsRouter = router({
 				});
 			}
 
-			// Only allow AGENCY_SUPER_ADMIN to check verification
 			const userRole = await getUserRole(session.user.id);
-			if (userRole !== "AGENCY_SUPER_ADMIN") {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "You do not have permission to check email verification status",
-				});
-			}
+			assertAgencyStaff(userRole, "You do not have permission to check email verification status");
 
 			// Get integration
 			const [integration] = await db
@@ -2115,14 +2089,8 @@ export const clientsRouter = router({
 				});
 			}
 
-			// Only allow AGENCY_SUPER_ADMIN to send verification
 			const userRole = await getUserRole(session.user.id);
-			if (userRole !== "AGENCY_SUPER_ADMIN") {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "You do not have permission to send email verification",
-				});
-			}
+			assertAgencyStaff(userRole, "You do not have permission to send email verification");
 
 			const userId = session.user.id;
 
