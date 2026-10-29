@@ -14,10 +14,12 @@ export function ConnectFacebookButton({
   label = "Connect Facebook",
   size = "sm",
   className,
+  returnUrl = "/agency/social-media-ads/facebook",
 }: {
   label?: string;
   size?: "sm" | "lg";
   className?: string;
+  returnUrl?: string;
 }) {
   const [isConnecting, setIsConnecting] = React.useState(false);
 
@@ -38,7 +40,7 @@ export function ConnectFacebookButton({
         initiateOAuth.mutate({
           platform: "meta_facebook",
           flowType: "connect",
-          returnUrl: `${window.location.origin}/agency/social-media-ads/facebook`,
+          returnUrl: `${window.location.origin}${returnUrl}`,
         });
       }}
       disabled={isConnecting}
@@ -70,7 +72,7 @@ export function ConnectFacebookCard() {
         </div>
         <CardTitle>Connect with Meta</CardTitle>
         <CardDescription>
-          Connect your Facebook account to manage ad campaigns. You'll be redirected to Meta to authorize access.
+          Authorize access, then choose the ad accounts to import.
         </CardDescription>
       </CardHeader>
       <CardContent>

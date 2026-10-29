@@ -774,6 +774,7 @@ export const linkedInAdsCampaignsRouter = router({
 	getCampaignDetails: protectedProcedure
 		.input(
 			z.object({
+				accountId: z.string().min(1, 'Account ID is required'),
 				campaignGroupId: z.string().min(1, 'Campaign Group ID is required'),
 				campaignId: z.string().min(1, 'Campaign ID is required'),
 			})
@@ -794,7 +795,7 @@ export const linkedInAdsCampaignsRouter = router({
 				const client = new LinkedInAdsClient({ accessToken });
 
 				// Get campaign details directly from LinkedIn API
-				const campaignDetails = await client.getCampaignDetails(input.campaignId);
+				const campaignDetails = await client.getCampaignDetails(input.campaignId, input.accountId);
 
 				// Format budget values
 				const formatBudget = (budget: number | string | null | undefined): string | null => {

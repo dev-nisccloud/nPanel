@@ -18,7 +18,7 @@ export declare function createGoogleAdsClient(config: GoogleAdsClientConfig): Go
 /**
  * Get customer instance for making API calls
  */
-export declare function getCustomerInstance(client: GoogleAdsApi, customerId: string, refreshToken: string): Customer;
+export declare function getCustomerInstance(client: GoogleAdsApi, customerId: string, refreshToken: string, loginCustomerId?: string): Customer;
 /**
  * List accessible Google Ads customers (accounts)
  * Uses the library's built-in listAccessibleCustomers method

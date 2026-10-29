@@ -11,6 +11,7 @@ import { customerPlatformAsset } from "@npanel/db/schema";
 import { MetaAdsClient } from "../../lib/meta-ads-client";
 import { decryptToken } from "../../lib/oauth-encryption";
 import { router, protectedProcedure } from "../../trpc";
+import { getCustomerCampaignCharts, getCustomerCampaignDetails } from "./campaign-details";
 
 function asNumber(value: unknown): number | null {
   if (value == null || value === "") return null;
@@ -45,6 +46,8 @@ const RESULT_ACTION_TYPES = [
 ];
 
 export const customerOAuthCampaignsRouter = router({
+  getDetails: getCustomerCampaignDetails,
+  getCharts: getCustomerCampaignCharts,
   list: protectedProcedure
     .input(
       z.object({
@@ -55,6 +58,7 @@ export const customerOAuthCampaignsRouter = router({
             until: z.string(),
           })
           .optional(),
+        publisherPlatform: z.enum(["instagram"]).optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -70,7 +74,10 @@ export const customerOAuthCampaignsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Ad account not found" });
       }
 
-      if (asset.assetType !== "meta_ad_account" || asset.platform !== "meta_facebook") {
+      if (
+        asset.assetType !== "meta_ad_account" ||
+        (asset.platform !== "meta_facebook" && asset.platform !== "meta_instagram")
+      ) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "This asset is not a Meta ad account",
@@ -93,12 +100,14 @@ export const customerOAuthCampaignsRouter = router({
       try {
         const response = await client.getCampaigns(accountId);
         const insightsByCampaign = new Map<string, Record<string, unknown>>();
+        let insightsUnavailable = false;
 
         try {
           const insightsResponse = await client.getInsights(accountId, {
             level: "campaign",
             timeRange: input.timeRange,
             datePreset: input.timeRange ? undefined : "last_30d",
+            breakdowns: input.publisherPlatform ? ["publisher_platform"] : undefined,
             metrics: [
               "campaign_id",
               "impressions",
@@ -113,15 +122,24 @@ export const customerOAuthCampaignsRouter = router({
           });
 
           for (const row of insightsResponse.data ?? []) {
+            if (input.publisherPlatform && row?.publisher_platform !== input.publisherPlatform) continue;
             if (row?.campaign_id) {
               insightsByCampaign.set(String(row.campaign_id), row);
             }
           }
         } catch (error) {
+          insightsUnavailable = true;
           console.error("Failed to fetch campaign insights:", error);
         }
 
-        const campaigns = (response.data ?? []).map((campaign) => {
+        const campaigns = (response.data ?? [])
+          .filter(
+            (campaign) =>
+              !input.publisherPlatform ||
+              insightsUnavailable ||
+              insightsByCampaign.has(String(campaign.id)),
+          )
+          .map((campaign) => {
           const insight = insightsByCampaign.get(String(campaign.id));
           const actions = insight?.actions as Array<{ action_type?: string; value?: string }> | undefined;
           const costActions = insight?.cost_per_action_type as

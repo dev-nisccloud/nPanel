@@ -303,6 +303,9 @@ export const agencysidebarItems: NavGroup[] = [
         permissionModule: "social",
         subItems: [
           { title: "Facebook", url: "/agency/social-media-ads/facebook", permissionModule: "social" },
+          { title: "LinkedIn", url: "/agency/social-media-ads/linkedin", permissionModule: "social_linkedin" },
+          { title: "Instagram", url: "/agency/social-media-ads/instagram", permissionModule: "social_instagram" },
+          { title: "Google Ads", url: "/agency/social-media-ads/google", permissionModule: "social_google" },
         ],
       },
       {

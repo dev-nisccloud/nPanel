@@ -9,7 +9,13 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { toast } from "@/components/ui/sonner";
 import { trpc } from "@/utils/trpc";
 
-export function SelectFacebookAdAccounts({ connectionId }: { connectionId: string }) {
+export function SelectFacebookAdAccounts({
+  connectionId,
+  assetPlatform = "meta_facebook",
+}: {
+  connectionId: string;
+  assetPlatform?: "meta_facebook" | "meta_instagram";
+}) {
   const utils = trpc.useUtils();
   const assetsQuery = trpc.customerOAuth.auth.fetchAvailableAssets.useQuery({ connectionId });
   const [selectedIds, setSelectedIds] = React.useState<string[] | null>(null);
@@ -44,7 +50,7 @@ export function SelectFacebookAdAccounts({ connectionId }: { connectionId: strin
     <Card className="mx-auto mt-8 w-full max-w-lg">
       <CardHeader>
         <CardTitle>Choose ad accounts</CardTitle>
-        <CardDescription>Import the Meta ad accounts you want to manage in this workspace.</CardDescription>
+        <CardDescription>Choose the ad accounts to import.</CardDescription>
       </CardHeader>
       <CardContent>
         {assetsQuery.isLoading ? (
@@ -93,6 +99,7 @@ export function SelectFacebookAdAccounts({ connectionId }: { connectionId: strin
                 completeSelection.mutate({
                   connectionId,
                   selectedAssetIds: chosenIds,
+                  assetPlatform,
                 })
               }
             >

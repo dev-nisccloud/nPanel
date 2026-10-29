@@ -5,13 +5,14 @@
 
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { eq, and, desc, count, inArray } from "drizzle-orm";
+import { eq, and, desc, count, inArray, notInArray, isNull } from "drizzle-orm";
 import { router, protectedProcedure } from "../../trpc";
 import {
   customerPlatformAsset,
-  customerOAuthConnection,
   customerAssetMapping,
   customerOAuthActivityLog,
+  metaAdsAccount,
+  team,
 } from "@npanel/db/schema";
 import {
   MetaOAuthProvider,
@@ -28,6 +29,8 @@ import {
 
 const metaProvider = new MetaOAuthProvider();
 
+const LINKABLE_AD_ACCOUNT_TYPES = new Set(["meta_ad_account", "linkedin_ad_account", "google_ad_account"]);
+
 export const customerOAuthAssetsRouter = router({
   /**
    * List all assets for current user
@@ -37,7 +40,7 @@ export const customerOAuthAssetsRouter = router({
       z
         .object({
           connectionId: z.string().optional(),
-          platform: z.enum(["meta_facebook", "google_ads", "linkedin_ads"]).optional(),
+          platform: z.enum(["meta_facebook", "meta_instagram", "google_ads", "linkedin_ads"]).optional(),
           assetType: z.string().optional(),
           isActive: z.boolean().optional(),
         })
@@ -386,7 +389,9 @@ export const customerOAuthAssetsRouter = router({
     }),
 
   /**
-   * Delete asset (soft delete)
+   * Remove an imported asset and the rows that belong to it.
+   * Child assets, mappings, activity logs, and webhooks go with it.
+   * A linked Meta ads account is removed only when no other asset still points at it.
    */
   delete: protectedProcedure
     .input(
@@ -395,10 +400,11 @@ export const customerOAuthAssetsRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
       const asset = await ctx.db.query.customerPlatformAsset.findFirst({
         where: and(
           eq(customerPlatformAsset.id, input.assetId),
-          eq(customerPlatformAsset.userId, ctx.session.user.id)
+          eq(customerPlatformAsset.userId, userId)
         ),
       });
 
@@ -409,26 +415,110 @@ export const customerOAuthAssetsRouter = router({
         });
       }
 
-      // Soft delete: deactivate and mark for cleanup
-      await ctx.db
-        .update(customerPlatformAsset)
-        .set({
-          isActive: false,
-          updatedAt: new Date(),
-        })
-        .where(eq(customerPlatformAsset.id, input.assetId));
+      const assetIds = [asset.id];
+      const linkedByPlatformParent = await ctx.db
+        .select({ id: customerPlatformAsset.id })
+        .from(customerPlatformAsset)
+        .where(
+          and(
+            eq(customerPlatformAsset.userId, userId),
+            eq(customerPlatformAsset.connectionId, asset.connectionId),
+            eq(customerPlatformAsset.platformParentId, asset.platformAssetId)
+          )
+        );
+      for (const linked of linkedByPlatformParent) {
+        if (!assetIds.includes(linked.id)) assetIds.push(linked.id);
+      }
 
-      // Log activity
-      await ctx.db.insert(customerOAuthActivityLog).values({
-        id: crypto.randomUUID(),
-        connectionId: asset.connectionId,
-        assetId: asset.id,
-        userId: ctx.session.user.id,
-        action: "delete",
-        status: "SUCCESS",
-        description: `Deleted asset: ${asset.name}`,
-        ipAddress: ctx.ip,
-        userAgent: ctx.userAgent,
+      let frontier = [...assetIds];
+      for (let depth = 0; depth < 8 && frontier.length > 0; depth += 1) {
+        const children = await ctx.db
+          .select({ id: customerPlatformAsset.id })
+          .from(customerPlatformAsset)
+          .where(
+            and(
+              eq(customerPlatformAsset.userId, userId),
+              inArray(customerPlatformAsset.parentAssetId, frontier)
+            )
+          );
+        frontier = children.map((child) => child.id).filter((id) => !assetIds.includes(id));
+        assetIds.push(...frontier);
+      }
+
+      await ctx.db.transaction(async (tx) => {
+        const mappings = await tx
+          .select({
+            assetId: customerAssetMapping.assetId,
+            metaAdsAccountId: customerAssetMapping.metaAdsAccountId,
+            targetTable: customerAssetMapping.targetTable,
+            targetId: customerAssetMapping.targetId,
+          })
+          .from(customerAssetMapping)
+          .where(inArray(customerAssetMapping.assetId, assetIds));
+
+        const metaAccountIds = [
+          ...new Set(
+            mappings.flatMap((mapping) => {
+              const ids: string[] = [];
+              if (mapping.metaAdsAccountId) ids.push(mapping.metaAdsAccountId);
+              if (mapping.targetTable === "meta_ads_account" && mapping.targetId) {
+                ids.push(mapping.targetId);
+              }
+              return ids;
+            })
+          ),
+        ];
+
+        if (metaAccountIds.length > 0) {
+          const shared = await tx
+            .select({ metaAdsAccountId: customerAssetMapping.metaAdsAccountId })
+            .from(customerAssetMapping)
+            .where(
+              and(
+                inArray(customerAssetMapping.metaAdsAccountId, metaAccountIds),
+                notInArray(customerAssetMapping.assetId, assetIds)
+              )
+            );
+          const sharedIds = new Set(
+            shared
+              .map((row) => row.metaAdsAccountId)
+              .filter((id): id is string => Boolean(id))
+          );
+          const exclusiveIds = metaAccountIds.filter((id) => !sharedIds.has(id));
+          if (exclusiveIds.length > 0) {
+            await tx.delete(metaAdsAccount).where(inArray(metaAdsAccount.id, exclusiveIds));
+          }
+        }
+
+        await tx
+          .update(customerPlatformAsset)
+          .set({ parentAssetId: null })
+          .where(inArray(customerPlatformAsset.id, assetIds));
+
+        await tx
+          .delete(customerPlatformAsset)
+          .where(
+            and(
+              inArray(customerPlatformAsset.id, assetIds),
+              eq(customerPlatformAsset.userId, userId)
+            )
+          );
+
+        await tx.insert(customerOAuthActivityLog).values({
+          id: crypto.randomUUID(),
+          connectionId: asset.connectionId,
+          userId,
+          action: "delete",
+          status: "SUCCESS",
+          description: `Removed ad account: ${asset.name}`,
+          metadata: {
+            platformAssetId: asset.platformAssetId,
+            assetType: asset.assetType,
+            removedAssetIds: assetIds,
+          },
+          ipAddress: ctx.ip,
+          userAgent: ctx.userAgent,
+        });
       });
 
       return {
@@ -478,4 +568,121 @@ export const customerOAuthAssetsRouter = router({
 
     return grouped;
   }),
+
+  /**
+   * Organization link for the ad account the user is viewing.
+   */
+  organizationLink: protectedProcedure
+    .input(z.object({ assetId: z.string().min(1) }))
+    .query(async ({ ctx, input }) => {
+      const asset = await ctx.db.query.customerPlatformAsset.findFirst({
+        where: and(
+          eq(customerPlatformAsset.id, input.assetId),
+          eq(customerPlatformAsset.userId, ctx.session.user.id),
+        ),
+        columns: {
+          id: true,
+          name: true,
+          assetType: true,
+          teamId: true,
+        },
+        with: {
+          team: {
+            columns: { id: true, name: true },
+          },
+        },
+      });
+
+      if (!asset || !LINKABLE_AD_ACCOUNT_TYPES.has(asset.assetType)) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Ad account not found" });
+      }
+
+      return {
+        assetId: asset.id,
+        assetName: asset.name,
+        teamId: asset.teamId,
+        teamName: asset.team?.name ?? null,
+      };
+    }),
+
+  /**
+   * Link the active ad account to an existing organization. One-time.
+   */
+  linkOrganization: protectedProcedure
+    .input(
+      z.object({
+        assetId: z.string().min(1),
+        teamId: z.string().min(1),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const asset = await ctx.db.query.customerPlatformAsset.findFirst({
+        where: and(
+          eq(customerPlatformAsset.id, input.assetId),
+          eq(customerPlatformAsset.userId, ctx.session.user.id),
+        ),
+        columns: {
+          id: true,
+          name: true,
+          assetType: true,
+          teamId: true,
+          connectionId: true,
+        },
+      });
+
+      if (!asset || !LINKABLE_AD_ACCOUNT_TYPES.has(asset.assetType)) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Ad account not found" });
+      }
+      if (asset.teamId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This ad account is already linked to an organization.",
+        });
+      }
+
+      const organization = await ctx.db.query.team.findFirst({
+        where: eq(team.id, input.teamId),
+        columns: { id: true, name: true, isActive: true },
+      });
+      if (!organization || !organization.isActive) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Organization not found" });
+      }
+
+      const updated = await ctx.db
+        .update(customerPlatformAsset)
+        .set({ teamId: organization.id, updatedAt: new Date() })
+        .where(
+          and(
+            eq(customerPlatformAsset.id, asset.id),
+            isNull(customerPlatformAsset.teamId),
+          ),
+        )
+        .returning({ id: customerPlatformAsset.id });
+
+      if (updated.length === 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This ad account is already linked to an organization.",
+        });
+      }
+
+      await ctx.db.insert(customerOAuthActivityLog).values({
+        id: crypto.randomUUID(),
+        connectionId: asset.connectionId,
+        assetId: asset.id,
+        userId: ctx.session.user.id,
+        action: "link_organization",
+        status: "SUCCESS",
+        description: `Linked ${asset.name} to ${organization.name}`,
+        metadata: { teamId: organization.id, teamName: organization.name },
+        ipAddress: ctx.ip,
+        userAgent: ctx.userAgent,
+      });
+
+      return {
+        success: true as const,
+        teamId: organization.id,
+        teamName: organization.name,
+      };
+    }),
 });
