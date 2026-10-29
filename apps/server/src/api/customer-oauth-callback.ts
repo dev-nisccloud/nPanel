@@ -7,9 +7,17 @@ const callerFactory = t.createCallerFactory(appRouter);
 
 const PLATFORM_BY_SLUG = {
   meta: "meta_facebook",
+  linkedin: "linkedin_ads",
+  google: "google_ads",
 } as const;
 
-const FALLBACK_PATH = "/agency/social-media-ads/facebook";
+const FALLBACK_BY_SLUG: Record<string, string> = {
+  meta: "/agency/social-media-ads/facebook",
+  linkedin: "/agency/social-media-ads/linkedin",
+  google: "/agency/social-media-ads/google",
+};
+
+const FALLBACK_PATH = FALLBACK_BY_SLUG.meta;
 
 function publicOrigin(c: Context): string {
   const configured = process.env.VITE_PUBLIC_APP_URL || process.env.FRONTEND_URL;
@@ -58,7 +66,8 @@ function redirectWith(c: Context, target: string, params: Record<string, string>
 export async function handleCustomerOAuthCallback(c: Context) {
   const slug = c.req.param("platform");
   const platform = PLATFORM_BY_SLUG[slug as keyof typeof PLATFORM_BY_SLUG];
-  const fallback = safeReturnUrl(FALLBACK_PATH, c);
+  const fallbackPath = FALLBACK_BY_SLUG[slug] || FALLBACK_PATH;
+  const fallback = safeReturnUrl(fallbackPath, c);
 
   if (!platform) {
     return redirectWith(c, fallback, { oauth: "error", message: "Unsupported platform" });
@@ -68,7 +77,7 @@ export async function handleCustomerOAuthCallback(c: Context) {
   if (oauthError) {
     return redirectWith(c, fallback, {
       oauth: "error",
-      message: c.req.query("error_description") || "Facebook authorization was cancelled.",
+      message: c.req.query("error_description") || "Authorization was cancelled.",
     });
   }
 
@@ -85,7 +94,7 @@ export async function handleCustomerOAuthCallback(c: Context) {
 
   if (!ctx.session?.user?.id) {
     const login = new URL("/auth/login", publicOrigin(c));
-    login.searchParams.set("redirect", FALLBACK_PATH);
+    login.searchParams.set("redirect", fallbackPath);
     return c.redirect(login.toString());
   }
 
@@ -101,7 +110,7 @@ export async function handleCustomerOAuthCallback(c: Context) {
       connectionId: result.connectionId,
     });
   } catch (error) {
-    const message = error instanceof TRPCError ? error.message : "Failed to connect Facebook";
+    const message = error instanceof TRPCError ? error.message : "Failed to connect the account";
     return redirectWith(c, fallback, { oauth: "error", message });
   }
 }

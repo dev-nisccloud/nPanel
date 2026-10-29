@@ -1,10 +1,21 @@
 "use client";
 
 import * as React from "react";
+import { useNavigate, useSearchParams } from "react-router";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, Check, ChevronsUpDown, Plus } from "lucide-react";
+import { Calendar as CalendarIcon, Check, ChevronsUpDown, Trash2 } from "lucide-react";
 import { type DateRange } from "react-day-picker";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -25,8 +36,13 @@ import {
   type CleanListColumn,
   type SearchableCleanListItem,
 } from "@/components/ui/searchable-clean-list";
+import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { toast } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
 import { trpc, type RouterOutputs } from "@/utils/trpc";
+
+import { LinkAdAccountOrganization } from "./link-ad-account-organization";
+import { SelectFacebookAdAccounts } from "./select-ad-accounts";
 
 type Campaign = RouterOutputs["customerOAuth"]["campaigns"]["list"]["campaigns"][number];
 type AdAccount = RouterOutputs["customerOAuth"]["assets"]["list"][number];
@@ -36,7 +52,7 @@ const CAMPAIGN_COLUMNS: CleanListColumn[] = [
   { key: "status", label: "Status", className: "w-28", hideBelow: "@md" },
   { key: "spend", label: "Spend", className: "w-40", hideBelow: "@lg" },
   { key: "reach", label: "Reach", className: "w-24", hideBelow: "@xl" },
-  { key: "results", label: "Results", className: "w-36", hideBelow: "@2xl" },
+  { key: "impressions", label: "Impressions", className: "w-28", hideBelow: "@2xl" },
   { key: "ctr", label: "CTR", className: "w-20", hideBelow: "@3xl" },
   { key: "schedule", label: "Schedule", className: "w-44", hideBelow: "@5xl" },
   { key: "actions", label: "Actions", align: "end" },
@@ -175,24 +191,6 @@ function SpendCell({ campaign, currency }: { campaign: Campaign; currency: strin
   );
 }
 
-function ResultsCell({ campaign, currency }: { campaign: Campaign; currency: string }) {
-  const insights = campaign.insights;
-  if (insights?.results == null) {
-    return <CleanListCell>—</CleanListCell>;
-  }
-
-  return (
-    <div className="flex min-w-0 flex-col gap-0.5">
-      <p className="truncate text-sm font-medium text-foreground">{formatNumber(insights.results)}</p>
-      <CleanListCell>
-        {insights.costPerResult != null
-          ? `${formatCurrency(insights.costPerResult, currency)} / result`
-          : ""}
-      </CleanListCell>
-    </div>
-  );
-}
-
 function toCampaignItem(
   campaign: Campaign,
   currency: string,
@@ -206,7 +204,9 @@ function toCampaignItem(
       status: <CampaignStatusBadge status={campaign.status} />,
       spend: <SpendCell campaign={campaign} currency={currency} />,
       reach: <CleanListCell>{campaign.insights ? formatNumber(campaign.insights.reach) : "—"}</CleanListCell>,
-      results: <ResultsCell campaign={campaign} currency={currency} />,
+      impressions: (
+        <CleanListCell>{campaign.insights ? formatNumber(campaign.insights.impressions) : "—"}</CleanListCell>
+      ),
       ctr: <CleanListCell>{campaign.insights ? formatCtr(campaign.insights.ctr) : "—"}</CleanListCell>,
       schedule: <CleanListCell>{formatSchedule(campaign)}</CleanListCell>,
     },
@@ -215,9 +215,29 @@ function toCampaignItem(
   };
 }
 
-export function FacebookCampaignsTab() {
+const cachedFacebookList = {
+  staleTime: Number.POSITIVE_INFINITY,
+  refetchOnWindowFocus: false,
+  refetchOnReconnect: false,
+} as const;
+
+export function FacebookCampaignsTab({
+  detailsBase = "/agency/social-media-ads/facebook",
+  publisherPlatform,
+  assetPlatform = "meta_facebook",
+  connectionId,
+}: {
+  detailsBase?: string;
+  publisherPlatform?: "instagram";
+  assetPlatform?: "meta_facebook" | "meta_instagram";
+  connectionId?: string;
+} = {}) {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const utils = trpc.useUtils();
   const [accountPickerOpen, setAccountPickerOpen] = React.useState(false);
-  const [selectedAccountId, setSelectedAccountId] = React.useState("");
+  const selectedAccountId = searchParams.get("assetId") ?? "";
+  const [pendingDelete, setPendingDelete] = React.useState<AdAccount | null>(null);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>({
     from: new Date(new Date().setDate(new Date().getDate() - 30)),
@@ -225,18 +245,50 @@ export function FacebookCampaignsTab() {
   });
   const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false);
 
-  const accountsQuery = trpc.customerOAuth.assets.list.useQuery({
-    platform: "meta_facebook",
+  const accountsListInput = {
+    platform: assetPlatform,
     assetType: "meta_ad_account",
     isActive: true,
-  });
+  } as const;
+  const accountsQuery = trpc.customerOAuth.assets.list.useQuery(accountsListInput, cachedFacebookList);
   const accounts = accountsQuery.data ?? [];
 
+  const removeAccount = trpc.customerOAuth.assets.delete.useMutation({
+    onSuccess: async (_data, variables) => {
+      toast.success("Ad account removed");
+      setPendingDelete(null);
+      utils.customerOAuth.assets.list.setData(
+        accountsListInput,
+        (current) => current?.filter((account) => account.id !== variables.assetId),
+      );
+      setSearchParams((current) => {
+        const params = new URLSearchParams(current);
+        if (params.get("assetId") === variables.assetId) params.delete("assetId");
+        return params;
+      }, { replace: true });
+      await Promise.all([
+        utils.customerOAuth.assets.list.invalidate(),
+        utils.customerOAuth.campaigns.list.invalidate(),
+      ]);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to remove ad account");
+    },
+  });
+
   React.useEffect(() => {
-    if (selectedAccountId || accounts.length === 0) return;
-    const first = accounts[0];
-    if (first) setSelectedAccountId(first.id);
-  }, [accounts, selectedAccountId]);
+    if (accountsQuery.isLoading) return;
+    const stillSelected = accounts.some((account) => account.id === selectedAccountId);
+    if (stillSelected) return;
+    const nextId = accounts[0]?.id ?? "";
+    if (nextId === selectedAccountId) return;
+    setSearchParams((current) => {
+      const params = new URLSearchParams(current);
+      if (nextId) params.set("assetId", nextId);
+      else params.delete("assetId");
+      return params;
+    }, { replace: true });
+  }, [accounts, accountsQuery.isLoading, selectedAccountId, setSearchParams]);
 
   const selectedAccount = accounts.find((account) => account.id === selectedAccountId);
   const currency = selectedAccount ? accountCurrency(selectedAccount) : "USD";
@@ -246,8 +298,8 @@ export function FacebookCampaignsTab() {
       : undefined;
 
   const campaignsQuery = trpc.customerOAuth.campaigns.list.useQuery(
-    { assetId: selectedAccountId, timeRange },
-    { enabled: selectedAccountId.length > 0 },
+    { assetId: selectedAccountId, timeRange, publisherPlatform },
+    { ...cachedFacebookList, enabled: Boolean(selectedAccount) },
   );
 
   const accountCampaigns = campaignsQuery.data?.campaigns ?? [];
@@ -267,20 +319,26 @@ export function FacebookCampaignsTab() {
 
   const items = filteredCampaigns.map((campaign) =>
     toCampaignItem(campaign, currency, () => {
-      // Campaign detail is not wired yet.
+      const params = new URLSearchParams({ assetId: selectedAccountId });
+      navigate(`${detailsBase}/campaigns/${campaign.id}?${params.toString()}`);
     }),
   );
 
+  if (!accountsQuery.isLoading && accounts.length === 0 && connectionId) {
+    return <SelectFacebookAdAccounts connectionId={connectionId} assetPlatform={assetPlatform} />;
+  }
+
   return (
     <div className="space-y-4">
-      <div className="w-full md:max-w-md">
+      <div className="flex items-start justify-between gap-3">
+      <div className="w-full min-w-0 md:max-w-md">
         <Popover open={accountPickerOpen} onOpenChange={setAccountPickerOpen}>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
               role="combobox"
               aria-expanded={accountPickerOpen}
-              className="h-auto min-h-9 w-full justify-between border-muted/60 px-3 py-1.5 font-normal shadow-sm"
+              className="h-auto min-h-9 w-full items-center justify-between whitespace-normal border-muted/60 px-3 py-1.5 font-normal shadow-sm"
             >
               {selectedAccount ? (
                 <AdAccountLabel account={selectedAccount} />
@@ -303,20 +361,25 @@ export function FacebookCampaignsTab() {
                       <CommandItem
                         key={account.id}
                         value={`${account.name} ${account.platformAssetId} ${accountCurrency(account)}`}
+                        className="items-start"
                         onSelect={() => {
-                          setSelectedAccountId(account.id);
+                          setSearchParams((current) => {
+                            const params = new URLSearchParams(current);
+                            params.set("assetId", account.id);
+                            return params;
+                          }, { replace: true });
                           setAccountPickerOpen(false);
                           setSearchQuery("");
                         }}
                       >
                         <Check
                           className={cn(
-                            "mr-2 h-4 w-4",
+                            "mt-0.5 mr-2 h-4 w-4",
                             selectedAccountId === account.id ? "opacity-100" : "opacity-0",
                           )}
                         />
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate font-medium">{account.name}</span>
+                          <span className="line-clamp-2 font-medium break-words whitespace-normal">{account.name}</span>
                           <span className="block truncate text-xs text-muted-foreground">
                             {accountCurrency(account)}
                           </span>
@@ -327,6 +390,24 @@ export function FacebookCampaignsTab() {
                         >
                           {status}
                         </Badge>
+                        <button
+                          type="button"
+                          aria-label={`Remove ${account.name}`}
+                          disabled={removeAccount.isPending}
+                          className="ml-1 inline-flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:pointer-events-none disabled:opacity-50"
+                          onPointerDown={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                          }}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            setPendingDelete(account);
+                            setAccountPickerOpen(false);
+                          }}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
                       </CommandItem>
                     );
                   })}
@@ -335,6 +416,12 @@ export function FacebookCampaignsTab() {
             </Command>
           </PopoverContent>
         </Popover>
+      </div>
+      <LinkAdAccountOrganization
+        assetId={selectedAccountId}
+        linkedTeamId={selectedAccount?.teamId}
+        assetsListInput={accountsListInput}
+      />
       </div>
 
       <SearchableCleanList
@@ -395,13 +482,48 @@ export function FacebookCampaignsTab() {
                 />
               </PopoverContent>
             </Popover>
+            {/* Create campaign is hidden until campaign creation is needed.
             <Button size="sm" className="h-9 w-fit">
               <Plus className="mr-1.5 h-3.5 w-3.5" />
               Create campaign
             </Button>
+            */}
           </>
         }
       />
+
+      <AlertDialog
+        open={pendingDelete != null}
+        onOpenChange={(open) => {
+          if (!open && !removeAccount.isPending) setPendingDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this ad account?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDelete
+                ? `${pendingDelete.name} will be removed from this workspace. Saved account data tied to it is deleted. The account on Facebook stays as it is.`
+                : "This ad account will be removed from this workspace."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={removeAccount.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={removeAccount.isPending || !pendingDelete}
+              onClick={(event) => {
+                event.preventDefault();
+                if (!pendingDelete) return;
+                removeAccount.mutate({ assetId: pendingDelete.id });
+              }}
+            >
+              {removeAccount.isPending ? <Spinner className="mr-2 size-4" /> : null}
+              Remove account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -412,7 +534,7 @@ function AdAccountLabel({ account }: { account: AdAccount }) {
   return (
     <div className="flex min-w-0 flex-1 items-center gap-2">
       <span className="min-w-0 flex-1 text-left">
-        <span className="block truncate font-medium">{account.name}</span>
+        <span className="line-clamp-2 font-medium break-words whitespace-normal">{account.name}</span>
         <span className="block truncate text-xs text-muted-foreground">{accountCurrency(account)}</span>
       </span>
       <Badge

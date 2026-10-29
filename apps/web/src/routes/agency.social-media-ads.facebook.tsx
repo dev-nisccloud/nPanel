@@ -1,7 +1,5 @@
-"use client";
+import { Outlet } from "react-router";
 
-import { FacebookWorkspace } from "@/components/facebook-workspace/facebook-workspace";
-
-export default function SocialMediaAdsFacebookPage() {
-  return <FacebookWorkspace />;
+export default function SocialMediaAdsFacebookLayout() {
+  return <Outlet />;
 }

@@ -250,7 +250,10 @@ export const linkedInAdsCampaignGroupsRouter = router({
 				const client = new LinkedInAdsClient({ accessToken });
 
 				// Get campaign group details directly from LinkedIn API
-				const campaignGroupDetails = await client.getCampaignGroupDetails(input.campaignGroupId);
+				const campaignGroupDetails = await client.getCampaignGroupDetails(
+					input.campaignGroupId,
+					input.accountId,
+				);
 
 				// Return campaign group details
 				return {

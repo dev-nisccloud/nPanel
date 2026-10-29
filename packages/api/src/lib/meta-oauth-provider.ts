@@ -255,6 +255,22 @@ export class MetaOAuthProvider {
     const instagramAccounts = await this.fetchInstagramAccounts(accessToken, pages);
     assets.push(...instagramAccounts);
 
+    // Ad accounts assigned to those Instagram professional accounts.
+    // GET /{ig-user-id}/authorized_adaccounts?business={business-id}
+    const knownAdAccountIds = new Set(
+      assets.filter((asset) => asset.assetType === "meta_ad_account").map((asset) => asset.platformAssetId),
+    );
+    const instagramAdAccounts = await this.fetchInstagramAuthorizedAdAccounts(
+      accessToken,
+      instagramAccounts,
+      businesses,
+    );
+    for (const account of instagramAdAccounts) {
+      if (knownAdAccountIds.has(account.platformAssetId)) continue;
+      knownAdAccountIds.add(account.platformAssetId);
+      assets.push(account);
+    }
+
     // Fetch pixels for ad accounts (optional, can be slow)
     // const pixels = await this.fetchPixels(accessToken, adAccounts);
     // assets.push(...pixels);
@@ -374,127 +390,161 @@ export class MetaOAuthProvider {
   }
 
   /**
-   * Fetch Ad Accounts
+   * Every ad account the token can see.
+   * /me/adaccounts is only the user's personal roles. A Business Manager portfolio
+   * also includes owned accounts, client accounts, asset-group accounts, and
+   * accounts on child businesses.
    */
   private async fetchAdAccounts(accessToken: string): Promise<MetaPlatformAsset[]> {
     const adAccounts: MetaPlatformAsset[] = [];
     const seenIds = new Set<string>();
+    const fields = "id,account_id,name,account_status,currency,timezone_name,business";
 
-    // Fetch from /me/adaccounts
-    await this.fetchPaginated(
-      `${this.graphBaseUrl}/me/adaccounts`,
-      {
-        fields:
-          "id,account_id,name,account_status,currency,timezone_name,spend_cap,amount_spent,balance,business,capabilities",
-        access_token: accessToken,
-      },
-      (accountData: any) => {
-        if (!seenIds.has(accountData.account_id)) {
-          seenIds.add(accountData.account_id);
-          adAccounts.push({
-            platformAssetId: accountData.account_id,
-            assetType: "meta_ad_account",
-            name: accountData.name,
-            businessId: accountData.business?.id,
-            businessName: accountData.business?.name,
-            capabilities: {
-              can_create_campaigns: true,
-              can_manage_ads: true,
-              can_view_insights: true,
-            },
-            metadata: {
-              currency: accountData.currency,
-              timezone: accountData.timezone_name,
-              spend_cap: accountData.spend_cap,
-              amount_spent: accountData.amount_spent,
-              balance: accountData.balance,
-              account_status: accountData.account_status,
-              raw_capabilities: accountData.capabilities || [],
-            },
+    await this.fetchEdge("me/adaccounts", accessToken, { fields }, (accountData) => {
+      this.collectAdAccount(adAccounts, seenIds, accountData, { ownership: "user" });
+    });
+
+    const businesses = await this.fetchBusinessesInternal(accessToken);
+    for (const business of businesses) {
+      await this.fetchEdge(`${business.id}/owned_ad_accounts`, accessToken, { fields }, (accountData) => {
+        this.collectAdAccount(adAccounts, seenIds, accountData, {
+          businessId: business.id,
+          businessName: business.name,
+          ownership: "owned",
+        });
+      });
+      await this.fetchEdge(`${business.id}/client_ad_accounts`, accessToken, { fields }, (accountData) => {
+        this.collectAdAccount(adAccounts, seenIds, accountData, {
+          businessId: business.id,
+          businessName: business.name,
+          ownership: "client",
+        });
+      });
+
+      const groups: Array<{ id: string }> = [];
+      await this.fetchEdge(
+        `${business.id}/business_asset_groups`,
+        accessToken,
+        { fields: "id,name" },
+        (group) => {
+          if (group?.id) groups.push({ id: String(group.id) });
+        },
+      );
+      for (const group of groups) {
+        await this.fetchEdge(`${group.id}/contained_adaccounts`, accessToken, { fields }, (accountData) => {
+          this.collectAdAccount(adAccounts, seenIds, accountData, {
+            businessId: business.id,
+            businessName: business.name,
+            ownership: "asset_group",
           });
+        });
+      }
+    }
+
+    const businessUsers: Array<{ id: string; business?: { id?: string; name?: string } }> = [];
+    await this.fetchEdge("me/business_users", accessToken, { fields: "id,business{id,name}" }, (businessUser) => {
+      if (businessUser?.id) businessUsers.push(businessUser);
+    });
+    for (const businessUser of businessUsers) {
+      await this.fetchEdge(`${businessUser.id}/assigned_ad_accounts`, accessToken, { fields }, (accountData) => {
+        this.collectAdAccount(adAccounts, seenIds, accountData, {
+          businessId: businessUser.business?.id,
+          businessName: businessUser.business?.name,
+          ownership: "assigned",
+        });
+      });
+    }
+
+    return adAccounts;
+  }
+
+  private async fetchEdge(
+    path: string,
+    accessToken: string,
+    params: Record<string, string>,
+    onItem: (item: any) => void,
+  ) {
+    try {
+      await this.fetchPaginated(
+        `${this.graphBaseUrl}/${path}`,
+        { ...params, access_token: accessToken },
+        onItem,
+      );
+    } catch (error) {
+      console.warn(`Meta edge ${path} failed:`, error);
+    }
+  }
+
+  private collectAdAccount(
+    adAccounts: MetaPlatformAsset[],
+    seenIds: Set<string>,
+    accountData: any,
+    extra: { businessId?: string; businessName?: string; ownership?: string },
+  ) {
+    const accountId = String(accountData?.account_id || String(accountData?.id || "").replace(/^act_/, ""));
+    if (!accountId || seenIds.has(accountId)) return;
+    seenIds.add(accountId);
+    adAccounts.push({
+      platformAssetId: accountId,
+      assetType: "meta_ad_account",
+      name: accountData.name || `Ad account ${accountId}`,
+      businessId: extra.businessId || accountData.business?.id,
+      businessName: extra.businessName || accountData.business?.name,
+      capabilities: {
+        can_create_campaigns: true,
+        can_manage_ads: true,
+        can_view_insights: true,
+      },
+      metadata: {
+        currency: accountData.currency,
+        timezone: accountData.timezone_name,
+        spend_cap: accountData.spend_cap,
+        amount_spent: accountData.amount_spent,
+        balance: accountData.balance,
+        account_status: accountData.account_status,
+        ownership: extra.ownership,
+      },
+    });
+  }
+
+  /**
+   * Ad accounts a business has authorized for an Instagram professional account.
+   * GET /{ig-user-id}/authorized_adaccounts?business={business-id}
+   */
+  private async fetchInstagramAuthorizedAdAccounts(
+    accessToken: string,
+    instagramAccounts: MetaPlatformAsset[],
+    businesses: MetaPlatformAsset[],
+  ): Promise<MetaPlatformAsset[]> {
+    const adAccounts: MetaPlatformAsset[] = [];
+    const seenIds = new Set<string>();
+    if (instagramAccounts.length === 0 || businesses.length === 0) return adAccounts;
+
+    for (const instagramAccount of instagramAccounts) {
+      for (const business of businesses) {
+        try {
+          await this.fetchPaginated(
+            `${this.graphBaseUrl}/${instagramAccount.platformAssetId}/authorized_adaccounts`,
+            {
+              business: business.platformAssetId,
+              fields: "id,account_id,name,account_status,currency,timezone_name,spend_cap,amount_spent,balance",
+              access_token: accessToken,
+            },
+            (accountData: any) => {
+              this.collectAdAccount(adAccounts, seenIds, accountData, {
+                businessId: business.platformAssetId,
+                businessName: business.name,
+                ownership: "instagram",
+              });
+            },
+          );
+        } catch (error) {
+          console.warn(
+            `No authorized ad accounts for Instagram ${instagramAccount.platformAssetId} in business ${business.platformAssetId}:`,
+            error,
+          );
         }
       }
-    );
-
-    // Also fetch from Business Manager
-    try {
-      const businesses = await this.fetchBusinessesInternal(accessToken);
-
-      for (const business of businesses) {
-        // Owned ad accounts
-        await this.fetchPaginated(
-          `${this.graphBaseUrl}/${business.id}/owned_ad_accounts`,
-          {
-            fields:
-              "id,account_id,name,account_status,currency,timezone_name,spend_cap,amount_spent,balance",
-            access_token: accessToken,
-          },
-          (accountData: any) => {
-            if (!seenIds.has(accountData.account_id)) {
-              seenIds.add(accountData.account_id);
-              adAccounts.push({
-                platformAssetId: accountData.account_id,
-                assetType: "meta_ad_account",
-                name: accountData.name,
-                businessId: business.id,
-                businessName: business.name,
-                capabilities: {
-                  can_create_campaigns: true,
-                  can_manage_ads: true,
-                  can_view_insights: true,
-                },
-                metadata: {
-                  currency: accountData.currency,
-                  timezone: accountData.timezone_name,
-                  spend_cap: accountData.spend_cap,
-                  amount_spent: accountData.amount_spent,
-                  balance: accountData.balance,
-                  account_status: accountData.account_status,
-                  ownership: "owned",
-                },
-              });
-            }
-          }
-        );
-
-        // Client ad accounts
-        await this.fetchPaginated(
-          `${this.graphBaseUrl}/${business.id}/client_ad_accounts`,
-          {
-            fields:
-              "id,account_id,name,account_status,currency,timezone_name,spend_cap,amount_spent,balance",
-            access_token: accessToken,
-          },
-          (accountData: any) => {
-            if (!seenIds.has(accountData.account_id)) {
-              seenIds.add(accountData.account_id);
-              adAccounts.push({
-                platformAssetId: accountData.account_id,
-                assetType: "meta_ad_account",
-                name: accountData.name,
-                businessId: business.id,
-                businessName: business.name,
-                capabilities: {
-                  can_create_campaigns: true,
-                  can_manage_ads: true,
-                  can_view_insights: true,
-                },
-                metadata: {
-                  currency: accountData.currency,
-                  timezone: accountData.timezone_name,
-                  spend_cap: accountData.spend_cap,
-                  amount_spent: accountData.amount_spent,
-                  balance: accountData.balance,
-                  account_status: accountData.account_status,
-                  ownership: "client",
-                },
-              });
-            }
-          }
-        );
-      }
-    } catch (error) {
-      console.warn("Failed to fetch Business Manager ad accounts:", error);
     }
 
     return adAccounts;
@@ -523,23 +573,37 @@ export class MetaOAuthProvider {
   private async fetchBusinessesInternal(
     accessToken: string
   ): Promise<Array<{ id: string; name: string; picture?: any }>> {
-    const businesses: Array<{ id: string; name: string; picture?: any }> = [];
+    const businesses = new Map<string, { id: string; name: string; picture?: any }>();
+    const add = (businessData: any) => {
+      const id = String(businessData?.id || "");
+      if (!id || businesses.has(id)) return;
+      businesses.set(id, {
+        id,
+        name: businessData.name || id,
+        picture: businessData.picture,
+      });
+    };
 
-    await this.fetchPaginated(
-      `${this.graphBaseUrl}/me/businesses`,
-      {
-        access_token: accessToken,
-      },
-      (businessData: any) => {
-        businesses.push({
-          id: businessData.id,
-          name: businessData.name,
-          picture: businessData.picture,
-        });
-      }
-    );
+    await this.fetchEdge("me/businesses", accessToken, { fields: "id,name,picture" }, add);
+    await this.fetchEdge("me/business_users", accessToken, { fields: "id,business{id,name}" }, (row) => {
+      if (row?.business) add(row.business);
+    });
 
-    return businesses;
+    const pending = [...businesses.keys()];
+    const visited = new Set<string>();
+    while (pending.length > 0 && visited.size < 50) {
+      const parentId = pending.shift();
+      if (!parentId || visited.has(parentId)) continue;
+      visited.add(parentId);
+      await this.fetchEdge(`${parentId}/owned_businesses`, accessToken, { fields: "id,name" }, (child) => {
+        const childId = String(child?.id || "");
+        const alreadyKnown = businesses.has(childId);
+        add(child);
+        if (childId && !alreadyKnown) pending.push(childId);
+      });
+    }
+
+    return [...businesses.values()];
   }
 
   /**
@@ -602,18 +666,28 @@ export class MetaOAuthProvider {
     Object.entries(params).forEach(([key, value]) => {
       url.searchParams.set(key, value);
     });
-    url.searchParams.set("limit", "100");
+    if (!url.searchParams.has("limit")) url.searchParams.set("limit", "100");
+    const pageSize = Number(url.searchParams.get("limit")) || 100;
 
     let nextUrl: string | undefined = url.toString();
+    const seenCursors = new Set<string>();
 
     while (nextUrl) {
       const response = await this.fetchWithErrorHandling(nextUrl);
+      const rows = Array.isArray(response.data) ? response.data : [];
+      rows.forEach(onItem);
 
-      if (response.data && Array.isArray(response.data)) {
-        response.data.forEach(onItem);
+      const after = typeof response.paging?.cursors?.after === "string" ? response.paging.cursors.after : "";
+      if (response.paging?.next) {
+        nextUrl = response.paging.next;
+      } else if (after && !seenCursors.has(after) && rows.length >= pageSize) {
+        seenCursors.add(after);
+        const cursorUrl = new URL(url.toString());
+        cursorUrl.searchParams.set("after", after);
+        nextUrl = cursorUrl.toString();
+      } else {
+        nextUrl = undefined;
       }
-
-      nextUrl = response.paging?.next;
     }
   }
 
