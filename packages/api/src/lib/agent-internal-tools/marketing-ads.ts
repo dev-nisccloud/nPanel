@@ -1196,7 +1196,7 @@ async function getLinkedInCampaign(params: MarketingAdsArgs) {
 	}
 	const groupId = String(params.campaignId).replace(/[^0-9]/g, "") || params.campaignId;
 	const groupUrn = `urn:li:sponsoredCampaignGroup:${groupId}`;
-	const details = await client.getCampaignGroupDetails(groupUrn).catch(() => ({
+	const details = await client.getCampaignGroupDetails(groupUrn, accountUrn).catch(() => ({
 		id: groupId,
 		name: null,
 	}));

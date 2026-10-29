@@ -96,6 +96,7 @@ interface DownloadReportButtonProps {
     };
     currency: string;
     accountName?: string;
+    disabled?: boolean;
 }
 
 export function DownloadReportButton({
@@ -108,7 +109,8 @@ export function DownloadReportButton({
     breakdowns,
     timeRange,
     currency,
-    accountName
+    accountName,
+    disabled = false,
 }: DownloadReportButtonProps) {
     const [isGenerating, setIsGenerating] = useState(false);
 
@@ -200,7 +202,7 @@ export function DownloadReportButton({
             variant="outline"
             size="sm"
             onClick={handleDownload}
-            disabled={isGenerating}
+            disabled={disabled || isGenerating}
             className="rounded-full h-8 gap-2 ml-2" /* Pill shaped */
         >
             {isGenerating ? (

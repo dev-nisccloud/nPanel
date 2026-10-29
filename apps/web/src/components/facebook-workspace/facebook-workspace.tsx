@@ -1,10 +1,13 @@
 "use client";
 
 import * as React from "react";
+import { RefreshCw } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/sonner";
+import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 
 import { FacebookCampaignsTab } from "./campaigns-tab";
@@ -12,10 +15,32 @@ import { ConnectFacebookButton, ConnectFacebookCard } from "./connect-facebook-c
 import { FacebookPagesTab } from "./pages-tab";
 import { SelectFacebookAdAccounts } from "./select-ad-accounts";
 
+const cachedFacebookList = {
+  staleTime: Number.POSITIVE_INFINITY,
+  refetchOnWindowFocus: false,
+  refetchOnReconnect: false,
+} as const;
+
 export function FacebookWorkspace() {
-  const connectionsQuery = trpc.customerOAuth.connections.list.useQuery({
-    platform: "meta_facebook",
-  });
+  const utils = trpc.useUtils();
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const connectionsQuery = trpc.customerOAuth.connections.list.useQuery(
+    { platform: "meta_facebook" },
+    cachedFacebookList,
+  );
+
+  const refreshFacebook = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        utils.customerOAuth.connections.list.invalidate({ platform: "meta_facebook" }),
+        utils.customerOAuth.assets.list.invalidate(),
+        utils.customerOAuth.campaigns.list.invalidate(),
+      ]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -46,10 +71,24 @@ export function FacebookWorkspace() {
           <div className="flex flex-col gap-2">
             <h1 className="text-xl font-bold tracking-tight">Facebook</h1>
             <p className="text-xs text-muted-foreground">
-              Manage Facebook campaigns and pages from one place.
+              Connected ad accounts, campaigns, and pages.
             </p>
           </div>
-          {active ? <ConnectFacebookButton /> : null}
+          {active ? (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => void refreshFacebook()}
+                disabled={isRefreshing}
+                className="shrink-0"
+              >
+                <RefreshCw className={cn("mr-2 h-4 w-4", isRefreshing && "animate-spin")} />
+                Refresh
+              </Button>
+              <ConnectFacebookButton />
+            </div>
+          ) : null}
         </div>
 
         {connectionsQuery.isLoading ? (
@@ -73,7 +112,7 @@ export function FacebookWorkspace() {
               <TabsTrigger value="pages">Pages</TabsTrigger>
             </TabsList>
             <TabsContent value="campaigns" className="mt-6">
-              <FacebookCampaignsTab />
+              <FacebookCampaignsTab connectionId={active.id} />
             </TabsContent>
             <TabsContent value="pages" className="mt-6">
               <FacebookPagesTab />

@@ -179,6 +179,12 @@ const NAMESPACE_RULES: Record<string, (rest: string) => AgencyRequirement> = {
 	customerOAuth: () =>
 		anyKeys([
 			"social.accounts",
+			"social_linkedin.accounts",
+			"social_linkedin.campaigns",
+			"social_instagram.accounts",
+			"social_instagram.campaigns",
+			"social_google.accounts",
+			"social_google.campaigns",
 			"ads.meta.accounts",
 			"ads.google.accounts",
 			"ads.linkedin.accounts",

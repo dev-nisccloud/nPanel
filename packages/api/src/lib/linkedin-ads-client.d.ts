@@ -96,7 +96,7 @@ export declare class LinkedInAdsClient {
      * Get campaign group details
      * GET /rest/adCampaignGroupsV2/{id}
      */
-    getCampaignGroupDetails(campaignGroupId: string, fields?: string[]): Promise<any>;
+    getCampaignGroupDetails(campaignGroupId: string, accountIdOrUrn: string): Promise<any>;
     /**
      * List campaigns (ad sets) for a campaign group
      * GET /rest/adCampaignsV2
@@ -120,7 +120,7 @@ export declare class LinkedInAdsClient {
      * Get campaign details
      * GET /rest/adCampaignsV2/{id}
      */
-    getCampaignDetails(campaignId: string, fields?: string[]): Promise<any>;
+    getCampaignDetails(campaignId: string, accountIdOrUrn: string): Promise<any>;
     /**
      * List creatives (ads) for a campaign
      * GET /rest/adCreativesV2
@@ -180,7 +180,7 @@ export declare class LinkedInAdsClient {
      * Get creative details
      * GET /rest/adCreativesV2/{id}
      */
-    getCreativeDetails(creativeId: string, fields?: string[]): Promise<any>;
+    getCreativeDetails(creativeId: string, accountIdOrUrn: string): Promise<any>;
     /**
      * Get analytics (performance metrics)
      * GET /rest/adAnalyticsV2

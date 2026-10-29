@@ -15,6 +15,9 @@ export type AgencyPermissionModuleId =
 	| "ads.google"
 	| "ads.linkedin"
 	| "social"
+	| "social_linkedin"
+	| "social_instagram"
+	| "social_google"
 	| "email_marketing"
 	| "seo"
 	| "creatives"
@@ -51,6 +54,9 @@ const MODULE_LABELS: Record<AgencyPermissionModuleId, string> = {
 	"ads.google": "Google Ads",
 	"ads.linkedin": "LinkedIn Ads",
 	social: "Social",
+	social_linkedin: "LinkedIn",
+	social_instagram: "Instagram",
+	social_google: "Google Ads",
 	email_marketing: "Email marketing",
 	seo: "SEO",
 	creatives: "Creatives",
@@ -148,6 +154,15 @@ export const AGENCY_PERMISSION_CATALOG: readonly AgencyPermissionEntry[] = [
 
 	entry("social", "accounts", "Accounts", "View or connect social accounts"),
 	entry("social", "posts", "Posts", "View or publish social posts"),
+
+	entry("social_linkedin", "accounts", "Accounts", "View or connect LinkedIn ad accounts"),
+	entry("social_linkedin", "campaigns", "Campaigns", "View LinkedIn campaigns and performance"),
+
+	entry("social_instagram", "accounts", "Accounts", "View Meta ad accounts used for Instagram ads"),
+	entry("social_instagram", "campaigns", "Campaigns", "View Instagram delivery and performance"),
+
+	entry("social_google", "accounts", "Accounts", "View or connect Google Ads accounts"),
+	entry("social_google", "campaigns", "Campaigns", "View Google Ads campaigns and performance"),
 
 	entry("email_marketing", "campaigns", "Campaigns", "View or create and send campaigns"),
 	entry("email_marketing", "audiences", "Audiences", "View or manage audiences"),

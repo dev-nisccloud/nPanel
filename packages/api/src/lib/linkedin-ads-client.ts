@@ -172,19 +172,27 @@ export class LinkedInAdsClient {
 		const baseUrl = `${this.config.baseUrl}${endpoint}`;
 		const url = new URL(baseUrl);
 		const requestId = `liads_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+		const rawPairs: string[] = [];
 
-		// Add query parameters
+		// Rest.li search expressions such as (status:(values:List(ACTIVE))) must stay unencoded.
+		// URLSearchParams encodes the parentheses and commas, and LinkedIn then rejects the finder.
 		if (params && !isAdAnalyticsRequest) {
 			for (const [key, value] of Object.entries(params)) {
-				if (value !== undefined && value !== null) {
-					url.searchParams.set(key, this.toQueryValue(value));
+				if (value === undefined || value === null) continue;
+				const text = this.toQueryValue(value);
+				if (text.includes('(')) {
+					rawPairs.push(`${encodeURIComponent(key)}=${text}`);
+				} else {
+					url.searchParams.set(key, text);
 				}
 			}
 		}
 
 		const requestUrl = isAdAnalyticsRequest && params
 			? `${baseUrl}?${this.buildAdAnalyticsQuery(params)}`
-			: url.toString();
+			: rawPairs.length > 0
+				? `${url.toString()}${url.search ? '&' : '?'}${rawPairs.join('&')}`
+				: url.toString();
 
 		const requestOptions: any = {
 			method,
@@ -200,6 +208,10 @@ export class LinkedInAdsClient {
 		// Without this, LinkedIn can respond with 501 Not Implemented for action-based endpoints.
 		if (method === 'POST' && params?.action) {
 			requestOptions.headers['X-RestLi-Method'] = 'action';
+		}
+		// Creative search is a finder and requires this header.
+		if (method === 'GET' && endpoint.includes('/creatives') && params?.q) {
+			requestOptions.headers['X-RestLi-Method'] = 'FINDER';
 		}
 
 		this.debugLog('request', {
@@ -513,79 +525,61 @@ export class LinkedInAdsClient {
 
 		const accountId = this.extractAccountId(accountUrn);
 		const endpoint = `/rest/adAccounts/${accountId}/adCampaignGroups`;
+		// https://learn.microsoft.com/en-us/linkedin/marketing/integrations/ads/account-structure/create-and-manage-campaign-groups
+		// Search criteria is required. Cursor pages use metadata.nextPageToken. Default page size is 100.
+		const statuses = ['ACTIVE', 'PAUSED', 'DRAFT', 'ARCHIVED', 'CANCELED', 'PENDING_DELETION', 'REMOVED'];
+		const pageSize = Math.min(options?.pageSize ?? 1000, 1000);
+		const elements: any[] = [];
+		let pageToken = options?.pageToken;
+		let lastResponse: any = {};
 
-		const trySearch = async (params: Record<string, any>) => {
-			try {
-				const response = await this.makeRequest<any>('GET', endpoint, params);
-				const elements = this.normalizeElements(response);
-				this.debugLog('campaignGroups-strategy-result', {
-					endpoint,
-					params,
-					elementsCount: elements.length,
-				});
-				return { ...response, elements };
-			} catch (error: any) {
-				this.debugLog('campaignGroups-strategy-error', {
-					endpoint,
-					params,
-					status: error?.status,
-					message: error?.message,
-					errorType: error?.errorType,
-				});
-				throw error;
-			}
-		};
-
-		// Strategy 1: search without explicit filters
-		const baseParams: Record<string, any> = { q: 'search' };
-		if (options?.pageSize !== undefined) baseParams.pageSize = options.pageSize;
-		if (options?.pageToken) baseParams.pageToken = options.pageToken;
-		try {
-			return await trySearch(baseParams);
-		} catch {
-			// continue to dotted-param fallback
+		for (let page = 0; page < 50; page += 1) {
+			const response = await this.makeRequest<any>('GET', endpoint, {
+				q: 'search',
+				search: `(status:(values:List(${statuses.join(',')})))`,
+				sortOrder: 'DESCENDING',
+				pageSize,
+				...(pageToken ? { pageToken } : {}),
+			});
+			lastResponse = response;
+			const pageElements = this.normalizeElements(response);
+			elements.push(...pageElements);
+			const nextPageToken = response?.metadata?.nextPageToken;
+			this.debugLog('campaignGroups-page', {
+				endpoint,
+				page,
+				elementsCount: pageElements.length,
+				hasNextPage: Boolean(nextPageToken),
+			});
+			if (!nextPageToken || nextPageToken === pageToken || pageElements.length === 0) break;
+			pageToken = nextPageToken;
 		}
 
-		// Strategy 2: dotted search params (accepted by many v2026 endpoints)
-		return trySearch({
-			q: 'search',
-			'search.status.values[0]': 'ACTIVE',
-			'search.status.values[1]': 'PAUSED',
-			'search.status.values[2]': 'DRAFT',
-			'search.status.values[3]': 'ARCHIVED',
-			'search.status.values[4]': 'CANCELED',
-			...(options?.pageSize !== undefined ? { pageSize: options.pageSize } : {}),
-			...(options?.pageToken ? { pageToken: options.pageToken } : {}),
-		});
+		return {
+			...lastResponse,
+			elements,
+		};
 	}
 
 	/**
-	 * Get campaign group details
-	 * GET /rest/adCampaignGroupsV2/{id}
+	 * Get a campaign group.
+	 * GET /rest/adAccounts/{adAccountId}/adCampaignGroups/{adCampaignGroupsId}
 	 */
 	async getCampaignGroupDetails(
 		campaignGroupId: string,
-		fields?: string[]
+		accountIdOrUrn: string,
 	): Promise<any> {
-		const defaultFields = [
-			'id',
-			'name',
-			'status',
-			'account',
-			'runSchedule',
-			'campaignGroupStatus',
-			'created',
-			'lastModified',
-		];
-
-		const fieldsToFetch = fields || defaultFields;
-
-		return this.makeRequest('GET', `/rest/adCampaignGroups/${campaignGroupId}`);
+		const accountId = this.extractAccountId(accountIdOrUrn);
+		const groupId = this.extractAccountId(campaignGroupId);
+		return this.makeRequest(
+			'GET',
+			`/rest/adAccounts/${accountId}/adCampaignGroups/${groupId}`,
+		);
 	}
 
 	/**
-	 * List campaigns (ad sets) for a campaign group
-	 * GET /rest/adCampaignsV2
+	 * List campaigns for a campaign group.
+	 * GET /rest/adAccounts/{adAccountId}/adCampaigns?q=search
 	 */
 	async getCampaigns(
 		campaignGroupUrn: string,
@@ -603,139 +597,57 @@ export class LinkedInAdsClient {
 			links?: Array<{ rel: string; href: string }>;
 		};
 	}> {
-		const defaultFields = [
-			'id',
-			'name',
-			'status',
-			'campaignGroup',
-			'account',
-			'runSchedule',
-			'costType',
-			'unitCost',
-			'dailyBudget',
-			'totalBudget',
-			'targetingCriteria',
-			'created',
-			'lastModified',
-		];
-
 		const targetCampaignGroupUrn = campaignGroupUrn.startsWith('urn:li:')
 			? campaignGroupUrn
 			: this.ensureUrn(campaignGroupUrn, 'CAMPAIGN_GROUP');
-		const targetCampaignGroupId = targetCampaignGroupUrn.split(':').pop() || '';
-
-		// Strategy 1 (legacy direct filter): this was the previously working path.
-		try {
-			const direct = await this.makeRequest<any>('GET', '/rest/adCampaignsV2', {
-				campaignGroup: targetCampaignGroupUrn,
-				fields: (options?.fields || defaultFields).join(','),
-			});
-			const directElements = this.normalizeElements(direct);
-			this.debugLog('campaigns-strategy-result', {
-				endpoint: '/rest/adCampaignsV2',
-				strategy: 'direct-campaign-group-filter',
-				elementsCount: directElements.length,
-				targetCampaignGroupUrn,
-			});
-			if (directElements.length > 0) {
-				return {
-					...direct,
-					elements: directElements,
-				};
-			}
-			this.debugLog('campaigns-strategy-fallback', {
-				reason: 'direct-returned-empty',
-				targetCampaignGroupUrn,
-			});
-		} catch (error: any) {
-			this.debugLog('campaigns-strategy-error', {
-				endpoint: '/rest/adCampaignsV2',
-				strategy: 'direct-campaign-group-filter',
-				status: error?.status,
-				message: error?.message,
-			});
-		}
-
-		// Strategy 2 fallback: account-wide search + local campaign-group filtering.
 		const accountId = this.extractAccountId(accountIdOrUrn);
 		const endpoint = `/rest/adAccounts/${accountId}/adCampaigns`;
-		const fallback = await this.makeRequest<any>('GET', endpoint, {
-			q: 'search',
-			...(options?.pageSize !== undefined ? { pageSize: options.pageSize } : {}),
-			...(options?.pageToken ? { pageToken: options.pageToken } : {}),
-		});
-		const fallbackElements = this.normalizeElements(fallback);
-		const extractCampaignGroupRefs = (campaign: any): string[] => {
-			const refs = new Set<string>();
-			const addRef = (value: unknown) => {
-				if (typeof value === 'string' && value.trim().length > 0) refs.add(value.trim());
-				if (typeof value === 'number') refs.add(String(value));
-				if (value && typeof value === 'object') {
-					const obj = value as Record<string, unknown>;
-					for (const key of ['id', 'urn', 'campaignGroup', 'campaignGroupUrn', 'campaignGroupId', 'entity']) {
-						const v = obj[key];
-						if (typeof v === 'string' && v.trim().length > 0) refs.add(v.trim());
-						if (typeof v === 'number') refs.add(String(v));
-					}
-				}
-			};
+		const statuses = ['ACTIVE', 'PAUSED', 'ARCHIVED', 'COMPLETED', 'CANCELED', 'DRAFT', 'PENDING_DELETION', 'REMOVED'];
+		// URN values inside List() must be percent-encoded. A raw urn:li:... makes LinkedIn
+		// reject the finder with "Invalid query parameters passed to request".
+		// https://learn.microsoft.com/en-us/linkedin/marketing/integrations/ads/account-structure/create-and-manage-campaigns?view=li-lms-2026-10
+		const encodedGroup = encodeURIComponent(targetCampaignGroupUrn);
+		const pageSize = Math.min(options?.pageSize ?? 1000, 1000);
+		const elements: any[] = [];
+		let pageToken = options?.pageToken;
+		let lastResponse: any = {};
 
-			addRef(campaign?.campaignGroup);
-			addRef(campaign?.campaignGroupV2);
-			addRef(campaign?.campaignGroupUrn);
-			addRef(campaign?.campaignGroupId);
-			addRef(campaign?.campaignGroupAssociation);
-			addRef(campaign?.campaignGroupAssociationV2);
-
-			return [...refs];
-		};
-
-		const filteredElements = fallbackElements.filter((campaign: any) => {
-			const refs = extractCampaignGroupRefs(campaign);
-			return refs.some((ref) => {
-				const normalizedRefId = ref.replace(/[^0-9]/g, '');
-				return ref === targetCampaignGroupUrn || normalizedRefId === targetCampaignGroupId;
+		for (let page = 0; page < 50; page += 1) {
+			const response = await this.makeRequest<any>('GET', endpoint, {
+				q: 'search',
+				search: `(campaignGroup:(values:List(${encodedGroup})),status:(values:List(${statuses.join(',')})))`,
+				sortOrder: 'DESCENDING',
+				pageSize,
+				...(pageToken ? { pageToken } : {}),
 			});
-		});
-		this.debugLog('campaigns-strategy-result', {
-			endpoint,
-			strategy: 'finder-search-all-local-filter',
-			targetCampaignGroupUrn,
-			targetCampaignGroupId,
-			totalCampaigns: fallbackElements.length,
-			matchedCampaigns: filteredElements.length,
-			firstCampaignKeys: Object.keys((fallbackElements[0] as Record<string, unknown>) || {}),
-		});
+			lastResponse = response;
+			const pageElements = this.normalizeElements(response);
+			elements.push(...pageElements);
+			const nextPageToken = response?.metadata?.nextPageToken;
+			this.debugLog('campaigns-page', {
+				endpoint,
+				page,
+				elementsCount: pageElements.length,
+				hasNextPage: Boolean(nextPageToken),
+			});
+			if (!nextPageToken || nextPageToken === pageToken || pageElements.length === 0) break;
+			pageToken = nextPageToken;
+		}
+
 		return {
-			...fallback,
-			elements: filteredElements,
+			...lastResponse,
+			elements,
 		};
 	}
 
 	/**
-	 * Get campaign details
-	 * GET /rest/adCampaignsV2/{id}
+	 * Get a campaign.
+	 * GET /rest/adAccounts/{adAccountId}/adCampaigns/{campaignId}
 	 */
-	async getCampaignDetails(campaignId: string, fields?: string[]): Promise<any> {
-		const defaultFields = [
-			'id',
-			'name',
-			'status',
-			'campaignGroup',
-			'account',
-			'runSchedule',
-			'costType',
-			'unitCost',
-			'dailyBudget',
-			'totalBudget',
-			'targetingCriteria',
-			'created',
-			'lastModified',
-		];
-
-		const fieldsToFetch = fields || defaultFields;
-
-		return this.makeRequest('GET', `/rest/adCampaigns/${campaignId}`);
+	async getCampaignDetails(campaignId: string, accountIdOrUrn: string): Promise<any> {
+		const accountId = this.extractAccountId(accountIdOrUrn);
+		const id = this.extractAccountId(campaignId);
+		return this.makeRequest('GET', `/rest/adAccounts/${accountId}/adCampaigns/${id}`);
 	}
 
 	/**
@@ -773,12 +685,14 @@ export class LinkedInAdsClient {
 		const accountId = this.extractAccountId(accountIdOrUrn);
 		const endpoint = `/rest/adAccounts/${accountId}/creatives`;
 		const normalizedCampaignUrn = this.ensureUrn(campaignUrn, 'CAMPAIGN');
+		const encodedCampaign = encodeURIComponent(normalizedCampaignUrn);
 
-		// Direct strategy: broad criteria finder then local filter by campaign.
-		// Campaign/intendedStatuses filters are rejected in this tenant/version.
+		// Creatives finder: campaigns=List(urn%3Ali%3AsponsoredCampaign%3A...), q=criteria.
+		// https://learn.microsoft.com/en-us/linkedin/marketing/integrations/ads/account-structure/create-and-manage-creatives?view=li-lms-2026-09
 		try {
 			const fallback = await this.makeRequest<any>('GET', endpoint, {
 				q: 'criteria',
+				campaigns: `List(${encodedCampaign})`,
 				sortOrder: 'ASCENDING',
 				...(options?.pageSize !== undefined ? { pageSize: options.pageSize } : {}),
 				...(options?.pageToken ? { pageToken: options.pageToken } : {}),
@@ -948,25 +862,16 @@ export class LinkedInAdsClient {
 	}
 
 	/**
-	 * Get creative details
-	 * GET /rest/adCreativesV2/{id}
+	 * Get a creative. The creative id in the path is the URL-encoded URN.
+	 * GET /rest/adAccounts/{adAccountId}/creatives/urn%3Ali%3AsponsoredCreative%3A{id}
 	 */
-	async getCreativeDetails(creativeId: string, fields?: string[]): Promise<any> {
-		const defaultFields = [
-			'id',
-			'name',
-			'status',
-			'campaign',
-			'type',
-			'changeAuditStamps',
-			'variables',
-			'created',
-			'lastModified',
-		];
-
-		const fieldsToFetch = fields || defaultFields;
-
-		return this.makeRequest('GET', `/rest/adCreatives/${creativeId}`);
+	async getCreativeDetails(creativeId: string, accountIdOrUrn: string): Promise<any> {
+		const accountId = this.extractAccountId(accountIdOrUrn);
+		const creativeUrn = this.ensureUrn(creativeId, 'CREATIVE');
+		return this.makeRequest(
+			'GET',
+			`/rest/adAccounts/${accountId}/creatives/${encodeURIComponent(creativeUrn)}`,
+		);
 	}
 
 	/**
@@ -1070,6 +975,41 @@ export class LinkedInAdsClient {
 			...baseParams,
 			dateRange: this.formatAnalyticsDateRange(options.dateRange),
 		});
+	}
+
+	/**
+	 * Resolve targeting URNs to display names.
+	 * GET /rest/adTargetingEntities?q=urns&queryVersion=QUERY_USES_URNS&urns=List(encoded URNs)
+	 */
+	async resolveTargetingNames(urns: string[]): Promise<Map<string, string>> {
+		const unique = [...new Set(urns.filter((urn) => urn.startsWith('urn:li:')))];
+		const names = new Map<string, string>();
+		const chunkSize = 50;
+
+		for (let index = 0; index < unique.length; index += chunkSize) {
+			const chunk = unique.slice(index, index + chunkSize);
+			const encoded = chunk.map((urn) => encodeURIComponent(urn)).join(',');
+			try {
+				const response = await this.makeRequest<any>('GET', '/rest/adTargetingEntities', {
+					q: 'urns',
+					queryVersion: 'QUERY_USES_URNS',
+					urns: `List(${encoded})`,
+					locale: '(language:en,country:US)',
+				});
+				for (const element of this.normalizeElements(response)) {
+					const urn = typeof element?.urn === 'string' ? element.urn : '';
+					const name = typeof element?.name === 'string' ? element.name.trim() : '';
+					if (urn && name) names.set(urn, name);
+				}
+			} catch (error: any) {
+				this.debugLog('targeting-names-failed', {
+					count: chunk.length,
+					message: error?.message,
+				});
+			}
+		}
+
+		return names;
 	}
 }
 

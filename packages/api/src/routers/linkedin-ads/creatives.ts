@@ -505,6 +505,7 @@ export const linkedInAdsCreativesRouter = router({
 	getCreativeDetails: protectedProcedure
 		.input(
 			z.object({
+				accountId: z.string().min(1, 'Account ID is required'),
 				campaignId: z.string().min(1, 'Campaign ID is required'),
 				creativeId: z.string().min(1, 'Creative ID is required'),
 			})
@@ -525,7 +526,7 @@ export const linkedInAdsCreativesRouter = router({
 				const client = new LinkedInAdsClient({ accessToken });
 
 				// Get creative details directly from LinkedIn API
-				const creativeDetails = await client.getCreativeDetails(input.creativeId);
+				const creativeDetails = await client.getCreativeDetails(input.creativeId, input.accountId);
 
 				// Return creative details
 				return {
