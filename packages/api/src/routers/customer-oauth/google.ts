@@ -214,11 +214,50 @@ function microsToAmount(value: unknown): number | null {
   return amount / 1_000_000;
 }
 
-function ongoingDate(value: unknown): string | null {
-  if (typeof value !== "string" || value.length < 8) return null;
-  const year = Number(value.slice(0, 4));
+function campaignDay(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const match = /^(\d{4}-\d{2}-\d{2})/.exec(value.trim());
+  if (!match?.[1]) return null;
+  const year = Number(match[1].slice(0, 4));
   if (!Number.isFinite(year) || year >= 2037) return null;
-  return value;
+  return match[1];
+}
+
+const BUDGET_PERIOD: Record<string, string> = {
+  "2": "DAILY",
+  DAILY: "DAILY",
+  "5": "CUSTOM_PERIOD",
+  CUSTOM_PERIOD: "CUSTOM_PERIOD",
+};
+
+/** Inclusive days shared by the report window and the campaign schedule. */
+function overlapDays(since: string, until: string, start: string | null, end: string | null): number {
+  const from = start && start > since ? start : since;
+  const to = end && end < until ? end : until;
+  if (to < from) return 0;
+  const [fromYear, fromMonth, fromDay] = from.split("-").map(Number);
+  const [toYear, toMonth, toDay] = to.split("-").map(Number);
+  const span = Date.UTC(toYear, toMonth - 1, toDay) - Date.UTC(fromYear, fromMonth - 1, fromDay);
+  return Math.floor(span / 86_400_000) + 1;
+}
+
+/**
+ * `amount_micros` on a DAILY budget is one day's budget, while spend is the
+ * selected date range. Scale the daily amount across the days in that range
+ * so the list can show spend against the budget for the same period.
+ */
+function budgetForWindow(
+  amount: number | null,
+  period: string,
+  since: string,
+  until: string,
+  start: string | null,
+  end: string | null,
+): number | null {
+  if (amount == null) return null;
+  if (period !== "DAILY") return amount;
+  const days = overlapDays(since, until, start, end);
+  return days > 0 ? amount * days : amount;
 }
 
 function labelFrom(table: Record<string, string>, value: unknown): string {
@@ -643,7 +682,7 @@ export const customerOAuthGoogleRouter = router({
       try {
         const entities = await gaql(
           customer,
-          `SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type, campaign.start_date, campaign.end_date, campaign_budget.amount_micros FROM campaign WHERE campaign.status != 'REMOVED'`,
+          `SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type, campaign.start_date_time, campaign.end_date_time, campaign_budget.amount_micros, campaign_budget.period FROM campaign WHERE campaign.status != 'REMOVED'`,
         );
         let metricRows: Array<Record<string, any>> = [];
         try {
@@ -665,16 +704,24 @@ export const customerOAuthGoogleRouter = router({
           .map((row) => {
             const id = digits(row.campaign?.id);
             if (!id) return null;
-            const start = typeof row.campaign?.start_date === "string" ? row.campaign.start_date : null;
+            const start = campaignDay(row.campaign?.start_date_time);
+            const stop = campaignDay(row.campaign?.end_date_time);
             return {
               id,
               name: row.campaign?.name || `Campaign ${id}`,
               status: mapped(CAMPAIGN_STATUS, row.campaign?.status),
               objective: mapped(CHANNEL, row.campaign?.advertising_channel_type, ""),
               startTime: start,
-              stopTime: ongoingDate(row.campaign?.end_date),
+              stopTime: stop,
               createdAt: start,
-              budget: microsToAmount(row.campaign_budget?.amount_micros),
+              budget: budgetForWindow(
+                microsToAmount(row.campaign_budget?.amount_micros),
+                mapped(BUDGET_PERIOD, row.campaign_budget?.period, "DAILY"),
+                window.since,
+                window.until,
+                start,
+                stop,
+              ),
               insights: insightView(insights.get(id) ?? emptyTotals()),
             };
           })
@@ -701,7 +748,7 @@ export const customerOAuthGoogleRouter = router({
       try {
         const campaigns = await gaql(
           customer,
-          `SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type, campaign.start_date, campaign.end_date, campaign_budget.amount_micros, campaign_budget.period FROM campaign WHERE campaign.id = ${campaignId}`,
+          `SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type, campaign.start_date_time, campaign.end_date_time, campaign_budget.amount_micros, campaign_budget.period FROM campaign WHERE campaign.id = ${campaignId}`,
         );
         const campaign = campaigns[0];
         if (!campaign?.campaign) {
@@ -801,7 +848,7 @@ export const customerOAuthGoogleRouter = router({
           adsByGroup.set(groupId, list);
         }
 
-        const start = typeof campaign.campaign.start_date === "string" ? campaign.campaign.start_date : null;
+        const start = campaignDay(campaign.campaign.start_date_time);
         return {
           success: true as const,
           currency: asset.currency || "USD",
@@ -813,7 +860,7 @@ export const customerOAuthGoogleRouter = router({
             status: mapped(CAMPAIGN_STATUS, campaign.campaign.status),
             objective: mapped(CHANNEL, campaign.campaign.advertising_channel_type, ""),
             startTime: start,
-            stopTime: ongoingDate(campaign.campaign.end_date),
+            stopTime: campaignDay(campaign.campaign.end_date_time),
             dailyBudget: microsToAmount(campaign.campaign_budget?.amount_micros),
             budgetPeriod: campaign.campaign_budget?.period
               ? mapped({ "2": "DAILY", DAILY: "DAILY", "5": "CUSTOM_PERIOD", CUSTOM_PERIOD: "CUSTOM_PERIOD" }, campaign.campaign_budget.period, "")

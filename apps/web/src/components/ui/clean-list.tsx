@@ -70,6 +70,7 @@ const WIDTH_TRACK: Record<string, string> = {
   "w-32": "minmax(0,8rem)",
   "w-36": "minmax(0,9rem)",
   "w-40": "minmax(0,10rem)",
+  "min-w-44": "minmax(11rem,13rem)",
   "w-44": "minmax(0,11rem)",
   "w-48": "minmax(0,12rem)",
   "w-52": "minmax(0,13rem)",

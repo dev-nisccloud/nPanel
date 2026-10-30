@@ -39,7 +39,7 @@
     "drizzle-orm": "catalog:",
     "fast-xml-parser": "^5.5.6",
     "form-data": "^4.0.5",
-    "google-ads-api": "^23.0.0",
+    "google-ads-api": "^25.1.0",
     "googleapis": "^171.4.0",
     "nanoid": "^6.0.0",
     "node-vibrant": "^4.0.4",

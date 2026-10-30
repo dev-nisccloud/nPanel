@@ -54,7 +54,7 @@ const ASSETS_LIST_INPUT = {
 const CAMPAIGN_COLUMNS: CleanListColumn[] = [
   { key: "name", label: "Campaign" },
   { key: "status", label: "Status", className: "w-28", hideBelow: "@md" },
-  { key: "spend", label: "Spend", className: "w-40", hideBelow: "@lg" },
+  { key: "spend", label: "Spend", className: "min-w-44", hideBelow: "@lg" },
   { key: "impressions", label: "Impressions", className: "w-28", hideBelow: "@xl" },
   { key: "results", label: "Results", className: "w-36", hideBelow: "@2xl" },
   { key: "ctr", label: "CTR", className: "w-20", hideBelow: "@3xl" },
@@ -167,10 +167,14 @@ function SpendCell({ campaign, currency }: { campaign: Campaign; currency: strin
   const budgetProgress = campaign.budget ? (insights.spend / campaign.budget) * 100 : 0;
   return (
     <div className="flex min-w-0 flex-col gap-1">
-      <p className="truncate text-sm font-medium text-foreground">{formatCurrency(insights.spend, currency)}</p>
+      <p className="whitespace-nowrap text-sm font-medium leading-5 text-foreground">
+        {formatCurrency(insights.spend, currency)}
+      </p>
       {campaign.budget ? (
         <>
-          <CleanListCell>of {formatCurrency(campaign.budget, currency)}</CleanListCell>
+          <p className="whitespace-nowrap text-xs leading-4 text-muted-foreground">
+            of {formatCurrency(campaign.budget, currency)}
+          </p>
           <Progress value={Math.min(budgetProgress, 100)} className={cn("h-1", budgetProgress > 90 && "[&>div]:bg-amber-500")} />
         </>
       ) : null}
@@ -405,6 +409,7 @@ export function GoogleCampaignsTab() {
           void campaignsQuery.refetch();
         }}
         columns={CAMPAIGN_COLUMNS}
+        titleLines={2}
         toolbarActions={
           <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
             <PopoverTrigger asChild>

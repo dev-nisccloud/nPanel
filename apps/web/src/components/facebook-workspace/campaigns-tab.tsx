@@ -445,6 +445,7 @@ export function FacebookCampaignsTab({
           void campaignsQuery.refetch();
         }}
         columns={CAMPAIGN_COLUMNS}
+        titleLines={2}
         toolbarActions={
           <>
             <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
