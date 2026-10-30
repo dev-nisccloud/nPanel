@@ -392,11 +392,19 @@ export default function GoogleCampaignDetailsPage() {
 
         <div className="space-y-3">
           <div>
-            <h2 className="text-sm font-semibold">Ad groups</h2>
-            <p className="text-xs text-muted-foreground">Ads and performance for each ad group</p>
+            <h2 className="text-sm font-semibold">{details?.structure === "asset_groups" ? "Asset groups" : "Ad groups"}</h2>
+            <p className="text-xs text-muted-foreground">
+              {details?.structure === "asset_groups"
+                ? "Assets and performance for each asset group"
+                : "Ads and performance for each ad group"}
+            </p>
           </div>
           {(details?.adSets ?? []).length === 0 ? (
-            <p className="text-sm text-muted-foreground">No ad groups found for this campaign.</p>
+            <p className="text-sm text-muted-foreground">
+              {details?.structure === "asset_groups"
+                ? "No asset groups found for this campaign."
+                : "No ad groups found for this campaign."}
+            </p>
           ) : (
             details?.adSets.map((adSet) => (
               <Card key={adSet.id} className="gap-0 overflow-hidden py-0">
@@ -408,6 +416,7 @@ export default function GoogleCampaignDetailsPage() {
                   <CardDescription className="text-xs">
                     {adSet.id}
                     {adSet.unitCost != null ? ` · ${formatMoney(adSet.unitCost, currency)} bid` : ""}
+                    {adSet.finalUrl ? ` · ${adSet.finalUrl}` : ""}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-0 p-0">
@@ -422,27 +431,61 @@ export default function GoogleCampaignDetailsPage() {
                             </Badge>
                           ),
                         },
-                        { label: "Bid", value: formatMoney(adSet.unitCost, currency) },
-                        { label: "Ads", value: String(adSet.ads.length) },
-                        { label: "Ad group id", value: adSet.id },
+                        ...(adSet.unitCost != null
+                          ? [{ label: "Bid", value: formatMoney(adSet.unitCost, currency) }]
+                          : []),
+                        {
+                          label: details?.structure === "asset_groups" ? "Assets" : "Ads",
+                          value: String(adSet.ads.length),
+                        },
+                        {
+                          label: details?.structure === "asset_groups" ? "Asset group id" : "Ad group id",
+                          value: adSet.id,
+                        },
                       ]}
                     />
                     {adSet.insights ? <MetricGrid currency={currency} insights={adSet.insights} /> : null}
                     <div className="space-y-3 px-4 py-4">
-                      <p className="text-xs text-muted-foreground">Ads</p>
+                      <p className="text-xs text-muted-foreground">{details?.structure === "asset_groups" ? "Assets" : "Ads"}</p>
                       {adSet.ads.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">No ads found for this ad group.</p>
+                        <p className="text-sm text-muted-foreground">
+                          {details?.structure === "asset_groups"
+                            ? "No assets found for this asset group."
+                            : "No ads found for this ad group."}
+                        </p>
                       ) : (
                         adSet.ads.map((ad) => (
                           <div key={ad.id} className="rounded-md border">
                             <div className="flex items-start justify-between gap-3 px-3 py-3">
-                              <div className="min-w-0">
-                                <p className="truncate text-sm font-medium text-foreground">{ad.name}</p>
-                                <p className="truncate text-xs text-muted-foreground">
-                                  {ad.id}
-                                  {ad.type ? ` · ${humanize(ad.type)}` : ""}
-                                  {ad.finalUrl ? ` · ${ad.finalUrl}` : ""}
-                                </p>
+                              <div className="flex min-w-0 items-start gap-3">
+                                {ad.media ? (
+                                  <a
+                                    href={ad.media.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="relative block h-16 w-28 shrink-0 overflow-hidden rounded-md border bg-muted"
+                                  >
+                                    <img
+                                      src={ad.media.previewUrl}
+                                      alt=""
+                                      referrerPolicy="no-referrer"
+                                      className="h-full w-full object-cover"
+                                    />
+                                    {ad.media.kind === "video" ? (
+                                      <span className="absolute inset-0 flex items-center justify-center bg-black/25 text-[10px] font-semibold uppercase tracking-wide text-white">
+                                        Video
+                                      </span>
+                                    ) : null}
+                                  </a>
+                                ) : null}
+                                <div className="min-w-0">
+                                  <p className="line-clamp-2 text-sm font-medium text-foreground">{ad.name}</p>
+                                  <p className="truncate text-xs text-muted-foreground">
+                                    {ad.id}
+                                    {ad.type ? ` · ${humanize(ad.type)}` : ""}
+                                    {ad.finalUrl ? ` · ${ad.finalUrl}` : ""}
+                                  </p>
+                                </div>
                               </div>
                               <Badge variant={statusStyles(ad.status).variant} className={statusStyles(ad.status).className}>
                                 {ad.status}
