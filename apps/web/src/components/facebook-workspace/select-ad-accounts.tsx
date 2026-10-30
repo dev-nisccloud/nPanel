@@ -17,7 +17,10 @@ export function SelectFacebookAdAccounts({
   assetPlatform?: "meta_facebook" | "meta_instagram";
 }) {
   const utils = trpc.useUtils();
-  const assetsQuery = trpc.customerOAuth.auth.fetchAvailableAssets.useQuery({ connectionId });
+  const assetsQuery = trpc.customerOAuth.auth.fetchAvailableAssets.useQuery(
+    { connectionId, assetPlatform },
+    { retry: false },
+  );
   const [selectedIds, setSelectedIds] = React.useState<string[] | null>(null);
 
   const adAccounts = React.useMemo(

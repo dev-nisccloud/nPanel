@@ -19,7 +19,19 @@ function handleAuthStepUpError(error: { message?: string }): boolean {
 	return false;
 }
 
+function retryQuery(failureCount: number, error: unknown) {
+	const details = error as { data?: { httpStatus?: number; code?: string } };
+	const status = details?.data?.httpStatus;
+	if (details?.data?.code === "TOO_MANY_REQUESTS" || details?.data?.code === "UNAUTHORIZED") return false;
+	if (typeof status === "number" && status >= 400 && status < 500) return false;
+	return failureCount < 2;
+}
+
 export const queryClient = new QueryClient({
+	defaultOptions: {
+		queries: { retry: retryQuery },
+		mutations: { retry: retryQuery },
+	},
 	queryCache: new QueryCache({
 		onError: (error) => {
 			if (handleAuthStepUpError(error)) return;

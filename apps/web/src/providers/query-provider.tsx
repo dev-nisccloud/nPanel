@@ -21,7 +21,9 @@ function isUnauthorized(error: unknown): boolean {
 }
 
 function is4xx(error: unknown): boolean {
-  const status = (error as { status?: number })?.status;
+  const details = error as { status?: number; data?: { httpStatus?: number; code?: string } };
+  if (details?.data?.code === "TOO_MANY_REQUESTS") return true;
+  const status = details?.data?.httpStatus ?? details?.status;
   return typeof status === "number" && status >= 400 && status < 500;
 }
 
