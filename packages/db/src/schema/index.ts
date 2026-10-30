@@ -32,6 +32,7 @@ export * from "./nisc-email-marketing";
 export * from "./etims";
 export * from "./image-generator";
 export * from "./imagegen-studio";
+export * from "./facebook-pages";
 export * from "./cron-workflow-runs";
 export * from "./agency-cron-jobs";
 export * from "./api-logs";

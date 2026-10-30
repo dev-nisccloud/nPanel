@@ -16,6 +16,7 @@ import {
 import { 
   MetaOAuthProvider, 
   getAllMetaScopes,
+  getFacebookPageScopes,
   type MetaUserProfile,
   MetaProviderError 
 } from "../../lib/meta-oauth-provider";
@@ -42,6 +43,11 @@ import {
 } from "./linkedin";
 
 const metaProvider = new MetaOAuthProvider();
+
+function publicAsset<T extends { accountAccessToken?: string }>(asset: T) {
+  const { accountAccessToken: _pageToken, ...rest } = asset;
+  return rest;
+}
 const metaAssetLoads = new Map<string, Promise<unknown[]>>();
 
 type MetaAssetSurface = "meta_facebook" | "meta_instagram";
@@ -117,7 +123,7 @@ export const customerOAuthAuthRouter = router({
   initiateOAuth: protectedProcedure
     .input(
       z.object({
-        platform: z.enum(["meta_facebook", "google_ads", "linkedin_ads"]),
+        platform: z.enum(["meta_facebook", "meta_facebook_pages", "google_ads", "linkedin_ads"]),
         flowType: z.enum(["connect", "reconnect", "add_assets"]).default("connect"),
         reconnectConnectionId: z.string().optional(),
         returnUrl: z.string().optional(),
@@ -147,12 +153,13 @@ export const customerOAuthAuthRouter = router({
       let authUrl: string;
 
       switch (input.platform) {
-        case "meta_facebook": {
+        case "meta_facebook":
+        case "meta_facebook_pages": {
           const redirectUri = getOAuthRedirectUri("meta");
           authUrl = metaProvider.generateAuthUrl({
             redirectUri,
             state: stateToken,
-            scopes: getAllMetaScopes(),
+            scopes: input.platform === "meta_facebook_pages" ? getFacebookPageScopes() : getAllMetaScopes(),
           });
           break;
         }
@@ -201,7 +208,6 @@ export const customerOAuthAuthRouter = router({
         where: and(
           eq(customerOAuthState.stateToken, input.state),
           eq(customerOAuthState.userId, userId),
-          eq(customerOAuthState.platform, input.platform)
         ),
       });
 
@@ -211,6 +217,19 @@ export const customerOAuthAuthRouter = router({
           message: "Invalid or expired OAuth state",
         });
       }
+
+      const callbackPlatform = stateRecord.platform;
+      const metaPageConnect = callbackPlatform === "meta_facebook_pages";
+      if (
+        callbackPlatform !== input.platform &&
+        !(input.platform === "meta_facebook" && metaPageConnect)
+      ) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid or expired OAuth state",
+        });
+      }
+      const metaScopes = metaPageConnect ? getFacebookPageScopes() : getAllMetaScopes();
 
       if (new Date() > stateRecord.expiresAt) {
         throw new TRPCError({
@@ -224,7 +243,7 @@ export const customerOAuthAuthRouter = router({
         let profile: MetaUserProfile;
         let tokenExpiresAt: Date;
 
-        switch (input.platform) {
+        switch (metaPageConnect ? "meta_facebook" : callbackPlatform) {
           case "meta_facebook": {
             const redirectUri = getOAuthRedirectUri("meta");
 
@@ -242,7 +261,7 @@ export const customerOAuthAuthRouter = router({
             // Verify scopes
             const scopesValid = await metaProvider.verifyScopes(
               tokenResponse.accessToken,
-              getAllMetaScopes()
+              metaScopes
             );
 
             if (!scopesValid) {
@@ -263,7 +282,7 @@ export const customerOAuthAuthRouter = router({
             const existingConnection = await ctx.db.query.customerOAuthConnection.findFirst({
               where: and(
                 eq(customerOAuthConnection.userId, userId),
-                eq(customerOAuthConnection.platform, input.platform),
+                eq(customerOAuthConnection.platform, callbackPlatform),
                 eq(customerOAuthConnection.platformUserId, profile.platformUserId)
               ),
             });
@@ -274,6 +293,7 @@ export const customerOAuthAuthRouter = router({
                 .update(customerOAuthConnection)
                 .set({
                   accessToken: encryptToken(tokenResponse.accessToken),
+                  scopes: metaScopes,
                   tokenExpiresAt,
                   status: "PENDING_SELECTION",
                   awaitingAccountSelection: true,
@@ -299,7 +319,7 @@ export const customerOAuthAuthRouter = router({
                 id: connectionId,
                 userId,
                 teamId: null,
-                platform: input.platform,
+                platform: callbackPlatform,
                 platformUserId: profile.platformUserId,
                 accessToken: encryptToken(tokenResponse.accessToken),
                 tokenExpiresAt,
@@ -309,7 +329,7 @@ export const customerOAuthAuthRouter = router({
                 displayName: profile.displayName,
                 email: profile.email,
                 profilePictureUrl: profile.profilePictureUrl,
-                scopes: getAllMetaScopes(),
+                scopes: metaScopes,
                 lastVerifiedAt: new Date(),
                 lastRefreshAt: new Date(),
                 createdBy: userId,
@@ -323,7 +343,7 @@ export const customerOAuthAuthRouter = router({
               userId,
               action: existingConnection ? "reconnect" : "connect",
               status: "SUCCESS",
-              description: `Successfully connected ${input.platform}`,
+              description: `Successfully connected ${callbackPlatform}`,
               ipAddress: ctx.ip,
               userAgent: ctx.userAgent,
             });
@@ -607,6 +627,10 @@ export const customerOAuthAuthRouter = router({
             availableAssets = await loadMetaAssets(connection.id, decryptedToken, metaSurface ?? "meta_facebook");
             break;
 
+          case "meta_facebook_pages":
+            availableAssets = await metaProvider.fetchFacebookPages(decryptedToken);
+            break;
+
           case "linkedin_ads":
             availableAssets = await listLinkedInSelectableAssets(decryptedToken);
             break;
@@ -641,7 +665,7 @@ export const customerOAuthAuthRouter = router({
           .where(eq(customerOAuthConnection.id, input.connectionId));
 
         return {
-          assets: availableAssets,
+          assets: availableAssets.map(publicAsset),
           expiresAt: connection.selectionExpiresAt,
         };
       } catch (error) {
@@ -657,7 +681,7 @@ export const customerOAuthAuthRouter = router({
           cachedAssets.length > 0
         ) {
           return {
-            assets: cachedAssets as never[],
+            assets: (cachedAssets as Array<Record<string, unknown>>).map(publicAsset),
             expiresAt: connection.selectionExpiresAt,
           };
         }

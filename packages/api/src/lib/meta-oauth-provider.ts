@@ -59,6 +59,11 @@ export function getAllMetaScopes(): string[] {
   ];
 }
 
+/** Page list and Page insights. Kept off the ad-account login. */
+export function getFacebookPageScopes(): string[] {
+  return [...META_OAUTH_SCOPES.basic, ...META_OAUTH_SCOPES.pages];
+}
+
 /**
  * Platform asset returned from Meta API
  */
@@ -120,6 +125,185 @@ interface MetaGraphError {
 }
 
 type MetaFetchBudget = { rateLimited: boolean };
+
+type InsightApiRow = {
+  name?: string;
+  values?: Array<{ value?: unknown; end_time?: string }>;
+};
+
+type InsightPoint = { date: string; value: unknown };
+
+type InsightSeries = {
+  name: string;
+  breakdown?: string;
+  points: InsightPoint[];
+};
+
+export type FacebookPageProfile = {
+  name: string | null;
+  username: string | null;
+  about: string | null;
+  description: string | null;
+  category: string | null;
+  categories: string[];
+  link: string | null;
+  website: string | null;
+  phone: string | null;
+  emails: string[];
+  whatsapp: string | null;
+  address: string | null;
+  hours: string[];
+  isPublished: boolean | null;
+  verificationStatus: string | null;
+  likes: number | null;
+  followers: number | null;
+  rating: number | null;
+  ratingCount: number | null;
+  founded: string | null;
+  companyOverview: string | null;
+  mission: string | null;
+  products: string | null;
+  generalInfo: string | null;
+  instagramUsername: string | null;
+  coverUrl: string | null;
+  pictureUrl: string | null;
+};
+
+export type FacebookPagePost = {
+  id: string;
+  message: string | null;
+  createdTime: string | null;
+  permalink: string | null;
+  pictureUrl: string | null;
+  reactions: number | null;
+  comments: number | null;
+  shares: number | null;
+};
+
+export type FacebookPageInsights = {
+  followers: number | null;
+  views: number;
+  viewers: number;
+  engagements: number;
+  pageVisits: number;
+  buttonClicks: number;
+  newFollows: number;
+  unfollows: number;
+  viewsFromAds: number | null;
+  viewsOrganic: number | null;
+  viewsFromFollowers: number | null;
+  viewsFromNonFollowers: number | null;
+  reactions: {
+    like: number;
+    love: number;
+    haha: number;
+    wow: number;
+    sad: number;
+    angry: number;
+  };
+  series: Array<{
+    date: string;
+    views: number;
+    viewers: number;
+    engagements: number;
+    visits: number;
+    newFollows: number;
+    unfollows: number;
+  }>;
+  unavailable: string[];
+};
+
+function insightDate(endTime: string | undefined): string {
+  if (!endTime) return "";
+  const end = new Date(endTime);
+  if (Number.isNaN(end.getTime())) return endTime.slice(0, 10);
+  const day = new Date(end.getTime() - 12 * 60 * 60 * 1000);
+  return day.toISOString().slice(0, 10);
+}
+
+function numericValue(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  return null;
+}
+
+function textOrNull(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function joinAddress(location: Record<string, unknown> | null): string | null {
+  if (!location) return null;
+  const parts = ["street", "city", "state", "zip", "country"]
+    .map((key) => textOrNull(location[key]))
+    .filter((part): part is string => Boolean(part));
+  return parts.length > 0 ? parts.join(", ") : null;
+}
+
+function formatPageHours(hours: unknown, alwaysOpen: boolean): string[] {
+  if (alwaysOpen) return ["Open 24 hours"];
+  if (!hours || typeof hours !== "object") return [];
+  const record = hours as Record<string, unknown>;
+  const days = [
+    ["mon", "Mon"],
+    ["tue", "Tue"],
+    ["wed", "Wed"],
+    ["thu", "Thu"],
+    ["fri", "Fri"],
+    ["sat", "Sat"],
+    ["sun", "Sun"],
+  ] as const;
+  const lines: string[] = [];
+  for (const [key, label] of days) {
+    const open = textOrNull(record[`${key}_1_open`]);
+    const close = textOrNull(record[`${key}_1_close`]);
+    if (open && close) lines.push(`${label} ${open}–${close}`);
+  }
+  return lines;
+}
+
+function summaryCount(value: unknown): number | null {
+  if (!value || typeof value !== "object") return null;
+  const summary = (value as Record<string, unknown>).summary;
+  if (!summary || typeof summary !== "object") return null;
+  return numericValue((summary as Record<string, unknown>).total_count);
+}
+
+function sumPoints(series: InsightSeries | undefined): number {
+  if (!series) return 0;
+  return series.points.reduce((sum, point) => sum + (numericValue(point.value) ?? 0), 0);
+}
+
+function lastNumber(series: InsightSeries | undefined): number | null {
+  if (!series) return null;
+  for (let index = series.points.length - 1; index >= 0; index -= 1) {
+    const value = numericValue(series.points[index]?.value);
+    if (value != null) return value;
+  }
+  return null;
+}
+
+function pointValue(series: InsightSeries | undefined, date: string): number {
+  const point = series?.points.find((entry) => entry.date === date);
+  return numericValue(point?.value) ?? 0;
+}
+
+function splitBreakdown(series: InsightSeries | undefined): { positive: number | null; negative: number | null } {
+  if (!series) return { positive: null, negative: null };
+  let positive = 0;
+  let negative = 0;
+  let saw = false;
+  for (const point of series.points) {
+    if (!point.value || typeof point.value !== "object") continue;
+    saw = true;
+    for (const [key, raw] of Object.entries(point.value as Record<string, unknown>)) {
+      const amount = numericValue(raw) ?? 0;
+      const paidOrFollower = key === "1" || key === "true" || key === "yes";
+      if (paidOrFollower) positive += amount;
+      else negative += amount;
+    }
+  }
+  if (!saw) return { positive: null, negative: null };
+  return { positive, negative };
+}
 
 function isMetaRateLimit(error: unknown): boolean {
   return error instanceof MetaProviderError && error.details.type === "rate_limit";
@@ -293,6 +477,27 @@ export class MetaOAuthProvider {
 
   async fetchAllAssets(accessToken: string): Promise<MetaPlatformAsset[]> {
     return this.fetchFacebookAssets(accessToken);
+  }
+
+  /**
+   * Pages the user can manage. Uses /me/accounts so a pages-only token
+   * does not need Business Manager access.
+   */
+  async fetchFacebookPages(accessToken: string): Promise<MetaPlatformAsset[]> {
+    const budget: MetaFetchBudget = { rateLimited: false };
+    const pages = await this.fetchPages(accessToken, [], budget);
+    if (pages.length === 0 && budget.rateLimited) {
+      throw new MetaProviderError({
+        type: "rate_limit",
+        severity: "low",
+        platform: "Meta",
+        platformErrorCode: 4,
+        platformErrorMessage: "Application request limit reached",
+        requiresReconnect: false,
+        retryable: true,
+      });
+    }
+    return pages;
   }
 
   /**
@@ -796,6 +1001,314 @@ export class MetaOAuthProvider {
       throw new Error("CUSTOMER_OAUTH_META_APP_ID environment variable is required");
     }
     return appId;
+  }
+
+  /**
+   * Page profile fields.
+   * https://developers.facebook.com/docs/graph-api/reference/page/
+   * Each group is requested on its own so one rejected field does not blank the Page.
+   */
+  async fetchPageProfile(pageId: string, pageAccessToken: string): Promise<FacebookPageProfile> {
+    const groups = await Promise.all([
+      this.pageFieldGroup(pageId, pageAccessToken, [
+        "id",
+        "name",
+        "username",
+        "about",
+        "description",
+        "category",
+        "link",
+        "website",
+        "fan_count",
+        "followers_count",
+        "is_published",
+        "verification_status",
+      ].join(",")),
+      this.pageFieldGroup(pageId, pageAccessToken, [
+        "phone",
+        "emails",
+        "single_line_address",
+        "whatsapp_number",
+        "location",
+      ].join(",")),
+      this.pageFieldGroup(pageId, pageAccessToken, [
+        "company_overview",
+        "mission",
+        "products",
+        "founded",
+        "general_info",
+      ].join(",")),
+      this.pageFieldGroup(pageId, pageAccessToken, "overall_star_rating,rating_count"),
+      this.pageFieldGroup(pageId, pageAccessToken, "hours,is_always_open"),
+      this.pageFieldGroup(pageId, pageAccessToken, "category_list"),
+      this.pageFieldGroup(pageId, pageAccessToken, "cover,picture"),
+      this.pageFieldGroup(pageId, pageAccessToken, "connected_instagram_account{username}"),
+    ]);
+
+    const page: Record<string, unknown> = {};
+    for (const group of groups) {
+      if (group.data) Object.assign(page, group.data);
+    }
+
+    const location = page.location && typeof page.location === "object"
+      ? page.location as Record<string, unknown>
+      : null;
+    const address = textOrNull(page.single_line_address) ?? joinAddress(location);
+    const categories = Array.isArray(page.category_list)
+      ? page.category_list
+          .map((item) => (item && typeof item === "object" ? textOrNull((item as Record<string, unknown>).name) : null))
+          .filter((name): name is string => Boolean(name))
+      : [];
+    const emails = Array.isArray(page.emails)
+      ? page.emails.filter((email): email is string => typeof email === "string" && email.length > 0)
+      : [];
+    const instagram = page.connected_instagram_account && typeof page.connected_instagram_account === "object"
+      ? textOrNull((page.connected_instagram_account as Record<string, unknown>).username)
+      : null;
+    const cover = page.cover && typeof page.cover === "object"
+      ? textOrNull((page.cover as Record<string, unknown>).source)
+      : null;
+    const picture = page.picture && typeof page.picture === "object"
+      ? (page.picture as Record<string, unknown>).data
+      : null;
+    const pictureUrl = picture && typeof picture === "object"
+      ? textOrNull((picture as Record<string, unknown>).url)
+      : null;
+
+    return {
+      name: textOrNull(page.name),
+      username: textOrNull(page.username),
+      about: textOrNull(page.about),
+      description: textOrNull(page.description),
+      category: textOrNull(page.category),
+      categories,
+      link: textOrNull(page.link),
+      website: textOrNull(page.website),
+      phone: textOrNull(page.phone),
+      emails,
+      whatsapp: textOrNull(page.whatsapp_number),
+      address,
+      hours: formatPageHours(page.hours, page.is_always_open === true),
+      isPublished: typeof page.is_published === "boolean" ? page.is_published : null,
+      verificationStatus: textOrNull(page.verification_status),
+      likes: numericValue(page.fan_count),
+      followers: numericValue(page.followers_count),
+      rating: numericValue(page.overall_star_rating),
+      ratingCount: numericValue(page.rating_count),
+      founded: textOrNull(page.founded),
+      companyOverview: textOrNull(page.company_overview),
+      mission: textOrNull(page.mission),
+      products: textOrNull(page.products),
+      generalInfo: textOrNull(page.general_info),
+      instagramUsername: instagram,
+      coverUrl: cover,
+      pictureUrl,
+    };
+  }
+
+  /**
+   * Recent published posts, with reaction, comment, and share counts.
+   * https://developers.facebook.com/docs/graph-api/reference/page/feed/
+   */
+  async fetchRecentPagePosts(pageId: string, pageAccessToken: string): Promise<FacebookPagePost[]> {
+    try {
+      const body = await this.graphGet(`${pageId}/published_posts`, pageAccessToken, {
+        fields: "id,message,created_time,permalink_url,full_picture,shares,reactions.summary(true).limit(0),comments.summary(true).limit(0)",
+        limit: "6",
+      });
+      const rows = Array.isArray(body.data) ? body.data : [];
+      return rows.map((row) => {
+        const post = row as Record<string, unknown>;
+        const reactions = summaryCount(post.reactions);
+        const comments = summaryCount(post.comments);
+        const shares = post.shares && typeof post.shares === "object"
+          ? numericValue((post.shares as Record<string, unknown>).count)
+          : null;
+        return {
+          id: String(post.id ?? ""),
+          message: textOrNull(post.message),
+          createdTime: textOrNull(post.created_time),
+          permalink: textOrNull(post.permalink_url),
+          pictureUrl: textOrNull(post.full_picture),
+          reactions,
+          comments,
+          shares,
+        };
+      }).filter((post) => post.id);
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Page insights for a date window.
+   * https://developers.facebook.com/docs/graph-api/reference/page/insights/
+   * Views use page_media_view. Older impression metrics are deprecated.
+   */
+  async fetchPageInsights(
+    pageId: string,
+    pageAccessToken: string,
+    since: number,
+    until: number,
+  ): Promise<FacebookPageInsights> {
+    const window = { since: String(since), until: String(until), period: "day" };
+    const groups = await Promise.all([
+      this.insightGroup(pageId, pageAccessToken, [
+        "page_media_view",
+        "page_total_media_view_unique",
+      ], window),
+      this.insightGroup(pageId, pageAccessToken, [
+        "page_post_engagements",
+        "page_follows",
+        "page_daily_follows_unique",
+        "page_daily_unfollows_unique",
+        "page_views_total",
+        "page_total_actions",
+      ], window),
+      this.insightGroup(pageId, pageAccessToken, [
+        "page_actions_post_reactions_like_total",
+        "page_actions_post_reactions_love_total",
+        "page_actions_post_reactions_wow_total",
+        "page_actions_post_reactions_haha_total",
+        "page_actions_post_reactions_sorry_total",
+        "page_actions_post_reactions_anger_total",
+      ], window),
+      this.insightGroup(pageId, pageAccessToken, ["page_media_view"], {
+        ...window,
+        breakdown: "is_from_ads",
+      }),
+      this.insightGroup(pageId, pageAccessToken, ["page_media_view"], {
+        ...window,
+        breakdown: "is_from_followers",
+      }),
+    ]);
+
+    const byName = new Map<string, InsightSeries>();
+    const unavailable: string[] = [];
+    for (const group of groups) {
+      if (group.error) unavailable.push(group.error);
+      for (const series of group.series) {
+        const key = series.breakdown ? `${series.name}:${series.breakdown}` : series.name;
+        byName.set(key, series);
+      }
+    }
+
+    let followersCount: number | null = null;
+    try {
+      const page = await this.graphGet(`${pageId}`, pageAccessToken, {
+        fields: "followers_count",
+      });
+      if (typeof page.followers_count === "number") followersCount = page.followers_count;
+    } catch {
+      unavailable.push("followers_count");
+    }
+
+    const views = byName.get("page_media_view");
+    const viewers = byName.get("page_total_media_view_unique");
+    const engagements = byName.get("page_post_engagements");
+    const follows = byName.get("page_follows");
+    const dailyFollows = byName.get("page_daily_follows_unique");
+    const dailyUnfollows = byName.get("page_daily_unfollows_unique");
+    const visits = byName.get("page_views_total");
+    const actions = byName.get("page_total_actions");
+    const adsSplit = splitBreakdown(byName.get("page_media_view:is_from_ads"));
+    const followerSplit = splitBreakdown(byName.get("page_media_view:is_from_followers"));
+
+    const dates = new Set<string>();
+    for (const series of [views, viewers, engagements, visits, dailyFollows, dailyUnfollows]) {
+      for (const point of series?.points ?? []) dates.add(point.date);
+    }
+    const series = [...dates].filter(Boolean).sort().map((date) => ({
+      date,
+      views: pointValue(views, date),
+      viewers: pointValue(viewers, date),
+      engagements: pointValue(engagements, date),
+      visits: pointValue(visits, date),
+      newFollows: pointValue(dailyFollows, date),
+      unfollows: pointValue(dailyUnfollows, date),
+    }));
+
+    const latestFollows = lastNumber(follows);
+    return {
+      followers: latestFollows ?? followersCount,
+      views: sumPoints(views),
+      viewers: sumPoints(viewers),
+      engagements: sumPoints(engagements),
+      pageVisits: sumPoints(visits),
+      buttonClicks: sumPoints(actions),
+      newFollows: sumPoints(dailyFollows),
+      unfollows: sumPoints(dailyUnfollows),
+      viewsFromAds: adsSplit.positive,
+      viewsOrganic: adsSplit.negative,
+      viewsFromFollowers: followerSplit.positive,
+      viewsFromNonFollowers: followerSplit.negative,
+      reactions: {
+        like: sumPoints(byName.get("page_actions_post_reactions_like_total")),
+        love: sumPoints(byName.get("page_actions_post_reactions_love_total")),
+        haha: sumPoints(byName.get("page_actions_post_reactions_haha_total")),
+        wow: sumPoints(byName.get("page_actions_post_reactions_wow_total")),
+        sad: sumPoints(byName.get("page_actions_post_reactions_sorry_total")),
+        angry: sumPoints(byName.get("page_actions_post_reactions_anger_total")),
+      },
+      series,
+      unavailable,
+    };
+  }
+
+  private async insightGroup(
+    pageId: string,
+    pageAccessToken: string,
+    metrics: string[],
+    params: Record<string, string>,
+  ): Promise<{ series: InsightSeries[]; error?: string }> {
+    try {
+      const body = await this.graphGet(`${pageId}/insights`, pageAccessToken, {
+        metric: metrics.join(","),
+        ...params,
+      });
+      const rows = Array.isArray(body.data) ? body.data : [];
+      return {
+        series: rows.map((row: InsightApiRow) => ({
+          name: String(row.name ?? ""),
+          breakdown: params.breakdown,
+          points: (row.values ?? []).map((entry) => ({
+            date: insightDate(entry.end_time),
+            value: entry.value,
+          })),
+        })),
+      };
+    } catch (error) {
+      return { series: [], error: error instanceof Error ? error.message : "Page insights request failed" };
+    }
+  }
+
+  private async pageFieldGroup(
+    pageId: string,
+    pageAccessToken: string,
+    fields: string,
+  ): Promise<{ data?: Record<string, unknown> }> {
+    try {
+      const body = await this.graphGet(pageId, pageAccessToken, { fields });
+      return { data: body };
+    } catch {
+      return {};
+    }
+  }
+
+  private async graphGet(
+    path: string,
+    accessToken: string,
+    params: Record<string, string>,
+  ): Promise<Record<string, any>> {
+    const url = new URL(`${this.graphBaseUrl}/${path}`);
+    for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
+    url.searchParams.set("access_token", accessToken);
+    const response = await fetch(url.toString());
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok || body?.error) {
+      throw new Error(body?.error?.message || "Facebook Page request failed");
+    }
+    return body;
   }
 
   /**
