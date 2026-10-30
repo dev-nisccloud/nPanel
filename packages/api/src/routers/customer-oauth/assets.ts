@@ -185,8 +185,7 @@ export const customerOAuthAssetsRouter = router({
         // Refresh based on platform
         switch (asset.platform) {
           case "meta_facebook": {
-            // Fetch fresh asset data from Meta
-            const allAssets = await metaProvider.fetchAllAssets(decryptedToken);
+            const allAssets = await metaProvider.fetchFacebookAssets(decryptedToken);
 
             updatedAsset = allAssets.find(
               (a) => a.platformAssetId === asset.platformAssetId
@@ -220,6 +219,30 @@ export const customerOAuthAssetsRouter = router({
               })
               .where(eq(customerPlatformAsset.id, input.assetId));
 
+            break;
+          }
+
+          case "meta_instagram": {
+            const allAssets = await metaProvider.fetchInstagramAdAccounts(decryptedToken);
+            updatedAsset = allAssets.find((a) => a.platformAssetId === asset.platformAssetId);
+            if (!updatedAsset) {
+              throw new TRPCError({
+                code: "NOT_FOUND",
+                message: "Asset no longer exists on the platform",
+              });
+            }
+            await ctx.db
+              .update(customerPlatformAsset)
+              .set({
+                name: updatedAsset.name,
+                profilePictureUrl: updatedAsset.profilePictureUrl,
+                metadata: updatedAsset.metadata,
+                lastVerifiedAt: new Date(),
+                verificationError: null,
+                isVerified: true,
+                updatedAt: new Date(),
+              })
+              .where(eq(customerPlatformAsset.id, input.assetId));
             break;
           }
 

@@ -42,6 +42,35 @@ import {
 } from "./linkedin";
 
 const metaProvider = new MetaOAuthProvider();
+const metaAssetLoads = new Map<string, Promise<unknown[]>>();
+
+type MetaAssetSurface = "meta_facebook" | "meta_instagram";
+
+function loadMetaAssets(connectionId: string, accessToken: string, surface: MetaAssetSurface) {
+  const key = `${connectionId}:${surface}`;
+  const existing = metaAssetLoads.get(key);
+  if (existing) return existing;
+  const pending = (
+    surface === "meta_instagram"
+      ? metaProvider.fetchInstagramAdAccounts(accessToken)
+      : metaProvider.fetchFacebookAssets(accessToken)
+  ).finally(() => {
+    metaAssetLoads.delete(key);
+  });
+  metaAssetLoads.set(key, pending);
+  return pending;
+}
+
+function selectionBucket(data: unknown): Record<string, unknown> {
+  if (Array.isArray(data)) return { meta_facebook: data };
+  if (data && typeof data === "object") return { ...(data as Record<string, unknown>) };
+  return {};
+}
+
+function selectionList(data: unknown, surface: MetaAssetSurface): unknown[] | null {
+  const list = selectionBucket(data)[surface];
+  return Array.isArray(list) ? list : null;
+}
 
 const META_ACCOUNT_STATUS_LABELS: Record<number, string> = {
   1: "ACTIVE",
@@ -522,6 +551,7 @@ export const customerOAuthAuthRouter = router({
     .input(
       z.object({
         connectionId: z.string(),
+        assetPlatform: z.enum(["meta_facebook", "meta_instagram"]).optional(),
       })
     )
     .query(async ({ ctx, input }) => {
@@ -560,6 +590,13 @@ export const customerOAuthAuthRouter = router({
         });
       }
 
+      const metaSurface: MetaAssetSurface | null =
+        connection.platform === "meta_facebook"
+          ? input.assetPlatform === "meta_instagram"
+            ? "meta_instagram"
+            : "meta_facebook"
+          : null;
+
       try {
         const decryptedToken = decryptToken(connection.accessToken);
 
@@ -567,7 +604,7 @@ export const customerOAuthAuthRouter = router({
 
         switch (connection.platform) {
           case "meta_facebook":
-            availableAssets = await metaProvider.fetchAllAssets(decryptedToken);
+            availableAssets = await loadMetaAssets(connection.id, decryptedToken, metaSurface ?? "meta_facebook");
             break;
 
           case "linkedin_ads":
@@ -592,11 +629,13 @@ export const customerOAuthAuthRouter = router({
             });
         }
 
-        // Cache assets temporarily in connection record for faster selection
+        const selectionData = metaSurface
+          ? { ...selectionBucket(connection.selectionData), [metaSurface]: availableAssets }
+          : availableAssets;
         await ctx.db
           .update(customerOAuthConnection)
           .set({
-            selectionData: availableAssets as any,
+            selectionData: selectionData as any,
             updatedAt: new Date(),
           })
           .where(eq(customerOAuthConnection.id, input.connectionId));
@@ -606,6 +645,22 @@ export const customerOAuthAuthRouter = router({
           expiresAt: connection.selectionExpiresAt,
         };
       } catch (error) {
+        const cachedAssets = metaSurface
+          ? selectionList(connection.selectionData, metaSurface)
+          : Array.isArray(connection.selectionData)
+            ? connection.selectionData
+            : null;
+        if (
+          error instanceof MetaProviderError &&
+          error.details.type === "rate_limit" &&
+          cachedAssets &&
+          cachedAssets.length > 0
+        ) {
+          return {
+            assets: cachedAssets as never[],
+            expiresAt: connection.selectionExpiresAt,
+          };
+        }
         if (error instanceof MetaProviderError) {
           throw createOAuthError(error.details, ctx);
         }
@@ -664,13 +719,23 @@ export const customerOAuthAuthRouter = router({
         });
       }
 
-      let availableAssets = Array.isArray(connection.selectionData)
-        ? (connection.selectionData as any[])
-        : null;
+      const metaSurface: MetaAssetSurface | null =
+        connection.platform === "meta_facebook"
+          ? targetPlatform === "meta_instagram"
+            ? "meta_instagram"
+            : "meta_facebook"
+          : null;
+      let availableAssets = metaSurface
+        ? selectionList(connection.selectionData, metaSurface)
+        : Array.isArray(connection.selectionData)
+          ? (connection.selectionData as any[])
+          : null;
       if (!availableAssets) {
         const decryptedToken = decryptToken(connection.accessToken);
-        if (connection.platform === "meta_facebook") {
-          availableAssets = await metaProvider.fetchAllAssets(decryptedToken);
+        if (metaSurface === "meta_instagram") {
+          availableAssets = await metaProvider.fetchInstagramAdAccounts(decryptedToken);
+        } else if (metaSurface === "meta_facebook") {
+          availableAssets = await metaProvider.fetchFacebookAssets(decryptedToken);
         } else if (connection.platform === "linkedin_ads") {
           availableAssets = await listLinkedInSelectableAssets(decryptedToken);
         } else if (connection.platform === "google_ads") {

@@ -119,6 +119,12 @@ interface MetaGraphError {
   };
 }
 
+type MetaFetchBudget = { rateLimited: boolean };
+
+function isMetaRateLimit(error: unknown): boolean {
+  return error instanceof MetaProviderError && error.details.type === "rate_limit";
+}
+
 /**
  * Meta provider client for OAuth and API operations
  */
@@ -235,63 +241,110 @@ export class MetaOAuthProvider {
   }
 
   /**
-   * Fetch all assets customer has access to
+   * Facebook pages and Marketing API ad accounts.
+   * Instagram uses fetchInstagramAdAccounts instead.
    */
-  async fetchAllAssets(accessToken: string): Promise<MetaPlatformAsset[]> {
-    const assets: MetaPlatformAsset[] = [];
+  async fetchFacebookAssets(accessToken: string): Promise<MetaPlatformAsset[]> {
+    const budget: MetaFetchBudget = { rateLimited: false };
+    const adAccounts: MetaPlatformAsset[] = [];
+    const seenAdAccountIds = new Set<string>();
+    const accountFields = "id,account_id,name,account_status,currency,timezone_name,business";
+    await this.fetchEdge("me/adaccounts", accessToken, { fields: accountFields }, (accountData) => {
+      this.collectAdAccount(adAccounts, seenAdAccountIds, accountData, { ownership: "user" });
+    }, budget);
 
-    // Fetch in parallel for performance
-    const [pages, adAccounts, businesses] = await Promise.all([
-      this.fetchPages(accessToken),
-      this.fetchAdAccounts(accessToken),
-      this.fetchBusinesses(accessToken),
-    ]);
+    const businesses = budget.rateLimited ? [] : await this.fetchBusinessesInternal(accessToken, budget);
+    if (!budget.rateLimited) {
+      const portfolioAccounts = await this.fetchAdAccounts(accessToken, businesses, budget);
+      for (const account of portfolioAccounts) {
+        if (seenAdAccountIds.has(account.platformAssetId)) continue;
+        seenAdAccountIds.add(account.platformAssetId);
+        adAccounts.push(account);
+      }
+    }
+    const pages = await this.fetchPages(accessToken, businesses, budget);
 
-    assets.push(...pages);
-    assets.push(...adAccounts);
-    assets.push(...businesses);
+    const assets: MetaPlatformAsset[] = [
+      ...pages,
+      ...adAccounts,
+      ...businesses.map((business) => ({
+        platformAssetId: business.id,
+        assetType: "meta_business_manager" as const,
+        name: business.name,
+        profilePictureUrl: business.picture?.data?.url,
+        capabilities: { can_manage_business: true },
+      })),
+    ];
 
-    // Fetch Instagram accounts linked to pages
-    const instagramAccounts = await this.fetchInstagramAccounts(accessToken, pages);
-    assets.push(...instagramAccounts);
-
-    // Ad accounts assigned to those Instagram professional accounts.
-    // GET /{ig-user-id}/authorized_adaccounts?business={business-id}
-    const knownAdAccountIds = new Set(
-      assets.filter((asset) => asset.assetType === "meta_ad_account").map((asset) => asset.platformAssetId),
-    );
-    const instagramAdAccounts = await this.fetchInstagramAuthorizedAdAccounts(
-      accessToken,
-      instagramAccounts,
-      businesses,
-    );
-    for (const account of instagramAdAccounts) {
-      if (knownAdAccountIds.has(account.platformAssetId)) continue;
-      knownAdAccountIds.add(account.platformAssetId);
-      assets.push(account);
+    if (adAccounts.length === 0 && budget.rateLimited) {
+      throw new MetaProviderError({
+        type: "rate_limit",
+        severity: "low",
+        platform: "Meta",
+        platformErrorCode: 4,
+        platformErrorMessage: "Application request limit reached",
+        requiresReconnect: false,
+        retryable: true,
+      });
     }
 
-    // Fetch pixels for ad accounts (optional, can be slow)
-    // const pixels = await this.fetchPixels(accessToken, adAccounts);
-    // assets.push(...pixels);
-
     return assets;
+  }
+
+  async fetchAllAssets(accessToken: string): Promise<MetaPlatformAsset[]> {
+    return this.fetchFacebookAssets(accessToken);
+  }
+
+  /**
+   * Ad accounts an Instagram professional account is allowed to advertise with.
+   * GET /{ig-user-id}/authorized_adaccounts?business={business-id}
+   */
+  async fetchInstagramAdAccounts(accessToken: string): Promise<MetaPlatformAsset[]> {
+    const budget: MetaFetchBudget = { rateLimited: false };
+    const businesses = await this.fetchBusinessesInternal(accessToken, budget);
+    const pages = await this.fetchPages(accessToken, businesses, budget);
+    const instagramAccounts = await this.fetchInstagramAccounts(accessToken, pages, budget);
+    const adAccounts = await this.fetchInstagramAuthorizedAdAccounts(
+      accessToken,
+      instagramAccounts,
+      businesses.map((business) => ({
+        platformAssetId: business.id,
+        assetType: "meta_business_manager" as const,
+        name: business.name,
+      })),
+      budget,
+    );
+
+    if (adAccounts.length === 0 && budget.rateLimited) {
+      throw new MetaProviderError({
+        type: "rate_limit",
+        severity: "low",
+        platform: "Meta",
+        platformErrorCode: 4,
+        platformErrorMessage: "Application request limit reached",
+        requiresReconnect: false,
+        retryable: true,
+      });
+    }
+
+    return adAccounts;
   }
 
   /**
    * Fetch Facebook Pages
    */
-  private async fetchPages(accessToken: string): Promise<MetaPlatformAsset[]> {
+  private async fetchPages(
+    accessToken: string,
+    businesses: Array<{ id: string; name: string }>,
+    budget: MetaFetchBudget,
+  ): Promise<MetaPlatformAsset[]> {
     const pages: MetaPlatformAsset[] = [];
     const seenIds = new Set<string>();
 
-    // Fetch from /me/accounts
-    await this.fetchPaginated(
-      `${this.graphBaseUrl}/me/accounts`,
-      {
-        fields: "id,username,name,access_token,picture.type(large),category",
-        access_token: accessToken,
-      },
+    await this.fetchEdge(
+      "me/accounts",
+      accessToken,
+      { fields: "id,username,name,access_token,picture.type(large),category" },
       (pageData: any) => {
         if (!seenIds.has(pageData.id)) {
           seenIds.add(pageData.id);
@@ -310,22 +363,17 @@ export class MetaOAuthProvider {
             },
           });
         }
-      }
+      },
+      budget,
     );
 
-    // Also fetch from Business Manager (if accessible)
-    try {
-      const businesses = await this.fetchBusinessesInternal(accessToken);
-
-      for (const business of businesses) {
-        // Owned pages
-        await this.fetchPaginated(
-          `${this.graphBaseUrl}/${business.id}/owned_pages`,
-          {
-            fields: "id,username,name,access_token,picture.type(large)",
-            access_token: accessToken,
-          },
-          (pageData: any) => {
+    for (const business of businesses) {
+      if (budget.rateLimited) break;
+      await this.fetchEdge(
+        `${business.id}/owned_pages`,
+        accessToken,
+        { fields: "id,username,name,access_token,picture.type(large)" },
+        (pageData: any) => {
             if (!seenIds.has(pageData.id) && pageData.access_token) {
               seenIds.add(pageData.id);
               pages.push({
@@ -347,17 +395,16 @@ export class MetaOAuthProvider {
                 },
               });
             }
-          }
+          },
+          budget,
         );
 
-        // Client pages
-        await this.fetchPaginated(
-          `${this.graphBaseUrl}/${business.id}/client_pages`,
-          {
-            fields: "id,username,name,access_token,picture.type(large)",
-            access_token: accessToken,
-          },
-          (pageData: any) => {
+      if (budget.rateLimited) break;
+      await this.fetchEdge(
+        `${business.id}/client_pages`,
+        accessToken,
+        { fields: "id,username,name,access_token,picture.type(large)" },
+        (pageData: any) => {
             if (!seenIds.has(pageData.id) && pageData.access_token) {
               seenIds.add(pageData.id);
               pages.push({
@@ -379,11 +426,9 @@ export class MetaOAuthProvider {
                 },
               });
             }
-          }
+          },
+          budget,
         );
-      }
-    } catch (error) {
-      console.warn("Failed to fetch Business Manager pages:", error);
     }
 
     return pages;
@@ -395,31 +440,32 @@ export class MetaOAuthProvider {
    * also includes owned accounts, client accounts, asset-group accounts, and
    * accounts on child businesses.
    */
-  private async fetchAdAccounts(accessToken: string): Promise<MetaPlatformAsset[]> {
+  private async fetchAdAccounts(
+    accessToken: string,
+    businesses: Array<{ id: string; name: string }>,
+    budget: MetaFetchBudget,
+  ): Promise<MetaPlatformAsset[]> {
     const adAccounts: MetaPlatformAsset[] = [];
     const seenIds = new Set<string>();
     const fields = "id,account_id,name,account_status,currency,timezone_name,business";
 
-    await this.fetchEdge("me/adaccounts", accessToken, { fields }, (accountData) => {
-      this.collectAdAccount(adAccounts, seenIds, accountData, { ownership: "user" });
-    });
-
-    const businesses = await this.fetchBusinessesInternal(accessToken);
     for (const business of businesses) {
+      if (budget.rateLimited) break;
       await this.fetchEdge(`${business.id}/owned_ad_accounts`, accessToken, { fields }, (accountData) => {
         this.collectAdAccount(adAccounts, seenIds, accountData, {
           businessId: business.id,
           businessName: business.name,
           ownership: "owned",
         });
-      });
+      }, budget);
+      if (budget.rateLimited) break;
       await this.fetchEdge(`${business.id}/client_ad_accounts`, accessToken, { fields }, (accountData) => {
         this.collectAdAccount(adAccounts, seenIds, accountData, {
           businessId: business.id,
           businessName: business.name,
           ownership: "client",
         });
-      });
+      }, budget);
 
       const groups: Array<{ id: string }> = [];
       await this.fetchEdge(
@@ -429,30 +475,33 @@ export class MetaOAuthProvider {
         (group) => {
           if (group?.id) groups.push({ id: String(group.id) });
         },
+        budget,
       );
       for (const group of groups) {
+        if (budget.rateLimited) break;
         await this.fetchEdge(`${group.id}/contained_adaccounts`, accessToken, { fields }, (accountData) => {
           this.collectAdAccount(adAccounts, seenIds, accountData, {
             businessId: business.id,
             businessName: business.name,
             ownership: "asset_group",
           });
-        });
+        }, budget);
       }
     }
 
     const businessUsers: Array<{ id: string; business?: { id?: string; name?: string } }> = [];
     await this.fetchEdge("me/business_users", accessToken, { fields: "id,business{id,name}" }, (businessUser) => {
       if (businessUser?.id) businessUsers.push(businessUser);
-    });
+    }, budget);
     for (const businessUser of businessUsers) {
+      if (budget.rateLimited) break;
       await this.fetchEdge(`${businessUser.id}/assigned_ad_accounts`, accessToken, { fields }, (accountData) => {
         this.collectAdAccount(adAccounts, seenIds, accountData, {
           businessId: businessUser.business?.id,
           businessName: businessUser.business?.name,
           ownership: "assigned",
         });
-      });
+      }, budget);
     }
 
     return adAccounts;
@@ -463,7 +512,9 @@ export class MetaOAuthProvider {
     accessToken: string,
     params: Record<string, string>,
     onItem: (item: any) => void,
+    budget?: MetaFetchBudget,
   ) {
+    if (budget?.rateLimited) return;
     try {
       await this.fetchPaginated(
         `${this.graphBaseUrl}/${path}`,
@@ -471,6 +522,7 @@ export class MetaOAuthProvider {
         onItem,
       );
     } catch (error) {
+      if (budget && isMetaRateLimit(error)) budget.rateLimited = true;
       console.warn(`Meta edge ${path} failed:`, error);
     }
   }
@@ -515,35 +567,32 @@ export class MetaOAuthProvider {
     accessToken: string,
     instagramAccounts: MetaPlatformAsset[],
     businesses: MetaPlatformAsset[],
+    budget: MetaFetchBudget,
   ): Promise<MetaPlatformAsset[]> {
     const adAccounts: MetaPlatformAsset[] = [];
     const seenIds = new Set<string>();
-    if (instagramAccounts.length === 0 || businesses.length === 0) return adAccounts;
+    if (instagramAccounts.length === 0 || businesses.length === 0 || budget.rateLimited) return adAccounts;
 
     for (const instagramAccount of instagramAccounts) {
+      if (budget.rateLimited) break;
       for (const business of businesses) {
-        try {
-          await this.fetchPaginated(
-            `${this.graphBaseUrl}/${instagramAccount.platformAssetId}/authorized_adaccounts`,
-            {
-              business: business.platformAssetId,
-              fields: "id,account_id,name,account_status,currency,timezone_name,spend_cap,amount_spent,balance",
-              access_token: accessToken,
-            },
-            (accountData: any) => {
-              this.collectAdAccount(adAccounts, seenIds, accountData, {
-                businessId: business.platformAssetId,
-                businessName: business.name,
-                ownership: "instagram",
-              });
-            },
-          );
-        } catch (error) {
-          console.warn(
-            `No authorized ad accounts for Instagram ${instagramAccount.platformAssetId} in business ${business.platformAssetId}:`,
-            error,
-          );
-        }
+        if (budget.rateLimited) break;
+        await this.fetchEdge(
+          `${instagramAccount.platformAssetId}/authorized_adaccounts`,
+          accessToken,
+          {
+            business: business.platformAssetId,
+            fields: "id,account_id,name,account_status,currency,timezone_name",
+          },
+          (accountData: any) => {
+            this.collectAdAccount(adAccounts, seenIds, accountData, {
+              businessId: business.platformAssetId,
+              businessName: business.name,
+              ownership: "instagram",
+            });
+          },
+          budget,
+        );
       }
     }
 
@@ -571,7 +620,8 @@ export class MetaOAuthProvider {
    * Internal: Fetch businesses as raw data
    */
   private async fetchBusinessesInternal(
-    accessToken: string
+    accessToken: string,
+    budget: MetaFetchBudget = { rateLimited: false },
   ): Promise<Array<{ id: string; name: string; picture?: any }>> {
     const businesses = new Map<string, { id: string; name: string; picture?: any }>();
     const add = (businessData: any) => {
@@ -584,14 +634,14 @@ export class MetaOAuthProvider {
       });
     };
 
-    await this.fetchEdge("me/businesses", accessToken, { fields: "id,name,picture" }, add);
+    await this.fetchEdge("me/businesses", accessToken, { fields: "id,name,picture" }, add, budget);
     await this.fetchEdge("me/business_users", accessToken, { fields: "id,business{id,name}" }, (row) => {
       if (row?.business) add(row.business);
-    });
+    }, budget);
 
     const pending = [...businesses.keys()];
     const visited = new Set<string>();
-    while (pending.length > 0 && visited.size < 50) {
+    while (pending.length > 0 && visited.size < 50 && !budget.rateLimited) {
       const parentId = pending.shift();
       if (!parentId || visited.has(parentId)) continue;
       visited.add(parentId);
@@ -600,7 +650,7 @@ export class MetaOAuthProvider {
         const alreadyKnown = businesses.has(childId);
         add(child);
         if (childId && !alreadyKnown) pending.push(childId);
-      });
+      }, budget);
     }
 
     return [...businesses.values()];
@@ -611,11 +661,13 @@ export class MetaOAuthProvider {
    */
   private async fetchInstagramAccounts(
     accessToken: string,
-    pages: MetaPlatformAsset[]
+    pages: MetaPlatformAsset[],
+    budget: MetaFetchBudget,
   ): Promise<MetaPlatformAsset[]> {
     const instagramAccounts: MetaPlatformAsset[] = [];
 
     for (const page of pages) {
+      if (budget.rateLimited) break;
       try {
         const url = new URL(`${this.graphBaseUrl}/${page.platformAssetId}`);
         url.searchParams.set(
@@ -646,7 +698,10 @@ export class MetaOAuthProvider {
           });
         }
       } catch (error) {
-        // Page might not have Instagram linked, continue
+        if (isMetaRateLimit(error)) {
+          budget.rateLimited = true;
+          break;
+        }
         console.warn(`No Instagram account for page ${page.platformAssetId}`);
       }
     }

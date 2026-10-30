@@ -65,6 +65,11 @@ type ContextWithDb = {
         findFirst: (args: unknown) => Promise<AssetRow | undefined>;
       };
     };
+    update: (table: typeof customerPlatformAsset) => {
+      set: (values: { businessId: string | null; updatedAt: Date }) => {
+        where: (condition: unknown) => Promise<unknown>;
+      };
+    };
   };
   session: { user: { id: string } };
 };
@@ -221,12 +226,104 @@ function labelFrom(table: Record<string, string>, value: unknown): string {
   return table[raw] ?? table[raw.toUpperCase()] ?? raw.replace(/^AGE_RANGE_/, "").replace(/_/g, " ");
 }
 
+type GoogleFailure = { messages: string[]; codes: string[]; requestId: string | null };
+
+function googleFailure(error: unknown): GoogleFailure {
+  const messages: string[] = [];
+  const codes: string[] = [];
+  let requestId: string | null = null;
+  const seen = new Set<unknown>();
+
+  const visit = (value: unknown, depth: number) => {
+    if (value == null || depth > 6 || (typeof value === "object" && seen.has(value))) return;
+    if (typeof value === "string") {
+      const text = value.trim();
+      if (text && text !== "An unexpected error occurred with Google Ads API") messages.push(text);
+      return;
+    }
+    if (typeof value !== "object") return;
+    seen.add(value);
+    const record = value as Record<string, unknown> & { toJSON?: () => unknown };
+    if (typeof record.toJSON === "function") {
+      try {
+        visit(record.toJSON(), depth + 1);
+      } catch {
+        // Some protobuf objects cannot be serialized. The fields below are still readable.
+      }
+    }
+    if (Array.isArray(record.errors)) {
+      for (const item of record.errors) {
+        if (!item || typeof item !== "object") continue;
+        const row = item as Record<string, unknown>;
+        if (typeof row.message === "string" && row.message.trim()) messages.push(row.message.trim());
+        const code = row.error_code ?? row.errorCode;
+        if (code && typeof code === "object") {
+          for (const [key, codeValue] of Object.entries(code as Record<string, unknown>)) {
+            if (codeValue == null || codeValue === 0 || codeValue === "UNSPECIFIED" || codeValue === "UNKNOWN") continue;
+            codes.push(String(codeValue));
+            codes.push(key);
+          }
+        }
+      }
+    }
+    if (typeof record.request_id === "string") requestId = record.request_id;
+    if (typeof record.requestId === "string") requestId = record.requestId;
+    if (value instanceof Error && value.message.trim()) messages.push(value.message.trim());
+    if ("cause" in record) visit(record.cause, depth + 1);
+    if ("response" in record) visit(record.response, depth + 1);
+  };
+
+  visit(error, 0);
+  return {
+    messages: [...new Set(messages)],
+    codes: [...new Set(codes)],
+    requestId,
+  };
+}
+
+function failureText(error: unknown): string {
+  const failure = googleFailure(error);
+  return `${failure.codes.join(" ")} ${failure.messages.join(" ")}`.toLowerCase();
+}
+
+function failureHas(error: unknown, code: string): boolean {
+  return failureText(error).includes(code.toLowerCase());
+}
+
+function needsManagerLogin(error: unknown): boolean {
+  const text = failureText(error);
+  return text.includes("user_permission_denied") || text.includes("login-customer-id") || text.includes("login_customer_id");
+}
+
+function managerAccountError(): TRPCError {
+  return new TRPCError({
+    code: "BAD_REQUEST",
+    message:
+      "Metrics cannot be requested for a manager account. To retrieve metrics, issue separate requests against each client account under the manager account.",
+  });
+}
+
 function googleError(error: unknown): TRPCError {
   if (error instanceof TRPCError) return error;
+  const failure = googleFailure(error);
+  const apiMessage = failure.messages.find((message) => !message.startsWith("{") && !message.startsWith("[")) ?? failure.messages[0];
+  console.error("Google Ads request failed", {
+    message: apiMessage ?? null,
+    codes: failure.codes,
+    requestId: failure.requestId,
+  });
+  if (failureHas(error, "REQUESTED_METRICS_FOR_MANAGER")) return managerAccountError();
+  if (apiMessage) {
+    const permission = needsManagerLogin(error) || failureHas(error, "CUSTOMER_NOT_ENABLED");
+    return new TRPCError({
+      code: permission ? "FORBIDDEN" : "BAD_REQUEST",
+      message: apiMessage,
+    });
+  }
   const info = GoogleAdsErrorHandler.handleError(error);
   return new TRPCError({
     code: info.type === "refresh-token" || info.type === "permission" ? "UNAUTHORIZED" : "INTERNAL_SERVER_ERROR",
-    message: info.message || (error instanceof Error ? error.message : "Google Ads request failed"),
+    message: info.message || "Google Ads request failed",
   });
 }
 
@@ -339,7 +436,15 @@ export async function listGoogleSelectableAssets(refreshToken: string): Promise<
     businessId: string | null;
     businessName: string | null;
   }) => {
-    if (!row.id || accounts.has(row.id)) return;
+    if (!row.id) return;
+    const existing = accounts.get(row.id);
+    if (existing) {
+      if (!existing.businessId && row.businessId) {
+        existing.businessId = row.businessId;
+        existing.businessName = row.businessName;
+      }
+      return;
+    }
     accounts.set(row.id, {
       platformAssetId: row.id,
       assetType: "google_ad_account",
@@ -463,6 +568,50 @@ async function loadAccount(ctx: ContextWithDb, assetId: string) {
   };
 }
 
+async function managerIdFor(refreshToken: string, customerId: string): Promise<string | null> {
+  try {
+    const assets = await listGoogleSelectableAssets(refreshToken);
+    const match = assets.find((asset) => asset.platformAssetId === customerId);
+    return match?.businessId ? digits(match.businessId) : null;
+  } catch (error) {
+    console.error("Google Ads manager lookup failed", googleFailure(error).messages[0] ?? "lookup failed");
+    return null;
+  }
+}
+
+async function openCustomer(ctx: ContextWithDb, assetId: string) {
+  const loaded = await loadAccount(ctx, assetId);
+  const customerId = digits(loaded.asset.platformAssetId);
+  const storedLogin = loaded.asset.businessId ? digits(loaded.asset.businessId) : null;
+  const attempts: Array<string | null> = [storedLogin];
+  let lastError: unknown;
+
+  for (let index = 0; index < attempts.length; index += 1) {
+    const loginId = attempts[index] ?? null;
+    try {
+      const customer = customerClient(loaded.refreshToken, customerId, loginId);
+      const rows = await gaql(customer, `SELECT customer.id, customer.manager FROM customer LIMIT 1`);
+      if (isManager(rows[0]?.customer?.manager)) throw managerAccountError();
+      if (loginId !== storedLogin) {
+        await ctx.db
+          .update(customerPlatformAsset)
+          .set({ businessId: loginId, updatedAt: new Date() })
+          .where(eq(customerPlatformAsset.id, loaded.asset.id));
+      }
+      return { asset: loaded.asset, refreshToken: loaded.refreshToken, customer };
+    } catch (error) {
+      if (error instanceof TRPCError) throw error;
+      lastError = error;
+      if (!needsManagerLogin(error) || index > 0) continue;
+      const managerId = await managerIdFor(loaded.refreshToken, customerId);
+      if (managerId && !attempts.includes(managerId)) attempts.push(managerId);
+      if (storedLogin && !attempts.includes(null)) attempts.push(null);
+    }
+  }
+
+  throw googleError(lastError);
+}
+
 function sumBy(rows: Array<Record<string, any>>, keyOf: (row: Record<string, any>) => string) {
   const totals = new Map<string, Totals>();
   for (const row of rows) {
@@ -479,7 +628,8 @@ async function safeQuery(customer: { query: (query: string) => Promise<unknown> 
   try {
     return await gaql(customer, query);
   } catch (error) {
-    console.warn("Google Ads query failed:", error);
+    const failure = googleFailure(error);
+    console.warn("Google Ads query failed", failure.messages[0] ?? "query failed", failure.codes);
     return [];
   }
 }
@@ -488,19 +638,28 @@ export const customerOAuthGoogleRouter = router({
   list: protectedProcedure
     .input(z.object({ assetId: z.string().min(1), timeRange: timeRangeInput }))
     .query(async ({ ctx, input }) => {
-      const { customer } = await loadAccount(ctx as ContextWithDb, input.assetId);
+      const { customer } = await openCustomer(ctx as ContextWithDb, input.assetId);
       const window = resolveWindow(input.timeRange);
       try {
-        const [entities, metricRows] = await Promise.all([
-          gaql(
-            customer,
-            `SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type, campaign.start_date, campaign.end_date, campaign_budget.amount_micros FROM campaign WHERE campaign.status != 'REMOVED'`,
-          ),
-          gaql(
+        const entities = await gaql(
+          customer,
+          `SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type, campaign.start_date, campaign.end_date, campaign_budget.amount_micros FROM campaign WHERE campaign.status != 'REMOVED'`,
+        );
+        let metricRows: Array<Record<string, any>> = [];
+        try {
+          metricRows = await gaql(
             customer,
             `SELECT campaign.id, metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions FROM campaign WHERE campaign.status != 'REMOVED' AND segments.date BETWEEN '${window.since}' AND '${window.until}'`,
-          ),
-        ]);
+          );
+        } catch (error) {
+          if (failureHas(error, "REQUESTED_METRICS_FOR_MANAGER")) throw managerAccountError();
+          const failure = googleFailure(error);
+          console.error("Google Ads campaign metrics failed", {
+            message: failure.messages[0] ?? null,
+            codes: failure.codes,
+            requestId: failure.requestId,
+          });
+        }
         const insights = sumBy(metricRows, (row) => digits(row.campaign?.id));
         const campaigns = entities
           .map((row) => {
@@ -535,7 +694,7 @@ export const customerOAuthGoogleRouter = router({
   getDetails: protectedProcedure
     .input(z.object({ assetId: z.string().min(1), campaignId: z.string().min(1), timeRange: timeRangeInput }))
     .query(async ({ ctx, input }) => {
-      const { asset, customer } = await loadAccount(ctx as ContextWithDb, input.assetId);
+      const { asset, customer } = await openCustomer(ctx as ContextWithDb, input.assetId);
       const window = resolveWindow(input.timeRange);
       const campaignId = assertId(input.campaignId);
       const between = `segments.date BETWEEN '${window.since}' AND '${window.until}'`;
@@ -685,7 +844,7 @@ export const customerOAuthGoogleRouter = router({
   getCharts: protectedProcedure
     .input(z.object({ assetId: z.string().min(1), campaignId: z.string().min(1), timeRange: timeRangeInput }))
     .query(async ({ ctx, input }) => {
-      const { customer } = await loadAccount(ctx as ContextWithDb, input.assetId);
+      const { customer } = await openCustomer(ctx as ContextWithDb, input.assetId);
       const window = resolveWindow(input.timeRange);
       const campaignId = assertId(input.campaignId);
       const between = `campaign.id = ${campaignId} AND segments.date BETWEEN '${window.since}' AND '${window.until}'`;
