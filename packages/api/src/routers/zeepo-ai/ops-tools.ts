@@ -23,7 +23,6 @@ import {
 	agentGetWebHostingPlans,
 	agentGetWordPressHostingPlans,
 	agentGetWordPressSites,
-	agentMarketingAds,
 	agentMarketingEmail,
 	agentMarketingSeo,
 	agentSubmitCreativeBrief,
@@ -62,7 +61,6 @@ export const ZEEPO_AI_OPS_TOOL_NAMES = [
 	"get_hosting_detail",
 	"get_wordpress_sites",
 	"create_support_ticket",
-	"marketing_ads",
 	"marketing_email",
 	"marketing_seo",
 	"submit_creative_brief",
@@ -287,49 +285,6 @@ export const ZEEPO_AI_OPS_CLIENT_TOOLS = [
 				},
 			},
 			required: ["subject", "summary", "intent"],
-		},
-	},
-	{
-		name: "marketing_ads",
-		description:
-			"Live media buying data for Meta, Instagram, Google Ads, and LinkedIn Ads. Use list_accounts first, then get_account (campaigns + totals in the ad account currency), then get_campaign or get_performance for a specific campaign. Money is ALWAYS the ad account's native currency (e.g. KES)  never treat it as USD.",
-		input_schema: {
-			type: "object" as const,
-			properties: {
-				action: {
-					type: "string",
-					enum: ["list_accounts", "get_account", "get_campaign", "get_performance"],
-					description:
-						"list_accounts: all connected ad accounts. get_account: one account + campaigns + spend totals. get_campaign: campaign + child ad sets/ads. get_performance: daily series or breakdown.",
-				},
-				platform: {
-					type: "string",
-					enum: ["meta", "instagram", "google", "linkedin", "all"],
-					description: "Required except list_accounts (defaults to all). Instagram uses Meta ad accounts with Instagram delivery.",
-				},
-				accountId: { type: "string", description: "Ad account id (act_… / Google customer id / LinkedIn URN or numeric id)." },
-				campaignId: {
-					type: "string",
-					description: "Campaign id. For LinkedIn this is the campaign GROUP id used in the UI.",
-				},
-				entityId: { type: "string", description: "Optional entity for get_performance if not campaignId/accountId." },
-				level: {
-					type: "string",
-					enum: ["account", "campaign", "adset", "ad", "adgroup", "campaign_group"],
-				},
-				datePreset: {
-					type: "string",
-					enum: ["last_7d", "last_30d", "last_90d", "lifetime"],
-					description: "Default last_30d. lifetime is account/campaign totals only, not daily series.",
-				},
-				since: { type: "string", description: "YYYY-MM-DD start (overrides datePreset)." },
-				until: { type: "string", description: "YYYY-MM-DD end." },
-				breakdown: {
-					type: "string",
-					description: "Meta: age, gender, publisher_platform, device_platform, region, platform_position.",
-				},
-			},
-			required: ["action"],
 		},
 	},
 	{
@@ -758,35 +713,6 @@ export async function executeZeepoAiOpsTool(
 				return { error: e.message };
 			}
 			return toolError("Could not open a ticket", e);
-		}
-	}
-
-	if (name === "marketing_ads") {
-		const parsed = z
-			.object({
-				action: z.enum(["list_accounts", "get_account", "get_campaign", "get_performance"]),
-				platform: z.enum(["meta", "instagram", "google", "linkedin", "all"]).optional(),
-				accountId: z.string().min(1).optional(),
-				campaignId: z.string().min(1).optional(),
-				entityId: z.string().min(1).optional(),
-				level: z.enum(["account", "campaign", "adset", "ad", "adgroup", "campaign_group"]).optional(),
-				datePreset: z.enum(["last_7d", "last_30d", "last_90d", "lifetime"]).optional(),
-				since: z.string().optional(),
-				until: z.string().optional(),
-				breakdown: z.string().optional(),
-			})
-			.safeParse(input);
-		if (!parsed.success) return { error: parsed.error.message };
-		try {
-			return await agentMarketingAds({
-				...parsed.data,
-				userId,
-				userRole: params.userRole,
-				teamId,
-			});
-		} catch (e) {
-			if (e instanceof TRPCError) return { error: e.message };
-			return toolError("Could not load ads data", e);
 		}
 	}
 

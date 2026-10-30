@@ -13,7 +13,6 @@ import {
 
 import { user } from "./auth";
 import { team } from "./teams";
-import { metaAdsAccount } from "./meta-ads";
 
 // ============================================================================
 // CUSTOMER SELF-SERVICE OAUTH SYSTEM
@@ -192,8 +191,7 @@ export const customerPlatformAsset = pgTable(
 );
 
 /**
- * Bridge table linking OAuth assets to existing campaign data tables
- * Allows gradual migration from admin-access to OAuth without breaking existing data
+ * Optional extra identifiers stored with a customer OAuth asset.
  */
 export const customerAssetMapping = pgTable(
   "customer_asset_mapping",
@@ -202,16 +200,10 @@ export const customerAssetMapping = pgTable(
     assetId: text("asset_id")
       .notNull()
       .references(() => customerPlatformAsset.id, { onDelete: "cascade" }),
-    
-    // Links to existing tables (add more as needed)
-    metaAdsAccountId: text("meta_ads_account_id").references(() => metaAdsAccount.id, { 
-      onDelete: "set null" 
-    }),
-    // googleAdsAccountId: text("google_ads_account_id").references(...),
-    // linkedinAdsAccountId: text("linkedin_ads_account_id").references(...),
-    
-    // Generic mapping for flexibility
-    targetTable: text("target_table"), // 'meta_ads_account', 'google_ads_account', etc.
+
+    metaAdsAccountId: text("meta_ads_account_id"),
+
+    targetTable: text("target_table"),
     targetId: text("target_id"),
     
     // Sync status
@@ -510,10 +502,6 @@ export const customerAssetMappingRelations = relations(
     asset: one(customerPlatformAsset, {
       fields: [customerAssetMapping.assetId],
       references: [customerPlatformAsset.id],
-    }),
-    metaAdsAccount: one(metaAdsAccount, {
-      fields: [customerAssetMapping.metaAdsAccountId],
-      references: [metaAdsAccount.id],
     }),
   })
 );

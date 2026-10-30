@@ -39,7 +39,7 @@ export default function InstagramCallbackPage() {
 			setTimeout(() => {
 				window.location.replace(
 					connectionSourceRef.current === "instagram_ads"
-						? "/agency/ad-campaigns/instagram-ads"
+						? "/agency/social-media-ads/instagram"
 						: "/agency/social-media-marketing/instagram",
 				);
 			}, 2000);
@@ -110,7 +110,7 @@ export default function InstagramCallbackPage() {
 			setTimeout(() => {
 				window.location.replace(
 					connectionSourceRef.current === "instagram_ads"
-						? "/agency/ad-campaigns/instagram-ads"
+						? "/agency/social-media-ads/instagram"
 						: "/agency/social-media-marketing/instagram",
 				);
 			}, 1000);

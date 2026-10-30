@@ -391,10 +391,6 @@ The left sidebar has these groups and menus:
       └─ Dedicated Servers (/dashboard/dedicated-servers)
 
 📂 **Digital Marketing**
-   ├─ **Media Buying** (expandable)
-   │  ├─ Meta Ads (/dashboard/ad-campaigns/meta-ads)
-   │  ├─ Google Ads (/dashboard/ad-campaigns/google-ads)
-   │  └─ LinkedIn Ads (/dashboard/ad-campaigns/linkedin-ads)
    ├─ **Email Marketing** (expandable)
    │  ├─ Campaigns (/dashboard/nisc-email-marketing/campaigns)
    │  ├─ Audiences (/dashboard/nisc-email-marketing/audiences)
@@ -438,7 +434,7 @@ The agency dashboard is DIFFERENT from the customer dashboard. NEVER mix paths.
    └─ **Cloud Servers** (/agency/cloud-servers)
 
 📂 **Marketing**
-   ├─ **Ad Campaigns** (/agency/ad-campaigns)
+   ├─ **Social Media Ads** (/agency/social-media-ads) - Facebook, LinkedIn, Instagram, and Google Ads
    ├─ **Email Marketing** (/agency/nisc-email-marketing)
    ├─ **SEO** (/agency/seo)
    └─ **Creative Assets** (/agency/creative-assets)

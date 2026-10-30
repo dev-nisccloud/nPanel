@@ -3,9 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { and, count, desc, eq, gte, inArray, lt } from "@npanel/db";
 import { db } from "@npanel/db";
 import { user } from "@npanel/db/schema/auth";
-import { metaAdsAccount } from "@npanel/db/schema/meta-ads";
-import { googleAdsAccount } from "@npanel/db/schema/google-ads";
-import { socialMediaIntegration } from "@npanel/db/schema/social-media-marketing";
+import { customerPlatformAsset } from "@npanel/db/schema/customer-oauth";
 import { pleskServerMetricSnapshot } from "@npanel/db/schema/plesk-server-metrics";
 import { protectedProcedure, router } from "../trpc";
 import { sendPleskXmlRequest } from "../lib/plesk/xml-client";
@@ -245,51 +243,54 @@ export const agencyDashboardRouter = router({
     assertAgencyDashboardAccess((sessionUser as { role?: string })?.role);
 
     try {
-      // Get Meta Ads accounts count
-      const metaAdsResult = await db
-        .select({ count: count() })
-        .from(metaAdsAccount);
-      const metaAdsConnected = (metaAdsResult[0]?.count || 0) > 0;
+      const countAssets = async (platform: string, assetType: string) => {
+        const result = await db
+          .select({ count: count() })
+          .from(customerPlatformAsset)
+          .where(
+            and(
+              eq(customerPlatformAsset.platform, platform),
+              eq(customerPlatformAsset.assetType, assetType),
+            ),
+          );
+        return result[0]?.count || 0;
+      };
 
-      // Get Google Ads accounts count
-      const googleAdsResult = await db
-        .select({ count: count() })
-        .from(googleAdsAccount);
-      const googleAdsConnected = (googleAdsResult[0]?.count || 0) > 0;
-
-      // Get LinkedIn integration count (from social_media_integration table)
-      const linkedInResult = await db
-        .select({ count: count() })
-        .from(socialMediaIntegration)
-        .where(eq(socialMediaIntegration.platform, "linkedin"));
-      const linkedInConnected = (linkedInResult[0]?.count || 0) > 0;
+      const facebookCount = await countAssets("meta_facebook", "meta_ad_account");
+      const instagramCount = await countAssets("meta_instagram", "meta_ad_account");
+      const googleCount = await countAssets("google_ads", "google_ad_account");
+      const linkedInCount = await countAssets("linkedin_ads", "linkedin_ad_account");
 
       return {
         platforms: [
           {
-            name: "Meta Ads",
-            key: "meta_ads",
-            connected: metaAdsConnected,
-            accountCount: metaAdsResult[0]?.count || 0,
+            name: "Facebook",
+            key: "meta_facebook",
+            connected: facebookCount > 0,
+            accountCount: facebookCount,
+          },
+          {
+            name: "Instagram",
+            key: "meta_instagram",
+            connected: instagramCount > 0,
+            accountCount: instagramCount,
           },
           {
             name: "Google Ads",
             key: "google_ads",
-            connected: googleAdsConnected,
-            accountCount: googleAdsResult[0]?.count || 0,
+            connected: googleCount > 0,
+            accountCount: googleCount,
           },
           {
             name: "LinkedIn",
-            key: "linkedin",
-            connected: linkedInConnected,
-            accountCount: linkedInResult[0]?.count || 0,
+            key: "linkedin_ads",
+            connected: linkedInCount > 0,
+            accountCount: linkedInCount,
           },
         ],
-        totalConnected: [
-          metaAdsConnected,
-          googleAdsConnected,
-          linkedInConnected,
-        ].filter(Boolean).length,
+        totalConnected: [facebookCount, instagramCount, googleCount, linkedInCount].filter(
+          (value) => value > 0,
+        ).length,
       };
     } catch (error) {
       console.error("Error getting media buying platforms:", error);

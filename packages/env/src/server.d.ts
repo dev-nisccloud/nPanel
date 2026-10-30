@@ -27,7 +27,7 @@ export declare const env: Readonly<{
     GOOGLE_CLIENT_SECRET: string;
     DIGITAX_API_URL: string;
     QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT: string;
-    QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT: string;
+    QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT?: string | undefined;
     REPLICATE_API_TOKEN: string;
     S3_REGION: string;
 }>;

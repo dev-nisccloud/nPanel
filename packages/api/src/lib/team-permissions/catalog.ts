@@ -10,9 +10,6 @@ export type TeamPermissionModuleId =
 	| "servers.vps"
 	| "servers.vds"
 	| "servers.dedicated"
-	| "ads.meta"
-	| "ads.google"
-	| "ads.linkedin"
 	| "email_marketing"
 	| "seo"
 	| "creatives"
@@ -37,9 +34,6 @@ const MODULE_LABELS: Record<TeamPermissionModuleId, string> = {
 	"servers.vps": "VPS Hosting",
 	"servers.vds": "VDS Hosting",
 	"servers.dedicated": "Dedicated Servers",
-	"ads.meta": "Meta Ads",
-	"ads.google": "Google Ads",
-	"ads.linkedin": "LinkedIn Ads",
 	email_marketing: "Email Marketing",
 	seo: "SEO",
 	creatives: "Creatives & Design",
@@ -79,13 +73,6 @@ function serverEntries(module: "servers.vps" | "servers.vds" | "servers.dedicate
 	];
 }
 
-function adsEntries(module: "ads.meta" | "ads.google" | "ads.linkedin") {
-	return [
-		entry(module, "accounts", "Accounts", "View or connect ad accounts"),
-		entry(module, "campaigns", "Campaigns", "View or create, pause, and edit campaigns"),
-	];
-}
-
 export const TEAM_PERMISSION_CATALOG: readonly TeamPermissionEntry[] = [
 	entry("domains", "search_register", "Search & register", "Search and register new domains"),
 	entry("domains", "transfer", "Transfer", "Start and manage domain transfers"),
@@ -120,10 +107,6 @@ export const TEAM_PERMISSION_CATALOG: readonly TeamPermissionEntry[] = [
 	...serverEntries("servers.vps"),
 	...serverEntries("servers.vds"),
 	...serverEntries("servers.dedicated"),
-
-	...adsEntries("ads.meta"),
-	...adsEntries("ads.google"),
-	...adsEntries("ads.linkedin"),
 
 	entry("email_marketing", "campaigns", "Campaigns", "View or create and send campaigns"),
 	entry("email_marketing", "audiences", "Audiences", "View or manage audiences"),

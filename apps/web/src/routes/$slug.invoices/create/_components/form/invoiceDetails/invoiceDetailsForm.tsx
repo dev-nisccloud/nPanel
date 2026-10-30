@@ -5,12 +5,11 @@ import CustomTextInput from "@/routes/agency.invoices/create/_components/ui/cust
 import CurrencyInput from "@/routes/agency.invoices/create/_components/ui/currencyInput";
 import { currencyList } from "@/lib/currency";
 import { Input } from "@/routes/agency.invoices/create/_components/ui/input";
-import { Plus, Trash2, Package, Building2 } from "lucide-react";
+import { Plus, Trash2, Package } from "lucide-react";
 import CustomNumberInput from "@/routes/agency.invoices/create/_components/ui/customNumberInput";
 import { useGetValue } from "@/routes/agency.invoices/create/hooks/useGetValue";
 import { Controller, useFormContext } from "react-hook-form";
 import type { Item } from "@/routes/agency.invoices/create/types";
-import { SelectAdAccountSheet } from "./select-ad-account-sheet";
 import { trpc } from "@/utils/trpc";
 import {
   Select,
@@ -19,7 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { cn } from "@/lib/utils";
 
@@ -29,13 +27,6 @@ export const InvoiceDetailsForm = () => {
   const currencyDetails = currencyList.find(
     (option) => option.value.toLowerCase() === currency.toLowerCase()
   )?.details;
-
-  const [commissionSheetState, setCommissionSheetState] = React.useState<{
-    index: number;
-    commissionRatePercent: number;
-    productName: string;
-    planName: string;
-  } | null>(null);
 
   const { data: products = [], isLoading: isLoadingProducts } = trpc.products.getAll.useQuery(
     { isActive: true },
@@ -87,9 +78,6 @@ export const InvoiceDetailsForm = () => {
                     updateItem={updateItem}
                     removeItem={removeItem}
                     itemsLength={items.length}
-                    onOpenCommissionSheet={(commissionRatePercent, productName, planName) =>
-                      setCommissionSheetState({ index, commissionRatePercent, productName, planName })
-                    }
                   />
                 ))}
                 <div className="py-3 border-dashed border-b border-gray-300">
@@ -118,48 +106,6 @@ export const InvoiceDetailsForm = () => {
               </div>
             </div>
 
-            <SelectAdAccountSheet
-              open={commissionSheetState !== null}
-              onOpenChange={(open) => !open && setCommissionSheetState(null)}
-              commissionRatePercent={commissionSheetState?.commissionRatePercent ?? 0}
-              onSelect={(contexts) => {
-                if (commissionSheetState === null || contexts.length === 0) return;
-                const idx = commissionSheetState.index;
-                const fromLabel = contexts[0]?.dateRangeSince
-                  ? new Date(contexts[0].dateRangeSince + "T12:00:00").toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })
-                  : "";
-                const toLabel = contexts[0]?.dateRangeUntil
-                  ? new Date(contexts[0].dateRangeUntil + "T12:00:00").toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })
-                  : "";
-                const dateRangeLabel = [fromLabel, toLabel].filter(Boolean).join(" – ");
-                const newItems: Item[] = contexts.map((context) => {
-                  const adSpendFormatted = context.adSpend.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  });
-                  const desc = `${commissionSheetState.productName} - Meta Ads - ${context.metaAdsCampaignName}(Total Ad Spend - ${adSpendFormatted}) - (${dateRangeLabel})`;
-                  return {
-                    commissionContext: context,
-                    itemDescription: desc,
-                    amount: Math.round((context.commissionRatePercent / 100) * context.adSpend * 100) / 100,
-                    qty: 1,
-                    productId: items[idx]?.productId,
-                    etimsTaxTyCd: items[idx]?.etimsTaxTyCd,
-                  };
-                });
-                const next = [...items.slice(0, idx), ...newItems, ...items.slice(idx + 1)];
-                onChange(next.length > 0 ? next : [{ itemDescription: "" }]);
-                setCommissionSheetState(null);
-              }}
-            />
           </div>
         );
       }}
@@ -185,7 +131,6 @@ function InvoiceItemRow({
   updateItem,
   removeItem,
   itemsLength,
-  onOpenCommissionSheet,
 }: {
   item: Item;
   index: number;
@@ -195,7 +140,6 @@ function InvoiceItemRow({
   updateItem: (index: number, updates: Partial<Item>) => void;
   removeItem: (index: number) => void;
   itemsLength: number;
-  onOpenCommissionSheet: (commissionRatePercent: number, productName: string, planName: string) => void;
 }) {
   const selectedProductId = item.productId ?? "";
   const selectedPlanId = item.productPlanId ?? "";
@@ -206,10 +150,6 @@ function InvoiceItemRow({
   );
 
   const plans = (productWithPlans as { plans?: Plan[] } | undefined)?.plans ?? [];
-  const selectedPlan = plans.find((p) => p.id === selectedPlanId);
-  const isCommissionPlan = selectedPlan?.pricingModel === "COMMISSION";
-  const commissionRate = selectedPlan?.commissionRate != null ? Number(selectedPlan.commissionRate) : 0;
-
   const handleProductChange = (productId: string) => {
     if (!productId) {
       updateItem(index, {
@@ -316,33 +256,6 @@ function InvoiceItemRow({
           </Select>
         )}
 
-        {/* Commission: Select ad account (only when plan is COMMISSION) */}
-        {isCommissionPlan && (
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-              onClick={() =>
-                onOpenCommissionSheet(
-                  commissionRate,
-                  (productWithPlans as { name?: string } | undefined)?.name ?? "",
-                  selectedPlan?.name ?? ""
-                )
-              }
-            >
-              <Building2 className="h-3.5 w-3.5" />
-              {item.commissionContext ? "Change ad account / campaign" : "Select ad account"}
-            </Button>
-            {item.commissionContext && (
-              <span className="text-xs text-muted-foreground truncate max-w-[180px]">
-                {item.commissionContext.metaAdsCampaignName}  · {formatSpend(item.commissionContext.adSpend)}
-              </span>
-            )}
-          </div>
-        )}
-
         {/* Item name (manual or editable label for product) */}
         <Input
           placeholder="Item name"
@@ -382,14 +295,5 @@ function InvoiceItemRow({
       </div>
     </div>
   );
-}
-
-function formatSpend(value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
 }
 

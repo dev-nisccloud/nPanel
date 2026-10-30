@@ -105,16 +105,6 @@ export const sidebarItems: NavGroup[] = [
         ],
       },
       {
-        title: "Media Buying",
-        url: "/dashboard/ad-campaigns",
-        icon: (props: any) => React.createElement(Icons.Campaigns, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-        subItems: [
-          { title: "Meta Ads", url: "/dashboard/ad-campaigns/meta-ads", },
-          { title: "Google Ads", url: "/dashboard/ad-campaigns/google-ads", },
-          { title: "LinkedIn Ads", url: "/dashboard/ad-campaigns/linkedin-ads", },
-        ],
-      },
-      {
         title: "Email Marketing",
         url: "/dashboard/email-marketing",
         icon: (props: any) => React.createElement(Icons.EmailMarketing, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
@@ -259,16 +249,6 @@ export const agencysidebarItems: NavGroup[] = [
           // { title: "Twitter", url: "/agency/social-media-marketing/twitter", },
           { title: "LinkedIn", url: "/agency/social-media-marketing/linkedin", },
           // { title: "TikTok", url: "/agency/social-media-marketing/tiktok", },
-        ],
-      },
-      {
-        title: "Media Buying",
-        url: "/agency/ad-campaigns",
-        icon: (props: any) => React.createElement(Icons.Campaigns, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-        subItems: [
-          { title: "Meta Ads", url: "/agency/ad-campaigns/meta-ads", },
-          { title: "Google Ads", url: "/agency/ad-campaigns/google-ads", },
-          { title: "LinkedIn Ads", url: "/agency/ad-campaigns/linkedin-ads", },
         ],
       },
       {
