@@ -12,7 +12,6 @@ import {
 
 import { user } from "./auth";
 import { team } from "./teams";
-import { metaAdsAccount } from "./meta-ads";
 
 // --- SocialMediaIntegration --------------------------------------------------
 
@@ -337,12 +336,6 @@ export const linkedInContentCalendarActivityLog = pgTable(
   ],
 );
 
-// --- Deferred import-cycle FK ------------------------------------------------
-// Prisma: SocialMediaIntegration.metaAdsAccounts refers to MetaAdsAccount.integrationId.
-// In Drizzle, `meta-ads.ts` currently keeps `integration_id` without FK to avoid
-// an import cycle. We add the FK here instead (still creates DB-level constraint).
-// --- Relations ---------------------------------------------------------------
-
 export const socialMediaIntegrationRelations = relations(
   socialMediaIntegration,
   ({ one, many }) => ({
@@ -352,7 +345,6 @@ export const socialMediaIntegrationRelations = relations(
     }),
     pageTokens: many(socialMediaPageToken),
     activityLogs: many(socialMediaIntegrationActivityLog),
-    metaAdsAccounts: many(metaAdsAccount),
   }),
 );
 

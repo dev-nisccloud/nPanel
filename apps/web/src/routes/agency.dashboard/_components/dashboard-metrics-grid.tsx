@@ -193,7 +193,7 @@ export function DashboardMetricsGrid({ metrics }: { metrics: AgencyDashboardMetr
 				]}
 				actions={[
 					{ label: "Clients", href: "/agency/clients" },
-					{ label: "Ad campaigns", href: "/agency/ad-campaigns" },
+					{ label: "Social ads", href: "/agency/social-media-ads" },
 				]}
 			/>
 		</section>

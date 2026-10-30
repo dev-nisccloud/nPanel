@@ -30,8 +30,6 @@ import { handleZeepoAiSupportGuestStream } from "./api/zeepo-ai-support-guest-st
 import { handleEmailBuilderAi } from "./api/workers/email-builder-ai";
 import { handleNiscEmailBuilder } from "./api/workers/nisc-email-builder";
 import { handleEmailBuilderAiWebhook } from "./api/webhooks/replicate-email-builder-ai";
-import { handleMetaAdsAnalysis } from "./api/workers/meta-ads-analysis";
-import { handleMetaAdsAnalysisWebhook } from "./api/webhooks/replicate-meta-ads-analysis";
 import { handleInvoiceKraSync } from "./api/workers/invoice-kra-sync";
 import { handleSeoSuiteRankCheck } from "./api/workers/seo-suite-rank";
 import { handleSeoSuiteAudit } from "./api/workers/seo-suite-audit";
@@ -272,8 +270,6 @@ export function createApp(options: CreateAppOptions = {}) {
     app.on(["POST"], "/api/webhooks/resend", handleResendWebhook);
     app.on(["POST"], "/api/webhooks/sns", handleSnsWebhook);
     app.on(["POST"], "/api/webhooks/replicate/email-builder-ai", handleEmailBuilderAiWebhook);
-    app.on(["POST"], "/api/webhooks/replicate/meta-ads-analysis", handleMetaAdsAnalysisWebhook);
-
     app.get("/api/ws/vps-ssh", upgradeWebSocket(handleVpsSshUpgrade));
 
     const uploadthingHandler = createRouteHandler({
@@ -298,7 +294,6 @@ export function createApp(options: CreateAppOptions = {}) {
     app.on(["POST"], "/api/workers/zeepo-agent*", handleZeepoAgent);
     app.on(["POST"], "/api/workers/email-builder-ai*", handleEmailBuilderAi);
     app.on(["POST"], "/api/workers/nisc-email-builder*", handleNiscEmailBuilder);
-    app.on(["POST"], "/api/workers/meta-ads-analysis*", handleMetaAdsAnalysis);
     app.on(["POST"], "/api/workers/invoice-kra-sync*", handleInvoiceKraSync);
     app.on(["POST"], "/api/workers/seo-suite-rank*", handleSeoSuiteRankCheck);
     app.on(["POST"], "/api/workers/seo-suite-audit*", handleSeoSuiteAudit);

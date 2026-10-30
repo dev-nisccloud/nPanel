@@ -11,9 +11,6 @@ export type AgencyPermissionModuleId =
 	| "servers.vds"
 	| "servers.dedicated"
 	| "backup"
-	| "ads.meta"
-	| "ads.google"
-	| "ads.linkedin"
 	| "social"
 	| "social_linkedin"
 	| "social_instagram"
@@ -50,9 +47,6 @@ const MODULE_LABELS: Record<AgencyPermissionModuleId, string> = {
 	"servers.vds": "VDS",
 	"servers.dedicated": "Dedicated servers",
 	backup: "Backup & restore",
-	"ads.meta": "Meta Ads",
-	"ads.google": "Google Ads",
-	"ads.linkedin": "LinkedIn Ads",
 	social: "Social",
 	social_linkedin: "LinkedIn",
 	social_instagram: "Instagram",
@@ -103,13 +97,6 @@ function serverEntries(module: "servers.vps" | "servers.vds" | "servers.dedicate
 	];
 }
 
-function adsEntries(module: "ads.meta" | "ads.google" | "ads.linkedin") {
-	return [
-		entry(module, "accounts", "Accounts", "View or connect ad accounts"),
-		entry(module, "campaigns", "Campaigns", "View or create, pause, and edit campaigns"),
-	];
-}
-
 export const AGENCY_PERMISSION_CATALOG: readonly AgencyPermissionEntry[] = [
 	entry("dashboard", "view", "Dashboard", "View the agency home dashboard"),
 
@@ -147,10 +134,6 @@ export const AGENCY_PERMISSION_CATALOG: readonly AgencyPermissionEntry[] = [
 	entry("backup", "jobs", "Jobs", "View or manage backup jobs and schedules"),
 	entry("backup", "restores", "Restores", "View or run restores and downloads"),
 	entry("backup", "settings", "Settings", "View or change backup settings"),
-
-	...adsEntries("ads.meta"),
-	...adsEntries("ads.google"),
-	...adsEntries("ads.linkedin"),
 
 	entry("social", "accounts", "Accounts", "View or connect social accounts"),
 	entry("social", "posts", "Posts", "View or publish social posts"),

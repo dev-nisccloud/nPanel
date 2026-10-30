@@ -2095,7 +2095,6 @@ export declare const socialMediaIntegrationRelations: import("drizzle-orm").Rela
     user: import("drizzle-orm").One<"user", true>;
     pageTokens: import("drizzle-orm").Many<"social_media_page_token">;
     activityLogs: import("drizzle-orm").Many<"social_media_integration_activity_log">;
-    metaAdsAccounts: import("drizzle-orm").Many<"meta_ads_account">;
 }>;
 export declare const socialMediaPageTokenRelations: import("drizzle-orm").Relations<"social_media_page_token", {
     integration: import("drizzle-orm").One<"social_media_integration", true>;

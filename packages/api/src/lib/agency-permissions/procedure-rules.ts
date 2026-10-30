@@ -171,10 +171,6 @@ const NAMESPACE_RULES: Record<string, (rest: string) => AgencyRequirement> = {
 	hostingPlans: () => key("hosting.order"),
 	wordpressSubscriptions: () => key("wordpress.list"),
 	niscBackup: (rest) => backupRequirement(rest.split(".")[0] ?? ""),
-	googleAds: () => moduleOf("ads.google"),
-	metaAds: () => moduleOf("ads.meta"),
-	instagramAds: () => moduleOf("ads.meta"),
-	linkedInAds: () => moduleOf("ads.linkedin"),
 	socialMediaMarketing: () => moduleOf("social"),
 	customerOAuth: () =>
 		anyKeys([
@@ -185,9 +181,6 @@ const NAMESPACE_RULES: Record<string, (rest: string) => AgencyRequirement> = {
 			"social_instagram.campaigns",
 			"social_google.accounts",
 			"social_google.campaigns",
-			"ads.meta.accounts",
-			"ads.google.accounts",
-			"ads.linkedin.accounts",
 		]),
 	niscEmailMarketing: (rest) => emailRequirement(rest.split(".")[0] ?? ""),
 	emailMarketing: (rest) => emailRequirement(rest.split(".")[0] ?? ""),

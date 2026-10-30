@@ -5,13 +5,11 @@
 
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { eq, and, desc, count, inArray, notInArray, isNull } from "drizzle-orm";
+import { eq, and, desc, count, inArray, isNull } from "drizzle-orm";
 import { router, protectedProcedure } from "../../trpc";
 import {
   customerPlatformAsset,
-  customerAssetMapping,
   customerOAuthActivityLog,
-  metaAdsAccount,
   team,
 } from "@npanel/db/schema";
 import {
@@ -469,50 +467,6 @@ export const customerOAuthAssetsRouter = router({
       }
 
       await ctx.db.transaction(async (tx) => {
-        const mappings = await tx
-          .select({
-            assetId: customerAssetMapping.assetId,
-            metaAdsAccountId: customerAssetMapping.metaAdsAccountId,
-            targetTable: customerAssetMapping.targetTable,
-            targetId: customerAssetMapping.targetId,
-          })
-          .from(customerAssetMapping)
-          .where(inArray(customerAssetMapping.assetId, assetIds));
-
-        const metaAccountIds = [
-          ...new Set(
-            mappings.flatMap((mapping) => {
-              const ids: string[] = [];
-              if (mapping.metaAdsAccountId) ids.push(mapping.metaAdsAccountId);
-              if (mapping.targetTable === "meta_ads_account" && mapping.targetId) {
-                ids.push(mapping.targetId);
-              }
-              return ids;
-            })
-          ),
-        ];
-
-        if (metaAccountIds.length > 0) {
-          const shared = await tx
-            .select({ metaAdsAccountId: customerAssetMapping.metaAdsAccountId })
-            .from(customerAssetMapping)
-            .where(
-              and(
-                inArray(customerAssetMapping.metaAdsAccountId, metaAccountIds),
-                notInArray(customerAssetMapping.assetId, assetIds)
-              )
-            );
-          const sharedIds = new Set(
-            shared
-              .map((row) => row.metaAdsAccountId)
-              .filter((id): id is string => Boolean(id))
-          );
-          const exclusiveIds = metaAccountIds.filter((id) => !sharedIds.has(id));
-          if (exclusiveIds.length > 0) {
-            await tx.delete(metaAdsAccount).where(inArray(metaAdsAccount.id, exclusiveIds));
-          }
-        }
-
         await tx
           .update(customerPlatformAsset)
           .set({ parentAssetId: null })

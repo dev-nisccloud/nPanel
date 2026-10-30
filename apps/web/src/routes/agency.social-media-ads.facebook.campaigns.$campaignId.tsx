@@ -62,7 +62,7 @@ import {
     Label,
     ReferenceLine,
 } from "recharts";
-import { DownloadReportButton } from "./agency.ad-campaigns/meta-ads/$accountId/_components/report/download-button";
+import { DownloadReportButton } from "@/components/facebook-workspace/report/download-button";
 
 // ---------------------------------------------------------------------------
 // Helper Functions (from dialog)
