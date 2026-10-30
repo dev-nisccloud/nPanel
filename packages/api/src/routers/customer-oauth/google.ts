@@ -214,11 +214,50 @@ function microsToAmount(value: unknown): number | null {
   return amount / 1_000_000;
 }
 
-function ongoingDate(value: unknown): string | null {
-  if (typeof value !== "string" || value.length < 8) return null;
-  const year = Number(value.slice(0, 4));
+function campaignDay(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const match = /^(\d{4}-\d{2}-\d{2})/.exec(value.trim());
+  if (!match?.[1]) return null;
+  const year = Number(match[1].slice(0, 4));
   if (!Number.isFinite(year) || year >= 2037) return null;
-  return value;
+  return match[1];
+}
+
+const BUDGET_PERIOD: Record<string, string> = {
+  "2": "DAILY",
+  DAILY: "DAILY",
+  "5": "CUSTOM_PERIOD",
+  CUSTOM_PERIOD: "CUSTOM_PERIOD",
+};
+
+/** Inclusive days shared by the report window and the campaign schedule. */
+function overlapDays(since: string, until: string, start: string | null, end: string | null): number {
+  const from = start && start > since ? start : since;
+  const to = end && end < until ? end : until;
+  if (to < from) return 0;
+  const [fromYear, fromMonth, fromDay] = from.split("-").map(Number);
+  const [toYear, toMonth, toDay] = to.split("-").map(Number);
+  const span = Date.UTC(toYear, toMonth - 1, toDay) - Date.UTC(fromYear, fromMonth - 1, fromDay);
+  return Math.floor(span / 86_400_000) + 1;
+}
+
+/**
+ * `amount_micros` on a DAILY budget is one day's budget, while spend is the
+ * selected date range. Scale the daily amount across the days in that range
+ * so the list can show spend against the budget for the same period.
+ */
+function budgetForWindow(
+  amount: number | null,
+  period: string,
+  since: string,
+  until: string,
+  start: string | null,
+  end: string | null,
+): number | null {
+  if (amount == null) return null;
+  if (period !== "DAILY") return amount;
+  const days = overlapDays(since, until, start, end);
+  return days > 0 ? amount * days : amount;
 }
 
 function labelFrom(table: Record<string, string>, value: unknown): string {
@@ -634,6 +673,37 @@ async function safeQuery(customer: { query: (query: string) => Promise<unknown> 
   }
 }
 
+function firstUrl(value: unknown): string | null {
+  if (!Array.isArray(value)) return null;
+  const url = value.find((item) => typeof item === "string" && item);
+  return typeof url === "string" ? url : null;
+}
+
+function plainLabel(value: unknown): string {
+  if (value == null || value === "") return "";
+  return String(value).replace(/_/g, " ");
+}
+
+function httpsUrl(value: unknown): string | null {
+  return typeof value === "string" && value.startsWith("https://") ? value : null;
+}
+
+function assetMedia(row: Record<string, any>): { kind: "image" | "video"; url: string; previewUrl: string } | null {
+  const imageUrl = httpsUrl(row.asset?.image_asset?.full_size?.url);
+  if (imageUrl) return { kind: "image", url: imageUrl, previewUrl: imageUrl };
+  const videoId = typeof row.asset?.youtube_video_asset?.youtube_video_id === "string"
+    ? row.asset.youtube_video_asset.youtube_video_id.trim()
+    : "";
+  if (/^[\w-]{6,}$/.test(videoId)) {
+    return {
+      kind: "video",
+      url: `https://www.youtube.com/watch?v=${videoId}`,
+      previewUrl: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+    };
+  }
+  return null;
+}
+
 export const customerOAuthGoogleRouter = router({
   list: protectedProcedure
     .input(z.object({ assetId: z.string().min(1), timeRange: timeRangeInput }))
@@ -643,7 +713,7 @@ export const customerOAuthGoogleRouter = router({
       try {
         const entities = await gaql(
           customer,
-          `SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type, campaign.start_date, campaign.end_date, campaign_budget.amount_micros FROM campaign WHERE campaign.status != 'REMOVED'`,
+          `SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type, campaign.start_date_time, campaign.end_date_time, campaign_budget.amount_micros, campaign_budget.period FROM campaign WHERE campaign.status != 'REMOVED'`,
         );
         let metricRows: Array<Record<string, any>> = [];
         try {
@@ -665,16 +735,24 @@ export const customerOAuthGoogleRouter = router({
           .map((row) => {
             const id = digits(row.campaign?.id);
             if (!id) return null;
-            const start = typeof row.campaign?.start_date === "string" ? row.campaign.start_date : null;
+            const start = campaignDay(row.campaign?.start_date_time);
+            const stop = campaignDay(row.campaign?.end_date_time);
             return {
               id,
               name: row.campaign?.name || `Campaign ${id}`,
               status: mapped(CAMPAIGN_STATUS, row.campaign?.status),
               objective: mapped(CHANNEL, row.campaign?.advertising_channel_type, ""),
               startTime: start,
-              stopTime: ongoingDate(row.campaign?.end_date),
+              stopTime: stop,
               createdAt: start,
-              budget: microsToAmount(row.campaign_budget?.amount_micros),
+              budget: budgetForWindow(
+                microsToAmount(row.campaign_budget?.amount_micros),
+                mapped(BUDGET_PERIOD, row.campaign_budget?.period, "DAILY"),
+                window.since,
+                window.until,
+                start,
+                stop,
+              ),
               insights: insightView(insights.get(id) ?? emptyTotals()),
             };
           })
@@ -701,33 +779,21 @@ export const customerOAuthGoogleRouter = router({
       try {
         const campaigns = await gaql(
           customer,
-          `SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type, campaign.start_date, campaign.end_date, campaign_budget.amount_micros, campaign_budget.period FROM campaign WHERE campaign.id = ${campaignId}`,
+          `SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type, campaign.start_date_time, campaign.end_date_time, campaign_budget.amount_micros, campaign_budget.period FROM campaign WHERE campaign.id = ${campaignId}`,
         );
         const campaign = campaigns[0];
         if (!campaign?.campaign) {
           throw new TRPCError({ code: "NOT_FOUND", message: "Campaign not found" });
         }
+        const channel = mapped(CHANNEL, campaign.campaign.advertising_channel_type, "");
+        // Performance Max has no ad_group or ad_group_ad rows. Google documents
+        // asset_group as the structure to query instead.
+        const performanceMax = channel === "PERFORMANCE_MAX";
 
-        const [summaryRows, adGroupRows, adGroupMetrics, adRows, adMetrics, keywordRows, locationRows] = await Promise.all([
+        const [summaryRows, keywordRows, locationRows] = await Promise.all([
           safeQuery(
             customer,
             `SELECT metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions FROM campaign WHERE campaign.id = ${campaignId} AND ${between}`,
-          ),
-          safeQuery(
-            customer,
-            `SELECT ad_group.id, ad_group.name, ad_group.status, ad_group.cpc_bid_micros FROM ad_group WHERE campaign.id = ${campaignId} AND ad_group.status != 'REMOVED'`,
-          ),
-          safeQuery(
-            customer,
-            `SELECT ad_group.id, metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions FROM ad_group WHERE campaign.id = ${campaignId} AND ad_group.status != 'REMOVED' AND ${between}`,
-          ),
-          safeQuery(
-            customer,
-            `SELECT ad_group.id, ad_group_ad.ad.id, ad_group_ad.ad.name, ad_group_ad.ad.type, ad_group_ad.status, ad_group_ad.ad.final_urls FROM ad_group_ad WHERE campaign.id = ${campaignId} AND ad_group_ad.status != 'REMOVED'`,
-          ),
-          safeQuery(
-            customer,
-            `SELECT ad_group.id, ad_group_ad.ad.id, metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions FROM ad_group_ad WHERE campaign.id = ${campaignId} AND ad_group_ad.status != 'REMOVED' AND ${between}`,
           ),
           safeQuery(
             customer,
@@ -739,10 +805,65 @@ export const customerOAuthGoogleRouter = router({
           ),
         ]);
 
+        let structure: "ad_groups" | "asset_groups" = performanceMax ? "asset_groups" : "ad_groups";
+        let adGroupRows: Array<Record<string, any>> = [];
+        let adGroupMetrics: Array<Record<string, any>> = [];
+        let adRows: Array<Record<string, any>> = [];
+        let adMetrics: Array<Record<string, any>> = [];
+        let assetGroupRows: Array<Record<string, any>> = [];
+        let assetGroupMetrics: Array<Record<string, any>> = [];
+        let assetRows: Array<Record<string, any>> = [];
+        let assetMetrics: Array<Record<string, any>> = [];
+
+        if (!performanceMax) {
+          [adGroupRows, adGroupMetrics, adRows, adMetrics] = await Promise.all([
+            gaql(
+              customer,
+              `SELECT ad_group.id, ad_group.name, ad_group.status, ad_group.cpc_bid_micros FROM ad_group WHERE campaign.id = ${campaignId} AND ad_group.status != 'REMOVED'`,
+            ),
+            safeQuery(
+              customer,
+              `SELECT ad_group.id, metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions FROM ad_group WHERE campaign.id = ${campaignId} AND ad_group.status != 'REMOVED' AND ${between}`,
+            ),
+            gaql(
+              customer,
+              `SELECT ad_group.id, ad_group_ad.ad.id, ad_group_ad.ad.name, ad_group_ad.ad.type, ad_group_ad.status, ad_group_ad.ad.final_urls FROM ad_group_ad WHERE campaign.id = ${campaignId} AND ad_group_ad.status != 'REMOVED'`,
+            ),
+            safeQuery(
+              customer,
+              `SELECT ad_group.id, ad_group_ad.ad.id, metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions FROM ad_group_ad WHERE campaign.id = ${campaignId} AND ad_group_ad.status != 'REMOVED' AND ${between}`,
+            ),
+          ]);
+        }
+
+        if (performanceMax || adGroupRows.length === 0) {
+          [assetGroupRows, assetGroupMetrics, assetRows, assetMetrics] = await Promise.all([
+            gaql(
+              customer,
+              `SELECT asset_group.id, asset_group.name, asset_group.status, asset_group.final_urls FROM asset_group WHERE campaign.id = ${campaignId} AND asset_group.status != 'REMOVED'`,
+            ),
+            safeQuery(
+              customer,
+              `SELECT asset_group.id, metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions FROM asset_group WHERE campaign.id = ${campaignId} AND asset_group.status != 'REMOVED' AND ${between}`,
+            ),
+            gaql(
+              customer,
+              `SELECT asset_group.id, asset.id, asset.name, asset.type, asset.text_asset.text, asset.image_asset.full_size.url, asset.youtube_video_asset.youtube_video_id, asset.youtube_video_asset.youtube_video_title, asset_group_asset.field_type, asset_group_asset.status FROM asset_group_asset WHERE campaign.id = ${campaignId} AND asset_group_asset.status != 'REMOVED'`,
+            ),
+            safeQuery(
+              customer,
+              `SELECT asset_group.id, asset.id, metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions FROM asset_group_asset WHERE campaign.id = ${campaignId} AND asset_group_asset.status != 'REMOVED' AND ${between}`,
+            ),
+          ]);
+          if (assetGroupRows.length > 0) structure = "asset_groups";
+        }
+
         const summary = emptyTotals();
         for (const row of summaryRows) addMetrics(summary, row.metrics);
         const adGroupInsight = sumBy(adGroupMetrics, (row) => digits(row.ad_group?.id));
         const adInsight = sumBy(adMetrics, (row) => `${digits(row.ad_group?.id)}:${digits(row.ad_group_ad?.ad?.id)}`);
+        const assetGroupInsight = sumBy(assetGroupMetrics, (row) => digits(row.asset_group?.id));
+        const assetInsight = sumBy(assetMetrics, (row) => `${digits(row.asset_group?.id)}:${digits(row.asset?.id)}`);
 
         const keywords: string[] = [];
         const excludedKeywords: string[] = [];
@@ -796,12 +917,70 @@ export const customerOAuthGoogleRouter = router({
             status: mapped(CAMPAIGN_STATUS, row.ad_group_ad?.status),
             type: row.ad_group_ad?.ad?.type ? String(row.ad_group_ad.ad.type) : null,
             finalUrl: typeof finalUrl === "string" ? finalUrl : null,
+            media: null,
             insights: insightView(adInsight.get(`${groupId}:${adId}`) ?? emptyTotals()),
           });
           adsByGroup.set(groupId, list);
         }
 
-        const start = typeof campaign.campaign.start_date === "string" ? campaign.campaign.start_date : null;
+        const assetsByGroup = new Map<string, Array<Record<string, unknown>>>();
+        for (const row of assetRows) {
+          const groupId = digits(row.asset_group?.id);
+          const assetId = digits(row.asset?.id);
+          if (!groupId || !assetId) continue;
+          const fieldType = plainLabel(row.asset_group_asset?.field_type);
+          const text = typeof row.asset?.text_asset?.text === "string" ? row.asset.text_asset.text : "";
+          const videoTitle = typeof row.asset?.youtube_video_asset?.youtube_video_title === "string"
+            ? row.asset.youtube_video_asset.youtube_video_title
+            : "";
+          const assetName = typeof row.asset?.name === "string" ? row.asset.name : "";
+          const list = assetsByGroup.get(groupId) ?? [];
+          list.push({
+            id: assetId,
+            name: text || videoTitle || assetName || fieldType || `Asset ${assetId}`,
+            status: mapped(CAMPAIGN_STATUS, row.asset_group_asset?.status),
+            type: fieldType || (row.asset?.type ? plainLabel(row.asset.type) : null),
+            finalUrl: null,
+            media: assetMedia(row),
+            insights: insightView(assetInsight.get(`${groupId}:${assetId}`) ?? emptyTotals()),
+          });
+          assetsByGroup.set(groupId, list);
+        }
+
+        const adSets =
+          structure === "asset_groups"
+            ? assetGroupRows
+                .map((row) => {
+                  const id = digits(row.asset_group?.id);
+                  if (!id) return null;
+                  return {
+                    id,
+                    name: row.asset_group?.name || `Asset group ${id}`,
+                    status: mapped(CAMPAIGN_STATUS, row.asset_group?.status),
+                    unitCost: null,
+                    finalUrl: firstUrl(row.asset_group?.final_urls),
+                    insights: insightView(assetGroupInsight.get(id) ?? emptyTotals()),
+                    ads: assetsByGroup.get(id) ?? [],
+                  };
+                })
+                .filter((group): group is NonNullable<typeof group> => group != null)
+            : adGroupRows
+                .map((row) => {
+                  const id = digits(row.ad_group?.id);
+                  if (!id) return null;
+                  return {
+                    id,
+                    name: row.ad_group?.name || `Ad group ${id}`,
+                    status: mapped(CAMPAIGN_STATUS, row.ad_group?.status),
+                    unitCost: microsToAmount(row.ad_group?.cpc_bid_micros),
+                    finalUrl: null,
+                    insights: insightView(adGroupInsight.get(id) ?? emptyTotals()),
+                    ads: adsByGroup.get(id) ?? [],
+                  };
+                })
+                .filter((group): group is NonNullable<typeof group> => group != null);
+
+        const start = campaignDay(campaign.campaign.start_date_time);
         return {
           success: true as const,
           currency: asset.currency || "USD",
@@ -813,7 +992,7 @@ export const customerOAuthGoogleRouter = router({
             status: mapped(CAMPAIGN_STATUS, campaign.campaign.status),
             objective: mapped(CHANNEL, campaign.campaign.advertising_channel_type, ""),
             startTime: start,
-            stopTime: ongoingDate(campaign.campaign.end_date),
+            stopTime: campaignDay(campaign.campaign.end_date_time),
             dailyBudget: microsToAmount(campaign.campaign_budget?.amount_micros),
             budgetPeriod: campaign.campaign_budget?.period
               ? mapped({ "2": "DAILY", DAILY: "DAILY", "5": "CUSTOM_PERIOD", CUSTOM_PERIOD: "CUSTOM_PERIOD" }, campaign.campaign_budget.period, "")
@@ -821,20 +1000,8 @@ export const customerOAuthGoogleRouter = router({
             insights: insightView(summary),
             targeting,
           },
-          adSets: adGroupRows
-            .map((row) => {
-              const id = digits(row.ad_group?.id);
-              if (!id) return null;
-              return {
-                id,
-                name: row.ad_group?.name || `Ad group ${id}`,
-                status: mapped(CAMPAIGN_STATUS, row.ad_group?.status),
-                unitCost: microsToAmount(row.ad_group?.cpc_bid_micros),
-                insights: insightView(adGroupInsight.get(id) ?? emptyTotals()),
-                ads: adsByGroup.get(id) ?? [],
-              };
-            })
-            .filter((group): group is NonNullable<typeof group> => group != null),
+          structure,
+          adSets,
         };
       } catch (error) {
         throw googleError(error);
