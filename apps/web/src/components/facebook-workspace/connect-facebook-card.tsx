@@ -15,16 +15,21 @@ export function ConnectFacebookButton({
   size = "sm",
   className,
   returnUrl = "/agency/social-media-ads/facebook",
+  platform = "meta_facebook",
+  beforeConnect,
 }: {
   label?: string;
   size?: "sm" | "lg";
   className?: string;
   returnUrl?: string;
+  platform?: "meta_facebook" | "meta_facebook_pages";
+  beforeConnect?: () => void;
 }) {
   const [isConnecting, setIsConnecting] = React.useState(false);
 
   const initiateOAuth = trpc.customerOAuth.auth.initiateOAuth.useMutation({
     onSuccess: (data) => {
+      beforeConnect?.();
       window.location.href = data.authUrl;
     },
     onError: (error) => {
@@ -38,7 +43,7 @@ export function ConnectFacebookButton({
       onClick={() => {
         setIsConnecting(true);
         initiateOAuth.mutate({
-          platform: "meta_facebook",
+          platform,
           flowType: "connect",
           returnUrl: `${window.location.origin}${returnUrl}`,
         });

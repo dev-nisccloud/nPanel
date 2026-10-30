@@ -13,6 +13,7 @@ import { trpc } from "@/utils/trpc";
 import { FacebookCampaignsTab } from "./campaigns-tab";
 import { ConnectFacebookButton, ConnectFacebookCard } from "./connect-facebook-card";
 import { FacebookPagesTab } from "./pages-tab";
+import { latchPagesConnect, markPagesReturnHandled, schedulePagesConnectReset, takePagesConnectForToast } from "./pages-connect";
 import { SelectFacebookAdAccounts } from "./select-ad-accounts";
 
 const cachedFacebookList = {
@@ -24,6 +25,7 @@ const cachedFacebookList = {
 export function FacebookWorkspace() {
   const utils = trpc.useUtils();
   const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const [tab, setTab] = React.useState(() => (latchPagesConnect() ? "pages" : "campaigns"));
   const connectionsQuery = trpc.customerOAuth.connections.list.useQuery(
     { platform: "meta_facebook" },
     cachedFacebookList,
@@ -34,8 +36,11 @@ export function FacebookWorkspace() {
     try {
       await Promise.all([
         utils.customerOAuth.connections.list.invalidate({ platform: "meta_facebook" }),
+        utils.customerOAuth.connections.list.invalidate({ platform: "meta_facebook_pages" }),
         utils.customerOAuth.assets.list.invalidate(),
         utils.customerOAuth.campaigns.list.invalidate(),
+        utils.customerOAuth.facebookPages.list.invalidate(),
+        utils.customerOAuth.facebookPages.details.invalidate(),
       ]);
     } finally {
       setIsRefreshing(false);
@@ -43,19 +48,27 @@ export function FacebookWorkspace() {
   };
 
   React.useEffect(() => {
+    const { pagesConnect, alreadyHandled } = takePagesConnectForToast();
     const params = new URLSearchParams(window.location.search);
     const oauth = params.get("oauth");
-    if (!oauth) return;
-    if (oauth === "error") {
-      toast.error(params.get("message") || "Failed to connect Facebook");
-    } else if (oauth === "connected") {
-      toast.success("Facebook connected. Choose the ad accounts to import.");
+    if (oauth && !alreadyHandled) {
+      markPagesReturnHandled();
+      if (oauth === "error") {
+        toast.error(params.get("message") || "Failed to connect Facebook");
+      } else if (oauth === "connected") {
+        toast.success(
+          pagesConnect
+            ? "Facebook connected. Choose the pages to import."
+            : "Facebook connected. Choose the ad accounts to import.",
+        );
+      }
+      params.delete("oauth");
+      params.delete("message");
+      params.delete("connectionId");
+      const next = `${window.location.pathname}${params.size > 0 ? `?${params.toString()}` : ""}`;
+      window.history.replaceState(null, "", next);
     }
-    params.delete("oauth");
-    params.delete("message");
-    params.delete("connectionId");
-    const next = `${window.location.pathname}${params.size > 0 ? `?${params.toString()}` : ""}`;
-    window.history.replaceState(null, "", next);
+    return schedulePagesConnectReset();
   }, []);
 
   const connections = connectionsQuery.data ?? [];
@@ -74,51 +87,49 @@ export function FacebookWorkspace() {
               Connected ad accounts, campaigns, and pages.
             </p>
           </div>
-          {active ? (
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => void refreshFacebook()}
-                disabled={isRefreshing}
-                className="shrink-0"
-              >
-                <RefreshCw className={cn("mr-2 h-4 w-4", isRefreshing && "animate-spin")} />
-                Refresh
-              </Button>
-              <ConnectFacebookButton />
-            </div>
-          ) : null}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void refreshFacebook()}
+              disabled={isRefreshing}
+              className="shrink-0"
+            >
+              <RefreshCw className={cn("mr-2 h-4 w-4", isRefreshing && "animate-spin")} />
+              Refresh
+            </Button>
+            {active ? <ConnectFacebookButton /> : null}
+          </div>
         </div>
 
-        {connectionsQuery.isLoading ? (
-          <div className="mt-16 flex justify-center">
-            <Spinner size={28} />
-          </div>
-        ) : connectionsQuery.isError ? (
-          <div className="mt-8 rounded-xl border border-dashed px-6 py-16 text-center">
-            <p className="text-sm text-destructive">{connectionsQuery.error.message}</p>
-          </div>
-        ) : pending ? (
-          <SelectFacebookAdAccounts connectionId={pending.id} />
-        ) : !active ? (
-          <div className="mt-8 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-muted py-24 text-center">
-            <ConnectFacebookCard />
-          </div>
-        ) : (
-          <Tabs defaultValue="campaigns" className="mt-6 w-full">
-            <TabsList className="w-fit">
-              <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
-              <TabsTrigger value="pages">Pages</TabsTrigger>
-            </TabsList>
-            <TabsContent value="campaigns" className="mt-6">
+        <Tabs value={tab} onValueChange={setTab} className="mt-6 w-full">
+          <TabsList className="w-fit">
+            <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
+            <TabsTrigger value="pages">Pages</TabsTrigger>
+          </TabsList>
+          <TabsContent value="campaigns" className="mt-6">
+            {connectionsQuery.isLoading ? (
+              <div className="flex justify-center py-16">
+                <Spinner size={28} />
+              </div>
+            ) : connectionsQuery.isError ? (
+              <div className="rounded-xl border border-dashed px-6 py-16 text-center">
+                <p className="text-sm text-destructive">{connectionsQuery.error.message}</p>
+              </div>
+            ) : pending ? (
+              <SelectFacebookAdAccounts connectionId={pending.id} />
+            ) : !active ? (
+              <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-muted py-24 text-center">
+                <ConnectFacebookCard />
+              </div>
+            ) : (
               <FacebookCampaignsTab connectionId={active.id} />
-            </TabsContent>
-            <TabsContent value="pages" className="mt-6">
-              <FacebookPagesTab />
-            </TabsContent>
-          </Tabs>
-        )}
+            )}
+          </TabsContent>
+          <TabsContent value="pages" className="mt-6">
+            <FacebookPagesTab />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

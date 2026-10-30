@@ -2,7 +2,6 @@ import { relations } from "drizzle-orm";
 import { boolean, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, } from "drizzle-orm/pg-core";
 import { user } from "./auth";
 import { team } from "./teams";
-import { metaAdsAccount } from "./meta-ads";
 // --- SocialMediaIntegration --------------------------------------------------
 export const socialMediaIntegration = pgTable("social_media_integration", {
     id: text("_id").primaryKey(),
@@ -242,11 +241,6 @@ export const linkedInContentCalendarActivityLog = pgTable("linkedin_content_cale
     index("linkedin_content_calendar_activity_log_action_idx").on(table.action),
     index("linkedin_content_calendar_activity_log_createdAt_idx").on(table.createdAt),
 ]);
-// --- Deferred import-cycle FK ------------------------------------------------
-// Prisma: SocialMediaIntegration.metaAdsAccounts refers to MetaAdsAccount.integrationId.
-// In Drizzle, `meta-ads.ts` currently keeps `integration_id` without FK to avoid
-// an import cycle. We add the FK here instead (still creates DB-level constraint).
-// --- Relations ---------------------------------------------------------------
 export const socialMediaIntegrationRelations = relations(socialMediaIntegration, ({ one, many }) => ({
     user: one(user, {
         fields: [socialMediaIntegration.userId],
@@ -254,7 +248,6 @@ export const socialMediaIntegrationRelations = relations(socialMediaIntegration,
     }),
     pageTokens: many(socialMediaPageToken),
     activityLogs: many(socialMediaIntegrationActivityLog),
-    metaAdsAccounts: many(metaAdsAccount),
 }));
 export const socialMediaPageTokenRelations = relations(socialMediaPageToken, ({ one, many }) => ({
     integration: one(socialMediaIntegration, {

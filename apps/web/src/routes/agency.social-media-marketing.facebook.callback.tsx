@@ -39,7 +39,7 @@ export default function FacebookCallbackPage() {
 			setTimeout(() => {
 				window.location.replace(
 					connectionSourceRef.current === "meta_ads"
-						? "/agency/ad-campaigns/meta-ads"
+						? "/agency/social-media-ads/facebook"
 						: "/agency/social-media-marketing/facebook",
 				);
 			}, 2000);
@@ -102,7 +102,7 @@ export default function FacebookCallbackPage() {
 			setTimeout(() => {
 				window.location.replace(
 					connectionSourceRef.current === "meta_ads"
-						? "/agency/ad-campaigns/meta-ads"
+						? "/agency/social-media-ads/facebook"
 						: "/agency/social-media-marketing/facebook",
 				);
 			}, 1000);

@@ -43,7 +43,7 @@ export const env = createEnv({
     QSTASH_SEO_SUITE_AUDIT_WORKER_ENDPOINT: z.string().url().optional(),
     /** Nisc Email Builder (neb) - standalone AI HTML builder */
     QSTASH_NISC_EMAIL_BUILDER_WORKER_ENDPOINT: z.string().url().optional(),
-    QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT: z.string().url(),
+    QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT: z.string().url().optional(),
     REPLICATE_META_ADS_ANALYSIS_WEBHOOK_URL: z.string().url().optional(),
     REPLICATE_API_TOKEN: z.string().min(1),
     /** MinIO / S3-compatible object storage (optional until UploadThing migration) */

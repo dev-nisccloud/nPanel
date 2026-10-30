@@ -4,7 +4,7 @@ import { captureEvent } from "@/lib/posthog";
 
 import * as React from "react";
 import { useNavigate, useParams } from "react-router";
-import { ArrowLeft, Loader2, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, MoreHorizontal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,8 +18,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { trpc } from "@/utils/trpc";
-import { CRON_JOB_KEYS } from "./agency.cronjobs/_components/jobs";
-import { MediaBuyingEomTotalSpendInvoicesFlow } from "./agency.cronjobs/_components/media-buying-eom-flow";
 import { workflowLabelForJobKey } from "./agency.cronjobs/_components/workflow-registry";
 import { workflowRunStatusBadgeVariant } from "./agency.cronjobs/_components/workflow-runs-table";
 
@@ -60,11 +58,6 @@ export default function AgencyCronJobRunDetailPage() {
   });
 
   const [nameDraft, setNameDraft] = React.useState("");
-  const [isWorkflowSaving, setIsWorkflowSaving] = React.useState(false);
-
-  const onWorkflowAutosaveStatus = React.useCallback((s: { isSaving: boolean }) => {
-    setIsWorkflowSaving(s.isSaving);
-  }, []);
 
   React.useEffect(() => {
     if (query.data?.name != null) setNameDraft(query.data.name);
@@ -102,10 +95,6 @@ export default function AgencyCronJobRunDetailPage() {
   }
 
   const run = query.data;
-  const graph = run.graphStateJson as Record<string, unknown> | null;
-  const invoiceIds = Object.fromEntries(
-    (run.invoices ?? []).map((i) => [i.platform, i.invoiceId])
-  ) as Partial<Record<"meta" | "google" | "linkedin", string>>;
 
   return (
     <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
@@ -145,12 +134,6 @@ export default function AgencyCronJobRunDetailPage() {
 
             <div className="flex flex-col items-end gap-2 shrink-0">
               <div className="flex items-center gap-2">
-                {isWorkflowSaving ? (
-                  <Loader2
-                    className="h-4 w-4 shrink-0 animate-spin text-muted-foreground"
-                    aria-label="Saving workflow"
-                  />
-                ) : null}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
@@ -194,22 +177,11 @@ export default function AgencyCronJobRunDetailPage() {
           </div>
 
           <div className="min-w-0 flex flex-col gap-3">
-            {run.jobKey === CRON_JOB_KEYS.MEDIA_BUYING_EOM_TOTAL_SPEND_INVOICES ? (
-              <MediaBuyingEomTotalSpendInvoicesFlow
-                workflowRunId={runId}
-                hydrationReady={!query.isLoading}
-                initialGraphState={graph}
-                initialVersion={run.version}
-                initialInvoiceIds={invoiceIds}
-                onAutosaveStatusChange={onWorkflowAutosaveStatus}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-64 border border-dashed rounded-lg">
-                <p className="text-muted-foreground text-sm">
-                  No editor registered for this job type.
-                </p>
-              </div>
-            )}
+            <div className="flex items-center justify-center h-64 border border-dashed rounded-lg">
+              <p className="text-muted-foreground text-sm">
+                No editor registered for this job type.
+              </p>
+            </div>
           </div>
         </div>
       </div>

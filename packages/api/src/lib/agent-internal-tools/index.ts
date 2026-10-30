@@ -74,7 +74,6 @@ export {
 	type WordPressSiteKind,
 } from "./wordpress-sites";
 
-export { agentMarketingAds } from "./marketing-ads";
 export { agentMarketingEmail } from "./marketing-email";
 export { agentMarketingSeo } from "./marketing-seo";
 export { agentSubmitCreativeBrief } from "./marketing-creative-briefs";
