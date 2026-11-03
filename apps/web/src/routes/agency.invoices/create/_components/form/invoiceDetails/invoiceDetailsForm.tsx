@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { cn } from "@/lib/utils";
+import { useDecimalField } from "@/routes/agency.invoices/create/_components/ui/useDecimalField";
 
 export const InvoiceDetailsForm = () => {
   const { control } = useFormContext();
@@ -149,6 +150,7 @@ function InvoiceItemRow({
   );
 
   const plans = (productWithPlans as { plans?: Plan[] } | undefined)?.plans ?? [];
+  const amountField = useDecimalField(item.amount);
   const handleProductChange = (productId: string) => {
     if (!productId) {
       updateItem(index, {
@@ -190,19 +192,19 @@ function InvoiceItemRow({
   };
 
   return (
-    <div className="flex relative items-start group -ml-8 gap-2 flex-wrap pb-4 mb-4 border-b border-gray-100 last:border-0 last:mb-0" key={index}>
-      <div className={cn("w-9 h-7 flex-shrink-0", itemsLength === 1 && "invisible")}>
+    <div className="group relative -ml-8 mb-4 flex items-start gap-2 border-b border-gray-100 pb-4 last:mb-0 last:border-0" key={index}>
+      <div className={cn("h-7 w-9 flex-shrink-0", itemsLength === 1 && "invisible")}>
         <button
           onClick={() => removeItem(index)}
           type="button"
-          className="flex-shrink-0 rounded-md p-1.5 group-hover:bg-gray-50 hidden group-hover:block"
+          className="hidden flex-shrink-0 rounded-md p-1.5 group-hover:block group-hover:bg-gray-50"
           aria-label="Remove item"
         >
-          <Trash2 className="w-4 text-gray-500 h-4 group-hover:text-red-400" />
+          <Trash2 className="h-4 w-4 text-gray-500 group-hover:text-red-400" />
         </button>
       </div>
 
-      <div className="flex-1 min-w-[200px] space-y-3">
+      <div className="min-w-0 flex-1 space-y-3">
         {/* Product: Manual vs From catalog */}
         <Select
           value={selectedProductId || "__manual__"}
@@ -255,59 +257,58 @@ function InvoiceItemRow({
           </Select>
         )}
 
-        {/* Item name (manual or editable label for product) */}
-        <Input
-          placeholder="Item name"
-          value={item.itemDescription ?? ""}
-          type="text"
-          onChange={(e) => updateItem(index, { itemDescription: e.target.value })}
-        />
+        <div className="flex items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <Input
+              placeholder="Item name"
+              value={item.itemDescription ?? ""}
+              type="text"
+              onChange={(e) => updateItem(index, { itemDescription: e.target.value })}
+            />
+          </div>
+          <div className="w-14 shrink-0">
+            <Input
+              placeholder="Qty"
+              value={item.qty != null ? String(item.qty) : ""}
+              type="text"
+              pattern="[0-9]*"
+              onChange={(e) => {
+                const v = e.target.value;
+                if (/^-?\d*\.?\d*$/.test(v) || v === "") {
+                  updateItem(index, { qty: v === "" ? undefined : Number(v) });
+                }
+              }}
+            />
+          </div>
+          <div className="w-20 shrink-0">
+            <Input
+              placeholder={currencyDetails?.currencySymbol ?? ""}
+              value={amountField.shown}
+              type="text"
+              inputMode="decimal"
+              onChange={(e) => {
+                amountField.onChange(e.target.value, (amount) => updateItem(index, { amount }));
+              }}
+            />
+          </div>
+        </div>
 
-        {/* Billing cycle (optional) */}
         <Select
           value={item.billingCycle || "__unset__"}
           onValueChange={(v) => updateItem(index, { billingCycle: v === "__unset__" ? undefined : v })}
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger className="relative z-10 w-full">
             <SelectValue placeholder="Billing cycle (optional)" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="z-[200]">
             <SelectItem value="__unset__">None</SelectItem>
             <SelectItem value="one-time">One Time</SelectItem>
             <SelectItem value="monthly">Monthly</SelectItem>
             <SelectItem value="quarterly">Quarterly</SelectItem>
             <SelectItem value="annually">Annually</SelectItem>
+            <SelectItem value="biennially">Biennially</SelectItem>
           </SelectContent>
         </Select>
-      </div>
-
-      <div className="w-14 flex-shrink-0">
-        <Input
-          placeholder="Qty"
-          value={item.qty != null ? String(item.qty) : ""}
-          type="text"
-          pattern="[0-9]*"
-          onChange={(e) => {
-            const v = e.target.value;
-            if (/^-?\d*\.?\d*$/.test(v) || v === "") {
-              updateItem(index, { qty: v === "" ? undefined : Number(v) });
-            }
-          }}
-        />
-      </div>
-      <div className="w-20 flex-shrink-0">
-        <Input
-          placeholder={currencyDetails?.currencySymbol ?? ""}
-          value={item.amount != null ? String(item.amount) : ""}
-          type="text"
-          pattern="[0-9]*\.?[0-9]*"
-          onChange={(e) => {
-            const v = e.target.value;
-            if (/^-?\d*\.?\d*$/.test(v) || v === "") {
-              updateItem(index, { amount: v === "" ? undefined : Number(v) });
-            }
-          }}
-        />
       </div>
     </div>
   );

@@ -2,18 +2,29 @@
 
 import * as React from "react";
 
-import { Check } from "lucide-react";
+import { Check, ChevronsUpDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { toast } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 
 import { ConnectFacebookButton } from "./connect-facebook-card";
+import { FacebookContentCalendar } from "./content-calendar";
 import { FacebookPageAnalytics } from "./page-analytics";
+import type { MockScheduledContent } from "./mock-data";
 import { beginFacebookPagesConnect } from "./pages-connect";
 
 const cachedPages = {
@@ -31,6 +42,8 @@ export function FacebookPagesTab() {
   const pagesQuery = trpc.customerOAuth.facebookPages.list.useQuery(undefined, cachedPages);
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [importing, setImporting] = React.useState(false);
+  const [showCalendar, setShowCalendar] = React.useState(false);
+  const [scheduledContent, setScheduledContent] = React.useState<MockScheduledContent[]>([]);
 
   const connections = connectionsQuery.data ?? [];
   const pending = connections.find(
@@ -98,7 +111,21 @@ export function FacebookPagesTab() {
   return (
     <div className="flex flex-col gap-4 md:flex-row md:items-start">
       <aside className="w-full shrink-0 md:w-64">
-        <div className="flex max-h-[32rem] flex-col gap-1 overflow-auto rounded-xl border p-2">
+        <div className="flex flex-col gap-2 md:hidden">
+          <PageCombobox pages={pages} selectedId={selected?.id ?? null} onSelect={setSelectedId} />
+          <Button
+            size="sm"
+            className="w-full"
+            disabled={!selected}
+            onClick={() => setShowCalendar((open) => !open)}
+          >
+            {showCalendar ? "Overview" : "Content calendar"}
+          </Button>
+          <Button variant="outline" size="sm" className="w-full" onClick={() => setImporting(true)}>
+            Import pages
+          </Button>
+        </div>
+        <div className="hidden max-h-[32rem] flex-col gap-1 overflow-auto rounded-xl border p-2 md:flex">
           {pages.map((page) => {
             const current = page.id === selected?.id;
             return (
@@ -135,12 +162,29 @@ export function FacebookPagesTab() {
             );
           })}
         </div>
-        <Button variant="outline" size="sm" className="mt-3 w-full" onClick={() => setImporting(true)}>
+        <Button
+          size="sm"
+          className="mt-3 hidden w-full md:inline-flex"
+          disabled={!selected}
+          onClick={() => setShowCalendar((open) => !open)}
+        >
+          {showCalendar ? "Overview" : "Content calendar"}
+        </Button>
+        <Button variant="outline" size="sm" className="mt-2 hidden w-full md:inline-flex" onClick={() => setImporting(true)}>
           Import pages
         </Button>
       </aside>
       <div className="min-w-0 flex-1">
-        {selected ? (
+        {selected && showCalendar ? (
+          <FacebookContentCalendar
+            key={selected.id}
+            pageId={selected.id}
+            pageName={selected.name}
+            pageColor="#1877F2"
+            items={scheduledContent}
+            onItemsChange={setScheduledContent}
+          />
+        ) : selected ? (
           <FacebookPageAnalytics
             key={selected.id}
             pageId={selected.id}
@@ -150,6 +194,89 @@ export function FacebookPagesTab() {
         ) : null}
       </div>
     </div>
+  );
+}
+
+function PageCombobox({
+  pages,
+  selectedId,
+  onSelect,
+}: {
+  pages: Array<{ id: string; name: string; category: string | null; pictureUrl: string | null }>;
+  selectedId: string | null;
+  onSelect: (pageId: string) => void;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const selected = pages.find((page) => page.id === selectedId) ?? null;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="h-auto min-h-11 w-full min-w-0 flex-1 items-center justify-between px-2 py-1.5 font-normal"
+        >
+          {selected ? (
+            <span className="flex min-w-0 items-center gap-2">
+              <PageAvatar name={selected.name} pictureUrl={selected.pictureUrl} />
+              <span className="min-w-0 text-left">
+                <span className="block truncate text-sm font-semibold">{selected.name}</span>
+                {selected.category ? (
+                  <span className="block truncate text-xs text-muted-foreground">{selected.category}</span>
+                ) : null}
+              </span>
+            </span>
+          ) : (
+            <span className="text-muted-foreground">Select a Page</span>
+          )}
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Search Pages..." />
+          <CommandList className="max-h-64 overflow-auto">
+            <CommandEmpty>No Page found.</CommandEmpty>
+            <CommandGroup>
+              {pages.map((page) => {
+                const current = page.id === selectedId;
+                return (
+                  <CommandItem
+                    key={page.id}
+                    value={`${page.name} ${page.category ?? ""}`}
+                    className="items-center"
+                    onSelect={() => {
+                      onSelect(page.id);
+                      setOpen(false);
+                    }}
+                  >
+                    <span className={cn("mr-1 h-8 w-1 shrink-0 rounded-full", current ? "bg-primary" : "bg-transparent")} />
+                    <span className="relative mr-2">
+                      <PageAvatar name={page.name} pictureUrl={page.pictureUrl} />
+                      {current ? (
+                        <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                          <Check className="h-3 w-3" />
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className={cn("block truncate text-sm", current ? "font-semibold" : "font-medium")}>
+                        {page.name}
+                      </span>
+                      {page.category ? (
+                        <span className="block truncate text-xs text-muted-foreground">{page.category}</span>
+                      ) : null}
+                    </span>
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
 
