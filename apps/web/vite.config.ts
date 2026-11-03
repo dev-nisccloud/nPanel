@@ -99,7 +99,7 @@ export default defineConfig(async (config) => {
       allowedHosts: [
         "localhost",
         "127.0.0.1",
-        "19c6-197-232-51-43.ngrok-free.app",
+        "4ea6-197-232-51-43.ngrok-free.app",
         "npanel-web.vercel.app",
         "npanel-server.vercel.app"
       ],
