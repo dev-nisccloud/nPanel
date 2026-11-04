@@ -14,6 +14,7 @@ import { customerPlatformAsset } from "@npanel/db/schema";
 import { LinkedInAdsClient } from "../../lib/linkedin-ads-client";
 import { decryptToken } from "../../lib/oauth-encryption";
 import { router, protectedProcedure } from "../../trpc";
+import { sessionIsAgency } from "./agency-access";
 import type { MetaUserProfile } from "../../lib/meta-oauth-provider";
 
 export const LINKEDIN_ADS_SCOPES = ["openid", "profile", "email", "r_ads", "r_ads_reporting"];
@@ -340,7 +341,10 @@ function targetingSections(
 
 async function loadAccount(ctx: ContextWithDb, assetId: string) {
   const asset = await ctx.db.query.customerPlatformAsset.findFirst({
-    where: and(eq(customerPlatformAsset.id, assetId), eq(customerPlatformAsset.userId, ctx.session.user.id)),
+    where: and(
+      eq(customerPlatformAsset.id, assetId),
+      sessionIsAgency(ctx.session.user) ? undefined : eq(customerPlatformAsset.userId, ctx.session.user.id),
+    ),
     with: { connection: true },
   });
 

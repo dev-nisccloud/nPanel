@@ -16,6 +16,7 @@ import {
   getAccessibleCustomers,
   getCustomerInstance,
 } from "../../lib/google-ads-client";
+import { sessionIsAgency } from "./agency-access";
 import {
   getGoogleAdsClientId,
   getGoogleAdsClientSecret,
@@ -581,7 +582,10 @@ export async function listGoogleSelectableAssets(refreshToken: string): Promise<
 
 async function loadAccount(ctx: ContextWithDb, assetId: string) {
   const asset = await ctx.db.query.customerPlatformAsset.findFirst({
-    where: and(eq(customerPlatformAsset.id, assetId), eq(customerPlatformAsset.userId, ctx.session.user.id)),
+    where: and(
+      eq(customerPlatformAsset.id, assetId),
+      sessionIsAgency(ctx.session.user) ? undefined : eq(customerPlatformAsset.userId, ctx.session.user.id),
+    ),
     with: { connection: true },
   });
   if (!asset?.connection) {

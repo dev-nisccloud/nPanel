@@ -12,6 +12,7 @@ import { customerPlatformAsset } from "@npanel/db/schema";
 import { MetaAdsApiError, MetaAdsClient } from "../../lib/meta-ads-client";
 import { decryptToken } from "../../lib/oauth-encryption";
 import { protectedProcedure } from "../../trpc";
+import { sessionIsAgency } from "./agency-access";
 
 const CAMPAIGN_FIELDS = [
   "id",
@@ -336,7 +337,7 @@ async function openCampaign(
   const asset = await ctx.db.query.customerPlatformAsset.findFirst({
     where: and(
       eq(customerPlatformAsset.id, input.assetId),
-      eq(customerPlatformAsset.userId, ctx.session.user.id),
+      sessionIsAgency(ctx.session.user) ? undefined : eq(customerPlatformAsset.userId, ctx.session.user.id),
     ),
     with: { connection: true },
   });
