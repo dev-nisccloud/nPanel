@@ -6,6 +6,7 @@ import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { toast } from "@/components/ui/sonner";
+import { useIsAgencyRole } from "@/lib/agency-role";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 
@@ -20,6 +21,7 @@ const cachedGoogleList = {
 } as const;
 
 export function GoogleWorkspace() {
+  const isAgency = useIsAgencyRole();
   const utils = trpc.useUtils();
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const connectionsQuery = trpc.customerOAuth.connections.list.useQuery(
@@ -70,7 +72,7 @@ export function GoogleWorkspace() {
             <h1 className="text-xl font-bold tracking-tight">Google Ads</h1>
             <p className="text-xs text-muted-foreground">Connected ad accounts and their campaigns.</p>
           </div>
-          {active ? (
+          {active || isAgency ? (
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={() => void refreshGoogle()} disabled={isRefreshing} className="shrink-0">
                 <RefreshCw className={cn("mr-2 h-4 w-4", isRefreshing && "animate-spin")} />
@@ -91,7 +93,7 @@ export function GoogleWorkspace() {
           </div>
         ) : pending ? (
           <SelectGoogleAdAccounts connectionId={pending.id} />
-        ) : !active ? (
+        ) : !active && !isAgency ? (
           <div className="mt-8 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-muted py-24 text-center">
             <ConnectGoogleCard />
           </div>

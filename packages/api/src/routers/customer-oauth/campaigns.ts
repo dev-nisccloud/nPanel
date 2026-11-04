@@ -11,6 +11,7 @@ import { customerPlatformAsset } from "@npanel/db/schema";
 import { MetaAdsClient } from "../../lib/meta-ads-client";
 import { decryptToken } from "../../lib/oauth-encryption";
 import { router, protectedProcedure } from "../../trpc";
+import { sessionIsAgency } from "./agency-access";
 import { getCustomerCampaignCharts, getCustomerCampaignDetails } from "./campaign-details";
 
 function asNumber(value: unknown): number | null {
@@ -65,7 +66,7 @@ export const customerOAuthCampaignsRouter = router({
       const asset = await ctx.db.query.customerPlatformAsset.findFirst({
         where: and(
           eq(customerPlatformAsset.id, input.assetId),
-          eq(customerPlatformAsset.userId, ctx.session.user.id),
+          sessionIsAgency(ctx.session.user) ? undefined : eq(customerPlatformAsset.userId, ctx.session.user.id),
         ),
         with: { connection: true },
       });
