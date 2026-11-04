@@ -6,6 +6,7 @@ import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { toast } from "@/components/ui/sonner";
+import { useIsAgencyRole } from "@/lib/agency-role";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 
@@ -20,6 +21,7 @@ const cachedLinkedInList = {
 } as const;
 
 export function LinkedInWorkspace() {
+  const isAgency = useIsAgencyRole();
   const utils = trpc.useUtils();
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const connectionsQuery = trpc.customerOAuth.connections.list.useQuery(
@@ -72,7 +74,7 @@ export function LinkedInWorkspace() {
               Connected ad accounts and their campaigns.
             </p>
           </div>
-          {active ? (
+          {active || isAgency ? (
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
@@ -99,7 +101,7 @@ export function LinkedInWorkspace() {
           </div>
         ) : pending ? (
           <SelectLinkedInAdAccounts connectionId={pending.id} />
-        ) : !active ? (
+        ) : !active && !isAgency ? (
           <div className="mt-8 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-muted py-24 text-center">
             <ConnectLinkedInCard />
           </div>

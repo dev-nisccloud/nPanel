@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/sonner";
+import { useIsAgencyRole } from "@/lib/agency-role";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 
@@ -23,6 +24,7 @@ const cachedFacebookList = {
 } as const;
 
 export function FacebookWorkspace() {
+  const isAgency = useIsAgencyRole();
   const utils = trpc.useUtils();
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [tab, setTab] = React.useState(() => (latchPagesConnect() ? "pages" : "campaigns"));
@@ -98,7 +100,7 @@ export function FacebookWorkspace() {
               <RefreshCw className={cn("mr-2 h-4 w-4", isRefreshing && "animate-spin")} />
               Refresh
             </Button>
-            {active ? <ConnectFacebookButton /> : null}
+            {active || isAgency ? <ConnectFacebookButton /> : null}
           </div>
         </div>
 
@@ -118,12 +120,12 @@ export function FacebookWorkspace() {
               </div>
             ) : pending ? (
               <SelectFacebookAdAccounts connectionId={pending.id} />
-            ) : !active ? (
+            ) : !active && !isAgency ? (
               <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-muted py-24 text-center">
                 <ConnectFacebookCard />
               </div>
             ) : (
-              <FacebookCampaignsTab connectionId={active.id} />
+              <FacebookCampaignsTab connectionId={active?.id} />
             )}
           </TabsContent>
           <TabsContent value="pages" className="mt-6">
