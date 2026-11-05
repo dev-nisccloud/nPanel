@@ -4,6 +4,9 @@ import { TRPCError } from "@trpc/server";
 import { sendPleskXmlRequest } from '../../lib/plesk/xml-client';
 import { protectedProcedure, router } from '../../trpc';
 
+/** Product cap shown on the mail form. Plesk node: outgoing-messages-mbox-limit. */
+export const MAX_OUTGOING_MESSAGES_PER_DAY = 120;
+
 /** Local input type aligned with Zod schema below */
 type UpdateInput = {
 	siteId: number;
@@ -14,9 +17,43 @@ type UpdateInput = {
 	outgoingMessagesLimit?: number;
 	description?: string;
 	forwarding?: { enabled?: boolean; addresses?: string[] };
-	autoresponder?: { enabled?: boolean; subject?: string; content?: string; contentType?: string };
+	previousForwardingAddresses?: string[];
+	aliases?: string[];
+	previousAliases?: string[];
+	autoresponder?: {
+		enabled?: boolean;
+		subject?: string;
+		content?: string;
+		contentType?: string;
+		charset?: string;
+		endDate?: string;
+	};
 	mailbox?: { enabled?: boolean; quota?: number };
 };
+
+const escapeXml = (str: string) =>
+	str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+function uniqueValues(values: string[] | undefined): string[] {
+	const seen = new Set<string>();
+	const out: string[] = [];
+	for (const value of values ?? []) {
+		const trimmed = value.trim();
+		if (!trimmed) continue;
+		const key = trimmed.toLowerCase();
+		if (seen.has(key)) continue;
+		seen.add(key);
+		out.push(trimmed);
+	}
+	return out;
+}
+
+/** Plesk alias nodes are the local part, not a full address. */
+function aliasLocalPart(value: string): string {
+	const trimmed = value.trim();
+	const at = trimmed.indexOf('@');
+	return (at === -1 ? trimmed : trimmed.slice(0, at)).trim();
+}
 
 /**
  * Maps update fields to appropriate Plesk update operations
@@ -27,10 +64,33 @@ interface UpdateFieldMapping {
 }
 
 /**
- * Build XML for mail account update operation
- * Uses hybrid strategy: 'set' for single-value fields, 'add' for list fields
- * Based on working legacy implementation
+ * Build XML for a mail account update.
+ * Child nodes follow mailnameUpdateType order from the Plesk Obsidian XML API:
+ * mailbox, forwarding, alias, autoresponder, password, antivir,
+ * outgoing-messages-mbox-limit, description.
+ * `set` replaces the settings included in that packet.
+ * Forwarding addresses and aliases use remove + add so the saved list matches
+ * the form, which is how the API adds and drops list entries.
  */
+function mailUpdatePacket(siteId: number, name: string, operation: "set" | "add" | "remove", fields: string[]): string {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<packet>
+  <mail>
+    <update>
+      <${operation}>
+        <filter>
+          <site-id>${siteId}</site-id>
+          <mailname>
+            <name>${escapeXml(name)}</name>
+            ${fields.join("\n            ")}
+          </mailname>
+        </filter>
+      </${operation}>
+    </update>
+  </mail>
+</packet>`;
+}
+
 function buildMailUpdateXml(
   siteId: number,
   mailData: UpdateInput
@@ -38,172 +98,110 @@ function buildMailUpdateXml(
   setXml?: string;
   addXml?: string;
   removeXml?: string;
+  autoresponderXml?: string;
   fieldMappings: Record<string, UpdateFieldMapping>;
 } {
   const { name } = mailData;
   const fieldMappings: Record<string, UpdateFieldMapping> = {};
-
-  // Escape XML characters helper
-  const escapeXml = (str: string) =>
-    str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-  // Fields that use 'set' operation (replace completely)
   const setFields: string[] = [];
-  // Fields that use 'add' operation (add to existing)
   const addFields: string[] = [];
-  // Fields that use 'remove' operation (remove from existing)
   const removeFields: string[] = [];
 
-  // Password (use 'set' to replace) - WORKING: Confirmed working
+  if (mailData.mailbox) {
+    const enabled = mailData.mailbox.enabled !== false;
+    const quotaXml = mailData.mailbox.quota !== undefined
+      ? `\n      <quota>${Math.floor(mailData.mailbox.quota)}</quota>`
+      : '';
+    setFields.push(`<mailbox>
+      <enabled>${enabled}</enabled>${quotaXml}
+    </mailbox>`);
+    fieldMappings.mailbox = { operation: 'set', xmlFragment: 'mailbox settings' };
+  }
+
+  if (mailData.forwarding) {
+    const enabled = mailData.forwarding.enabled !== false;
+    const desired = enabled ? uniqueValues(mailData.forwarding.addresses) : [];
+    const addressesXml = desired
+      .map((address) => `\n      <address>${escapeXml(address)}</address>`)
+      .join('');
+    setFields.push(`<forwarding>
+      <enabled>${enabled}</enabled>${addressesXml}
+    </forwarding>`);
+    fieldMappings.forwarding = { operation: 'set', xmlFragment: 'forwarding settings' };
+  }
+
+  if (mailData.aliases) {
+    const desired = uniqueValues(mailData.aliases.map(aliasLocalPart).filter(Boolean));
+    const previous = uniqueValues((mailData.previousAliases ?? []).map(aliasLocalPart).filter(Boolean));
+    const desiredKeys = new Set(desired.map((alias) => alias.toLowerCase()));
+    const previousKeys = new Set(previous.map((alias) => alias.toLowerCase()));
+    const removed = previous.filter((alias) => !desiredKeys.has(alias.toLowerCase()));
+    const added = desired.filter((alias) => !previousKeys.has(alias.toLowerCase()));
+    if (removed.length > 0) {
+      removeFields.push(removed.map((alias) => `<alias>${escapeXml(alias)}</alias>`).join('\n            '));
+      fieldMappings.aliasesRemoved = { operation: 'remove', xmlFragment: 'aliases' };
+    }
+    if (added.length > 0) {
+      addFields.push(added.map((alias) => `<alias>${escapeXml(alias)}</alias>`).join('\n            '));
+      fieldMappings.aliasesAdded = { operation: 'add', xmlFragment: 'aliases' };
+    }
+  }
+
+  let autoresponderFields: string[] = [];
+  if (mailData.autoresponder) {
+    if (mailData.autoresponder.enabled) {
+      const contentType = mailData.autoresponder.contentType || "text/plain";
+      const charset = mailData.autoresponder.charset || "UTF-8";
+      const endDate = mailData.autoresponder.endDate?.trim();
+      autoresponderFields = [`<autoresponder>
+      <enabled>true</enabled>
+      <subject>${escapeXml(mailData.autoresponder.subject ?? "")}</subject>
+      <content_type>${escapeXml(contentType)}</content_type>
+      <charset>${escapeXml(charset)}</charset>
+      <text>${escapeXml(mailData.autoresponder.content ?? "")}</text>${endDate ? `\n      <end_date>${escapeXml(endDate)}</end_date>` : ""}
+    </autoresponder>`];
+    } else {
+      autoresponderFields = [`<autoresponder>
+      <enabled>false</enabled>
+    </autoresponder>`];
+    }
+    fieldMappings.autoresponder = { operation: "set", xmlFragment: "autoresponder settings" };
+  }
+
   if (mailData.password) {
     const passwordType = mailData.passwordType || 'plain';
     setFields.push(`<password>
       <value>${escapeXml(mailData.password)}</value>
       <type>${passwordType}</type>
     </password>`);
-    fieldMappings.password = {
-      operation: 'set',
-      xmlFragment: 'password',
-    };
+    fieldMappings.password = { operation: 'set', xmlFragment: 'password' };
   }
 
-  // Antivirus settings (use 'set' to replace) - TESTING: Add as separate operation
   if (mailData.antivir) {
     setFields.push(`<antivir>${mailData.antivir}</antivir>`);
-    fieldMappings.antivir = {
-      operation: 'set',
-      xmlFragment: 'antivirus settings',
-    };
+    fieldMappings.antivir = { operation: 'set', xmlFragment: 'antivirus settings' };
   }
 
-  // Outgoing message limit (use 'set' to replace) - TESTING: Add as separate operation
   if (mailData.outgoingMessagesLimit !== undefined) {
     setFields.push(
       `<outgoing-messages-mbox-limit>${mailData.outgoingMessagesLimit}</outgoing-messages-mbox-limit>`
     );
-    fieldMappings.outgoingMessagesLimit = {
-      operation: 'set',
-      xmlFragment: 'outgoing messages limit',
-    };
+    fieldMappings.outgoingMessagesLimit = { operation: 'set', xmlFragment: 'outgoing messages limit' };
   }
 
-  // Description (use 'set' to replace) - TESTING: Add as separate operation
   if (mailData.description !== undefined) {
-    if (mailData.description) {
-      setFields.push(
-        `<description>${escapeXml(mailData.description)}</description>`
-      );
-    } else {
-      setFields.push('<description></description>');
-    }
-    fieldMappings.description = {
-      operation: 'set',
-      xmlFragment: 'description',
-    };
+    setFields.push(`<description>${escapeXml(mailData.description)}</description>`);
+    fieldMappings.description = { operation: 'set', xmlFragment: 'description' };
   }
 
-  // Forwarding addresses - DISABLED: Removed entirely as requested
-  // Forwarding functionality has been completely removed from edit mode
-
-  // Autoresponder (use 'set' to replace) - NOT SUPPORTED: Confirmed by error message
-  // if (mailData.autoresponder) {
-  //   if (mailData.autoresponder.enabled && mailData.autoresponder.subject && mailData.autoresponder.content) {
-  //     const contentType = mailData.autoresponder.contentType || 'text/plain';
-  //     setFields.push(`<autoresponder>
-  //       <enabled>true</enabled>
-  //       <subject>${escapeXml(mailData.autoresponder.subject)}</subject>
-  //       <content_type>${contentType}</content_type>
-  //       <text>${escapeXml(mailData.autoresponder.content)}</text>
-  //     </autoresponder>`);
-  //   } else {
-  //     setFields.push(`<autoresponder>
-  //       <enabled>false</enabled>
-  //     </autoresponder>`);
-  //   }
-  //   fieldMappings.autoresponder = {
-  //     operation: 'set',
-  //     xmlFragment: 'autoresponder settings',
-  //   };
-  // }
-
-  // Mailbox settings (use 'set' to replace) - NOT SUPPORTED: Confirmed by error message
-  // if (mailData.mailbox) {
-  //   const enabled = mailData.mailbox.enabled !== undefined ? mailData.mailbox.enabled : true;
-  //   const quota = mailData.mailbox.quota || 1073741824; // Default 1GB
-  //   setFields.push(`<mailbox>
-  //     <enabled>${enabled}</enabled>
-  //     <quota>${quota}</quota>
-  //   </mailbox>`);
-  //   fieldMappings.mailbox = {
-  //     operation: 'set',
-  //     xmlFragment: 'mailbox settings',
-  //   };
-  // }
-
-  // Build SET operation XML if we have set fields
-  const setXml =
-    setFields.length > 0
-      ? `<?xml version="1.0" encoding="UTF-8"?>
-<packet>
-  <mail>
-    <update>
-      <set>
-        <filter>
-          <site-id>${siteId}</site-id>
-          <mailname>
-            <name>${escapeXml(name)}</name>
-            ${setFields.join('\n            ')}
-          </mailname>
-        </filter>
-      </set>
-    </update>
-  </mail>
-</packet>`
-      : undefined;
-
-  // Build ADD operation XML if we have add fields
-  const addXml =
-    addFields.length > 0
-      ? `<?xml version="1.0" encoding="UTF-8"?>
-<packet>
-  <mail>
-    <update>
-      <add>
-        <filter>
-          <site-id>${siteId}</site-id>
-          <mailname>
-            <name>${escapeXml(name)}</name>
-            ${addFields.join('\n            ')}
-          </mailname>
-        </filter>
-      </add>
-    </update>
-  </mail>
-</packet>`
+  const setXml = setFields.length > 0 ? mailUpdatePacket(siteId, name, "set", setFields) : undefined;
+  const addXml = addFields.length > 0 ? mailUpdatePacket(siteId, name, "add", addFields) : undefined;
+  const removeXml = removeFields.length > 0 ? mailUpdatePacket(siteId, name, "remove", removeFields) : undefined;
+  const autoresponderXml = autoresponderFields.length > 0
+    ? mailUpdatePacket(siteId, name, "set", autoresponderFields)
     : undefined;
 
-  // Build REMOVE operation XML if we have remove fields
-  const removeXml =
-    removeFields.length > 0
-      ? `<?xml version="1.0" encoding="UTF-8"?>
-<packet>
-  <mail>
-    <update>
-      <remove>
-        <filter>
-          <site-id>${siteId}</site-id>
-          <mailname>
-            <name>${escapeXml(name)}</name>
-            ${removeFields.join('\n            ')}
-          </mailname>
-        </filter>
-      </remove>
-    </update>
-  </mail>
-</packet>`
-    : undefined;
-
-  return { setXml, addXml, removeXml, fieldMappings };
+  return { setXml, addXml, removeXml, autoresponderXml, fieldMappings };
 }
 
 /**
@@ -332,18 +330,26 @@ export const emailsUpdateRouter = router({
       password: z.string().optional(),
       passwordType: z.enum(['plain', 'crypt']).optional(),
       antivir: z.enum(['off','inout','in','out']).optional(),
-      outgoingMessagesLimit: z.number().optional(),
+      outgoingMessagesLimit: z.number().int().min(0).max(MAX_OUTGOING_MESSAGES_PER_DAY).optional(),
       description: z.string().optional(),
-      // forwarding: z.object({ enabled: z.boolean().optional(), addresses: z.array(z.string()).optional() }).optional(), // REMOVED: Disabled in edit mode
-      autoresponder: z.object({ 
-        enabled: z.boolean().optional(), 
-        subject: z.string().optional(), 
-        content: z.string().optional(), 
-        contentType: z.string().optional() 
+      forwarding: z.object({
+        enabled: z.boolean().optional(),
+        addresses: z.array(z.string()).optional(),
       }).optional(),
-      mailbox: z.object({ 
-        enabled: z.boolean().optional(), 
-        quota: z.number().optional() 
+      previousForwardingAddresses: z.array(z.string()).optional(),
+      aliases: z.array(z.string()).optional(),
+      previousAliases: z.array(z.string()).optional(),
+      autoresponder: z.object({
+        enabled: z.boolean().optional(),
+        subject: z.string().optional(),
+        content: z.string().optional(),
+        contentType: z.string().optional(),
+        charset: z.string().optional(),
+        endDate: z.string().optional(),
+      }).optional(),
+      mailbox: z.object({
+        enabled: z.boolean().optional(),
+        quota: z.number().int().min(0).optional(),
       }).optional(),
     }))
     .mutation(async ({ input }) => {
@@ -353,10 +359,13 @@ export const emailsUpdateRouter = router({
           throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Server configuration error: PLESK_XML_ENDPOINT is not set' });
         }
 
-        const { setXml, addXml, removeXml, fieldMappings } = buildMailUpdateXml(input.siteId, input as UpdateInput);
+        const { setXml, addXml, removeXml, autoresponderXml, fieldMappings } = buildMailUpdateXml(input.siteId, input as UpdateInput);
+        const mainSetMappings = Object.fromEntries(
+          Object.entries(fieldMappings).filter(([field]) => field !== "autoresponder"),
+        );
 
 
-        if (!(setXml || addXml || removeXml)) {
+        if (!(setXml || addXml || removeXml || autoresponderXml)) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
             message: 'No valid update fields provided',
@@ -372,6 +381,31 @@ export const emailsUpdateRouter = router({
           fieldResults: {} as Record<string, any>,
           warnings: [] as string[],
         };
+
+        // Remove dropped list entries before adding or replacing the rest.
+        if (removeXml) {
+          const { xml: removeResponse, isAuthError, isHostUnreachable } = await sendPleskXmlRequest(removeXml);
+
+          if (isHostUnreachable) {
+            throw new TRPCError({ code: 'SERVICE_UNAVAILABLE', message: 'Plesk host is unreachable' });
+          }
+
+          if (isAuthError) {
+            throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Authentication failed' });
+          }
+
+          if (!removeResponse) {
+            throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Empty response from Plesk server during REMOVE operation' });
+          }
+
+          const removeResult = processUpdateResult(removeResponse, 'remove', fieldMappings);
+          results.operationsPerformed.push('REMOVE');
+          Object.assign(results.fieldResults, removeResult.fieldResults);
+
+          if (!removeResult.success) {
+            results.warnings.push(`REMOVE operation failed: ${removeResult.error}`);
+          }
+        }
 
         // Execute SET operation if needed
           if (setXml) {
@@ -389,7 +423,7 @@ export const emailsUpdateRouter = router({
             throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Empty response from Plesk server during SET operation' });
           }
 
-          const setResult = processUpdateResult(setResponse, 'set', fieldMappings);
+          const setResult = processUpdateResult(setResponse, 'set', mainSetMappings);
           results.operationsPerformed.push('SET');
           Object.assign(results.fieldResults, setResult.fieldResults);
 
@@ -423,9 +457,8 @@ export const emailsUpdateRouter = router({
           }
         }
 
-        // Execute REMOVE operation if needed
-        if (removeXml) {
-          const { xml: removeResponse, isAuthError, isHostUnreachable } = await sendPleskXmlRequest(removeXml);
+        if (autoresponderXml) {
+          const { xml: autoResponse, isAuthError, isHostUnreachable } = await sendPleskXmlRequest(autoresponderXml);
 
           if (isHostUnreachable) {
             throw new TRPCError({ code: 'SERVICE_UNAVAILABLE', message: 'Plesk host is unreachable' });
@@ -435,17 +468,29 @@ export const emailsUpdateRouter = router({
             throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Authentication failed' });
           }
 
-          if (!removeResponse) {
-            throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Empty response from Plesk server during REMOVE operation' });
+          if (!autoResponse) {
+            throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Empty response from Plesk server during auto reply update' });
           }
 
-          const removeResult = processUpdateResult(removeResponse, 'remove', fieldMappings);
-          results.operationsPerformed.push('REMOVE');
-          Object.assign(results.fieldResults, removeResult.fieldResults);
+          const autoResult = processUpdateResult(
+            autoResponse,
+            'set',
+            fieldMappings.autoresponder ? { autoresponder: fieldMappings.autoresponder } : {},
+          );
+          results.operationsPerformed.push('SET_AUTORESPONDER');
+          Object.assign(results.fieldResults, autoResult.fieldResults);
 
-          if (!removeResult.success) {
-            results.warnings.push(`REMOVE operation failed: ${removeResult.error}`);
+          if (!autoResult.success) {
+            results.warnings.push(`Auto reply update failed: ${autoResult.error}`);
           }
+        }
+
+        if (results.warnings.length > 0) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: results.warnings.join(' '),
+            cause: results,
+          });
         }
 
         // Determine overall success
