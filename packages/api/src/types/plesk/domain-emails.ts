@@ -686,9 +686,11 @@ export interface EmailCreateRequest {
     subject?: string; // Optional - autoresponder subject
     contentType?: 'text/plain' | 'text/html' | 'text/rich'; // Optional - content type (default: 'text/plain')
     content?: string; // Optional - autoresponder content
+    endDate?: string; // Optional - YYYY-MM-DD, sent as end_date
   };
   
   // Additional settings
+  aliases?: string[]; // Optional - mailname alias local-parts
   alias?: string; // Optional - email alias (single string, not array)
   antivir?: 'off' | 'inout' | 'in' | 'out'; // Optional - antivirus setting (default: 'off')
   cpAccess?: boolean; // Optional - control panel access (default: false)
@@ -708,13 +710,24 @@ export interface EmailUpdateRequest {
   outgoingMessagesLimit?: number; // Optional - outgoing messages limit
   description?: string; // Optional - email account description
   
-  // Forwarding settings (add new addresses)
   forwarding?: {
-    addresses?: string[]; // Optional - forwarding addresses to add
+    enabled?: boolean;
+    addresses?: string[];
   };
-  
-  // Note: password, alias, autoresponder, and mailbox settings are NOT supported in UPDATE operations
-  // These fields will be ignored if provided and marked as unsupported
+  aliases?: string[];
+  previousAliases?: string[];
+  autoresponder?: {
+    enabled?: boolean;
+    subject?: string;
+    content?: string;
+    contentType?: string;
+    endDate?: string;
+  };
+  mailbox?: {
+    enabled?: boolean;
+    quota?: number;
+  };
+  password?: string;
 }
 
 export interface EmailCreateResponse {
