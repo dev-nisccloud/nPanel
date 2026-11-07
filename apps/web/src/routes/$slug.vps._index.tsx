@@ -47,7 +47,6 @@ export default function VpsPage() {
 	const pricing = useHivelocityPricing("VPS");
 	const { productIdByType } = useHivelocityNiscProducts();
 	const displayCurrency: "KES" | "USD" = pricing.usdToKesRate ? "KES" : "USD";
-	const showOriginalUsd = Boolean(pricing.settings?.base.marginType);
 
 	const displayPlans = React.useMemo(() => {
 		return plans.map((p) => {
@@ -65,7 +64,6 @@ export default function VpsPage() {
 				return {
 					...p,
 					__baseUsd: baseUsd,
-					...(showOriginalUsd ? { __originalUsd: baseUsd } : {}),
 					product_monthly_price: pricing.toKes(monthly.final) ?? p.product_monthly_price,
 					product_hourly_price: pricing.toKes(hourly.final) ?? p.product_hourly_price,
 					product_original_price: p.product_original_price
@@ -76,13 +74,12 @@ export default function VpsPage() {
 			return {
 				...p,
 				__baseUsd: baseUsd,
-				...(showOriginalUsd ? { __originalUsd: baseUsd } : {}),
 				product_monthly_price: monthly.final,
 				product_hourly_price: hourly.final,
 				product_original_price: p.product_original_price ? original?.final ?? p.product_original_price : p.product_original_price,
 			};
 		});
-	}, [plans, pricing, displayCurrency, showOriginalUsd]);
+	}, [plans, pricing, displayCurrency]);
 
 	const displayPriceMap = React.useMemo(() => {
 		const map = new Map<number, number>();
@@ -189,7 +186,6 @@ export default function VpsPage() {
 											plan={p}
 											locationName={facilityTitleByCode.get(p.data_center) ?? p.data_center}
 											displayCurrency={displayCurrency}
-											originalUsd={(p as any).__originalUsd}
 											onBuyNow={openBuyNow}
 											onAddToCart={openCartFlow}
 										/>
