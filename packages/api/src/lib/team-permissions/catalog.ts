@@ -16,7 +16,8 @@ export type TeamPermissionModuleId =
 	| "gen_ai"
 	| "billing"
 	| "team_settings"
-	| "marketplace";
+	| "marketplace"
+	| "social_ads";
 
 export type TeamPermissionEntry = {
 	key: string;
@@ -41,6 +42,7 @@ const MODULE_LABELS: Record<TeamPermissionModuleId, string> = {
 	billing: "Billing",
 	team_settings: "Team settings",
 	marketplace: "Marketplace",
+	social_ads: "Social Media & Ads",
 };
 
 function entry(
@@ -131,6 +133,11 @@ export const TEAM_PERMISSION_CATALOG: readonly TeamPermissionEntry[] = [
 	entry("team_settings", "invitations", "Invitations", "View or send and cancel invitations"),
 
 	entry("marketplace", "browse", "Browse", "Browse the marketplace"),
+
+	entry("social_ads", "facebook", "Facebook", "View Facebook ad accounts, campaigns, and Pages granted to this organization"),
+	entry("social_ads", "instagram", "Instagram", "View Instagram ad accounts and campaigns granted to this organization"),
+	entry("social_ads", "linkedin", "LinkedIn", "View LinkedIn ad accounts and campaigns granted to this organization"),
+	entry("social_ads", "google", "Google Ads", "View Google Ads accounts and campaigns granted to this organization"),
 ] as const;
 
 export type TeamPermissionKey = (typeof TEAM_PERMISSION_CATALOG)[number]["key"];

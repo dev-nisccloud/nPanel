@@ -19,6 +19,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useSocialAdsScope } from "@/components/social-ads/social-ads-scope";
 import { trpc } from "@/utils/trpc";
 
 const activityChartConfig = {
@@ -111,8 +112,9 @@ export function FacebookPageAnalytics({
       ? { since: format(pickedRange.from, "yyyy-MM-dd"), until: format(pickedRange.to, "yyyy-MM-dd") }
       : undefined;
 
+  const scope = useSocialAdsScope();
   const detailsQuery = trpc.customerOAuth.facebookPages.details.useQuery(
-    { pageId, timeRange },
+    { pageId, timeRange, teamId: scope.teamId ?? undefined },
     cachedDetails,
   );
   const showSkeleton = detailsQuery.isLoading || detailsQuery.isFetching;

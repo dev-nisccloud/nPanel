@@ -6,6 +6,7 @@ import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { toast } from "@/components/ui/sonner";
+import { useSocialAdsScope } from "@/components/social-ads/social-ads-scope";
 import { useIsAgencyRole } from "@/lib/agency-role";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
@@ -21,6 +22,8 @@ const cachedGoogleList = {
 } as const;
 
 export function GoogleWorkspace() {
+  const scope = useSocialAdsScope();
+  const customer = scope.audience === "customer";
   const isAgency = useIsAgencyRole();
   const utils = trpc.useUtils();
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -72,13 +75,13 @@ export function GoogleWorkspace() {
             <h1 className="text-xl font-bold tracking-tight">Google Ads</h1>
             <p className="text-xs text-muted-foreground">Connected ad accounts and their campaigns.</p>
           </div>
-          {active || isAgency ? (
+          {customer || active || isAgency ? (
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={() => void refreshGoogle()} disabled={isRefreshing} className="shrink-0">
                 <RefreshCw className={cn("mr-2 h-4 w-4", isRefreshing && "animate-spin")} />
                 Refresh
               </Button>
-              <ConnectGoogleButton />
+              {!customer && (active || isAgency) ? <ConnectGoogleButton /> : null}
             </div>
           ) : null}
         </div>
@@ -91,9 +94,9 @@ export function GoogleWorkspace() {
           <div className="mt-8 rounded-xl border border-dashed px-6 py-16 text-center">
             <p className="text-sm text-destructive">{connectionsQuery.error.message}</p>
           </div>
-        ) : pending ? (
+        ) : !customer && pending ? (
           <SelectGoogleAdAccounts connectionId={pending.id} />
-        ) : !active && !isAgency ? (
+        ) : !customer && !active && !isAgency ? (
           <div className="mt-8 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-muted py-24 text-center">
             <ConnectGoogleCard />
           </div>

@@ -21,6 +21,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { cn } from "@/lib/utils";
+import { useSocialAdsScope } from "@/components/social-ads/social-ads-scope";
 import { trpc } from "@/utils/trpc";
 
 const performanceChartConfig = {
@@ -124,9 +125,10 @@ function MetricGrid({
 }
 
 function AdPreview({ assetId, creativeId }: { assetId: string; creativeId: string }) {
+  const scope = useSocialAdsScope();
   const [open, setOpen] = React.useState(false);
   const previewQuery = trpc.customerOAuth.linkedin.getAdPreview.useQuery(
-    { assetId, creativeId },
+    { assetId, creativeId, teamId: scope.teamId ?? undefined },
     { enabled: open },
   );
 
@@ -194,6 +196,8 @@ export default function LinkedInCampaignDetailsPage() {
   const { campaignId = "" } = useParams();
   const [searchParams] = useSearchParams();
   const assetId = searchParams.get("assetId") ?? "";
+  const scope = useSocialAdsScope();
+  const teamId = scope.teamId ?? undefined;
   const utils = trpc.useUtils();
   const [pickedRange, setPickedRange] = React.useState<DateRange | undefined>();
   const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false);
@@ -205,11 +209,11 @@ export default function LinkedInCampaignDetailsPage() {
       : undefined;
 
   const detailsQuery = trpc.customerOAuth.linkedin.getDetails.useQuery(
-    { assetId, campaignId, timeRange: queryTimeRange },
+    { assetId, campaignId, timeRange: queryTimeRange, teamId },
     { enabled: Boolean(assetId && campaignId), placeholderData: (previous) => previous },
   );
   const chartsQuery = trpc.customerOAuth.linkedin.getCharts.useQuery(
-    { assetId, campaignId, timeRange: queryTimeRange },
+    { assetId, campaignId, timeRange: queryTimeRange, teamId },
     { enabled: Boolean(assetId && campaignId), placeholderData: (previous) => previous },
   );
 
@@ -226,8 +230,8 @@ export default function LinkedInCampaignDetailsPage() {
     setIsRefreshing(true);
     try {
       await Promise.all([
-        utils.customerOAuth.linkedin.getDetails.invalidate({ assetId, campaignId, timeRange: queryTimeRange }),
-        utils.customerOAuth.linkedin.getCharts.invalidate({ assetId, campaignId, timeRange: queryTimeRange }),
+        utils.customerOAuth.linkedin.getDetails.invalidate({ assetId, campaignId, timeRange: queryTimeRange, teamId }),
+        utils.customerOAuth.linkedin.getCharts.invalidate({ assetId, campaignId, timeRange: queryTimeRange, teamId }),
       ]);
     } finally {
       setIsRefreshing(false);
@@ -272,7 +276,7 @@ export default function LinkedInCampaignDetailsPage() {
     <div className="@container/main flex flex-col gap-6 px-4 py-4 font-sans text-foreground md:px-6 md:py-6 lg:px-8">
       <div className="mx-auto w-full min-w-0 max-w-7xl space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex items-start gap-3">
+          <div className="flex min-w-0 flex-1 items-start gap-3">
             <Button
               variant="outline"
               size="icon"
@@ -280,15 +284,15 @@ export default function LinkedInCampaignDetailsPage() {
               onClick={() =>
                 navigate(
                   assetId
-                    ? `/agency/social-media-ads/linkedin?assetId=${assetId}`
-                    : "/agency/social-media-ads/linkedin",
+                    ? `${scope.basePath}/linkedin?assetId=${assetId}`
+                    : `${scope.basePath}/linkedin`,
                 )
               }
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight">{campaign?.name || "Campaign"}</h1>
+            <div className="min-w-0 flex-1">
+              <h1 className="line-clamp-2 break-words text-xl font-bold tracking-tight">{campaign?.name || "Campaign"}</h1>
               <p className="text-xs text-muted-foreground">{details?.accountName || "LinkedIn ad account"}</p>
             </div>
           </div>

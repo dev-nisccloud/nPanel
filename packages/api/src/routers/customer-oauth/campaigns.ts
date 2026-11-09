@@ -4,14 +4,12 @@
  */
 
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { customerPlatformAsset } from "@npanel/db/schema";
 import { MetaAdsClient } from "../../lib/meta-ads-client";
 import { decryptToken } from "../../lib/oauth-encryption";
 import { router, protectedProcedure } from "../../trpc";
-import { sessionIsAgency } from "./agency-access";
+import { assertPlatformTeamRead, assetReadWhere } from "./team-asset-access";
 import { getCustomerCampaignCharts, getCustomerCampaignDetails } from "./campaign-details";
 
 function asNumber(value: unknown): number | null {
@@ -60,19 +58,20 @@ export const customerOAuthCampaignsRouter = router({
           })
           .optional(),
         publisherPlatform: z.enum(["instagram"]).optional(),
+        teamId: z.string().min(1).optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
       const asset = await ctx.db.query.customerPlatformAsset.findFirst({
-        where: and(
-          eq(customerPlatformAsset.id, input.assetId),
-          sessionIsAgency(ctx.session.user) ? undefined : eq(customerPlatformAsset.userId, ctx.session.user.id),
-        ),
+        where: assetReadWhere(ctx.session.user, input.assetId, input.teamId),
         with: { connection: true },
       });
 
       if (!asset || !asset.connection) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Ad account not found" });
+      }
+      if (input.teamId) {
+        await assertPlatformTeamRead(ctx.session.user, asset.platform, input.teamId);
       }
 
       if (

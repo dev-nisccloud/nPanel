@@ -25,6 +25,7 @@ import {
   isSuperAdmin,
 } from "../../lib/oauth-error-handler";
 import { sessionIsAgency } from "./agency-access";
+import { assertPlatformTeamRead } from "./team-asset-access";
 
 function ownerScope(user: object, userId: string) {
   return sessionIsAgency(user) ? undefined : eq(customerPlatformAsset.userId, userId);
@@ -46,15 +47,22 @@ export const customerOAuthAssetsRouter = router({
           platform: z.enum(["meta_facebook", "meta_instagram", "google_ads", "linkedin_ads"]).optional(),
           assetType: z.string().optional(),
           isActive: z.boolean().optional(),
+          teamId: z.string().min(1).optional(),
         })
         .optional()
     )
     .query(async ({ ctx, input }) => {
       const userId = ctx.session.user.id;
+      if (input?.teamId) {
+        if (!input.platform) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Choose a platform" });
+        }
+        await assertPlatformTeamRead(ctx.session.user, input.platform, input.teamId);
+      }
 
-      const conditions = [ownerScope(ctx.session.user, userId)].filter(
-        (condition): condition is NonNullable<typeof condition> => condition != null,
-      );
+      const conditions = [
+        input?.teamId ? eq(customerPlatformAsset.teamId, input.teamId) : ownerScope(ctx.session.user, userId),
+      ].filter((condition): condition is NonNullable<typeof condition> => condition != null);
 
       if (input?.connectionId) {
         conditions.push(eq(customerPlatformAsset.connectionId, input.connectionId));

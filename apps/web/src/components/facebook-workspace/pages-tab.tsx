@@ -21,7 +21,10 @@ import { toast } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 
+import { NiscServiceAccessEmpty } from "@/components/social-ads/nisc-service-access-empty";
+import { useSocialAdsScope } from "@/components/social-ads/social-ads-scope";
 import { ConnectFacebookButton } from "./connect-facebook-card";
+import { LinkFacebookPageOrganization } from "./link-facebook-page";
 import { FacebookContentCalendar } from "./content-calendar";
 import { FacebookPageAnalytics } from "./page-analytics";
 import type { MockScheduledContent } from "./mock-data";
@@ -34,12 +37,17 @@ const cachedPages = {
 } as const;
 
 export function FacebookPagesTab() {
+  const scope = useSocialAdsScope();
+  const customer = scope.audience === "customer";
   const utils = trpc.useUtils();
   const connectionsQuery = trpc.customerOAuth.connections.list.useQuery(
     { platform: "meta_facebook_pages" },
-    cachedPages,
+    { ...cachedPages, enabled: !customer },
   );
-  const pagesQuery = trpc.customerOAuth.facebookPages.list.useQuery(undefined, cachedPages);
+  const pagesQuery = trpc.customerOAuth.facebookPages.list.useQuery(
+    customer && scope.teamId ? { teamId: scope.teamId } : undefined,
+    { ...cachedPages, enabled: !customer || Boolean(scope.teamId) },
+  );
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [importing, setImporting] = React.useState(false);
   const [showCalendar, setShowCalendar] = React.useState(false);
@@ -58,7 +66,7 @@ export function FacebookPagesTab() {
     if (!selectedId && pages[0]) setSelectedId(pages[0].id);
   }, [pages, selectedId]);
 
-  if (connectionsQuery.isLoading || pagesQuery.isLoading) {
+  if ((customer && pagesQuery.isLoading) || (!customer && (connectionsQuery.isLoading || pagesQuery.isLoading))) {
     return (
       <div className="flex justify-center py-16">
         <Spinner size={28} />
@@ -66,11 +74,19 @@ export function FacebookPagesTab() {
     );
   }
 
-  if (connectionsQuery.isError) {
+  if (pagesQuery.isError) {
+    return <p className="text-sm text-destructive">{pagesQuery.error.message}</p>;
+  }
+
+  if (!customer && connectionsQuery.isError) {
     return <p className="text-sm text-destructive">{connectionsQuery.error.message}</p>;
   }
 
-  if (!active && !pending) {
+  if (customer && pages.length === 0) {
+    return <NiscServiceAccessEmpty service="Facebook Pages" />;
+  }
+
+  if (!customer && !active && !pending) {
     return (
       <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-muted py-24 text-center">
         <Card className="mx-auto w-full max-w-md">
@@ -92,7 +108,7 @@ export function FacebookPagesTab() {
     );
   }
 
-  if (showPicker && (pending ?? active)) {
+  if (!customer && showPicker && (pending ?? active)) {
     return (
       <SelectFacebookPages
         connectionId={(pending ?? active)!.id}
@@ -121,9 +137,11 @@ export function FacebookPagesTab() {
           >
             {showCalendar ? "Overview" : "Content calendar"}
           </Button>
+          {customer ? null : (
           <Button variant="outline" size="sm" className="w-full" onClick={() => setImporting(true)}>
             Import pages
           </Button>
+          )}
         </div>
         <div className="hidden max-h-[32rem] flex-col gap-1 overflow-auto rounded-xl border p-2 md:flex">
           {pages.map((page) => {
@@ -170,9 +188,14 @@ export function FacebookPagesTab() {
         >
           {showCalendar ? "Overview" : "Content calendar"}
         </Button>
-        <Button variant="outline" size="sm" className="mt-2 hidden w-full md:inline-flex" onClick={() => setImporting(true)}>
-          Import pages
-        </Button>
+        {customer ? null : (
+          <>
+            <Button variant="outline" size="sm" className="mt-2 hidden w-full md:inline-flex" onClick={() => setImporting(true)}>
+              Import pages
+            </Button>
+            {selected ? <div className="mt-2 hidden md:block"><LinkFacebookPageOrganization pageId={selected.id} linkedTeamId={selected.teamId} /></div> : null}
+          </>
+        )}
       </aside>
       <div className="min-w-0 flex-1">
         {selected && showCalendar ? (

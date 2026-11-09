@@ -3,6 +3,7 @@ import { boolean, index, pgTable, text, timestamp, uniqueIndex } from "drizzle-o
 
 import { user } from "./auth";
 import { customerOAuthConnection } from "./customer-oauth";
+import { team } from "./teams";
 
 /**
  * Facebook Pages imported for Social Media Ads.
@@ -18,6 +19,7 @@ export const facebookPage = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
+    teamId: text("team_id").references(() => team.id, { onDelete: "set null" }),
     pageId: text("page_id").notNull(),
     name: text("name").notNull(),
     username: text("username"),
@@ -34,6 +36,7 @@ export const facebookPage = pgTable(
   (table) => [
     uniqueIndex("facebook_page_connection_page_unique").on(table.connectionId, table.pageId),
     index("facebook_page_userId_idx").on(table.userId),
+    index("facebook_page_teamId_idx").on(table.teamId),
     index("facebook_page_pageId_idx").on(table.pageId),
   ],
 );
@@ -46,5 +49,9 @@ export const facebookPageRelations = relations(facebookPage, ({ one }) => ({
   user: one(user, {
     fields: [facebookPage.userId],
     references: [user.id],
+  }),
+  team: one(team, {
+    fields: [facebookPage.teamId],
+    references: [team.id],
   }),
 }));
