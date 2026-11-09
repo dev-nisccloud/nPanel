@@ -117,7 +117,7 @@ export const posts: Post[] = [
     readTime: "8 min read",
     date: "Apr 22, 2025",
     featured: true,
-    gradient: "from-violet-500/20 via-primary/10 to-transparent",
+    gradient: "from-brand-orange/15 via-primary/10 to-transparent",
     author: "Kevin Mwangi",
     authorRole: "SEO Lead, Nisc Cloud",
     content: [
@@ -255,9 +255,9 @@ export const posts: Post[] = [
   {
     slug: "zeepo-ai-explained",
     category: "AI Automation",
-    title: "Zeepo AI Explained: How We're Replacing Your Sales Team With Smart Bots",
+    title: "Zepo AI Explained: Faster Replies and Follow-Ups",
     excerpt:
-      "CRM automation, WhatsApp chatbots, AI-generated follow-ups - Zeepo AI is the engine that keeps working while you sleep. Here's the full picture.",
+      "CRM automation, WhatsApp chatbots, AI-generated follow-ups - Zepo AI is the engine that keeps working while you sleep. Here's the full picture.",
     readTime: "7 min read",
     date: "Apr 10, 2025",
     gradient: "from-orange-500/20 via-primary/10 to-transparent",
@@ -266,12 +266,12 @@ export const posts: Post[] = [
     content: [
       {
         type: "intro",
-        text: "What if your business could respond to every lead within 60 seconds, qualify them automatically, send a personalised follow-up at the perfect time, and book a demo - all while you sleep? That's not science fiction. That's Zeepo AI.",
+        text: "What if your business could respond to every lead within 60 seconds, qualify them automatically, send a personalised follow-up at the perfect time, and book a demo - all while you sleep? That's not science fiction. That's Zepo AI.",
       },
-      { type: "h2", text: "What Is Zeepo AI?" },
+      { type: "h2", text: "What Is Zepo AI?" },
       {
         type: "p",
-        text: "Zeepo AI is Nisc Cloud's proprietary automation platform built specifically for Kenyan businesses. It connects your CRM, WhatsApp Business, email, and website into a single intelligent pipeline that automates the most repetitive and time-sensitive parts of your sales and support workflow.",
+        text: "Zepo AI is Nisc Cloud's proprietary automation platform built specifically for Kenyan businesses. It connects your CRM, WhatsApp Business, email, and website into a single intelligent pipeline that automates the most repetitive and time-sensitive parts of your sales and support workflow.",
       },
       {
         type: "stat-row",
@@ -296,12 +296,12 @@ export const posts: Post[] = [
         type: "callout",
         icon: "🤖",
         title: "WhatsApp Is the Channel",
-        text: "In Kenya, WhatsApp Business open rates exceed 90%. Zeepo AI treats WhatsApp as the primary communication channel, not a secondary one. This alone drives dramatically higher engagement compared to email-first automation tools built for Western markets.",
+        text: "In Kenya, WhatsApp Business open rates exceed 90%. Zepo AI treats WhatsApp as the primary communication channel, not a secondary one. This alone drives dramatically higher engagement compared to email-first automation tools built for Western markets.",
       },
       { type: "h2", text: "Implementation: What to Expect" },
       {
         type: "p",
-        text: "A standard Zeepo AI implementation takes 2-4 weeks and includes: business process mapping, chatbot training on your specific products and FAQs, CRM setup and integrations, team training, and a 30-day hypercare period. Most clients see measurable ROI within the first month of operation.",
+        text: "A standard Zepo AI implementation takes 2-4 weeks and includes: business process mapping, chatbot training on your specific products and FAQs, CRM setup and integrations, team training, and a 30-day hypercare period. Most clients see measurable ROI within the first month of operation.",
       },
       {
         type: "ul",
@@ -314,7 +314,7 @@ export const posts: Post[] = [
       },
       {
         type: "closing",
-        text: "Zeepo AI isn't a tool you set up and forget - it's a system that gets smarter over time. Book a live demo to see it in action with a simulated version of your own business workflow.",
+        text: "Zepo AI isn't a tool you set up and forget - it's a system that gets smarter over time. Book a live demo to see it in action with a simulated version of your own business workflow.",
       },
     ],
   },
@@ -351,9 +351,9 @@ export const posts: Post[] = [
       {
         type: "stat-row",
         stats: [
-          { value: "99.99%", label: "Uptime target on shared hosting" },
+          { value: "99.9%", label: "Uptime target on shared hosting" },
           { value: "KES 350", label: "Starting price per month" },
-          { value: "24/7", label: "Support included on all plans" },
+          { value: "Free", label: "Migration help on all plans" },
         ],
       },
       { type: "h2", text: "VPS Hosting: When You've Outgrown Shared" },
@@ -584,7 +584,7 @@ export const posts: Post[] = [
 
 export const categoryColors: Record<string, string> = {
   "Brand Strategy": "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
-  "SEO / AEO / GEO": "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300",
+  "SEO / AEO / GEO": "bg-brand-orange/10 text-brand-orange",
   "E-commerce": "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
   "AI Automation": "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
   "Cloud Hosting": "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300",

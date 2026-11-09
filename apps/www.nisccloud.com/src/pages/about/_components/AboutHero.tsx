@@ -25,7 +25,10 @@ export default function AboutHero() {
           className="text-lg text-muted-foreground text-balance max-w-2xl mx-auto"
         >
           We help businesses of every size get online, stay online, and grow
-          with clear hosting and marketing under one team.
+          with clear hosting and marketing under one team. From small and
+          medium businesses to corporate organisations with more than 2,500
+          employees, clients work with a dedicated account manager and a
+          partner focused on results.
         </motion.p>
       </div>
     </section>

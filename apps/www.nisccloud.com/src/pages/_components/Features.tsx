@@ -43,7 +43,7 @@ const features = [
   },
   {
     description:
-      "Your websites and apps run on reliable hosting with a 99.99% uptime target and fast load times for your visitors.",
+      "Your websites and apps run on reliable hosting with a 99.9% uptime target and fast load times for your visitors.",
     icon: Server,
     title: "Lightning Fast Hosting",
   },
@@ -51,7 +51,7 @@ const features = [
     description:
       "We protect your data and your customers with automated SSL certificates, daily backups, and robust firewalls.",
     icon: Shield,
-    title: "Bank-Grade Security",
+    title: "Security Built In",
   },
   {
     description:
@@ -61,9 +61,9 @@ const features = [
   },
   {
     description:
-      "Got a question at 3 AM? Our dedicated technical team is always online to help you resolve issues instantly.",
+      "Raise a support request any time from nPanel, email or WhatsApp and our technical team picks it up.",
     icon: Headset,
-    title: "24/7 Expert Support",
+    title: "Expert Support",
   },
 ];
 

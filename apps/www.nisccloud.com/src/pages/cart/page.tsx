@@ -3,6 +3,8 @@ import { useSearchParams, Link } from "react-router-dom";
 import { ShoppingCart, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
+import { publicPlanName } from "@/lib/plan-catalog.ts";
+import { trackEvent } from "@/lib/track.ts";
 import Navbar from "@/pages/_components/Navbar.tsx";
 import { TransferEppCodeField } from "./_components/TransferEppCodeField.tsx";
 import { CartPageSkeleton } from "./_components/CartPageSkeleton.tsx";
@@ -135,7 +137,7 @@ function EmptyCart() {
   return (
     <div className="flex flex-col items-center justify-center pt-24 md:pt-28 pb-24 text-center px-4">
       <ShoppingCart className="w-12 h-12 text-muted-foreground/40 mb-4" />
-      <h2 className="text-xl font-bold text-foreground mb-2">Your cart is empty</h2>
+      <h1 className="text-xl font-bold text-foreground mb-2">Your cart is empty</h1>
       <p className="text-muted-foreground mb-6 max-w-xs">
         Browse our services and select a plan to get started.
       </p>
@@ -449,7 +451,7 @@ export default function CartPage() {
   );
 
   const cartItem: CartItemData = {
-    planName,
+    planName: publicPlanName(planId, planName),
     productName,
     serviceType,
     monthlyPrice,
@@ -565,6 +567,7 @@ export default function CartPage() {
       }
       setCheckoutIdentity({ status: "loading" });
       setStep(2);
+      trackEvent("checkout_start", { service: serviceType || "unknown" });
       window.scrollTo({ top: 0, behavior: "smooth" });
       void fetchStorefrontCheckoutIdentity()
         .then(applySignedInIdentity)
@@ -614,7 +617,7 @@ export default function CartPage() {
       const exists = await checkStorefrontEmail(info.email);
       if (exists) {
         toast.error(
-          "An account with this email already exists. Sign in to nPanel to complete your purchase.",
+          "An account with this email already exists. Log in to nPanel to complete your purchase.",
         );
         return;
       }
@@ -768,6 +771,11 @@ export default function CartPage() {
 
     clearStorefrontCartDraft();
     clearStorefrontCartResume();
+    trackEvent("checkout_success", {
+      service: serviceType || "unknown",
+      method: "mpesa",
+      billing_cycle: displayBillingCycle,
+    });
     toast.success(`Order ${order.orderNumber} confirmed! Redirecting to your dashboard…`);
     window.location.href = `${NPANEL_URL}/${order.teamSlug}/dashboard`;
   };
@@ -831,11 +839,17 @@ export default function CartPage() {
         sessionStorage.removeItem("storefront_jenga_checkout");
         clearStorefrontCartDraft();
         clearStorefrontCartResume();
+        trackEvent("checkout_success", {
+          service: serviceType || "unknown",
+          method: "card",
+          billing_cycle: displayBillingCycle,
+        });
         toast.success(`Order ${order.orderNumber} confirmed! Redirecting to your dashboard…`);
         window.location.href = `${NPANEL_URL}/${order.teamSlug}/dashboard`;
       },
     }).catch((err) => {
       setJengaResumePending(false);
+      trackEvent("checkout_failure", { method: "card", stage: "confirmation" });
       toast.error(err instanceof Error ? err.message : "Card payment confirmation failed.");
     });
   }, [
@@ -859,7 +873,7 @@ export default function CartPage() {
     return (
       <div className="min-h-screen bg-background text-foreground">
         <Navbar />
-        <main className="max-w-5xl mx-auto px-4 md:px-6 pt-24 md:pt-28 pb-8">
+        <main className="max-w-6xl mx-auto px-4 md:px-6 xl:px-8 pt-24 md:pt-28 pb-8">
           <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
             {quoteError}
           </div>
@@ -885,8 +899,8 @@ export default function CartPage() {
         <main
           className={
             showSkeleton
-              ? "max-w-5xl mx-auto px-4 md:px-6 pt-24 md:pt-28 pb-8 invisible absolute inset-x-0 top-0 opacity-0 pointer-events-none h-0 overflow-hidden"
-              : "max-w-5xl mx-auto px-4 md:px-6 pt-24 md:pt-28 pb-8 animate-in fade-in duration-300"
+              ? "max-w-6xl mx-auto px-4 md:px-6 xl:px-8 pt-24 md:pt-28 pb-8 invisible absolute inset-x-0 top-0 opacity-0 pointer-events-none h-0 overflow-hidden"
+              : "max-w-6xl mx-auto px-4 md:px-6 xl:px-8 pt-24 md:pt-28 pb-8 animate-in fade-in duration-300"
           }
           aria-hidden={showSkeleton}
         >
@@ -906,7 +920,7 @@ export default function CartPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px] gap-6 xl:gap-8 items-start">
           {/* ── Left column ── */}
           <div className="space-y-4">
             <AnimatePresence mode="wait">

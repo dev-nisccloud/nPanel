@@ -22,7 +22,7 @@ export default function DomainTransferPage() {
           <span className="text-primary">We Help You Through It.</span>
         </>
       }
-      subtext="Bring your domain to one place with your hosting and email. Check if it can move, see the live transfer price, then finish checkout with your authorization code. Free setup help and 24/7 support if you get stuck."
+      subtext="Bring your domain to one place with your hosting and email. Check if it can move, see the live transfer price, then finish checkout with your authorization code. Free setup help from our team if you get stuck."
       serviceType="hosting"
       plans={[]}
       plansUnderHero
@@ -34,7 +34,7 @@ export default function DomainTransferPage() {
       trustStats={[
         { value: "5-7", label: "Days Typical Transfer" },
         { value: "200+", label: "Extensions Supported" },
-        { value: "24/7", label: "Support Ready" },
+        { value: "Free", label: "Transfer Help" },
         { value: "Free", label: "Setup Help" },
       ]}
       features={[
@@ -66,7 +66,7 @@ export default function DomainTransferPage() {
         {
           icon: <Headphones size={20} />,
           title: "Real Help When You Need It",
-          desc: "24/7 support for unlock steps, auth codes, and status updates if your current registrar is slow.",
+          desc: "Support for unlock steps, auth codes, and status updates if your current registrar is slow.",
         },
         {
           icon: <Clock size={20} />,
@@ -105,27 +105,27 @@ export default function DomainTransferPage() {
       whySectionHeadline="A Clearer Way to Move Your Domain"
       whyPoints={[
         {
-          title: "See the Price When You Check",
+          title: "See the Price When You Check", visual: "pricing",
           desc: "Enter your domain to see eligibility and the live transfer price. No guesswork before you start.",
         },
         {
-          title: "We Guide the Unlock Steps",
+          title: "We Guide the Unlock Steps", visual: "clarity",
           desc: "Transfer lock and auth codes confuse many people. We explain both in plain language.",
         },
         {
-          title: "Help If the Move Stalls",
+          title: "Help If the Move Stalls", visual: "migration",
           desc: "If a transfer sits waiting, our team helps you chase updates so you are not left guessing.",
         },
         {
-          title: "One Extra Year Included",
+          title: "One Extra Year Included", visual: "ownership",
           desc: "When the transfer succeeds, you get one year of registration added to the domain.",
         },
         {
-          title: "Ready for Hosting and Email",
+          title: "Ready for Hosting and Email", visual: "integrate",
           desc: "After the move, point DNS to your hosting or set up business email without juggling another login.",
         },
         {
-          title: "One Team for What Comes Next",
+          title: "One Team for What Comes Next", visual: "support",
           desc: "Keep domains, hosting, and growth work with one team instead of many separate vendors.",
         },
       ]}
@@ -160,7 +160,7 @@ export default function DomainTransferPage() {
         },
       ]}
       ctaHeadline="Ready to Move Your Domain?"
-      ctaSubtext="Check eligibility in seconds. If you need help unlocking your domain or finding your authorization code, our team is here 24/7."
+      ctaSubtext="Check eligibility in seconds. If you need help unlocking your domain or finding your authorization code, our team is ready to help."
     />
   );
 }

@@ -5,9 +5,11 @@ import SecurityMacbookSection from "../_components/SecurityMacbookSection.tsx";
 import SecurityPlans from "../_components/SecurityPlans.tsx";
 import SecurityFeatures from "../_components/SecurityFeatures.tsx";
 import SecurityCTA from "../_components/SecurityCTA.tsx";
-import SecurityDashboardScreen from "../_components/SecurityDashboardScreen.tsx";
+import {
+  EmailGateArtwork,
+  EmailSecurityScreen,
+} from "../_components/EmailSecurityArtwork.tsx";
 import FaqBlock from "@/components/shadcn-space/blocks/faq-01/faq.tsx";
-import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
 import type { OrderPlan } from "@/pages/hosting/_components/OrderDialog.tsx";
 import {
   ShieldCheck,
@@ -120,8 +122,8 @@ const emailFeatures = [
     icon: Inbox,
     title: "Quarantine You Control",
     desc: "Review held messages, release false positives, and whitelist trusted senders from a simple portal without waiting on IT tickets.",
-    color: "text-violet-500",
-    bg: "bg-violet-500/10",
+    color: "text-primary",
+    bg: "bg-primary/10",
   },
   {
     icon: ShieldCheck,
@@ -136,37 +138,37 @@ export default function EmailSecurityPage() {
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       <Navbar />
+      <main id="main-content">
       <SecurityHero
         title={
           <>
             Stop Phishing Before
-            <br />
+            {" "}<br />
             <span className="text-primary">It Reaches Your Inbox</span>
           </>
         }
         description="Business email security that filters spam, blocks phishing, scans attachments for malware, and hardens SPF, DKIM, and DMARC so criminals cannot spoof your domain."
-        imageSrc={niscWebsiteImage("Business email hosting.png")}
-        imageAlt="Email Security for business inboxes"
+        visual={<EmailGateArtwork />}
         plansId="email-security-plans"
       />
       <SecurityMacbookSection
         title={
           <>
             Threats filtered,
-            <br />
+            {" "}<br />
             <span className="text-primary">before they land</span>
           </>
         }
         description="See spam blocked, phishing quarantined, and malware attachments stopped in real time so your team stays focused on real work."
-        screen={<SecurityDashboardScreen productLabel="Email Security" />}
-        srTitle="Nisc Cloud Email Security Dashboard real-time inbox protection"
+        screen={<EmailSecurityScreen />}
+        srTitle="Nisc Cloud Email Security quarantine, domain authentication and daily totals"
       />
       <SecurityPlans
         sectionId="email-security-plans"
         plans={emailPlans}
         serviceName="Email Security"
         title="Choose Your Email Protection"
-        subtitle="30-day money-back guarantee. Works with Microsoft 365, Google Workspace, and hosted business email."
+        subtitle="Works with Microsoft 365, Google Workspace, and hosted business email."
       />
       <SecurityFeatures
         title="Inbox Protection That Blocks Real Attacks"
@@ -183,6 +185,7 @@ export default function EmailSecurityPage() {
         ctaLabel="View Email Security Plans"
         plansId="email-security-plans"
       />
+      </main>
       <Footer />
     </div>
   );

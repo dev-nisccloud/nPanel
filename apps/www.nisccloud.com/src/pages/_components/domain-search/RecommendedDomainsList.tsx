@@ -1,7 +1,8 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { trpcMutation, trpcQuery } from "@/lib/domain-search/api.ts";
+import { trpcQuery } from "@/lib/domain-search/api.ts";
+import { checkKenicDomains } from "@/lib/domain-search/kenic-check.ts";
 import { getRecommendedBatch } from "@/lib/domain-search/tld-sections.ts";
 import {
   isUnavailableKenicTld,
@@ -75,22 +76,7 @@ async function fetchBatchResults(params: {
   if (kenic.length > 0) {
     try {
       const kenicDomains = kenic.map((tld) => `${name}.${tld}`);
-      const data = await trpcMutation<{
-        normalized?: Array<{
-          domain: string;
-          available: boolean;
-          reason?: string;
-          currency?: string;
-          createFee?: { amount: number; currency: string };
-          renewFee?: { amount: number; currency: string };
-          transferFee?: { amount: number; currency: string };
-        }>;
-      }>("kenic.domainCheck.check", {
-        domains: kenicDomains,
-        withFee: true,
-        currency: "KES",
-        periodYears: 1,
-      });
+      const data = await checkKenicDomains(kenicDomains);
       const cards = normalizeToKenicCards(name, data?.normalized ?? []);
       for (const item of cards) {
         const createCalc = getPricingInfo(

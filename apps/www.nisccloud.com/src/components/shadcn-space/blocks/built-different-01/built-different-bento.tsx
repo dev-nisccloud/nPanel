@@ -1,4 +1,5 @@
-import { motion } from "motion/react";
+import { useRef } from "react";
+import { motion, useInView, useReducedMotion } from "motion/react";
 import { Card, CardContent } from "@/components/ui/card.tsx";
 import { cn } from "@/lib/utils.ts";
 import { ContextualVisual } from "./context-visuals.tsx";
@@ -27,8 +28,12 @@ function BentoCard({
   theme: VisualTheme;
   index: number;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { amount: 0.4 });
+  const reduceMotion = useReducedMotion() ?? false;
   return (
     <motion.div
+      ref={ref}
       initial={{ opacity: 0, y: 16 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-32px" }}
@@ -36,7 +41,7 @@ function BentoCard({
     >
       <Card className="h-full overflow-hidden border-border/60 py-0 shadow-sm transition-colors duration-300 hover:border-primary/25">
         <CardContent className="flex h-full flex-col gap-4 p-5 pt-5">
-          <ContextualVisual point={point} theme={theme} />
+          <ContextualVisual point={point} theme={theme} loop={inView && !reduceMotion} />
           <div className="mt-auto space-y-1.5 text-center">
             <h3 className="text-base font-semibold tracking-tight text-foreground">
               {point.title}

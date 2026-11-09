@@ -3,7 +3,8 @@ import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { trpcMutation, trpcQuery } from "@/lib/domain-search/api.ts";
+import { trpcQuery } from "@/lib/domain-search/api.ts";
+import { checkKenicDomains } from "@/lib/domain-search/kenic-check.ts";
 import { kenicItemToDomainSearchResult } from "@/lib/domain-search/to-domain-search-result.ts";
 import {
   normalizedItemToKenicCard,
@@ -97,15 +98,7 @@ export function TopLevelSuggestedCards({
     setKenicCoKe(null);
     setKenicKe(null);
     setKenicLoading(true);
-    trpcMutation<{ normalized?: Array<{ domain: string; available: boolean; reason?: string; currency?: string; createFee?: { amount: number; currency: string } }> }>(
-      "kenic.domainCheck.check",
-      {
-        domains: [`${name}.co.ke`, `${name}.ke`],
-        withFee: true,
-        currency: "KES",
-        periodYears: 1,
-      },
-    )
+    checkKenicDomains([`${name}.co.ke`, `${name}.ke`])
       .then((data) => {
         if (!isMountedRef.current) return;
         const normalized = data?.normalized;
@@ -219,23 +212,11 @@ export function TopLevelSuggestedCards({
 
   if (!name) return null;
 
-  const suggestedSectionReady = !kenicLoading && !openProviderLoading && openProviderSettled;
-  if (!suggestedSectionReady) {
-    return (
-      <>
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="bg-card border border-border rounded-lg p-4 md:p-5 min-h-[200px]">
-            <div className="flex justify-between items-center mb-2">
-              <Skeleton className="h-14 w-14 rounded-lg" />
-              <Skeleton className="h-5 w-16" />
-            </div>
-            <Skeleton className="h-4 w-full mb-2" />
-            <Skeleton className="h-4 w-32 mb-2" />
-            <Skeleton className="h-8 w-full mt-2" />
-          </div>
-        ))}
-      </>
-    );
+  // International results are usually ready long before the KeNIC registry answers, so they
+  // render first and placeholders hold the Kenyan slots until availability is confirmed.
+  const openReady = !openProviderLoading && openProviderSettled;
+  if (!openReady) {
+    return <>{[1, 2, 3, 4].map((i) => <SuggestedCardSkeleton key={i} />)}</>;
   }
 
   const showCoKe = exactMatchTld !== "co.ke" && kenicCoKe?.available === true;
@@ -243,6 +224,9 @@ export function TopLevelSuggestedCards({
   const showCom = exactMatchTld !== "com" && byDomain.get(`${name}.com`)?.status === "free";
 
   const cards: React.ReactNode[] = [];
+  if (kenicLoading) {
+    cards.push(<SuggestedCardSkeleton key="kenic-pending-1" />, <SuggestedCardSkeleton key="kenic-pending-2" />);
+  }
 
   if (showCoKe && kenicCoKe) {
     const currency = kenicCoKe.currency ?? "KES";
@@ -335,6 +319,20 @@ export function TopLevelSuggestedCards({
   }
 
   return <>{cards}</>;
+}
+
+function SuggestedCardSkeleton() {
+  return (
+    <div className="bg-card border border-border rounded-lg p-4 md:p-5 min-h-[200px]">
+      <div className="flex justify-between items-center mb-2">
+        <Skeleton className="h-14 w-14 rounded-lg" />
+        <Skeleton className="h-5 w-16" />
+      </div>
+      <Skeleton className="h-4 w-full mb-2" />
+      <Skeleton className="h-4 w-32 mb-2" />
+      <Skeleton className="h-8 w-full mt-2" />
+    </div>
+  );
 }
 
 function SingleTldCard({

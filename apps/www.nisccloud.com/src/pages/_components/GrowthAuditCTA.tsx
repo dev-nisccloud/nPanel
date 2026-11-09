@@ -1,7 +1,7 @@
 import { motion } from "motion/react";
 import { ArrowRight, Search, Globe, TrendingUp, ShoppingBag, Users } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 const auditPoints = [
   { icon: ShoppingBag, label: "Brand & visual identity" },
@@ -11,7 +11,6 @@ const auditPoints = [
 ];
 
 export default function GrowthAuditCTA() {
-  const navigate = useNavigate();
 
   return (
     <section className="py-20 relative overflow-hidden">
@@ -74,14 +73,13 @@ export default function GrowthAuditCTA() {
           </div>
 
           {/* CTA */}
-          <Button
+          <Button asChild
             size="lg"
-            onClick={() => navigate("/contact")}
             className="rounded-full px-10 h-13 font-bold text-base gap-2.5 cursor-pointer shadow-lg"
-          >
+          ><Link to={"/contact"}>
             Book Your Free Growth Audit
             <ArrowRight size={17} />
-          </Button>
+          </Link></Button>
           <p className="text-xs text-muted-foreground mt-4">
             No commitment. Just an honest plan for your business, in about 30 minutes.
           </p>

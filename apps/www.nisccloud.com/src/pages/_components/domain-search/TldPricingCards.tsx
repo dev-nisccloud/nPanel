@@ -13,13 +13,13 @@ export function TldPricingCards() {
 
   return (
     <div className="w-full mt-4">
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
         {tlds.map(({ tld, variant }) => (
           <div
             key={tld}
-            className="border border-border rounded-lg p-4 flex items-center justify-center"
+            className="border border-border rounded-lg px-3 py-1.5 flex items-center justify-center"
           >
-            <TldLogo tld={tld} variant={variant} size={72} />
+            <TldLogo tld={tld} variant={variant} size={34} />
           </div>
         ))}
       </div>

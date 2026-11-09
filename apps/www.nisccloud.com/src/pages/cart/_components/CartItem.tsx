@@ -12,7 +12,7 @@ import {
   billingCycleToMonths,
   DOMAIN_BILLING_CYCLES,
   periodPrice,
-  SERVICE_BILLING_CYCLES,
+  billingCyclesFor,
   type BillingCycle,
 } from "@/lib/billing-cycle.ts";
 
@@ -61,9 +61,9 @@ const SERVICE_META: Record<
     bgColor: "bg-primary/10",
     includedItems: [
       "Free SSL certificate included",
-      "99.99% uptime target",
-      "24/7 customer support",
-      "One-click app installer",
+      "99.9% uptime target",
+      "24/7 support by ticket, email and chat",
+      "WordPress Toolkit and developer stack",
     ],
   },
   wordpress_hosting: {
@@ -71,10 +71,10 @@ const SERVICE_META: Record<
     color: "text-primary",
     bgColor: "bg-primary/10",
     includedItems: [
-      "WordPress pre-installed",
       "Free SSL certificate included",
-      "Auto-updates & backups",
-      "WP performance optimised",
+      "Automatic WordPress updates",
+      "Malware scanning",
+      "LiteSpeed cache",
     ],
   },
   email_hosting: {
@@ -82,10 +82,10 @@ const SERVICE_META: Record<
     color: "text-primary",
     bgColor: "bg-primary/10",
     includedItems: [
-      "5 GB mailbox storage per account",
-      "Spam & virus protection",
-      "Webmail & mobile access",
-      "Custom domain email address",
+      "Email on your own domain",
+      "Anti-spam, anti-virus and anti-phishing",
+      "Webmail, IMAP/POP and secure SMTP",
+      "Free migration from your current provider",
     ],
   },
   domain_registration: {
@@ -93,10 +93,10 @@ const SERVICE_META: Record<
     color: "text-emerald-600 dark:text-emerald-400",
     bgColor: "bg-emerald-500/10",
     includedItems: [
-      "WHOIS privacy protection",
       "Free DNS management",
-      "Free coming soon page",
-      "Domain transfer lock",
+      "Renewal reminders before expiry",
+      "Transfer lock",
+      "Managed in your nPanel account",
     ],
   },
   domain_transfer: {
@@ -107,7 +107,7 @@ const SERVICE_META: Record<
       "Includes 1 year renewal after transfer",
       "Free DNS management",
       "Transfer lock protection",
-      "24/7 support during transfer",
+      "Support during transfer",
     ],
   },
   seo_reports: {
@@ -115,10 +115,10 @@ const SERVICE_META: Record<
     color: "text-primary",
     bgColor: "bg-primary/10",
     includedItems: [
-      "Monthly SEO audit reports",
-      "Live keyword position tracking",
-      "Google Search Console integration",
-      "GA4 analytics connection",
+      "Keyword research and tracking",
+      "Technical SEO audits",
+      "On-page content optimisation",
+      "Regular performance reports",
     ],
   },
   brand_identity: {
@@ -140,7 +140,7 @@ const SERVICE_META: Record<
       "Custom responsive design",
       "SEO-ready structure",
       "Contact & enquiry forms",
-      "30-day post-launch support",
+      "Post-launch handover",
     ],
   },
   ecommerce: {
@@ -198,12 +198,18 @@ function multiYearSaving(monthly: number, yearly: number, cycle: BillingCycle) {
   const saved = fullMonthly - period;
   if (saved <= 0) return null;
   const pct = Math.round((saved / fullMonthly) * 100);
-  return { saved, pct };
+  return pct >= 1 ? { saved, pct } : null;
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
+
+function billedLabel(cycle: BillingCycle): string {
+  if (cycle === "MONTHLY") return "Billed monthly";
+  if (cycle === "YEARLY") return "Billed yearly";
+  return `Billed every ${billingCyclePeriodLabel(cycle)}`;
+}
 
 export function CartItem({ item, onBillingCycleChange, onRemove }: CartItemProps) {
   const meta = getServiceMeta(item.serviceType);
@@ -218,9 +224,7 @@ export function CartItem({ item, onBillingCycleChange, onRemove }: CartItemProps
     ? item.yearlyPrice
     : periodPrice(item.monthlyPrice, item.yearlyPrice, cycle);
   const strikeThrough =
-    !isDomain && cycle !== "MONTHLY"
-      ? item.monthlyPrice * billingCycleToMonths(cycle)
-      : null;
+    saving ? item.monthlyPrice * billingCycleToMonths(cycle) : null;
 
   return (
     <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
@@ -273,7 +277,7 @@ export function CartItem({ item, onBillingCycleChange, onRemove }: CartItemProps
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {(isDomainRegistration ? DOMAIN_BILLING_CYCLES : SERVICE_BILLING_CYCLES).map(
+                    {(isDomainRegistration ? DOMAIN_BILLING_CYCLES : billingCyclesFor(item.serviceType)).map(
                       (opt) => (
                         <SelectItem key={opt.value} value={opt.value}>
                           {opt.label}
@@ -314,7 +318,7 @@ export function CartItem({ item, onBillingCycleChange, onRemove }: CartItemProps
           <p className="text-xs text-muted-foreground mt-1.5">
             {isDomain
               ? `Renews at ${formatPrice(renewalPrice, item.currency)}/yr. Standard renewal applies.`
-              : `Billed for ${billingCyclePeriodLabel(cycle)}. Renews at ${formatPrice(renewalPrice, item.currency)}/${billingCycleShortSuffix(cycle)}. Cancel anytime.`}
+              : `${billedLabel(cycle)}. Renews at ${formatPrice(renewalPrice, item.currency)}/${billingCycleShortSuffix(cycle)}. Cancel anytime.`}
           </p>
         </div>
       </div>

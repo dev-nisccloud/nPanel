@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Cloud product topology</title>
+  <desc id="desc">A domain connects to website hosting, professional email and scalable cloud infrastructure.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f7fcff"/><stop offset="1" stop-color="#eef5f8"/></linearGradient>
+    <filter id="s"><feDropShadow dy="14" stdDeviation="18" flood-color="#071727" flood-opacity=".1"/></filter>
+  </defs>
+  <rect width="1200" height="720" rx="44" fill="url(#bg)"/>
+  <g fill="none" stroke="#38b6ff" stroke-width="4" stroke-linecap="round">
+    <path d="M300 360H470"/><path d="M730 360H900"/><path d="M600 245V152"/><path d="M600 475V568"/>
+  </g>
+  <g fill="#38b6ff"><circle cx="385" cy="360" r="7"/><circle cx="815" cy="360" r="7"/><circle cx="600" cy="198" r="7"/><circle cx="600" cy="520" r="7"/></g>
+  <g filter="url(#s)" font-family="DM Sans,Arial,sans-serif">
+    <rect x="470" y="245" width="260" height="230" rx="30" fill="#071727"/>
+    <rect x="500" y="277" width="200" height="45" rx="12" fill="#102a40" stroke="#38b6ff" stroke-opacity=".45"/>
+    <circle cx="526" cy="300" r="7" fill="#38b6ff"/><text x="546" y="306" fill="#fff" font-size="17" font-weight="700">nisccloud.co.ke</text>
+    <rect x="500" y="340" width="92" height="102" rx="16" fill="#fff" fill-opacity=".08" stroke="#fff" stroke-opacity=".12"/>
+    <rect x="608" y="340" width="92" height="102" rx="16" fill="#fff" fill-opacity=".08" stroke="#fff" stroke-opacity=".12"/>
+    <path d="M520 370h52v13h-52zM520 392h52v13h-52z" fill="none" stroke="#38b6ff" stroke-width="3"/>
+    <path d="M628 373h52v34h-52zM628 373l26 20 26-20" fill="none" stroke="#fc734d" stroke-width="3"/>
+    <text x="512" y="431" fill="#fff" fill-opacity=".72" font-size="12">HOSTING</text>
+    <text x="627" y="431" fill="#fff" fill-opacity=".72" font-size="12">EMAIL</text>
+
+    <rect x="92" y="272" width="208" height="176" rx="26" fill="#fff" stroke="#d4e8f2"/>
+    <circle cx="196" cy="329" r="30" fill="#38b6ff" opacity=".13"/>
+    <circle cx="196" cy="329" r="18" fill="none" stroke="#159ce8" stroke-width="3"/>
+    <path d="M178 329h36M196 311c7 9 7 27 0 36M196 311c-7 9-7 27 0 36" fill="none" stroke="#159ce8" stroke-width="2"/>
+    <text x="128" y="389" fill="#0d1b2a" font-size="22" font-weight="750">Your domain</text>
+    <text x="133" y="416" fill="#526774" font-size="14">Search " register " connect</text>
+
+    <rect x="900" y="272" width="208" height="176" rx="26" fill="#fff" stroke="#d4e8f2"/>
+    <rect x="943" y="302" width="122" height="70" rx="14" fill="#eaf8ff"/>
+    <path d="M965 322h78v13h-78zM965 343h78v13h-78z" fill="none" stroke="#159ce8" stroke-width="3"/>
+    <text x="931" y="403" fill="#0d1b2a" font-size="22" font-weight="750">Cloud compute</text>
+    <text x="942" y="430" fill="#526774" font-size="14">VPS � VDS � Dedicated</text>
+
+    <rect x="478" y="58" width="244" height="94" rx="23" fill="#fff" stroke="#d4e8f2"/>
+    <rect x="500" y="79" width="52" height="52" rx="15" fill="#38b6ff" opacity=".13"/>
+    <path d="M511 94h30v23h-30zM511 94l15 12 15-12" fill="none" stroke="#159ce8" stroke-width="2.5"/>
+    <text x="570" y="99" fill="#0d1b2a" font-size="17" font-weight="750">Professional email</text>
+    <text x="570" y="123" fill="#526774" font-size="13">Identity on your domain</text>
+
+    <rect x="478" y="568" width="244" height="94" rx="23" fill="#fff" stroke="#d4e8f2"/>
+    <circle cx="526" cy="615" r="26" fill="#fc734d" opacity=".13"/>
+    <path d="M514 616l9 9 17-21" fill="none" stroke="#fc734d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="570" y="609" fill="#0d1b2a" font-size="17" font-weight="750">Managed in nPanel</text>
+    <text x="570" y="633" fill="#526774" font-size="13">One service workspace</text>
+  </g>
+</svg>

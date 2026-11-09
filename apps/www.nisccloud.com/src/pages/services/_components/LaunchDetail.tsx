@@ -1,12 +1,13 @@
 import { motion } from "motion/react";
+import { ServiceFeatureGrid, type ServiceFeature } from "./ServiceFeatureGrid.tsx";
 import { Check, Server, Zap, ShieldCheck, Globe } from "lucide-react";
 import { ShowcaseVisualCard } from "@/pages/_components/ServiceShowcaseSection.tsx";
 
-const features = [
-  { icon: Zap, title: "Fast CDN Delivery", desc: "Content delivered from a global network so your site loads quickly for visitors wherever they are." },
-  { icon: ShieldCheck, title: "Strong Security", desc: "WAF, DDoS protection, SSL, vulnerability scanning, and daily backups included as standard." },
-  { icon: Server, title: "Auto-Scaling Infra", desc: "Traffic spike? Our infrastructure scales to handle the load without unnecessary downtime." },
-  { icon: Globe, title: "99.99% Uptime", desc: "We aim for 99.99% uptime with 24/7 monitoring, incident response, and clear status updates." },
+const features: ServiceFeature[] = [
+  { icon: Zap, title: "Fast CDN Delivery", href: "/hosting", desc: "Content delivered from a global network so your site loads quickly for visitors wherever they are." },
+  { icon: ShieldCheck, title: "Strong Security", href: "/security", desc: "WAF, DDoS protection, SSL, vulnerability scanning, and daily backups included as standard." },
+  { icon: Server, title: "Auto-Scaling Infra", href: "/hosting/vps", desc: "Traffic spike? Our infrastructure scales to handle the load without unnecessary downtime." },
+  { icon: Globe, title: "99.9% Uptime Target", desc: "We target 99.9% monthly uptime with continuous monitoring, incident response, and clear status updates." },
 ];
 
 const included = [
@@ -30,7 +31,7 @@ export default function LaunchDetail() {
             transition={{ duration: 0.6 }}
             className="order-2 lg:order-1"
           >
-            <ShowcaseVisualCard visual="uptime" headline="99.99% uptime hosting" />
+            <ShowcaseVisualCard visual="uptime" headline="Hosting built to stay online" />
           </motion.div>
 
           <motion.div
@@ -41,7 +42,7 @@ export default function LaunchDetail() {
             className="order-1 lg:order-2"
           >
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-5">
-              Reliable Cloud Hosting.<br />
+              Reliable Cloud Hosting. <br />
               <span className="text-primary">Simple to Launch.</span>
             </h2>
             <p className="text-muted-foreground text-lg leading-relaxed mb-8">
@@ -58,24 +59,7 @@ export default function LaunchDetail() {
           </motion.div>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {features.map((f, i) => (
-            <motion.div
-              key={f.title}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: i * 0.08 }}
-              className="bg-card border border-border/60 rounded-xl p-5 transition-all hover:border-primary/40"
-            >
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-3 bg-primary/10 text-primary">
-                <f.icon size={16} />
-              </div>
-              <h4 className="font-semibold text-sm mb-1">{f.title}</h4>
-              <p className="text-xs text-muted-foreground leading-relaxed">{f.desc}</p>
-            </motion.div>
-          ))}
-        </div>
+        <ServiceFeatureGrid features={features} />
       </div>
     </section>
   );

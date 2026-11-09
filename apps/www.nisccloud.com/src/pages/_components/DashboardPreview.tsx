@@ -22,7 +22,7 @@ const tabs = [
     headline: "Search & Register Your Domain",
     desc: "Find available .com, .co.ke, .net, .io and more. See live pricing in KSh, register instantly, and manage your entire portfolio from one place.",
     points: ["Live domain availability search", "KSh pricing with discounts", "Domain portfolio manager", "Transfer existing domains"],
-    color: "oklch(0.50 0.20 265)",
+    color: "oklch(0.42 0.10 240)",
   },
   {
     id: "marketing",
@@ -42,15 +42,15 @@ const tabs = [
     headline: "Manage Clients & Campaigns",
     desc: "Run email campaigns, manage client accounts, track billing, and handle KRA eTIMS from a single unified panel - no extra tools needed.",
     points: ["Email marketing campaigns", "Client & billing management", "KRA eTIMS integration", "CRM & service orders"],
-    color: "oklch(0.52 0.18 160)",
+    color: "oklch(0.60 0.22 235)",
   },
 ];
 
 const stats = [
-  { value: "100+", label: "Businesses Served" },
-  { value: "99.99%", label: "Uptime Target" },
-  { value: "30 days", label: "Results Promise" },
-  { value: "24/7", label: "Support Ready" },
+  { value: "One", label: "Connected Workspace" },
+  { value: "99.9%", label: "Uptime Target" },
+  { value: "Free", label: "Strategy Call" },
+  { value: "KES", label: "Local Billing" },
 ];
 
 export default function DashboardPreview() {
@@ -83,7 +83,7 @@ export default function DashboardPreview() {
             One Dashboard to Run Your Entire Business
           </h2>
           <p className="text-muted-foreground text-base max-w-2xl mx-auto">
-            No more 5 logins and 5 vendor calls. nPanel gives you a single screen to manage your cloud, track marketing, handle billing, and stay in full control - 24/7.
+            No more 5 logins and 5 vendor calls. nPanel gives you a single screen to manage your cloud, track marketing, handle billing, and stay in full control.
           </p>
         </motion.div>
 
@@ -182,7 +182,7 @@ export default function DashboardPreview() {
               </ul>
               <Button
                 type="button"
-                className="rounded-full px-6 h-10 font-bold gap-2 cursor-pointer mt-2"
+                className="rounded-[10px] px-6 h-11 font-bold gap-2 cursor-pointer mt-2"
               >
                 Explore nPanel
                 <ArrowRight size={14} />

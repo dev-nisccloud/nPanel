@@ -1,6 +1,9 @@
 import * as React from "react";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { trpcMutation } from "@/lib/domain-search/api.ts";
+import { RotateCw } from "lucide-react";
+import { Button } from "@/components/ui/button.tsx";
+import { checkKenicDomains, forgetKenicDomains } from "@/lib/domain-search/kenic-check.ts";
+import { KenicSlowNotice } from "./KenicLookupStatus.tsx";
 import {
   buildKenicDomainsFromQuery,
   normalizeToKenicCards,
@@ -71,6 +74,7 @@ export function KenyanTldCards({
   const [cards, setCards] = React.useState<KenicCardItem[] | null>(null);
   const [isPending, setIsPending] = React.useState(false);
   const [isError, setIsError] = React.useState(false);
+  const [attempt, setAttempt] = React.useState(0);
   const isMountedRef = React.useRef(true);
   const lastFetchedSanitizedRef = React.useRef<string | null>(null);
 
@@ -99,20 +103,7 @@ export function KenyanTldCards({
     setIsPending(true);
     setIsError(false);
 
-    trpcMutation<{
-      normalized?: Array<{
-        domain: string;
-        available: boolean;
-        reason?: string;
-        currency?: string;
-        createFee?: { amount: number; currency: string };
-      }>;
-    }>("kenic.domainCheck.check", {
-      domains,
-      withFee: true,
-      currency: "KES",
-      periodYears: 1,
-    })
+    checkKenicDomains(domains)
       .then((data) => {
         if (!isMountedRef.current) return;
         const normalized = data?.normalized;
@@ -132,7 +123,7 @@ export function KenyanTldCards({
       .finally(() => {
         if (isMountedRef.current) setIsPending(false);
       });
-  }, [isSelected, suggestionsReady, sanitized, domains.join(",")]);
+  }, [isSelected, suggestionsReady, sanitized, domains.join(","), attempt]);
 
   const onLoadingChangeRef = React.useRef(onLoadingChange);
   onLoadingChangeRef.current = onLoadingChange;
@@ -155,6 +146,7 @@ export function KenyanTldCards({
           </h3>
         )}
         {KENYAN_LIST_SKELETON}
+        {domains[0] && <KenicSlowNotice domain={domains.join(", ")} />}
       </section>
     );
   }
@@ -169,9 +161,22 @@ export function KenyanTldCards({
         </h3>
       )}
       {isError && (
-        <p className="text-sm text-destructive mb-2">
-          Could not load Kenyan TLD availability. Try again later.
-        </p>
+        <div role="alert" className="mb-2 flex flex-wrap items-center gap-3">
+          <p className="text-sm text-destructive">
+            We could not confirm Kenyan domain availability with the KeNIC registry just now.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => {
+              forgetKenicDomains(domains);
+              setAttempt((n) => n + 1);
+            }}
+          >
+            <RotateCw className="h-4 w-4" aria-hidden /> Check again
+          </Button>
+        </div>
       )}
       <DomainResultList>
         {list.map((item) => {
@@ -189,6 +194,11 @@ export function KenyanTldCards({
               isAvailable={item.available}
               displayPrice={item.available && retailPricingReady ? createFinal : undefined}
               displayCurrency={item.available && retailPricingReady ? currency : undefined}
+              renewalPrice={
+                item.available && retailPricingReady && item.renewPrice != null
+                  ? getPricingInfo(item.domain, item.renewPrice, currency).finalPrice
+                  : null
+              }
               reason={item.reason}
               displayResult={displayResult}
               isDomainInCart={isDomainInCart}

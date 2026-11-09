@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Label } from "@/components/ui/label.tsx";
-import { trpcQuery, trpcMutation } from "@/lib/domain-search/api.ts";
+import { trpcQuery } from "@/lib/domain-search/api.ts";
+import { checkKenicDomains } from "@/lib/domain-search/kenic-check.ts";
 import {
   checkDomainTransfer,
   type CheckTransferResult,
@@ -171,20 +172,7 @@ function DomainUpsellInner({
           if (!alreadyCovered) {
             try {
               if (parsed.tld === "co.ke" || parsed.tld === "ke" || parsed.tld.endsWith(".ke")) {
-                const data = await trpcMutation<{
-                  normalized?: Array<{
-                    domain: string;
-                    available: boolean;
-                    reason?: string;
-                    currency?: string;
-                    createFee?: { amount: number; currency: string };
-                  }>;
-                }>("kenic.domainCheck.check", {
-                  domains: [exactDomain],
-                  withFee: true,
-                  currency: "KES",
-                  periodYears: 1,
-                });
+                const data = await checkKenicDomains([exactDomain]);
                 const cards = normalizeToKenicCards(parsed.name, data?.normalized ?? []);
                 for (const item of cards) {
                   const createCalc = getPricingInfo(
@@ -236,20 +224,7 @@ function DomainUpsellInner({
       if (batch.kenic.length > 0) {
         try {
           const kenicDomains = batch.kenic.map((tld) => `${name}.${tld}`);
-          const data = await trpcMutation<{
-            normalized?: Array<{
-              domain: string;
-              available: boolean;
-              reason?: string;
-              currency?: string;
-              createFee?: { amount: number; currency: string };
-            }>;
-          }>("kenic.domainCheck.check", {
-            domains: kenicDomains,
-            withFee: true,
-            currency: "KES",
-            periodYears: 1,
-          });
+          const data = await checkKenicDomains(kenicDomains);
           const cards = normalizeToKenicCards(name, data?.normalized ?? []);
           for (const item of cards) {
             const createCalc = getPricingInfo(

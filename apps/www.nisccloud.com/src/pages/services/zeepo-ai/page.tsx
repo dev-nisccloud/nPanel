@@ -1,4 +1,5 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
+import { ZEPO_AI_PLANS, SERVICE_PACKAGE_NOTES } from "@/lib/service-packages.ts";
 import { Bot, Zap, MessageSquare, BarChart2, Users, Calendar, Shield, Sparkles } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
 
@@ -33,14 +34,14 @@ export default function AiAutomationPage() {
   return (
     <ServicePageShell
       badge="AI Automation"
-      headline={<>Automate Your Business.<br /><span className="text-primary">Grow Without the Overhead.</span></>}
+      headline={<>Automate Your Business. <br /><span className="text-primary">Grow Without the Overhead.</span></>}
       subtext="Our AI platform handles lead follow-up, customer support, appointment booking, and sales nurturing 24 hours a day, 7 days a week, in English and Swahili. Stop losing leads to slow responses and scale without hiring for every reply."
       serviceType="marketing"
       checkoutServiceType="ai_automation"
-      checkoutProductName="Zeepo AI"
+      checkoutProductName="Zepo AI"
       trustStats={[
         { value: "24/7", label: "AI Always Available" },
-        { value: "100+", label: "Clients We Have Helped" },
+        { value: "Human", label: "Handoff When Needed" },
         { value: "Free", label: "Setup Help Included" },
         { value: "Clear", label: "Conversion Reporting" },
       ]}
@@ -86,36 +87,7 @@ export default function AiAutomationPage() {
           desc: "Fully bilingual AI that switches between English and Swahili based on the customer's preference, because your customers communicate in both languages.",
         },
       ]}
-      plans={[
-        {
-          id: "ai-starter",
-          name: "AI Starter",
-          price: 15000,
-          period: "month",
-          features: [
-            "AI chatbot (website + WhatsApp)",
-            "Up to 500 conversations/month",
-            "Lead capture & qualification",
-            "FAQ automation",
-            "English + Swahili support",
-            "5-day setup included",
-          ],
-        },
-        {
-          id: "ai-enterprise",
-          name: "AI Enterprise",
-          price: 70000,
-          period: "month",
-          features: [
-            "Unlimited conversations, all channels",
-            "Custom AI trained on your business",
-            "Full sales pipeline automation",
-            "Voice AI phone call handling",
-            "Payment collection via WhatsApp",
-            "Dedicated AI success manager",
-          ],
-        },
-      ]}
+      plans={ZEPO_AI_PLANS}
       addons={[
         { id: "ai-voice", label: "Voice AI Phone Agent Setup", price: 30000, period: "once" },
         { id: "ai-mpesa", label: "WhatsApp Payment Collection Setup", price: 20000, period: "once" },
@@ -145,7 +117,7 @@ export default function AiAutomationPage() {
       ]}
       ctaHeadline="Let AI Work While You Focus on Growing"
       ctaSubtext="Every minute your team spends answering the same questions is a minute they are not closing deals. Automate the repetitive work and keep the human touch where it matters."
-      pricingNote="Monthly subscription. AI improves over time. No setup fee on 3-month commitment."
+      pricingNote={SERVICE_PACKAGE_NOTES.ZEPO_AI}
       showcaseBlocks={showcaseBlocks}
     />
   );

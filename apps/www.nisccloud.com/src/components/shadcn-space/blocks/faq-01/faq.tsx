@@ -47,7 +47,7 @@ function FaqAccordion({ faqs }: { faqs: FaqBlockItem[] }) {
           key={faq.question}
           value={`item-${index}`}
           className={cn(
-            "group/item overflow-hidden rounded-xl border border-border bg-card transition-colors data-[state=open]:bg-accent",
+            "group/item overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-primary/30 data-[state=open]:bg-accent [&_[data-slot=accordion-content][data-state=closed]]:hidden",
             "animate-in fade-in slide-in-from-bottom-8 duration-700 fill-mode-both",
             delayClasses[index] ?? "delay-500",
           )}
@@ -59,7 +59,7 @@ function FaqAccordion({ faqs }: { faqs: FaqBlockItem[] }) {
               className="pointer-events-none h-5 w-5 shrink-0 transition-transform duration-200 group-data-[state=open]/item:rotate-45"
             />
           </AccordionTrigger>
-          <AccordionContent className="px-4 pb-4 pt-0 text-sm leading-relaxed text-muted-foreground">
+          <AccordionContent forceMount className="px-4 pb-4 pt-0 text-sm leading-relaxed text-muted-foreground">
             {faq.answer}
           </AccordionContent>
         </AccordionItem>

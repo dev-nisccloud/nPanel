@@ -1,4 +1,5 @@
 import { motion } from "motion/react";
+import { ShowcaseVisualCard } from "@/pages/_components/ServiceShowcaseSection.tsx";
 
 const milestones = [
   {
@@ -21,9 +22,9 @@ const milestones = [
   },
   {
     year: "2024",
-    title: "100+ Businesses",
+    title: "Growing Businesses",
     description:
-      "Today we help 100+ businesses get online, stay online, and grow. Free migration, setup help, and 24/7 support are part of how we work.",
+      "Today we help growing businesses get online, stay online, and grow. Free migration, setup help, and support from our team are part of how we work.",
   },
 ];
 
@@ -38,15 +39,10 @@ export default function OurStory() {
           transition={{ duration: 0.7 }}
           className="relative"
         >
-          <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-3xl" />
-          <img
-            src="https://images.unsplash.com/photo-1556761175-b413da4baf72?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NzIwMTN8MHwxfHNlYXJjaHwzfHx0ZWNoJTIwdGVhbSUyMHByb2Zlc3Npb25hbHMlMjBvZmZpY2UlMjBjb2xsYWJvcmF0aW9ufGVufDB8fHx8MTc3NzYxOTExNnww&ixlib=rb-4.1.0&q=80&w=1080"
-            alt="Our team collaborating"
-            className="relative rounded-2xl w-full object-cover aspect-[4/3]"
-          />
+          <ShowcaseVisualCard visual="uptime" headline="Hosting, web and growth together" />
           <div className="absolute -bottom-5 -right-4 sm:-right-6 bg-primary text-primary-foreground rounded-xl px-5 py-3.5 shadow-xl">
-            <p className="text-2xl font-bold leading-none">100+</p>
-            <p className="text-xs opacity-80 mt-1">Businesses growing with us</p>
+            <p className="text-2xl font-bold leading-none">One team</p>
+            <p className="text-xs opacity-80 mt-1">Hosting, web and growth together</p>
           </div>
         </motion.div>
 

@@ -9,7 +9,7 @@ const SERVICES = [
   { id: "4", title: "Business Email Hosting", icon: Mail },
   { id: "5", title: "SEO & Paid Advertising", icon: TrendingUp },
   { id: "6", title: "SSL & Website Security", icon: ShieldCheck },
-  { id: "7", title: "Zeepo AI Automation", icon: Sparkles },
+  { id: "7", title: "Zepo AI Automation", icon: Sparkles },
   { id: "8", title: "AI Chatbots & Lead Flows", icon: Bot },
 ];
 

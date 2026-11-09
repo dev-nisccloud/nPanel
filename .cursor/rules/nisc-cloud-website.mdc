@@ -1,0 +1,28 @@
+---
+description: Nisc Cloud website artwork, motion, copy and verification workflow
+globs: apps/www.nisccloud.com/**/*,NISC-CLOUD*.md,Reference artwork/**/*
+alwaysApply: false
+---
+
+# Nisc Cloud website workflow
+
+Re-read `NISC-CLOUD-WEBSITE-STRATEGY.md` before website work. Originals live in `Reference artwork/` at the repo root. Adapted assets go in `apps/www.nisccloud.com/public/artwork/`. There is a separate `Reference artwork s/` copy; do not edit it unless asked.
+
+## Artwork
+
+- Use the supplied reference as the primary visual source. Keep its composition, people, layout and design elements unless the owner asks for a change.
+- Replace embedded wording with accurate Nisc service copy. Do not invent results, SLAs, prices or partner tiers.
+- Adjust colour only where needed to fit Nisc sky blue, midnight `#02070A` and restrained orange `#FC734D`.
+- When creating or replacing people, depict Black African/Kenyan people. Leave people already in an approved reference as they are.
+- Never overwrite a reference file. Save the adaptation under a new name.
+- Edit vectors when they exist (`Picture2.svg`, `Picture3.svg`, and cleaned SVGs already in `public/artwork/`). If the source is a flattened PNG, JPG or WebP, name the image-editing tool required before promising exact text replacement.
+
+## Motion and services
+
+Give each service its own visual story and animation. Do not reuse the same cursor, dashboard or progress bar across services. Static photos must not run animation timers. Honor `prefers-reduced-motion`.
+
+## Implementation
+
+- Use Bun (`bun`, `bun run`). Do not discard, reset or stash existing uncommitted work.
+- In the browser, check desktop, mobile, dark mode and reduced motion on every changed route before calling the work done.
+- After a meaningful change, append the strategy change log: date, files/routes, reason, evidence, validation, outcome and what is still open. Do not mark planned work complete.

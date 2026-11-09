@@ -29,9 +29,9 @@ type ChatMsg = {
 };
 
 const GREETING_GUEST =
-  "Hi  I'm Zeepo. Ask about domains, hosting, or VPS and I'll keep it short. For your own services, log in or contact us.";
+  "Hi  I'm Zepo. Ask about domains, hosting, or VPS and I'll keep it short. For your own services, log in or contact us.";
 const GREETING_SIGNED_IN =
-  "Hi  I'm Zeepo. Ask about domains, hosting, or VPS. For live servers, DNS, and mail on your account, open Live AI Support in the nPanel dashboard.";
+  "Hi  I'm Zepo. Ask about domains, hosting, or VPS. For live servers, DNS, and mail on your account, open Live AI Support in the nPanel dashboard.";
 
 export function LiveAiSupportPanel({
   isSignedIn,
@@ -155,7 +155,7 @@ export function LiveAiSupportPanel({
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold">Live AI Support</p>
           <p className="text-[11px] text-muted-foreground">
-            {isSignedIn ? "Zeepo · your account" : "Zeepo · summary answers"}
+            {isSignedIn ? "Zepo · your account" : "Zepo · summary answers"}
           </p>
         </div>
         <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={onContactUs}>
@@ -167,7 +167,7 @@ export function LiveAiSupportPanel({
         {bootstrapping ? (
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <Loader2 className="mb-2 h-6 w-6 animate-spin" />
-            <p className="text-sm">Starting Zeepo…</p>
+            <p className="text-sm">Starting Zepo…</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -210,7 +210,7 @@ export function LiveAiSupportPanel({
                             <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/60 [animation-delay:150ms]" />
                             <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/60 [animation-delay:300ms]" />
                           </div>
-                          <span>Zeepo is answering…</span>
+                          <span>Zepo is answering…</span>
                         </div>
                       ) : null}
                       {msg.toolResults && msg.toolResults.length > 0 ? (
@@ -254,7 +254,7 @@ export function LiveAiSupportPanel({
           }}
           rows={1}
           disabled={sending || bootstrapping || !sessionId}
-          placeholder={sending ? "Zeepo is answering…" : "Ask about hosting, VPS, domains…"}
+          placeholder={sending ? "Zepo is answering…" : "Ask about hosting, VPS, domains…"}
           className="max-h-28 min-h-[40px] min-w-0 flex-1 resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/40"
         />
         {sending ? (

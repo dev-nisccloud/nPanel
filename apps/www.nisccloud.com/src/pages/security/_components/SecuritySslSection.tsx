@@ -1,7 +1,7 @@
 import { motion } from "motion/react";
 import { Check, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 const sslOptions = [
   {
@@ -39,10 +39,9 @@ const sslOptions = [
 ];
 
 export default function SecuritySslSection() {
-  const navigate = useNavigate();
 
   return (
-    <section className="py-20 border-y border-primary/10" style={{ background: "linear-gradient(160deg, oklch(0.96 0.04 235 / 0.50) 0%, oklch(0.94 0.06 265 / 0.35) 50%, oklch(0.95 0.05 195 / 0.40) 100%)" }}>
+    <section className="py-20 border-y border-primary/10" style={{ background: "linear-gradient(160deg, oklch(0.96 0.04 235 / 0.50) 0%, oklch(0.95 0.05 225 / 0.35) 50%, oklch(0.95 0.05 195 / 0.40) 100%)" }}>
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         <div className="text-center mb-12">
           <span className="text-xs font-mono font-bold tracking-widest text-primary uppercase">SSL Solutions</span>
@@ -83,12 +82,11 @@ export default function SecuritySslSection() {
                 </div>
               </div>
 
-              <Button
+              <Button asChild
                 className="w-full font-semibold rounded-2xl cursor-pointer h-11 gap-1.5 bg-primary text-primary-foreground hover:opacity-90"
-                onClick={() => navigate(opt.href)}
-              >
+              ><Link to={opt.href}>
                 {opt.cta} <ArrowRight size={15} />
-              </Button>
+              </Link></Button>
             </motion.div>
           ))}
         </div>

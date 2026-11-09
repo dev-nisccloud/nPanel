@@ -35,7 +35,7 @@ const messages: ChatMessage[] = [
   },
   {
     side: "us",
-    text: "One plan keeps your brand consistent, with local support that understands Kenyan business.",
+    text: "One plan keeps your brand consistent, with a support team that understands Kenyan business.",
   },
 ];
 

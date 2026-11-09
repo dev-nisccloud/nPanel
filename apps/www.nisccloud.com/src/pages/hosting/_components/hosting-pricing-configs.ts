@@ -1,4 +1,3 @@
-import { Mail, Server, Zap } from "lucide-react";
 import {
   fetchEmailHostingPlansPublic,
   fetchSharedHostingPlansPublic,
@@ -11,8 +10,6 @@ export const SHARED_HOSTING_PRICING_CONFIG: HostingPlansPricingConfig = {
   title: "Choose Your Hosting Plan",
   serviceType: "web_hosting",
   fetchPlans: fetchSharedHostingPlansPublic,
-  planIcon: Server,
-  highlightBadge: "NVMe SSD",
   fallbackFeatures: [
     {
       label: "Websites",
@@ -27,7 +24,7 @@ export const SHARED_HOSTING_PRICING_CONFIG: HostingPlansPricingConfig = {
     {
       label: "Backups",
       value: "Daily automated backups",
-      description: "Automated daily backups with one-click restore from cPanel.",
+      description: "Automated daily backups with restore access through your managed hosting tools.",
     },
   ],
 };
@@ -37,8 +34,6 @@ export const WORDPRESS_HOSTING_PRICING_CONFIG: HostingPlansPricingConfig = {
   title: "Choose Your WordPress Plan",
   serviceType: "wordpress_hosting",
   fetchPlans: fetchWordPressHostingPlansPublic,
-  planIcon: Zap,
-  highlightBadge: "WP Optimised",
   fallbackFeatures: [
     {
       label: "WordPress Sites",
@@ -68,8 +63,6 @@ export const EMAIL_HOSTING_PRICING_CONFIG: HostingPlansPricingConfig = {
   title: "Choose Your Business Email Plan",
   serviceType: "email_hosting",
   fetchPlans: fetchEmailHostingPlansPublic,
-  planIcon: Mail,
-  highlightBadge: "DKIM Ready",
   fallbackFeatures: [
     {
       label: "Mailboxes",

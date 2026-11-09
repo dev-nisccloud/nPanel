@@ -1,16 +1,53 @@
+import { ServiceExperience, type ExperienceMode } from "./ServiceExperience";
+import { useLocation } from "react-router-dom";
 /**
  * Alternating content + Quiet Stage visual panels under "What You Get".
  */
 
-import { motion } from "motion/react";
+import type { ReactNode } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import { CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
 import type { VisualTheme } from "@/components/shadcn-space/blocks/built-different-01/visual-context.ts";
-import { ShowcaseStage } from "./showcase-stages.tsx";
+import { HostingFlagshipArt, SeoFlagshipArt, BrandWebFlagshipArt } from "@/components/artwork/flagship-art.tsx";
+import { HostingSupportArt, MigrationArt, SslArt } from "@/components/artwork/cloud-art.tsx";
+import { SeoAnalyticsArt, ZeepoActivityArt, CheckoutArt, CreativeBriefArt } from "@/components/artwork/more-art.tsx";
+import { NpanelBusinessArt, NpanelOperationsArt } from "@/components/artwork/npanel-art.tsx";
+import { TeamWorkspaceArt, BrandKitArt, ZeepoArt, AdsArt } from "@/components/artwork/growth-art.tsx";
+
+/**
+ * Approved artwork for the legacy `visual` theme keys still used by
+ * `/services` and `/about` feature blocks. The old `showcase-stages` themes
+ * had drifted from the brand system; this keeps the data shape intact while
+ * rendering the same artwork language as the rest of the site.
+ */
+const THEME_ARTWORK: Partial<Record<VisualTheme, () => ReactNode>> = {
+  brand: () => <BrandKitArt />,
+  craft: () => <CreativeBriefArt />,
+  uptime: () => <HostingFlagshipArt />,
+  speed: () => <HostingFlagshipArt />,
+  security: () => <SslArt />,
+  migration: () => <MigrationArt />,
+  support: () => <HostingSupportArt />,
+  trust: () => <TeamWorkspaceArt />,
+  process: () => <NpanelOperationsArt />,
+  clarity: () => <NpanelBusinessArt />,
+  growth: () => <SeoFlagshipArt />,
+  reporting: () => <SeoAnalyticsArt />,
+  results: () => <SeoAnalyticsArt />,
+  targeting: () => <AdsArt />,
+  automation: () => <ZeepoActivityArt />,
+  bot: () => <ZeepoArt />,
+  payment: () => <CheckoutArt />,
+  mobile: () => <BrandWebFlagshipArt />,
+  code: () => <BrandWebFlagshipArt />,
+};
 
 export type ShowcaseBlock = {
   /** Optional section label  not rendered (kept for existing page data). */
   tag?: string;
+  artwork?: ReactNode;
+  id?: string;
   headline: string;
   body: string;
   bullets: string[];
@@ -36,14 +73,19 @@ export function ShowcaseVisualCard({
   headline: string;
   className?: string;
 }) {
+  const render = THEME_ARTWORK[visual] ?? THEME_ARTWORK.clarity!;
   return (
-    <div className={cn("w-full", className)}>
-      <ShowcaseStage theme={visual} label={headline} />
+    <div className={cn("w-full", className)} data-showcase-headline={headline}>
+      {render()}
     </div>
   );
 }
 
 function Block({ block, index }: { block: ShowcaseBlock; index: number }) {
+  const {pathname}=useLocation();
+  const reduced = useReducedMotion();
+  const mode: ExperienceMode = (pathname.includes("vps") || pathname.includes("dedicated") || pathname.includes("vds")) ? "terminal" : pathname.includes("wordpress") ? "wordpress" : pathname.includes("transfer") ? "migration" : pathname.includes("email-marketing") ? "marketing" : pathname.includes("email") ? "mail" : pathname.includes("brand") ? "brand" : pathname.includes("ecommerce") ? "commerce" : pathname.includes("seo") ? "search" : pathname.includes("zeepo") ? "ai" : pathname.includes("social") || pathname.includes("paid-ads") ? "marketing" : pathname.includes("domain") ? "domain" : pathname.includes("website-design") ? "web" : "hosting";
+
   const right =
     block.visualRight !== undefined
       ? block.visualRight
@@ -53,7 +95,7 @@ function Block({ block, index }: { block: ShowcaseBlock; index: number }) {
 
   const text = (
     <motion.div
-      initial={{ opacity: 0, x: right ? -28 : 28 }}
+      initial={reduced ? false : { opacity: 0, x: right ? -28 : 28 }}
       whileInView={{ opacity: 1, x: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.55 }}
@@ -62,10 +104,15 @@ function Block({ block, index }: { block: ShowcaseBlock; index: number }) {
       <h3 className="mb-4 text-2xl font-bold leading-snug tracking-tight md:text-3xl">
         {block.headline}
       </h3>
-      <p className="mb-6 text-[15px] leading-relaxed text-muted-foreground">{block.body}</p>
+      <p className="mb-6 text-[15px] leading-relaxed text-muted-foreground">
+        {block.body}
+      </p>
       <ul className="space-y-2.5">
         {block.bullets.map((b) => (
-          <li key={b} className="flex items-start gap-3 text-sm text-muted-foreground">
+          <li
+            key={b}
+            className="flex items-start gap-3 text-sm text-muted-foreground"
+          >
             <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-primary" />
             {b}
           </li>
@@ -76,17 +123,22 @@ function Block({ block, index }: { block: ShowcaseBlock; index: number }) {
 
   const visualPanel = (
     <motion.div
-      initial={{ opacity: 0, x: right ? 28 : -28 }}
+      initial={reduced ? false : { opacity: 0, x: right ? 28 : -28 }}
       whileInView={{ opacity: 1, x: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.55, delay: 0.08 }}
     >
-      <ShowcaseVisualCard visual={block.visual} headline={block.headline} />
+      {block.artwork ?? (
+        <ServiceExperience mode={mode} photo={index === 0} variant={index} />
+      )}
     </motion.div>
   );
 
   return (
-    <div className="grid items-center gap-12 md:grid-cols-2 md:gap-16">
+    <div
+      id={block.id}
+      className="grid scroll-mt-28 items-center gap-12 md:grid-cols-2 md:gap-16"
+    >
       {right ? (
         <>
           {text}

@@ -1,267 +1,156 @@
-import { motion } from "motion/react";
+import type { CSSProperties } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import { ArrowRight } from "lucide-react";
-// import { Paintbrush, Server, Bot, TrendingUp } from "lucide-react";
-import { Typewriter } from "@/components/ui/typewriter.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import { useNavigate } from "react-router-dom";
-// import DisplayCards from "@/components/ui/display-cards.tsx";
-import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
-import { NiscWebsiteHeroImage } from "@/components/NiscWebsiteHeroImage.tsx";
+import { Link } from "react-router-dom";
+import { trackEvent } from "@/lib/track.ts";
+import { TypedPhrase } from "./TypedPhrase.tsx";
+import { ClientLogoStrip } from "./ClientLogoStrip.tsx";
 
-const clients = [
-  { name: "Amarom", logo: "/clients/amarom2.png" },
-  { name: "Defen Group", logo: "/clients/defen-group-logo.png" },
-  { name: "Liveright", logo: "/clients/liveright-logo.png" },
-  { name: "MMA", logo: "/clients/mma-logo.png" },
-  { name: "Stanjo", logo: "/clients/stanjo.png" },
-  { name: "Epitome", logo: "/clients/epitome-logo.png" },
-  { name: "Luxewrap", logo: "/clients/luxewrap-logo.png" },
-  { name: "Medplus", logo: "/clients/medplus-logo.png" },
-  { name: "Farma24", logo: "/clients/farma24-logo.png" },
-  { name: "Ashut", logo: "/clients/ashut-logo.png" },
-  { name: "Trelanbrams", logo: "/clients/trelanbrams-logo.png" },
-  { name: "Datini", logo: "/clients/datini-logo.png" },
-  { name: "HB", logo: "/clients/hb-logo.webp" },
-  { name: "Cruises Bob", logo: "/clients/cruisesbob-logo.png" },
-  { name: "Insaac", logo: "/clients/insaac2.png" },
-  { name: "2tokee", logo: "/clients/2tokee.png" },
-  { name: "APL", logo: "/clients/apl-logo.png" },
+const audiences = ["Businesses", "Agencies", "Developers"] as const;
+
+const HERO_PHRASES = [
+  "operate and grow online.",
+  "reach more customers.",
+  "generate more revenue.",
+  "launch a site that sells.",
+  "work smarter with AI.",
 ] as const;
 
-const allClients = [...clients, ...clients];
-
-const socialProof = [
-  { dot: "bg-emerald-400", text: "100+ Businesses Served" },
-  { dot: "bg-primary", text: "99.99% Uptime" },
-  { dot: "bg-amber-400", text: "Results in 30 Days" },
-];
-
-// const heroCards = [
-//   {
-//     icon: <Bot className="size-4 text-primary" />,
-//     title: "Automate with AI",
-//     description: "Chatbots, content help, and follow-ups that work while you sleep.",
-//     date: "Step 04",
-//     iconClassName: "text-primary",
-//     titleClassName: "text-primary",
-//     className:
-//       "[grid-area:stack] hover:-translate-y-24 before:absolute before:w-[100%] before:outline-1 before:rounded-xl before:outline-border before:h-[100%] before:content-[''] before:bg-blend-overlay before:bg-background/50 hover:before:opacity-0 before:transition-opacity before:duration-700 before:left-0 before:top-0",
-//   },
-//   {
-//     icon: <TrendingUp className="size-4 text-primary" />,
-//     title: "Get More Customers",
-//     description: "SEO, social, and ads that bring real people to your business.",
-//     date: "Step 03",
-//     iconClassName: "text-primary",
-//     titleClassName: "text-primary",
-//     className:
-//       "[grid-area:stack] translate-x-4 translate-y-4 sm:translate-x-8 sm:translate-y-8 hover:-translate-y-16 before:absolute before:w-[100%] before:outline-1 before:rounded-xl before:outline-border before:h-[100%] before:content-[''] before:bg-blend-overlay before:bg-background/50 hover:before:opacity-0 before:transition-opacity before:duration-700 before:left-0 before:top-0",
-//   },
-//   {
-//     icon: <Server className="size-4 text-primary" />,
-//     title: "Go Online",
-//     description: "Fast hosting, domains, and business email that stay reliable.",
-//     date: "Step 02",
-//     iconClassName: "text-primary",
-//     titleClassName: "text-primary",
-//     className:
-//       "[grid-area:stack] translate-x-8 translate-y-8 sm:translate-x-16 sm:translate-y-16 hover:-translate-y-8 before:absolute before:w-[100%] before:outline-1 before:rounded-xl before:outline-border before:h-[100%] before:content-[''] before:bg-blend-overlay before:bg-background/50 hover:before:opacity-0 before:transition-opacity before:duration-700 before:left-0 before:top-0",
-//   },
-//   {
-//     icon: <Paintbrush className="size-4 text-primary" />,
-//     title: "Create My Brand",
-//     description: "Logo, website look, and brand kit that feel like one story.",
-//     date: "Step 01",
-//     iconClassName: "text-primary",
-//     titleClassName: "text-primary",
-//     className:
-//       "[grid-area:stack] translate-x-12 translate-y-12 sm:translate-x-24 sm:translate-y-24 hover:translate-y-12",
-//   },
-// ];
+const HERO_TOKENS = {
+  "--foreground": "#ffffff",
+  "--muted-foreground": "rgb(255 255 255 / 0.72)",
+  "--border": "rgb(255 255 255 / 0.14)",
+  "--card": "rgb(255 255 255 / 0.06)",
+} as CSSProperties;
 
 export default function Hero() {
-  const navigate = useNavigate();
+  const reduceMotion = useReducedMotion() ?? false;
+  const rise = (delay: number, y = 16) => ({
+    initial: reduceMotion ? false : { opacity: 0, y },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.6, delay },
+  });
 
   return (
     <section
       id="hero"
-      className="relative pt-16 overflow-x-hidden bg-background lg:flex lg:min-h-[90vh] lg:items-center"
+      aria-labelledby="hero-heading"
+      className="hero-bg relative isolate overflow-hidden pt-28 text-foreground md:pt-32"
+      style={HERO_TOKENS}
     >
-      {/* Subtle dot grid */}
       <div
-        className="absolute inset-0 opacity-30 pointer-events-none"
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 opacity-[0.07] [mask-image:radial-gradient(ellipse_75%_65%_at_50%_35%,black,transparent)]"
         style={{
-          backgroundImage: "radial-gradient(oklch(0.6 0.02 240 / 0.4) 1px, transparent 1px)",
-          backgroundSize: "28px 28px",
-        }}
-      />
-      {/* Soft radial accent */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: "radial-gradient(ellipse 65% 55% at 82% 40%, oklch(0.92 0.04 235 / 0.22) 0%, transparent 70%)",
+          backgroundImage: "radial-gradient(#ffffff 1px, transparent 1px)",
+          backgroundSize: "26px 26px",
         }}
       />
 
-      <div className="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-1 items-start gap-8 px-4 pt-6 pb-10 md:px-8 md:pt-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)] lg:items-center lg:gap-12 lg:pt-10 lg:pb-14">
-
-        {/* Left: text */}
-        <div className="order-1 max-w-xl lg:order-1">
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.08 }}
-            className="text-5xl md:text-6xl lg:text-[70px] font-extrabold tracking-tight leading-[1.05] text-balance mb-3"
-          >
-            <span className="text-foreground">Create.</span>{" "}
-            <span className="text-primary">Launch.</span>{" "}
-            <span className="text-foreground">Grow.</span>
-          </motion.h1>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.12 }}
-            className="text-xl md:text-2xl font-semibold text-foreground/80 mb-6 flex items-center flex-wrap gap-x-2 min-h-[36px]"
-          >
-            <span className="text-muted-foreground">Built to</span>
-            <Typewriter
-              text={[
-                "design your brand & logo.",
-                "put your website online.",
-                "bring you more customers.",
-                "make your work automatic."
-              ]}
-              speed={55}
-              waitTime={2000}
-              deleteSpeed={30}
-              initialDelay={300}
-              className="text-primary font-bold"
-              cursorChar="|"
-              hideCursorOnType
+      <div className="mx-auto flex max-w-4xl flex-col items-center px-4 text-center md:px-8">
+        <motion.p
+          {...rise(0, 10)}
+          className="hero-badge relative mb-7 inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.06] py-1 pr-3.5 pl-1 text-xs font-medium text-white/85 backdrop-blur-sm"
+        >
+          <span className="flex h-7 shrink-0 items-center gap-1.5 rounded-full bg-white px-2.5">
+            <img
+              src="/accreditation/kenic.svg"
+              alt="KeNIC"
+              width={35}
+              height={20}
+              className="h-5 w-[35px] object-contain"
+              decoding="async"
             />
-          </motion.div>
+            <span aria-hidden className="h-3.5 w-px bg-black/15" />
+            <img
+              src="/accreditation/communications-authority-of-kenya.jpg"
+              alt="Communications Authority of Kenya"
+              width={61}
+              height={20}
+              className="h-5 w-[61px] object-contain"
+              decoding="async"
+            />
+          </span>
+          <span className="whitespace-nowrap sm:hidden">Accredited &amp; licensed</span>
+          <span className="hidden sm:inline">
+            KeNIC-accredited registrar · Licensed by the Communications Authority of Kenya
+          </span>
+        </motion.p>
 
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.18 }}
-            className="text-lg text-muted-foreground leading-relaxed mb-9 max-w-lg"
-          >
-            We help businesses of every size get online, stay online, and grow.
-            One team for hosting, brand, and marketing so you are not juggling
-            five different vendors.
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.24 }}
-            className="flex flex-col sm:flex-row gap-3 mb-10"
-          >
-            <Button
-              size="lg"
-              onClick={() => navigate("/contact")}
-              className="bg-primary text-primary-foreground hover:opacity-90 cursor-pointer font-semibold text-[15px] px-7 gap-2 rounded-full"
-            >
-              Get Your Free Strategy Call
-              <ArrowRight size={15} />
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              onClick={() => navigate("/pricing")}
-              className="cursor-pointer font-medium text-[15px] rounded-full"
-            >
-              View Pricing
-            </Button>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground"
-          >
-            {socialProof.map(({ dot, text }) => (
-              <div key={text} className="flex items-center gap-2">
-                <div className={`w-1.5 h-1.5 rounded-full ${dot}`} />
-                <span>{text}</span>
-              </div>
-            ))}
-          </motion.div>
-        </div>
-
-        {/* Trusted by  directly below hero copy on mobile */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.6 }}
-          className="order-2 col-span-full pb-0 lg:order-3"
+        <motion.h1
+          id="hero-heading"
+          aria-label="Build. Run. Grow."
+          {...rise(0.05, 12)}
+          className="mb-5 font-sans text-[2.6rem] font-extrabold leading-none tracking-tight text-foreground max-[360px]:text-[2.3rem] sm:text-6xl lg:text-7xl xl:text-[5rem]"
         >
-          <p className="mb-4 text-center text-xs font-mono font-semibold tracking-widest text-muted-foreground/60 uppercase lg:mb-6">
-            Trusted by growing businesses
-          </p>
-          <div className="relative overflow-hidden">
-            <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
-            <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
-            <div className="flex overflow-hidden">
-              <motion.div
-                className="flex gap-8 items-center shrink-0"
-                animate={{ x: ["0%", "-50%"] }}
-                transition={{ duration: 42, repeat: Infinity, ease: "linear" }}
-              >
-                {allClients.map((client, i) => (
-                  <div
-                    key={`${client.name}-${i}`}
-                    className="flex items-center justify-center opacity-90 hover:opacity-100 transition-opacity duration-300 shrink-0 px-2 py-1"
-                    title={client.name}
-                  >
-                    <img
-                      src={client.logo}
-                      alt={client.name}
-                      className="h-9 w-auto max-w-[140px] object-contain sm:h-10 md:h-11"
-                      loading="lazy"
-                    />
-                  </div>
-                ))}
-              </motion.div>
-            </div>
-          </div>
+          Build<span className="text-primary">.</span> Run<span className="text-primary">.</span> Grow
+          <span className="text-primary">.</span>
+        </motion.h1>
+
+        <motion.h2
+          {...rise(0.1)}
+          className="mb-6 text-[1.35rem] font-semibold leading-[1.25] tracking-tight text-muted-foreground min-[380px]:text-2xl md:text-3xl"
+        >
+          Everything your business needs to
+          <span className="block whitespace-nowrap font-bold">
+            <TypedPhrase phrases={HERO_PHRASES} className="text-primary" caretClassName="bg-white" />
+          </span>
+        </motion.h2>
+
+        <motion.p
+          {...rise(0.16)}
+          className="mb-9 max-w-2xl text-base leading-relaxed text-muted-foreground md:text-lg"
+        >
+          From domains, cloud hosting and business email to websites,
+          software, marketing and AI-powered workflows, Nisc Cloud brings your
+          digital services together.
+        </motion.p>
+
+        <motion.div {...rise(0.22)} className="mb-6 flex w-full flex-col justify-center gap-3 sm:w-auto sm:flex-row">
+          <Button
+            asChild
+            size="lg"
+            className="cursor-pointer gap-2 rounded-[10px] bg-white px-7 text-[15px] font-semibold text-[#02070a] shadow-lg shadow-black/15 hover:bg-white/90"
+          >
+            <Link to="/hosting" onClick={() => trackEvent("hero_cloud_click")}>
+              Explore Cloud Products
+              <ArrowRight size={15} aria-hidden />
+            </Link>
+          </Button>
+          <Button
+            asChild
+            size="lg"
+            variant="outline"
+            className="cursor-pointer gap-2 rounded-[10px] border-white/25 bg-transparent px-7 text-[15px] font-semibold text-white hover:bg-white/10 hover:text-white dark:border-white/25 dark:bg-transparent dark:hover:bg-white/10"
+          >
+            <Link to="/services" onClick={() => trackEvent("hero_solutions_click")}>
+              Explore Business Solutions
+            </Link>
+          </Button>
         </motion.div>
 
-        {/* Right: hero image (same pattern as service pages) */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.25 }}
-          className="order-3 hidden w-full items-center justify-center overflow-visible lg:order-2 lg:flex"
+        <motion.p
+          initial={reduceMotion ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-muted-foreground"
         >
-          {/*
-          <div className="mx-auto max-w-md space-y-2 text-center lg:mx-0 lg:text-left">
-            <h3 className="text-lg font-bold tracking-tight text-foreground">
-              Everything you need to grow online
-            </h3>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              Design, hosting, marketing, and smart tools that work together.
-              You get one plan, one team, and clear next steps.
-            </p>
-          </div>
-          <div className="flex w-full items-center justify-center py-2 sm:py-4 lg:py-6">
-            <div className="w-full max-w-md">
-              <DisplayCards cards={heroCards} />
-            </div>
-          </div>
-          */}
-          <NiscWebsiteHeroImage
-            src={niscWebsiteImage("everything you need online 3.png")}
-            alt="Everything you need online"
-            standalone
-            className="max-h-none w-[118%] max-w-none"
-          />
-        </motion.div>
-
+          <span>For</span>
+          {audiences.map((audience, i) => (
+            <span key={audience} className="flex items-center gap-2">
+              <span className="font-semibold text-foreground">{audience.toLowerCase()}</span>
+              {i < audiences.length - 1 && (
+                <span aria-hidden className="size-1 rounded-full bg-foreground/40" />
+              )}
+            </span>
+          ))}
+        </motion.p>
       </div>
+
+      <motion.div {...rise(0.4)} className="mx-auto mt-14 max-w-6xl px-4 pb-14 md:mt-16 md:px-8 md:pb-16">
+        <ClientLogoStrip variant="white" />
+      </motion.div>
     </section>
   );
 }

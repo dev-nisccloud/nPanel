@@ -37,7 +37,7 @@ const LAYERS = [
     status: "Encrypted",
     hint: "SHA-256",
     spark: [88, 90, 92, 91, 95, 97, 100],
-    color: "#38b6ff",
+    color: "var(--primary)",
   },
   {
     key: "scan",
@@ -62,7 +62,7 @@ const LAYERS = [
 const TONE = {
   danger: { dot: "#ef4444", text: "text-red-600" },
   ok: { dot: "#10b981", text: "text-emerald-600" },
-  info: { dot: "#38b6ff", text: "text-sky-600" },
+  info: { dot: "var(--primary)", text: "text-sky-600" },
 };
 
 /* ── helpers ──────────────────────────────────────────── */
@@ -149,18 +149,18 @@ function ShieldMark() {
     <div className="relative flex h-[4.75rem] w-[4.75rem] items-center justify-center">
       <motion.div
         className="absolute inset-0 rounded-full"
-        style={{ background: "radial-gradient(circle, rgba(56,182,255,0.22) 0%, transparent 70%)" }}
+        style={{ background: "radial-gradient(circle, color-mix(in srgb, var(--primary) 22%, transparent) 0%, transparent 70%)" }}
         animate={{ scale: [1, 1.08, 1], opacity: [0.7, 1, 0.7] }}
         transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
       />
       <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 76 76" aria-hidden>
-        <circle cx="38" cy="38" r="33" fill="none" stroke="rgba(56,182,255,0.12)" strokeWidth="3.5" />
+        <circle cx="38" cy="38" r="33" fill="none" stroke="color-mix(in srgb, var(--primary) 12%, transparent)" strokeWidth="3.5" />
         <motion.circle
           cx="38"
           cy="38"
           r="33"
           fill="none"
-          stroke="#38b6ff"
+          stroke="var(--primary)"
           strokeWidth="3.5"
           strokeLinecap="round"
           strokeDasharray={207}
@@ -169,8 +169,8 @@ function ShieldMark() {
           transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
         />
       </svg>
-      <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-[0_1px_8px_rgba(56,182,255,0.18)] ring-1 ring-[#38b6ff]/15">
-        <ShieldCheck className="h-5 w-5 text-[#38b6ff]" strokeWidth={2.25} />
+      <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-[0_1px_8px_color-mix(in_srgb,var(--primary)_18%,transparent)] ring-1 ring-primary/15">
+        <ShieldCheck className="h-5 w-5 text-primary" strokeWidth={2.25} />
       </div>
     </div>
   );
@@ -244,15 +244,15 @@ export default function SecurityDashboardScreen({
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 70% 50% at 20% 0%, rgba(56,182,255,0.10), transparent 55%), radial-gradient(ellipse 50% 40% at 90% 100%, rgba(16,185,129,0.06), transparent 50%)",
+            "radial-gradient(ellipse 70% 50% at 20% 0%, color-mix(in srgb, var(--primary) 10%, transparent), transparent 55%), radial-gradient(ellipse 50% 40% at 90% 100%, rgba(16,185,129,0.06), transparent 50%)",
         }}
       />
 
       <motion.div
         className="pointer-events-none absolute inset-x-0 z-20 h-px"
         style={{
-          background: "linear-gradient(90deg, transparent, rgba(56,182,255,0.55), transparent)",
-          boxShadow: "0 0 10px 2px rgba(56,182,255,0.25)",
+          background: "linear-gradient(90deg, transparent, color-mix(in srgb, var(--primary) 55%, transparent), transparent)",
+          boxShadow: "0 0 10px 2px color-mix(in srgb, var(--primary) 25%, transparent)",
         }}
         animate={{ top: ["0%", "100%"] }}
         transition={{ duration: 4, repeat: Infinity, repeatDelay: 6, ease: "linear" }}
@@ -302,7 +302,7 @@ export default function SecurityDashboardScreen({
                   {threatCount.toLocaleString()}
                 </motion.p>
               </div>
-              <Activity className="mb-0.5 h-3 w-3 text-[#38b6ff]/70" />
+              <Activity className="mb-0.5 h-3 w-3 text-primary/70" />
             </div>
             <div className="flex items-center justify-between px-1">
               <span className="text-[7px] text-slate-400">Uptime</span>
@@ -327,14 +327,14 @@ export default function SecurityDashboardScreen({
                   transition={{ delay: 0.15 + i * 0.06, duration: 0.4 }}
                   className={`relative flex flex-col overflow-hidden rounded-xl bg-white/90 p-2 ring-1 transition-shadow duration-500 ${
                     isActive
-                      ? "shadow-[0_4px_14px_rgba(56,182,255,0.12)] ring-[#38b6ff]/35"
+                      ? "shadow-[0_4px_14px_color-mix(in_srgb,var(--primary)_12%,transparent)] ring-primary/35"
                       : "shadow-[0_1px_0_rgba(15,23,42,0.03)] ring-slate-200/70"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-1">
                     <div
                       className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md transition-colors duration-500 ${
-                        isActive ? "bg-[#38b6ff]/12 text-[#38b6ff]" : "bg-slate-50 text-slate-500"
+                        isActive ? "bg-primary/12 text-primary" : "bg-slate-50 text-slate-500"
                       }`}
                     >
                       <Icon className="h-3 w-3" strokeWidth={2.25} />
@@ -343,7 +343,7 @@ export default function SecurityDashboardScreen({
                       <p className="text-[7px] font-medium uppercase tracking-wider text-slate-400">{layer.label}</p>
                       <p className="text-[10px] font-bold leading-tight text-slate-800">{layer.status}</p>
                     </div>
-                    <PulseDot color={isActive ? "#38b6ff" : "#10b981"} />
+                    <PulseDot color={isActive ? "var(--primary)" : "#10b981"} />
                   </div>
 
                   <div className="mt-1.5 flex min-h-0 flex-1 flex-col justify-end">
@@ -360,7 +360,7 @@ export default function SecurityDashboardScreen({
                   {isScan && (
                     <div className="absolute inset-x-0 bottom-0 h-0.5 overflow-hidden bg-slate-100">
                       <motion.div
-                        className="h-full bg-gradient-to-r from-[#38b6ff] to-cyan-400"
+                        className="h-full bg-gradient-to-r from-primary to-cyan-400"
                         style={{ width: `${scanProgress}%` }}
                       />
                     </div>
@@ -374,7 +374,7 @@ export default function SecurityDashboardScreen({
             <div className="mb-1.5 flex items-center justify-between">
               <span className="text-[7px] font-medium uppercase tracking-wider text-slate-400">Live activity</span>
               <span className="flex items-center gap-1 text-[7px] text-slate-400">
-                <PulseDot color="#38b6ff" />
+                <PulseDot color="var(--primary)" />
                 Updating
               </span>
             </div>

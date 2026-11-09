@@ -12,24 +12,24 @@ import { VpsPlansSection } from "./_components/VpsPlansSection.tsx";
 const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "Server Monitoring",
-    headline: "Full visibility into your server. 24/7.",
-    body: "Monitor CPU, RAM, disk I/O, and network traffic in real time from your Grafana dashboard. Set custom alerts so you know about issues before your users do.",
+    headline: "See what your virtual server is doing.",
+    body: "Review core resource and service information in your management workspace, then use your preferred monitoring stack for application-level observability.",
     bullets: [
-      "Real-time CPU, RAM, and disk usage monitoring",
-      "Custom alert thresholds via email, SMS, and WhatsApp",
-      "99.99% network uptime SLA with credits if we miss it",
+      "Clear resource and service visibility",
+      "Browser-based terminal access for authorised users",
+      "A practical base for your own monitoring tools",
     ],
     mockupRight: true,
     visual: "serverMonitor",
   },
   {
-    tag: "Instant Deployment",
-    headline: "Your VPS ready in under 5 minutes",
-    body: "Choose your OS, add your SSH key, and click deploy. No waiting, no provisioning delays. Your AMD EPYC-powered server is live and accessible in minutes.",
+    tag: "Straightforward Deployment",
+    headline: "Configure a VPS around your workload",
+    body: "Choose an available operating system and plan, add secure access details, and deploy a virtual environment for your application.",
     bullets: [
-      "Ubuntu, Debian, CentOS, AlmaLinux, your choice",
-      "SSH access available within 5 minutes of payment",
-      "One-click LAMP, LEMP, Docker, and Node.js stacks",
+      "A choice of supported operating systems",
+      "Secure SSH and browser-terminal access",
+      "Flexible environments for websites and applications",
     ],
     mockupRight: false,
     visual: "serverProvision",
@@ -37,9 +37,9 @@ const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "Popular Use Cases",
     headline: "Any workload. One powerful platform.",
-    body: "Teams use our VPS for stores, APIs, SaaS apps, and staging environments. Dedicated resources mean your app performs consistently.",
+    body: "Teams use VPS environments for stores, APIs, business applications and development workloads that need more control than shared hosting.",
     bullets: [
-      "WooCommerce and eCommerce stores with full resource isolation",
+      "WooCommerce and eCommerce stores",
       "Payment APIs and application backends",
       "SaaS platforms, CRMs, and custom business apps",
     ],
@@ -52,49 +52,49 @@ export default function VpsHostingPage() {
   return (
     <ServicePageShell
       badge="VPS Servers"
-      headline={<>Dedicated Power. <span className="text-primary">Full Control.</span> VPS Built for Serious Workloads.</>}
-      subtext="Full root access, guaranteed resources, and fast provisioning. Deploy your custom stack in minutes with no shared resources and no compromises."
+      headline={<>Flexible Compute. <span className="text-primary">More Control.</span> VPS for Growing Workloads.</>}
+      subtext="Configure a virtual server with guaranteed CPU and RAM and NVMe storage for websites, applications, development environments and workloads that have outgrown shared hosting."
       serviceType="hosting"
       heroIllustration={<HostingHeroIllustration config={vpsHeroConfig} />}
       heroIllustrationBare
       showHeroOverlays={false}
-      heroTrustBadge={{ line1: "AMD EPYC Processors", line2: "Deployed in under 5 minutes" }}
+      heroTrustBadge={{ line1: "Virtual server flexibility", line2: "Managed through nPanel" }}
       trustStats={[
-        { value: "100+", label: "Clients Served" },
-        { value: "99.99%", label: "Network Uptime SLA" },
-        { value: "24/7", label: "Support" },
-        { value: "<5 min", label: "Average Deployment Time" },
+        { value: "Root", label: "Authorised Access" },
+        { value: "NVMe", label: "Storage" },
+        { value: "Guaranteed", label: "CPU and RAM" },
+        { value: "nPanel", label: "Management" },
       ]}
       features={[
         {
           icon: <Server size={20} />,
-          title: "Guaranteed Dedicated Resources",
-          desc: "Unlike shared hosting, your CPU cores, RAM, and SSD are yours alone. No noisy neighbours, no resource contention, consistent performance at all times.",
+          title: "Flexible Virtual Resources",
+          desc: "Choose a VPS plan with the compute, memory and storage profile that suits your current workload.",
         },
         {
           icon: <Cpu size={20} />,
-          title: "Latest-Gen AMD EPYC CPUs",
-          desc: "Powered by AMD EPYC processors, the same architecture used by major cloud providers. Your workloads get strong compute performance.",
+          title: "Configurable Compute",
+          desc: "Select from available virtual CPU and memory configurations, then move to a larger plan as requirements grow.",
         },
         {
           icon: <HardDrive size={20} />,
-          title: "NVMe SSD RAID Storage",
-          desc: "Enterprise NVMe SSD in RAID-10 configuration delivers 3,500 MB/s read speeds. Databases, file servers, and apps run at full speed.",
+          title: "Fast Storage Options",
+          desc: "Available VPS plans use modern storage suited to websites, databases, file services and application workloads.",
         },
         {
           icon: <Network size={20} />,
-          title: "10 Gbps Network Port",
-          desc: "Each VPS is connected to a 10 Gbps uplink. Handle high traffic, large file transfers, and media streaming without bandwidth bottlenecks.",
+          title: "Connected for Real Workloads",
+          desc: "Run public websites, APIs and private application services with the connectivity included in your selected plan.",
         },
         {
           icon: <Shield size={20} />,
-          title: "DDoS Protection Included",
-          desc: "Industry-grade DDoS mitigation is included on all VPS plans. Volumetric attacks are scrubbed at the network edge before reaching your server.",
+          title: "Security Options",
+          desc: "Combine server-level controls, secure access and available network protections around your application requirements.",
         },
         {
           icon: <Zap size={20} />,
-          title: "Instant Provisioning",
-          desc: "Your VPS is deployed and ready in under 5 minutes. Choose your OS, add your SSH key, and start deploying your applications immediately.",
+          title: "Straightforward Provisioning",
+          desc: "Choose a supported operating system, add secure access details and prepare the environment for your stack.",
         },
         {
           icon: <Globe size={20} />,
@@ -112,29 +112,29 @@ export default function VpsHostingPage() {
       plans={[]}
       process={[
         { num: "01", title: "Configure Your VPS", desc: "Choose your plan, operating system (Ubuntu, CentOS, Debian, AlmaLinux), and add your SSH public key for secure access." },
-        { num: "02", title: "Instant Deployment", desc: "Your VPS is provisioned in under 5 minutes. You will receive your IP address, root credentials, and connection guide by email." },
-        { num: "03", title: "Deploy Your Stack", desc: "SSH in and deploy your applications. Use our one-click app scripts for LAMP, LEMP, Docker, Node.js, or any custom stack you need." },
-        { num: "04", title: "Monitor and Scale", desc: "Use our monitoring dashboard to track CPU, RAM, disk, and network usage. Scale up resources with one click when your business demands it." },
+        { num: "02", title: "Provision Securely", desc: "Provisioning details and authorised access information are provided for your configured server." },
+        { num: "03", title: "Deploy Your Stack", desc: "Connect through SSH or the authorised browser terminal and deploy the software your workload requires." },
+        { num: "04", title: "Monitor and Scale", desc: "Review the environment and move to a larger configuration when your requirements increase." },
       ]}
       whyPoints={[
-        { title: "Guaranteed Resources, Not Shared", desc: "Every vCPU and GB of RAM is dedicated to your VPS alone. You always get the performance you are paying for." },
-        { title: "Deploy in Minutes", desc: "Choose your OS, add your key, and go live quickly. Setup help is available if you need a hand." },
-        { title: "Upgrade Without Long Downtime", desc: "Need more RAM or CPU? We upgrade your VPS resources live in most cases. No migration, no rebuild for your users." },
-        { title: "Enterprise Networking Infrastructure", desc: "Redundant 10 Gbps uplinks, BGP routing, and carrier-grade switches help keep your server reachable." },
-        { title: "Full Control, No Restrictions", desc: "Run Docker, Kubernetes, custom firewall rules, VPN servers, game servers, or any workload. Root access means total freedom." },
-        { title: "Managed Support Available", desc: "Don't want to manage your server yourself? Add our managed services option and our team handles updates, security patches, and optimisation." },
+        { title: "More Control Than Shared Hosting", visual: "code", desc: "Run a configurable virtual environment with root access and your own application stack." },
+        { title: "Practical Deployment", visual: "deploy", desc: "Choose your OS, add your key and prepare the server around your workload." },
+        { title: "A Clear Upgrade Path", visual: "growth", desc: "Move to a larger VPS, a higher-reservation VDS tier or dedicated hardware as requirements grow." },
+        { title: "Built for Connected Applications", visual: "integrate", desc: "Host public services, internal tools and application backends on a plan selected for your traffic needs." },
+        { title: "Full Control, No Restrictions", visual: "ownership", desc: "Run Docker, Kubernetes, custom firewall rules, VPN servers, game servers, or any workload. Root access means total freedom." },
+        { title: "Managed Support Available", visual: "support", desc: "Don't want to manage your server yourself? Add our managed services option and our team handles updates, security patches, and optimisation." },
       ]}
       faqs={[
         { q: "What operating systems are available?", a: "We offer Ubuntu 20.04/22.04/24.04, Debian 11/12, CentOS 7/8/9, AlmaLinux 8/9, and Rocky Linux 8/9. Custom ISO uploads are available on Enterprise plans." },
         { q: "Can I run Docker or Kubernetes on my VPS?", a: "Yes. You have full root access and can install and run Docker, Docker Compose, or Kubernetes clusters without restrictions from our side." },
-        { q: "How does the 99.99% uptime SLA work?", a: "We guarantee 99.99% monthly network uptime. If we fail to meet this SLA, you receive service credits equal to 10x the downtime value. We publish real-time status at status.nisccloud.co.ke." },
-        { q: "Is managed hosting available for VPS?", a: "Yes. Our managed VPS add-on includes OS updates, security hardening, 24/7 proactive monitoring, incident response, and monthly performance reports." },
-        { q: "Can I scale my VPS up later?", a: "Yes. You can upgrade CPU, RAM, and storage at any time from your dashboard. Upgrades are applied within 15 minutes and typically require only a brief reboot." },
-        { q: "Do you provide DDoS protection?", a: "All VPS plans include volumetric DDoS mitigation at the network level at no extra cost. We can absorb attacks up to 10 Gbps. For advanced Layer 7 protection, ask about our premium DDoS service." },
+        { q: "Is an uptime SLA available?", a: "Applicable availability commitments depend on the selected service and agreement. Confirm the current SLA terms with Nisc Cloud before purchase." },
+        { q: "Is managed hosting available for VPS?", a: "Managed assistance may be added where available. Scope and response coverage are confirmed in the selected service agreement." },
+        { q: "Can I scale my VPS up later?", a: "Available upgrade paths depend on the selected plan. Nisc Cloud can confirm the suitable VPS, VDS or dedicated tier for your next stage." },
+        { q: "What network protection is included?", a: "Protection varies by plan and deployment. Confirm the included controls and any additional application-layer protection before purchase." },
       ]}
-      pricingNote="All prices in KES. Annual billing saves 15%. Custom configurations available for enterprise clients."
+      pricingNote="All prices in KES, excluding 16% VAT. Custom configurations available for enterprise clients."
       ctaHeadline="Get a VPS That Performs as Hard as You Do"
-      ctaSubtext="Stop overpaying for sluggish shared hosting. Get dedicated resources, fast deployment, 99.99% uptime focus, and 24/7 support."
+      ctaSubtext="Choose flexible virtual compute for websites, applications, development environments and growing workloads."
       showcaseBlocks={showcaseBlocks}
     />
   );

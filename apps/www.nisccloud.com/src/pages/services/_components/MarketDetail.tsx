@@ -1,15 +1,16 @@
 import { motion } from "motion/react";
+import { ServiceFeatureGrid, type ServiceFeature } from "./ServiceFeatureGrid.tsx";
 import { Check, Search, TrendingUp, Share2, Mail } from "lucide-react";
 import ServiceStatistics, {
   trustStatsToStatisticsItems,
 } from "@/components/shadcn-space/blocks/statistics-02/statistics.tsx";
 import { ShowcaseVisualCard } from "@/pages/_components/ServiceShowcaseSection.tsx";
 
-const features = [
-  { icon: Search, title: "SEO & Content", desc: "Technical audits, keyword strategy, and content that help people find you on Google, Maps, and AI answers." },
-  { icon: TrendingUp, title: "Paid Media", desc: "Campaigns across Google, Meta, TikTok, and LinkedIn managed for leads and sales, with clear reporting." },
-  { icon: Share2, title: "Social Media", desc: "Strategy, design, posting, and community replies across the platforms your customers use." },
-  { icon: Mail, title: "Email Marketing", desc: "Automated sequences, broadcast campaigns, and testing to turn subscribers into buyers." },
+const features: ServiceFeature[] = [
+  { icon: Search, title: "SEO & Content", href: "/services/seo", desc: "Technical audits, keyword strategy, and content that help people find you on Google, Maps, and AI answers." },
+  { icon: TrendingUp, title: "Paid Media", href: "/services/paid-ads", desc: "Campaigns across Google, Meta, TikTok, and LinkedIn managed for leads and sales, with clear reporting." },
+  { icon: Share2, title: "Social Media", href: "/services/social-media", desc: "Strategy, design, posting, and community replies across the platforms your customers use." },
+  { icon: Mail, title: "Email Marketing", href: "/services/email-marketing", desc: "Automated sequences, broadcast campaigns, and testing to turn subscribers into buyers." },
 ];
 
 const included = [
@@ -22,9 +23,9 @@ const included = [
 ];
 
 const metrics = [
-  { value: "100+", label: "Clients we support" },
-  { value: "24/7", label: "Support available" },
-  { value: "30 days", label: "Results promise" },
+  { value: "Monthly", label: "Transparent reporting" },
+  { value: "Dedicated", label: "Account manager" },
+  { value: "Free", label: "Strategy call" },
 ];
 
 export default function MarketDetail() {
@@ -39,11 +40,11 @@ export default function MarketDetail() {
             transition={{ duration: 0.6 }}
           >
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-5">
-              Full-Stack Growth.<br />
+              Full-Stack Growth. <br />
               <span className="text-primary">Clear Reporting.</span>
             </h2>
             <p className="text-muted-foreground text-lg leading-relaxed mb-8">
-              We do not run channels in isolation. SEO, paid ads, social, and email feed one growth plan, with reporting you can understand and a 30-day results promise on active work.
+              We do not run channels in isolation. SEO, paid ads, social, and email feed one growth plan, with reporting you can understand. It starts with a free strategy call and a clear proposal before you commit.
             </p>
             <ul className="grid grid-cols-2 gap-2 mb-8">
               {included.map((item) => (
@@ -73,24 +74,7 @@ export default function MarketDetail() {
           </motion.div>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {features.map((f, i) => (
-            <motion.div
-              key={f.title}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: i * 0.08 }}
-              className="bg-card border border-border/60 rounded-xl p-5 transition-all hover:border-primary/40"
-            >
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-3 bg-primary/10 text-primary">
-                <f.icon size={16} />
-              </div>
-              <h4 className="font-semibold text-sm mb-1">{f.title}</h4>
-              <p className="text-xs text-muted-foreground leading-relaxed">{f.desc}</p>
-            </motion.div>
-          ))}
-        </div>
+        <ServiceFeatureGrid features={features} />
       </div>
     </section>
   );

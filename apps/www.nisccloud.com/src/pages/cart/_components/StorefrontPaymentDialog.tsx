@@ -1,6 +1,7 @@
 import * as React from "react";
 import { CreditCard, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { trackEvent } from "@/lib/track.ts";
 import {
   Dialog,
   DialogContent,
@@ -9,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog.tsx";
 import { Button } from "@/components/ui/button.tsx";
+import { Checkbox } from "@/components/ui/checkbox.tsx";
 import { MpesaPaymentFields } from "./MpesaPaymentFields.tsx";
 import { JengaCardPaymentFields } from "./JengaCardPaymentFields.tsx";
 import {
@@ -90,6 +92,8 @@ export function StorefrontPaymentDialog({
   );
   const [paymentError, setPaymentError] = React.useState<string | null>(null);
   const [isPolling, setIsPolling] = React.useState(false);
+  const [termsAccepted, setTermsAccepted] = React.useState(false);
+  const [termsError, setTermsError] = React.useState(false);
   const [jengaCustomer, setJengaCustomer] = React.useState<StorefrontJengaCustomer>({
     customerFirstName: "",
     customerLastName: "",
@@ -151,6 +155,7 @@ export function StorefrontPaymentDialog({
       setPhase("form");
       setPaymentError(msg);
       toast.error(msg);
+      trackEvent("checkout_failure", { method: "mpesa", stage: "payment" });
     },
     [stopPolling],
   );
@@ -169,6 +174,7 @@ export function StorefrontPaymentDialog({
         setPhase("form");
         setPaymentError(msg);
         toast.error(msg);
+        trackEvent("checkout_failure", { method: "mpesa", stage: "order_creation" });
       }
     },
     [onPaymentSuccess, stopPolling],
@@ -265,8 +271,15 @@ export function StorefrontPaymentDialog({
     [storefrontToken, stopPolling, handlePaymentFailure, handlePaymentSuccess],
   );
 
+  const requireTerms = () => {
+    if (termsAccepted) return true;
+    setTermsError(true);
+    return false;
+  };
+
   const handlePay = async () => {
     setPaymentError(null);
+    if (!requireTerms()) return;
     const trimmed = phoneNumber.trim();
     if (!trimmed || trimmed.replace(/\D/g, "").length < 9) {
       setPhoneError("Enter a valid M-Pesa phone number");
@@ -281,16 +294,19 @@ export function StorefrontPaymentDialog({
         cart,
       });
       toast.message(res.message ?? "Check your phone for the M-Pesa prompt.");
+      trackEvent("payment_initiated", { method: "mpesa" });
       startPolling(res.checkoutRequestId);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to initiate payment.";
       setPaymentError(msg);
       toast.error(msg);
+      trackEvent("checkout_failure", { method: "mpesa", stage: "initiation" });
     }
   };
 
   const handleCardPay = async () => {
     setPaymentError(null);
+    if (!requireTerms()) return;
     const errors = validateJengaCustomer(jengaCustomer);
     setJengaErrors(errors);
     if (Object.keys(errors).length > 0) {
@@ -319,12 +335,14 @@ export function StorefrontPaymentDialog({
           cart,
         }),
       );
+      trackEvent("payment_initiated", { method: "card" });
       submitJengaPaymentForm(res.checkoutUrl, res.paymentData);
     } catch (err) {
       setPhase("form");
       const msg = err instanceof Error ? err.message : "Failed to start card payment.";
       setPaymentError(msg);
       toast.error(msg);
+      trackEvent("checkout_failure", { method: "card", stage: "initiation" });
     }
   };
 
@@ -359,6 +377,47 @@ export function StorefrontPaymentDialog({
             </div>
           )}
 
+          <div className="mb-5 rounded-xl border border-border bg-muted/30 p-4">
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id="order-terms"
+                checked={termsAccepted}
+                disabled={isWaiting}
+                aria-invalid={termsError}
+                aria-describedby={termsError ? "order-terms-error" : undefined}
+                onCheckedChange={(checked) => {
+                  setTermsAccepted(checked === true);
+                  if (checked === true) setTermsError(false);
+                }}
+                className="mt-0.5"
+              />
+              <label htmlFor="order-terms" className="cursor-pointer text-sm leading-relaxed text-foreground">
+                I have read and agree to Nisc Cloud&apos;s{" "}
+                <a href="/terms" target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline underline-offset-2 hover:no-underline">
+                  Terms of Service
+                </a>
+                , including the applicable{" "}
+                <a href="/terms#billing" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:no-underline">
+                  renewal
+                </a>
+                ,{" "}
+                <a href="/terms#cancellation" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:no-underline">
+                  cancellation
+                </a>{" "}
+                and{" "}
+                <a href="/terms#acceptable-use" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:no-underline">
+                  acceptable-use
+                </a>{" "}
+                terms.
+              </label>
+            </div>
+            {termsError && (
+              <p id="order-terms-error" role="alert" className="mt-2 pl-7 text-xs text-destructive">
+                Tick the box to confirm you accept the Terms of Service before paying.
+              </p>
+            )}
+          </div>
+
           <PaymentMethodAccordion value={paymentMethod} onValueChange={setPaymentMethod}>
             <PaymentMethodOption
               value="mpesa"
@@ -382,7 +441,7 @@ export function StorefrontPaymentDialog({
                     <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
                     <p className="text-sm font-medium text-foreground">
                       {phase === "creating"
-                        ? "Payment confirmed  creating your order…"
+                        ? "Payment confirmed. Creating your order…"
                         : "Waiting for payment confirmation…"}
                     </p>
                     <p className="text-xs text-muted-foreground mt-2 max-w-xs">

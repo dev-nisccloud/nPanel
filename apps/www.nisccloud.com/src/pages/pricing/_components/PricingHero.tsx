@@ -2,12 +2,12 @@ import { motion } from "motion/react";
 
 export default function PricingHero() {
   return (
-    <section className="relative pt-20 pb-10 overflow-hidden">
+    <section className="relative pt-28 pb-10 overflow-hidden md:pt-32">
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            "linear-gradient(135deg, oklch(0.96 0.05 235 / 0.55) 0%, oklch(0.97 0.03 260 / 0.35) 50%, oklch(0.96 0.04 195 / 0.40) 100%)",
+            "linear-gradient(135deg, oklch(0.96 0.05 235 / 0.55) 0%, oklch(0.97 0.03 230 / 0.35) 50%, oklch(0.96 0.04 195 / 0.40) 100%)",
         }}
       />
       <div
@@ -18,6 +18,7 @@ export default function PricingHero() {
         }}
       />
       <div className="max-w-4xl mx-auto px-4 md:px-8 text-center relative">
+        <p className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-primary">Pricing · Kenya shillings (KES)</p>
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

@@ -22,7 +22,7 @@ const testimonials: Testimonial[] = [
     role: "Founder, AfriCommerce",
     text: "Hosting stayed steady and the marketing team understood our buyers. Support answered when we needed them, day or night.",
     initials: "JO",
-    accentClass: "bg-violet-500/20 text-violet-400",
+    accentClass: "bg-brand-orange/15 text-brand-orange",
   },
   {
     name: "Grace W.",

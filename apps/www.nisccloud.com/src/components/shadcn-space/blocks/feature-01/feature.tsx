@@ -77,7 +77,7 @@ const Feature = ({
                 <p className="text-lg font-normal text-muted-foreground">{description}</p>
               </div>
               {ctaLabel && ctaHref ? (
-                <Button asChild className="h-auto cursor-pointer rounded-full px-5 py-2.5 shadow-xs">
+                <Button asChild className="min-h-11 cursor-pointer rounded-[10px] px-5 py-2.5 shadow-xs">
                   <a href={ctaHref}>{ctaLabel}</a>
                 </Button>
               ) : null}
