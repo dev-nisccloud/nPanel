@@ -41,6 +41,8 @@ import { toast } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
 import { trpc, type RouterOutputs } from "@/utils/trpc";
 
+import { NiscServiceAccessEmpty } from "@/components/social-ads/nisc-service-access-empty";
+import { useSocialAdsScope } from "@/components/social-ads/social-ads-scope";
 import { LinkAdAccountOrganization } from "./link-ad-account-organization";
 import { SelectFacebookAdAccounts } from "./select-ad-accounts";
 
@@ -232,6 +234,8 @@ export function FacebookCampaignsTab({
   assetPlatform?: "meta_facebook" | "meta_instagram";
   connectionId?: string;
 } = {}) {
+  const scope = useSocialAdsScope();
+  const customer = scope.audience === "customer";
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const utils = trpc.useUtils();
@@ -245,11 +249,15 @@ export function FacebookCampaignsTab({
   });
   const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false);
 
+  const listBase = customer
+    ? `${scope.basePath}/${assetPlatform === "meta_instagram" ? "instagram" : "facebook"}`
+    : detailsBase;
   const accountsListInput = {
     platform: assetPlatform,
-    assetType: "meta_ad_account",
-    isActive: true,
-  } as const;
+    assetType: "meta_ad_account" as const,
+    isActive: true as const,
+    ...(scope.teamId ? { teamId: scope.teamId } : {}),
+  };
   const accountsQuery = trpc.customerOAuth.assets.list.useQuery(accountsListInput, cachedFacebookList);
   const accounts = accountsQuery.data ?? [];
 
@@ -298,7 +306,7 @@ export function FacebookCampaignsTab({
       : undefined;
 
   const campaignsQuery = trpc.customerOAuth.campaigns.list.useQuery(
-    { assetId: selectedAccountId, timeRange, publisherPlatform },
+    { assetId: selectedAccountId, timeRange, publisherPlatform, teamId: scope.teamId ?? undefined },
     { ...cachedFacebookList, enabled: Boolean(selectedAccount) },
   );
 
@@ -320,9 +328,17 @@ export function FacebookCampaignsTab({
   const items = filteredCampaigns.map((campaign) =>
     toCampaignItem(campaign, currency, () => {
       const params = new URLSearchParams({ assetId: selectedAccountId });
-      navigate(`${detailsBase}/campaigns/${campaign.id}?${params.toString()}`);
+      navigate(`${listBase}/campaigns/${campaign.id}?${params.toString()}`);
     }),
   );
+
+  if (!accountsQuery.isLoading && accounts.length === 0 && customer) {
+    return (
+      <NiscServiceAccessEmpty
+        service={assetPlatform === "meta_instagram" ? "Instagram ads" : "Facebook ads"}
+      />
+    );
+  }
 
   if (!accountsQuery.isLoading && accounts.length === 0 && connectionId) {
     return <SelectFacebookAdAccounts connectionId={connectionId} assetPlatform={assetPlatform} />;
@@ -390,6 +406,7 @@ export function FacebookCampaignsTab({
                         >
                           {status}
                         </Badge>
+                        {customer ? null : (
                         <button
                           type="button"
                           aria-label={`Remove ${account.name}`}
@@ -408,6 +425,7 @@ export function FacebookCampaignsTab({
                         >
                           <Trash2 className="size-3.5" />
                         </button>
+                        )}
                       </CommandItem>
                     );
                   })}
@@ -417,11 +435,17 @@ export function FacebookCampaignsTab({
           </PopoverContent>
         </Popover>
       </div>
+      {customer ? null : (
       <LinkAdAccountOrganization
         assetId={selectedAccountId}
         linkedTeamId={selectedAccount?.teamId}
-        assetsListInput={accountsListInput}
+        assetsListInput={{
+          platform: accountsListInput.platform,
+          assetType: accountsListInput.assetType,
+          isActive: accountsListInput.isActive,
+        }}
       />
+      )}
       </div>
 
       <SearchableCleanList

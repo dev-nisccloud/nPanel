@@ -15,6 +15,7 @@ import { FacebookCampaignsTab } from "./campaigns-tab";
 import { ConnectFacebookButton, ConnectFacebookCard } from "./connect-facebook-card";
 import { FacebookPagesTab } from "./pages-tab";
 import { latchPagesConnect, markPagesReturnHandled, schedulePagesConnectReset, takePagesConnectForToast } from "./pages-connect";
+import { useSocialAdsScope } from "@/components/social-ads/social-ads-scope";
 import { SelectFacebookAdAccounts } from "./select-ad-accounts";
 
 const cachedFacebookList = {
@@ -24,6 +25,8 @@ const cachedFacebookList = {
 } as const;
 
 export function FacebookWorkspace() {
+  const scope = useSocialAdsScope();
+  const customer = scope.audience === "customer";
   const isAgency = useIsAgencyRole();
   const utils = trpc.useUtils();
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -100,7 +103,7 @@ export function FacebookWorkspace() {
               <RefreshCw className={cn("mr-2 h-4 w-4", isRefreshing && "animate-spin")} />
               Refresh
             </Button>
-            {active || isAgency ? <ConnectFacebookButton /> : null}
+            {!customer && (active || isAgency) ? <ConnectFacebookButton /> : null}
           </div>
         </div>
 
@@ -118,9 +121,9 @@ export function FacebookWorkspace() {
               <div className="rounded-xl border border-dashed px-6 py-16 text-center">
                 <p className="text-sm text-destructive">{connectionsQuery.error.message}</p>
               </div>
-            ) : pending ? (
+            ) : !customer && pending ? (
               <SelectFacebookAdAccounts connectionId={pending.id} />
-            ) : !active && !isAgency ? (
+            ) : !customer && !active && !isAgency ? (
               <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-muted py-24 text-center">
                 <ConnectFacebookCard />
               </div>

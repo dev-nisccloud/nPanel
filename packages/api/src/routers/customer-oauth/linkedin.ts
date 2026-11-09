@@ -14,7 +14,7 @@ import { customerPlatformAsset } from "@npanel/db/schema";
 import { LinkedInAdsClient } from "../../lib/linkedin-ads-client";
 import { decryptToken } from "../../lib/oauth-encryption";
 import { router, protectedProcedure } from "../../trpc";
-import { sessionIsAgency } from "./agency-access";
+import { assertPlatformTeamRead, assetReadWhere } from "./team-asset-access";
 import type { MetaUserProfile } from "../../lib/meta-oauth-provider";
 
 export const LINKEDIN_ADS_SCOPES = ["openid", "profile", "email", "r_ads", "r_ads_reporting"];
@@ -339,17 +339,17 @@ function targetingSections(
   return sections;
 }
 
-async function loadAccount(ctx: ContextWithDb, assetId: string) {
+async function loadAccount(ctx: ContextWithDb, assetId: string, teamId?: string) {
   const asset = await ctx.db.query.customerPlatformAsset.findFirst({
-    where: and(
-      eq(customerPlatformAsset.id, assetId),
-      sessionIsAgency(ctx.session.user) ? undefined : eq(customerPlatformAsset.userId, ctx.session.user.id),
-    ),
+    where: assetReadWhere(ctx.session.user, assetId, teamId),
     with: { connection: true },
   });
 
   if (!asset?.connection) {
     throw new TRPCError({ code: "NOT_FOUND", message: "Ad account not found" });
+  }
+  if (teamId) {
+    await assertPlatformTeamRead(ctx.session.user, asset.platform, teamId);
   }
   if (asset.assetType !== "linkedin_ad_account" || asset.platform !== "linkedin_ads") {
     throw new TRPCError({ code: "BAD_REQUEST", message: "This asset is not a LinkedIn ad account" });
@@ -544,9 +544,9 @@ function campaignRow(group: Record<string, unknown>, insights: InsightTotals | n
 
 export const customerOAuthLinkedInRouter = router({
   list: protectedProcedure
-    .input(z.object({ assetId: z.string().min(1), timeRange: timeRangeInput }))
+    .input(z.object({ assetId: z.string().min(1), timeRange: timeRangeInput, teamId: z.string().min(1).optional() }))
     .query(async ({ ctx, input }) => {
-      const { client, accountId } = await loadAccount(ctx as ContextWithDb, input.assetId);
+      const { client, accountId } = await loadAccount(ctx as ContextWithDb, input.assetId, input.teamId);
       const window = resolveWindow(input.timeRange);
       try {
         const response = await client.getCampaignGroups(accountId);
@@ -590,10 +590,11 @@ export const customerOAuthLinkedInRouter = router({
         assetId: z.string().min(1),
         campaignId: z.string().min(1),
         timeRange: timeRangeInput,
+        teamId: z.string().min(1).optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
-      const { asset, client, accountId } = await loadAccount(ctx as ContextWithDb, input.assetId);
+      const { asset, client, accountId } = await loadAccount(ctx as ContextWithDb, input.assetId, input.teamId);
       const window = resolveWindow(input.timeRange);
       try {
         const [group, campaignResponse] = await Promise.all([
@@ -706,9 +707,9 @@ export const customerOAuthLinkedInRouter = router({
     }),
 
   getAdPreview: protectedProcedure
-    .input(z.object({ assetId: z.string().min(1), creativeId: z.string().min(1) }))
+    .input(z.object({ assetId: z.string().min(1), creativeId: z.string().min(1), teamId: z.string().min(1).optional() }))
     .query(async ({ ctx, input }) => {
-      const { client, accountId } = await loadAccount(ctx as ContextWithDb, input.assetId);
+      const { client, accountId } = await loadAccount(ctx as ContextWithDb, input.assetId, input.teamId);
       const preview = await client.getCreativePreviews(accountId, input.creativeId);
       return {
         unsupported: Boolean(preview.unsupportedCreativeType),
@@ -722,10 +723,11 @@ export const customerOAuthLinkedInRouter = router({
         assetId: z.string().min(1),
         campaignId: z.string().min(1),
         timeRange: timeRangeInput,
+        teamId: z.string().min(1).optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
-      const { client, accountId } = await loadAccount(ctx as ContextWithDb, input.assetId);
+      const { client, accountId } = await loadAccount(ctx as ContextWithDb, input.assetId, input.teamId);
       const window = resolveWindow(input.timeRange);
       const pivots = [
         "IMPRESSION_DEVICE_TYPE",

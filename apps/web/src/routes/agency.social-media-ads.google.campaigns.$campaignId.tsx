@@ -21,6 +21,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { cn } from "@/lib/utils";
+import { useSocialAdsScope } from "@/components/social-ads/social-ads-scope";
 import { trpc } from "@/utils/trpc";
 
 const performanceChartConfig = {
@@ -151,6 +152,8 @@ export default function GoogleCampaignDetailsPage() {
   const { campaignId = "" } = useParams();
   const [searchParams] = useSearchParams();
   const assetId = searchParams.get("assetId") ?? "";
+  const scope = useSocialAdsScope();
+  const teamId = scope.teamId ?? undefined;
   const utils = trpc.useUtils();
   const [pickedRange, setPickedRange] = React.useState<DateRange | undefined>();
   const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false);
@@ -162,11 +165,11 @@ export default function GoogleCampaignDetailsPage() {
       : undefined;
 
   const detailsQuery = trpc.customerOAuth.google.getDetails.useQuery(
-    { assetId, campaignId, timeRange: queryTimeRange },
+    { assetId, campaignId, timeRange: queryTimeRange, teamId },
     { enabled: Boolean(assetId && campaignId), placeholderData: (previous) => previous },
   );
   const chartsQuery = trpc.customerOAuth.google.getCharts.useQuery(
-    { assetId, campaignId, timeRange: queryTimeRange },
+    { assetId, campaignId, timeRange: queryTimeRange, teamId },
     { enabled: Boolean(assetId && campaignId), placeholderData: (previous) => previous },
   );
 
@@ -183,8 +186,8 @@ export default function GoogleCampaignDetailsPage() {
     setIsRefreshing(true);
     try {
       await Promise.all([
-        utils.customerOAuth.google.getDetails.invalidate({ assetId, campaignId, timeRange: queryTimeRange }),
-        utils.customerOAuth.google.getCharts.invalidate({ assetId, campaignId, timeRange: queryTimeRange }),
+        utils.customerOAuth.google.getDetails.invalidate({ assetId, campaignId, timeRange: queryTimeRange, teamId }),
+        utils.customerOAuth.google.getCharts.invalidate({ assetId, campaignId, timeRange: queryTimeRange, teamId }),
       ]);
     } finally {
       setIsRefreshing(false);
@@ -225,19 +228,19 @@ export default function GoogleCampaignDetailsPage() {
     <div className="@container/main flex flex-col gap-6 px-4 py-4 font-sans text-foreground md:px-6 md:py-6 lg:px-8">
       <div className="mx-auto w-full min-w-0 max-w-7xl space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex items-start gap-3">
+          <div className="flex min-w-0 flex-1 items-start gap-3">
             <Button
               variant="outline"
               size="icon"
               className="mt-0.5 shrink-0"
               onClick={() =>
-                navigate(assetId ? `/agency/social-media-ads/google?assetId=${assetId}` : "/agency/social-media-ads/google")
+                navigate(assetId ? `${scope.basePath}/google?assetId=${assetId}` : `${scope.basePath}/google`)
               }
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight">{campaign?.name || "Campaign"}</h1>
+            <div className="min-w-0 flex-1">
+              <h1 className="line-clamp-2 break-words text-xl font-bold tracking-tight">{campaign?.name || "Campaign"}</h1>
               <p className="text-xs text-muted-foreground">{details?.accountName || "Google Ads account"}</p>
             </div>
           </div>

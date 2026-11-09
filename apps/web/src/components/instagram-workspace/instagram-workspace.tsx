@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { toast } from "@/components/ui/sonner";
+import { useSocialAdsScope } from "@/components/social-ads/social-ads-scope";
 import { useIsAgencyRole } from "@/lib/agency-role";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
@@ -23,6 +24,8 @@ const cachedList = {
 } as const;
 
 export function InstagramWorkspace() {
+  const scope = useSocialAdsScope();
+  const customer = scope.audience === "customer";
   const isAgency = useIsAgencyRole();
   const utils = trpc.useUtils();
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -82,7 +85,7 @@ export function InstagramWorkspace() {
               Connected ad accounts and their Instagram campaigns.
             </p>
           </div>
-          {metaConnection || isAgency ? (
+          {customer || metaConnection || isAgency ? (
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
@@ -94,12 +97,20 @@ export function InstagramWorkspace() {
                 <RefreshCw className={cn("mr-2 h-4 w-4", isRefreshing && "animate-spin")} />
                 Refresh
               </Button>
-              <ConnectFacebookButton label="Connect Meta" returnUrl={RETURN_PATH} />
+              {!customer ? <ConnectFacebookButton label="Connect Meta" returnUrl={RETURN_PATH} /> : null}
             </div>
           ) : null}
         </div>
 
-        {connectionsQuery.isLoading || ((metaConnection || isAgency) && instagramAccountsQuery.isLoading) ? (
+        {customer ? (
+          <div className="mt-6">
+            <FacebookCampaignsTab
+              detailsBase={`${scope.basePath}/instagram`}
+              publisherPlatform="instagram"
+              assetPlatform="meta_instagram"
+            />
+          </div>
+        ) : connectionsQuery.isLoading || ((metaConnection || isAgency) && instagramAccountsQuery.isLoading) ? (
           <div className="mt-16 flex justify-center">
             <Spinner size={28} />
           </div>
@@ -107,7 +118,7 @@ export function InstagramWorkspace() {
           <div className="mt-8 rounded-xl border border-dashed px-6 py-16 text-center">
             <p className="text-sm text-destructive">{connectionsQuery.error.message}</p>
           </div>
-        ) : !metaConnection && !isAgency ? (
+        ) : !customer && !metaConnection && !isAgency ? (
           <div className="mt-8 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-muted py-24 text-center">
             <Card className="mx-auto w-full max-w-md">
               <CardHeader className="text-center">
