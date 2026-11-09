@@ -112,6 +112,18 @@ export const sidebarItems: NavGroup[] = [
       //   ],
       // },
       {
+        title: "Social Media & Ads",
+        url: "/dashboard/social-media-ads",
+        icon: (props: any) => React.createElement(Icons.SOCIAL_MEDIA_ADS, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        permissionModule: "social_ads",
+        subItems: [
+          { title: "Facebook", url: "/dashboard/social-media-ads/facebook", permissionKey: "social_ads.facebook" },
+          { title: "Instagram", url: "/dashboard/social-media-ads/instagram", permissionKey: "social_ads.instagram" },
+          { title: "LinkedIn", url: "/dashboard/social-media-ads/linkedin", permissionKey: "social_ads.linkedin" },
+          { title: "Google Ads", url: "/dashboard/social-media-ads/google", permissionKey: "social_ads.google" },
+        ],
+      },
+      {
         title: "Email Marketing",
         url: "/dashboard/nisc-email-marketing",
         icon: (props: any) => React.createElement(Icons.EmailMarketing, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),

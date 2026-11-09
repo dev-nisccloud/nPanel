@@ -12,6 +12,7 @@ import { customerPlatformAsset } from "@npanel/db/schema";
 import { MetaAdsApiError, MetaAdsClient } from "../../lib/meta-ads-client";
 import { decryptToken } from "../../lib/oauth-encryption";
 import { protectedProcedure } from "../../trpc";
+import { assertPlatformTeamRead, assetReadWhere } from "./team-asset-access";
 
 const CAMPAIGN_FIELDS = [
   "id",
@@ -310,6 +311,7 @@ const detailsInput = z.object({
     })
     .optional(),
   publisherPlatform: z.enum(["instagram"]).optional(),
+  teamId: z.string().min(1).optional(),
 });
 
 function withPublisherBreakdown(
@@ -330,19 +332,19 @@ function rowsForPublisher(rows: any[], publisherPlatform?: "instagram") {
 }
 
 async function openCampaign(
-  ctx: { db: any; session: { user: { id: string } } },
-  input: { assetId: string; campaignId: string; timeRange?: { since: string; until: string } },
+  ctx: { db: any; session: { user: { id: string; role?: string | null } } },
+  input: { assetId: string; campaignId: string; teamId?: string; timeRange?: { since: string; until: string } },
 ) {
   const asset = await ctx.db.query.customerPlatformAsset.findFirst({
-    where: and(
-      eq(customerPlatformAsset.id, input.assetId),
-      eq(customerPlatformAsset.userId, ctx.session.user.id),
-    ),
+    where: assetReadWhere(ctx.session.user, input.assetId, input.teamId),
     with: { connection: true },
   });
 
   if (!asset?.connection) {
     throw new TRPCError({ code: "NOT_FOUND", message: "Ad account not found" });
+  }
+  if (input.teamId) {
+    await assertPlatformTeamRead(ctx.session.user, asset.platform, input.teamId);
   }
   if (
     asset.assetType !== "meta_ad_account" ||

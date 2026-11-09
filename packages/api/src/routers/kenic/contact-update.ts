@@ -19,10 +19,14 @@ import {
 } from "../../lib/epp/epp-xml";
 import { getKenicEppConfig } from "../../lib/epp/kenic-config";
 import { toAlpha2Country, toE164Phone } from "../../lib/domain-contact-edit";
-import { assertAgencySuperAdmin } from "../../lib/domain-transfer-access";
+import { assertDomainContactEditAccess } from "../../lib/domain-contact-access";
 import { domainProductSqlFilter } from "../../lib/nisc-domain-product";
+import { user as userTable } from "@npanel/db/schema/auth";
 
 const parser = new XMLParser({ ignoreAttributes: false });
+
+type ContactRole = "owner" | "admin" | "tech" | "billing";
+const HANDLER_TYPES: DomainContactType[] = ["admin", "tech", "billing"];
 
 function getEppResult(parsed: Record<string, unknown>): { code: string; msg: string } {
 	const response = (parsed?.epp as Record<string, unknown> | undefined)?.response as
@@ -51,7 +55,7 @@ function isSuccess(code: string): boolean {
 }
 
 function newKenicContactId(): string {
-	return `nupd${Date.now().toString(36)}`.slice(0, 16);
+	return `nupd${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`.slice(0, 16);
 }
 
 function statusList(node: unknown): string[] {
@@ -106,6 +110,15 @@ async function assertKenicDomainInAgencyLedger(domain: string): Promise<string> 
 	return normalizeDomainName(rows[0].primaryDomain);
 }
 
+async function isAgencySuperAdmin(userId: string): Promise<boolean> {
+	const [row] = await db
+		.select({ role: userTable.role })
+		.from(userTable)
+		.where(eq(userTable.id, userId))
+		.limit(1);
+	return row?.role === "AGENCY_SUPER_ADMIN";
+}
+
 const contactFieldsSchema = z.object({
 	name: z.string().min(1, "Name is required"),
 	org: z.string().optional(),
@@ -119,21 +132,86 @@ const contactFieldsSchema = z.object({
 	email: z.string().email(),
 });
 
+type DomainContactLink = { type: string; handle: string };
+
+function parseDomainContacts(node: unknown): DomainContactLink[] {
+	const list = Array.isArray(node) ? node : node ? [node] : [];
+	return list.map((c) => {
+		const row = c as Record<string, unknown>;
+		return {
+			type: String(row["@_type"] ?? ""),
+			handle: String(row["#text"] ?? ""),
+		};
+	});
+}
+
+function handleForRole(registrant: string, contacts: DomainContactLink[], role: ContactRole): string {
+	if (role === "owner") return registrant;
+	return contacts.find((c) => c.type === role && c.handle)?.handle ?? "";
+}
+
+function rolesUsingHandle(
+	registrant: string,
+	contacts: DomainContactLink[],
+	handle: string,
+): ContactRole[] {
+	if (!handle) return [];
+	const roles: ContactRole[] = [];
+	if (registrant === handle) roles.push("owner");
+	for (const type of HANDLER_TYPES) {
+		if (contacts.some((c) => c.type === type && c.handle === handle)) roles.push(type);
+	}
+	return roles;
+}
+
+async function eppCommand(
+	socket: NonNullable<Awaited<ReturnType<typeof createConnection>>>,
+	xml: string,
+): Promise<{ code: string; msg: string; parsed: Record<string, unknown> }> {
+	sendFrame(socket, xml);
+	const parsed = parser.parse((await readFrame(socket)).toString("utf8")) as Record<string, unknown>;
+	const result = getEppResult(parsed);
+	return { ...result, parsed };
+}
+
 /**
- * Agency super admin: update the live KENIC registrant, or replace them with a new contact.
+ * Agency super admin: update or replace registrant, admin, tech, and billing.
+ * A customer team member can update details only.
  */
 export const kenicContactUpdateRouter = router({
 	update: protectedProcedure
 		.input(
-			z.object({
-				domain: z.string().min(1),
-				intent: z.enum(["update", "replace"]),
-				contact: contactFieldsSchema,
-			}),
+			z
+				.object({
+					domain: z.string().min(1),
+					intent: z.enum(["update", "replace"]),
+					applyToAll: z.boolean().default(false),
+					role: z.enum(["owner", "admin", "tech", "billing"]).optional(),
+					teamSlug: z.string().min(1).optional(),
+					contact: contactFieldsSchema,
+				})
+				.superRefine((value, ctx) => {
+					if (!value.applyToAll && !value.role) {
+						ctx.addIssue({
+							code: z.ZodIssueCode.custom,
+							message: "Choose a contact handler",
+							path: ["role"],
+						});
+					}
+				}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			await assertAgencySuperAdmin(ctx.session.user.id);
-			const domainName = await assertKenicDomainInAgencyLedger(input.domain);
+			const superAdmin = await isAgencySuperAdmin(ctx.session.user.id);
+			if (superAdmin) {
+				await assertKenicDomainInAgencyLedger(input.domain);
+			}
+			await assertDomainContactEditAccess({
+				userId: ctx.session.user.id,
+				intent: input.intent,
+				teamSlug: input.teamSlug,
+				domainName: input.domain,
+			});
+			const domainName = normalizeDomainName(input.domain);
 
 			const cc = toAlpha2Country(input.contact.country);
 			const voice = toE164Phone(input.contact.voice, cc);
@@ -147,45 +225,36 @@ export const kenicContactUpdateRouter = router({
 				pc: input.contact.pc.trim(),
 				cc,
 			};
+			const email = input.contact.email.trim();
 
-			let socket;
+			let socket: Awaited<ReturnType<typeof createConnection>> | undefined;
 			try {
 				const config = getKenicEppConfig(true);
 				socket = await createConnection(config);
 				await readFrame(socket);
 
-				sendFrame(socket, buildLoginXml(config.username, config.password));
-				const loginParsed = parser.parse((await readFrame(socket)).toString("utf8")) as Record<
-					string,
-					unknown
-				>;
-				const loginResult = getEppResult(loginParsed);
-				if (loginResult.code !== "1000") {
+				const login = await eppCommand(socket, buildLoginXml(config.username, config.password));
+				if (login.code !== "1000") {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
-						message: `EPP login failed: ${loginResult.msg}`,
+						message: `EPP login failed: ${login.msg}`,
 					});
 				}
 
-				sendFrame(socket, buildDomainInfoXml(domainName));
-				const infoParsed = parser.parse((await readFrame(socket)).toString("utf8")) as Record<
-					string,
-					unknown
-				>;
-				const infoResult = getEppResult(infoParsed);
-				if (infoResult.code !== "1000") {
+				const info = await eppCommand(socket, buildDomainInfoXml(domainName));
+				if (info.code !== "1000") {
 					throw new TRPCError({
 						code: "NOT_FOUND",
-						message: `Domain info failed: ${infoResult.msg}`,
+						message: `Domain info failed: ${info.msg}`,
 					});
 				}
 
-				const infoData = (infoParsed?.epp as Record<string, unknown> | undefined)?.response as
+				const infoData = (info.parsed?.epp as Record<string, unknown> | undefined)?.response as
 					| Record<string, unknown>
 					| undefined;
-				const infData = (infoData?.resData as Record<string, unknown> | undefined)?.[
-					"domain:infData"
-				] as Record<string, unknown> | undefined;
+				const infData = (infoData?.resData as Record<string, unknown> | undefined)?.["domain:infData"] as
+					| Record<string, unknown>
+					| undefined;
 				const registryName = normalizeDomainName(String(infData?.["domain:name"] ?? ""));
 				if (registryName && registryName !== domainName) {
 					throw new TRPCError({
@@ -193,55 +262,31 @@ export const kenicContactUpdateRouter = router({
 						message: "Domain does not match the registry record.",
 					});
 				}
-
-				const registrantHandle = String(infData?.["domain:registrant"] ?? "");
-				const domainStatuses = statusList(infData?.["domain:status"]);
-
-				if (isUpdateProhibited(domainStatuses)) {
+				if (isUpdateProhibited(statusList(infData?.["domain:status"]))) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message: "This domain is locked against updates at the registry.",
 					});
 				}
 
-				const contactNode = infData?.["domain:contact"];
-				const domainContacts: Array<{ type: string; handle: string }> = Array.isArray(contactNode)
-					? contactNode.map((c: Record<string, unknown>) => ({
-							type: String(c["@_type"] ?? ""),
-							handle: String(c["#text"] ?? ""),
-						}))
-					: contactNode
-						? [
-								{
-									type: String((contactNode as Record<string, unknown>)["@_type"] ?? ""),
-									handle: String((contactNode as Record<string, unknown>)["#text"] ?? ""),
-								},
-							]
-						: [];
+				const registrantHandle = String(infData?.["domain:registrant"] ?? "");
+				const domainContacts = parseDomainContacts(infData?.["domain:contact"]);
+				const requested: ContactRole[] = input.applyToAll
+					? ["owner", "admin", "tech", "billing"]
+					: [input.role!];
 
-				if (input.intent === "update") {
-					if (!registrantHandle) {
+				const assertContactMutable = async (handle: string) => {
+					const current = await eppCommand(socket!, buildContactInfoXml(handle));
+					if (!isSuccess(current.code)) {
 						throw new TRPCError({
 							code: "BAD_REQUEST",
-							message: "No registrant contact is attached to this domain.",
+							message: current.msg || "Could not load the contact.",
 						});
 					}
-
-					sendFrame(socket, buildContactInfoXml(registrantHandle));
-					const contactInfoParsed = parser.parse((await readFrame(socket)).toString("utf8")) as Record<
-						string,
-						unknown
-					>;
-					const contactInfoResult = getEppResult(contactInfoParsed);
-					if (!isSuccess(contactInfoResult.code)) {
-						throw new TRPCError({
-							code: "BAD_REQUEST",
-							message: contactInfoResult.msg || "Could not load the registrant contact.",
-						});
-					}
-					const contactResData = (contactInfoParsed?.epp as Record<string, unknown> | undefined)
-						?.response as Record<string, unknown> | undefined;
-					const contactInf = (contactResData?.resData as Record<string, unknown> | undefined)?.[
+					const resData = (current.parsed?.epp as Record<string, unknown> | undefined)?.response as
+						| Record<string, unknown>
+						| undefined;
+					const contactInf = (resData?.resData as Record<string, unknown> | undefined)?.[
 						"contact:infData"
 					] as Record<string, unknown> | undefined;
 					if (isUpdateProhibited(statusList(contactInf?.["contact:status"]))) {
@@ -250,92 +295,145 @@ export const kenicContactUpdateRouter = router({
 							message: "This contact is locked against updates at the registry.",
 						});
 					}
+				};
 
-					sendFrame(
-						socket,
+				const createContact = async () => {
+					const newId = newKenicContactId();
+					const created = await eppCommand(
+						socket!,
+						buildContactCreateXml({
+							id: newId,
+							postalInfo,
+							voice,
+							email,
+							...(fax ? { fax } : {}),
+						}),
+					);
+					if (!isSuccess(created.code)) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: created.msg || "Could not create the new contact",
+						});
+					}
+					return newId;
+				};
+
+				const linkContacts = async (params: {
+					registrant?: string;
+					remContacts?: Array<{ type: DomainContactType; id: string }>;
+					addContacts?: Array<{ type: DomainContactType; id: string }>;
+				}) => {
+					if (!params.registrant && !params.remContacts?.length && !params.addContacts?.length) return;
+					const updated = await eppCommand(
+						socket!,
+						buildDomainUpdateXml({
+							domain: domainName,
+							...(params.registrant ? { registrant: params.registrant } : {}),
+							...(params.addContacts?.length ? { addContacts: params.addContacts } : {}),
+							...(params.remContacts?.length ? { remContacts: params.remContacts } : {}),
+						}),
+					);
+					if (!isSuccess(updated.code)) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: updated.msg || "Could not assign the contact",
+						});
+					}
+				};
+
+				const updateObject = async (handle: string) => {
+					await assertContactMutable(handle);
+					const updated = await eppCommand(
+						socket!,
 						buildContactUpdateXml({
-							id: registrantHandle,
+							id: handle,
 							postalInfo,
 							voice,
 							fax: fax || null,
-							email: input.contact.email.trim(),
+							email,
 						}),
 					);
-					const updateResult = getEppResult(
-						parser.parse((await readFrame(socket)).toString("utf8")) as Record<string, unknown>,
-					);
-
-					sendFrame(socket, buildLogoutXml());
-					await readFrame(socket);
-
-					if (!isSuccess(updateResult.code)) {
+					if (!isSuccess(updated.code)) {
 						throw new TRPCError({
 							code: "BAD_REQUEST",
-							message: updateResult.msg || "Contact update failed",
+							message: updated.msg || "Contact update failed",
 						});
 					}
+				};
 
-					return { success: true, method: "update" as const, contactId: registrantHandle };
+				if (input.intent === "replace") {
+					const newId = await createContact();
+					const remContacts: Array<{ type: DomainContactType; id: string }> = [];
+					const addContacts: Array<{ type: DomainContactType; id: string }> = [];
+					for (const type of HANDLER_TYPES) {
+						if (!requested.includes(type)) continue;
+						for (const existing of domainContacts.filter((c) => c.type === type && c.handle)) {
+							remContacts.push({ type, id: existing.handle });
+						}
+						addContacts.push({ type, id: newId });
+					}
+					await linkContacts({
+						...(requested.includes("owner") ? { registrant: newId } : {}),
+						remContacts,
+						addContacts,
+					});
+
+					await eppCommand(socket, buildLogoutXml());
+					return { success: true, method: "replace" as const, contactId: newId, split: false };
 				}
 
-				const newId = newKenicContactId();
-				sendFrame(
-					socket,
-					buildContactCreateXml({
-						id: newId,
-						postalInfo,
-						voice,
-						email: input.contact.email.trim(),
-						...(fax ? { fax } : {}),
-					}),
-				);
-				const createResult = getEppResult(
-					parser.parse((await readFrame(socket)).toString("utf8")) as Record<string, unknown>,
-				);
-				if (!isSuccess(createResult.code)) {
-					sendFrame(socket, buildLogoutXml());
-					await readFrame(socket);
+				const inplaceHandles = new Set<string>();
+				const splitRoles: ContactRole[] = [];
+				for (const role of requested) {
+					const current = handleForRole(registrantHandle, domainContacts, role);
+					if (!current) {
+						if (!input.applyToAll) splitRoles.push(role);
+						continue;
+					}
+					const users = rolesUsingHandle(registrantHandle, domainContacts, current);
+					const coversEveryUser = users.every((userRole) => requested.includes(userRole));
+					if (coversEveryUser) inplaceHandles.add(current);
+					else splitRoles.push(role);
+				}
+
+				if (inplaceHandles.size === 0 && splitRoles.length === 0) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
-						message: createResult.msg || "Could not create the new contact",
+						message: "No contact is attached to this domain for that handler.",
 					});
 				}
 
-				const swapTypes: DomainContactType[] = ["admin", "tech"];
-				const remContacts = domainContacts
-					.filter(
-						(c) =>
-							swapTypes.includes(c.type as DomainContactType) &&
-							c.handle &&
-							c.handle === registrantHandle,
-					)
-					.map((c) => ({ type: c.type as DomainContactType, id: c.handle }));
-				const addContacts = remContacts.map((c) => ({ type: c.type, id: newId }));
+				for (const handle of inplaceHandles) {
+					await updateObject(handle);
+				}
 
-				sendFrame(
-					socket,
-					buildDomainUpdateXml({
-						domain: domainName,
-						registrant: newId,
-						...(addContacts.length ? { addContacts } : {}),
-						...(remContacts.length ? { remContacts } : {}),
-					}),
-				);
-				const domainUpdateResult = getEppResult(
-					parser.parse((await readFrame(socket)).toString("utf8")) as Record<string, unknown>,
-				);
-
-				sendFrame(socket, buildLogoutXml());
-				await readFrame(socket);
-
-				if (!isSuccess(domainUpdateResult.code)) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: domainUpdateResult.msg || "Could not assign the new owner",
+				let createdId = "";
+				for (const role of splitRoles) {
+					createdId = await createContact();
+					if (role === "owner") {
+						await linkContacts({ registrant: createdId });
+						continue;
+					}
+					const remContacts = domainContacts
+						.filter((c) => c.type === role && c.handle)
+						.map((c) => ({ type: role, id: c.handle }));
+					await linkContacts({
+						remContacts,
+						addContacts: [{ type: role, id: createdId }],
 					});
 				}
 
-				return { success: true, method: "replace" as const, contactId: newId };
+				await eppCommand(socket, buildLogoutXml());
+				const contactId =
+					createdId ||
+					handleForRole(registrantHandle, domainContacts, requested.includes("owner") ? "owner" : requested[0]!) ||
+					registrantHandle;
+				return {
+					success: true,
+					method: "update" as const,
+					contactId,
+					split: splitRoles.length > 0,
+				};
 			} catch (error) {
 				if (error instanceof TRPCError) throw error;
 				const message = error instanceof Error ? error.message : String(error);

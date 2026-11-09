@@ -6,6 +6,8 @@ import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { toast } from "@/components/ui/sonner";
+import { useSocialAdsScope } from "@/components/social-ads/social-ads-scope";
+import { useIsAgencyRole } from "@/lib/agency-role";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 
@@ -20,6 +22,9 @@ const cachedLinkedInList = {
 } as const;
 
 export function LinkedInWorkspace() {
+  const scope = useSocialAdsScope();
+  const customer = scope.audience === "customer";
+  const isAgency = useIsAgencyRole();
   const utils = trpc.useUtils();
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const connectionsQuery = trpc.customerOAuth.connections.list.useQuery(
@@ -72,7 +77,7 @@ export function LinkedInWorkspace() {
               Connected ad accounts and their campaigns.
             </p>
           </div>
-          {active ? (
+          {customer || active || isAgency ? (
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
@@ -84,7 +89,7 @@ export function LinkedInWorkspace() {
                 <RefreshCw className={cn("mr-2 h-4 w-4", isRefreshing && "animate-spin")} />
                 Refresh
               </Button>
-              <ConnectLinkedInButton />
+              {!customer && (active || isAgency) ? <ConnectLinkedInButton /> : null}
             </div>
           ) : null}
         </div>
@@ -97,9 +102,9 @@ export function LinkedInWorkspace() {
           <div className="mt-8 rounded-xl border border-dashed px-6 py-16 text-center">
             <p className="text-sm text-destructive">{connectionsQuery.error.message}</p>
           </div>
-        ) : pending ? (
+        ) : !customer && pending ? (
           <SelectLinkedInAdAccounts connectionId={pending.id} />
-        ) : !active ? (
+        ) : !customer && !active && !isAgency ? (
           <div className="mt-8 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-muted py-24 text-center">
             <ConnectLinkedInCard />
           </div>

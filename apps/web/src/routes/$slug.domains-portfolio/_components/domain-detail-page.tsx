@@ -29,7 +29,7 @@ import { DnsTab } from "./dns-tab";
 import { NameserversTab } from "./nameservers-tab";
 import { WebDesignContactDialog } from "./web-design-contact-dialog";
 import { CreateSubscriptionFromDomainDialog } from "./create-subscription-from-domain-dialog";
-import { DomainPortfolioContactInfo, type KenicRegistrantInfo } from "@/routes/agency.domains-portfolio/_components/domain-portfolio-contact-info";
+import { DomainPortfolioContactInfo, type KenicHandlers, type KenicRegistrantInfo } from "@/routes/agency.domains-portfolio/_components/domain-portfolio-contact-info";
 import { DomainTransferSecuritySection } from "@/components/domain-transfer-security-section";
 import type { DomainPortfolio } from "./domain-portfolio-card";
 
@@ -194,6 +194,11 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
           expiryDate: kenicLiveInfo.data.exDate || domainFromSubscription.expiryDate,
           registrationDate: kenicLiveInfo.data.crDate || domainFromSubscription.registrationDate,
           registrantInfo: kenicLiveInfo.data.registrantInfo,
+          kenicHandlers: kenicLiveInfo.data.handlers,
+          ownerHandle: kenicLiveInfo.data.handlers?.owner?.handle ?? domainFromSubscription.ownerHandle,
+          adminHandle: kenicLiveInfo.data.handlers?.admin?.handle,
+          techHandle: kenicLiveInfo.data.handlers?.tech?.handle,
+          billingHandle: kenicLiveInfo.data.handlers?.billing?.handle,
           isLocked: kenicLiveInfo.data.isTransferLocked ?? domainFromSubscription.isLocked,
         } as DomainPortfolio & {
           registrantInfo?: KenicRegistrantInfo;
@@ -523,6 +528,10 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
                     registrantInfo={
                       (domain as { registrantInfo?: KenicRegistrantInfo }).registrantInfo
                     }
+                    kenicHandlers={(domain as { kenicHandlers?: KenicHandlers | null }).kenicHandlers}
+                    canEdit={can("domains.portfolio")}
+                    allowReplace={false}
+                    teamSlug={teamSlug}
                   />
                 </div>
               </div>

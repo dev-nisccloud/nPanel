@@ -7,7 +7,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const BASE = "https://loverlike-cinderella-signatureless.ngrok-free.dev";
+const BASE = (process.env.ETIMS_CERT_NGROK_URL ?? "https://498a-197-232-51-43.ngrok-free.app").replace(/\/$/, "");
 const LAST = "20180101000000";
 const PARENT = "KE1NTBA0000001";
 const CHILD = "KE1NTBA0000002";
@@ -121,8 +121,30 @@ function nestedRows(payload: unknown, keys: string[]): Array<Record<string, unkn
 }
 
 function expectedCounter(message: string): number | null {
-    const m = message.match(/Expected:\s*(\d+)\s+but\s+found/i);
+    const m = message.match(/Expected:\s*(\d+(?:\.\d+)?)\s+but\s+found/i);
     return m ? Number(m[1]) : null;
+}
+
+function expectedItemSeq(message: string): number | null {
+    const m = message.match(/ending with:\s*\*+(\d+)/i);
+    return m ? Number(m[1]) : null;
+}
+
+function itemCdFromSeq(seq: number) {
+    return `KE1NTBA${String(seq).padStart(7, "0")}`;
+}
+
+/** KRA credit-note `rfdDt` is parsed with a 12-hour clock (1–12). 15:50 → 03:50. */
+function toKra12HourClock(stamp: string): string {
+    const compact = stamp.replace(/\D/g, "");
+    if (compact.length < 14) return stamp;
+    const date = compact.slice(0, 8);
+    let hh = Number(compact.slice(8, 10));
+    const mmss = compact.slice(10, 14);
+    if (!Number.isFinite(hh)) return stamp;
+    if (hh === 0) hh = 12;
+    else if (hh > 12) hh -= 12;
+    return `${date}${String(hh).padStart(2, "0")}${mmss}`;
 }
 
 function pickCls(list: Array<Record<string, unknown>>, tax: string, fallback: string) {
@@ -199,11 +221,12 @@ async function lookupUntilRows(
     return payload;
 }
 
-function sessionCmcKey(): string | null {
+function sessionCmcKey(tin: string): string | null {
     const p = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../.etims-certification/session.json");
     if (!existsSync(p)) return null;
     try {
-        const parsed = JSON.parse(readFileSync(p, "utf8")) as { cmcKey?: string };
+        const parsed = JSON.parse(readFileSync(p, "utf8")) as { cmcKey?: string; tin?: string };
+        if (parsed.tin && parsed.tin !== tin) return null;
         return parsed.cmcKey?.trim() || null;
     } catch {
         return null;
@@ -242,7 +265,7 @@ async function main() {
     let init = (await call("POST", "etimsCert.initialization.initializeDevice", {})) as Record<string, unknown>;
     rec("1 initializeDevice {}", init, `tin=${init.tin} reused=${init.reusedExistingCmcKey}`);
     if (init.success !== true) {
-        const stored = sessionCmcKey();
+        const stored = sessionCmcKey(tin);
         if (stored && resultCdOf(init) === "901") {
             throw new Error("Init 901 — env PIN/serial still not a KRA pair. Restart API after env change.");
         }
@@ -330,60 +353,68 @@ async function main() {
         await lookupUntilRows("etimsCert.items.getItemList", last, (p) => nestedRows(p, ["itemList"])),
     );
 
-    rec(
-        "10 saveItem parent B",
-        await call("POST", "etimsCert.items.saveItem", {
-            item: {
-                itemCd: PARENT,
-                itemClsCd: clsB,
-                itemTyCd: "1",
-                itemNm: "nPanel Cert VAT16",
-                itemStdNm: "nPanel Cert VAT16",
-                orgnNatCd: "KE",
-                pkgUnitCd: "NT",
-                qtyUnitCd: "BA",
-                taxTyCd: "B",
-                bcd: "NPB0001",
-                dftPrc: 1000,
-                grpPrcL1: 1000,
-                grpPrcL2: 1000,
-                grpPrcL3: 1000,
-                grpPrcL4: 1000,
-                grpPrcL5: 0,
-                sftyQty: 0,
-                isrcAplcbYn: "N",
-                useYn: "Y",
-                ...AUDITOR,
-            },
-        }),
-    );
-    rec(
-        "10b saveItem child A",
-        await call("POST", "etimsCert.items.saveItem", {
-            item: {
-                itemCd: CHILD,
-                itemClsCd: clsA,
-                itemTyCd: "1",
-                itemNm: "nPanel Cert Exempt",
-                itemStdNm: "nPanel Cert Exempt",
-                orgnNatCd: "KE",
-                pkgUnitCd: "NT",
-                qtyUnitCd: "BA",
-                taxTyCd: "A",
-                bcd: "NPA0002",
-                dftPrc: 1000,
-                grpPrcL1: 1000,
-                grpPrcL2: 1000,
-                grpPrcL3: 1000,
-                grpPrcL4: 1000,
-                grpPrcL5: 0,
-                sftyQty: 0,
-                isrcAplcbYn: "N",
-                useYn: "Y",
-                ...AUDITOR,
-            },
-        }),
-    );
+    async function saveItemStep(
+        step: string,
+        startCd: string,
+        fields: Record<string, unknown>,
+    ) {
+        let itemCd = startCd;
+        let payload: unknown = null;
+        for (let i = 0; i < 6; i++) {
+            payload = await call("POST", "etimsCert.items.saveItem", {
+                item: { ...fields, itemCd, ...AUDITOR },
+            });
+            const recObj = asRecord(payload);
+            if (recObj?.success === true || isPass(resultCdOf(payload))) break;
+            const seq = expectedItemSeq(String(recObj?.errorMessage ?? resultMsgOf(payload)));
+            if (seq == null || itemCdFromSeq(seq) === itemCd) break;
+            console.log(`  itemCd ${itemCd} rejected, retry ${itemCdFromSeq(seq)}`);
+            itemCd = itemCdFromSeq(seq);
+        }
+        rec(step, payload, `itemCd=${itemCd}`);
+        return itemCd;
+    }
+
+    await saveItemStep("10 saveItem parent B", PARENT, {
+        itemClsCd: clsB,
+        itemTyCd: "1",
+        itemNm: "nPanel Cert VAT16",
+        itemStdNm: "nPanel Cert VAT16",
+        orgnNatCd: "KE",
+        pkgUnitCd: "NT",
+        qtyUnitCd: "BA",
+        taxTyCd: "B",
+        bcd: "NPB0001",
+        dftPrc: 1000,
+        grpPrcL1: 1000,
+        grpPrcL2: 1000,
+        grpPrcL3: 1000,
+        grpPrcL4: 1000,
+        grpPrcL5: 0,
+        sftyQty: 0,
+        isrcAplcbYn: "N",
+        useYn: "Y",
+    });
+    await saveItemStep("10b saveItem child A", CHILD, {
+        itemClsCd: clsA,
+        itemTyCd: "1",
+        itemNm: "nPanel Cert Exempt",
+        itemStdNm: "nPanel Cert Exempt",
+        orgnNatCd: "KE",
+        pkgUnitCd: "NT",
+        qtyUnitCd: "BA",
+        taxTyCd: "A",
+        bcd: "NPA0002",
+        dftPrc: 1000,
+        grpPrcL1: 1000,
+        grpPrcL2: 1000,
+        grpPrcL3: 1000,
+        grpPrcL4: 1000,
+        grpPrcL5: 0,
+        sftyQty: 0,
+        isrcAplcbYn: "N",
+        useYn: "Y",
+    });
 
     rec(
         "11 sendStockIO",
@@ -546,11 +577,20 @@ async function main() {
         };
         salePayload = await call("POST", "etimsCert.sales.sendSalesTransaction", body);
         const recObj = asRecord(salePayload);
+        const saleMsg = String(recObj?.errorMessage ?? resultMsgOf(salePayload));
         if (recObj?.success === true || isPass(resultCdOf(salePayload))) break;
-        const next = expectedCounter(String(recObj?.errorMessage ?? resultMsgOf(salePayload)));
-        if (next == null || next === saleInvc) break;
-        console.log(`  sale invcNo ${saleInvc} rejected, retry ${next}`);
-        saleInvc = next;
+        const next = expectedCounter(saleMsg);
+        if (next != null && next !== saleInvc) {
+            console.log(`  sale invcNo ${saleInvc} rejected, retry ${next}`);
+            saleInvc = next;
+            continue;
+        }
+        if (/already exists/i.test(saleMsg) && saleInvc < 30) {
+            console.log(`  sale invcNo ${saleInvc} already exists, retry ${saleInvc + 1}`);
+            saleInvc += 1;
+            continue;
+        }
+        break;
     }
     const fiscal = fiscalOf(salePayload);
     rec("15 sendSalesTransaction", salePayload, `invcNo=${saleInvc} sdc=${fiscal.sdcDateTime ?? "-"}`);
@@ -623,18 +663,24 @@ async function main() {
         pInvc += 1;
     }
 
-    rec(
-        "18 saveStockMaster parent",
-        await call("POST", "etimsCert.stock.saveStockMaster", {
-            stockMaster: { itemCd: PARENT, rsdQty: 10, ...AUDITOR },
-        }),
-    );
-    rec(
-        "18b saveStockMaster child",
-        await call("POST", "etimsCert.stock.saveStockMaster", {
-            stockMaster: { itemCd: CHILD, rsdQty: 10, ...AUDITOR },
-        }),
-    );
+    async function saveStockMasterStep(step: string, itemCd: string, startQty: number) {
+        let rsdQty = startQty;
+        let payload: unknown = null;
+        for (let i = 0; i < 6; i++) {
+            payload = await call("POST", "etimsCert.stock.saveStockMaster", {
+                stockMaster: { itemCd, rsdQty, ...AUDITOR },
+            });
+            const recObj = asRecord(payload);
+            if (recObj?.success === true || isPass(resultCdOf(payload))) break;
+            const next = expectedCounter(String(recObj?.errorMessage ?? resultMsgOf(payload)));
+            if (next == null || next === rsdQty) break;
+            console.log(`  ${itemCd} rsdQty ${rsdQty} rejected, retry ${next}`);
+            rsdQty = next;
+        }
+        rec(step, payload, `itemCd=${itemCd} rsdQty=${rsdQty}`);
+    }
+    await saveStockMasterStep("18 saveStockMaster parent", PARENT, 20);
+    await saveStockMasterStep("18b saveStockMaster child", CHILD, 20);
 
     rec("19 getStockMovements", await call("GET", "etimsCert.stock.getStockMovements", last));
     rec("20 getInvoiceDetails", await call("GET", "etimsCert.sales.getInvoiceDetails", { invcNo: saleInvc }));
@@ -646,7 +692,11 @@ async function main() {
 
     const originalSdc = fiscal.sdcDateTime ?? cfmDt;
     let rfdDt = kraDateTime();
-    if (rfdDt <= originalSdc) rfdDt = addSeconds(originalSdc, 60);
+    if (rfdDt <= originalSdc.replace(/\D/g, "").slice(0, 14) || rfdDt <= originalSdc) {
+        const compactSdc = originalSdc.replace(/\D/g, "").slice(0, 14) || originalSdc;
+        rfdDt = addSeconds(compactSdc.length === 14 ? compactSdc : rfdDt, 60);
+    }
+    rfdDt = toKra12HourClock(rfdDt);
     let cnInvc = pInvc;
     let cnPayload: unknown = null;
     for (let i = 0; i < 6; i++) {

@@ -7,6 +7,8 @@ import { Calendar as CalendarIcon, Check, ChevronsUpDown, Trash2 } from "lucide-
 import { type DateRange } from "react-day-picker";
 
 import { LinkAdAccountOrganization } from "@/components/facebook-workspace/link-ad-account-organization";
+import { NiscServiceAccessEmpty } from "@/components/social-ads/nisc-service-access-empty";
+import { useSocialAdsScope } from "@/components/social-ads/social-ads-scope";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -214,6 +216,8 @@ function toCampaignItem(campaign: Campaign, currency: string, onView: (campaign:
 }
 
 export function GoogleCampaignsTab() {
+  const scope = useSocialAdsScope();
+  const customer = scope.audience === "customer";
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const utils = trpc.useUtils();
@@ -227,14 +231,15 @@ export function GoogleCampaignsTab() {
   });
   const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false);
 
-  const accountsQuery = trpc.customerOAuth.assets.list.useQuery(ASSETS_LIST_INPUT, cachedGoogleList);
+  const assetsListInput = { ...ASSETS_LIST_INPUT, ...(scope.teamId ? { teamId: scope.teamId } : {}) };
+  const accountsQuery = trpc.customerOAuth.assets.list.useQuery(assetsListInput, cachedGoogleList);
   const accounts = accountsQuery.data ?? [];
 
   const removeAccount = trpc.customerOAuth.assets.delete.useMutation({
     onSuccess: async (_data, variables) => {
       toast.success("Ad account removed");
       setPendingDelete(null);
-      utils.customerOAuth.assets.list.setData(ASSETS_LIST_INPUT, (current) =>
+      utils.customerOAuth.assets.list.setData(assetsListInput, (current) =>
         current?.filter((account) => account.id !== variables.assetId),
       );
       setSearchParams((current) => {
@@ -274,7 +279,7 @@ export function GoogleCampaignsTab() {
       : undefined;
 
   const campaignsQuery = trpc.customerOAuth.google.list.useQuery(
-    { assetId: selectedAccountId, timeRange },
+    { assetId: selectedAccountId, timeRange, teamId: scope.teamId ?? undefined },
     { ...cachedGoogleList, enabled: Boolean(selectedAccount) },
   );
   const accountCampaigns = campaignsQuery.data?.campaigns ?? [];
@@ -295,9 +300,13 @@ export function GoogleCampaignsTab() {
   const items = filteredCampaigns.map((campaign) =>
     toCampaignItem(campaign, currency, () => {
       const params = new URLSearchParams({ assetId: selectedAccountId });
-      navigate(`/agency/social-media-ads/google/campaigns/${campaign.id}?${params.toString()}`);
+      navigate(`${scope.basePath}/google/campaigns/${campaign.id}?${params.toString()}`);
     }),
   );
+
+  if (customer && !accountsQuery.isLoading && accounts.length === 0) {
+    return <NiscServiceAccessEmpty service="Google Ads" />;
+  }
 
   return (
     <div className="space-y-4">
@@ -354,6 +363,7 @@ export function GoogleCampaignsTab() {
                           >
                             {status}
                           </Badge>
+                          {customer ? null : (
                           <button
                             type="button"
                             aria-label={`Remove ${account.name}`}
@@ -372,6 +382,7 @@ export function GoogleCampaignsTab() {
                           >
                             <Trash2 className="size-3.5" />
                           </button>
+                          )}
                         </CommandItem>
                       );
                     })}
@@ -381,11 +392,13 @@ export function GoogleCampaignsTab() {
             </PopoverContent>
           </Popover>
         </div>
+        {customer ? null : (
         <LinkAdAccountOrganization
           assetId={selectedAccountId}
           linkedTeamId={selectedAccount?.teamId}
           assetsListInput={ASSETS_LIST_INPUT}
         />
+        )}
       </div>
 
       <SearchableCleanList

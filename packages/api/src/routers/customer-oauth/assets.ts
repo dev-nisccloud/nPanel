@@ -24,6 +24,12 @@ import {
   createOAuthError,
   isSuperAdmin,
 } from "../../lib/oauth-error-handler";
+import { sessionIsAgency } from "./agency-access";
+import { assertPlatformTeamRead } from "./team-asset-access";
+
+function ownerScope(user: object, userId: string) {
+  return sessionIsAgency(user) ? undefined : eq(customerPlatformAsset.userId, userId);
+}
 
 const metaProvider = new MetaOAuthProvider();
 
@@ -41,13 +47,22 @@ export const customerOAuthAssetsRouter = router({
           platform: z.enum(["meta_facebook", "meta_instagram", "google_ads", "linkedin_ads"]).optional(),
           assetType: z.string().optional(),
           isActive: z.boolean().optional(),
+          teamId: z.string().min(1).optional(),
         })
         .optional()
     )
     .query(async ({ ctx, input }) => {
       const userId = ctx.session.user.id;
+      if (input?.teamId) {
+        if (!input.platform) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Choose a platform" });
+        }
+        await assertPlatformTeamRead(ctx.session.user, input.platform, input.teamId);
+      }
 
-      const conditions = [eq(customerPlatformAsset.userId, userId)];
+      const conditions = [
+        input?.teamId ? eq(customerPlatformAsset.teamId, input.teamId) : ownerScope(ctx.session.user, userId),
+      ].filter((condition): condition is NonNullable<typeof condition> => condition != null);
 
       if (input?.connectionId) {
         conditions.push(eq(customerPlatformAsset.connectionId, input.connectionId));
@@ -100,7 +115,7 @@ export const customerOAuthAssetsRouter = router({
       const asset = await ctx.db.query.customerPlatformAsset.findFirst({
         where: and(
           eq(customerPlatformAsset.id, input.assetId),
-          eq(customerPlatformAsset.userId, ctx.session.user.id)
+          ownerScope(ctx.session.user, ctx.session.user.id),
         ),
         with: {
           connection: true,
@@ -147,7 +162,7 @@ export const customerOAuthAssetsRouter = router({
       const asset = await ctx.db.query.customerPlatformAsset.findFirst({
         where: and(
           eq(customerPlatformAsset.id, input.assetId),
-          eq(customerPlatformAsset.userId, ctx.session.user.id)
+          ownerScope(ctx.session.user, ctx.session.user.id),
         ),
         with: {
           connection: true,
@@ -314,7 +329,7 @@ export const customerOAuthAssetsRouter = router({
       const asset = await ctx.db.query.customerPlatformAsset.findFirst({
         where: and(
           eq(customerPlatformAsset.id, input.assetId),
-          eq(customerPlatformAsset.userId, ctx.session.user.id)
+          ownerScope(ctx.session.user, ctx.session.user.id),
         ),
       });
 
@@ -366,7 +381,7 @@ export const customerOAuthAssetsRouter = router({
       const assets = await ctx.db.query.customerPlatformAsset.findMany({
         where: and(
           inArray(customerPlatformAsset.id, input.assetIds),
-          eq(customerPlatformAsset.userId, ctx.session.user.id)
+          ownerScope(ctx.session.user, ctx.session.user.id),
         ),
       });
 
@@ -425,7 +440,7 @@ export const customerOAuthAssetsRouter = router({
       const asset = await ctx.db.query.customerPlatformAsset.findFirst({
         where: and(
           eq(customerPlatformAsset.id, input.assetId),
-          eq(customerPlatformAsset.userId, userId)
+          ownerScope(ctx.session.user, userId),
         ),
       });
 
@@ -442,7 +457,7 @@ export const customerOAuthAssetsRouter = router({
         .from(customerPlatformAsset)
         .where(
           and(
-            eq(customerPlatformAsset.userId, userId),
+            eq(customerPlatformAsset.userId, asset.userId),
             eq(customerPlatformAsset.connectionId, asset.connectionId),
             eq(customerPlatformAsset.platformParentId, asset.platformAssetId)
           )
@@ -458,7 +473,7 @@ export const customerOAuthAssetsRouter = router({
           .from(customerPlatformAsset)
           .where(
             and(
-              eq(customerPlatformAsset.userId, userId),
+              eq(customerPlatformAsset.userId, asset.userId),
               inArray(customerPlatformAsset.parentAssetId, frontier)
             )
           );
@@ -477,7 +492,7 @@ export const customerOAuthAssetsRouter = router({
           .where(
             and(
               inArray(customerPlatformAsset.id, assetIds),
-              eq(customerPlatformAsset.userId, userId)
+              eq(customerPlatformAsset.userId, asset.userId)
             )
           );
 
@@ -511,7 +526,7 @@ export const customerOAuthAssetsRouter = router({
 
     const assets = await ctx.db.query.customerPlatformAsset.findMany({
       where: and(
-        eq(customerPlatformAsset.userId, userId),
+        ownerScope(ctx.session.user, userId),
         eq(customerPlatformAsset.isActive, true)
       ),
       with: {
@@ -555,7 +570,7 @@ export const customerOAuthAssetsRouter = router({
       const asset = await ctx.db.query.customerPlatformAsset.findFirst({
         where: and(
           eq(customerPlatformAsset.id, input.assetId),
-          eq(customerPlatformAsset.userId, ctx.session.user.id),
+          ownerScope(ctx.session.user, ctx.session.user.id),
         ),
         columns: {
           id: true,
@@ -596,7 +611,7 @@ export const customerOAuthAssetsRouter = router({
       const asset = await ctx.db.query.customerPlatformAsset.findFirst({
         where: and(
           eq(customerPlatformAsset.id, input.assetId),
-          eq(customerPlatformAsset.userId, ctx.session.user.id),
+          ownerScope(ctx.session.user, ctx.session.user.id),
         ),
         columns: {
           id: true,

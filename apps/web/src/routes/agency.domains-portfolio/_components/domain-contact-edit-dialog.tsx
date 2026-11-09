@@ -1,27 +1,20 @@
 "use client";
 
 import * as React from "react";
-import { useForm } from "react-hook-form";
+import { useForm, type UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 import {
   Form,
   FormControl,
@@ -36,10 +29,11 @@ import { toast } from "@/components/ui/sonner";
 import { trpc } from "@/utils/trpc";
 import { countries } from "@npanel/location/countries-intl";
 import type { DomainPortfolio } from "./domain-portfolio-card";
-import type { KenicRegistrantInfo } from "./domain-portfolio-contact-info";
+import type { KenicHandlers, KenicRegistrantInfo } from "./domain-portfolio-contact-info";
 
 type Intent = "update" | "replace";
 type ContactRole = "owner" | "admin" | "tech" | "billing";
+type ApplyMode = "all" | "each";
 
 type OpCustomer = {
   handle?: string;
@@ -89,6 +83,22 @@ const contactFormSchema = z.object({
 });
 
 type ContactFormValues = z.infer<typeof contactFormSchema>;
+
+const ROLE_LABEL: Record<ContactRole, string> = {
+  owner: "Contact handler",
+  admin: "Admin handler",
+  tech: "Technical handler",
+  billing: "Billing handler",
+};
+
+const ROLE_HINT: Record<ContactRole, string> = {
+  owner: "The registrant, and the legal contact for the domain.",
+  admin: "Manages the domain, including transfers and contact changes.",
+  tech: "Handles nameservers and technical problems.",
+  billing: "Receives renewal and billing notices.",
+};
+
+const ROLES: ContactRole[] = ["owner", "admin", "tech", "billing"];
 
 function formatPhone(
   phone?: { country_code?: string; area_code?: string; subscriber_number?: string },
@@ -168,14 +178,261 @@ function formFromKenic(info: KenicRegistrantInfo | null | undefined, fallback: D
   };
 }
 
+function ContactFields({
+  form,
+  nameLocked,
+}: {
+  form: UseFormReturn<ContactFormValues>;
+  nameLocked: boolean;
+}) {
+  return (
+    <>
+      <div className="grid gap-6 md:grid-cols-2">
+        <FormField
+          control={form.control}
+          name="firstName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>First Name</FormLabel>
+              <FormControl>
+                <Input {...field} disabled={nameLocked} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="lastName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Last Name</FormLabel>
+              <FormControl>
+                <Input {...field} disabled={nameLocked} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <FormField
+        control={form.control}
+        name="organization"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Organization</FormLabel>
+            <FormControl>
+              <Input {...field} disabled={nameLocked} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="email"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Email</FormLabel>
+            <FormControl>
+              <Input type="email" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <FormField
+          control={form.control}
+          name="phone"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Phone</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="fax"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Fax</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <div className="grid grid-cols-[1fr_7rem] gap-6">
+        <FormField
+          control={form.control}
+          name="street"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Street</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="number"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Number</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <FormField
+          control={form.control}
+          name="city"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>City</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="state"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>State/Province</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="postcode"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Postal Code</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="country"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Country</FormLabel>
+              <FormControl>
+                <CountrySelect value={field.value} onValueChange={field.onChange} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+    </>
+  );
+}
+
+function HandlerForm({
+  title,
+  hint,
+  initial,
+  nameLocked,
+  isKenic,
+  submitLabel,
+  submitting,
+  disabled,
+  onSubmit,
+}: {
+  title: string;
+  hint?: string;
+  initial: ContactFormValues;
+  nameLocked: boolean;
+  isKenic: boolean;
+  submitLabel: string;
+  submitting: boolean;
+  disabled: boolean;
+  onSubmit: (values: ContactFormValues) => Promise<void>;
+}) {
+  const form = useForm<ContactFormValues>({
+    resolver: zodResolver(contactFormSchema),
+    defaultValues: initial,
+  });
+
+  return (
+    <section className="space-y-4 border-t border-border pt-6">
+      <div className="space-y-1">
+        <h3 className="text-sm font-semibold">{title}</h3>
+        {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
+      </div>
+      <Form {...form}>
+        <form
+          onSubmit={form.handleSubmit(async (values) => {
+            if (!isKenic && !values.lastName.trim()) {
+              form.setError("lastName", { message: "Last name is required" });
+              return;
+            }
+            await onSubmit(values);
+          })}
+          className="space-y-6"
+        >
+          <ContactFields form={form} nameLocked={nameLocked} />
+          <div className="flex justify-end">
+            <Button type="submit" disabled={submitting || disabled}>
+              {submitting ? (
+                <>
+                  <Spinner size={16} className="mr-2" />
+                  Saving
+                </>
+              ) : (
+                submitLabel
+              )}
+            </Button>
+          </div>
+        </form>
+      </Form>
+    </section>
+  );
+}
+
 interface DomainContactEditDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   domain: DomainPortfolio;
   source?: "kenic" | "openprovider";
   registrantInfo?: KenicRegistrantInfo | null;
+  kenicHandlers?: KenicHandlers | null;
   opCustomer?: OpCustomer | null;
   opCustomerLoading?: boolean;
+  allowReplace?: boolean;
+  teamSlug?: string;
   onUpdated?: () => void | Promise<void>;
 }
 
@@ -185,80 +442,108 @@ export function DomainContactEditDialog({
   domain,
   source,
   registrantInfo,
+  kenicHandlers,
   opCustomer,
   opCustomerLoading = false,
+  allowReplace = true,
+  teamSlug,
   onUpdated,
 }: DomainContactEditDialogProps) {
   const isKenic = source === "kenic";
   const [intent, setIntent] = React.useState<Intent>("update");
-  const [role, setRole] = React.useState<ContactRole>("owner");
-  const [submitting, setSubmitting] = React.useState(false);
+  const [mode, setMode] = React.useState<ApplyMode>("all");
+  const [savingKey, setSavingKey] = React.useState<string | null>(null);
+  const [formsReady, setFormsReady] = React.useState(false);
 
-  const form = useForm<ContactFormValues>({
-    resolver: zodResolver(contactFormSchema),
-    defaultValues: emptyValues,
-  });
+  React.useEffect(() => {
+    if (!open) return;
+    setIntent("update");
+    setMode("all");
+  }, [open]);
 
-  const otherRoles = React.useMemo(() => {
-    if (isKenic) return [];
-    const owner = domain.ownerHandle;
-    const roles: Array<{ value: ContactRole; label: string; handle: string }> = [];
-    if (domain.adminHandle && domain.adminHandle !== owner) {
-      roles.push({ value: "admin", label: "Admin", handle: domain.adminHandle });
-    }
-    if (domain.techHandle && domain.techHandle !== owner) {
-      roles.push({ value: "tech", label: "Technical", handle: domain.techHandle });
-    }
-    if (domain.billingHandle && domain.billingHandle !== owner) {
-      roles.push({ value: "billing", label: "Billing", handle: domain.billingHandle });
-    }
-    return roles;
-  }, [isKenic, domain.ownerHandle, domain.adminHandle, domain.techHandle, domain.billingHandle]);
+  const domainId = Number.parseInt(String(domain.id), 10);
+  const liveHandlesQuery = trpc.openProvider.domains.getHandles.useQuery(
+    { domainId: Number.isFinite(domainId) ? domainId : 0 },
+    { enabled: open && !isKenic && Number.isFinite(domainId) && domainId > 0, staleTime: 0 },
+  );
+  const liveHandles = liveHandlesQuery.data;
 
-  const handleForRole =
-    role === "admin"
-      ? domain.adminHandle
-      : role === "tech"
-        ? domain.techHandle
-        : role === "billing"
-          ? domain.billingHandle
-          : domain.ownerHandle;
+  const handles: Record<ContactRole, string> = {
+    owner:
+      (isKenic ? kenicHandlers?.owner?.handle : liveHandles?.owner || domain.ownerHandle) ||
+      domain.ownerHandle ||
+      "",
+    admin: (isKenic ? kenicHandlers?.admin?.handle : liveHandles?.admin || domain.adminHandle) || "",
+    tech: (isKenic ? kenicHandlers?.tech?.handle : liveHandles?.tech || domain.techHandle) || "",
+    billing: (isKenic ? kenicHandlers?.billing?.handle : liveHandles?.billing || domain.billingHandle) || "",
+  };
 
-  const otherHandleQuery = trpc.openProvider.customers.getByHandle.useQuery(
-    { handle: handleForRole ?? "" },
-    {
-      enabled: open && !isKenic && role !== "owner" && !!handleForRole,
-      staleTime: 0,
+  const ownerQuery = trpc.openProvider.customers.getByHandle.useQuery(
+    { handle: handles.owner },
+    { enabled: open && !isKenic && !!handles.owner && !opCustomer, staleTime: 0 },
+  );
+  const adminQuery = trpc.openProvider.customers.getByHandle.useQuery(
+    { handle: handles.admin },
+    { enabled: open && !isKenic && !!handles.admin, staleTime: 0 },
+  );
+  const techQuery = trpc.openProvider.customers.getByHandle.useQuery(
+    { handle: handles.tech },
+    { enabled: open && !isKenic && !!handles.tech, staleTime: 0 },
+  );
+  const billingQuery = trpc.openProvider.customers.getByHandle.useQuery(
+    { handle: handles.billing },
+    { enabled: open && !isKenic && !!handles.billing, staleTime: 0 },
+  );
+
+  const opByRole: Record<ContactRole, OpCustomer | null> = {
+    owner: opCustomer ?? ((ownerQuery.data?.data as OpCustomer | undefined) ?? null),
+    admin: (adminQuery.data?.data as OpCustomer | undefined) ?? null,
+    tech: (techQuery.data?.data as OpCustomer | undefined) ?? null,
+    billing: (billingQuery.data?.data as OpCustomer | undefined) ?? null,
+  };
+
+  const kenicByRole: Record<ContactRole, KenicRegistrantInfo | null | undefined> = {
+    owner: kenicHandlers?.owner ?? registrantInfo,
+    admin: kenicHandlers?.admin,
+    tech: kenicHandlers?.tech,
+    billing: kenicHandlers?.billing,
+  };
+
+  const initialFor = React.useCallback(
+    (role: ContactRole): ContactFormValues => {
+      if (isKenic) {
+        const info = kenicByRole[role];
+        if (info) return formFromKenic(info, domain);
+        return role === "owner" ? formFromKenic(registrantInfo, domain) : { ...emptyValues };
+      }
+      const customer = opByRole[role];
+      if (customer) return formFromOp(customer, domain);
+      if (role === "owner") return formFromOp(opCustomer, domain);
+      return { ...emptyValues };
     },
+    [domain, isKenic, kenicByRole, opByRole, opCustomer, registrantInfo],
   );
 
   const formLoading =
     open &&
     !isKenic &&
-    ((role === "owner" && opCustomerLoading && !opCustomer) ||
-      (role !== "owner" && otherHandleQuery.isLoading && !otherHandleQuery.data));
+    ((liveHandlesQuery.isLoading && !liveHandles) ||
+      (opCustomerLoading && !opCustomer && !ownerQuery.data) ||
+      (!!handles.admin && adminQuery.isLoading && !adminQuery.data) ||
+      (!!handles.tech && techQuery.isLoading && !techQuery.data) ||
+      (!!handles.billing && billingQuery.isLoading && !billingQuery.data));
 
   React.useEffect(() => {
-    if (!open) return;
-    setIntent("update");
-    setRole("owner");
-    if (isKenic) {
-      form.reset(formFromKenic(registrantInfo, domain));
-    } else {
-      form.reset(formFromOp(opCustomer, domain));
+    if (!open) {
+      setFormsReady(false);
+      return;
     }
-  }, [open, isKenic, registrantInfo, opCustomer, domain, form]);
-
-  React.useEffect(() => {
-    if (!open || isKenic || role === "owner") return;
-    const data = otherHandleQuery.data?.data as OpCustomer | undefined;
-    if (data) form.reset(formFromOp(data, domain));
-  }, [open, isKenic, role, otherHandleQuery.data, domain, form]);
+    if (!formLoading) setFormsReady(true);
+  }, [open, formLoading]);
 
   const utils = trpc.useUtils();
   const opMutation = trpc.openProvider.domains.updateContact.useMutation();
   const kenicMutation = trpc.kenic.contactUpdate.update.useMutation();
-  const nameLocked = !isKenic && intent === "update";
 
   const refreshContactCard = async (nextHandle?: string) => {
     if (isKenic) {
@@ -268,6 +553,7 @@ export function DomainContactEditDialog({
     }
     await Promise.all([
       utils.openProvider.domains.list.invalidate(),
+      utils.openProvider.domains.getHandles.invalidate(),
       utils.openProvider.customers.getByHandle.invalidate(),
     ]);
     if (nextHandle) {
@@ -276,18 +562,16 @@ export function DomainContactEditDialog({
     await onUpdated?.();
   };
 
-  const onSubmit = async (values: ContactFormValues) => {
-    if (!isKenic && !values.lastName.trim()) {
-      form.setError("lastName", { message: "Last name is required" });
-      return;
-    }
-
-    setSubmitting(true);
+  const save = async (values: ContactFormValues, role: ContactRole, applyToAll: boolean) => {
+    setSavingKey(applyToAll ? "all" : role);
     try {
       if (isKenic) {
-        await kenicMutation.mutateAsync({
+        const result = await kenicMutation.mutateAsync({
           domain: domain.domain,
           intent,
+          applyToAll,
+          ...(applyToAll ? {} : { role }),
+          ...(teamSlug ? { teamSlug } : {}),
           contact: {
             name: `${values.firstName.trim()} ${values.lastName.trim()}`.trim(),
             org: values.organization.trim() || undefined,
@@ -301,8 +585,8 @@ export function DomainContactEditDialog({
             email: values.email.trim(),
           },
         });
-        toast.success(intent === "replace" ? "Owner updated" : "Contact updated");
-        await refreshContactCard();
+        toast.success(intent === "replace" ? "Contact replaced" : "Contact updated");
+        await refreshContactCard(result.contactId);
       } else {
         const domainId = Number.parseInt(String(domain.id), 10);
         if (Number.isNaN(domainId)) {
@@ -313,7 +597,9 @@ export function DomainContactEditDialog({
           domainId,
           domain: domain.domain,
           intent,
-          role,
+          applyToAll,
+          ...(applyToAll ? {} : { role }),
+          ...(teamSlug ? { teamSlug } : {}),
           contact: {
             first_name: values.firstName.trim(),
             last_name: values.lastName.trim(),
@@ -329,278 +615,155 @@ export function DomainContactEditDialog({
             country: values.country.trim(),
           },
         });
-        if (result.method === "replace" && "usedTrade" in result && result.usedTrade) {
+        if (result.method === "replace" && result.usedTrade) {
           toast.success("Owner change submitted");
         } else {
-          toast.success(intent === "replace" ? "Owner updated" : "Contact updated");
+          toast.success(intent === "replace" ? "Contact replaced" : "Contact updated");
         }
-        if ("emailVerificationStarted" in result && result.emailVerificationStarted) {
+        if (result.emailVerificationStarted) {
           toast.message("Verification email sent to the owner.");
         }
         await refreshContactCard(result.handle);
       }
-      onOpenChange(false);
+      if (applyToAll) onOpenChange(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not save contact");
     } finally {
-      setSubmitting(false);
+      setSavingKey(null);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto p-8">
-        {formLoading ? (
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto p-8">
+        {open && !formsReady && formLoading ? (
           <div className="flex items-center justify-center py-12">
             <Spinner size={24} />
           </div>
         ) : (
           <>
-            <DialogHeader className="pb-6 space-y-2">
-              <DialogTitle className="text-xl">Edit contact</DialogTitle>
-              <DialogDescription className="pt-1 text-sm">
+            <DialogHeader className="space-y-3 pr-8">
+              <div className="flex items-center justify-between gap-6">
+                <DialogTitle className="text-xl">Edit contact</DialogTitle>
+                {allowReplace ? (
+                  <div className="flex shrink-0 items-center gap-5 text-sm">
+                    <button
+                      type="button"
+                      className={cn(
+                        "border-b pb-0.5",
+                        intent === "update"
+                          ? "border-foreground text-foreground"
+                          : "border-transparent text-muted-foreground",
+                      )}
+                      onClick={() => setIntent("update")}
+                    >
+                      Update details
+                    </button>
+                    <button
+                      type="button"
+                      className={cn(
+                        "border-b pb-0.5",
+                        intent === "replace"
+                          ? "border-foreground text-foreground"
+                          : "border-transparent text-muted-foreground",
+                      )}
+                      onClick={() => setIntent("replace")}
+                    >
+                      Replace owner
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+              <DialogDescription>
                 {intent === "replace"
-                  ? "Create a new owner and assign them to this domain."
+                  ? "Create a new contact and assign it to the handlers you save."
                   : "Save these details to the registry."}
               </DialogDescription>
             </DialogHeader>
 
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4">
-                <ToggleGroup
-                  type="single"
-                  value={intent}
-                  onValueChange={(v) => {
-                    if (v === "update" || v === "replace") {
-                      setIntent(v);
-                      if (v === "replace") setRole("owner");
-                    }
-                  }}
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                >
-                  <ToggleGroupItem value="update" className="flex-1">
-                    Update details
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="replace" className="flex-1">
-                    Replace owner
-                  </ToggleGroupItem>
-                </ToggleGroup>
+            <div className="space-y-6">
+              <div className="flex items-center justify-between gap-6">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Apply to all handlers</p>
+                  <p className="text-xs text-muted-foreground">
+                    On uses the contact handler for the others. Off edits each handler on its own.
+                  </p>
+                </div>
+                <Switch
+                  checked={mode === "all"}
+                  onCheckedChange={(checked) => setMode(checked ? "all" : "each")}
+                  aria-label="Apply to all handlers"
+                />
+              </div>
 
-                {!isKenic && otherRoles.length > 0 && intent === "update" && (
-                  <FormItem>
-                    <FormLabel>Contact</FormLabel>
-                    <Select value={role} onValueChange={(v) => setRole(v as ContactRole)}>
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="owner">Owner</SelectItem>
-                        {otherRoles.map((r) => (
-                          <SelectItem key={r.value} value={r.value}>
-                            {r.label}
-                          </SelectItem>
+              {ROLES.map((role) => {
+                const hasHandle = !!handles[role];
+                const applyAll = mode === "all";
+                if (applyAll && role !== "owner") {
+                  const summary = initialFor(role);
+                  const name = [summary.firstName, summary.lastName].filter(Boolean).join(" ") || "—";
+                  const address =
+                    [summary.number, summary.street, summary.city, summary.state, summary.postcode, summary.country]
+                      .filter(Boolean)
+                      .join(", ") || "—";
+                  const rows = [
+                    ["Name", name],
+                    ["Organization", summary.organization || "—"],
+                    ["Email", summary.email || "—"],
+                    ["Phone", summary.phone || "—"],
+                    ["Address", address],
+                  ];
+                  return (
+                    <section key={`${role}-summary`} className="space-y-4 border-t border-border pt-6">
+                      <div className="space-y-1">
+                        <h3 className="text-sm font-semibold">{ROLE_LABEL[role]}</h3>
+                        <p className="text-xs text-muted-foreground">{ROLE_HINT[role]}</p>
+                      </div>
+                      <dl className="grid gap-4 sm:grid-cols-2">
+                        {rows.map(([label, value]) => (
+                          <div key={label} className={label === "Address" ? "sm:col-span-2" : undefined}>
+                            <dt className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</dt>
+                            <dd className="mt-1 text-sm">{value}</dd>
+                          </div>
                         ))}
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
+                      </dl>
+                    </section>
+                  );
+                }
+                const shared =
+                  !!handles[role] &&
+                  ROLES.some((other) => other !== role && handles[other] && handles[other] === handles[role]);
+                const createsNew = intent === "replace" || !hasHandle || shared;
+                return (
+                  <HandlerForm
+                    key={`${role}-${intent}-${handles[role]}-${applyAll ? "all" : "each"}`}
+                    title={ROLE_LABEL[role]}
+                    hint={ROLE_HINT[role]}
+                    initial={initialFor(role)}
+                    nameLocked={!isKenic && intent === "update" && (applyAll || !createsNew)}
+                    isKenic={isKenic}
+                    submitLabel={
+                      applyAll
+                        ? intent === "replace"
+                          ? "Replace all handlers"
+                          : "Save all handlers"
+                        : intent === "replace"
+                          ? `Replace ${ROLE_LABEL[role].toLowerCase()}`
+                          : `Save ${ROLE_LABEL[role].toLowerCase()}`
+                    }
+                    submitting={savingKey === (applyAll ? "all" : role)}
+                    disabled={savingKey != null && savingKey !== (applyAll ? "all" : role)}
+                    onSubmit={(values) => save(values, role, applyAll)}
+                  />
+                );
+              })}
 
-                <div className="grid gap-6 md:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="firstName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>First Name</FormLabel>
-                        <FormControl>
-                          <Input {...field} disabled={nameLocked} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="lastName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Last Name</FormLabel>
-                        <FormControl>
-                          <Input {...field} disabled={nameLocked} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="organization"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Organization</FormLabel>
-                      <FormControl>
-                        <Input {...field} disabled={nameLocked} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input type="email" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid gap-6 md:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Phone</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="fax"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Fax</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-[1fr_7rem] gap-6">
-                  <FormField
-                    control={form.control}
-                    name="street"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Street</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="number"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Number</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid gap-6 md:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="city"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>City</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="state"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>State/Province</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="postcode"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Postal Code</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="country"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Country</FormLabel>
-                        <FormControl>
-                          <CountrySelect value={field.value} onValueChange={field.onChange} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <DialogFooter className="gap-2 sm:gap-0 pt-6">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => onOpenChange(false)}
-                    disabled={submitting}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={submitting}>
-                    {submitting ? (
-                      <>
-                        <Spinner size={16} className="mr-2" />
-                        Saving
-                      </>
-                    ) : (
-                      "Save"
-                    )}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </Form>
+              <div className="flex justify-end pt-2">
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={savingKey != null}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
           </>
         )}
       </DialogContent>

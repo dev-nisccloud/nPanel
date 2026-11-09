@@ -166,43 +166,67 @@ export const kenicDomainListRouter = router({
 				const infoData = parsed?.epp?.response?.resData?.["domain:infData"];
 				const registrantHandle = infoData?.["domain:registrant"];
 
-				// 2. Fetch Registrant Info (Live contact data)
-				let registrantInfo = null;
-				if (registrantHandle) {
-					sendFrame(socket, buildContactInfoXml(registrantHandle));
+				const contactNodeEarly = infoData?.["domain:contact"];
+				const contactLinks = Array.isArray(contactNodeEarly)
+					? contactNodeEarly.map((c: any) => ({ type: String(c["@_type"] ?? ""), handle: String(c["#text"] ?? "") }))
+					: contactNodeEarly
+						? [{ type: String(contactNodeEarly["@_type"] ?? ""), handle: String(contactNodeEarly["#text"] ?? "") }]
+						: [];
+
+				const mapContactInf = (cData: any) => {
+					const postal = cData?.["contact:postalInfo"];
+					const postalInfo = Array.isArray(postal) ? postal[0] : postal;
+					return {
+						handle: cData?.["contact:id"],
+						roid: cData?.["contact:roid"],
+						name: postalInfo?.["contact:name"],
+						organization: postalInfo?.["contact:org"],
+						address: {
+							street: postalInfo?.["contact:addr"]?.["contact:street"],
+							city: postalInfo?.["contact:addr"]?.["contact:city"],
+							state: postalInfo?.["contact:addr"]?.["contact:sp"],
+							postcode: postalInfo?.["contact:addr"]?.["contact:pc"],
+							country: postalInfo?.["contact:addr"]?.["contact:cc"],
+						},
+						voice: cData?.["contact:voice"],
+						fax: cData?.["contact:fax"],
+						email: cData?.["contact:email"],
+						clID: cData?.["contact:clID"],
+						crID: cData?.["contact:crID"],
+						crDate: cData?.["contact:crDate"],
+						upDate: cData?.["contact:upDate"],
+						status: cData?.["contact:status"],
+					};
+				};
+
+				const contactCache = new Map<string, ReturnType<typeof mapContactInf> | null>();
+				const loadContact = async (handle: string) => {
+					const id = String(handle ?? "").trim();
+					if (!id) return null;
+					if (contactCache.has(id)) return contactCache.get(id) ?? null;
+					sendFrame(socket, buildContactInfoXml(id));
 					const contactResXml = (await readFrame(socket)).toString("utf8");
 					const contactParsed = parser.parse(contactResXml);
 					const contactResult = getEppResult(contactParsed);
-					
-					if (contactResult.code === "1000") {
-						const cData = contactParsed?.epp?.response?.resData?.["contact:infData"];
-						const postal = cData?.["contact:postalInfo"];
-						const postalInfo = Array.isArray(postal) ? postal[0] : postal;
-						
-						registrantInfo = {
-							handle: cData?.["contact:id"],
-							roid: cData?.["contact:roid"],
-							name: postalInfo?.["contact:name"],
-							organization: postalInfo?.["contact:org"],
-							address: {
-								street: postalInfo?.["contact:addr"]?.["contact:street"],
-								city: postalInfo?.["contact:addr"]?.["contact:city"],
-								state: postalInfo?.["contact:addr"]?.["contact:sp"],
-								postcode: postalInfo?.["contact:addr"]?.["contact:pc"],
-								country: postalInfo?.["contact:addr"]?.["contact:cc"],
-							},
-							voice: cData?.["contact:voice"],
-							fax: cData?.["contact:fax"],
-							email: cData?.["contact:email"],
-							clID: cData?.["contact:clID"],
-							crID: cData?.["contact:crID"],
-							crDate: cData?.["contact:crDate"],
-							upDate: cData?.["contact:upDate"],
-							status: cData?.["contact:status"],
-						};
-					}
-				}
-				
+					const info =
+						contactResult.code === "1000"
+							? mapContactInf(contactParsed?.epp?.response?.resData?.["contact:infData"])
+							: null;
+					contactCache.set(id, info);
+					return info;
+				};
+
+				const handleFor = (type: string) =>
+					contactLinks.find((c) => c.type === type && c.handle)?.handle ?? "";
+
+				const handlers = {
+					owner: await loadContact(String(registrantHandle ?? "")),
+					admin: await loadContact(handleFor("admin")),
+					tech: await loadContact(handleFor("tech")),
+					billing: await loadContact(handleFor("billing")),
+				};
+				const registrantInfo = handlers.owner;
+
 				sendFrame(socket, buildLogoutXml());
 				await readFrame(socket);
 
@@ -238,6 +262,7 @@ export const kenicDomainListRouter = router({
 						allStatuses: statuses,
 						registrant: registrantHandle,
 						registrantInfo, // Full live contact details
+						handlers,
 						contacts,
 						nameservers,
 						clID: infoData?.["domain:clID"],

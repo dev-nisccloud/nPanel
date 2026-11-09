@@ -137,6 +137,20 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
   const [selectedTicketId, setSelectedTicketId] = React.useState<string | null>(null);
   const [selectedAiChatId, setSelectedAiChatId] = React.useState<string | null>(null);
   const [isNewTicket, setIsNewTicket] = React.useState(false);
+
+  React.useEffect(() => {
+    const onOpen = (event: Event) => {
+      const ticketId = (event as CustomEvent<{ ticketId?: string }>).detail?.ticketId;
+      setIsOpen(true);
+      setCurrentView("chat");
+      if (ticketId) {
+        setSelectedTicketId(ticketId);
+        setIsNewTicket(false);
+      }
+    };
+    window.addEventListener("nisc-support-open", onOpen);
+    return () => window.removeEventListener("nisc-support-open", onOpen);
+  }, []);
   const [isSending, setIsSending] = React.useState(false);
   const [loadingChatId, setLoadingChatId] = React.useState<string | null>(null);
   const [loadingAiChatId, setLoadingAiChatId] = React.useState<string | null>(null);

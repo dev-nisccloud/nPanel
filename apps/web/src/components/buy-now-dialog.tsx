@@ -2392,6 +2392,7 @@ export function BuyNowDialog({
                                   : [];
                                 const features = opt?.operatingSystemFeatures ?? null;
                                 const showOriginal =
+                                  isAgencyUser &&
                                   hivelocityMarkupFlags.addons &&
                                   Math.abs(marginedPeriodUsd - periodUsd) > 1e-9;
                                 const original = formatOriginalUsdAndKes(periodUsd);

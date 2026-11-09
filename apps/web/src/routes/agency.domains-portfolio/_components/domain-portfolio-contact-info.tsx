@@ -25,6 +25,13 @@ export type KenicRegistrantInfo = {
   };
 };
 
+export type KenicHandlers = {
+  owner?: KenicRegistrantInfo | null;
+  admin?: KenicRegistrantInfo | null;
+  tech?: KenicRegistrantInfo | null;
+  billing?: KenicRegistrantInfo | null;
+};
+
 export type PortfolioContactRow = {
   role: string;
   fullName: string;
@@ -135,6 +142,13 @@ function fallbackContactFromDomain(domain: DomainPortfolio, role = "Owner"): Por
   };
 }
 
+function roleHint(role: string) {
+  if (role === "Admin") return "Manages the domain, including transfers and contact changes.";
+  if (role === "Technical") return "Handles nameservers and technical problems.";
+  if (role === "Billing") return "Receives renewal and billing notices.";
+  return "The registrant, and the legal contact for the domain.";
+}
+
 function ContactField({
   label,
   children,
@@ -183,7 +197,10 @@ interface DomainPortfolioContactInfoProps {
   domain: DomainPortfolio;
   source?: "kenic" | "openprovider";
   registrantInfo?: KenicRegistrantInfo | null;
+  kenicHandlers?: KenicHandlers | null;
   canEdit?: boolean;
+  allowReplace?: boolean;
+  teamSlug?: string;
   onContactUpdated?: () => void | Promise<void>;
 }
 
@@ -191,7 +208,10 @@ export function DomainPortfolioContactInfo({
   domain,
   source,
   registrantInfo,
+  kenicHandlers,
   canEdit = false,
+  allowReplace = true,
+  teamSlug,
   onContactUpdated,
 }: DomainPortfolioContactInfoProps) {
   const [showAll, setShowAll] = React.useState(false);
@@ -199,64 +219,91 @@ export function DomainPortfolioContactInfo({
   const { data: session } = authClient.useSession();
   const isSuperAdmin =
     (session?.user as { role?: string } | undefined)?.role === "AGENCY_SUPER_ADMIN";
-  const showEdit = canEdit && isSuperAdmin;
+  const showEdit = canEdit && (isSuperAdmin || !allowReplace);
   const isKenic = source === "kenic";
+  const domainId = Number.parseInt(String(domain.id), 10);
+  const liveHandlesQuery = trpc.openProvider.domains.getHandles.useQuery(
+    { domainId: Number.isFinite(domainId) ? domainId : 0 },
+    { enabled: !isKenic && Number.isFinite(domainId) && domainId > 0, staleTime: 60_000 },
+  );
+  const liveHandles = liveHandlesQuery.data;
 
-  const ownerHandle = domain.ownerHandle;
-  const adminHandle =
-    showAll && !isKenic && domain.adminHandle && domain.adminHandle !== ownerHandle
-      ? domain.adminHandle
-      : undefined;
-  const techHandle =
-    showAll && !isKenic && domain.techHandle && domain.techHandle !== ownerHandle
-      ? domain.techHandle
-      : undefined;
-  const billingHandle =
-    showAll && !isKenic && domain.billingHandle && domain.billingHandle !== ownerHandle
-      ? domain.billingHandle
-      : undefined;
+  const ownerHandle =
+    (isKenic ? kenicHandlers?.owner?.handle : liveHandles?.owner || domain.ownerHandle) || domain.ownerHandle;
+  const adminHandle = isKenic ? kenicHandlers?.admin?.handle : liveHandles?.admin || domain.adminHandle;
+  const techHandle = isKenic ? kenicHandlers?.tech?.handle : liveHandles?.tech || domain.techHandle;
+  const billingHandle = isKenic ? kenicHandlers?.billing?.handle : liveHandles?.billing || domain.billingHandle;
 
   const ownerQuery = useOpenProviderContact(ownerHandle, !isKenic);
-  const adminQuery = useOpenProviderContact(adminHandle, !!adminHandle);
-  const techQuery = useOpenProviderContact(techHandle, !!techHandle);
-  const billingQuery = useOpenProviderContact(billingHandle, !!billingHandle);
+  const adminQuery = useOpenProviderContact(adminHandle, showAll && !isKenic && !!adminHandle);
+  const techQuery = useOpenProviderContact(techHandle, showAll && !isKenic && !!techHandle);
+  const billingQuery = useOpenProviderContact(billingHandle, showAll && !isKenic && !!billingHandle);
 
   const isLoadingOp = !isKenic && ownerQuery.isLoading;
 
   const primaryContact = React.useMemo((): PortfolioContactRow => {
-    if (isKenic && registrantInfo) {
-      return mapKenicRegistrantToContact(registrantInfo);
+    const kenicOwner = kenicHandlers?.owner ?? registrantInfo;
+    if (isKenic && kenicOwner) {
+      return mapKenicRegistrantToContact(kenicOwner);
     }
     if (!isKenic && ownerQuery.data?.data) {
       return mapOpenProviderCustomerToContact(ownerQuery.data.data as OpenProviderCustomerRecord, "Owner");
     }
     return fallbackContactFromDomain(domain);
-  }, [isKenic, registrantInfo, ownerQuery.data, domain]);
+  }, [isKenic, registrantInfo, kenicHandlers?.owner, ownerQuery.data, domain]);
 
-  const additionalContacts = React.useMemo((): PortfolioContactRow[] => {
-    if (isKenic || !showAll) return [];
+  const additionalContacts = React.useMemo(() => {
+    if (!showAll) return [];
     const rows: PortfolioContactRow[] = [];
-    if (adminQuery.data?.data) {
-      rows.push(mapOpenProviderCustomerToContact(adminQuery.data.data as OpenProviderCustomerRecord, "Admin"));
-    }
-    if (techQuery.data?.data) {
+    const pushKenic = (info: KenicRegistrantInfo | null | undefined, role: string) => {
+      if (!info && !role) return;
+      if (!info?.handle && !info?.name && !info?.email) return;
       rows.push(
-        mapOpenProviderCustomerToContact(techQuery.data.data as OpenProviderCustomerRecord, "Technical"),
+        info ? { ...mapKenicRegistrantToContact(info), role } : fallbackContactFromDomain(domain, role),
       );
-    }
-    if (billingQuery.data?.data) {
-      rows.push(
-        mapOpenProviderCustomerToContact(billingQuery.data.data as OpenProviderCustomerRecord, "Billing"),
-      );
+    };
+    const pushOp = (
+      data: OpenProviderCustomerRecord | undefined,
+      handle: string | undefined,
+      role: string,
+      loading: boolean,
+    ) => {
+      if (data) {
+        rows.push(mapOpenProviderCustomerToContact(data, role));
+        return;
+      }
+      rows.push({ role, fullName: loading ? "" : "—", email: "", handle });
+    };
+
+    if (isKenic) {
+      pushKenic(kenicHandlers?.admin, "Admin");
+      pushKenic(kenicHandlers?.tech, "Technical");
+      pushKenic(kenicHandlers?.billing, "Billing");
+    } else {
+      pushOp(adminQuery.data?.data as OpenProviderCustomerRecord | undefined, adminHandle, "Admin", adminQuery.isLoading);
+      pushOp(techQuery.data?.data as OpenProviderCustomerRecord | undefined, techHandle, "Technical", techQuery.isLoading);
+      pushOp(billingQuery.data?.data as OpenProviderCustomerRecord | undefined, billingHandle, "Billing", billingQuery.isLoading);
     }
     return rows;
-  }, [isKenic, showAll, adminQuery.data, techQuery.data, billingQuery.data]);
+  }, [
+    showAll,
+    isKenic,
+    kenicHandlers,
+    domain,
+    adminHandle,
+    techHandle,
+    billingHandle,
+    adminQuery.data,
+    adminQuery.isLoading,
+    techQuery.data,
+    techQuery.isLoading,
+    billingQuery.data,
+    billingQuery.isLoading,
+  ]);
 
-  const hasOtherHandles =
-    !isKenic &&
-    ((domain.adminHandle && domain.adminHandle !== ownerHandle) ||
-      (domain.techHandle && domain.techHandle !== ownerHandle) ||
-      (domain.billingHandle && domain.billingHandle !== ownerHandle));
+  const hasOtherHandlers = isKenic
+    ? !!(kenicHandlers?.admin || kenicHandlers?.tech || kenicHandlers?.billing)
+    : true;
 
   const hasExpandableDetails =
     isKenic ||
@@ -265,7 +312,7 @@ export function DomainPortfolioContactInfo({
     !!primaryContact.handle ||
     !!primaryContact.fax ||
     !!primaryContact.organization ||
-    hasOtherHandles ||
+    hasOtherHandlers ||
     (!isKenic && !!ownerHandle);
 
   return (
@@ -307,6 +354,9 @@ export function DomainPortfolioContactInfo({
               <p className="text-sm font-medium leading-none">{primaryContact.fullName || "-"}</p>
               {primaryContact.organization && (
                 <p className="text-[11px] text-muted-foreground mt-1">{primaryContact.organization}</p>
+              )}
+              {showAll && (
+                <p className="text-[11px] text-muted-foreground mt-1">{roleHint(primaryContact.role)}</p>
               )}
             </ContactField>
 
@@ -352,10 +402,11 @@ export function DomainPortfolioContactInfo({
                     {additionalContacts.map((contact) => (
                       <div key={`${contact.role}-${contact.handle}`} className="space-y-3 pl-0">
                         <ContactField label={contact.role}>
-                          <p className="text-sm font-medium leading-none">{contact.fullName || "-"}</p>
+                          <p className="text-sm font-medium leading-none">{contact.fullName || "—"}</p>
                           {contact.organization && (
                             <p className="text-[11px] text-muted-foreground mt-1">{contact.organization}</p>
                           )}
+                          <p className="text-[11px] text-muted-foreground mt-1">{roleHint(contact.role)}</p>
                         </ContactField>
                         {contact.email && (
                           <ContactField label="Email">
@@ -367,6 +418,12 @@ export function DomainPortfolioContactInfo({
                             <p className="text-sm font-medium">{contact.phone}</p>
                           </ContactField>
                         )}
+                        {contact.address &&
+                          (contact.address.street || contact.address.city || contact.address.country) && (
+                            <ContactField label="Address">
+                              <ContactAddressBlock address={contact.address} />
+                            </ContactField>
+                          )}
                         {contact.handle && (
                           <ContactField label="Handle">
                             <p className="text-xs font-mono bg-muted/50 p-1.5 rounded-sm inline-block">
@@ -379,31 +436,12 @@ export function DomainPortfolioContactInfo({
                   </div>
                 )}
 
-                {!isKenic && hasOtherHandles && additionalContacts.length === 0 && (
-                  <div className="pt-2 border-t space-y-2 text-sm text-muted-foreground">
-                    {(adminQuery.isLoading || techQuery.isLoading || billingQuery.isLoading) && (
-                      <Skeleton className="h-4 w-full" />
-                    )}
-                    {adminHandle && !adminQuery.data && !adminQuery.isLoading && (
-                      <p>
-                        <span className="font-medium text-foreground">Admin: </span>
-                        <span className="font-mono text-xs">{adminHandle}</span>
-                      </p>
-                    )}
-                    {techHandle && !techQuery.data && !techQuery.isLoading && (
-                      <p>
-                        <span className="font-medium text-foreground">Technical: </span>
-                        <span className="font-mono text-xs">{techHandle}</span>
-                      </p>
-                    )}
-                    {billingHandle && !billingQuery.data && !billingQuery.isLoading && (
-                      <p>
-                        <span className="font-medium text-foreground">Billing: </span>
-                        <span className="font-mono text-xs">{billingHandle}</span>
-                      </p>
-                    )}
-                  </div>
-                )}
+                {!isKenic &&
+                  hasOtherHandlers &&
+                  (adminQuery.isLoading || techQuery.isLoading || billingQuery.isLoading) &&
+                  additionalContacts.every((row) => !row.fullName && !row.email) && (
+                    <Skeleton className="h-4 w-full" />
+                  )}
               </>
             )}
           </div>
@@ -415,9 +453,12 @@ export function DomainPortfolioContactInfo({
           onOpenChange={setEditOpen}
           domain={domain}
           source={source}
-          registrantInfo={registrantInfo}
+          registrantInfo={registrantInfo ?? kenicHandlers?.owner}
+          kenicHandlers={kenicHandlers}
           opCustomer={!isKenic ? (ownerQuery.data?.data as OpenProviderCustomerRecord | undefined) : undefined}
           opCustomerLoading={!isKenic && ownerQuery.isLoading}
+          allowReplace={allowReplace}
+          teamSlug={teamSlug}
           onUpdated={onContactUpdated}
         />
       )}
