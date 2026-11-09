@@ -1601,6 +1601,45 @@ export const openProviderDomainsRouter = router({
     }),
 
   /**
+   * Live owner, admin, technical, and billing handles for a domain.
+   */
+  getHandles: protectedProcedure
+    .input(z.object({ domainId: z.number().min(1) }))
+    .query(async ({ input }) => {
+      const client = createOpenProviderClient();
+      try {
+        await client.authenticate({
+          username: process.env.OPENPROVIDER_USERNAME!,
+          password: process.env.OPENPROVIDER_PASSWORD!,
+          ip: process.env.OPENPROVIDER_IP,
+        });
+      } catch (authError) {
+        const errMsg = authError instanceof Error ? authError.message : String(authError);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `OpenProvider authentication failed: ${errMsg}`,
+          cause: authError,
+        });
+      }
+
+      const response = await client.getDomain(input.domainId);
+      if (response.code !== 0 || !response.data) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: response.desc || "Domain not found",
+        });
+      }
+
+      const data = response.data;
+      return {
+        owner: String(data.owner_handle ?? ""),
+        admin: String(data.admin_handle ?? ""),
+        tech: String(data.tech_handle ?? ""),
+        billing: String(data.billing_handle ?? ""),
+      };
+    }),
+
+  /**
    * Agency: update a contact handle, or replace the owner (create handle + update/trade).
    */
   updateContact: updateContactProcedure,

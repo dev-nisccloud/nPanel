@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useParams, useNavigate, useSearchParams, useLocation } from "react-router";
+import { useSocialAdsScope } from "@/components/social-ads/social-ads-scope";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -1361,9 +1362,11 @@ export default function CampaignDetailsPage() {
 	const location = useLocation();
 	const assetId = searchParams.get("assetId") ?? "";
 	const campaignId = params?.campaignId as string;
+	const scope = useSocialAdsScope();
 	const isInstagram = location.pathname.includes("/social-media-ads/instagram");
 	const publisherPlatform = isInstagram ? ("instagram" as const) : undefined;
-	const listBase = isInstagram ? "/agency/social-media-ads/instagram" : "/agency/social-media-ads/facebook";
+	const listBase = `${scope.basePath}/${isInstagram ? "instagram" : "facebook"}`;
+	const teamId = scope.teamId ?? undefined;
 	const isCampaignQueryEnabled = !!assetId && !!campaignId;
 	const backToCampaigns = () => {
 		const params = new URLSearchParams();
@@ -1394,7 +1397,7 @@ export default function CampaignDetailsPage() {
         error: campaignError,
         refetch: refetchCampaign,
     } = trpc.customerOAuth.campaigns.getDetails.useQuery(
-        { assetId, campaignId, timeRange: queryTimeRange, publisherPlatform },
+        { assetId, campaignId, timeRange: queryTimeRange, publisherPlatform, teamId },
         {
             enabled: isCampaignQueryEnabled,
             refetchOnWindowFocus: false,
@@ -1408,7 +1411,7 @@ export default function CampaignDetailsPage() {
         isLoading: isLoadingCharts,
         isFetching: isFetchingCharts,
     } = trpc.customerOAuth.campaigns.getCharts.useQuery(
-        { assetId, campaignId, timeRange: queryTimeRange, publisherPlatform },
+        { assetId, campaignId, timeRange: queryTimeRange, publisherPlatform, teamId },
         {
             enabled: isCampaignQueryEnabled,
             refetchOnWindowFocus: false,
@@ -1460,8 +1463,8 @@ export default function CampaignDetailsPage() {
 
     const handleRefresh = async () => {
         await Promise.all([
-            utils.customerOAuth.campaigns.getDetails.invalidate({ assetId, campaignId, timeRange: queryTimeRange, publisherPlatform }),
-            utils.customerOAuth.campaigns.getCharts.invalidate({ assetId, campaignId, timeRange: queryTimeRange, publisherPlatform }),
+            utils.customerOAuth.campaigns.getDetails.invalidate({ assetId, campaignId, timeRange: queryTimeRange, publisherPlatform, teamId }),
+            utils.customerOAuth.campaigns.getCharts.invalidate({ assetId, campaignId, timeRange: queryTimeRange, publisherPlatform, teamId }),
         ]);
         toast.success("Campaign data refreshed");
     };
@@ -1655,7 +1658,7 @@ export default function CampaignDetailsPage() {
                         </Button>
 
                         <div className="min-w-0 flex-1">
-                            <h1 className="text-base font-semibold tracking-tight truncate">
+                            <h1 className="line-clamp-2 break-words text-base font-semibold tracking-tight">
                                 {campaign.name}
                             </h1>
                             <p className="text-xs text-muted-foreground">Meta Ads campaign details</p>

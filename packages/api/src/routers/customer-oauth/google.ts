@@ -16,7 +16,7 @@ import {
   getAccessibleCustomers,
   getCustomerInstance,
 } from "../../lib/google-ads-client";
-import { sessionIsAgency } from "./agency-access";
+import { assertPlatformTeamRead, assetReadWhere } from "./team-asset-access";
 import {
   getGoogleAdsClientId,
   getGoogleAdsClientSecret,
@@ -580,16 +580,16 @@ export async function listGoogleSelectableAssets(refreshToken: string): Promise<
   return [...accounts.values()];
 }
 
-async function loadAccount(ctx: ContextWithDb, assetId: string) {
+async function loadAccount(ctx: ContextWithDb, assetId: string, teamId?: string) {
   const asset = await ctx.db.query.customerPlatformAsset.findFirst({
-    where: and(
-      eq(customerPlatformAsset.id, assetId),
-      sessionIsAgency(ctx.session.user) ? undefined : eq(customerPlatformAsset.userId, ctx.session.user.id),
-    ),
+    where: assetReadWhere(ctx.session.user, assetId, teamId),
     with: { connection: true },
   });
   if (!asset?.connection) {
     throw new TRPCError({ code: "NOT_FOUND", message: "Ad account not found" });
+  }
+  if (teamId) {
+    await assertPlatformTeamRead(ctx.session.user, asset.platform, teamId);
   }
   if (asset.assetType !== "google_ad_account" || asset.platform !== "google_ads") {
     throw new TRPCError({ code: "BAD_REQUEST", message: "This asset is not a Google Ads account" });
@@ -622,8 +622,8 @@ async function managerIdFor(refreshToken: string, customerId: string): Promise<s
   }
 }
 
-async function openCustomer(ctx: ContextWithDb, assetId: string) {
-  const loaded = await loadAccount(ctx, assetId);
+async function openCustomer(ctx: ContextWithDb, assetId: string, teamId?: string) {
+  const loaded = await loadAccount(ctx, assetId, teamId);
   const customerId = digits(loaded.asset.platformAssetId);
   const storedLogin = loaded.asset.businessId ? digits(loaded.asset.businessId) : null;
   const attempts: Array<string | null> = [storedLogin];
@@ -710,9 +710,9 @@ function assetMedia(row: Record<string, any>): { kind: "image" | "video"; url: s
 
 export const customerOAuthGoogleRouter = router({
   list: protectedProcedure
-    .input(z.object({ assetId: z.string().min(1), timeRange: timeRangeInput }))
+    .input(z.object({ assetId: z.string().min(1), timeRange: timeRangeInput, teamId: z.string().min(1).optional() }))
     .query(async ({ ctx, input }) => {
-      const { customer } = await openCustomer(ctx as ContextWithDb, input.assetId);
+      const { customer } = await openCustomer(ctx as ContextWithDb, input.assetId, input.teamId);
       const window = resolveWindow(input.timeRange);
       try {
         const entities = await gaql(
@@ -774,9 +774,9 @@ export const customerOAuthGoogleRouter = router({
     }),
 
   getDetails: protectedProcedure
-    .input(z.object({ assetId: z.string().min(1), campaignId: z.string().min(1), timeRange: timeRangeInput }))
+    .input(z.object({ assetId: z.string().min(1), campaignId: z.string().min(1), timeRange: timeRangeInput, teamId: z.string().min(1).optional() }))
     .query(async ({ ctx, input }) => {
-      const { asset, customer } = await openCustomer(ctx as ContextWithDb, input.assetId);
+      const { asset, customer } = await openCustomer(ctx as ContextWithDb, input.assetId, input.teamId);
       const window = resolveWindow(input.timeRange);
       const campaignId = assertId(input.campaignId);
       const between = `segments.date BETWEEN '${window.since}' AND '${window.until}'`;
@@ -1013,9 +1013,9 @@ export const customerOAuthGoogleRouter = router({
     }),
 
   getCharts: protectedProcedure
-    .input(z.object({ assetId: z.string().min(1), campaignId: z.string().min(1), timeRange: timeRangeInput }))
+    .input(z.object({ assetId: z.string().min(1), campaignId: z.string().min(1), timeRange: timeRangeInput, teamId: z.string().min(1).optional() }))
     .query(async ({ ctx, input }) => {
-      const { customer } = await openCustomer(ctx as ContextWithDb, input.assetId);
+      const { customer } = await openCustomer(ctx as ContextWithDb, input.assetId, input.teamId);
       const window = resolveWindow(input.timeRange);
       const campaignId = assertId(input.campaignId);
       const between = `campaign.id = ${campaignId} AND segments.date BETWEEN '${window.since}' AND '${window.until}'`;

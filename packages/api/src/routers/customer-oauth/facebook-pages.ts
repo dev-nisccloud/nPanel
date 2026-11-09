@@ -4,17 +4,20 @@
  */
 
 import { TRPCError } from "@trpc/server";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import {
   customerOAuthActivityLog,
   customerOAuthConnection,
   facebookPage,
+  team,
 } from "@npanel/db/schema";
 import { MetaOAuthProvider } from "../../lib/meta-oauth-provider";
 import { decryptToken, encryptToken } from "../../lib/oauth-encryption";
 import { protectedProcedure, router } from "../../trpc";
+import { sessionIsAgency } from "./agency-access";
+import { assertPlatformTeamRead } from "./team-asset-access";
 
 const metaProvider = new MetaOAuthProvider();
 
@@ -54,23 +57,34 @@ function cachedPages(selectionData: unknown): CachedPage[] | null {
 }
 
 export const customerOAuthFacebookPagesRouter = router({
-  list: protectedProcedure.query(async ({ ctx }) => {
-    const pages = await ctx.db
-      .select({
-        id: facebookPage.id,
-        connectionId: facebookPage.connectionId,
-        pageId: facebookPage.pageId,
-        name: facebookPage.name,
-        username: facebookPage.username,
-        category: facebookPage.category,
-        pictureUrl: facebookPage.pictureUrl,
-      })
-      .from(facebookPage)
-      .where(and(eq(facebookPage.userId, ctx.session.user.id), eq(facebookPage.isActive, true)))
-      .orderBy(asc(facebookPage.name));
+  list: protectedProcedure
+    .input(z.object({ teamId: z.string().min(1).optional() }).optional())
+    .query(async ({ ctx, input }) => {
+      if (input?.teamId) {
+        await assertPlatformTeamRead(ctx.session.user, "meta_facebook", input.teamId);
+      }
+      const pages = await ctx.db
+        .select({
+          id: facebookPage.id,
+          connectionId: facebookPage.connectionId,
+          pageId: facebookPage.pageId,
+          name: facebookPage.name,
+          username: facebookPage.username,
+          category: facebookPage.category,
+          pictureUrl: facebookPage.pictureUrl,
+          teamId: facebookPage.teamId,
+        })
+        .from(facebookPage)
+        .where(
+          and(
+            input?.teamId ? eq(facebookPage.teamId, input.teamId) : eq(facebookPage.userId, ctx.session.user.id),
+            eq(facebookPage.isActive, true),
+          ),
+        )
+        .orderBy(asc(facebookPage.name));
 
-    return pages;
-  }),
+      return pages;
+    }),
 
   importPages: protectedProcedure
     .input(
@@ -192,13 +206,17 @@ export const customerOAuthFacebookPagesRouter = router({
             until: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
           })
           .optional(),
+        teamId: z.string().min(1).optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
+      if (input.teamId) {
+        await assertPlatformTeamRead(ctx.session.user, "meta_facebook", input.teamId);
+      }
       const page = await ctx.db.query.facebookPage.findFirst({
         where: and(
           eq(facebookPage.id, input.pageId),
-          eq(facebookPage.userId, ctx.session.user.id),
+          input.teamId ? eq(facebookPage.teamId, input.teamId) : eq(facebookPage.userId, ctx.session.user.id),
           eq(facebookPage.isActive, true),
         ),
       });
@@ -234,5 +252,61 @@ export const customerOAuthFacebookPagesRouter = router({
         posts,
         timeRange: range,
       };
+    }),
+
+  organizationLink: protectedProcedure
+    .input(z.object({ pageId: z.string().min(1) }))
+    .query(async ({ ctx, input }) => {
+      const page = await ctx.db.query.facebookPage.findFirst({
+        where: and(
+          eq(facebookPage.id, input.pageId),
+          sessionIsAgency(ctx.session.user) ? undefined : eq(facebookPage.userId, ctx.session.user.id),
+        ),
+        columns: { id: true, name: true, teamId: true },
+        with: { team: { columns: { id: true, name: true } } },
+      });
+      if (!page) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Facebook Page not found" });
+      }
+      return {
+        pageId: page.id,
+        pageName: page.name,
+        teamId: page.teamId,
+        teamName: page.team?.name ?? null,
+      };
+    }),
+
+  linkOrganization: protectedProcedure
+    .input(z.object({ pageId: z.string().min(1), teamId: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const page = await ctx.db.query.facebookPage.findFirst({
+        where: and(
+          eq(facebookPage.id, input.pageId),
+          sessionIsAgency(ctx.session.user) ? undefined : eq(facebookPage.userId, ctx.session.user.id),
+        ),
+        columns: { id: true, name: true, teamId: true, connectionId: true },
+      });
+      if (!page) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Facebook Page not found" });
+      }
+      if (page.teamId) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "This Page is already linked to an organization." });
+      }
+      const organization = await ctx.db.query.team.findFirst({
+        where: eq(team.id, input.teamId),
+        columns: { id: true, name: true, isActive: true },
+      });
+      if (!organization || !organization.isActive) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Organization not found" });
+      }
+      const updated = await ctx.db
+        .update(facebookPage)
+        .set({ teamId: organization.id, updatedAt: new Date() })
+        .where(and(eq(facebookPage.id, page.id), isNull(facebookPage.teamId)))
+        .returning({ id: facebookPage.id });
+      if (updated.length === 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "This Page is already linked to an organization." });
+      }
+      return { success: true as const, teamId: organization.id, teamName: organization.name };
     }),
 });

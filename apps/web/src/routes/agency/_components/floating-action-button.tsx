@@ -431,6 +431,23 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
     return () => clearInterval(timer);
   }, [isSending]);
 
+  React.useEffect(() => {
+    const onOpen = (event: Event) => {
+      const ticketId = (event as CustomEvent<{ ticketId?: string }>).detail?.ticketId;
+      setIsOpen(true);
+      setActiveTab("messages");
+      if (ticketId) {
+        setSelectedChatId(ticketId);
+        setIsNewTicket(false);
+        setMessagesSubView("chat");
+      } else {
+        setMessagesSubView("list");
+      }
+    };
+    window.addEventListener("nisc-support-open", onOpen);
+    return () => window.removeEventListener("nisc-support-open", onOpen);
+  }, []);
+
   // Reset on close
   React.useEffect(() => {
     if (!isOpen) {
