@@ -539,7 +539,7 @@ export function CustomerInfoStep({
           </div>
           <div>
             <p className="text-sm font-semibold text-foreground">Already have an account?</p>
-            <p className="text-xs text-muted-foreground">Sign in to nPanel to complete your purchase</p>
+            <p className="text-xs text-muted-foreground">Log in to nPanel to complete your purchase</p>
           </div>
         </div>
         <span className="text-sm font-semibold text-primary whitespace-nowrap group-hover:underline">

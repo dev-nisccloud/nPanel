@@ -14,7 +14,7 @@ const securityFaqs = [
   },
   {
     question: "What's the difference between DV, OV, and EV SSL?",
-    answer: "DV (Domain Validation) is the fastest and most common. It verifies you own the domain. OV (Organisation Validation) also verifies your business identity. EV (Extended Validation) is the highest validation level and can show your company name in the address bar. For most businesses, DV or OV is enough.",
+    answer: "DV (Domain Validation) is the fastest and most common. It verifies you own the domain. OV (Organisation Validation) also verifies your business identity. EV (Extended Validation) is the strictest validation level and lists your verified company details in the certificate. For most businesses, DV or OV is enough.",
   },
   {
     question: "How does malware scanning work?",
@@ -42,6 +42,7 @@ export default function SecurityPage() {
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       <Navbar />
+      <main id="main-content">
       <SecurityHero />
       <SecurityMacbookSection />
       <SecurityPlans />
@@ -51,6 +52,7 @@ export default function SecurityPage() {
         title="Everything you need to know about website security"
       />
       <SecurityCTA />
+      </main>
       <Footer />
     </div>
   );

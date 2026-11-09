@@ -231,7 +231,7 @@ function VpsPlanCard({
               }
             }}
           >
-            Get Started
+            {isUnavailable ? "Currently unavailable" : "Configure & Order"}
           </Button>
         </div>
       </CardContent>
@@ -281,7 +281,7 @@ export function VdsPlansSection() {
       try {
         const [plansRes, settings, rate, facRes] = await Promise.all([
           fetchVdsPlansPublic(0, limit),
-          fetchVpsPricingSettings(),
+          fetchVpsPricingSettings("VDS"),
           fetchExchangeRatesPublic(),
           fetchFacilitiesPublic(),
         ]);
@@ -296,8 +296,8 @@ export function VdsPlansSection() {
           facRes.forEach(f => facMap.set(f.code, f.title));
           setFacilities(facMap);
         }
-      } catch (err: any) {
-        if (active) setError(err.message || "Failed to load plans");
+      } catch (err: unknown) {
+        if (active) setError(err instanceof Error ? err.message : "Failed to load plans");
       } finally {
         if (active) setLoading(false);
       }
@@ -324,8 +324,8 @@ export function VdsPlansSection() {
         facRes.forEach(f => facMap.set(f.code, f.title));
         setFacilities(facMap);
       }
-    } catch (err: any) {
-      setError(err.message || "Failed to load more plans");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to load more plans");
     } finally {
       setLoadingMore(false);
     }
@@ -350,12 +350,12 @@ export function VdsPlansSection() {
   );
 
   return (
-    <section className="py-20 bg-muted/10">
+    <section className="bg-muted/10 py-14 md:py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold tracking-tight mb-4">Choose Your VDS Plan</h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            High-performance virtual dedicated servers with guaranteed, isolated resources.
+            High-performance virtual dedicated servers with reserved, isolated resources.
           </p>
         </div>
 
@@ -390,7 +390,7 @@ export function VdsPlansSection() {
           ) : (
             filteredPlans.map((plan) => (
               <VpsPlanCard 
-                key={plan.product_id} 
+                key={`${plan.product_id}-${plan.data_center}`}
                 plan={plan} 
                 pricingSettings={pricingSettings}
                 usdToKesRate={usdToKesRate}

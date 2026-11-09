@@ -13,7 +13,7 @@ import {
   Megaphone,
   Store,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button.tsx";
 
 const services = [
@@ -32,7 +32,7 @@ const services = [
   {
     icon: Server,
     title: "Cloud Hosting",
-    desc: "Reliable hosting with auto-scaling, CDN, DDoS protection, and a 99.99% uptime target.",
+    desc: "Reliable hosting with auto-scaling, CDN, DDoS protection, and a 99.9% uptime target.",
     tag: "Host",
   },
   {
@@ -73,27 +73,26 @@ const services = [
   },
   {
     icon: Bot,
-    title: "Zeepo AI Content",
+    title: "Zepo AI Content",
     desc: "AI-generated blog posts, social captions, ad copy, and email sequences - on demand, on brand.",
-    tag: "Zeepo AI",
+    tag: "Zepo AI",
   },
   {
     icon: Workflow,
     title: "Marketing Automation",
     desc: "CRM workflows, lead scoring, chatbot flows, and AI-powered nurture sequences - your business on autopilot.",
-    tag: "Zeepo AI",
+    tag: "Zepo AI",
   },
 ];
 
 const tagColor: Record<string, string> = {
   Create: "oklch(0.60 0.22 235)",
   Host: "oklch(0.55 0.18 195)",
-  Market: "oklch(0.50 0.20 265)",
-  "Zeepo AI": "oklch(0.45 0.18 160)",
+  Market: "oklch(0.42 0.10 240)",
+  "Zepo AI": "oklch(0.58 0.17 38)",
 };
 
 export default function Services() {
-  const navigate = useNavigate();
   return (
     <section id="services" className="py-14 relative">
       <div
@@ -161,13 +160,12 @@ export default function Services() {
           transition={{ duration: 0.4, delay: 0.3 }}
           className="mt-10 text-center"
         >
-          <Button
+          <Button asChild
             size="lg"
-            onClick={() => navigate("/pricing")}
             className="bg-primary text-primary-foreground hover:opacity-90 cursor-pointer font-semibold gap-2"
-          >
+          ><Link to={"/pricing"}>
             See Pricing <ArrowRight size={16} />
-          </Button>
+          </Link></Button>
         </motion.div>
       </div>
     </section>

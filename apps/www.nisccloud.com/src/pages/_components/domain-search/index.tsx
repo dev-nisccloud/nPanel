@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useInView, useReducedMotion } from "motion/react";
 import { useSearchParams } from "react-router-dom";
 import { Search, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
@@ -14,6 +15,7 @@ import {
 } from "@/lib/domain-search/search-utils.ts";
 import { DomainSearchResults } from "./DomainSearchResults.tsx";
 import { TldPricingCards } from "./TldPricingCards.tsx";
+import { trackEvent } from "@/lib/track.ts";
 
 type DomainSearchProps = {
   /** Homepage preview: top promo cards + CTA; full categories live on /hosting/domains */
@@ -24,12 +26,32 @@ type DomainSearchProps = {
 
 function DomainSearchContent({ compact = false }: DomainSearchProps) {
   const cart = useDomainCart();
+  const searchRef = React.useRef<HTMLElement>(null);
+  const inView = useInView(searchRef);
+  const reducedMotion = useReducedMotion();
+  const [focused, setFocused] = React.useState(false);
+  const [promptIndex, setPromptIndex] = React.useState(0);
+  const [letters, setLetters] = React.useState(0);
+  const [deleting, setDeleting] = React.useState(false);
+  const prompts = ["Search your domain", "Type your domain here", "Register your business domain"];
+
   const [searchParams] = useSearchParams();
   const [domainName, setDomainName] = React.useState("");
   const [searchQueryName, setSearchQueryName] = React.useState("");
   const [rawSearchQueryForResults, setRawSearchQueryForResults] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const [isSearching, setIsSearching] = React.useState(false);
+  React.useEffect(() => {
+    if (!inView || focused || domainName || reducedMotion) return;
+    const length = prompts[promptIndex].length;
+    const timer = window.setTimeout(() => {
+      if (!deleting && letters < length) setLetters(n => n + 1);
+      else if (!deleting) setDeleting(true);
+      else if (letters > 0) setLetters(n => n - 1);
+      else { setDeleting(false); setPromptIndex(i => (i + 1) % 3); }
+    }, !deleting && letters === length ? 1800 : deleting ? 35 : 75);
+    return () => window.clearTimeout(timer);
+  }, [inView, focused, domainName, reducedMotion, letters, deleting, promptIndex]);
   const appliedUrlSearchRef = React.useRef<string | null>(null);
 
   const applySearch = React.useCallback(
@@ -59,7 +81,10 @@ function DomainSearchContent({ compact = false }: DomainSearchProps) {
 
   const handleSearch = () => {
     const result = triggerSearch();
-    if (result.started && result.changed) setIsSearching(true);
+    if (result.started && result.changed) {
+      setIsSearching(true);
+      trackEvent("domain_search", { source: compact ? "homepage" : "domains_page" });
+    }
   };
 
   // Prefill + run search from ?search= (e.g. homepage “View more” or transfer CTA)
@@ -79,7 +104,7 @@ function DomainSearchContent({ compact = false }: DomainSearchProps) {
   }, [applySearch, compact, searchParams]);
 
   return (
-    <section id="domain-search" className="py-4 md:py-6 relative overflow-hidden scroll-mt-24">
+    <section ref={searchRef} id="domain-search" className="py-4 md:py-6 relative overflow-hidden scroll-mt-24">
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -98,7 +123,7 @@ function DomainSearchContent({ compact = false }: DomainSearchProps) {
           </p>
         </div>
 
-        <Card className="border border-border/60 shadow-xl shadow-primary/5 mb-4">
+        <Card className="border border-primary/30 bg-gradient-to-br from-primary/15 via-background/80 to-orange-200/20 dark:to-orange-950/20 backdrop-blur-xl shadow-xl shadow-primary/10 rounded-3xl mb-4">
           <CardContent className="p-4 md:p-5">
             <div className="space-y-3">
               {error && (
@@ -107,9 +132,12 @@ function DomainSearchContent({ compact = false }: DomainSearchProps) {
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
-              <div className="flex gap-3 max-w-2xl mx-auto">
+              <div className="flex flex-col sm:flex-row gap-3 max-w-3xl mx-auto">
                 <Input
-                  placeholder="Enter domain name (e.g., mybusiness)"
+                  aria-label="Domain name"
+                  placeholder={reducedMotion || focused ? prompts[0] : prompts[promptIndex].slice(0, letters)}
+                  onFocus={() => setFocused(true)}
+                  onBlur={() => setFocused(false)}
                   value={domainName}
                   onChange={(e) => {
                     setDomainName(e.target.value);
@@ -118,13 +146,13 @@ function DomainSearchContent({ compact = false }: DomainSearchProps) {
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && domainName.trim()) handleSearch();
                   }}
-                  className="flex-1 h-12 text-base rounded-xl"
+                  className="flex-1 h-14 text-base rounded-2xl bg-background/80 border-primary/25 shadow-inner"
                 />
                 <Button
                   size="lg"
                   onClick={handleSearch}
                   disabled={!domainName.trim() || isSearching}
-                  className="h-12 px-8 rounded-xl cursor-pointer"
+                  className="h-14 px-8 rounded-2xl cursor-pointer"
                 >
                   {isSearching ? (
                     <>

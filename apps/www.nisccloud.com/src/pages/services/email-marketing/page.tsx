@@ -35,7 +35,7 @@ export default function EmailMarketingPage() {
   return (
     <ServicePageShell
       badge="Email Marketing"
-      headline={<>Turn Your Email List<br /><span className="text-primary">Into Steady Revenue</span></>}
+      headline={<>Turn Your Email List <br /><span className="text-primary">Into Steady Revenue</span></>}
       subtext="Email still delivers strong returns when campaigns are well written and well timed. We design, write, and automate emails that convert subscribers into customers, and customers into loyal repeat buyers."
       serviceType="marketing"
       plansUnderHero
@@ -44,9 +44,9 @@ export default function EmailMarketingPage() {
       heroImage={niscWebsiteImage("Email marketing.png")}
       heroImageStandalone
       trustStats={[
-        { value: "100+", label: "Clients We Have Helped" },
-        { value: "24/7", label: "Support Available" },
-        { value: "30 days", label: "Results Promise" },
+        { value: "Segmented", label: "Audience Lists" },
+        { value: "Monthly", label: "Transparent Reporting" },
+        { value: "Free", label: "Strategy Call" },
         { value: "Clear", label: "Campaign Reporting" },
       ]}
       features={[
@@ -111,7 +111,7 @@ export default function EmailMarketingPage() {
         { q: "How do I get my email list to you?", a: "You export your existing contacts as a CSV and share it securely. We clean, import, and segment the list as part of our onboarding process." },
         { q: "Can you integrate email with our e-commerce store?", a: "Yes. We integrate with WooCommerce, Shopify, and custom stores to pull product data, purchase history, and abandoned cart data into your email automation flows." },
         { q: "Will the emails be compliant with data regulations?", a: "Yes. All campaigns include unsubscribe links, your business address, and comply with Kenya's Data Protection Act and international GDPR standards where applicable." },
-        { q: "How quickly can we start sending campaigns?", a: "Starter clients can often send their first campaign within 7 days of onboarding. Plans with automation build-out typically take 10 to 14 days before launch. We work to a 30-day results promise on active programmes." },
+        { q: "How quickly can we start sending campaigns?", a: "Starter clients can often send their first campaign within 7 days of onboarding. Plans with automation build-out typically take 10 to 14 days before launch. A free strategy call maps your first campaigns before you commit." },
       ]}
       ctaHeadline="Your Email List Is Ready to Work Harder"
       ctaSubtext="Most businesses have an email list and never use it properly. We turn your list into a predictable monthly revenue channel, with free setup help and clear reporting."

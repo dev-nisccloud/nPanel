@@ -3,10 +3,10 @@ import { LayoutDashboard, Headphones, BarChart3, Bot, ShieldCheck, Users } from 
 
 const pillars = [
   { icon: LayoutDashboard, label: "One Clear Team", desc: "One team, one plan, one bill. Create, host, market, and automate without juggling vendors." },
-  { icon: Headphones, label: "24/7 Support", desc: "Real people ready around the clock when something needs fixing." },
+  { icon: Headphones, label: "Real Support", desc: "Real people from our team when something needs fixing." },
   { icon: BarChart3, label: "Clear Reporting", desc: "We measure what matters and show you progress in plain language." },
-  { icon: Bot, label: "Zeepo AI-Powered", desc: "Smart tools that help with content, campaigns, and follow-ups." },
-  { icon: ShieldCheck, label: "Strong Security", desc: "SSL, WAF, DDoS protection, and a 99.99% uptime target on hosting." },
+  { icon: Bot, label: "Zepo AI-Powered", desc: "Smart tools that help with content, campaigns, and follow-ups." },
+  { icon: ShieldCheck, label: "Enterprise-Grade Security", desc: "SSL, WAF, DDoS protection, and a 99.9% uptime target on hosting." },
   { icon: Users, label: "Built for Growth", desc: "Hosting and marketing that work together for businesses of every size." },
 ];
 

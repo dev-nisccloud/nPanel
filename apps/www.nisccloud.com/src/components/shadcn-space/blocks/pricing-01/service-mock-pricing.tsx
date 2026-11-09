@@ -12,8 +12,6 @@ type ServiceAddon = {
   period: string;
 };
 
-const MOCK_FEATURE_COUNT = 6;
-
 const PLAN_DESCRIPTIONS = [
   "Perfect for businesses getting started.",
   "For growing teams that need more power and support.",
@@ -28,14 +26,24 @@ const CUSTOM_QUOTE_FEATURES = [
   "Flexible billing & contract terms",
 ];
 
-function normalizeFeatures(features: string[]): string[] {
-  return features.slice(0, MOCK_FEATURE_COUNT);
+/** Replaces "Everything in <Plan>" with that plan's own list so every card states its full specification. */
+function expandFeatures(plan: OrderPlan, all: OrderPlan[], seen: Set<string> = new Set()): string[] {
+  seen.add(plan.id);
+  return plan.features.flatMap((feature) => {
+    const match = feature.match(/^Everything in (.+)$/i);
+    const ref = match?.[1].trim().toLowerCase();
+    const base = ref
+      ? all.find((p) => p.name.toLowerCase() === ref) ?? all.find((p) => p.name.toLowerCase().endsWith(` ${ref}`))
+      : undefined;
+    if (!base || seen.has(base.id)) return [feature];
+    return expandFeatures(base, all, seen);
+  });
 }
 
 function formatPlanPrice(plan: OrderPlan): { price: string; period: string } {
   const period =
     plan.period === "once"
-      ? "/once"
+      ? "one-time"
       : plan.period === "mo" || plan.period === "month"
         ? "/month"
         : `/${plan.period}`;
@@ -71,6 +79,7 @@ function orderPlanToCardPlan(
   index: number,
   serviceName: string,
   totalPaidPlans: number,
+  allPlans: OrderPlan[],
 ) {
   const { price, period } = formatPlanPrice(plan);
 
@@ -79,8 +88,8 @@ function orderPlanToCardPlan(
     description: PLAN_DESCRIPTIONS[index] ?? PLAN_DESCRIPTIONS[1],
     price,
     period,
-    features: normalizeFeatures(plan.features),
-    cta: "Get Started",
+    features: [...new Set(expandFeatures(plan, allPlans))],
+    cta: `Choose ${plan.name}`,
     highlighted: totalPaidPlans > 1 && index === 1,
     onSelect: () => {
       window.location.href = buildContactPlanUrl({
@@ -111,7 +120,7 @@ export function ServiceMockPricingSection({
   const paidPlans = plans.filter((plan) => plan.price > 0 && plan.period !== "quote");
   const cardPlans = [
     ...paidPlans.map((plan, index) =>
-      orderPlanToCardPlan(plan, index, serviceName, paidPlans.length),
+      orderPlanToCardPlan(plan, index, serviceName, paidPlans.length, plans),
     ),
     buildCustomQuotePlan(serviceName),
   ];

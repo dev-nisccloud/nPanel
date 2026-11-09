@@ -47,16 +47,16 @@ export default function SeoPage() {
   return (
     <ServicePageShell
       badge="SEO Services"
-      headline={<>Help People Find You on<br /><span className="text-primary">Google, Maps & AI Answers</span></>}
-      subtext="We combine Search Engine Optimisation, Answer Engine Optimisation for AI tools, and local Maps SEO so more of the right people can discover your business. Clear reporting and a 30-day results promise on active work."
+      headline={<>Help People Find You on <br /><span className="text-primary">Google, Maps & AI Answers</span></>}
+      subtext="We combine Search Engine Optimisation, Answer Engine Optimisation for AI tools, and local Maps SEO so more of the right people can discover your business. Clear reporting, and a free strategy call before you commit."
       serviceType="marketing"
       plansUnderHero
       customPlansSection={<SeoPricingSection />}
       plans={[]}
       trustStats={[
-        { value: "100+", label: "Clients We Have Helped" },
-        { value: "24/7", label: "Support Available" },
-        { value: "30 days", label: "Results Promise" },
+        { value: "Monthly", label: "Transparent Reporting" },
+        { value: "Local", label: "Search Focus" },
+        { value: "Free", label: "Strategy Call" },
         { value: "Clear", label: "Monthly Reporting" },
       ]}
       heroImage={niscWebsiteImage("seo-service.png")}
@@ -114,8 +114,8 @@ export default function SeoPage() {
         { title: "Local Search Understanding", desc: "We research how customers actually search, including local area names and everyday phrasing that generic tools miss.", visual: "localMarket" },
         { title: "Transparent Monthly Reporting", desc: "Every month you get a clear report showing keyword positions, organic traffic, backlinks earned, and how that connects to leads.", visual: "reporting" },
         { title: "No Black-Hat Tricks", desc: "We build visibility that can survive algorithm updates. No spam links, no keyword stuffing. Only strategies that compound over time.", visual: "ethical" },
-        { title: "30-Day Results Promise", desc: "On active SEO work, we focus on visible progress within 30 days. If target keywords have not moved by month 3, we add extra hours at no charge until they do.", visual: "results" },
-        { title: "Trusted by 100+ Clients", desc: "From e-commerce stores to professional services, we help businesses get found by the people looking for what they offer.", visual: "trust" },
+        { title: "See the Opportunity First", desc: "Book a free strategy call. We review where you rank today, the searches your customers use and the quickest wins, then send a clear proposal before you commit.", visual: "results" },
+        { title: "Built for Local Businesses", desc: "From e-commerce stores to professional services, we help businesses get found by the people looking for what they offer.", visual: "clarity" },
       ]}
       faqs={[
         { q: "How long before I see better visibility on Google?", a: "Most clients see measurable ranking improvements within 60 to 90 days. Stronger traffic growth typically builds at the 3 to 6 month mark. Competitive industries can take longer for top positions." },
@@ -126,7 +126,7 @@ export default function SeoPage() {
         { q: "How much does SEO cost?", a: "Our live pricing table above shows current plans in KES, typically with monthly or annual billing. Contact us for custom packages across multiple locations or industries." },
       ]}
       ctaHeadline="Start Getting Found Where Customers Search"
-      ctaSubtext="We help people find you on Google, Maps, and AI answers, with clear monthly reporting and a 30-day results promise on active work."
+      ctaSubtext="We help people find you on Google, Maps, and AI answers, with clear monthly reporting. Start with a free strategy call and see your quickest wins."
       pricingNote="Monthly retainer. All prices in KES. 3-month minimum for meaningful results."
       showcaseBlocks={showcaseBlocks}
     />

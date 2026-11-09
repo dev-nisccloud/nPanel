@@ -272,7 +272,7 @@ export function OrderSummary({
         </Button>
 
         <p className="text-xs text-muted-foreground text-center mt-3">
-          Secure payment · All prices include VAT
+          Secure payment · Total includes 16% VAT
         </p>
       </div>
     </div>

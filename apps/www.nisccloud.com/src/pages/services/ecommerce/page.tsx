@@ -1,4 +1,5 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
+import { ECOMMERCE_PLANS, SERVICE_PACKAGE_NOTES } from "@/lib/service-packages.ts";
 import { ShoppingCart, CreditCard, Package, Truck, BarChart2, Shield, Smartphone, Globe } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
 
@@ -33,7 +34,7 @@ export default function EcommercePage() {
   return (
     <ServicePageShell
       badge="E-commerce Store Development"
-      headline={<>Sell Online With<br /><span className="text-primary">A Store That Makes Buying Easy</span></>}
+      headline={<>Sell Online With <br /><span className="text-primary">A Store That Makes Buying Easy</span></>}
       subtext="Launch a fully featured online store built for mobile shoppers. Clear product pages, simple checkout, secure payments, and order management that works while you sleep."
       serviceType="marketing"
       checkoutServiceType="ecommerce"
@@ -41,10 +42,10 @@ export default function EcommercePage() {
       heroImage="https://storage.nisccloud.com/npanel-uploads/nisc-website/e%20commerce%20store%20development.png"
       heroImageStandalone
       trustStats={[
-        { value: "100+", label: "Clients We Have Helped" },
-        { value: "24/7", label: "Support Available" },
+        { value: "M-Pesa", label: "Payments Built In" },
+        { value: "Training", label: "Included at Handover" },
         { value: "Free", label: "Setup Help Included" },
-        { value: "99.99%", label: "Uptime Target" },
+        { value: "99.9%", label: "Uptime Target" },
       ]}
       features={[
         {
@@ -79,8 +80,8 @@ export default function EcommercePage() {
         },
         {
           icon: <Shield size={20} />,
-          title: "PCI-Compliant Security",
-          desc: "SSL encryption, PCI-DSS compliant payment processing, fraud detection, secure customer data storage, and automatic security updates.",
+          title: "Secure Payments",
+          desc: "SSL encryption, payments handled by PCI-DSS compliant processors, fraud checks, secure customer data storage, and automatic security updates.",
         },
         {
           icon: <Globe size={20} />,
@@ -88,36 +89,7 @@ export default function EcommercePage() {
           desc: "Every product page set up for search with schema markup, fast load speeds, and clear URLs that help people find your products.",
         },
       ]}
-      plans={[
-        {
-          id: "ecom-launch",
-          name: "Launch Store",
-          price: 55000,
-          period: "once",
-          features: [
-            "Up to 50 products",
-            "Mobile money and card checkout setup",
-            "Card payment gateway",
-            "Order management dashboard",
-            "Mobile-responsive storefront",
-            "Delivered in 14 business days",
-          ],
-        },
-        {
-          id: "ecom-enterprise",
-          name: "Enterprise Store",
-          price: 220000,
-          period: "once",
-          features: [
-            "Unlimited products + variants",
-            "All payment methods included",
-            "Abandoned cart recovery emails",
-            "Multi-vendor marketplace option",
-            "ERP / accounting integration",
-            "30-day delivery + manager training",
-          ],
-        },
-      ]}
+      plans={ECOMMERCE_PLANS}
       addons={[
         { id: "ecom-mpesa-express", label: "Express Mobile Checkout Setup", price: 15000, period: "once" },
         { id: "ecom-maintenance", label: "Monthly Store Maintenance & Updates", price: 12000, period: "month" },
@@ -135,7 +107,7 @@ export default function EcommercePage() {
         { title: "Inventory That Actually Works", desc: "Real-time stock updates help prevent overselling. Automated low-stock alerts mean you can restock before a busy sales day.", visual: "inventory" },
         { title: "Your Store, Your Money", desc: "Payments settle to your business account. No middleman holding your revenue longer than the payment provider requires.", visual: "payment" },
         { title: "Scales From Small to Large Catalogues", desc: "Our architecture handles small boutiques and large distributors. Your store can grow without needing a rebuild every 18 months.", visual: "growth" },
-        { title: "Training & Ongoing Support", desc: "We do not just hand over the keys. Full training, walkthroughs, and 24/7 support help you succeed long-term.", visual: "support" },
+        { title: "Training & Ongoing Support", desc: "We do not just hand over the keys. Full training, walkthroughs, and ongoing support help you succeed long-term.", visual: "support" },
       ]}
       faqs={[
         { q: "How do payments work for my customers?", a: "At checkout, customers choose a payment method they prefer. Mobile money customers can approve payment on their phone. Card customers pay through a secure gateway. Confirmation is shown right away." },
@@ -147,7 +119,7 @@ export default function EcommercePage() {
       ]}
       ctaHeadline="Start Selling Online This Month"
       ctaSubtext="A clear, mobile-friendly store helps customers buy with confidence. Free setup help is included, and we train your team before launch."
-      pricingNote="One-time development fee. Hosting and payment gateway fees billed separately."
+      pricingNote={SERVICE_PACKAGE_NOTES.ECOMMERCE}
       showcaseBlocks={showcaseBlocks}
     />
   );

@@ -1,6 +1,16 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
+import { WEBSITE_DESIGN_PLANS, SERVICE_PACKAGE_NOTES } from "@/lib/service-packages.ts";
 import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
-import { Monitor, Smartphone, Code2, Zap, Globe, ShoppingBag, Lock, BarChart2 } from "lucide-react";
+import {
+  Monitor,
+  Smartphone,
+  Code2,
+  Zap,
+  Globe,
+  ShoppingBag,
+  Lock,
+  BarChart2,
+} from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
 
 const showcaseBlocks: ShowcaseBlock[] = [
@@ -18,6 +28,17 @@ const showcaseBlocks: ShowcaseBlock[] = [
   },
   {
     tag: "Conversion Architecture",
+    id: "website-artwork",
+    artwork: (
+      <img
+        src="/artwork/website-design-clean.svg"
+        alt="Website design composition showing a visual page editor"
+        width={586}
+        height={562}
+        loading="lazy"
+        className="mx-auto h-auto w-full max-w-[560px] object-contain"
+      />
+    ),
     headline: "Built to turn browsers into buyers",
     body: "A website that does not generate leads is just an expensive brochure. Every page we build uses clear CTAs, lead capture forms, and WhatsApp chat so customers can reach you easily.",
     bullets: [
@@ -46,7 +67,13 @@ export default function WebsiteDesignPage() {
   return (
     <ServicePageShell
       badge="Website Design & Development"
-      headline={<>Websites That Turn<br /><span className="text-primary">Visitors Into Customers</span></>}
+      headline={
+        <>
+          Websites That Turn
+          {" "}<br />
+          <span className="text-primary">Visitors Into Customers</span>
+        </>
+      }
       subtext="A beautiful website means little if it does not convert. We design and build fast, mobile-first websites that help people find you, trust you, and get in touch."
       serviceType="marketing"
       checkoutServiceType="website_design"
@@ -54,9 +81,9 @@ export default function WebsiteDesignPage() {
       heroImage={niscWebsiteImage("website_design_development.png")}
       heroImageStandalone
       trustStats={[
-        { value: "100+", label: "Clients We Have Helped" },
+        { value: "Fixed", label: "Project Pricing" },
         { value: "<2s", label: "Target Page Load Speed" },
-        { value: "24/7", label: "Support Available" },
+        { value: "Included", label: "Post-Launch Support" },
         { value: "Free", label: "Setup Help Included" },
       ]}
       features={[
@@ -101,66 +128,110 @@ export default function WebsiteDesignPage() {
           desc: "Google Analytics 4, Meta Pixel, and Google Tag Manager installed and configured so you can see where your leads come from.",
         },
       ]}
-      plans={[
-        {
-          id: "web-essential",
-          name: "Essential",
-          price: 35000,
-          period: "once",
-          features: [
-            "Up to 5 custom pages",
-            "Mobile-responsive design",
-            "Contact form + WhatsApp button",
-            "On-page SEO + Google Analytics",
-            "SSL certificate included",
-            "Delivered in 10 business days",
-          ],
-        },
-        {
-          id: "web-enterprise",
-          name: "Enterprise",
-          price: 150000,
-          period: "once",
-          features: [
-            "Unlimited custom pages",
-            "Custom UI/UX design in Figma",
-            "CMS + multi-language support",
-            "Full SEO audit + schema markup",
-            "6-month priority support",
-            "Delivered in 21 business days",
-          ],
-        },
-      ]}
+      plans={WEBSITE_DESIGN_PLANS}
       addons={[
-        { id: "web-copywriting", label: "Professional Website Copywriting", price: 20000, period: "once" },
-        { id: "web-maintenance", label: "Monthly Website Maintenance", price: 8000, period: "month" },
-        { id: "web-speedaudit", label: "Website Speed & Security Audit", price: 12000, period: "once" },
+        {
+          id: "web-copywriting",
+          label: "Professional Website Copywriting",
+          price: 20000,
+          period: "once",
+        },
+        {
+          id: "web-maintenance",
+          label: "Monthly Website Maintenance",
+          price: 8000,
+          period: "month",
+        },
+        {
+          id: "web-speedaudit",
+          label: "Website Speed & Security Audit",
+          price: 12000,
+          period: "once",
+        },
       ]}
       process={[
-        { num: "01", title: "Discovery & Wireframe", desc: "We map your user journey, define your site structure, and build wireframes showing how every page will flow before design begins." },
-        { num: "02", title: "Design in Figma", desc: "Full visual designs are created and shared with you for approval. You see the finished look before development begins." },
-        { num: "03", title: "Build & Optimise", desc: "We code the site, integrate tools, run speed and security tests, and QA every element across mobile, tablet, and desktop." },
-        { num: "04", title: "Launch & Handover", desc: "We deploy to your domain, submit to Google Search Console, and hand over training so you can manage your site confidently." },
+        {
+          num: "01",
+          title: "Discovery & Wireframe",
+          desc: "We map your user journey, define your site structure, and build wireframes showing how every page will flow before design begins.",
+        },
+        {
+          num: "02",
+          title: "Design in Figma",
+          desc: "Full visual designs are created and shared with you for approval. You see the finished look before development begins.",
+        },
+        {
+          num: "03",
+          title: "Build & Optimise",
+          desc: "We code the site, integrate tools, run speed and security tests, and QA every element across mobile, tablet, and desktop.",
+        },
+        {
+          num: "04",
+          title: "Launch & Handover",
+          desc: "We deploy to your domain, submit to Google Search Console, and hand over training so you can manage your site confidently.",
+        },
       ]}
       whyPoints={[
-        { title: "Built for Real Connections", desc: "Sites tuned for everyday mobile use so customers can browse, read, and contact you without friction.", visual: "mobile" },
-        { title: "No Page Builders", desc: "We do not use Wix, Squarespace, or GoDaddy builders. Every site is professionally coded for performance, flexibility, and longevity.", visual: "code" },
-        { title: "SEO-Ready from Day One", desc: "Most agencies build the site first, then think about SEO. We bake it in from the wireframe stage so you avoid months of retrofit work.", visual: "growth" },
-        { title: "Conversion Architecture", desc: "We study your customer journey and design every page with one goal: turning more visitors into leads, calls, or sales.", visual: "funnel" },
-        { title: "Transparent Fixed Pricing", desc: "No hourly billing surprises. Fixed project price, fixed scope, fixed delivery date. You know what you are getting and when.", visual: "pricing" },
-        { title: "Post-Launch Support Included", desc: "Every plan includes post-launch support. We are available to fix bugs, make updates, and answer questions after your site goes live.", visual: "support" },
+        {
+          title: "Built for Real Connections",
+          desc: "Sites tuned for everyday mobile use so customers can browse, read, and contact you without friction.",
+          visual: "mobile",
+        },
+        {
+          title: "No Page Builders",
+          desc: "We do not use Wix, Squarespace, or GoDaddy builders. Every site is professionally coded for performance, flexibility, and longevity.",
+          visual: "code",
+        },
+        {
+          title: "SEO-Ready from Day One",
+          desc: "Most agencies build the site first, then think about SEO. We bake it in from the wireframe stage so you avoid months of retrofit work.",
+          visual: "growth",
+        },
+        {
+          title: "Conversion Architecture",
+          desc: "We study your customer journey and design every page with one goal: turning more visitors into leads, calls, or sales.",
+          visual: "funnel",
+        },
+        {
+          title: "Transparent Fixed Pricing",
+          desc: "No hourly billing surprises. Fixed project price, fixed scope, fixed delivery date. You know what you are getting and when.",
+          visual: "pricing",
+        },
+        {
+          title: "Post-Launch Support Included",
+          desc: "Every plan includes post-launch support. We are available to fix bugs, make updates, and answer questions after your site goes live.",
+          visual: "support",
+        },
       ]}
       faqs={[
-        { q: "How long does it take to build a website?", a: "Essential sites (up to 5 pages) are delivered in 10 days. Professional sites take 14 days. Enterprise projects take 21 days. These timelines assume you provide content and feedback promptly." },
-        { q: "Do I need to provide the content?", a: "You provide the basic information about your business. We offer professional copywriting as an add-on (KES 20,000) if you want us to write clear web copy that helps visitors take action." },
-        { q: "Will my website help me get found on Google?", a: "We build every site with on-page SEO fundamentals: proper tags, site structure, speed, and schema. For ongoing growth, we recommend pairing with our SEO service." },
-        { q: "What platform will my website be built on?", a: "Depending on your needs: React (fast and flexible), WordPress (easiest for self-management), or a headless CMS. We recommend the best platform for your goals during discovery." },
-        { q: "Can I update the website myself after launch?", a: "Yes. If built on WordPress or a CMS, we provide a full training session. If on React, we handle updates for you through our maintenance plan." },
-        { q: "Do you provide hosting?", a: "Yes. We recommend and set up hosting on Nisc Cloud for reliable speed and support. Hosting is separate from development cost." },
+        {
+          q: "How long does it take to build a website?",
+          a: "Essential sites (up to 5 pages) are delivered in 10 days. Professional sites take 14 days. Enterprise projects take 21 days. These timelines assume you provide content and feedback promptly.",
+        },
+        {
+          q: "Do I need to provide the content?",
+          a: "You provide the basic information about your business. We offer professional copywriting as an add-on (KES 20,000) if you want us to write clear web copy that helps visitors take action.",
+        },
+        {
+          q: "Will my website help me get found on Google?",
+          a: "We build every site with on-page SEO fundamentals: proper tags, site structure, speed, and schema. For ongoing growth, we recommend pairing with our SEO service.",
+        },
+        {
+          q: "What platform will my website be built on?",
+          a: "Depending on your needs: React (fast and flexible), WordPress (easiest for self-management), or a headless CMS. We recommend the best platform for your goals during discovery.",
+        },
+        {
+          q: "Can I update the website myself after launch?",
+          a: "Yes. If built on WordPress or a CMS, we provide a full training session. If on React, we handle updates for you through our maintenance plan.",
+        },
+        {
+          q: "Do you provide hosting?",
+          a: "Yes. We recommend and set up hosting on Nisc Cloud for reliable speed and support. Hosting is separate from development cost.",
+        },
       ]}
       ctaHeadline="Let's Build a Website That Works Harder"
       ctaSubtext="A professional, fast, SEO-ready website helps more people find you and get in touch. We can usually deliver in under 3 weeks."
-      pricingNote="Fixed project price. No hourly billing. No hidden costs."
+      pricingNote={SERVICE_PACKAGE_NOTES.WEBSITE_DESIGN}
       showcaseBlocks={showcaseBlocks}
     />
   );

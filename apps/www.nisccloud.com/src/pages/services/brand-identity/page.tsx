@@ -1,4 +1,5 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
+import { BRAND_IDENTITY_PLANS, SERVICE_PACKAGE_NOTES } from "@/lib/service-packages.ts";
 import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
 import { Palette, Layers, PenTool, Award, Sparkles, FileText, Users, Globe } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
@@ -46,7 +47,7 @@ export default function BrandIdentityPage() {
   return (
     <ServicePageShell
       badge="Brand Identity & Logo Design"
-      headline={<>Your Brand Is Your<br /><span className="text-primary">Most Valuable Asset</span></>}
+      headline={<>Your Brand Is Your <br /><span className="text-primary">Most Valuable Asset</span></>}
       subtext="First impressions matter. We craft logos, brand systems, and visual identities that help people trust you, recognise you, and choose you with confidence."
       serviceType="marketing"
       checkoutServiceType="brand_identity"
@@ -54,8 +55,8 @@ export default function BrandIdentityPage() {
       heroImage={niscWebsiteImage("brand_identity.png")}
       heroImageStandalone
       trustStats={[
-        { value: "100+", label: "Clients We Have Helped" },
-        { value: "24/7", label: "Support Available" },
+        { value: "Yours", label: "All Source Files" },
+        { value: "~7 days", label: "Starter Brand Delivery" },
         { value: "30 days", label: "Post-Delivery Support" },
         { value: "Clear", label: "Files & Brand Guides" },
       ]}
@@ -97,40 +98,11 @@ export default function BrandIdentityPage() {
         },
         {
           icon: <Globe size={20} />,
-          title: "Unlimited Revisions",
+          title: "Structured Revision Rounds",
           desc: "We iterate until you love every detail. Our revision process is structured but flexible, so you stay in control at every design milestone.",
         },
       ]}
-      plans={[
-        {
-          id: "brand-starter",
-          name: "Starter",
-          price: 25000,
-          period: "once",
-          features: [
-            "Custom logo design (3 concepts)",
-            "Logo files in all formats (PNG, SVG, PDF)",
-            "Colour palette + typography system",
-            "Mini brand guide (5 pages)",
-            "Business card design included",
-            "Delivered in 5 business days",
-          ],
-        },
-        {
-          id: "brand-enterprise",
-          name: "Enterprise",
-          price: 120000,
-          period: "once",
-          features: [
-            "Everything in Starter",
-            "Full brand guidelines PDF (20+ pages)",
-            "Competitor brand audit report",
-            "Brand positioning strategy",
-            "Social media profile kit",
-            "30-day post-delivery support",
-          ],
-        },
-      ]}
+      plans={BRAND_IDENTITY_PLANS}
       addons={[
         { id: "brand-explainer", label: "Brand Story Video (60s)", price: 35000, period: "once" },
         { id: "brand-print", label: "Print-Ready Marketing Collateral Pack", price: 18000, period: "once" },
@@ -151,16 +123,16 @@ export default function BrandIdentityPage() {
         { title: "You Own Everything", desc: "All source files, all intellectual property. You get every original working file with full ownership transfer.", visual: "ownership" },
       ]}
       faqs={[
-        { q: "How many logo concepts will I receive?", a: "Depending on your plan: Starter gets 3 concepts, Growth gets 5, and Enterprise gets unlimited directions. Each concept is unique and comes with a design rationale explaining the thinking behind it." },
+        { q: "How many logo concepts will I receive?", a: "Depending on your plan: Starter gets 3 concepts, Growth gets 5, and Enterprise gets a set of directions agreed in your brief. Each concept is unique and comes with a design rationale explaining the thinking behind it." },
         { q: "Can I use the logo for print materials immediately?", a: "Yes. You receive high-resolution print-ready files including vector formats (SVG, AI/EPS) that can be scaled to any size, from a business card to a billboard, without quality loss." },
         { q: "What if I don't like any of the initial concepts?", a: "If the initial concepts miss the mark, we discuss why and redesign with a new direction. Your satisfaction matters, and we keep refining until it feels right." },
         { q: "Do you understand Kenyan market aesthetics?", a: "Yes. Our team has designed brands for businesses across Kenya. We understand what communicates trust, professionalism, and quality to local audiences." },
-        { q: "How do revisions work?", a: "Revisions are round-based on Starter (2 rounds), unlimited on Growth and above. Each revision round means you give consolidated feedback and we implement all changes before the next review." },
+        { q: "How do revisions work?", a: "Revisions are round-based on Starter (2 rounds), agreed per project on Growth and above. Each revision round means you give consolidated feedback and we implement all changes before the next review." },
         { q: "Can you rebrand an existing business without losing our existing customers?", a: "Yes. Our Enterprise plan includes a rebrand approach with customer communication planning, a transition timeline, and guidelines for phasing out old assets without confusing customers." },
       ]}
       ctaHeadline="Ready to Build a Brand People Trust?"
       ctaSubtext="A clear visual identity helps you win clients, contracts, and credibility. Let's build something professional and useful together."
-      pricingNote="One-time investment. You own all files forever. No annual fees."
+      pricingNote={SERVICE_PACKAGE_NOTES.BRAND_IDENTITY}
       showcaseBlocks={showcaseBlocks}
     />
   );

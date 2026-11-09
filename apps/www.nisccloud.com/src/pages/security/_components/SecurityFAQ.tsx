@@ -10,7 +10,7 @@ const faqs = [
   },
   {
     q: "What's the difference between DV, OV, and EV SSL?",
-    a: "DV (Domain Validation) is the fastest and most common. It verifies you own the domain. OV (Organisation Validation) also verifies your business identity. EV (Extended Validation) is the highest validation level and can show your business name in the address bar. For most businesses, DV or OV is enough.",
+    a: "DV (Domain Validation) is the fastest and most common. It verifies you own the domain. OV (Organisation Validation) also verifies your business identity. EV (Extended Validation) is the strictest validation level and lists your verified business details in the certificate. For most businesses, DV or OV is enough.",
   },
   {
     q: "How does malware scanning work?",

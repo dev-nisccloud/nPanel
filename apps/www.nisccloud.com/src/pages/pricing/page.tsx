@@ -9,10 +9,12 @@ export default function PricingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       <Navbar />
+      <main id="main-content">
       <PricingHero />
       <PricingPlans />
       <PricingFAQ />
       <PricingCTA />
+      </main>
       <Footer />
     </div>
   );

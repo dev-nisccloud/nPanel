@@ -1,4 +1,5 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
+import { SOCIAL_MEDIA_PLANS, SERVICE_PACKAGE_NOTES } from "@/lib/service-packages.ts";
 import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
 import { Share2, Users, Calendar, Camera, TrendingUp, MessageSquare, BarChart2, Star } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
@@ -34,7 +35,7 @@ export default function SocialMediaPage() {
   return (
     <ServicePageShell
       badge="Social Media Management"
-      headline={<>Build a Following.<br /><span className="text-primary">Build a Business.</span></>}
+      headline={<>Build a Following. <br /><span className="text-primary">Build a Business.</span></>}
       subtext="Posting randomly on social media does not grow businesses. We manage your Facebook, Instagram, LinkedIn, TikTok, and X with a clear content strategy that builds community, drives engagement, and turns followers into customers."
       serviceType="marketing"
       checkoutServiceType="social_media"
@@ -42,9 +43,9 @@ export default function SocialMediaPage() {
       heroImage={niscWebsiteImage("Social media marketing.png")}
       heroImageStandalone
       trustStats={[
-        { value: "100+", label: "Clients We Have Helped" },
-        { value: "24/7", label: "Support Available" },
-        { value: "30 days", label: "Results Promise" },
+        { value: "Approved", label: "Before Publishing" },
+        { value: "Dedicated", label: "Account Manager" },
+        { value: "Free", label: "Strategy Call" },
         { value: "Clear", label: "Monthly Reporting" },
       ]}
       features={[
@@ -89,36 +90,7 @@ export default function SocialMediaPage() {
           desc: "Monitor and respond to Google, Facebook, and TrustPilot reviews. Build a strong reputation that converts new customers before they contact you.",
         },
       ]}
-      plans={[
-        {
-          id: "social-essential",
-          name: "Brand Presence",
-          price: 20000,
-          period: "month",
-          features: [
-            "Facebook + Instagram management",
-            "12 branded posts per month",
-            "Monthly content calendar",
-            "Community management",
-            "Hashtag & reach strategy",
-            "Monthly analytics report",
-          ],
-        },
-        {
-          id: "social-enterprise",
-          name: "Market Authority",
-          price: 75000,
-          period: "month",
-          features: [
-            "All major platforms including TikTok",
-            "Unlimited posts + 8 videos/month",
-            "Dedicated social media manager",
-            "Influencer campaign management",
-            "Paid social boosting strategy",
-            "Weekly reporting & strategy calls",
-          ],
-        },
-      ]}
+      plans={SOCIAL_MEDIA_PLANS}
       addons={[
         { id: "social-photoshoot", label: "Monthly Content Photoshoot (Half-Day)", price: 25000, period: "month" },
         { id: "social-reels", label: "Extra 4 Short-Form Videos", price: 15000, period: "month" },
@@ -147,8 +119,8 @@ export default function SocialMediaPage() {
         { q: "What platforms do you support?", a: "We manage Facebook, Instagram, LinkedIn, TikTok, X (Twitter), YouTube Shorts, and Pinterest. Not every platform is right for every business. We recommend the best combination based on where your customers spend time." },
       ]}
       ctaHeadline="Let's Build a Social Presence That Generates Real Business"
-      ctaSubtext="Your customers are on social media right now. We help them see useful content from you, with clear reporting and a 30-day results promise on active work."
-      pricingNote="Monthly retainer. Content approval included. Cancel with 30-day notice."
+      ctaSubtext="Your customers are on social media right now. We help them see useful content from you, with clear reporting. Book a free strategy call to see what we would post first."
+      pricingNote={SERVICE_PACKAGE_NOTES.SOCIAL_MEDIA}
       showcaseBlocks={showcaseBlocks}
     />
   );

@@ -14,7 +14,7 @@ export default function SecurityMacbookSection({
   title = (
     <>
       Your protection,
-      <br />
+      {" "}<br />
       <span className="text-primary">visible in real time</span>
     </>
   ),

@@ -7,6 +7,7 @@ import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { CheckCircle, Loader2, Sparkles } from "lucide-react";
 import { trpcMutation } from "@/lib/domain-search/api.ts";
+import { trackEvent } from "@/lib/track.ts";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
@@ -26,6 +27,11 @@ const schema = z.object({
   service: z.string().min(1, "Please select a service"),
   budget: z.string().optional(),
   message: z.string().min(20, "Please tell us a bit more (at least 20 characters)"),
+  scale: z.string().max(120).optional(),
+  environment: z.string().max(200).optional(),
+  migration: z.string().optional(),
+  startDate: z.string().optional(),
+  website: z.string().optional(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -47,20 +53,58 @@ const budgets = [
   { value: "not-sure", label: "Not sure yet" },
 ];
 
+const migrationOptions = [
+  { value: "yes", label: "Yes, we need to move existing services" },
+  { value: "no", label: "No, this is a new setup" },
+  { value: "not-sure", label: "Not sure yet" },
+];
+
+const startOptions = [
+  { value: "asap", label: "As soon as possible" },
+  { value: "1-month", label: "Within a month" },
+  { value: "1-3-months", label: "In 1 to 3 months" },
+  { value: "later", label: "Later / planning ahead" },
+];
+
+/** Bots that fill the hidden field or submit within seconds get a fake success and no lead. */
+const MIN_FILL_MS = 3000;
+
+function optionLabel(list: { value: string; label: string }[], value?: string) {
+  return list.find((item) => item.value === value)?.label;
+}
+
 const nextSteps = [
   { step: "1", label: "Send this form" },
   { step: "2", label: "Free strategy call" },
   { step: "3", label: "Clear proposal" },
 ];
 
+/** Only values from the service list are accepted from `?service=`; anything else is ignored. */
+function allowedService(value: string | null): string {
+  return value && services.some((item) => item.value === value) ? value : "";
+}
+
+/** Prefilled text is capped so a crafted URL cannot inject an oversized message. */
+function sanitizedMessage(value: string | null): string {
+  let clean = "";
+  for (const char of value ?? "") {
+    const code = char.charCodeAt(0);
+    clean += code < 0x20 || code === 0x7f ? " " : char;
+  }
+  return clean.trim().slice(0, 2000);
+}
+
 export default function ContactForm() {
   const [submitted, setSubmitted] = useState(false);
+  const [started, setStarted] = useState(false);
   const [searchParams] = useSearchParams();
 
-  const prefilledServiceName = searchParams.get("serviceName");
-  const prefilledPlan = searchParams.get("plan");
+  const prefilledServiceName = searchParams.get("serviceName")?.slice(0, 80) ?? null;
+  const prefilledPlan = searchParams.get("plan")?.slice(0, 80) ?? null;
   const prefilledPlanPrice = searchParams.get("planPrice");
   const prefilledPlanPeriod = searchParams.get("planPeriod");
+  const isCorporate = searchParams.get("tier") === "corporate";
+  const [openedAt] = useState(() => Date.now());
 
   const {
     register,
@@ -71,11 +115,24 @@ export default function ContactForm() {
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
+    defaultValues: {
+      name: "",
+      email: "",
+      company: "",
+      service: allowedService(searchParams.get("service")),
+      budget: "",
+      message: sanitizedMessage(searchParams.get("message")),
+      scale: "",
+      environment: "",
+      migration: "",
+      startDate: "",
+      website: "",
+    },
   });
 
   useEffect(() => {
-    const service = searchParams.get("service");
-    const message = searchParams.get("message");
+    const service = allowedService(searchParams.get("service"));
+    const message = sanitizedMessage(searchParams.get("message"));
     const updates: Partial<FormData> = {};
     if (service) updates.service = service;
     if (message) updates.message = message;
@@ -86,8 +143,34 @@ export default function ContactForm() {
 
   const serviceValue = watch("service");
   const budgetValue = watch("budget");
+  const migrationValue = watch("migration");
+  const startValue = watch("startDate");
+
+  const markStarted = () => {
+    if (started) return;
+    setStarted(true);
+    trackEvent("contact_form_start", {
+      prefilled_service: allowedService(searchParams.get("service")) || "none",
+      has_plan: Boolean(prefilledPlan),
+    });
+  };
 
   const onSubmit = async (data: FormData) => {
+    if (data.website || Date.now() - openedAt < MIN_FILL_MS) {
+      setSubmitted(true);
+      return;
+    }
+    const details = isCorporate
+      ? [
+          ["Users, mailboxes or sites", data.scale?.trim()],
+          ["Current environment", data.environment?.trim()],
+          ["Migration needed", optionLabel(migrationOptions, data.migration)],
+          ["Preferred start", optionLabel(startOptions, data.startDate)],
+        ].filter((row): row is [string, string] => Boolean(row[1]))
+      : [];
+    const message = details.length
+      ? `${data.message}\n\nOrganisation details\n${details.map(([k, v]) => `${k}: ${v}`).join("\n")}`
+      : data.message;
     try {
       await trpcMutation("storefront.leads.submit", {
         name: data.name,
@@ -96,14 +179,20 @@ export default function ContactForm() {
         service: data.service,
         serviceName: prefilledServiceName ?? undefined,
         budget: data.budget || undefined,
-        message: data.message,
+        message,
         plan: prefilledPlan ?? undefined,
         planPrice: prefilledPlanPrice ?? undefined,
         source: "contact",
       });
       setSubmitted(true);
+      trackEvent("contact_form_submit_success", {
+        service: data.service,
+        budget: data.budget || "unspecified",
+        has_plan: Boolean(prefilledPlan),
+      });
       toast.success("Message sent! We'll be in touch within 24 hours.");
     } catch (error) {
+      trackEvent("contact_form_submit_error", { service: data.service });
       toast.error(error instanceof Error ? error.message : "Could not send your message. Please try again.");
     }
   };
@@ -137,7 +226,9 @@ export default function ContactForm() {
       <div className="rounded-2xl border border-border/60 bg-card p-6 md:p-8">
         <h2 className="mb-1 text-lg font-bold tracking-tight md:text-xl">Send us a message</h2>
         <p className="mb-6 text-sm text-muted-foreground">
-          A few details is enough  we&apos;ll get back with a clear plan.
+          {isCorporate
+            ? "Tell us what you need and we will come back with a tailored proposal. Only the starred fields are required."
+            : "A few details are enough. We will get back to you with a clear plan."}
         </p>
 
         {prefilledPlan && prefilledServiceName ? (
@@ -147,7 +238,9 @@ export default function ContactForm() {
               <p className="font-medium text-foreground">
                 Inquiring about: {prefilledServiceName} · {prefilledPlan}
               </p>
-              {prefilledPlanPrice ? (
+              {isCorporate ? (
+                <p className="mt-0.5 text-muted-foreground">Custom pricing · tailored proposal</p>
+              ) : prefilledPlanPrice ? (
                 <p className="mt-0.5 text-muted-foreground">
                   KES {Number(prefilledPlanPrice).toLocaleString()}
                   {prefilledPlanPeriod
@@ -159,7 +252,7 @@ export default function ContactForm() {
           </div>
         ) : null}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} onFocusCapture={markStarted} className="relative space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="name">
@@ -175,7 +268,7 @@ export default function ContactForm() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="email">
-                Email <span className="text-destructive">*</span>
+                {isCorporate ? "Business email" : "Email"} <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="email"
@@ -189,8 +282,13 @@ export default function ContactForm() {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="company">Company / brand</Label>
-            <Input id="company" placeholder="Optional" {...register("company")} />
+            <Label htmlFor="company">{isCorporate ? "Company" : "Company / brand"}</Label>
+            <Input id="company" placeholder={isCorporate ? "Organisation name" : "Optional"} {...register("company")} />
+          </div>
+
+          <div aria-hidden className="absolute -left-[9999px] h-px w-px overflow-hidden">
+            <label htmlFor="website">Website</label>
+            <input id="website" type="text" tabIndex={-1} autoComplete="off" {...register("website")} />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -199,7 +297,7 @@ export default function ContactForm() {
                 Service <span className="text-destructive">*</span>
               </Label>
               <Select
-                value={serviceValue}
+                value={serviceValue ?? ""}
                 onValueChange={(v) => setValue("service", v, { shouldValidate: true })}
               >
                 <SelectTrigger className={errors.service ? "border-destructive" : ""}>
@@ -220,7 +318,7 @@ export default function ContactForm() {
             <div className="space-y-1.5">
               <Label>Budget range</Label>
               <Select
-                value={budgetValue}
+                value={budgetValue ?? ""}
                 onValueChange={(v) => setValue("budget", v, { shouldValidate: true })}
               >
                 <SelectTrigger>
@@ -237,13 +335,63 @@ export default function ContactForm() {
             </div>
           </div>
 
+          {isCorporate ? (
+            <fieldset className="space-y-4 rounded-xl border border-border/70 bg-muted/20 p-4">
+              <legend className="px-1 text-sm font-semibold">Organisation details (optional)</legend>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="scale">Users, mailboxes or sites</Label>
+                  <Input id="scale" placeholder="e.g. 150 mailboxes, 12 websites" {...register("scale")} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="environment">Current environment</Label>
+                  <Input id="environment" placeholder="e.g. Microsoft 365, another host" {...register("environment")} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Migration needed?</Label>
+                  <Select value={migrationValue ?? ""} onValueChange={(v) => setValue("migration", v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {migrationOptions.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>
+                          {o.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Preferred start</Label>
+                  <Select value={startValue ?? ""} onValueChange={(v) => setValue("startDate", v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {startOptions.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>
+                          {o.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </fieldset>
+          ) : null}
+
           <div className="space-y-1.5">
             <Label htmlFor="message">
-              How can we help? <span className="text-destructive">*</span>
+              {isCorporate ? "Your requirements" : "How can we help?"} <span className="text-destructive">*</span>
             </Label>
             <Textarea
               id="message"
-              placeholder="Goals, timeline, or anything else we should know..."
+              placeholder={
+                isCorporate
+                  ? "What you need, the outcome you are after, and any compliance or security requirements..."
+                  : "Goals, timeline, or anything else we should know..."
+              }
               rows={5}
               {...register("message")}
               className={errors.message ? "border-destructive" : ""}

@@ -2,8 +2,15 @@
 
 import { useMemo } from 'react';
 import { marked } from 'marked';
-import insane from 'insane';
+import DOMPurify from 'dompurify';
 import { cn } from '@/lib/utils.ts';
+
+// DOMPurify needs a DOM; during the build-time prerender it is unsupported and nothing is rendered.
+if (DOMPurify.isSupported) {
+    DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+        if (node.tagName === 'A') node.setAttribute('rel', 'noopener noreferrer');
+    });
+}
 
 interface AiMarkdownRendererProps {
     content: string;
@@ -15,7 +22,7 @@ interface AiMarkdownRendererProps {
  */
 export function AiMarkdownRenderer({ content, className }: AiMarkdownRendererProps) {
     const html = useMemo(() => {
-        if (!content) return '';
+        if (!content || !DOMPurify.isSupported) return '';
 
         marked.setOptions({
             gfm: true,
@@ -24,21 +31,16 @@ export function AiMarkdownRenderer({ content, className }: AiMarkdownRendererPro
 
         const rawHtml = marked.parse(content) as string;
 
-        return insane(rawHtml, {
-            allowedTags: [
-                'p', 'br', 'b', 'i', 'strong', 'em', 's', 'code', 'pre',
+        return DOMPurify.sanitize(rawHtml, {
+            ALLOWED_TAGS: [
+                'p', 'br', 'b', 'i', 'strong', 'em', 'del', 'code', 'pre',
                 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
                 'blockquote', 'a', 'hr', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
                 'img', 'span', 'div'
             ],
-            allowedAttributes: {
-                'a': ['href', 'name', 'target', 'title'],
-                'img': ['src', 'alt', 'title', 'width', 'height'],
-                'code': ['class'],
-                'span': ['class'],
-                'div': ['class']
-            },
-        } as any);
+            ALLOWED_ATTR: ['href', 'name', 'target', 'title', 'src', 'alt', 'width', 'height', 'class'],
+            ALLOWED_URI_REGEXP: /^(?:https?:|mailto:|\/)/i,
+        });
     }, [content]);
 
     return (

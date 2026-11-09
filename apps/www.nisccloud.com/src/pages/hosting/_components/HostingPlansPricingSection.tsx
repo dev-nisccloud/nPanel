@@ -1,38 +1,25 @@
 import * as React from "react";
-import {
-  Globe,
-  HardDrive,
-  Mail,
-  Network,
-  Server,
-  ShieldCheck,
-  Database,
-  Zap,
-  HelpCircle,
-  type LucideIcon,
-} from "lucide-react";
+import { CreditCard, Headphones, Lock, ReceiptText, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import {
   buildSharedHostingCartParams,
   navigateToStorefrontCart,
 } from "@/lib/storefront-cart-url.ts";
-import { Badge } from "@/components/ui/badge.tsx";
+import { buildContactPlanUrl } from "@/lib/contact-plan-url.ts";
 import { Button } from "@/components/ui/button.tsx";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.tsx";
-import { ScrollArea } from "@/components/ui/scroll-area.tsx";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip.tsx";
 import type {
   SharedHostingPlan,
   ProductFeatureRow,
   SharedHostingPricingData,
 } from "@/lib/vps-plans-api.ts";
+import { billingCyclesFor, type BillingCycle } from "@/lib/billing-cycle.ts";
+import { CUSTOM_TIERS, isPlanListed } from "@/lib/plan-catalog.ts";
+import { trackEvent } from "@/lib/track.ts";
+import { BillingCycleSelector } from "@/components/pricing/BillingCycleSelector.tsx";
+import { buildPlanModels, normaliseProductDescription, type PlanModel } from "./hosting-plan-model.ts";
+import { PlanCardsSpotlight } from "./PlanCardsSpotlight.tsx";
 
 export type HostingPlanFallbackFeature = {
   label: string;
@@ -45,233 +32,61 @@ export type HostingPlansPricingConfig = {
   title: string;
   serviceType: string;
   fetchPlans: () => Promise<SharedHostingPricingData>;
-  planIcon: LucideIcon;
-  highlightBadge: string;
   fallbackFeatures: HostingPlanFallbackFeature[];
+  /** Fixed section intro; when omitted the product description from nPanel is shown. */
+  description?: string;
+  /** Plans without a price open the contact form pre-filled with this service name. */
+  contactServiceName?: string;
 };
 
-function deriveMonthlyPrice(niscPrice: string | null | undefined, billingCycle: string) {
-  if (!niscPrice) return 0;
-  const price = parseFloat(niscPrice);
-  if (isNaN(price)) return 0;
-
-  if (billingCycle === "YEARLY") return Math.round(price / 12);
-  if (billingCycle === "BIENNIALLY") return Math.round(price / 24);
-  return Math.round(price);
+function fallbackProductFeatures(config: HostingPlansPricingConfig): ProductFeatureRow[] {
+  return config.fallbackFeatures.map((f, i) => ({ key: `fallback_${i}`, label: f.label, description: f.description }));
 }
 
-function formatKes(amount: number) {
-  return new Intl.NumberFormat("en-KE", {
-    style: "currency",
-    currency: "KES",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
+function withFallbackValues(plans: SharedHostingPlan[], config: HostingPlansPricingConfig): SharedHostingPlan[] {
+  return plans.map((p) => ({
+    ...p,
+    featureValues: config.fallbackFeatures.map((f) => ({ available: true, valueOverride: f.value })),
+  }));
 }
 
-function getFeatureIcon(label: string): LucideIcon {
-  const value = label.toLowerCase();
-  if (value.includes("website") || value.includes("domain") || value.includes("site")) return Globe;
-  if (value.includes("storage") || value.includes("disk") || value.includes("nvme")) return HardDrive;
-  if (value.includes("bandwidth") || value.includes("traffic")) return Network;
-  if (value.includes("email") || value.includes("mailbox")) return Mail;
-  if (value.includes("ssl") || value.includes("security") || value.includes("malware")) return ShieldCheck;
-  if (value.includes("backup")) return Database;
-  if (value.includes("cpanel") || value.includes("panel")) return Server;
-  if (value.includes("wordpress") || value.includes("staging") || value.includes("cache")) return Zap;
-  return Zap;
-}
-
-function getFeatureDisplay(plan: SharedHostingPlan, featureIndex: number): string | null {
-  const cell = plan.featureValues?.[featureIndex];
-  if (!cell?.available) return null;
-  if (cell.valueOverride != null && cell.valueOverride !== "") return cell.valueOverride;
-  return "Included";
-}
-
-function FeatureRow({
-  label,
-  value,
-  description,
-}: {
-  label: string;
-  value: string;
-  description?: string;
-}) {
-  const Icon = getFeatureIcon(label);
-
+function TrustRow({ freeSsl }: { freeSsl: boolean }) {
+  const items: { icon: LucideIcon; text: string }[] = [
+    ...(freeSsl ? [{ icon: Lock, text: "Free SSL on every plan" }] : []),
+    { icon: Headphones, text: "24/7 support by ticket, email and chat" },
+    { icon: CreditCard, text: "Pay with M-Pesa or card" },
+    { icon: ReceiptText, text: "Prices in KES, excluding 16% VAT" },
+  ];
   return (
-    <div className="flex items-start gap-2">
-      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {label}
-          </p>
-          {description ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  className="inline-flex items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
-                  onClick={(event) => event.stopPropagation()}
-                  aria-label={`More info about ${label}`}
-                >
-                  <HelpCircle className="h-3.5 w-3.5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-xs text-sm">
-                {description}
-              </TooltipContent>
-            </Tooltip>
-          ) : null}
-        </div>
-        <p className="font-semibold text-primary">{value}</p>
-      </div>
-    </div>
-  );
-}
-
-function HostingPlanCard({
-  plan,
-  productFeatures,
-  config,
-}: {
-  plan: SharedHostingPlan;
-  productFeatures: ProductFeatureRow[];
-  config: HostingPlansPricingConfig;
-}) {
-  const PlanIcon = config.planIcon;
-  const displayPrice = deriveMonthlyPrice(plan.niscPrice, plan.billingCycle);
-  const visibleFeatures = productFeatures
-    .map((feature, index) => ({
-      feature,
-      value: getFeatureDisplay(plan, index),
-    }))
-    .filter((entry) => entry.value != null);
-
-  const handleGetStarted = async () => {
-    if (displayPrice === 0) {
-      window.location.href = "/contact";
-      return;
-    }
-
-    try {
-      await navigateToStorefrontCart(
-        buildSharedHostingCartParams(plan, config.serviceType),
-      );
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not open checkout.");
-    }
-  };
-
-  return (
-    <Card className="group flex h-full flex-col transition-all hover:border-primary/50 hover:shadow-md">
-      <CardHeader className="gap-3 pb-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-primary/10">
-              <PlanIcon className="h-5 w-5 text-primary" />
-            </div>
-            <CardTitle className="line-clamp-2 text-base font-semibold leading-snug" title={plan.name}>
-              {plan.name}
-            </CardTitle>
-          </div>
-          <Badge variant="default" className="shrink-0 text-[10px] uppercase">
-            Available
-          </Badge>
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <Badge variant="outline" className="border-primary text-primary">
-            {config.highlightBadge}
-          </Badge>
-          {plan.isPopular ? <Badge variant="secondary">Popular</Badge> : null}
-          {plan.isRecommended ? (
-            <Badge variant="outline" className="border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
-              Recommended
-            </Badge>
-          ) : null}
-        </div>
-      </CardHeader>
-
-      <CardContent className="flex flex-1 flex-col gap-4 pt-0">
-        <div className="grid grid-cols-1 gap-3">
-          <div className="rounded-lg border bg-muted/20 p-3">
-            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Plan includes
-            </p>
-            <ScrollArea className="h-[220px] w-full">
-              <div className="flex flex-col gap-3 pr-3 text-sm">
-                {visibleFeatures.length > 0
-                  ? visibleFeatures.map(({ feature, value }) => (
-                      <FeatureRow
-                        key={feature.key}
-                        label={feature.label}
-                        value={value!}
-                        description={feature.description}
-                      />
-                    ))
-                  : config.fallbackFeatures.map((feature) => (
-                      <FeatureRow
-                        key={feature.label}
-                        label={feature.label}
-                        value={feature.value}
-                        description={feature.description}
-                      />
-                    ))}
-              </div>
-            </ScrollArea>
-          </div>
-        </div>
-
-        <div className="mt-auto rounded-lg border bg-muted/20 p-3">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Price</p>
-          <div className="mt-1 flex flex-col gap-0.5">
-            {displayPrice === 0 ? (
-              <p className="text-xl font-bold leading-tight text-primary">Contact us</p>
-            ) : (
-              <p className="text-xl font-bold leading-tight text-primary">
-                {formatKes(displayPrice)}
-                <span className="ml-1 align-super text-xs font-semibold text-muted-foreground">
-                  /mo
-                </span>
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="flex justify-center gap-2 pt-1">
-          <Button
-            className="w-full bg-primary text-primary-foreground"
-            onClick={handleGetStarted}
-          >
-            Get Started
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+    <ul className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-muted-foreground">
+      {items.map(({ icon: Icon, text }) => (
+        <li key={text} className="inline-flex items-center gap-2">
+          <Icon className="h-4 w-4 text-primary" />
+          {text}
+        </li>
+      ))}
+    </ul>
   );
 }
 
 function PlanSkeleton() {
   return (
-    <Card className="flex h-full flex-col">
-      <CardHeader className="gap-3 pb-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Skeleton className="h-11 w-11 rounded-xl" />
-            <Skeleton className="h-5 w-24" />
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} className="flex flex-col gap-4 rounded-3xl border border-border bg-card p-6">
+          <Skeleton className="h-6 w-28" />
+          <Skeleton className="h-4 w-44" />
+          <Skeleton className="h-10 w-36" />
+          <Skeleton className="h-11 w-full" />
+          <div className="grid grid-cols-2 gap-2">
+            {Array.from({ length: 4 }).map((__, j) => (
+              <Skeleton key={j} className="h-14 rounded-xl" />
+            ))}
           </div>
-          <Skeleton className="h-5 w-16" />
+          <Skeleton className="h-28 w-full" />
         </div>
-        <Skeleton className="h-5 w-28" />
-      </CardHeader>
-      <CardContent className="flex flex-1 flex-col gap-4">
-        <Skeleton className="h-48 w-full rounded-lg" />
-        <Skeleton className="mt-auto h-20 w-full rounded-lg" />
-        <Skeleton className="h-10 w-full" />
-      </CardContent>
-    </Card>
+      ))}
+    </div>
   );
 }
 
@@ -285,6 +100,10 @@ export function HostingPlansPricingSection({
   const [productDescription, setProductDescription] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [pendingId, setPendingId] = React.useState<string | null>(null);
+  const cycleOptions = billingCyclesFor(config.serviceType);
+  const [cycle, setCycle] = React.useState<BillingCycle>("MONTHLY");
+  const customTier = CUSTOM_TIERS[config.serviceType];
 
   React.useEffect(() => {
     let active = true;
@@ -292,9 +111,9 @@ export function HostingPlansPricingSection({
       .fetchPlans()
       .then((data) => {
         if (!active) return;
-        setPlans(data.plans);
+        setPlans(data.plans.filter(isPlanListed));
         setProductFeatures(data.productFeatures);
-        setProductDescription(data.description?.trim() || null);
+        setProductDescription(normaliseProductDescription(data.description?.trim() || null));
       })
       .catch((err: unknown) => {
         if (active) {
@@ -309,50 +128,93 @@ export function HostingPlansPricingSection({
     };
   }, [config.serviceType, config.fetchPlans]);
 
+  React.useEffect(() => {
+    const reset = (e: PageTransitionEvent) => {
+      if (e.persisted) setPendingId(null);
+    };
+    window.addEventListener("pageshow", reset);
+    return () => window.removeEventListener("pageshow", reset);
+  }, []);
+
+  const models = React.useMemo(() => {
+    if (plans.length === 0) return [];
+    return productFeatures.length > 0
+      ? buildPlanModels(plans, productFeatures)
+      : buildPlanModels(withFallbackValues(plans, config), fallbackProductFeatures(config));
+  }, [plans, productFeatures, config]);
+
+  const freeSsl =
+    models.length > 0 && models.every((m) => m.features.some((f) => f.key === "free_ssl" && f.value));
+
+  const intro = config.description ?? productDescription;
+
+  const changeCycle = (next: BillingCycle) => {
+    setCycle(next);
+    trackEvent("pricing_cycle_change", { service_type: config.serviceType, billing_cycle: next });
+  };
+
+  const handleChoose = async (model: PlanModel) => {
+    if (model.monthlyPrice === 0) {
+      window.location.href = config.contactServiceName
+        ? buildContactPlanUrl({ serviceName: config.contactServiceName, planName: model.displayName, planPrice: 0, planPeriod: "month" })
+        : "/contact";
+      return;
+    }
+    setPendingId(model.plan.id);
+    try {
+      await navigateToStorefrontCart(buildSharedHostingCartParams(model.plan, config.serviceType, cycle));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not open checkout.");
+      setPendingId(null);
+    }
+  };
+
   return (
-    <TooltipProvider>
-      <section id={config.sectionId ?? "plans"} className="bg-muted/10 py-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-12 flex flex-col items-center gap-2 text-center">
-            <h2 className="text-[36px] font-extrabold leading-[1.15] tracking-tight">{config.title}</h2>
-            {loading && !productDescription ? (
-              <Skeleton className="h-5 w-full max-w-xl" />
-            ) : productDescription ? (
-              <p className="mx-auto max-w-xl whitespace-pre-line text-lg leading-relaxed text-muted-foreground">
-                {productDescription}
-              </p>
-            ) : null}
-          </div>
-
-          {error && (
-            <Alert variant="destructive" className="mx-auto mb-8 max-w-2xl">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {loading ? (
-              Array.from({ length: 3 }).map((_, index) => <PlanSkeleton key={index} />)
-            ) : plans.length === 0 ? (
-              <div className="col-span-full flex flex-col items-center justify-center rounded-lg border border-dashed bg-card/50 py-12">
-                <p className="mb-4 text-muted-foreground">No plans available at this time.</p>
-                <Button asChild variant="outline">
-                  <a href="/contact">Contact Us</a>
-                </Button>
-              </div>
-            ) : (
-              plans.map((plan) => (
-                <HostingPlanCard
-                  key={plan.id}
-                  plan={plan}
-                  productFeatures={productFeatures}
-                  config={config}
-                />
-              ))
-            )}
-          </div>
+    <section id={config.sectionId ?? "plans"} className="bg-muted/10 py-14 md:py-16">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mb-14 flex flex-col items-center gap-2 text-center">
+          <h2 className="text-[36px] font-extrabold leading-[1.15] tracking-tight">{config.title}</h2>
+          {intro ? (
+            <p className="mx-auto max-w-2xl whitespace-pre-line text-lg leading-relaxed text-muted-foreground">{intro}</p>
+          ) : loading ? (
+            <Skeleton className="h-5 w-full max-w-xl" />
+          ) : null}
         </div>
-      </section>
-    </TooltipProvider>
+
+        {error && (
+          <Alert variant="destructive" className="mx-auto mb-8 max-w-2xl">
+            <AlertDescription>We could not load current pricing. Please contact our team for available plans.</AlertDescription>
+          </Alert>
+        )}
+
+        {loading ? (
+          <PlanSkeleton />
+        ) : models.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed bg-card/50 py-12">
+            <p className="mb-4 text-muted-foreground">No plans available at this time.</p>
+            <Button asChild variant="outline">
+              <a href="/contact">Contact Us</a>
+            </Button>
+          </div>
+        ) : (
+          <>
+            {cycleOptions.length > 1 ? (
+              <div className="mb-8 flex flex-col items-center gap-2">
+                <BillingCycleSelector options={cycleOptions} value={cycle} onChange={changeCycle} />
+                <p className="text-xs text-muted-foreground">The same monthly rate applies on every term. Pay monthly or up front.</p>
+              </div>
+            ) : null}
+            <PlanCardsSpotlight
+              models={models}
+              cycle={cycle}
+              customTier={customTier}
+              pendingId={pendingId}
+              onChoose={handleChoose}
+            />
+            <TrustRow freeSsl={freeSsl} />
+          </>
+        )}
+      </div>
+    </section>
   );
 }

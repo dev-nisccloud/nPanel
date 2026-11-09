@@ -759,7 +759,7 @@ export function FloatingActionButton({ className }: { className?: string }) {
                     className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-4"
                   >
                     <p className="text-sm text-muted-foreground">
-                      Tell us how to reach you so Zeepo can help in this browser without signing in.
+                      Tell us how to reach you so Zepo can help in this browser without signing in.
                     </p>
                     <label className="space-y-1.5">
                       <span className="text-xs font-medium text-foreground">Name</span>

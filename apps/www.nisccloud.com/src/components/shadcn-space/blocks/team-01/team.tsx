@@ -1,58 +1,65 @@
 import { Badge } from "@/components/ui/badge.tsx";
 import { motion } from "motion/react";
+import {
+  BarChart3,
+  Code2,
+  Headset,
+  Palette,
+  Server,
+  Workflow,
+  type LucideIcon,
+} from "lucide-react";
 
-const TEAM_IMAGES = [
-  "https://images.shadcnspace.com/assets/team/team-img-01.png",
-  "https://images.shadcnspace.com/assets/team/team-img-02.png",
-  "https://images.shadcnspace.com/assets/team/team-img-03.png",
-  "https://images.shadcnspace.com/assets/team/team-img-04.png",
-] as const;
-
-type TeamMember = {
-  name: string;
+/**
+ * Role-based team section. Named people and portraits were removed because the
+ * previous content was template placeholder data (fictional names and CDN stock
+ * photos). Replace with real team members only once the owner supplies names,
+ * roles and consented photographs.
+ */
+type TeamRole = {
+  icon: LucideIcon;
   role: string;
   description: string;
 };
 
-const teamData: TeamMember[] = [
+const teamRoles: TeamRole[] = [
   {
-    name: "Marcus Reid",
-    role: "Founder & CEO",
+    icon: Server,
+    role: "Hosting and infrastructure",
     description:
-      "Leads our hosting and marketing work. Built the Atom Approach so businesses get a clear path online.",
+      "Runs the domains, hosting, email and server platform, monitors uptime against our targets and handles migrations.",
   },
   {
-    name: "Priya Sharma",
-    role: "Head of Design",
+    icon: Palette,
+    role: "Brand and web design",
     description:
-      "Designs brands and websites that are clear, usable, and built to convert, not just look pretty.",
+      "Designs identities and websites that are clear, usable and built to convert, not just to look good.",
   },
   {
-    name: "Jordan Cole",
-    role: "Head of Marketing",
+    icon: BarChart3,
+    role: "Marketing and growth",
     description:
-      "Runs SEO, ads, and social with a focus on measurable growth and honest reporting.",
+      "Runs SEO, paid media, social and email with measurable goals and reporting you can read.",
   },
   {
-    name: "Aisha Okonkwo",
-    role: "Lead Developer",
+    icon: Code2,
+    role: "Development",
     description:
-      "Builds fast, reliable sites and hosting setups. Ships carefully so your business stays online.",
+      "Builds fast, reliable websites, ecommerce and custom software, and ships carefully so your business stays online.",
   },
   {
-    name: "Ryan Nakamura",
-    role: "Automation Architect",
+    icon: Workflow,
+    role: "Automation and Zepo AI",
     description:
-      "Sets up workflows and automation that save time. Explains everything in plain English.",
+      "Sets up workflows, chat and follow-up automation that save time, and explains every step in plain language.",
   },
   {
-    name: "Sofia Delgado",
-    role: "Client Success Lead",
+    icon: Headset,
+    role: "Client success and support",
     description:
-      "Keeps projects on track and makes sure you always have a real person who owns your account.",
+      "Keeps projects on track and makes sure there is always a real person who owns your account.",
   },
 ];
-
 
 const Team = () => {
   return (
@@ -73,42 +80,33 @@ const Team = () => {
               Team
             </Badge>
             <h2 className="text-3xl md:text-5xl font-medium text-foreground">
-              Meet the people who help you grow
+              The team behind your account
             </h2>
+            <p className="text-base text-muted-foreground">
+              One team covers infrastructure, design, marketing, development, automation and support, so you
+              never have to coordinate between providers.
+            </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
-            {teamData.map((member, index) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+            {teamRoles.map((member, index) => (
               <motion.div
-                key={member.name}
+                key={member.role}
                 initial={{ y: 40, opacity: 0 }}
                 whileInView={{ y: 0, opacity: 1 }}
                 viewport={{ once: true }}
                 transition={{
                   duration: 0.8,
-                  delay: index * 0.1,
+                  delay: index * 0.08,
                   ease: [0.21, 0.47, 0.32, 0.98],
                 }}
-                className="group flex flex-col items-center justify-center gap-6"
+                className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-card p-6"
               >
-                <img
-                  className="w-full h-full group-hover:grayscale transition-all duration-300"
-                  src={TEAM_IMAGES[index % TEAM_IMAGES.length]}
-                  alt={member.name}
-                />
-                <div className="w-full flex flex-col gap-4 items-center justify-center">
-                  <div className="flex flex-col items-center justify-center gap-2 text-center">
-                    <h3 className="text-2xl font-medium text-foreground">
-                      {member.name}
-                    </h3>
-                    <p className="text-sm font-normal text-muted-foreground">
-                      {member.role}
-                    </p>
-                  </div>
-                  <p className="text-sm font-normal text-muted-foreground text-center leading-relaxed">
-                    {member.description}
-                  </p>
-                </div>
+                <span className="inline-flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <member.icon className="size-5" aria-hidden />
+                </span>
+                <h3 className="text-lg font-bold tracking-tight text-foreground">{member.role}</h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">{member.description}</p>
               </motion.div>
             ))}
           </div>

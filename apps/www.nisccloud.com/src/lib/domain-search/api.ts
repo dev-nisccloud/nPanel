@@ -43,12 +43,16 @@ export async function trpcQuery<T>(procedure: string, input?: unknown): Promise<
   return unwrapTrpcData(await parseTrpcBatch(res)) as T;
 }
 
-export async function trpcMutation<T>(procedure: string, input: unknown): Promise<T> {
+export async function trpcMutation<T>(
+  procedure: string,
+  input: unknown,
+  timeoutMs = 30_000,
+): Promise<T> {
   const res = await fetch(`${TRPC_BASE}/${procedure}?batch=1`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(batchEnvelope(input)),
-    signal: AbortSignal.timeout(30_000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   return unwrapTrpcData(await parseTrpcBatch(res)) as T;
 }

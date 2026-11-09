@@ -36,8 +36,8 @@ const defaultFeatures: SecurityFeatureItem[] = [
     icon: Activity,
     title: "Continuous Site Monitoring",
     desc: "We monitor blacklist status, SEO spam injections, SSL changes, and website uptime, then alert you when something needs attention.",
-    color: "text-violet-500",
-    bg: "bg-violet-500/10",
+    color: "text-primary",
+    bg: "bg-primary/10",
   },
   {
     icon: Lock,
