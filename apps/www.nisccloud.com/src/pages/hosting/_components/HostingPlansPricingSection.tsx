@@ -104,7 +104,7 @@ export function HostingPlansPricingSection({
   config: HostingPlansPricingConfig;
 }) {
   const [plans, setPlans] = React.useState<SharedHostingPlan[]>([]);
-  const { currency, kesToCurrencyRate, rateLoading, rateError, retryRate } = useCurrency();
+  const { currency, kesToCurrencyRate, rateLoading } = useCurrency();
   const [productFeatures, setProductFeatures] = React.useState<ProductFeatureRow[]>([]);
   const [productDescription, setProductDescription] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -238,26 +238,10 @@ export function HostingPlansPricingSection({
           </div>
         ) : (
           <>
-            {(rateLoading || rateError) && (
-              <Alert className="mx-auto mb-8 max-w-2xl" variant={rateError ? "destructive" : "default"}>
-                <AlertDescription>
-                  <p className="font-semibold">
-                    {rateError
-                      ? "We could not update these plans to USD."
-                      : "Updating plans in your selected currency…"}
-                  </p>
-                  <p className="mt-1 text-xs">
-                    {rateError
-                      ? "Retry the conversion, select KES, or contact sales. Checkout stays unavailable until a valid price is shown."
-                      : "Plan details remain available while current conversion pricing loads."}
-                  </p>
-                  {rateError && (
-                    <Button type="button" size="sm" variant="outline" className="mt-3" onClick={retryRate}>
-                      Try conversion again
-                    </Button>
-                  )}
-                </AlertDescription>
-              </Alert>
+            {rateLoading && (
+              <p className="mb-8 text-center text-sm text-muted-foreground" role="status" aria-live="polite">
+                Loading prices in {currency}…
+              </p>
             )}
             {cycleOptions.length > 1 ? (
               <div className="mb-8 flex flex-col items-center gap-2">

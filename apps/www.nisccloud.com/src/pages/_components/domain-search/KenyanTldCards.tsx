@@ -183,7 +183,7 @@ export function KenyanTldCards({
       )}
       {kesToCurrencyRate === null && list.some((item) => item.available) && (
         <p className="mb-2 text-xs text-muted-foreground">
-          Updating prices for your selected currency…
+          Updating prices…
         </p>
       )}
       <DomainResultList>

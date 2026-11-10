@@ -128,7 +128,7 @@ export default function SeoPage() {
       ]}
       ctaHeadline="Start Getting Found Where Customers Search"
       ctaSubtext="Start with a review of your current search foundation, buyer questions and measurement needs. We will recommend a scoped next step."
-      pricingNote="Monthly retainer. Prices are shown in your selected currency. 3-month minimum for meaningful results."
+      pricingNote="Monthly retainer. Prices are shown in KES or USD based on your location. 3-month minimum for meaningful results."
       showcaseBlocks={showcaseBlocks}
     />
   );

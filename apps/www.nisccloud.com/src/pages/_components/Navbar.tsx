@@ -44,8 +44,6 @@ import {
   useNavbarAuth,
 } from "./NavbarAuth.tsx";
 import { useTheme } from "next-themes";
-import { CurrencySelector } from "@/components/CurrencySelector.tsx";
-
 function resolvePublicUrl(configured: unknown, fallback: string) {
   if (typeof configured === "string" && configured.trim()) {
     return configured.trim().replace(/\/$/, "");
@@ -540,7 +538,6 @@ export default function Navbar() {
 
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <div className="hidden items-center gap-2 xl:flex">
-            <CurrencySelector />
             <NavbarAuthDesktop auth={auth} />
             {showCreateAccount && (
               <FlowButton
@@ -739,7 +736,6 @@ export default function Navbar() {
                 );
               })}
               <div className="pt-2 border-t border-border mt-1 flex flex-col gap-2">
-                <CurrencySelector mobile />
                 <NavbarAuthMobile
                   auth={auth}
                   onNavigate={() => setOpen(false)}

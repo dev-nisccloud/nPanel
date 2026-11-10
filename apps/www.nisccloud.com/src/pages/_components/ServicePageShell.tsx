@@ -296,8 +296,7 @@ function PricingSection({
   note?: string;
   onSelect: (p: OrderPlan) => void;
 }) {
-  const { currency, kesToCurrencyRate, rateLoading, rateError, retryRate } =
-    useCurrency();
+  const { currency, kesToCurrencyRate, rateLoading } = useCurrency();
   const displayKes = (amount: number) =>
     kesToCurrencyRate == null
       ? null
@@ -318,39 +317,14 @@ function PricingSection({
               "Every plan includes setup help. Upgrade or request cancellation under the selected plan and Terms."}
           </p>
         </div>
-        {(rateLoading || rateError) && (
-          <div
-            className={cn(
-              "mx-auto mb-8 max-w-2xl rounded-2xl border px-4 py-3 text-sm",
-              rateError
-                ? "border-amber-500/30 bg-amber-500/10"
-                : "border-border bg-card",
-            )}
+        {rateLoading && (
+          <p
+            className="mx-auto mb-8 max-w-2xl text-center text-sm text-muted-foreground"
             role="status"
             aria-live="polite"
           >
-            <p className="font-semibold">
-              {rateError
-                ? "USD conversion is temporarily unavailable."
-                : "Updating prices in your selected currency…"}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {rateError
-                ? "No unconverted price will be presented as USD. Retry, choose KES, or contact our team."
-                : "Current plan details remain visible while the conversion loads."}
-            </p>
-            {rateError && (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="mt-3"
-                onClick={retryRate}
-              >
-                Try conversion again
-              </Button>
-            )}
-          </div>
+            Loading prices in {currency}…
+          </p>
         )}
         <div
           className={cn(

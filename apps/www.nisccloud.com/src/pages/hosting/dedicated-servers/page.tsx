@@ -132,7 +132,7 @@ export default function DedicatedServersHostingPage() {
         { q: "Can I run Kubernetes on a dedicated server?", a: "Dedicated infrastructure can support container platforms when the selected hardware and implementation are suitable. Architecture assistance is available on request." },
         { q: "What network protection is included?", a: "Protection varies by configuration and deployment. Confirm the included controls and any additional application-layer protection before purchase." },
       ]}
-      pricingNote="Prices are shown in your selected currency, excluding 16% VAT. Custom hardware configurations available on request."
+      pricingNote="Prices are shown in KES or USD based on your location, excluding 16% VAT. Custom hardware configurations available on request."
       ctaHeadline="Get Dedicated Hardware That Never Compromises"
       ctaSubtext="Move beyond virtual tiers with exclusive physical server infrastructure configured for demanding workloads."
       showcaseBlocks={showcaseBlocks}

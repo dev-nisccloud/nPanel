@@ -2,7 +2,7 @@ import { copyFileSync, readFileSync } from "node:fs";
 import path from "node:path";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react-swc";
-import { defineConfig, loadEnv, type Plugin } from "vite";
+import { defineConfig, loadEnv, type Plugin, type ProxyOptions } from "vite";
 import { PUBLIC_ROUTES, routeHtmlFile } from "./src/lib/public-routes.ts";
 
 /**
@@ -44,6 +44,22 @@ export default defineConfig(({ mode }) => {
     /\/+$/,
     "",
   );
+  // Dev-only: send storefront location/FX calls to a local API, optionally as a given country.
+  const localLocationApi = env.DEV_LOCATION_API_URL?.replace(/\/+$/, "");
+  const simulatedCountry = env.DEV_SIMULATE_COUNTRY?.trim().toUpperCase();
+  const locationProxy: Record<string, ProxyOptions> = localLocationApi
+    ? {
+        "/api/trpc/storefront.location.": {
+          target: localLocationApi,
+          changeOrigin: true,
+          configure: (proxy) => {
+            proxy.on("proxyReq", (proxyReq) => {
+              if (simulatedCountry) proxyReq.setHeader("cf-ipcountry", simulatedCountry);
+            });
+          },
+        },
+      }
+    : {};
 
   return {
     server: {
@@ -54,6 +70,7 @@ export default defineConfig(({ mode }) => {
         overlay: false,
       },
       proxy: {
+        ...locationProxy,
         // Address the upstream virtual host; preserve the browser origin below.
         // x-forwarded-host retains the local origin for backend session handling.
         "/api": {

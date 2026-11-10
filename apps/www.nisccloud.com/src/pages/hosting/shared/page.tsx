@@ -149,7 +149,7 @@ export default function SharedHostingPage() {
           a: "Yes. New shared hosting accounts include a 7-day money-back guarantee, as set out in our Terms of Service. Contact our team within 7 days and we process your full refund.",
         },
       ]}
-      pricingNote="Prices are shown in your selected currency. Easy checkout. 7-day money-back guarantee on new accounts."
+      pricingNote="Prices are shown in KES or USD based on your location. Easy checkout. 7-day money-back guarantee on new accounts."
       ctaHeadline="Get Reliable Web Hosting Today"
       ctaSubtext="Fast shared hosting with free SSL, daily backups, free migration help and everything managed in nPanel."
       showcaseBlocks={showcaseBlocks}

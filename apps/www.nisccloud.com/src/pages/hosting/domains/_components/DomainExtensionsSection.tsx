@@ -221,7 +221,7 @@ export function DomainExtensionsSection() {
         <h2 className="text-3xl font-bold mb-3">Every Extension Your Brand Needs</h2>
         <p className="text-sm text-muted-foreground max-w-lg mx-auto">
           Register local and global extensions to protect your brand. Live prices include our retail
-          margin and are shown in your selected currency where available.
+          margin and are shown in KES or USD based on your location.
         </p>
       </div>
       <div className="grid md:grid-cols-2 gap-6">

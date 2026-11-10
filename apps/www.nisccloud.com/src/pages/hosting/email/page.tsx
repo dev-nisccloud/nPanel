@@ -209,7 +209,7 @@ export default function EmailHostingPage() {
           a: "Our business email plans are designed for team communication. For bulk marketing emails or transactional sending (invoices, receipts), we recommend our separate email marketing service.",
         },
       ]}
-      pricingNote="Prices are shown in your selected currency, excluding 16% VAT. Review the live checkout for the selected term, amount billed and renewal basis."
+      pricingNote="Prices are shown in KES or USD based on your location, excluding 16% VAT. Review the live checkout for the selected term, amount billed and renewal basis."
       ctaHeadline="Professional email on your business domain."
       ctaSubtext="Choose a live mailbox plan, connect your domain and agree migration scope and timing where an existing service needs to move."
       showcaseBlocks={showcaseBlocks}

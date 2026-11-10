@@ -344,7 +344,7 @@ export function RecommendedDomainsList({
         <p className="text-sm text-muted-foreground py-2">No popular results yet.</p>
       )}
       {kesToCurrencyRate === null && visibleResults.length > 0 && (
-        <p className="text-xs text-muted-foreground py-2">Updating prices for your selected currency…</p>
+        <p className="text-xs text-muted-foreground py-2">Updating prices…</p>
       )}
 
       {/* Bottom-only loader for newly appended rows */}

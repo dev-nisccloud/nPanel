@@ -208,7 +208,7 @@ export default function WordPressHostingPage() {
           a: "Yes. New WordPress hosting accounts include a 7-day money-back guarantee, as set out in our Terms of Service. Contact support within 7 days and we process your refund.",
         },
       ]}
-      pricingNote="Prices are shown in your selected currency, excluding 16% VAT. Any included migration assistance is limited to the scope agreed before work starts."
+      pricingNote="Prices are shown in KES or USD based on your location, excluding 16% VAT. Any included migration assistance is limited to the scope agreed before work starts."
       ctaHeadline="Get Managed WordPress Hosting That Just Works"
       ctaSubtext="Choose a WordPress plan with clearly listed management, backup, staging and migration scope."
       showcaseBlocks={showcaseBlocks}

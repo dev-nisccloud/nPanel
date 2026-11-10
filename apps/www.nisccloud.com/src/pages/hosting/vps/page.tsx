@@ -135,7 +135,7 @@ export default function VpsHostingPage() {
         { q: "Can I scale my VPS up later?", a: "Available upgrade paths depend on the selected plan. Nisc Cloud can confirm the suitable VPS, VDS or dedicated tier for your next stage." },
         { q: "What network protection is included?", a: "Protection varies by plan and deployment. Confirm the included controls and any additional application-layer protection before purchase." },
       ]}
-      pricingNote="Prices are shown in your selected currency, excluding 16% VAT. Custom configurations available for enterprise clients."
+      pricingNote="Prices are shown in KES or USD based on your location, excluding 16% VAT. Custom configurations available for enterprise clients."
       ctaHeadline="Get a VPS That Performs as Hard as You Do"
       ctaSubtext="Choose flexible virtual compute for websites, applications, development environments and growing workloads."
       showcaseBlocks={showcaseBlocks}
