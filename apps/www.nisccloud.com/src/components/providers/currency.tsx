@@ -25,6 +25,18 @@ function isCurrency(value: unknown): value is StorefrontCurrency {
 	return value === "KES" || value === "USD";
 }
 
+/** USD can only be paid by Paystack; without it, show KES so checkout stays possible. */
+async function isUsdCheckoutEnabled(): Promise<boolean> {
+	try {
+		const availability = await trpcQuery<{ usdEnabled: boolean }>(
+			"storefront.payment.getPaystackAvailability",
+		);
+		return availability.usdEnabled === true;
+	} catch {
+		return false;
+	}
+}
+
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
 	const [currency, setCurrency] = useState<StorefrontCurrency>("KES");
 	const [countryCode, setCountryCode] = useState<string | null>(null);
@@ -38,9 +50,11 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
 		void trpcQuery<{ countryCode: string | null; currency: StorefrontCurrency }>(
 			"storefront.location.detect",
 		)
-			.then((result) => {
+			.then(async (result) => {
 				if (!active || !isCurrency(result.currency)) return;
 				setCountryCode(result.countryCode);
+				if (result.currency === "USD" && !(await isUsdCheckoutEnabled())) return;
+				if (!active) return;
 				setCurrency(result.currency);
 				setSource("location");
 			})

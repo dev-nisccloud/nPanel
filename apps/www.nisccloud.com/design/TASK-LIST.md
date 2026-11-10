@@ -145,6 +145,7 @@ From the read-only nPanel backend review (chat, 10 Nov) and `security-audit-repo
 | CUR-01 | Deploy location and FX endpoints (see OPS-02, OPS-03) | P0 | Backend | Not started |
 | CUR-02 | Decide the nPanel account setting (DEC-01), then keep or remove `display-currency-preference.tsx` and the preference API | P2 | Owner → Dev | Waiting on decision |
 | CUR-03 | Show the currency source on the cart (e.g. "Prices in USD based on your location") now the navbar selector is gone | P2 | Dev | Not started — recommendation |
+| CUR-04 | Only show USD when USD can be paid. USD checkout is Paystack-only, so the website keeps foreign visitors on KES until the server has `PAYSTACK_ENABLED=true` and `PAYSTACK_USD_ENABLED=true` (checked via `storefront.payment.getPaystackAvailability`) | P0 | Dev | Done — not deployed. Turning those two flags on after BIZ-01…03 switches foreign visitors to USD automatically |
 
 ### 3.5 Domains
 
@@ -223,7 +224,7 @@ Nothing below is deployed. "Done" means the code is committed and passed type ch
 
 ### Fully implemented (done — not deployed)
 
-- Currency follows location (Kenya and unknown → KES, elsewhere → USD); navbar selector removed; USD falls back to genuine KES prices if the rate fails. Tested locally as a US visitor and with a forced rate failure.
+- Currency follows location (Kenya and unknown → KES, elsewhere → USD); navbar selector removed; USD falls back to genuine KES prices if the rate fails **or USD card payment (Paystack) is switched off**. Tested locally as a US visitor with USD payment off (KES), on (USD), and with a forced rate failure (KES).
 - Exchange-rate service with Redis cache (`fx-rates.ts`).
 - Signed 15-minute server quotes; the payment dialog uses a snapshot taken when it opens.
 - Multi-currency fields on orders, payments and invoices (migrations 0072–0073); reports avoid mixed-currency totals.
@@ -283,7 +284,8 @@ The local website sends `/api` calls to the live server by default (`VITE_NPANEL
 cd apps/server
 bun run dev
 
-# Terminal 2 — website; only storefront.location.* goes to the local API
+# Terminal 2 — website; only storefront.location.* and payment.getPaystackAvailability go to the local API
+# (start Terminal 1 with $env:PAYSTACK_ENABLED='true'; $env:PAYSTACK_USD_ENABLED='true' to see USD prices)
 cd apps/www.nisccloud.com
 $env:DEV_LOCATION_API_URL='http://127.0.0.1:8050'
 $env:DEV_SIMULATE_COUNTRY='US'   # leave out to behave as a Kenyan or unknown visitor

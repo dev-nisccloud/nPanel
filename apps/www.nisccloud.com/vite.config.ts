@@ -44,12 +44,12 @@ export default defineConfig(({ mode }) => {
     /\/+$/,
     "",
   );
-  // Dev-only: send storefront location/FX calls to a local API, optionally as a given country.
+  // Dev-only: send storefront location/FX/USD-availability calls to a local API, optionally as a given country.
   const localLocationApi = env.DEV_LOCATION_API_URL?.replace(/\/+$/, "");
   const simulatedCountry = env.DEV_SIMULATE_COUNTRY?.trim().toUpperCase();
   const locationProxy: Record<string, ProxyOptions> = localLocationApi
     ? {
-        "/api/trpc/storefront.location.": {
+        "^/api/trpc/storefront\\.(location\\.|payment\\.getPaystackAvailability)": {
           target: localLocationApi,
           changeOrigin: true,
           configure: (proxy) => {
