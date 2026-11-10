@@ -10,6 +10,17 @@
 @theme inline {
   /* Narrow-phone breakpoint (iPhone SE/320 vs 390+) used by compact selectors. */
   --breakpoint-xs: 23.75rem;
+  /* Text scale: 1–2px above the common 12/14/16/18/20px web-hosting scale, for readability. */
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.25rem;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.375rem;
+  --text-base: 1.0625rem;
+  --text-base--line-height: 1.625rem;
+  --text-lg: 1.1875rem;
+  --text-lg--line-height: 1.75rem;
+  --text-xl: 1.375rem;
+  --text-xl--line-height: 1.875rem;
   --font-sans:
     "DM Sans Variable", "DM Sans", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
     "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
@@ -223,28 +234,37 @@
     letter-spacing: -0.045em;
   }
 
-  /* One page title per route; every public page uses this size. */
+  /* One page title per route: 32px on phones, 38px from tablet up, on every public page. */
   .type-h1 {
-    font-size: clamp(2.25rem, 1.6rem + 2.2vw, 3.5rem);
-    font-weight: 800;
-    line-height: 1.08;
-    letter-spacing: -0.035em;
-  }
-
-  /* Section headings. */
-  .type-h2 {
-    font-size: clamp(1.875rem, 1.4rem + 1.4vw, 2.5rem);
-    font-weight: 700;
-    line-height: 1.12;
-    letter-spacing: -0.03em;
-  }
-
-  /* Sub-section headings. */
-  .type-h3 {
-    font-size: clamp(1.25rem, 1.05rem + 0.6vw, 1.5rem);
-    font-weight: 700;
-    line-height: 1.25;
+    font-size: 2rem;
+    font-weight: 600;
+    line-height: 1.2;
     letter-spacing: -0.02em;
+  }
+
+  /* Section headings: 28px on phones, 32px from tablet up. */
+  .type-h2 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.015em;
+  }
+
+  /* Sub-section headings: 22px. */
+  .type-h3 {
+    font-size: 1.375rem;
+    font-weight: 600;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+  }
+
+  @media (min-width: 768px) {
+    .type-h1 {
+      font-size: 2.375rem;
+    }
+    .type-h2 {
+      font-size: 2rem;
+    }
   }
 
   .type-body-lg {
@@ -253,7 +273,7 @@
   }
 
   .type-label {
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     font-weight: 650;
     line-height: 1.2;
     letter-spacing: -0.005em;
