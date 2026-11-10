@@ -1,5 +1,5 @@
-import * as React from "react";
-import { Check } from "lucide-react";
+﻿import * as React from "react";
+import { EveryPlanIncludes } from "./EveryPlanIncludes.tsx";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -42,25 +42,6 @@ export type HostingPlansPricingConfig = {
   /** Owner-confirmed inclusions shared by every plan, shown below the plan cards. */
   everyPlanIncludes?: string[];
 };
-
-function EveryPlanIncludes({ items }: { items: string[] }) {
-  return (
-    <div className="mt-10 flex flex-col items-center gap-3 text-center">
-      <p className="type-label text-foreground">Every plan includes</p>
-      <ul className="flex max-w-4xl flex-wrap justify-center gap-2">
-        {items.map((item) => (
-          <li
-            key={item}
-            className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/[0.06] px-3 py-1.5 text-sm font-medium text-foreground"
-          >
-            <Check className="size-3.5 text-sky-700 dark:text-primary" strokeWidth={3} aria-hidden />
-            {item}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
 
 function fallbackProductFeatures(config: HostingPlansPricingConfig): ProductFeatureRow[] {
   return config.fallbackFeatures.map((f, i) => ({ key: `fallback_${i}`, label: f.label, description: f.description }));

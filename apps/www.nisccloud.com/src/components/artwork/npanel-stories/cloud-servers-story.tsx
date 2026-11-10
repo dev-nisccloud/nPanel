@@ -1,4 +1,4 @@
-import { Check, Cpu, HardDrive, MapPin, Server, Terminal } from "lucide-react";
+﻿import { Check, Cpu, HardDrive, MapPin, Server, Terminal } from "lucide-react";
 import { Meter, NpanelWindow, Panel, Pill, UiButton } from "../kit.tsx";
 import { StoryScene, StoryShell } from "./story-shell.tsx";
 import { StatusLine, StoryRows, StoryStat } from "./story-ui.tsx";
@@ -29,7 +29,7 @@ export function CloudServersStory({ active = true, compact = false }: { active?:
           <StoryScene show={step === 1}>
             <NpanelWindow path="cloud-servers/new" active="cloud" title="Select deployment region" subtitle="Choose an available location">
               <div className="grid gap-2 sm:grid-cols-2">
-                <Panel className="flex items-center gap-3 border-primary ring-2 ring-primary/15"><MapPin className="size-5 text-primary" /><span className="min-w-0 flex-1"><b className="block text-[11px]">Nairobi</b><span className="text-[9px] text-muted-foreground">Available region</span></span><Check className="size-4 text-primary" /></Panel>
+                <Panel className="flex items-center gap-3 border-primary ring-2 ring-primary/15"><MapPin className="size-5 text-primary" /><span className="min-w-0 flex-1"><b className="block text-[11px]">Los Angeles</b><span className="text-[9px] text-muted-foreground">Available region</span></span><Check className="size-4 text-primary" /></Panel>
                 <Panel className="flex items-center gap-3 opacity-70"><MapPin className="size-5 text-muted-foreground" /><span><b className="block text-[11px]">Additional regions</b><span className="text-[9px] text-muted-foreground">Subject to plan availability</span></span></Panel>
               </div>
               <div className="mt-3 text-right"><UiButton>Provision server</UiButton></div>
@@ -52,7 +52,7 @@ export function CloudServersStory({ active = true, compact = false }: { active?:
               <div className="grid grid-cols-3 gap-2">
                 <StoryStat label="vCPU" value="4" detail="Allocated" />
                 <StoryStat label="Memory" value="8 GB" detail="Allocated" />
-                <StoryStat label="Region" value="Nairobi" detail="Available" />
+                <StoryStat label="Region" value="Los Angeles" detail="Available" />
               </div>
               <Panel className="mt-2 space-y-2" title="Current usage" icon={Cpu}>
                 <Meter label="CPU" value={34} detail="34%" />

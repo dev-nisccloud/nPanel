@@ -1,52 +1,34 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
-import { Server, Cpu, HardDrive, Network, Shield, Zap, Globe, Terminal } from "lucide-react";
+import { Archive, Globe, KeyRound, Layers, Network, ShieldCheck } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
-import {
-  HostingHeroIllustration,
-  vpsHeroConfig,
-} from "../_components/HostingHeroIllustration.tsx";
+import { HostingHeroIllustration, vpsHeroConfig } from "../_components/HostingHeroIllustration.tsx";
 import { VpsPlansSection } from "./_components/VpsPlansSection.tsx";
+import { VpsComparison, VpsExplained, VpsGettingStarted, VpsPlanFit } from "./_components/vps-content.tsx";
 import { CloudServersStory } from "@/components/artwork/npanel-stories";
 
 // ─── Showcase blocks ──────────────────────────────────────────────────────────
 
 const showcaseBlocks: ShowcaseBlock[] = [
   {
-    tag: "Day-to-Day Visibility",
+    tag: "Your server, in nPanel",
     artwork: <CloudServersStory />,
     caption: false,
-    headline: "See what your virtual server is doing.",
-    body: "Review core resource and service information in your management workspace, then use your preferred monitoring stack for application-level observability.",
-    bullets: [
-      "Clear resource and service visibility",
-      "Browser-based terminal access for authorised users",
-      "A practical base for your own monitoring tools",
-    ],
+    headline: "Order, set up and manage your server in one place.",
+    body: "Pick a size and location, choose your operating system and add your SSH key. Your VPS then sits in nPanel next to your domains, email and invoices.",
+    bullets: ["Linux distributions or Windows Server", "SSH key login from the first boot", "Servers, domains and invoices in one account"],
     mockupRight: true,
     visual: "serverMonitor",
   },
   {
-    tag: "Start with What You Need",
-    headline: "Configure an entry virtual server around your workload",
-    body: "Choose a currently available image and plan, add secure access details, and deploy a virtual environment without moving straight to a higher-reservation tier.",
+    tag: "What people run on a VPS",
+    headline: "Room for the software web hosting cannot run.",
+    body: "With root access you can install any language, database or service, run background jobs and open the ports your project needs.",
     bullets: [
-      "Current image choices shown during configuration",
-      "Secure SSH and browser-terminal access",
-      "Flexible environments for websites and applications",
+      "Node.js, Python, PHP and Go applications",
+      "APIs, bots, queues and scheduled jobs",
+      "Databases, staging servers and self-hosted tools",
     ],
     mockupRight: false,
-    visual: "serverProvision",
-  },
-  {
-    tag: "Where VPS Fits",
-    headline: "A flexible first step into virtual compute.",
-    body: "VPS suits websites, development environments and application services that need root-level control and a defined resource plan without dedicated hardware.",
-    bullets: [
-      "WooCommerce and eCommerce stores",
-      "Payment APIs and application backends",
-      "SaaS platforms, CRMs, and custom business apps",
-    ],
-    mockupRight: true,
     visual: "workloads",
   },
 ];
@@ -55,89 +37,131 @@ export default function VpsHostingPage() {
   return (
     <ServicePageShell
       badge="VPS Servers"
-      headline={<>Flexible Compute. <span className="text-primary">More Control.</span> VPS for Growing Workloads.</>}
-      subtext="Choose flexible entry virtual compute for websites, applications and development environments that have outgrown standard web hosting."
+      headline={
+        <>
+          Your own virtual server, with <span className="text-primary">full root access</span> and 10TB of bandwidth
+        </>
+      }
+      subtext="Run apps, APIs, stores and developer projects on a VPS with SSH key login, DDoS protection, backups and a dedicated IPv4 address. Choose Linux or Windows Server and manage it in nPanel."
       serviceType="hosting"
       heroIllustration={<HostingHeroIllustration config={vpsHeroConfig} />}
       heroIllustrationBare
       showHeroOverlays={false}
-      heroTrustBadge={{ line1: "Virtual server flexibility", line2: "Managed through nPanel" }}
       trustStats={[
-        { value: "Root", label: "Authorised Access" },
-        { value: "Plan", label: "Defined Resources" },
-        { value: "Flexible", label: "Virtual Compute" },
-        { value: "nPanel", label: "Management" },
+        { value: "Root", label: "Full Access" },
+        { value: "10TB", label: "Bandwidth, 1Gbps Port" },
+        { value: "IPv4", label: "Dedicated Address" },
+        { value: "DDoS", label: "Protection Included" },
       ]}
       features={[
         {
-          icon: <Server size={20} />,
-          title: "Flexible Virtual Resources",
-          desc: "Choose a VPS plan with the compute, memory and storage profile that suits your current workload.",
+          icon: <KeyRound size={20} />,
+          title: "Full Root Access and SSH Keys",
+          desc: "Sign in as root with your SSH key and configure the server exactly as your project needs.",
         },
         {
-          icon: <Cpu size={20} />,
-          title: "Configurable Compute",
-          desc: "Select from available virtual CPU and memory configurations, then move to a larger plan as requirements grow.",
+          icon: <Layers size={20} />,
+          title: "Linux or Windows Server",
+          desc: "Choose a Linux distribution or Windows Server when you set up your VPS.",
         },
         {
-          icon: <HardDrive size={20} />,
-          title: "Fast Storage Options",
-          desc: "Available VPS plans use modern storage suited to websites, databases, file services and application workloads.",
+          icon: <ShieldCheck size={20} />,
+          title: "DDoS Protection",
+          desc: "Every plan is protected against floods of fake traffic that try to take servers offline.",
         },
         {
-          icon: <Network size={20} />,
-          title: "Connectivity by Plan",
-          desc: "Check the selected plan's network allocation before sizing a public website, API or private application service.",
-        },
-        {
-          icon: <Shield size={20} />,
-          title: "Security Options",
-          desc: "Combine server-level controls, secure access and available network protections around your application requirements.",
-        },
-        {
-          icon: <Zap size={20} />,
-          title: "Straightforward Provisioning",
-          desc: "Choose a supported operating system, add secure access details and prepare the environment for your stack.",
+          icon: <Archive size={20} />,
+          title: "Backups Included",
+          desc: "Backups come with every plan. Keep your own copies of critical data as well.",
         },
         {
           icon: <Globe size={20} />,
-          title: "A Base You Can Tune",
-          desc: "Configure caching, application services and delivery choices around the needs and traffic profile of your site.",
+          title: "Dedicated IPv4 Address",
+          desc: "Your server gets its own public IPv4 address to point your domains and services at.",
         },
         {
-          icon: <Terminal size={20} />,
-          title: "Administrative Access",
-          desc: "Use the authorised access included with the selected service to configure supported software, subject to platform limits and the Acceptable Use Policy.",
+          icon: <Network size={20} />,
+          title: "10TB Bandwidth on a 1Gbps Port",
+          desc: "Every size includes 10TB of monthly data transfer on a 1Gbps network port.",
         },
       ]}
-      plansUnderHero={true}
+      plansUnderHero
       customPlansSection={<VpsPlansSection />}
       plans={[]}
       process={[
-        { num: "01", title: "Choose a Starting Size", desc: "Compare live VPS plans, select an available system image and add your SSH public key where supported." },
-        { num: "02", title: "Provision Securely", desc: "Provisioning details and authorised access information are provided for your configured server." },
-        { num: "03", title: "Prepare the Workload", desc: "Connect through the authorised access method and configure a supported application stack within the service scope." },
-        { num: "04", title: "Review as Usage Grows", desc: "Monitor demand and compare a larger VPS or higher-reservation VDS when the current size no longer fits." },
+        { num: "01", title: "Choose a Size and Location", desc: "Compare sizes by cores and memory, and pick a server location on the card." },
+        { num: "02", title: "Pick Your Operating System", desc: "Choose a Linux distribution or Windows Server and add your SSH public key." },
+        { num: "03", title: "Sign In and Set Up", desc: "Connect over SSH as root, update the system and install your stack." },
+        { num: "04", title: "Grow When You Need To", desc: "Move to a larger VPS, a VDS or a dedicated server as your workload grows." },
       ]}
       whyPoints={[
-        { title: "More Control Than Web Hosting", visual: "code", desc: "Run a configurable virtual environment with root access and your own application stack." },
-        { title: "Start Without Oversizing", visual: "deploy", desc: "Select a practical virtual footprint now, then reassess as traffic, data or background processing increases." },
-        { title: "A Clear Upgrade Path", visual: "growth", desc: "Compare a larger VPS, a higher-reservation VDS tier or dedicated hardware as requirements grow." },
-        { title: "Useful for Varied Projects", visual: "integrate", desc: "Host supported websites, internal tools, test environments and application backends on a suitably sized plan." },
-        { title: "Control Within a Defined Service", visual: "ownership", desc: "Configure the environment using the access provided, subject to technical compatibility, plan limits and the Acceptable Use Policy." },
-        { title: "Optional Management Scope", visual: "support", desc: "Ask which updates, security work and optimisation tasks can be included for the selected plan before ordering." },
+        { title: "Control Web Hosting Cannot Give", visual: "code", desc: "Install any software, run background jobs and open the ports your project needs." },
+        { title: "Protected From Day One", visual: "security", desc: "DDoS protection and backups are included on every size." },
+        { title: "A Clear Path Up", visual: "growth", desc: "Start small, then move to a larger VPS, a VDS or dedicated hardware without changing provider." },
+        { title: "One Account for Everything", visual: "integrate", desc: "Your servers sit in nPanel with your domains, email and invoices." },
       ]}
+      whySectionHeadline="Why developers and businesses choose a Nisc Cloud VPS"
+      whySectionVariant="simple"
+      contentSlots={{
+        afterPricing: <VpsPlanFit />,
+        afterShowcase: <VpsComparison />,
+        afterProcess: <VpsGettingStarted />,
+        beforeFaq: <VpsExplained />,
+      }}
+      faqTitle="VPS questions"
       faqs={[
-        { q: "What operating systems are available?", a: "Image availability changes by plan and platform. Review the current choices during configuration or ask Nisc Cloud to confirm a required distribution or custom-image need before purchase." },
-        { q: "Can I run containers on my VPS?", a: "Container tooling may be used when it is compatible with the selected plan, system image and service policies. Cluster workloads should be sized and designed for their actual resource needs." },
-        { q: "Is an uptime SLA available?", a: "Applicable availability commitments depend on the selected service and agreement. Confirm the current SLA terms with Nisc Cloud before purchase." },
-        { q: "Is managed hosting available for VPS?", a: "Managed assistance may be added where available. Scope and response coverage are confirmed in the selected service agreement." },
-        { q: "Can I scale my VPS up later?", a: "Available upgrade paths depend on the selected plan. Nisc Cloud can confirm the suitable VPS, VDS or dedicated tier for your next stage." },
-        { q: "What network protection is included?", a: "Protection varies by plan and deployment. Confirm the included controls and any additional application-layer protection before purchase." },
+        {
+          q: "What is included with every VPS?",
+          a: "Every VPS includes full root access, SSH key login, a choice of Linux distributions or Windows Server, DDoS protection, backups, a dedicated IPv4 address and 10TB of bandwidth on a 1Gbps port.",
+        },
+        {
+          q: "Is the VPS managed?",
+          a: "No. A VPS is unmanaged: you look after the operating system, updates and the software you install. If you want the server managed for you, choose Web Hosting or WordPress Hosting.",
+        },
+        {
+          q: "Which operating systems can I choose?",
+          a: "You can choose from available Linux distributions or Windows Server when you set up the VPS. The current list is shown during configuration.",
+        },
+        {
+          q: "Where are the servers located?",
+          a: "Each plan card lists the locations available for that size, currently in the United States. Choose a location on the card before checkout.",
+        },
+        {
+          q: "Will a US server be slow for visitors in Kenya?",
+          a: "Distance adds a small delay. It matters little for APIs, background work and development, and for public websites a CDN in front of the server serves pages and images from closer to your visitors.",
+        },
+        {
+          q: "Which size should I choose?",
+          a: "Start with memory: 4 GB suits small apps and staging servers, 8 GB suits most websites, stores and APIs, and 16 GB or more suits databases and several apps on one server.",
+        },
+        {
+          q: "Can I upgrade my VPS later?",
+          a: "Yes. Contact us to move to a larger size, or to a VDS or dedicated server when you need reserved or physical resources.",
+        },
+        {
+          q: "Do I get a dedicated IP address?",
+          a: "Yes. Every VPS includes its own dedicated IPv4 address.",
+        },
+        {
+          q: "Can I run Docker on my VPS?",
+          a: "Yes. With root access you can install Docker and other container tools, as long as your workload fits the size you choose and follows our Acceptable Use Policy.",
+        },
+        {
+          q: "Are backups included?",
+          a: "Yes. Backups are included with every plan. For important data, keep your own copies as well, such as database dumps stored off the server.",
+        },
+        {
+          q: "Is there DDoS protection?",
+          a: "Yes. Every VPS includes DDoS protection against floods of fake traffic.",
+        },
+        {
+          q: "How much bandwidth do I get?",
+          a: "Every size includes 10TB of data transfer per month on a 1Gbps port.",
+        },
       ]}
-      pricingNote="Prices are shown in KES or USD based on your location, excluding 16% VAT. Custom configurations available for enterprise clients."
-      ctaHeadline="Get a VPS That Performs as Hard as You Do"
-      ctaSubtext="Choose flexible virtual compute for websites, applications, development environments and growing workloads."
+      pricingNote="Prices are shown in KES or USD based on your location, excluding 16% VAT. Prices can differ by server location."
+      ctaHeadline="Your own server, ready for whatever you build"
+      ctaSubtext="Full root access, DDoS protection, backups and 10TB of bandwidth on every size, managed in nPanel."
       showcaseBlocks={showcaseBlocks}
     />
   );
