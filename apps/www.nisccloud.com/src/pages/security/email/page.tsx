@@ -185,7 +185,7 @@ export default function EmailSecurityPage() {
         subtext="Add managed spam filtering, anti-phishing, malware scanning, and domain authentication to reduce the risk that one malicious email disrupts your company."
         primary={{ label: "View Email Security Plans", href: "#email-security-plans" }}
         secondary={{ label: "Talk to an Expert", href: "/contact" }}
-        points={["Setup guidance included", "Pay with M-Pesa or card", "Ticket portal available 24/7 · staffed email, chat and phone support during working hours"]}
+        points={["Setup guidance included", "Pay with M-Pesa or card"]}
       />
       </main>
       <Footer />

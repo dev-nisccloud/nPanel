@@ -145,7 +145,7 @@ export default function SecurityPage() {
         subtext="Add plan-defined SSL, malware scanning, firewall controls, and backup options to reduce website risk with a scope confirmed before activation."
         primary={{ label: "View Security Plans", href: "#security-plans" }}
         secondary={{ label: "Talk to an Expert", href: "/contact" }}
-        points={["Setup guidance included", "Pay with M-Pesa or card", "Ticket portal available 24/7 · staffed email, chat and phone support during working hours"]}
+        points={["Setup guidance included", "Pay with M-Pesa or card"]}
       />
       </main>
       <Footer />

@@ -26,7 +26,7 @@ export default function SecurityCTA({
         onClick: () => document.getElementById(plansId)?.scrollIntoView({ behavior: "smooth" }),
       }}
       secondary={{ label: "Talk to an Expert", href: "/contact" }}
-      points={["Setup help included", "Pay with M-Pesa or card", "24/7 ticket support · email, chat and phone during working hours"]}
+      points={["Setup help included", "Pay with M-Pesa or card"]}
       note={footnote === "Setup help included." ? undefined : footnote}
     />
   );

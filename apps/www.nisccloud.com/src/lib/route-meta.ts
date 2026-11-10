@@ -75,7 +75,7 @@ export const ROUTE_META: Record<string, PageMeta> = {
   "/hosting": {
     title: "Cloud Hosting, Domains, Email and Servers",
     description:
-      "Website hosting, managed WordPress, business email, VPS, VDS and dedicated servers, domains and SSL, all managed in nPanel with KES pricing.",
+      "Website hosting, managed WordPress, business email, VPS, VDS and dedicated servers, domains and SSL, all managed together in nPanel.",
     jsonLd: breadcrumbJsonLd([["Home", "/"], ["Cloud Products", "/hosting"]]),
   },
   "/hosting/transfer": {

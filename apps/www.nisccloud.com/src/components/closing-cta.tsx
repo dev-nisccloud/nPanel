@@ -17,7 +17,7 @@ export type ClosingCtaProps = {
   className?: string;
 };
 
-const DEFAULT_POINTS = ["Free strategy call", "Pay with M-Pesa or card", "24/7 ticket support · email, chat and phone during working hours"];
+const DEFAULT_POINTS = ["Free strategy call", "Pay with M-Pesa or card"];
 
 function CtaAnchor({ link, className, children }: { link: CtaLink; className: string; children: React.ReactNode }) {
   if (link.onClick) {
@@ -70,7 +70,7 @@ export function ClosingCta({
 
         <div className="relative flex flex-col gap-6 px-6 py-8 sm:px-8 md:py-9 lg:flex-row lg:items-center lg:justify-between lg:gap-10 lg:px-10">
           <div className="art-rise max-w-2xl">
-            <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
+            <p className="type-label flex items-center gap-2 text-primary">
               <span className="art-ping size-1.5 rounded-full bg-brand-orange" aria-hidden />
               {eyebrow}
             </p>
@@ -91,7 +91,7 @@ export function ClosingCta({
                 ))}
               </ul>
             ) : null}
-            {note ? <p className="mt-3 text-xs leading-relaxed text-white/45">{note}</p> : null}
+            {note ? <p className="mt-3 text-xs leading-relaxed text-white/65">{note}</p> : null}
           </div>
 
           <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
