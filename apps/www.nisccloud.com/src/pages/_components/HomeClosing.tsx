@@ -35,15 +35,13 @@ export default function HomeClosing() {
         </div>
 
         <div className="grid gap-5 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
-          <div className="flex flex-col rounded-3xl bg-primary p-7 text-primary-foreground md:p-8">
+          <div className="flex flex-col rounded-3xl bg-primary p-7 text-[#02070a] md:p-8 lg:sticky lg:top-24 lg:self-start">
             <ShoppingCart className="mb-5 size-8" aria-hidden />
-            <p className="font-mono text-xs font-bold tracking-[0.2em] uppercase opacity-80">
-              Self-service
-            </p>
+            <p className="type-label">Self-service</p>
             <h3 className="mt-2 text-2xl font-bold tracking-tight">
               Ready to buy? Start online.
             </h3>
-            <p className="mt-3 text-sm leading-relaxed opacity-90">
+            <p className="mt-3 text-sm leading-relaxed text-[#02070a]/80">
               Prices are shown before checkout. Manage everything afterwards in
               nPanel.
             </p>
@@ -52,7 +50,7 @@ export default function HomeClosing() {
                 <li key={label}>
                   <Link
                     to={href}
-                    className="flex items-center justify-between gap-2 rounded-xl bg-white/15 px-3.5 py-2.5 text-sm font-semibold transition-colors hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                    className="flex items-center justify-between gap-2 rounded-xl bg-white/40 px-3.5 py-2.5 text-sm font-semibold transition-colors hover:bg-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#02070a]"
                   >
                     {label}
                     <ArrowRight className="size-3.5" aria-hidden />
@@ -60,11 +58,11 @@ export default function HomeClosing() {
                 </li>
               ))}
             </ul>
-            <div className="mt-auto flex flex-col gap-3 pt-8 sm:flex-row lg:flex-col xl:flex-row">
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row">
               <Button
                 asChild
                 size="lg"
-                className="gap-2 rounded-[10px] bg-white font-semibold text-primary hover:bg-white/90"
+                className="gap-2 rounded-[10px] bg-[#02070a] font-semibold text-white hover:bg-[#02070a]/85"
               >
                 <Link to="/hosting">
                   Explore Cloud Products
@@ -75,7 +73,7 @@ export default function HomeClosing() {
                 asChild
                 size="lg"
                 variant="ghost"
-                className="rounded-[10px] border border-white/40 font-semibold text-white hover:bg-white/10 hover:text-white"
+                className="rounded-[10px] border border-[#02070a]/30 font-semibold text-[#02070a] hover:bg-white/30 hover:text-[#02070a]"
               >
                 <Link to="/pricing">View pricing</Link>
               </Button>

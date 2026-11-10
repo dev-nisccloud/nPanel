@@ -61,7 +61,7 @@ export default function CloudProducts() {
       <div className="mx-auto max-w-7xl px-4 md:px-8">
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div className="max-w-2xl">
-            <p className="mb-2 flex items-center gap-2 font-mono text-xs font-bold tracking-[0.2em] text-primary uppercase">
+            <p className="type-label mb-2 flex items-center gap-2 text-sky-700 dark:text-primary">
               <ShoppingCart className="size-3.5" aria-hidden />
               Buy online today
             </p>
@@ -78,7 +78,7 @@ export default function CloudProducts() {
           </div>
           <Link
             to="/pricing"
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary underline-offset-4 hover:underline"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-sky-700 underline-offset-4 hover:underline dark:text-primary"
           >
             Compare all pricing
             <ArrowRight className="size-4" aria-hidden />
@@ -101,7 +101,7 @@ export default function CloudProducts() {
                   <span className="mt-1 block text-sm text-muted-foreground">
                     {desc}
                   </span>
-                  <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary">
+                  <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-sky-700 dark:text-primary">
                     See plans and prices
                     <ArrowRight
                       className="size-3.5 transition-transform group-hover:translate-x-0.5"

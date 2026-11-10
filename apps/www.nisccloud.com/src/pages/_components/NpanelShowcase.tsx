@@ -11,12 +11,6 @@ import {
 import { cn } from "@/lib/utils.ts";
 import { trackEvent } from "@/lib/track.ts";
 
-const configuredNpanelUrl = import.meta.env.VITE_NPANEL_APP_URL;
-const NPANEL_URL =
-  typeof configuredNpanelUrl === "string" && configuredNpanelUrl.trim()
-    ? configuredNpanelUrl.trim().replace(/\/$/, "")
-    : "https://npanel.nisccloud.com";
-
 type Persona = {
   id: "business" | "developer" | "agency";
   label: string;
@@ -98,9 +92,7 @@ export default function NpanelShowcase() {
     >
       <div className="mx-auto max-w-7xl px-4 md:px-8">
         <div className="mx-auto mb-8 max-w-2xl text-center md:mb-10">
-          <p className="mb-2 font-mono text-xs font-bold tracking-[0.2em] text-primary uppercase">
-            Meet nPanel
-          </p>
+          <p className="type-label mb-2 text-sky-700 dark:text-primary">Meet nPanel</p>
           <h2
             id="npanel-heading"
             className="text-balance text-3xl font-bold tracking-tight md:text-4xl"
@@ -201,15 +193,8 @@ export default function NpanelShowcase() {
                 className="inline-flex items-center gap-1.5 px-2 text-sm font-semibold text-foreground underline-offset-4 hover:underline"
               >
                 {persona.cta.label}
-              </Link>
-              <a
-                href={NPANEL_URL}
-                onClick={() => trackEvent("npanel_interest", { persona: persona.id, action: "sign_in" })}
-                className="inline-flex items-center gap-1.5 px-2 text-sm font-semibold text-primary underline-offset-4 hover:underline"
-              >
-                Log in to nPanel
                 <ArrowRight className="size-3.5" aria-hidden />
-              </a>
+              </Link>
             </div>
           </div>
 

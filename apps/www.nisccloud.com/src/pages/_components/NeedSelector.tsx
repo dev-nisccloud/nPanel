@@ -1,11 +1,11 @@
 import { GoalArtwork } from "./GoalArtwork.tsx";
+import { PillarIcon, type Pillar } from "./PillarIcon.tsx";
 import { useRef, useState } from "react";
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 import {
   Server,
-  TrendingUp,
   ShoppingCart,
   HardDrive,
   Mail,
@@ -23,8 +23,6 @@ import {
   PenTool,
   MonitorSmartphone,
 } from "lucide-react";
-import { ZepoMascot } from "@/components/zepo-mascot.tsx";
-
 import { Link, useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button.tsx";
@@ -52,15 +50,11 @@ type Feature = {
 };
 
 type Tab = {
-  icon: React.ElementType;
-
   label: string;
 
   kind: "hosting" | "marketing" | "ai" | "build";
 
   featured?: boolean;
-
-  step: string;
 
   stepLabel: string;
 
@@ -78,15 +72,11 @@ type Tab = {
 };
 
 const runTab: Tab = {
-  icon: Server,
-
   label: "Run My Business Online",
 
   kind: "hosting",
 
   featured: true,
-
-  step: "01",
 
   stepLabel: "Run",
 
@@ -129,68 +119,59 @@ const runTab: Tab = {
   ],
 };
 
+const buildTab: Tab = {
+  label: "Build My Brand or Website",
+
+  kind: "build",
+
+  stepLabel: "Build",
+
+  badge: "BUILD",
+
+  headline: "Build a brand and digital experience",
+
+  highlight: "customers remember.",
+
+  subtext:
+    "Create your identity, website, online store or software around the way your business works.",
+
+  primaryCta: { label: "Explore Build Solutions", href: "/services" },
+
+  features: [
+    {
+      icon: Target,
+      label: "Branding & Identity",
+      desc: "Positioning, identity and a practical brand system",
+      href: "/services/brand-identity",
+    },
+    {
+      icon: MonitorSmartphone,
+      label: "Website Design",
+      desc: "A clear digital home for your business",
+      href: "/services/website-design",
+    },
+    {
+      icon: ShoppingCart,
+      label: "Ecommerce Development",
+      desc: "Products, payments and customer journeys",
+      href: "/services/ecommerce",
+    },
+    {
+      icon: Cpu,
+      label: "Software & Applications",
+      desc: "Custom tools for customers and teams",
+      href: "/contact?service=custom&serviceName=Application%20Development",
+    },
+  ],
+};
+
 const tabs: Tab[] = [
+  buildTab,
   runTab,
   {
-    icon: MonitorSmartphone,
-
-    label: "Build My Brand or Website",
-
-    kind: "build",
-
-    step: "02",
-
-    stepLabel: "Build",
-
-    badge: "BUILD",
-
-    headline: "Build a brand and digital experience",
-
-    highlight: "customers remember.",
-
-    subtext:
-      "Create your identity, website, online store or software around the way your business works.",
-
-    primaryCta: { label: "Explore Build Solutions", href: "/services" },
-
-    features: [
-      {
-        icon: Target,
-        label: "Branding & Identity",
-        desc: "Positioning, identity and a practical brand system",
-        href: "/services/brand-identity",
-      },
-
-      {
-        icon: MonitorSmartphone,
-        label: "Website Design",
-        desc: "A clear digital home for your business",
-        href: "/services/website-design",
-      },
-
-      {
-        icon: ShoppingCart,
-        label: "Ecommerce Development",
-        desc: "Products, payments and customer journeys",
-        href: "/services/ecommerce",
-      },
-      {
-        icon: Cpu,
-        label: "Software & Applications",
-        desc: "Custom tools for customers and teams",
-        href: "/contact?service=custom&serviceName=Application%20Development",
-      },
-    ],
-  },
-
-  {
-    icon: TrendingUp,
-
     label: "Grow My Customer Base",
 
     kind: "marketing",
-
-    step: "03",
 
     stepLabel: "Grow",
 
@@ -237,13 +218,9 @@ const tabs: Tab[] = [
   },
 
   {
-    icon: ZepoMascot,
-
     label: "Automate My Business",
 
     kind: "ai",
-
-    step: "04",
 
     stepLabel: "Zepo AI",
 
@@ -291,55 +268,12 @@ const tabs: Tab[] = [
 ];
 
 
-function GoalCardMini({ kind, active }: { kind: Tab["kind"]; active: boolean }) {
-  if (kind === "hosting") {
-    return (
-      <span className="flex items-center gap-1" aria-hidden>
-        {[0, 1, 2].map((index) => (
-          <span
-            key={index}
-            className={cn(
-              "flex h-6 w-3 flex-col justify-end gap-0.5 rounded-sm p-0.5",
-              active ? "bg-primary/15" : "bg-muted",
-            )}
-          >
-            <span className={cn("block h-1 rounded-[1px]", active ? "bg-primary" : "bg-muted-foreground/40")} />
-            <span className={cn("block h-1 rounded-[1px]", active && index === 1 ? "bg-brand-orange" : active ? "bg-primary/60" : "bg-muted-foreground/25")} />
-          </span>
-        ))}
-      </span>
-    );
-  }
-  if (kind === "build") {
-    return (
-      <span className="flex items-center gap-1" aria-hidden>
-        <span className={cn("h-6 w-9 rounded-md border p-1", active ? "border-primary/40 bg-primary/10" : "border-border bg-muted")}>
-          <span className={cn("block h-1 w-2/3 rounded", active ? "bg-primary" : "bg-muted-foreground/40")} />
-          <span className="mt-1 block h-1 w-full rounded bg-muted-foreground/20" />
-        </span>
-        <span className={cn("size-4 rounded-md", active ? "bg-brand-orange" : "bg-brand-orange/40")} />
-        <span className="size-4 rounded-md bg-slate-950 dark:bg-slate-200" />
-      </span>
-    );
-  }
-  if (kind === "marketing") {
-    return (
-      <svg viewBox="0 0 64 24" className="h-6 w-16" aria-hidden>
-        <path d="M2 19 C 14 18, 18 14, 27 14 S 42 8, 50 8 S 58 5, 62 3" fill="none" stroke={active ? "var(--primary)" : "currentColor"} strokeWidth="2" className="text-muted-foreground/50" strokeLinecap="round" />
-        <circle cx="62" cy="3" r="2.5" fill={active ? "var(--color-brand-orange)" : "currentColor"} className="text-muted-foreground/60" />
-      </svg>
-    );
-  }
-  return (
-    <span className={cn("flex h-6 items-center gap-1.5 rounded-md px-2", active ? "bg-slate-950 text-white dark:bg-slate-900" : "bg-muted text-muted-foreground")} aria-hidden>
-      <span className={cn("size-1.5 rounded-full", active ? "bg-primary" : "bg-current")} />
-      <span className="h-px w-3 bg-current opacity-50" />
-      <ZepoMascot className="size-5" />
-      <span className="h-px w-3 bg-current opacity-50" />
-      <span className={cn("size-1.5 rounded-full", active ? "bg-brand-orange" : "bg-current")} />
-    </span>
-  );
-}
+const TAB_PILLAR: Record<Tab["kind"], Pillar> = {
+  build: "build",
+  hosting: "run",
+  marketing: "grow",
+  ai: "ai",
+};
 
 export default function NeedSelector() {
   const navigate = useNavigate();
@@ -371,9 +305,7 @@ export default function NeedSelector() {
           transition={{ duration: 0.5 }}
           className="mb-5 text-center md:mb-6"
         >
-          <p className="mb-2 font-mono text-xs font-bold tracking-[0.2em] text-primary uppercase">
-            Start with your goal
-          </p>
+          <p className="type-label mb-2 text-sky-700 dark:text-primary">Start with your goal</p>
           <h2 className="mx-auto max-w-2xl text-3xl font-bold tracking-tight text-foreground md:text-4xl">
             What do you need{" "}
             <PointerHighlight {...pointerHighlightProps} containerClassName="inline-block align-baseline">
@@ -425,21 +357,9 @@ export default function NeedSelector() {
                       : "border-border bg-card hover:border-primary/45 hover:bg-primary/[0.03]",
                   )}
                 >
-                  <span
-                    aria-hidden
-                    className={cn(
-                      "w-1 self-stretch shrink-0 rounded-full transition-colors",
-                      isActive ? "bg-primary" : "bg-border group-hover:bg-primary/40",
-                    )}
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className={cn("block font-mono text-[9px] font-bold uppercase tracking-[0.16em]", isActive ? "text-primary" : "text-muted-foreground")}>
-                      {t.step} · {t.stepLabel}
-                    </span>
-                    <span className="line-clamp-2 block text-[13px] font-bold leading-tight text-foreground">{t.label}</span>
-                  </span>
-                  <span className="hidden shrink-0 sm:block">
-                    <GoalCardMini kind={t.kind} active={isActive} />
+                  <PillarIcon pillar={TAB_PILLAR[t.kind]} active={isActive} />
+                  <span className="line-clamp-2 min-w-0 flex-1 text-sm font-bold leading-snug text-foreground">
+                    {t.label}
                   </span>
                 </button>
               );
@@ -481,9 +401,9 @@ export default function NeedSelector() {
               className="order-1 flex flex-col gap-5"
             >
               <div>
-                <p className="mb-2 text-sm font-medium text-primary">{tab.stepLabel}</p>
+                <p className="type-label mb-2 text-sky-700 dark:text-primary">{tab.stepLabel}</p>
                 <h3 className="text-2xl font-bold leading-snug tracking-tight text-foreground md:text-[1.75rem]">
-                  {tab.headline} <span className="text-primary">{tab.highlight}</span>
+                  {tab.headline} {tab.highlight}
                 </h3>
                 <p className="mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground md:text-base">{tab.subtext}</p>
               </div>

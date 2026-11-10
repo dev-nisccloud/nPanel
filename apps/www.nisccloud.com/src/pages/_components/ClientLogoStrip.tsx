@@ -65,7 +65,7 @@ export function ClientLogoStrip({ className, variant = "tiles" }: { className?: 
           <span className="relative size-2.5 rounded-full bg-primary" />
         </span>
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-foreground">
+          <p className="type-label text-foreground">
             Trusted by growing businesses
           </p>
           <p className="mt-1 text-xs leading-snug text-muted-foreground">

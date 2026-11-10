@@ -1,28 +1,29 @@
-import { TldLogo } from "./TldLogo.tsx";
-
-/** Extension showcase row  TLD logos under the search bar. */
+/** Extension showcase row under the search bar. */
 export function TldPricingCards() {
-  const tlds: { tld: string; variant: "kenyan" | "openprovider" }[] = [
-    { tld: "co.ke", variant: "kenyan" },
-    { tld: "ke", variant: "kenyan" },
-    { tld: "com", variant: "openprovider" },
-    { tld: "net", variant: "openprovider" },
-    { tld: "org", variant: "openprovider" },
-    { tld: "io", variant: "openprovider" },
+  const tlds: { tld: string; note: string; local?: boolean }[] = [
+    { tld: "co.ke", note: "Kenyan business", local: true },
+    { tld: "ke", note: "Kenya", local: true },
+    { tld: "com", note: "Global" },
+    { tld: "net", note: "Networks" },
+    { tld: "org", note: "Organisations" },
+    { tld: "io", note: "Tech & startups" },
   ];
 
   return (
-    <div className="w-full mt-4">
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-        {tlds.map(({ tld, variant }) => (
-          <div
-            key={tld}
-            className="border border-border rounded-lg px-3 py-1.5 flex items-center justify-center"
-          >
-            <TldLogo tld={tld} variant={variant} size={34} />
-          </div>
-        ))}
-      </div>
-    </div>
+    <ul className="mt-4 grid w-full grid-cols-3 gap-2 sm:grid-cols-6">
+      {tlds.map(({ tld, note, local }) => (
+        <li
+          key={tld}
+          className="flex flex-col items-center justify-center rounded-xl border border-border bg-background/80 px-2 py-2.5 text-center"
+        >
+          <span className="sr-only">.{tld}</span>
+          <span aria-hidden className="text-base font-bold tracking-tight text-foreground">
+            <span className={local ? "text-[#b9411f] dark:text-brand-orange" : "text-sky-700 dark:text-primary"}>.</span>
+            {tld}
+          </span>
+          <span className="mt-0.5 text-[11px] leading-tight text-muted-foreground">{note}</span>
+        </li>
+      ))}
+    </ul>
   );
 }

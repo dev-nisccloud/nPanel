@@ -150,7 +150,7 @@ export default function Footer() {
             </Link>
             <p className="max-w-md text-2xl font-bold leading-tight tracking-tight text-white md:text-[1.75rem]">
               Technology, infrastructure and growth for{" "}
-              <span className="bg-linear-to-r/oklch from-primary from-30% to-brand-orange bg-clip-text text-transparent">modern businesses.</span>
+              <span className="text-primary">modern businesses.</span>
             </p>
           </div>
           <ul className="grid gap-3 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,0.9fr)]">
@@ -162,7 +162,7 @@ export default function Footer() {
                     <Icon size={16} />
                   </span>
                   <span className="min-w-0">
-                    <span className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400">{label}</span>
+                    <span className="block text-xs font-medium text-slate-400">{label}</span>
                     <span className="block text-sm font-semibold text-white [overflow-wrap:anywhere]">{value}</span>
                   </span>
                 </>
@@ -187,7 +187,7 @@ export default function Footer() {
         {/* Link columns */}
         <div className="grid grid-cols-2 gap-8 py-10 md:grid-cols-3 lg:grid-cols-[1.2fr_1fr_1fr_1fr]">
           <div className="col-span-2 md:col-span-3 lg:col-span-1">
-            <h4 className="mb-4 font-mono text-xs font-bold uppercase tracking-widest text-brand-orange">Follow us</h4>
+            <h4 className="type-label mb-4 text-white">Follow us</h4>
             <p className="mb-4 max-w-xs text-sm leading-relaxed text-slate-400">
               Follow Nisc Cloud for product updates and news.
             </p>
@@ -209,7 +209,7 @@ export default function Footer() {
 
           {footerSections.map((section) => (
             <div key={section.title}>
-              <h4 className="mb-4 font-mono text-xs font-bold uppercase tracking-widest text-primary">{section.title}</h4>
+              <h4 className="type-label mb-4 text-white">{section.title}</h4>
               <ul className="space-y-2.5">
                 {section.links.map((link) => (
                   <li key={link.label}>

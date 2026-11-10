@@ -69,35 +69,33 @@ export default function WhyNisc() {
           ))}
         </div>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-[1fr_1fr_auto] md:items-stretch">
-          <p className="flex items-start gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/5 p-5 text-sm leading-relaxed">
-            <Unlock className="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+        <div className="mt-4 flex flex-col divide-y divide-border rounded-3xl border border-border bg-card md:flex-row md:divide-x md:divide-y-0">
+          <p className="flex flex-1 items-start gap-3 p-5 text-sm leading-relaxed">
+            <Unlock className="mt-0.5 size-5 shrink-0 text-sky-700 dark:text-primary" aria-hidden />
             <span>
-              <span className="font-semibold">
-                Your domain, code and data remain yours.
-              </span>{" "}
+              <span className="font-semibold">Your domain, code and data remain yours.</span>{" "}
               <span className="text-muted-foreground">
                 Subject to paid invoices and agreed third-party licence terms,
                 you can move without losing the assets you own.
               </span>
             </span>
           </p>
-          <p className="flex items-start gap-3 rounded-2xl border border-brand-orange/25 bg-brand-orange/5 p-5 text-sm leading-relaxed">
-            <CalendarCheck className="mt-0.5 size-5 shrink-0 text-brand-orange" aria-hidden />
-            <span className="text-muted-foreground">
-              For defined managed services, we agree first-month milestones
-              during onboarding and review progress within 30 days.
+          <p className="flex flex-1 items-start gap-3 p-5 text-sm leading-relaxed">
+            <CalendarCheck className="mt-0.5 size-5 shrink-0 text-sky-700 dark:text-primary" aria-hidden />
+            <span>
+              <span className="font-semibold">Milestones agreed up front.</span>{" "}
+              <span className="text-muted-foreground">
+                For defined managed services, we agree first-month milestones
+                during onboarding and review progress within 30 days.
+              </span>
             </span>
           </p>
           <Link
             to="/work"
-            className="group flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-5 text-sm font-semibold hover:border-primary/40 md:flex-col md:items-start md:justify-center"
+            className="group flex items-center gap-2 p-5 text-sm font-semibold text-sky-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary dark:text-primary md:shrink-0"
           >
-            <span>See work we have delivered</span>
-            <ArrowRight
-              className="size-4 text-primary transition-transform group-hover:translate-x-0.5"
-              aria-hidden
-            />
+            See work we have delivered
+            <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
           </Link>
         </div>
       </div>
