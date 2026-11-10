@@ -267,11 +267,14 @@ export function DomainPortfolioContactInfo({
       handle: string | undefined,
       role: string,
       loading: boolean,
+      supported: boolean | undefined,
     ) => {
+      if (supported === false && !handle && !data) return;
       if (data) {
         rows.push(mapOpenProviderCustomerToContact(data, role));
         return;
       }
+      if (!handle && !loading && supported !== true) return;
       rows.push({ role, fullName: loading ? "" : "—", email: "", handle });
     };
 
@@ -280,9 +283,9 @@ export function DomainPortfolioContactInfo({
       pushKenic(kenicHandlers?.tech, "Technical");
       pushKenic(kenicHandlers?.billing, "Billing");
     } else {
-      pushOp(adminQuery.data?.data as OpenProviderCustomerRecord | undefined, adminHandle, "Admin", adminQuery.isLoading);
-      pushOp(techQuery.data?.data as OpenProviderCustomerRecord | undefined, techHandle, "Technical", techQuery.isLoading);
-      pushOp(billingQuery.data?.data as OpenProviderCustomerRecord | undefined, billingHandle, "Billing", billingQuery.isLoading);
+      pushOp(adminQuery.data?.data as OpenProviderCustomerRecord | undefined, adminHandle, "Admin", adminQuery.isLoading, liveHandles?.support?.admin);
+      pushOp(techQuery.data?.data as OpenProviderCustomerRecord | undefined, techHandle, "Technical", techQuery.isLoading, liveHandles?.support?.tech);
+      pushOp(billingQuery.data?.data as OpenProviderCustomerRecord | undefined, billingHandle, "Billing", billingQuery.isLoading, liveHandles?.support?.billing);
     }
     return rows;
   }, [
@@ -299,11 +302,19 @@ export function DomainPortfolioContactInfo({
     techQuery.isLoading,
     billingQuery.data,
     billingQuery.isLoading,
+    liveHandles?.support,
   ]);
 
   const hasOtherHandlers = isKenic
     ? !!(kenicHandlers?.admin || kenicHandlers?.tech || kenicHandlers?.billing)
-    : true;
+    : !!(
+        adminHandle ||
+        techHandle ||
+        billingHandle ||
+        liveHandles?.support?.admin ||
+        liveHandles?.support?.tech ||
+        liveHandles?.support?.billing
+      );
 
   const hasExpandableDetails =
     isKenic ||
