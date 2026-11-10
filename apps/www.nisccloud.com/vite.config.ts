@@ -69,6 +69,10 @@ export default defineConfig(({ mode }) => {
       hmr: {
         overlay: false,
       },
+      // Production builds rewrite these folders; watching them crashes the dev server on Windows (EBUSY).
+      watch: {
+        ignored: ["**/dist/**", "**/dist-ssr/**"],
+      },
       proxy: {
         ...locationProxy,
         // Address the upstream virtual host; preserve the browser origin below.

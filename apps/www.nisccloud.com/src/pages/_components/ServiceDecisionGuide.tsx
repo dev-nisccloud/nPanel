@@ -1,11 +1,5 @@
 import { useLocation } from "react-router-dom";
 const guides: Record<string, string[]> = {
-  wordpress: [
-    "What should managed WordPress hosting include?",
-    "Managed WordPress hosting combines the server environment with an agreed level of WordPress care. When comparing plans, check who handles core updates, plugin compatibility, backups and restores. A hosting plan and a website maintenance agreement can cover different responsibilities; make sure your chosen scope covers the tasks you want to hand over.",
-    "Choosing hosting for a business website or WooCommerce store",
-    "Start with your site size, expected traffic and whether customers transact online. A content website and an online store have different resource and testing needs. Share your current plugins, payment integrations and peak periods so we can discuss a suitable plan and migration approach.",
-  ],
   "website-design": [
     "A business website built around customer decisions",
     "Good website design starts with what visitors need to understand: what you offer, who it suits, what makes it credible and how to take the next step. We use those questions to organise service pages, navigation and enquiry journeys. For an existing website, useful content and established URLs should be reviewed before a redesign changes the structure.",

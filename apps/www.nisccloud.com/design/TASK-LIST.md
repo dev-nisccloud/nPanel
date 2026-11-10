@@ -44,7 +44,8 @@ In this order. Nothing here has been done yet.
 | BIZ-04 | Accountant approval for foreign zero-rating and foreign-currency eTIMS | Accountant | Not started | Both are disabled; every sale uses 16% VAT for now |
 | BIZ-05 | Arrange an independent review of the payment changes | Owner | Not started | Before taking real foreign payments |
 | BIZ-06 | Provide test access: M-Pesa Daraja and Jenga sandboxes, KeNIC OT&E credentials, registrar sandbox, a resettable test customer | Owner/Backend | Not started | Needed for PAY-05 |
-| BIZ-07 | Edit the Web Hosting and WordPress product descriptions in nPanel admin | Owner | Not started | They still say "24/7 local support", "Lightning-fast", "enterprise security", "in minutes" and appear on pricing pages |
+| BIZ-07 | Edit the Web Hosting and WordPress product descriptions in nPanel admin | Owner | Partial | The Web Hosting and WordPress pages now show approved intros instead, but `/pricing` may still show the nPanel text ("24/7 local support", "Lightning-fast", "enterprise security", "in minutes") |
+| BIZ-10 | Add "Daily backups" and "DDoS protection" to the WordPress **Launch** plan in the nPanel catalogue | Owner | Not started | Owner confirmed (11 Nov 2026) every WordPress plan has them; the catalogue lists them on Business and Performance only, so Launch's plan card omits them |
 | BIZ-08 | Legal review of a fair-use clause for "Unlimited*" resources | Legal | Not started | Draft wording is in `pre-launch-remediation-log.md` |
 | BIZ-09 | Set up a maintained public status page, if wanted | Owner | Not started | No status link is shown until one exists |
 
@@ -192,7 +193,7 @@ Every product and service page should follow the Web Hosting pattern when it is 
 
 | ID | Task | Pri | Who | Status |
 | --- | --- | --- | --- | --- |
-| CNT-01 | Apply the content standard to each remaining product and service page as it is reviewed | P1 | Dev | In progress — Web Hosting done |
+| CNT-01 | Apply the content standard to each remaining product and service page as it is reviewed | P1 | Dev | In progress — Web Hosting and WordPress Hosting done |
 
 ### 3.8 Design, UX and accessibility
 

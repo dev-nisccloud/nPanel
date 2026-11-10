@@ -43,6 +43,19 @@ export const SHARED_HOSTING_PRICING_CONFIG: HostingPlansPricingConfig = {
 export const WORDPRESS_HOSTING_PRICING_CONFIG: HostingPlansPricingConfig = {
   sectionId: "plans",
   title: "Choose Your WordPress Plan",
+  description:
+    "Managed WordPress hosting on NVMe storage with LiteSpeed cache, automatic WordPress updates, daily backups and security managed in nPanel.",
+  everyPlanIncludes: [
+    "Email hosting",
+    "Free SSL",
+    "Free CDN",
+    "DDoS protection",
+    "Daily backups",
+    "Malware scanning & removal",
+    "Automatic WordPress updates",
+    "LiteSpeed cache",
+    "WP-CLI, SSH & SFTP",
+  ],
   serviceType: "wordpress_hosting",
   fetchPlans: fetchWordPressHostingPlansPublic,
   fallbackFeatures: [

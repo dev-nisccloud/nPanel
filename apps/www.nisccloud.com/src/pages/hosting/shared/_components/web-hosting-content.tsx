@@ -1,16 +1,15 @@
-import { Link } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
-import { cn } from "@/lib/utils.ts";
 import {
   ComparisonTable,
   ContentBand,
   Glossary,
+  PlanFitGrid,
   Prose,
   RelatedLinks,
   StepList,
+  type PlanFit,
 } from "@/pages/_components/ContentBlocks.tsx";
 
-const PLAN_FIT: { name: string; level: number; bestFor: string; chooseIf: string; recommended?: boolean }[] = [
+const PLAN_FIT: PlanFit[] = [
   {
     name: "Launch",
     level: 1,
@@ -38,20 +37,6 @@ const PLAN_FIT: { name: string; level: number; bestFor: string; chooseIf: string
   },
 ];
 
-function PlanFitMeter({ level }: { level: number }) {
-  return (
-    <span aria-hidden className="flex items-end gap-1">
-      {[1, 2, 3, 4].map((bar) => (
-        <span
-          key={bar}
-          className={cn("w-2 rounded-sm", bar <= level ? "bg-primary" : "bg-primary/15")}
-          style={{ height: `${8 + bar * 5}px` }}
-        />
-      ))}
-    </span>
-  );
-}
-
 /** Shown straight after the plan cards, while visitors are deciding. */
 export function WebHostingPlanFit() {
   return (
@@ -61,54 +46,17 @@ export function WebHostingPlanFit() {
       title="Which web hosting plan fits your website?"
       answer="Choose by what you are running: Launch for a first website, Grow for small business websites and online stores, Accelerate for busier or multiple sites, and Corporate for custom requirements."
     >
-      <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {PLAN_FIT.map((plan) => (
-          <li
-            key={plan.name}
-            className={cn(
-              "flex flex-col rounded-3xl border bg-card p-6",
-              plan.recommended ? "border-primary ring-2 ring-primary/25" : "border-border",
-            )}
-          >
-            <div className="flex items-center justify-between">
-              <h3 className="text-xl font-bold tracking-tight">{plan.name}</h3>
-              <PlanFitMeter level={plan.level} />
-            </div>
-            <p className="mt-3 text-base font-semibold text-foreground">{plan.bestFor}</p>
-            <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
-              <span className="font-medium text-foreground">Choose it if </span>
-              {plan.chooseIf.charAt(0).toLowerCase() + plan.chooseIf.slice(1)}
-            </p>
-            {plan.recommended ? (
-              <span className="mt-4 w-fit rounded-full bg-brand-orange/15 px-2.5 py-1 text-xs font-semibold text-[#b9411f] dark:text-brand-orange">
-                Most businesses start here
-              </span>
-            ) : null}
-          </li>
-        ))}
-      </ul>
-      <div className="mt-8 flex flex-col gap-4 rounded-3xl border border-dashed border-primary/40 bg-primary/[0.05] p-6 md:flex-row md:items-center md:justify-between">
-        <p className="max-w-[65ch] text-base leading-relaxed text-foreground">
-          <span className="font-semibold">Not sure? Start smaller.</span> You can upgrade from nPanel without
-          migrating your website, and the same monthly rate applies whether you pay monthly or for up to three
-          years.
-        </p>
-        <div className="flex shrink-0 flex-wrap gap-3">
-          <a
-            href="#plans"
-            className="inline-flex h-11 items-center gap-2 rounded-xl bg-primary px-5 text-base font-bold text-[#02070a] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-          >
-            Compare plans
-            <ArrowRight className="size-4" aria-hidden />
-          </a>
-          <Link
-            to="/contact?serviceName=Web%20Hosting"
-            className="inline-flex h-11 items-center rounded-xl border border-border bg-card px-5 text-base font-semibold text-foreground transition hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
-            Ask our team
-          </Link>
-        </div>
-      </div>
+      <PlanFitGrid
+        plans={PLAN_FIT}
+        contactHref="/contact?serviceName=Web%20Hosting"
+        note={
+          <>
+            <span className="font-semibold">Not sure? Start smaller.</span> You can upgrade from nPanel without
+            migrating your website, and the same monthly rate applies whether you pay monthly or for up to three
+            years.
+          </>
+        }
+      />
     </ContentBand>
   );
 }
