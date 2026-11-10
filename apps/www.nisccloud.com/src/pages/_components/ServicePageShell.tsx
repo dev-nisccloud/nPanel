@@ -122,6 +122,8 @@ export type ServicePageShellProps = {
     afterProcess?: React.ReactNode;
     beforeFaq?: React.ReactNode;
   };
+  /** Closing card design; quote-only products use `brief` instead of the storefront receipt. */
+  closingCard?: "storefront" | "brief";
   whySectionBadge?: string;
   /** Strategy-led buyer guidance, used by consultation services. */
   strategySections?: StrategySection[];
@@ -612,6 +614,7 @@ export default function ServicePageShell({
   whySectionVariant,
   faqTitle,
   contentSlots,
+  closingCard,
   whySectionBadge: _whySectionBadge,
   strategySections,
 }: ServicePageShellProps) {
@@ -844,6 +847,21 @@ export default function ServicePageShell({
             _serviceType === "hosting"
               ? ["Choose a plan", "Connect your domain", "Go live and manage it in nPanel"]
               : ["Book a free strategy call", "Agree the scope and price", "Track progress in nPanel"]
+          }
+          details={
+            _serviceType === "hosting"
+              ? closingCard === "brief"
+                ? {
+                    variant: "brief",
+                    items: ["What you need hosted", "Your current setup", "Timing and budget"],
+                  }
+                : { variant: "storefront", product: pageName, actionLabel: primaryCtaLabel }
+              : closingCard === "storefront"
+                ? { variant: "storefront", product: pageName, actionLabel: primaryCtaLabel }
+                : {
+                    variant: "timeline",
+                    items: ["Free strategy call", "Scope and price agreed", "Work tracked in nPanel", "Report and next step"],
+                  }
           }
         />
       </main>

@@ -1,8 +1,27 @@
-import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Check } from "lucide-react";
-import { useInView, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils.ts";
+import {
+  BriefCard,
+  CampaignTimeline,
+  CommandBar,
+  PathChooser,
+  ServerRack,
+  ShieldScan,
+  StorefrontReceipt,
+  type ClosingVariant,
+} from "./closing-visuals.tsx";
+
+export type ClosingDetails = {
+  variant: ClosingVariant;
+  /** Receipt: the product line. */
+  product?: string;
+  domain?: string;
+  /** Receipt footer / first path. */
+  actionLabel?: string;
+  /** Timeline and shield: the sequence shown. */
+  items?: string[];
+};
 
 type CtaLink = { label: string; href: string; external?: boolean; onClick?: () => void };
 
@@ -17,6 +36,10 @@ export type ClosingCtaProps = {
   note?: string;
   /** Three short steps shown in the "How it works" card. */
   steps?: string[];
+  /** Page-specific card design and details; falls back to the "How it works" card. */
+  details?: ClosingDetails;
+  /** Overrides the closing card chosen for this page type. */
+  closingCard?: "storefront" | "brief";
   className?: string;
 };
 
@@ -45,22 +68,43 @@ function CtaAnchor({ link, className, children }: { link: CtaLink; className: st
   );
 }
 
-/** Steps tick off one by one the first time the banner is seen; reduced motion shows them done. */
-function useStepsDone(count: number) {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { amount: 0.5, once: true });
-  const reduceMotion = useReducedMotion() ?? false;
-  const [done, setDone] = useState(0);
-  useEffect(() => {
-    if (reduceMotion) {
-      setDone(count);
-      return;
-    }
-    if (!inView) return;
-    const timers = Array.from({ length: count }, (_, i) => window.setTimeout(() => setDone(i + 1), 350 + i * 550));
-    return () => timers.forEach(window.clearTimeout);
-  }, [count, inView, reduceMotion]);
-  return { ref, done };
+function HowItWorks({ steps }: { steps: string[] }) {
+  return (
+    <div className="rounded-3xl bg-white p-6 text-[#02070a] shadow-[0_30px_60px_-35px_rgb(2_7_10_/_0.55)] sm:p-7 dark:bg-slate-950 dark:text-white dark:ring-1 dark:ring-white/10">
+      <p className="type-label text-sky-700 dark:text-primary">How it works</p>
+      <ol className="mt-5 space-y-4">
+        {steps.map((step, i) => (
+          <li key={step} className="flex items-center gap-4">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-primary/30 bg-primary/[0.06] text-base font-bold text-sky-700 dark:text-primary">
+              {i + 1}
+            </span>
+            <span className="text-base font-semibold leading-snug md:text-lg">{step}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function ClosingCard({ details, steps, primary, secondary }: { details?: ClosingDetails; steps: string[]; primary: string; secondary?: string }) {
+  switch (details?.variant) {
+    case "storefront":
+      return <StorefrontReceipt product={details.product ?? "Nisc Cloud service"} domain={details.domain} cta={details.actionLabel ?? primary} />;
+    case "timeline":
+      return <CampaignTimeline steps={details.items ?? steps} />;
+    case "rack":
+      return <ServerRack />;
+    case "command":
+      return <CommandBar />;
+    case "brief":
+      return <BriefCard fields={details.items ?? steps} />;
+    case "paths":
+      return <PathChooser primary={primary} secondary={details.actionLabel ?? "Talk to our team"} />;
+    case "shield":
+      return <ShieldScan checks={details.items ?? ["SSL certificate", "Firewall rules", "Backups", "Malware scan"]} />;
+    default:
+      return <HowItWorks steps={steps} />;
+  }
 }
 
 export function ClosingCta({
@@ -72,10 +116,9 @@ export function ClosingCta({
   points = DEFAULT_POINTS,
   note,
   steps = DEFAULT_STEPS,
+  details,
   className,
 }: ClosingCtaProps) {
-  const { ref, done } = useStepsDone(steps.length);
-
   return (
     <section className={cn("px-4 py-14 sm:px-6 md:py-20 lg:px-8", className)} aria-labelledby="closing-cta-heading">
       <div className="relative mx-auto max-w-7xl overflow-hidden rounded-[28px] bg-[linear-gradient(120deg,#5cc4ff_0%,#38b6ff_45%,#1592e0_100%)] text-[#02070a] shadow-[0_40px_80px_-50px_rgb(2_132_199_/_0.9)] dark:bg-[linear-gradient(120deg,#0e4a73_0%,#0b3a5c_55%,#07243a_100%)] dark:text-white">
@@ -138,37 +181,8 @@ export function ClosingCta({
             {note ? <p className="mt-4 text-sm leading-relaxed text-[#02070a]/75 dark:text-white/70">{note}</p> : null}
           </div>
 
-          <div
-            ref={ref}
-            className="relative rounded-3xl bg-white p-6 text-[#02070a] shadow-[0_30px_60px_-35px_rgb(2_7_10_/_0.55)] sm:p-7 dark:bg-slate-950 dark:text-white dark:ring-1 dark:ring-white/10"
-          >
-            <p className="type-label text-sky-700 dark:text-primary">How it works</p>
-            <ol className="mt-5 space-y-4">
-              {steps.map((step, i) => {
-                const complete = i < done;
-                return (
-                  <li key={step} className="flex items-center gap-4">
-                    <span
-                      className={cn(
-                        "flex size-10 shrink-0 items-center justify-center rounded-full border-2 text-base font-bold transition-colors duration-500",
-                        complete
-                          ? "border-primary bg-primary text-[#02070a]"
-                          : "border-primary/30 bg-primary/[0.06] text-sky-700 dark:text-primary",
-                      )}
-                    >
-                      {complete ? <Check className="size-5" strokeWidth={3} aria-hidden /> : i + 1}
-                    </span>
-                    <span className="text-base font-semibold leading-snug md:text-lg">{step}</span>
-                  </li>
-                );
-              })}
-            </ol>
-            <div className="mt-6 h-1.5 overflow-hidden rounded-full bg-primary/15" aria-hidden>
-              <div
-                className="h-full rounded-full bg-primary transition-[width] duration-500 ease-out"
-                style={{ width: `${(done / steps.length) * 100}%` }}
-              />
-            </div>
+          <div className="relative">
+            <ClosingCard details={details} steps={steps} primary={primary.label} secondary={secondary?.label} />
           </div>
         </div>
       </div>

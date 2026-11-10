@@ -215,6 +215,7 @@ export default function HostingPage() {
           primary={{ label: "Compare All Plans", href: "/pricing" }}
           secondary={{ label: "Talk to Our Team", href: "/contact?serviceName=Cloud%20Hosting" }}
           steps={["Choose your products", "Connect your domain", "Go live and manage it in nPanel"]}
+          details={{ variant: "rack" }}
         />
       </main>
       <Footer />

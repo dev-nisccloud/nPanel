@@ -9,6 +9,7 @@ export default function AgencyHostingPage() {
       headline="Agency hosting for the websites your clients depend on"
       subtext="Bring your client hosting requirements into one conversation. Nisc Cloud helps agencies in Kenya plan website hosting, domains, business email and infrastructure around the portfolios they manage."
       serviceType="hosting"
+      closingCard="brief"
       plans={[]}
       plansUnderHero
       customPlansSection={<AgencyPlans />}

@@ -332,6 +332,7 @@ export default function PlatformPage() {
           subtext="Compare available products and pricing, or sign in to nPanel to manage the eligible services already connected to your account."
           primary={{ label: "View pricing", href: "/pricing" }}
           secondary={{ label: "Log in to nPanel", href: NPANEL_URL, external: true }}
+          details={{ variant: "command" }}
         />
       </main>
       <Footer />

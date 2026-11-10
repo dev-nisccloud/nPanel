@@ -191,6 +191,7 @@ export default function SecurityServiceLayout({
         primary={{ label: ctaLabel, href: contactHref }}
         secondary={{ label: "View Security Plans", href: "/security#security-plans" }}
         points={["Setup guidance included", "Pay with M-Pesa or card"]}
+        details={{ variant: "shield" }}
       />
 
       </main>

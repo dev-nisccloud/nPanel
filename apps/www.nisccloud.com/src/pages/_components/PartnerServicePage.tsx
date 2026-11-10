@@ -59,6 +59,7 @@ export default function PartnerServicePage({ kind }: { kind: keyof typeof offeri
       headline={item.headline}
       subtext={item.desc}
       serviceType="hosting"
+      closingCard={migration ? "brief" : "storefront"}
       plans={[]}
       heroCta2="Discuss your requirements"
       heroCta2Href={contactHref}

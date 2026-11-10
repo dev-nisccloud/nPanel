@@ -186,6 +186,7 @@ export default function EmailSecurityPage() {
         primary={{ label: "View Email Security Plans", href: "#email-security-plans" }}
         secondary={{ label: "Talk to an Expert", href: "/contact" }}
         points={["Setup guidance included", "Pay with M-Pesa or card"]}
+        details={{ variant: "shield" }}
       />
       </main>
       <Footer />

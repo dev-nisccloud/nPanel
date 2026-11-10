@@ -8,6 +8,7 @@ export default function PricingCTA() {
       subtext="Every business is different. Talk to our team and we will design a plan around your goals and budget, with no pressure."
       primary={{ label: "Book a Free Strategy Call", href: "/contact" }}
       secondary={{ label: "Explore Services", href: "/services" }}
+      details={{ variant: "paths", actionLabel: "Talk to our team" }}
     />
   );
 }

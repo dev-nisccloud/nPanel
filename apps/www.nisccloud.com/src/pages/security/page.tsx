@@ -146,6 +146,7 @@ export default function SecurityPage() {
         primary={{ label: "View Security Plans", href: "#security-plans" }}
         secondary={{ label: "Talk to an Expert", href: "/contact" }}
         points={["Setup guidance included", "Pay with M-Pesa or card"]}
+        details={{ variant: "shield" }}
       />
       </main>
       <Footer />

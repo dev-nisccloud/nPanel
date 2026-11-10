@@ -27,6 +27,7 @@ export default function SecurityCTA({
       }}
       secondary={{ label: "Talk to an Expert", href: "/contact" }}
       points={["Setup help included", "Pay with M-Pesa or card"]}
+      details={{ variant: "shield", items: ["SSL certificate", "Firewall rules", "Backups", "Malware scan"] }}
       note={footnote === "Setup help included." ? undefined : footnote}
     />
   );

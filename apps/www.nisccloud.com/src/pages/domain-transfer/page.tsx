@@ -24,6 +24,7 @@ export default function DomainTransferPage() {
       }
       subtext="Bring an eligible domain into the same account as your hosting and email. Check live support and pricing, then follow the registry-specific transfer steps with scoped help where needed."
       serviceType="hosting"
+      closingCard="brief"
       plans={[]}
       plansUnderHero
       customPlansSection={<TransferToolSection />}

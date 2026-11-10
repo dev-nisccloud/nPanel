@@ -5,6 +5,7 @@ import { Code2, Gauge, GitBranch, Lock, Mail, RefreshCw, Shield, ShoppingCart } 
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
 import { WordPressPricingSection } from "./_components/WordPressPricingSection.tsx";
 import { StagingToLiveArt } from "./_components/StagingToLiveArt.tsx";
+import { WordPressPerformanceArt } from "./_components/WordPressPerformanceArt.tsx";
 import {
   WordPressComparison,
   WordPressExplained,
@@ -17,7 +18,8 @@ import {
 const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "WordPress performance",
-    artwork: <ServiceExperience mode="wordpress" photo />,
+    artwork: <WordPressPerformanceArt />,
+    caption: false,
     headline: "Built to keep WordPress fast.",
     body: "Every plan includes LiteSpeed cache, WordPress acceleration and a free CDN, so pages are served quickly without extra caching plugins. Business and Performance add object cache for busier sites and WooCommerce stores.",
     bullets: [

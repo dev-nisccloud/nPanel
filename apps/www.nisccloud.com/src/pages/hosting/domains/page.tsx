@@ -3,7 +3,6 @@ import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
 import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
 import { Globe, Shield, RefreshCw, Lock, Award, Zap, Search } from "lucide-react";
 import { DomainSearchSection } from "./_components/DomainSearchSection.tsx";
-
 export default function DomainsPage() {
   return (
     <ServicePageShell

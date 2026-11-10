@@ -8,6 +8,7 @@ export default function WorkCTA() {
       subtext="Book a free strategy call and we will map clear hosting and marketing next steps for your business."
       primary={{ label: "Get Your Free Strategy Call", href: "/contact" }}
       secondary={{ label: "Explore Our Services", href: "/services" }}
+      details={{ variant: "brief", items: ["What you do and who you serve", "The website or software needed", "Budget and timing"] }}
     />
   );
 }
