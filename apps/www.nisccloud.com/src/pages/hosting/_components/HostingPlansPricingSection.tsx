@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Check, CreditCard, Headphones, Lock, ReceiptText, type LucideIcon } from "lucide-react";
+import { Check } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -39,13 +39,13 @@ export type HostingPlansPricingConfig = {
   description?: string;
   /** Plans without a price open the contact form pre-filled with this service name. */
   contactServiceName?: string;
-  /** Owner-confirmed inclusions shared by every plan, shown above the plan cards. */
+  /** Owner-confirmed inclusions shared by every plan, shown below the plan cards. */
   everyPlanIncludes?: string[];
 };
 
 function EveryPlanIncludes({ items }: { items: string[] }) {
   return (
-    <div className="mb-8 flex flex-col items-center gap-3 text-center">
+    <div className="mt-10 flex flex-col items-center gap-3 text-center">
       <p className="type-label text-foreground">Every plan includes</p>
       <ul className="flex max-w-4xl flex-wrap justify-center gap-2">
         {items.map((item) => (
@@ -71,31 +71,6 @@ function withFallbackValues(plans: SharedHostingPlan[], config: HostingPlansPric
     ...p,
     featureValues: config.fallbackFeatures.map((f) => ({ available: true, valueOverride: f.value })),
   }));
-}
-
-function TrustRow({
-  freeSsl,
-  currency,
-}: {
-  freeSsl: boolean;
-  currency: "KES" | "USD";
-}) {
-  const items: { icon: LucideIcon; text: string }[] = [
-    ...(freeSsl ? [{ icon: Lock, text: "Free SSL on every plan" }] : []),
-    { icon: Headphones, text: "Support through nPanel" },
-    { icon: CreditCard, text: "Pay with M-Pesa or card" },
-    { icon: ReceiptText, text: `Prices in ${currency} based on your location, excluding VAT` },
-  ];
-  return (
-    <ul className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-muted-foreground">
-      {items.map(({ icon: Icon, text }) => (
-        <li key={text} className="inline-flex items-center gap-2">
-          <Icon className="h-4 w-4 text-primary" />
-          {text}
-        </li>
-      ))}
-    </ul>
-  );
 }
 
 function PlanSkeleton() {
@@ -184,9 +159,6 @@ export function HostingPlansPricingSection({
       : buildPlanModels(withFallbackValues(plans, config), fallbackProductFeatures(config));
   }, [plans, productFeatures, config]);
 
-  const freeSsl =
-    models.length > 0 && models.every((m) => m.features.some((f) => f.key === "free_ssl" && f.value));
-
   const intro = config.description ?? productDescription;
 
   const changeCycle = (next: BillingCycle) => {
@@ -270,7 +242,6 @@ export function HostingPlansPricingSection({
                 <p className="text-sm text-muted-foreground">The same monthly rate applies on every term. Pay monthly or up front.</p>
               </div>
             ) : null}
-            {config.everyPlanIncludes?.length ? <EveryPlanIncludes items={config.everyPlanIncludes} /> : null}
             <PlanCardsSpotlight
               models={models}
               cycle={cycle}
@@ -280,7 +251,7 @@ export function HostingPlansPricingSection({
               currency={currency}
               kesToCurrencyRate={kesToCurrencyRate}
             />
-            <TrustRow freeSsl={freeSsl} currency={currency} />
+            {config.everyPlanIncludes?.length ? <EveryPlanIncludes items={config.everyPlanIncludes} /> : null}
           </>
         )}
       </div>
