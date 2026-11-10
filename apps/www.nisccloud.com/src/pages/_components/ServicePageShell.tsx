@@ -115,6 +115,13 @@ export type ServicePageShellProps = {
   /** `simple` shows the why points as plain cards on one row, without illustrations. */
   whySectionVariant?: "visual" | "simple";
   faqTitle?: string;
+  /** Long-form content placed where each buyer question arises, rather than in one block. */
+  contentSlots?: {
+    afterPricing?: React.ReactNode;
+    afterShowcase?: React.ReactNode;
+    afterProcess?: React.ReactNode;
+    beforeFaq?: React.ReactNode;
+  };
   whySectionBadge?: string;
   /** Strategy-led buyer guidance, used by consultation services. */
   strategySections?: StrategySection[];
@@ -184,7 +191,7 @@ function FeaturesGrid({ features }: { features: Feature[] }) {
                   <h3 className="font-bold text-base text-foreground mb-1.5">
                     {f.title}
                   </h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
+                  <p className="text-[15px] text-muted-foreground leading-relaxed">
                     {f.desc}
                   </p>
                 </div>
@@ -271,11 +278,11 @@ function ProcessSection({ steps }: { steps: ProcessStep[] }) {
               key={step.num}
               className="border-b border-border py-7 last:border-b-0 md:px-6 md:[&:nth-last-child(-n+2)]:border-b-0 lg:border-b-0 lg:border-r lg:first:pl-0 lg:last:border-r-0 lg:last:pr-0"
             >
-              <span className="font-mono text-sm font-bold text-primary">
+              <span className="text-base font-bold text-sky-700 dark:text-primary">
                 {step.num}
               </span>
               <h3 className="mt-5 text-lg font-bold">{step.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
                 {step.desc}
               </p>
             </li>
@@ -604,6 +611,7 @@ export default function ServicePageShell({
   whySectionHeadline,
   whySectionVariant,
   faqTitle,
+  contentSlots,
   whySectionBadge: _whySectionBadge,
   strategySections,
 }: ServicePageShellProps) {
@@ -760,10 +768,12 @@ export default function ServicePageShell({
             <div id="pricing" className="scroll-mt-20">
               {renderPricingSection()}
             </div>
+            {contentSlots?.afterPricing}
 
             {showcaseBlocks && showcaseBlocks.length > 0 && (
               <ServiceShowcaseSection blocks={showcaseBlocks} />
             )}
+            {contentSlots?.afterShowcase}
 
             {strategySections && strategySections.length > 0 && (
               <StrategyGuide sections={strategySections} />
@@ -774,12 +784,14 @@ export default function ServicePageShell({
             {process && process.length > 0 && (
               <ProcessSection steps={process} />
             )}
+            {contentSlots?.afterProcess}
           </>
         ) : (
           <>
             {showcaseBlocks && showcaseBlocks.length > 0 && (
               <ServiceShowcaseSection blocks={showcaseBlocks} />
             )}
+            {contentSlots?.afterShowcase}
 
             {strategySections && strategySections.length > 0 && (
               <StrategyGuide sections={strategySections} />
@@ -790,10 +802,12 @@ export default function ServicePageShell({
             {process && process.length > 0 && (
               <ProcessSection steps={process} />
             )}
+            {contentSlots?.afterProcess}
 
             <div id="pricing" className="scroll-mt-20">
               {renderPricingSection()}
             </div>
+            {contentSlots?.afterPricing}
           </>
         )}
 
@@ -805,7 +819,7 @@ export default function ServicePageShell({
           />
         )}
 
-        <ServiceDecisionGuide />
+        {contentSlots?.beforeFaq ?? <ServiceDecisionGuide />}
 
         {faqs && faqs.length > 0 ? (
           <FaqBlock
@@ -826,6 +840,11 @@ export default function ServicePageShell({
             label: "Talk to Our Team",
             href: `/contact?serviceName=${encodeURIComponent(badge)}`,
           }}
+          steps={
+            _serviceType === "hosting"
+              ? ["Choose a plan", "Connect your domain", "Go live and manage it in nPanel"]
+              : ["Book a free strategy call", "Agree the scope and price", "Track progress in nPanel"]
+          }
         />
       </main>
       <Footer />

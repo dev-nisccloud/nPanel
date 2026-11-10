@@ -214,6 +214,7 @@ export default function HostingPage() {
           subtext="Compare every plan side by side, or tell us about your website and we will recommend the right setup before you pay."
           primary={{ label: "Compare All Plans", href: "/pricing" }}
           secondary={{ label: "Talk to Our Team", href: "/contact?serviceName=Cloud%20Hosting" }}
+          steps={["Choose your products", "Connect your domain", "Go live and manage it in nPanel"]}
         />
       </main>
       <Footer />

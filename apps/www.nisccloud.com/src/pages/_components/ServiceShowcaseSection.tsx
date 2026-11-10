@@ -188,14 +188,14 @@ function Block({ block, index }: { block: ShowcaseBlock; index: number }) {
       <h3 className="mb-4 text-2xl font-bold leading-snug tracking-tight md:text-3xl">
         {block.headline}
       </h3>
-      <p className="mb-6 text-[15px] leading-relaxed text-muted-foreground">
+      <p className="mb-6 text-base leading-relaxed text-muted-foreground md:text-lg">
         {block.body}
       </p>
       <ul className="space-y-2.5">
         {block.bullets.map((b) => (
           <li
             key={b}
-            className="flex items-start gap-3 text-sm text-muted-foreground"
+            className="flex items-start gap-3 text-base text-muted-foreground"
           >
             <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-primary" />
             {b}
@@ -219,7 +219,7 @@ function Block({ block, index }: { block: ShowcaseBlock; index: number }) {
   return (
     <div
       id={block.id}
-      className="grid scroll-mt-28 items-center gap-12 md:grid-cols-2 md:gap-16"
+      className="grid scroll-mt-28 items-center gap-12 md:grid-cols-2 md:gap-16 [&>*]:min-w-0"
     >
       {right ? (
         <>

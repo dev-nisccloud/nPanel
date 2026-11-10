@@ -62,8 +62,8 @@ The website currently uses cautious wording for each of these. Confirm, correct,
 | EVD-06 | Cancellation and refunds | One policy per product: "cancel anytime" or 30 days' notice, minimum terms, which products are refundable |
 | EVD-07 | Dedicated account manager | Which plans include one |
 | EVD-08 | Backups | Schedule, retention, storage location and restore cost per plan |
-| EVD-09 | Security inclusions (WAF, DDoS, CDN, auto-scaling, malware scans) | Which plans include each; real malware-scan frequency |
-| EVD-10 | Hosting specs (LiteSpeed, NVMe, VPS guaranteed CPU/RAM) | Confirm per plan |
+| EVD-09 | Security inclusions (WAF, DDoS, CDN, auto-scaling, malware scans) | **Web Hosting confirmed by owner (11 Nov 2026):** CDN, DDoS protection, malware and antivirus scanning, daily backups on every plan. Still needed: the same for WordPress, VPS, VDS and dedicated; WAF and auto-scaling; scan frequency |
+| EVD-10 | Hosting specs (LiteSpeed, NVMe, VPS guaranteed CPU/RAM) | **Web Hosting confirmed by owner (11 Nov 2026):** email hosting bundled with every plan (also sold separately); supports WordPress, custom websites, PHP, Laravel, Joomla, Node.js; SSH and command-line access. Still needed: LiteSpeed, VPS guaranteed CPU/RAM |
 | EVD-11 | SSL (Sectigo issuer, free installation) | Confirm issuer and reseller relationship |
 | EVD-12 | Migration | What "free migration" covers: number of sites, mailboxes, size limits |
 | EVD-13 | Delivery times (brand ~7 days, email setup ~30 min, website 10/14/21 days) | Confirm or let us remove the numbers |
@@ -176,6 +176,22 @@ From the read-only nPanel backend review (chat, 10 Nov) and `security-audit-repo
 | FEA-02 | Deeper SEO and paid-media content: technical/on-page/off-page, wider search discovery, budget optimisation, remarketing, measurement — as methods, not promised results | P2 | Dev | Partial — some on `/services/paid-ads` |
 | FEA-03 | Real nPanel screenshots, redacted, labelled as real; transformed into editorial compositions | P2 | Dev | Partial — `visualKind="npanel-product-view"` support exists; no screenshots yet (DEC-09) |
 | FEA-04 | Server-side 301s for any remaining legacy URLs (`/services/marketing` → `/services`) and sitemap/canonical updates | P2 | Dev | Partial — `/services/zeepo-ai` redirect done |
+
+### 3.7a Page content standard (set on Web Hosting, 11 Nov 2026)
+
+Every product and service page should follow the Web Hosting pattern when it is reviewed:
+
+- Long-form content is spread through the page where each question arises, not dumped in one block. Use the `contentSlots` option on `ServicePageShell` (`afterPricing`, `afterShowcase`, `afterProcess`, `beforeFaq`) and the answer-first blocks in `src/pages/_components/ContentBlocks.tsx`.
+- Each section opens with a one- or two-sentence direct answer to its heading (for search and AI answers), then the detail.
+- Typical slots: "which plan/package fits" after pricing; a comparison table with the current product highlighted after the showcase; migration or onboarding steps after the process; a plain-language "what is…" explanation, local payment notes and a glossary before the FAQ.
+- FAQs answer real buyer questions directly; the FAQ structured data is generated from the visible FAQ.
+- Only owner-confirmed facts; no invented figures, rankings or guarantees.
+- Readable sizes: body text 16–17px, supporting text at least 15px, small labels at least 12px.
+- When a page with the short `ServiceDecisionGuide` (WordPress, Business Email, Website Design, SEO, E-commerce) gets the new content, fold those paragraphs into it.
+
+| ID | Task | Pri | Who | Status |
+| --- | --- | --- | --- | --- |
+| CNT-01 | Apply the content standard to each remaining product and service page as it is reviewed | P1 | Dev | In progress — Web Hosting done |
 
 ### 3.8 Design, UX and accessibility
 

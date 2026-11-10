@@ -1,5 +1,5 @@
 import * as React from "react";
-import { CreditCard, Headphones, Lock, ReceiptText, type LucideIcon } from "lucide-react";
+import { Check, CreditCard, Headphones, Lock, ReceiptText, type LucideIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -39,7 +39,28 @@ export type HostingPlansPricingConfig = {
   description?: string;
   /** Plans without a price open the contact form pre-filled with this service name. */
   contactServiceName?: string;
+  /** Owner-confirmed inclusions shared by every plan, shown above the plan cards. */
+  everyPlanIncludes?: string[];
 };
+
+function EveryPlanIncludes({ items }: { items: string[] }) {
+  return (
+    <div className="mb-8 flex flex-col items-center gap-3 text-center">
+      <p className="type-label text-foreground">Every plan includes</p>
+      <ul className="flex max-w-4xl flex-wrap justify-center gap-2">
+        {items.map((item) => (
+          <li
+            key={item}
+            className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/[0.06] px-3 py-1.5 text-sm font-medium text-foreground"
+          >
+            <Check className="size-3.5 text-sky-700 dark:text-primary" strokeWidth={3} aria-hidden />
+            {item}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 function fallbackProductFeatures(config: HostingPlansPricingConfig): ProductFeatureRow[] {
   return config.fallbackFeatures.map((f, i) => ({ key: `fallback_${i}`, label: f.label, description: f.description }));
@@ -246,9 +267,10 @@ export function HostingPlansPricingSection({
             {cycleOptions.length > 1 ? (
               <div className="mb-8 flex flex-col items-center gap-2">
                 <BillingCycleSelector options={cycleOptions} value={cycle} onChange={changeCycle} />
-                <p className="text-xs text-muted-foreground">The same monthly rate applies on every term. Pay monthly or up front.</p>
+                <p className="text-sm text-muted-foreground">The same monthly rate applies on every term. Pay monthly or up front.</p>
               </div>
             ) : null}
+            {config.everyPlanIncludes?.length ? <EveryPlanIncludes items={config.everyPlanIncludes} /> : null}
             <PlanCardsSpotlight
               models={models}
               cycle={cycle}

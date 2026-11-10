@@ -1,7 +1,8 @@
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Check } from "lucide-react";
+import { useInView, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils.ts";
-import { useArtLive } from "@/components/artwork/use-art-live.ts";
 
 type CtaLink = { label: string; href: string; external?: boolean; onClick?: () => void };
 
@@ -14,10 +15,13 @@ export type ClosingCtaProps = {
   /** Short reassurances under the buttons; keep them to verified facts. */
   points?: string[];
   note?: string;
+  /** Three short steps shown in the "How it works" card. */
+  steps?: string[];
   className?: string;
 };
 
 const DEFAULT_POINTS = ["Free strategy call", "Pay with M-Pesa or card"];
+const DEFAULT_STEPS = ["Tell us what you need", "Get a clear plan and price", "Manage everything in nPanel"];
 
 function CtaAnchor({ link, className, children }: { link: CtaLink; className: string; children: React.ReactNode }) {
   if (link.onClick) {
@@ -41,6 +45,24 @@ function CtaAnchor({ link, className, children }: { link: CtaLink; className: st
   );
 }
 
+/** Steps tick off one by one the first time the banner is seen; reduced motion shows them done. */
+function useStepsDone(count: number) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { amount: 0.5, once: true });
+  const reduceMotion = useReducedMotion() ?? false;
+  const [done, setDone] = useState(0);
+  useEffect(() => {
+    if (reduceMotion) {
+      setDone(count);
+      return;
+    }
+    if (!inView) return;
+    const timers = Array.from({ length: count }, (_, i) => window.setTimeout(() => setDone(i + 1), 350 + i * 550));
+    return () => timers.forEach(window.clearTimeout);
+  }, [count, inView, reduceMotion]);
+  return { ref, done };
+}
+
 export function ClosingCta({
   eyebrow = "Ready when you are",
   headline,
@@ -49,67 +71,104 @@ export function ClosingCta({
   secondary,
   points = DEFAULT_POINTS,
   note,
+  steps = DEFAULT_STEPS,
   className,
 }: ClosingCtaProps) {
-  const { ref, live } = useArtLive<HTMLElement>();
-  return (
-    <section
-      ref={ref}
-      className={cn("px-4 py-12 sm:px-6 md:py-16 lg:px-8", live && "art-live", className)}
-      aria-labelledby="closing-cta-heading"
-    >
-      <div className="relative mx-auto max-w-7xl overflow-hidden rounded-2xl bg-[#02070A] text-white ring-1 ring-white/10">
-        <div aria-hidden className="pointer-events-none absolute inset-0">
-          <div className="absolute inset-x-0 top-0 h-0.5 overflow-hidden bg-gradient-to-r from-primary via-primary/70 to-brand-orange">
-            <span className="cta-streak absolute inset-y-0 left-0 w-1/4 bg-gradient-to-r from-transparent via-white/90 to-transparent opacity-0" />
-          </div>
-          <div className="cta-glow absolute inset-0 bg-[radial-gradient(60%_120%_at_100%_0%,rgba(56,182,255,0.18),transparent_60%)]" />
-          <div className="cta-glow-alt absolute inset-0 bg-[radial-gradient(40%_90%_at_0%_100%,rgba(252,115,77,0.10),transparent_60%)]" />
-          <div className="cta-orbit absolute -right-16 top-1/2 hidden size-72 -translate-y-1/2 rounded-full border border-dashed border-white/10 lg:block" />
-        </div>
+  const { ref, done } = useStepsDone(steps.length);
 
-        <div className="relative flex flex-col gap-6 px-6 py-8 sm:px-8 md:py-9 lg:flex-row lg:items-center lg:justify-between lg:gap-10 lg:px-10">
-          <div className="art-rise max-w-2xl">
-            <p className="type-label flex items-center gap-2 text-primary">
-              <span className="art-ping size-1.5 rounded-full bg-brand-orange" aria-hidden />
+  return (
+    <section className={cn("px-4 py-14 sm:px-6 md:py-20 lg:px-8", className)} aria-labelledby="closing-cta-heading">
+      <div className="relative mx-auto max-w-7xl overflow-hidden rounded-[28px] bg-[linear-gradient(120deg,#5cc4ff_0%,#38b6ff_45%,#1592e0_100%)] text-[#02070a] shadow-[0_40px_80px_-50px_rgb(2_132_199_/_0.9)] dark:bg-[linear-gradient(120deg,#0e4a73_0%,#0b3a5c_55%,#07243a_100%)] dark:text-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgb(255_255_255_/_0.35)_1px,transparent_0)] [background-size:22px_22px] [mask-image:linear-gradient(to_left,black,transparent_70%)]"
+        />
+        <img
+          src="/nisciconoriginal.png"
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute -bottom-16 -right-10 w-[420px] max-w-none opacity-[0.14] brightness-0 invert"
+        />
+
+        <div className="relative grid gap-10 px-6 py-10 sm:px-10 md:py-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] lg:items-center lg:gap-14 lg:px-14 lg:py-14">
+          <div>
+            <p className="type-label flex items-center gap-2 text-[#02070a]/80 dark:text-sky-200">
+              <span className="size-2 rounded-full bg-brand-orange" aria-hidden />
               {eyebrow}
             </p>
             <h2
               id="closing-cta-heading"
-              className="mt-2.5 text-balance text-2xl font-extrabold leading-tight tracking-tight md:text-3xl"
+              className="mt-3 max-w-2xl text-balance text-3xl font-extrabold leading-[1.1] tracking-tight md:text-4xl lg:text-[2.75rem]"
             >
               {headline}
             </h2>
-            <p className="mt-2 text-sm leading-relaxed text-white/70 md:text-base">{subtext}</p>
+            <p className="mt-4 max-w-[60ch] text-base leading-relaxed text-[#02070a]/80 md:text-lg dark:text-white/80">{subtext}</p>
+
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <CtaAnchor
+                link={primary}
+                className="group inline-flex h-12 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[#02070a] px-6 text-base font-bold text-white shadow-lg shadow-[#02070a]/25 transition hover:bg-[#02070a]/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#02070a] focus-visible:ring-offset-2 focus-visible:ring-offset-primary dark:bg-primary dark:text-[#02070a] dark:hover:bg-primary/90"
+              >
+                {primary.label}
+                <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
+              </CtaAnchor>
+              {secondary ? (
+                <CtaAnchor
+                  link={secondary}
+                  className="inline-flex h-12 items-center justify-center whitespace-nowrap rounded-xl border border-[#02070a]/25 bg-white/30 px-6 text-base font-semibold text-[#02070a] transition hover:bg-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#02070a] dark:border-white/25 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+                >
+                  {secondary.label}
+                </CtaAnchor>
+              ) : null}
+            </div>
+
             {points.length > 0 ? (
-              <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-1.5">
+              <ul className="mt-6 flex flex-wrap gap-2">
                 {points.map((point) => (
-                  <li key={point} className="flex items-center gap-1.5 text-xs text-white/65">
-                    <Check className="size-3.5 shrink-0 text-primary" strokeWidth={3} aria-hidden />
+                  <li
+                    key={point}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-white/40 px-3 py-1.5 text-sm font-medium dark:bg-white/10"
+                  >
+                    <Check className="size-4 shrink-0" strokeWidth={3} aria-hidden />
                     {point}
                   </li>
                 ))}
               </ul>
             ) : null}
-            {note ? <p className="mt-3 text-xs leading-relaxed text-white/65">{note}</p> : null}
+            {note ? <p className="mt-4 text-sm leading-relaxed text-[#02070a]/75 dark:text-white/70">{note}</p> : null}
           </div>
 
-          <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
-            <CtaAnchor
-              link={primary}
-              className="cta-shine group relative inline-flex h-11 items-center justify-center gap-2 overflow-hidden whitespace-nowrap rounded-xl bg-primary px-6 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/25 transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#02070A]"
-            >
-              {primary.label}
-              <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
-            </CtaAnchor>
-            {secondary ? (
-              <CtaAnchor
-                link={secondary}
-                className="inline-flex h-11 items-center justify-center whitespace-nowrap rounded-xl border border-white/25 px-6 text-sm font-semibold text-white transition hover:border-white/50 hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-              >
-                {secondary.label}
-              </CtaAnchor>
-            ) : null}
+          <div
+            ref={ref}
+            className="relative rounded-3xl bg-white p-6 text-[#02070a] shadow-[0_30px_60px_-35px_rgb(2_7_10_/_0.55)] sm:p-7 dark:bg-slate-950 dark:text-white dark:ring-1 dark:ring-white/10"
+          >
+            <p className="type-label text-sky-700 dark:text-primary">How it works</p>
+            <ol className="mt-5 space-y-4">
+              {steps.map((step, i) => {
+                const complete = i < done;
+                return (
+                  <li key={step} className="flex items-center gap-4">
+                    <span
+                      className={cn(
+                        "flex size-10 shrink-0 items-center justify-center rounded-full border-2 text-base font-bold transition-colors duration-500",
+                        complete
+                          ? "border-primary bg-primary text-[#02070a]"
+                          : "border-primary/30 bg-primary/[0.06] text-sky-700 dark:text-primary",
+                      )}
+                    >
+                      {complete ? <Check className="size-5" strokeWidth={3} aria-hidden /> : i + 1}
+                    </span>
+                    <span className="text-base font-semibold leading-snug md:text-lg">{step}</span>
+                  </li>
+                );
+              })}
+            </ol>
+            <div className="mt-6 h-1.5 overflow-hidden rounded-full bg-primary/15" aria-hidden>
+              <div
+                className="h-full rounded-full bg-primary transition-[width] duration-500 ease-out"
+                style={{ width: `${(done / steps.length) * 100}%` }}
+              />
+            </div>
           </div>
         </div>
       </div>

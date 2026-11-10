@@ -59,7 +59,7 @@ function FaqAccordion({ faqs }: { faqs: FaqBlockItem[] }) {
               className="pointer-events-none h-5 w-5 shrink-0 transition-transform duration-200 group-data-[state=open]/item:rotate-45"
             />
           </AccordionTrigger>
-          <AccordionContent forceMount className="px-4 pb-4 pt-0 text-sm leading-relaxed text-muted-foreground">
+          <AccordionContent forceMount className="max-w-[75ch] px-4 pb-5 pt-0 text-base leading-relaxed text-muted-foreground">
             {faq.answer}
           </AccordionContent>
         </AccordionItem>

@@ -34,6 +34,20 @@ const RECOMMENDED_BADGE = "bg-brand-orange";
 const SPEC_PRIORITY = [/ssl/i, /email/i, /database/i, /wordpress toolkit/i, /uptime/i, /support/i];
 const VISIBLE_SPECS = 6;
 
+/** A soft sky light follows the pointer across a plan card (mouse and pen only). */
+function followPointer(event: React.PointerEvent<HTMLElement>) {
+  if (event.pointerType === "touch") return;
+  const el = event.currentTarget;
+  const rect = el.getBoundingClientRect();
+  el.style.setProperty("--spot-x", `${event.clientX - rect.left}px`);
+  el.style.setProperty("--spot-y", `${event.clientY - rect.top}px`);
+  el.style.setProperty("--spot-a", "0.16");
+}
+
+function hideSpotlight(event: React.PointerEvent<HTMLElement>) {
+  event.currentTarget.style.setProperty("--spot-a", "0");
+}
+
 function prioritiseSpecs(specs: PlanFeature[]): PlanFeature[] {
   const rank = (f: PlanFeature) => {
     const i = SPEC_PRIORITY.findIndex((re) => re.test(f.label));
@@ -62,7 +76,7 @@ function SpecTile({ feature, featured, wide }: { feature: PlanFeature; featured:
     >
       <div className="flex items-center gap-1.5 text-muted-foreground">
         <Icon className={cn("h-3.5 w-3.5 shrink-0", featured ? "text-brand-orange" : "text-primary")} />
-        <span className="line-clamp-1 text-[11px] font-medium">{tileLabel(feature)}</span>
+        <span className="line-clamp-1 text-xs font-medium">{tileLabel(feature)}</span>
       </div>
       <p className="mt-1.5 text-base font-bold leading-tight tracking-tight text-foreground">
         {feature.value ?? <span className="text-muted-foreground/60">—</span>}
@@ -88,7 +102,7 @@ function Tick({ featured }: { featured: boolean }) {
 function SpecLine({ feature, featured }: { feature: PlanFeature; featured: boolean }) {
   const listValue = feature.value && !feature.boolean && (/,/.test(feature.value) || !/^\d/.test(feature.value));
   return (
-    <li className="flex items-start gap-2.5 text-[13px] leading-snug" title={feature.description}>
+    <li className="flex items-start gap-2.5 text-[15px] leading-snug" title={feature.description}>
       <Tick featured={featured} />
       <span className="text-foreground/85">
         {feature.boolean ? (
@@ -142,7 +156,7 @@ function PriceBlock({
         <span className="text-4xl font-extrabold tracking-tight text-foreground tabular-nums">{formatCurrency(perMonth, currency)}</span>
         <span className="text-sm font-medium text-muted-foreground">/month</span>
       </p>
-      <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+      <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
         {months === 1 ? (
           <>Billed monthly · excl. 16% VAT</>
         ) : (
@@ -188,8 +202,11 @@ function SpotlightCard({
 
   return (
     <article
+      onPointerMove={followPointer}
+      onPointerLeave={hideSpotlight}
       className={cn(
         "relative flex h-full flex-col rounded-2xl border bg-card p-6 transition-shadow duration-300",
+        "[background-image:radial-gradient(380px_circle_at_var(--spot-x,50%)_var(--spot-y,0%),rgb(56_182_255_/_var(--spot-a,0)),transparent_70%)]",
         featured
           ? "border-primary/60 shadow-xl shadow-primary/10 ring-1 ring-primary/30 dark:shadow-primary/5"
           : "border-border hover:border-primary/35 hover:shadow-lg",
@@ -198,7 +215,7 @@ function SpotlightCard({
       {featured ? (
         <span
           className={cn(
-            "absolute -top-3 left-6 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-neutral-950 shadow-md shadow-brand-orange/25",
+            "absolute -top-3 left-6 rounded-full px-3 py-1 text-xs font-bold text-neutral-950 shadow-md shadow-brand-orange/25",
             RECOMMENDED_BADGE,
           )}
         >
@@ -289,7 +306,7 @@ function CustomTierCard({ tier }: { tier: CustomTier }) {
       </header>
       <div className="mt-5">
         <p className="text-3xl font-extrabold tracking-tight">Custom pricing</p>
-        <p className="mt-1.5 text-xs leading-relaxed text-white/60">
+        <p className="mt-1.5 text-[13px] leading-relaxed text-white/70">
           Quoted to your requirements
           {" "}<br />
           No obligation until you accept the proposal

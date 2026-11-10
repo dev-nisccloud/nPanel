@@ -1,4 +1,11 @@
-import { HostingSupportArt } from "@/components/artwork/cloud-art.tsx";
+import { HostingSupportArt, MailboxesArt } from "@/components/artwork/cloud-art.tsx";
+import { WebHostingStackArt } from "./_components/WebHostingStackArt.tsx";
+import {
+  WebHostingComparison,
+  WebHostingExplained,
+  WebHostingMigration,
+  WebHostingPlanFit,
+} from "./_components/web-hosting-content.tsx";
 import { HostingStory } from "@/components/artwork/npanel-stories";
 import { HostingPerformanceArtwork } from "@/pages/_components/HostingReviewArtwork.tsx";
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
@@ -13,15 +20,44 @@ const showcaseBlocks: ShowcaseBlock[] = [
     tag: "Speed Dashboard",
     id: "performance-preview",
     artwork: <HostingPerformanceArtwork />,
-    headline: "Built for websites that load quickly.",
-    body: "Your site runs on NVMe SSD storage with free SSL, and you can move to a larger plan from nPanel when your traffic grows.",
+    headline: "Performance and protection, included.",
+    body: "Every plan runs on NVMe SSD storage with a CDN, DDoS protection, malware and antivirus scanning, daily backups and free SSL, so your site stays fast and protected without extra add-ons. Protection works best alongside good habits: keep WordPress, Joomla, themes and plugins updated, and use strong, unique passwords.",
     bullets: [
-      "NVMe SSD storage for fast disk reads",
-      "Free SSL on every plan",
-      "Upgrade to a larger plan without migrating your website",
+      "CDN and NVMe SSD storage for fast page loads",
+      "DDoS protection, plus malware and antivirus scanning",
+      "Daily backups and free SSL on every plan",
     ],
     mockupRight: true,
     visual: "speed",
+  },
+  {
+    tag: "Supported technologies",
+    id: "supported-technologies",
+    artwork: <WebHostingStackArt />,
+    caption: false,
+    headline: "Run WordPress, PHP, Laravel, Joomla, Node.js or your own code.",
+    body: "Host a WordPress site, a custom website or an application built with PHP, Laravel, Joomla or Node.js. With SSH and command-line access you can run database migrations, install dependencies and build steps from a terminal instead of uploading files one at a time.",
+    bullets: [
+      "WordPress and Joomla sites",
+      "Custom websites and PHP, Laravel or Node.js applications",
+      "SSH and command-line access for deployments and maintenance",
+    ],
+    mockupRight: false,
+    visual: "code",
+  },
+  {
+    tag: "Email included",
+    id: "email-included",
+    artwork: <MailboxesArt />,
+    headline: "Website and email hosting in one package.",
+    body: "Every web hosting plan includes email hosting on your own domain, so your website and mailboxes are set up and managed together in nPanel. If you only need email, Business Email is available on its own, and teams that also use Microsoft 365 or Google Workspace can combine them with Nisc Mail through Enterprise Hybrid Email.",
+    bullets: [
+      "Professional email addresses on your domain",
+      "Website and email managed in one nPanel account",
+      "Business Email and Enterprise Hybrid Email are also sold separately",
+    ],
+    mockupRight: true,
+    visual: "integrate",
   },
   {
     tag: "nPanel Management",
@@ -61,7 +97,7 @@ export default function SharedHostingPage() {
     <ServicePageShell
       badge="Web Hosting"
       headline="Fast, Reliable Web Hosting That Stays Online"
-      subtext="Host your website on NVMe SSD servers with free SSL, daily backups and hosting tools managed through nPanel. Live prices are shown in the plans below."
+      subtext="Host your website and email together on NVMe SSD servers with a CDN, DDoS protection, malware scanning, daily backups and free SSL, all managed through nPanel. Live prices are shown in the plans below."
       serviceType="hosting"
       plansUnderHero
       customPlansSection={<SharedPricingSection />}
@@ -73,10 +109,10 @@ export default function SharedHostingPage() {
         line2: "Managed through nPanel",
       }}
       trustStats={[
-        { value: "NVMe", label: "SSD Storage" },
-        { value: "Free", label: "SSL Certificate" },
-        { value: "Daily", label: "Backups" },
-        { value: "Planned", label: "Migration Help" },
+        { value: "Email", label: "Hosting Included" },
+        { value: "CDN", label: "& DDoS Protection" },
+        { value: "Daily", label: "Backups & Malware Scans" },
+        { value: "SSH", label: "& Command-Line Access" },
       ]}
       process={[
         {
@@ -120,11 +156,29 @@ export default function SharedHostingPage() {
       ]}
       whySectionHeadline="Why businesses host with Nisc Cloud"
       whySectionVariant="simple"
+      contentSlots={{
+        afterPricing: <WebHostingPlanFit />,
+        afterShowcase: <WebHostingComparison />,
+        afterProcess: <WebHostingMigration />,
+        beforeFaq: <WebHostingExplained />,
+      }}
       faqTitle="Web hosting questions"
       faqs={[
         {
           q: "What do I get with web hosting?",
-          a: "You get NVMe SSD hosting, free SSL, daily backups and hosting tools managed through nPanel. Current plan prices are shown on this page and in the cart before you pay.",
+          a: "You get NVMe SSD hosting with email hosting, free SSL, a CDN, DDoS protection, malware and antivirus scanning, daily backups, SSH access and hosting tools managed through nPanel. Current plan prices are shown on this page and in the cart before you pay.",
+        },
+        {
+          q: "Is email hosting included?",
+          a: "Yes. Every web hosting plan includes email hosting on your own domain; the number of mailboxes depends on the plan. If you only need email, Business Email is available separately.",
+        },
+        {
+          q: "Which technologies can I run?",
+          a: "WordPress, Joomla, custom websites and applications built with PHP, Laravel or Node.js. SSH and command-line access are included for deployments and maintenance.",
+        },
+        {
+          q: "How is my website protected?",
+          a: "Every plan includes DDoS protection, malware and antivirus scanning, daily backups and free SSL, with a CDN to keep pages loading quickly.",
         },
         {
           q: "Can I host a .co.ke website with you?",
@@ -149,7 +203,7 @@ export default function SharedHostingPage() {
       ]}
       pricingNote="Prices are shown in KES or USD based on your location. Easy checkout. 7-day money-back guarantee on new accounts."
       ctaHeadline="Get Reliable Web Hosting Today"
-      ctaSubtext="Fast web hosting with free SSL, daily backups, migration help within an agreed scope and everything managed in nPanel."
+      ctaSubtext="Website and email hosting in one package, with CDN, DDoS protection, malware scanning, daily backups and everything managed in nPanel."
       showcaseBlocks={showcaseBlocks}
     />
   );

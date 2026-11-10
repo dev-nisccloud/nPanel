@@ -26,7 +26,7 @@ function SimpleCard({ point }: { point: BuiltDifferentPoint }) {
     <article className="h-full rounded-2xl border border-border bg-card p-6">
       <span aria-hidden className="block h-1 w-10 rounded-full bg-primary" />
       <h3 className="mt-5 text-base font-semibold tracking-tight text-foreground">{point.title}</h3>
-      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{point.desc}</p>
+      <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{point.desc}</p>
     </article>
   );
 }

@@ -46,7 +46,7 @@ export type CloudProduct = {
 };
 
 export const PRODUCTS: Record<ProductKey, CloudProduct> = {
-  shared: { title: "Web Hosting", desc: "Managed hosting for business websites, with tools in nPanel.", href: "/hosting/web-hosting", icon: Server, action: "plans" },
+  shared: { title: "Web Hosting", desc: "Website and email hosting in one package, with CDN, backups and security.", href: "/hosting/web-hosting", icon: Server, action: "plans" },
   wordpress: { title: "Managed WordPress Hosting", desc: "WordPress-ready hosting with updates and backups handled by plan.", href: "/hosting/wordpress", icon: LayoutTemplate, action: "plans" },
   agency: { title: "Agency Hosting", desc: "Host client websites and manage each client from one account.", href: "/hosting/agency", icon: Building2, action: "quote", isNew: true },
   vps: { title: "VPS Servers", desc: "Plan-defined virtual compute, with root access where included.", href: "/hosting/vps", icon: Cpu, action: "plans" },
@@ -114,13 +114,13 @@ export const FINDER_CHOICES: FinderChoice[] = [
     id: "website",
     label: "A business website",
     icon: MonitorSmartphone,
-    summary: "A domain and web hosting get you online, SSL secures the site, and email on your domain builds trust.",
-    products: ["domains", "shared", "ssl", "email"],
+    summary: "A domain and web hosting get you online. Web hosting already includes email on your domain, free SSL, a CDN and daily backups.",
+    products: ["domains", "shared"],
     stack: [
       { layer: "domain", label: "Your domain" },
-      { layer: "ssl", label: "SSL certificate" },
       { layer: "hosting", label: "Web hosting" },
-      { layer: "email", label: "Business email" },
+      { layer: "ssl", label: "Free SSL, included" },
+      { layer: "email", label: "Email hosting, included" },
     ],
   },
   {

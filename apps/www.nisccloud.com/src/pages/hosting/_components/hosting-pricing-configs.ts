@@ -9,7 +9,16 @@ export const SHARED_HOSTING_PRICING_CONFIG: HostingPlansPricingConfig = {
   sectionId: "plans",
   title: "Choose Your Hosting Plan",
   description:
-    "Host business websites on NVMe SSD storage with free SSL, the WordPress Toolkit and hosting tools managed in nPanel.",
+    "Host business websites and email in one package on NVMe SSD storage, with security, backups and hosting tools managed in nPanel.",
+  everyPlanIncludes: [
+    "Email hosting",
+    "Free SSL",
+    "CDN",
+    "DDoS protection",
+    "Malware & antivirus scanning",
+    "Daily backups",
+    "SSH & command-line access",
+  ],
   serviceType: "web_hosting",
   fetchPlans: fetchSharedHostingPlansPublic,
   fallbackFeatures: [
