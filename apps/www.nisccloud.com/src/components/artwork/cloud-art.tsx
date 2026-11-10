@@ -1,4 +1,4 @@
-import {
+﻿import {
   ArrowRightLeft,
   Check,
   CheckCircle2,
@@ -501,7 +501,7 @@ export function MailboxesArt() {
         <p className="mb-2 text-[11px] font-semibold text-foreground">New mailbox</p>
         <p className="rounded-md border border-border px-2 py-1 font-mono text-[9px] text-foreground">orders<span className="text-muted-foreground">@{DOMAIN}</span></p>
         <div className="mt-2 flex items-center justify-between text-[9px] text-muted-foreground">
-          <span>Webmail and phone setup</span>
+          <span>Phone and desktop setup</span>
           <UiButton action="mailbox">Create</UiButton>
         </div>
       </Float>

@@ -1,4 +1,4 @@
-import {
+﻿import {
   Globe, Mail, BarChart2, Palette, Monitor, Zap, ShoppingBag,
   Megaphone, Trash2, Check,
 } from "lucide-react";
@@ -84,7 +84,7 @@ const SERVICE_META: Record<
     includedItems: [
       "Email on your own domain",
       "Anti-spam, anti-virus and anti-phishing",
-      "Webmail, IMAP/POP and secure SMTP",
+      "IMAP/POP and secure SMTP",
       "Free migration from your current provider",
     ],
   },

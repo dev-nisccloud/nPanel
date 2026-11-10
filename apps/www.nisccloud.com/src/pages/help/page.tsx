@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { motion } from "motion/react";
 import {
   Search,
@@ -49,7 +49,7 @@ const categories: Category[] = [
         title: "How to create a new business email account",
         summary:
           "Step-by-step guide to creating business email addresses in your hosting control panel.",
-        content: `Log in to nPanel at npanel.nisccloud.com. Choose your organisation, open Emails or your hosting service, and select Mail to manage mailboxes. Follow the account setup prompts, then use Nisc webmail or configure your preferred IMAP email client. Contact support if you need help with migration or configuration.`,
+        content: `Log in to nPanel at npanel.nisccloud.com. Choose your organisation, open Emails or your hosting service, and select Mail to manage mailboxes. Follow the account setup prompts, then use the Nisc Mail client or configure your preferred IMAP email client. Contact support if you need help with migration or configuration.`,
         tags: ["email", "npanel", "setup"],
       },
       {

@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { Check, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
@@ -13,7 +13,7 @@ import {
   fetchEmailHostingPlansPublic,
   type SharedHostingPricingData,
 } from "@/lib/vps-plans-api.ts";
-import { deriveMonthlyPrice, normalisePlanFeature } from "@/pages/hosting/_components/hosting-plan-model.ts";
+import { deriveMonthlyPrice, isHiddenPublicFeature, normalisePlanFeature } from "@/pages/hosting/_components/hosting-plan-model.ts";
 import { useCurrency } from "@/components/providers/currency.tsx";
 import { convertStorefrontAmount, formatCurrency } from "@/lib/currency.ts";
 
@@ -137,7 +137,7 @@ const FALLBACK_FEATURES: Record<HostingUpsellType, FeatureRow[]> = {
   email_hosting: [
     { label: "Mailbox storage", value: "5 GB" },
     { label: "Spam & virus protection", value: null },
-    { label: "Webmail & mobile sync", value: null },
+    { label: "Phone and desktop sync", value: null },
     { label: "Custom domain address", value: null },
   ],
 };
@@ -186,7 +186,7 @@ function buildLivePlan(
       ? data.productFeatures
           .map((f, i) => {
             const feature = normalisePlanFeature(f, pick.featureValues[i]);
-            if (!feature.value) return null;
+            if (!feature.value || isHiddenPublicFeature(feature.label)) return null;
             return { label: feature.label, value: feature.boolean ? null : feature.value };
           })
           .filter((f): f is FeatureRow => f !== null)

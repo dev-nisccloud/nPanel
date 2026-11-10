@@ -1,29 +1,30 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
-
-import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
-
-import {
-  Mail,
-  Shield,
-  Users,
-  Globe,
-  Inbox,
-  Clock,
-  Lock,
-  BarChart2,
-} from "lucide-react";
-
+import { Archive, AtSign, BadgeCheck, Forward, Mail, MonitorSmartphone, Shield, Sparkles } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
-
 import { EmailPricingSection } from "./_components/EmailPricingSection.tsx";
+import { BusinessEmailHeroArt } from "./_components/BusinessEmailHeroArt.tsx";
+import { EmailComparison, EmailExplained, EmailPlanFit, EmailSetup } from "./_components/email-content.tsx";
 import { BusinessEmailStory } from "@/components/artwork/npanel-stories";
 
 // ─── Showcase blocks ──────────────────────────────────────────────────────────
 
 const showcaseBlocks: ShowcaseBlock[] = [
- {tag:"Nisc Mail",headline:"Your own business inbox. With AI built in.",body:"Nisc Mail is our in-house, cost-friendly business email service. Use your own domain in a dedicated mail client, with AI that drafts replies, helps you write new emails and summarises long messages. Review the wording before you send.",bullets:["AI reply drafting and writing help","Summaries of long emails","Professional addresses on your business domain"],visual:"businessMail",artwork:<BusinessEmailStory />,caption:false},
- {tag:"Protection",headline:"Understand the controls around business mail.",body:"Nisc Mail includes filtering intended to identify malware, spam and phishing, with a 99.9% uptime target. Use the Nisc Mail client for integrated AI tools or connect a currently supported third-party client.",bullets:["Inbound threat and nuisance-mail filtering","99.9% uptime target","Supported client configuration guidance"],visual:"deliverability"},
- {tag:"Hybrid email",headline:"Pay for collaboration where your team needs it.",body:"Keep users who need Microsoft 365 or Google Workspace collaboration on those platforms. Move email-focused users to Nisc Mail on the same company domain. We assess mailbox allocation and mail routing so you can compare the proposed cost with your current setup.",bullets:["One business domain across the agreed platforms","Licences matched to user needs","Savings calculated from your actual licence mix"],visual:"businessMail"},
+  {
+    tag: "Nisc Mail",
+    headline: "Your own business inbox, with AI built in.",
+    body: "Nisc Mail is our in-house business email service. Use your own domain in a dedicated mail client, with AI that drafts replies, helps you write new emails and summarises long threads. You review every message before it goes.",
+    bullets: ["AI reply drafting and writing help", "Summaries of long email threads", "Professional addresses on your business domain"],
+    visual: "businessMail",
+    artwork: <BusinessEmailStory />,
+    caption: false,
+  },
+  {
+    tag: "Protection",
+    headline: "Filtering and sender checks on every mailbox.",
+    body: "Every plan filters incoming mail for spam, viruses and phishing, and we set up DKIM, SPF and DMARC so receiving inboxes can confirm your messages really come from you. Mail is backed up daily, on a 99.9% uptime target.",
+    bullets: ["Spam, virus and phishing filtering", "DKIM, SPF and DMARC set up for you", "Daily backups and a 99.9% uptime target"],
+    visual: "deliverability",
+  },
 ];
 
 export default function EmailHostingPage() {
@@ -32,92 +33,61 @@ export default function EmailHostingPage() {
       badge="Business Email Hosting · Nisc Mail"
       headline={
         <>
-          Professional Email That{" "}
-          <span className="text-primary">Builds Trust</span> with Every Message
+          Business email on your own domain, with <span className="text-primary">AI that drafts your replies</span>
         </>
       }
-      subtext="Cost-friendly business email on your own domain. Nisc Mail combines our in-house mail client, integrated AI writing assistance, malware, spam and phishing protection, and a 99.9% uptime target. It also works with supported clients such as Outlook."
+      subtext="Nisc Mail gives your team addresses like you@yourbusiness.co.ke, with an AI writing assistant, spam and phishing filtering, daily backups and sender records set up for you. Use it in our mail client, Outlook or your phone."
       serviceType="hosting"
       plansUnderHero
       customPlansSection={<EmailPricingSection />}
-      heroImage={niscWebsiteImage("Business email hosting.png")}
-      heroImageStandalone
-      heroTrustBadge={{
-        line1: "DKIM, SPF and DMARC configured",
-        line2: "99.9% uptime target · AI-assisted email",
-      }}
+      heroIllustration={<BusinessEmailHeroArt />}
+      heroIllustrationBare
       trustStats={[
         { value: "99.9%", label: "Uptime Target" },
-
-        { value: "Secure", label: "Business Email" },
-
-        { value: "Scoped", label: "Migration Help" },
-
-        { value: "IMAP", label: "Supported Clients" },
+        { value: "DKIM · SPF · DMARC", label: "Set Up for You" },
+        { value: "IMAP", label: "Outlook & Phone Apps" },
+        { value: "AI", label: "Writing Assistant" },
       ]}
       features={[
         {
-          icon: <Mail size={20} />,
-
-          title: "Your Own Domain Email",
-
-          desc: "Create professional email addresses like info@yourcompany.co.ke, sales@yourcompany.co.ke, and support@yourcompany.co.ke. Look credible to every client and partner.",
+          icon: <AtSign size={20} />,
+          title: "Email on Your Own Domain",
+          desc: "Addresses like info@, sales@ and your own name at yourbusiness.co.ke, created from your nPanel account.",
         },
-
+        {
+          icon: <Sparkles size={20} />,
+          title: "AI Writing Assistant",
+          desc: "In the Nisc Mail client, AI drafts replies, helps you write new messages and summarises long threads. You approve every message.",
+        },
         {
           icon: <Shield size={20} />,
-
           title: "Spam, Virus and Phishing Filtering",
-
-          desc: "Nisc Mail uses multi-layer filtering to identify spam, phishing and malicious attachments before they reach your team.",
+          desc: "Multi-layer filtering checks incoming mail for spam, phishing and malicious attachments before it reaches your team.",
         },
-
         {
-          icon: <Users size={20} />,
-
-          title: "AI Assistance in Your Inbox",
-
-          desc: "In the Nisc Mail client, AI summarises long emails, drafts replies and helps you compose new messages. Review every message before sending.",
+          icon: <BadgeCheck size={20} />,
+          title: "DKIM, SPF and DMARC Set Up",
+          desc: "We add the records that let receiving inboxes verify your domain. They help with trust; no provider can guarantee inbox placement.",
         },
-
         {
-          icon: <Globe size={20} />,
-
-          title: "Webmail Access from Anywhere",
-
-          desc: "Use Nisc webmail from a supported browser when you need access away from a configured desktop or mobile client.",
+          icon: <MonitorSmartphone size={20} />,
+          title: "Outlook, Thunderbird and Phone Apps",
+          desc: "IMAP, POP and secure SMTP work with Outlook, Thunderbird and phone mail apps. IMAP keeps folders in step on every device.",
         },
-
         {
-          icon: <Inbox size={20} />,
-
-          title: "IMAP/POP3/SMTP Support",
-
-          desc: "Compatible with Microsoft Outlook, Mozilla Thunderbird and supported Gmail app configurations through standard email protocols. IMAP keeps your folders in step across phone, tablet and desktop.",
+          icon: <Forward size={20} />,
+          title: "Aliases and Forwarding",
+          desc: "Point info@ or sales@ at the right people, and forward mail where it needs to go, on every plan.",
         },
-
         {
-          icon: <Clock size={20} />,
-
-          title: "Daily Incremental Backups",
-
-          desc: "Backup schedule, retention and restore scope are defined by the selected plan. Contact support to assess whether a requested message or mailbox can be restored.",
+          icon: <Archive size={20} />,
+          title: "Daily Backups",
+          desc: "Mail is backed up daily. Contact support to check whether a particular message or mailbox can be restored.",
         },
-
         {
-          icon: <Lock size={20} />,
-
-          title: "DKIM, SPF and DMARC Configured",
-
-          desc: "We configure DKIM signatures, SPF records, and DMARC policies for you. Authentication helps receiving providers verify your domain and assess incoming messages.",
-        },
-
-        {
-          icon: <BarChart2 size={20} />,
-
-          title: "Scoped Mailbox Migration",
-
-          desc: "Moving from another provider? We first confirm source access, mailbox volume, supported data and cutover scope. Any included assistance is limited to that agreed scope.",
+          icon: <Mail size={20} />,
+          title: "Planned Moves from Your Current Provider",
+          desc: "We confirm access, mailbox volume and the switch-over date with you first, so nothing is moved without a plan.",
         },
       ]}
       plans={[]}
@@ -126,92 +96,108 @@ export default function EmailHostingPage() {
         {
           num: "01",
           title: "Choose Your Plan",
-          desc: "Pick a live plan based on mailbox count, storage and required features. Review the listed inclusions before ordering and move up as the team grows.",
+          desc: "Pick a plan by how many mailboxes and how much storage your team needs, and move up as you grow.",
         },
-
         {
           num: "02",
           title: "Connect Your Domain",
-          desc: "Point your domain's MX records to our mail servers. We provide step-by-step instructions and complete the setup for you if preferred.",
+          desc: "Point your domain's MX record to Nisc Mail. We send step-by-step instructions, or set it up for you.",
         },
-
         {
           num: "03",
           title: "Create Your Mailboxes",
-          desc: "Create mailboxes up to the plan limit, then configure the aliases and forwarding options available to that plan.",
+          desc: "Create mailboxes up to your plan's limit, then add aliases and forwarding.",
         },
-
         {
           num: "04",
-          title: "Configure Your Devices",
-          desc: "Compatible with Microsoft Outlook, Mozilla Thunderbird and supported Gmail app configurations through standard email protocols. Follow our setup guides, or ask us to help configure your team's devices.",
+          title: "Sign In on Your Devices",
+          desc: "Use the Nisc Mail client, or add the account to Outlook, Thunderbird or your phone with our setup guides.",
         },
       ]}
       whyPoints={[
         {
-          title: "Builds Immediate Credibility", visual: "brand",
-          desc: "Emails from you@yourbusiness.co.ke look more professional than free Gmail or Yahoo addresses. Make a stronger first impression from day one.",
+          title: "Look Established From the First Email",
+          visual: "brand",
+          desc: "A quote from sales@yourbusiness.co.ke earns more trust than the same quote from a free Gmail or Yahoo address.",
         },
-
         {
-          title: "Domain Authentication Setup", visual: "inbox",
-          desc: "DKIM, SPF and DMARC configuration helps receiving providers assess messages from your domain; it does not guarantee inbox placement.",
+          title: "Mailboxes Stay With the Business",
+          visual: "security",
+          desc: "When someone leaves, their mailbox and customer conversations stay with you, ready to forward or reassign.",
         },
-
         {
-          title: "Nisc Mail Protection", visual: "security",
-          desc: "Nisc Mail filtering helps protect business communication against spam, phishing and malicious attachments.",
+          title: "Grows With Your Team",
+          visual: "growth",
+          desc: "Add mailboxes up to your plan's limit from nPanel, and move up a plan without changing provider.",
         },
-
         {
-          title: "Use Supported Mail Clients", visual: "mobile",
-          desc: "Standard protocols support common configurations such as Outlook and Thunderbird. Feature availability varies by client and setup.",
-        },
-
-        {
-          title: "Scales as Your Team Grows", visual: "growth",
-          desc: "Create mailboxes up to your plan's limit from your dashboard, and move up a plan as your team grows without changing provider.",
-        },
-
-        {
-          title: "Support That Understands Business Email", visual: "support",
-          desc: "Forwarding rules, aliases or device setup: our team helps you get business email right.",
+          title: "Help With the Fiddly Parts",
+          visual: "support",
+          desc: "Domain records, aliases, forwarding or device setup: our team helps you get it right.",
         },
       ]}
+      whySectionHeadline="Why businesses move their email to Nisc Mail"
+      whySectionVariant="simple"
+      contentSlots={{
+        afterPricing: <EmailPlanFit />,
+        afterShowcase: <EmailComparison />,
+        afterProcess: <EmailSetup />,
+        beforeFaq: <EmailExplained />,
+      }}
+      faqTitle="Business email questions"
       faqs={[
         {
-          q: "Can I migrate from Google Workspace or Microsoft 365?",
-          a: "We can assess moves from Google Workspace, Microsoft 365 and compatible IMAP providers. Source access, mailbox volume, supported data, timing and any included assistance are agreed before the cutover.",
+          q: "What is included with every business email plan?",
+          a: "Every plan includes email on your own domain, the AI writing assistant, spam, virus and phishing filtering, DKIM, SPF and DMARC set up for you, IMAP, POP and SMTP access, aliases and forwarding, daily backups and a 99.9% uptime target. Plans differ by mailbox count and storage.",
         },
-
+        {
+          q: "Do I need a website to get business email?",
+          a: "No. You only need a domain name. Your website can stay with its current host, or you can add one later.",
+        },
+        {
+          q: "Will I lose email while switching my domain to Nisc Mail?",
+          a: "The switch is planned so mail keeps arriving. We agree the switch-over time with you and update your MX record then; DNS changes can take a few hours to reach every network.",
+        },
+        {
+          q: "Can I migrate from Google Workspace or Microsoft 365?",
+          a: "Yes. We assess moves from Google Workspace, Microsoft 365 and other IMAP providers. Source access, mailbox volume, what moves across and the switch-over date are agreed before we start.",
+        },
+        {
+          q: "Can I use my business email on my phone?",
+          a: "Yes. Add the account to your phone's mail app over IMAP and secure SMTP, using our setup guides. Folders stay in step between your phone and computer.",
+        },
         {
           q: "Can I use this with Outlook on Windows?",
-          a: "Yes. We provide easy Outlook setup guides for common versions of Outlook. Mailbox setup is supported; calendar, contact and AI features depend on the client and configuration.",
+          a: "Yes. We provide Outlook setup guides for common versions. Mailbox setup is supported; calendar, contacts and AI features depend on the client you use.",
         },
-
         {
-          q: "How is my email secured?",
-          a: "Supported connections use TLS in transit, and DKIM, SPF and DMARC are configured to help receiving systems authenticate your domain. These controls reduce risk but cannot prevent every spoofing or phishing attempt.",
+          q: "Can info@ deliver to several people?",
+          a: "Yes. Every plan includes aliases and forwarding, so info@ or sales@ can deliver into the mailboxes of the people who handle them.",
         },
-
         {
-          q: "Can I create email aliases (e.g. info@ going to multiple mailboxes)?",
-          a: "Alias and forwarding availability depends on the selected plan and configuration. Check the live plan or ask support before designing a group-delivery workflow.",
+          q: "How much storage does each plan have?",
+          a: "Storage and mailbox counts are shown on each plan card above. Corporate is sized to your organisation when you need more than 100 mailboxes or custom storage.",
         },
-
+        {
+          q: "How is my email protected from spam and phishing?",
+          a: "Incoming mail is filtered for spam, viruses and phishing, supported connections use TLS, and DKIM, SPF and DMARC help receiving systems verify your domain. These controls reduce risk but cannot stop every attempt, so stay alert to unexpected payment requests.",
+        },
+        {
+          q: "Will my emails land in the inbox, not spam?",
+          a: "Setting up DKIM, SPF and DMARC gives your mail the best start, but no provider can guarantee inbox placement. Message content, sending volume and the recipient's own filters also play a part.",
+        },
         {
           q: "What happens to my emails if I cancel?",
           a: "You have 30 days after cancellation to export your data, as set out in our Terms of Service. Mail can be downloaded over IMAP with any standard email client.",
         },
-
         {
-          q: "Do you support bulk or transactional email sending?",
-          a: "Our business email plans are designed for team communication. For bulk marketing emails or transactional sending (invoices, receipts), we recommend our separate email marketing service.",
+          q: "Can I send newsletters or invoices in bulk?",
+          a: "Business email is designed for team communication. For newsletters and bulk campaigns, use our email marketing service.",
         },
       ]}
       pricingNote="Prices are shown in KES or USD based on your location, excluding 16% VAT. Review the live checkout for the selected term, amount billed and renewal basis."
       ctaHeadline="Professional email on your business domain."
-      ctaSubtext="Choose a live mailbox plan, connect your domain and agree migration scope and timing where an existing service needs to move."
+      ctaSubtext="Pick a plan for your team, connect your domain and start sending from addresses your customers trust."
       showcaseBlocks={showcaseBlocks}
     />
   );

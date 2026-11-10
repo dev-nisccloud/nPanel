@@ -87,6 +87,18 @@ export const EMAIL_HOSTING_PRICING_CONFIG: HostingPlansPricingConfig = {
   title: "Choose Your Business Email Plan",
   serviceType: "email_hosting",
   fetchPlans: fetchEmailHostingPlansPublic,
+  description:
+    "Business email on your own domain with AI writing help, spam and phishing filtering and daily backups. Pick a plan by how many mailboxes your team needs.",
+  everyPlanIncludes: [
+    "Email on your own domain",
+    "AI writing assistant",
+    "Spam, virus & phishing filtering",
+    "DKIM, SPF & DMARC set up for you",
+    "IMAP, POP & SMTP for Outlook and phones",
+    "Aliases & forwarding",
+    "Daily backups",
+    "99.9% uptime target",
+  ],
   fallbackFeatures: [
     {
       label: "Mailboxes",
@@ -104,9 +116,9 @@ export const EMAIL_HOSTING_PRICING_CONFIG: HostingPlansPricingConfig = {
       description: "Authentication records to improve deliverability and reduce spoofing.",
     },
     {
-      label: "Webmail",
-      value: "Access anywhere",
-      description: "Use webmail or connect Outlook, Apple Mail, and mobile apps via IMAP/SMTP.",
+      label: "Email clients",
+      value: "Phone and desktop",
+      description: "Use the Nisc Mail client or connect Outlook, Apple Mail and mobile apps over IMAP/SMTP.",
     },
   ],
 };

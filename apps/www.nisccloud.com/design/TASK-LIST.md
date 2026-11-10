@@ -46,6 +46,7 @@ In this order. Nothing here has been done yet.
 | BIZ-06 | Provide test access: M-Pesa Daraja and Jenga sandboxes, KeNIC OT&E credentials, registrar sandbox, a resettable test customer | Owner/Backend | Not started | Needed for PAY-05 |
 | BIZ-07 | Edit the Web Hosting and WordPress product descriptions in nPanel admin | Owner | Partial | The Web Hosting and WordPress pages now show approved intros instead, but `/pricing` may still show the nPanel text ("24/7 local support", "Lightning-fast", "enterprise security", "in minutes") |
 | BIZ-10 | Add "Daily backups" and "DDoS protection" to the WordPress **Launch** plan in the nPanel catalogue | Owner | Not started | Owner confirmed (11 Nov 2026) every WordPress plan has them; the catalogue lists them on Business and Performance only, so Launch's plan card omits them |
+| BIZ-11 | Remove "Premium webmail" from the Business Email plans in the nPanel catalogue, and drop "webmail" from the email product description | Owner | Not started | Owner decision (11 Nov 2026): webmail is not mentioned publicly. The website hides the row (`isHiddenPublicFeature`) and overrides the description until the catalogue is updated |
 | BIZ-08 | Legal review of a fair-use clause for "Unlimited*" resources | Legal | Not started | Draft wording is in `pre-launch-remediation-log.md` |
 | BIZ-09 | Set up a maintained public status page, if wanted | Owner | Not started | No status link is shown until one exists |
 

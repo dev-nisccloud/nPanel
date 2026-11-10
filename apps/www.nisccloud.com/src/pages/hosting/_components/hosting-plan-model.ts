@@ -76,6 +76,11 @@ export function normaliseProductDescription(text: string | null): string | null 
     : text;
 }
 
+/** Catalogue rows the public site does not advertise (webmail), until the nPanel catalogue drops them. */
+export function isHiddenPublicFeature(label: string) {
+  return /web\s?mail/i.test(label);
+}
+
 /**
  * The nPanel catalogue labels uptime as a "99.9% uptime guarantee" and shared storage as "SSD".
  * Public copy states a 99.9% uptime target (never a guarantee) and NVMe SSD storage, so both are
@@ -165,7 +170,9 @@ export function buildPlanModels(plans: SharedHostingPlan[], productFeatures: Pro
   const featuredId =
     plans.find((p) => p.isRecommended)?.id ?? plans.find((p) => p.isPopular)?.id ?? plans[Math.floor(plans.length / 2)]?.id;
 
-  const rows = plans.map((plan) => productFeatures.map((f, i) => normalisePlanFeature(f, plan.featureValues?.[i])));
+  const rows = plans.map((plan) =>
+    productFeatures.map((f, i) => normalisePlanFeature(f, plan.featureValues?.[i])).filter((f) => !isHiddenPublicFeature(f.label)),
+  );
 
   const maxByKey = new Map<string, number>();
   for (const features of rows) {
