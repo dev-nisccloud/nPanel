@@ -13,12 +13,12 @@ const showcaseBlocks: ShowcaseBlock[] = [
     tag: "Speed Dashboard",
     id: "performance-preview",
     artwork: <HostingPerformanceArtwork />,
-    headline: "Fast for your visitors, wherever they are.",
-    body: "Your site should feel quick for every visitor. We use LiteSpeed and NVMe SSD storage so pages load smoothly, and CDN options are available when you need a wider reach.",
+    headline: "Built for websites that load quickly.",
+    body: "Your site runs on NVMe SSD storage with free SSL, and you can move to a larger plan from nPanel when your traffic grows.",
     bullets: [
-      "LiteSpeed web server, much faster than typical Apache hosting",
-      "NVMe SSD storage with very fast disk reads",
-      "CDN integration available for global audiences",
+      "NVMe SSD storage for fast disk reads",
+      "Free SSL on every plan",
+      "Upgrade to a larger plan without migrating your website",
     ],
     mockupRight: true,
     visual: "speed",
@@ -60,13 +60,8 @@ export default function SharedHostingPage() {
   return (
     <ServicePageShell
       badge="Web Hosting"
-      headline={
-        <>
-          Fast, Reliable Web Hosting{" "}
-          <span className="text-primary">That Stays Online</span>
-        </>
-      }
-      subtext="Host your website on NVMe SSD servers with free SSL, daily backups and hosting tools managed through nPanel. Live prices are shown in the plans below. Fast for your visitors, wherever they are."
+      headline="Fast, Reliable Web Hosting That Stays Online"
+      subtext="Host your website on NVMe SSD servers with free SSL, daily backups and hosting tools managed through nPanel. Live prices are shown in the plans below."
       serviceType="hosting"
       plansUnderHero
       customPlansSection={<SharedPricingSection />}
@@ -81,7 +76,7 @@ export default function SharedHostingPage() {
         { value: "NVMe", label: "SSD Storage" },
         { value: "Free", label: "SSL Certificate" },
         { value: "Daily", label: "Backups" },
-        { value: "Free", label: "Migration Help" },
+        { value: "Planned", label: "Migration Help" },
       ]}
       process={[
         {
@@ -123,6 +118,9 @@ export default function SharedHostingPage() {
           desc: "Hosting, related domains, invoices and support remain connected to the same Nisc Cloud account.",
         },
       ]}
+      whySectionHeadline="Why businesses host with Nisc Cloud"
+      whySectionVariant="simple"
+      faqTitle="Web hosting questions"
       faqs={[
         {
           q: "What do I get with web hosting?",
@@ -151,7 +149,7 @@ export default function SharedHostingPage() {
       ]}
       pricingNote="Prices are shown in KES or USD based on your location. Easy checkout. 7-day money-back guarantee on new accounts."
       ctaHeadline="Get Reliable Web Hosting Today"
-      ctaSubtext="Fast web hosting with free SSL, daily backups, free migration help and everything managed in nPanel."
+      ctaSubtext="Fast web hosting with free SSL, daily backups, migration help within an agreed scope and everything managed in nPanel."
       showcaseBlocks={showcaseBlocks}
     />
   );

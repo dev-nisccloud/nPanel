@@ -1,4 +1,5 @@
-import { ArrowRight, Building2, Check, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { ArrowRight, Building2, Check, ChevronDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { cn } from "@/lib/utils.ts";
 import { billingCycleToMonths, type BillingCycle } from "@/lib/billing-cycle.ts";
@@ -28,6 +29,18 @@ type Props = {
 };
 
 const RECOMMENDED_BADGE = "bg-brand-orange";
+
+/** Features buyers compare first; the rest stay one click away. */
+const SPEC_PRIORITY = [/ssl/i, /email/i, /database/i, /wordpress toolkit/i, /uptime/i, /support/i];
+const VISIBLE_SPECS = 6;
+
+function prioritiseSpecs(specs: PlanFeature[]): PlanFeature[] {
+  const rank = (f: PlanFeature) => {
+    const i = SPEC_PRIORITY.findIndex((re) => re.test(f.label));
+    return i === -1 ? SPEC_PRIORITY.length : i;
+  };
+  return [...specs].sort((a, b) => rank(a) - rank(b));
+}
 
 function FairUseMark() {
   return <sup className="ml-0.5 font-normal text-muted-foreground">*</sup>;
@@ -154,6 +167,8 @@ function SpotlightCard({
   onChoose,
   currency,
   kesToCurrencyRate,
+  showAllSpecs,
+  onToggleSpecs,
 }: {
   model: PlanModel;
   cycle: BillingCycle;
@@ -162,8 +177,13 @@ function SpotlightCard({
   onChoose: () => void;
   currency: StorefrontCurrency;
   kesToCurrencyRate: number | null;
+  showAllSpecs: boolean;
+  onToggleSpecs: () => void;
 }) {
   const { featured } = model;
+  const specs = prioritiseSpecs(model.specs);
+  const visibleSpecs = showAllSpecs ? specs : specs.slice(0, VISIBLE_SPECS);
+  const hiddenCount = specs.length - VISIBLE_SPECS;
   const priced = planTermPrice(model.plan.niscPrice, model.plan.billingCycle, cycle) > 0;
 
   return (
@@ -228,12 +248,28 @@ function SpotlightCard({
         </div>
       ) : null}
 
-      {model.specs.length > 0 ? (
-        <ul className="mt-6 flex-1 space-y-2 border-t border-border/70 pt-5">
-          {model.specs.map((f) => (
-            <SpecLine key={f.key} feature={f} featured={featured} />
-          ))}
-        </ul>
+      {specs.length > 0 ? (
+        <div className="mt-6 flex flex-1 flex-col border-t border-border/70 pt-5">
+          <ul className="space-y-2">
+            {visibleSpecs.map((f) => (
+              <SpecLine key={f.key} feature={f} featured={featured} />
+            ))}
+          </ul>
+          {hiddenCount > 0 ? (
+            <button
+              type="button"
+              aria-expanded={showAllSpecs}
+              onClick={onToggleSpecs}
+              className="mt-4 inline-flex items-center gap-1 self-start text-sm font-semibold text-sky-700 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:text-primary"
+            >
+              {showAllSpecs ? "Show fewer features" : `See all features (${hiddenCount} more)`}
+              <ChevronDown
+                className={cn("size-4 transition-transform", showAllSpecs && "rotate-180")}
+                aria-hidden
+              />
+            </button>
+          ) : null}
+        </div>
       ) : (
         <div className="flex-1" />
       )}
@@ -294,6 +330,7 @@ export function PlanCardsSpotlight({
   currency,
   kesToCurrencyRate,
 }: Props) {
+  const [showAllSpecs, setShowAllSpecs] = useState(false);
   const anyFairUse = models.some((m) => m.features.some((f) => f.fairUse));
   const count = models.length + (customTier ? 1 : 0);
   return (
@@ -315,6 +352,8 @@ export function PlanCardsSpotlight({
             onChoose={() => onChoose(model)}
             currency={currency}
             kesToCurrencyRate={kesToCurrencyRate}
+            showAllSpecs={showAllSpecs}
+            onToggleSpecs={() => setShowAllSpecs((value) => !value)}
           />
         ))}
         {customTier ? <CustomTierCard tier={customTier} /> : null}

@@ -70,7 +70,9 @@ export function normaliseProductDescription(text: string | null): string | null 
     ? text
         .replace(/(?<!NVMe )\bSSD hosting\b/g, "NVMe SSD hosting")
         .replace(/\bWordPress toolkit\b/g, "WordPress Toolkit")
-        .replace(/24\/7 local support/gi, "24/7 ticket support")
+        // Support hours are unconfirmed, so catalogue support claims are not shown.
+        .replace(/,?\s*(?:and\s+)?24\/7(?:\/365)?\s+(?:local|ticket)?\s*support/gi, "")
+        .replace(/,\s*\./g, ".")
     : text;
 }
 
@@ -84,13 +86,21 @@ export function normalisePlanFeature(
   raw: { available: boolean; valueOverride: string | null } | undefined,
 ): PlanFeature {
   const isUptime = /uptime/i.test(feature.key) || /uptime/i.test(feature.label);
+  const isSupport = /support/i.test(feature.label) && /24\s*\/\s*7/.test(feature.label);
   const label = isUptime
     ? "Uptime target"
-    : feature.key === "ssd_storage" || /^ssd storage$/i.test(feature.label)
-      ? "NVMe SSD storage"
-      : feature.label;
-  const base = { key: feature.key, label, description: feature.description };
+    : isSupport
+      ? "Support through nPanel"
+      : feature.key === "ssd_storage" || /^ssd storage$/i.test(feature.label)
+        ? "NVMe SSD storage"
+        : feature.label;
+  const base = {
+    key: feature.key,
+    label,
+    description: isSupport ? "Raise support requests from your nPanel account." : feature.description,
+  };
   if (!raw?.available) return { ...base, value: null, boolean: true, fairUse: false };
+  if (isSupport) return { ...base, value: "Included", boolean: true, fairUse: false };
 
   const override = raw.valueOverride?.trim() || null;
   if (isUptime) {

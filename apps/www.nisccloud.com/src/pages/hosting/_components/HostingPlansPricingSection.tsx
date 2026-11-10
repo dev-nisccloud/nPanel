@@ -61,9 +61,9 @@ function TrustRow({
 }) {
   const items: { icon: LucideIcon; text: string }[] = [
     ...(freeSsl ? [{ icon: Lock, text: "Free SSL on every plan" }] : []),
-    { icon: Headphones, text: "24/7 ticket support · email, chat and phone during working hours" },
+    { icon: Headphones, text: "Support through nPanel" },
     { icon: CreditCard, text: "Pay with M-Pesa or card" },
-    { icon: ReceiptText, text: `Prices in ${currency}, excluding 16% VAT` },
+    { icon: ReceiptText, text: `Prices in ${currency} based on your location, excluding VAT` },
   ];
   return (
     <ul className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-muted-foreground">

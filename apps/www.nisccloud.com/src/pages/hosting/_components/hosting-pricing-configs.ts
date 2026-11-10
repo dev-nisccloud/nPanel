@@ -8,6 +8,8 @@ import type { HostingPlansPricingConfig } from "./HostingPlansPricingSection.tsx
 export const SHARED_HOSTING_PRICING_CONFIG: HostingPlansPricingConfig = {
   sectionId: "plans",
   title: "Choose Your Hosting Plan",
+  description:
+    "Host business websites on NVMe SSD storage with free SSL, the WordPress Toolkit and hosting tools managed in nPanel.",
   serviceType: "web_hosting",
   fetchPlans: fetchSharedHostingPlansPublic,
   fallbackFeatures: [

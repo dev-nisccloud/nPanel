@@ -112,6 +112,9 @@ export type ServicePageShellProps = {
   checkoutProductName?: string;
   /** Optional headline for the Built Different bento section */
   whySectionHeadline?: string;
+  /** `simple` shows the why points as plain cards on one row, without illustrations. */
+  whySectionVariant?: "visual" | "simple";
+  faqTitle?: string;
   whySectionBadge?: string;
   /** Strategy-led buyer guidance, used by consultation services. */
   strategySections?: StrategySection[];
@@ -599,6 +602,8 @@ export default function ServicePageShell({
   checkoutServiceType,
   checkoutProductName,
   whySectionHeadline,
+  whySectionVariant,
+  faqTitle,
   whySectionBadge: _whySectionBadge,
   strategySections,
 }: ServicePageShellProps) {
@@ -796,6 +801,7 @@ export default function ServicePageShell({
           <BuiltDifferentBento
             points={whyPoints}
             headline={whySectionHeadline}
+            variant={whySectionVariant}
           />
         )}
 
@@ -804,6 +810,7 @@ export default function ServicePageShell({
         {faqs && faqs.length > 0 ? (
           <FaqBlock
             faqs={faqs.map((faq) => ({ question: faq.q, answer: faq.a }))}
+            title={faqTitle}
           />
         ) : null}
 
