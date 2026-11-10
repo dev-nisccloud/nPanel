@@ -241,7 +241,7 @@ export default function PlatformPage() {
                   <div className="pointer-events-none h-[430px] min-w-0 overflow-hidden border-b border-border/60 [&>*]:h-full" aria-hidden>
                     <Art />
                   </div>
-                  <h3 className="min-w-0 px-6 pt-6 text-xl font-bold">{title}</h3>
+                  <h3 className="min-w-0 px-6 pt-6 text-xl font-normal">{title}</h3>
                   <p className="min-w-0 px-6 pt-2 text-sm leading-relaxed text-muted-foreground">{body}</p>
                   <Link to={href} className="mx-6 mb-6 mt-5 inline-flex min-w-0 items-center gap-1.5 self-start text-sm font-semibold text-primary after:absolute after:inset-0 focus-visible:outline-none">
                     {cta} <ArrowRight className="h-4 w-4" />
@@ -273,7 +273,7 @@ export default function PlatformPage() {
                     <span className={`flex h-12 w-12 items-center justify-center rounded-xl ${surface}`}>
                       <Icon className={`h-5 w-5 ${accent}`} />
                     </span>
-                    <h3 className="text-2xl font-extrabold tracking-tight">{title}</h3>
+                    <h3 className="text-2xl tracking-tight font-normal">{title}</h3>
                   </div>
                   <div>
                     <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">{description}</p>

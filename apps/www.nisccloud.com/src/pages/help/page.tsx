@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { motion } from "motion/react";
 import {
   Search,
@@ -218,7 +218,7 @@ function ArticleCard({
         className="group w-full flex items-start justify-between px-5 py-4 text-left gap-3 cursor-pointer"
       >
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-sm text-foreground mb-0.5 transition-colors group-hover:text-primary">
+          <h3 className="text-sm text-foreground mb-0.5 transition-colors group-hover:text-primary font-normal">
             {article.title}
           </h3>
           <div className="text-xs text-muted-foreground leading-relaxed">
@@ -373,7 +373,7 @@ export default function HelpCentrePage() {
               size={40}
               className="mx-auto text-muted-foreground/50 mb-4"
             />
-            <h3 className="font-semibold text-lg mb-2">No articles found</h3>
+            <h3 className="text-lg mb-2 font-normal">No articles found</h3>
             <p className="text-muted-foreground text-sm">
               Try a different search term or browse all categories.
             </p>
@@ -397,7 +397,7 @@ export default function HelpCentrePage() {
                     {cat.icon}
                   </div>
                   <div>
-                    <h2 className="font-bold text-lg">{cat.label}</h2>
+                    <h2 className="text-lg font-normal">{cat.label}</h2>
                     <p className="text-xs text-muted-foreground">
                       {cat.articles.length}{" "}
                       {cat.articles.length === 1 ? "article" : "articles"}
@@ -435,7 +435,7 @@ export default function HelpCentrePage() {
           }}
         >
           <HelpCircle size={32} className="mx-auto text-primary mb-3" />
-          <h3 className="text-xl font-bold mb-2">
+          <h3 className="text-xl mb-2 font-normal">
             Can't find what you're looking for?
           </h3>
           <p className="text-muted-foreground text-sm mb-6 max-w-md mx-auto">

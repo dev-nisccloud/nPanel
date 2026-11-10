@@ -126,7 +126,7 @@ export default function SecurityServiceLayout({
                 <span className="mb-4 flex size-9 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
                   {index + 1}
                 </span>
-                <h3 className="mb-2 font-semibold">{step.title}</h3>
+                <h3 className="mb-2 font-normal">{step.title}</h3>
                 <p className="text-sm leading-relaxed text-muted-foreground">{step.desc}</p>
               </li>
             ))}
@@ -153,7 +153,7 @@ export default function SecurityServiceLayout({
                 <div className="mb-4 flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                   <item.icon size={20} />
                 </div>
-                <h3 className="mb-2 font-semibold">{item.title}</h3>
+                <h3 className="mb-2 font-normal">{item.title}</h3>
                 <p className="text-sm leading-relaxed text-muted-foreground">{item.desc}</p>
               </motion.div>
             ))}
@@ -167,7 +167,7 @@ export default function SecurityServiceLayout({
           <div className="grid gap-5 md:grid-cols-2">
             {platforms.map((platform) => (
               <div key={platform.title} className="rounded-3xl border border-border bg-card p-7">
-                <h3 className="mb-4 text-lg font-bold">{platform.title}</h3>
+                <h3 className="mb-4 text-lg font-normal">{platform.title}</h3>
                 <ul className="space-y-2.5">
                   {platform.points.map((point) => (
                     <li key={point} className="flex items-start gap-2.5 text-sm">

@@ -176,7 +176,7 @@ export function LicencePlansSection({ kind }: { kind: keyof typeof VENDORS }) {
                     : "border-border bg-card",
                 )}
               >
-                <h3 className="text-xl font-bold tracking-tight">{plan.name}</h3>
+                <h3 className="text-xl tracking-tight font-normal">{plan.name}</h3>
                 <div className="mt-4 min-h-[5.5rem]">
                   {quoted ? (
                     <>
@@ -240,7 +240,7 @@ export function LicencePlansSection({ kind }: { kind: keyof typeof VENDORS }) {
           {explainers.map(({ icon: Icon, title, body }) => (
             <div key={title} className="rounded-2xl border border-border bg-card p-5">
               <Icon className="h-5 w-5 text-primary" aria-hidden />
-              <h3 className="mt-3 text-sm font-semibold">{title}</h3>
+              <h3 className="mt-3 text-sm font-normal">{title}</h3>
               <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">{body}</p>
             </div>
           ))}

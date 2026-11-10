@@ -83,7 +83,7 @@ export default function CoreValues() {
               <div className={`${v.bg} w-12 h-12 rounded-xl flex items-center justify-center mb-4`}>
                 <v.icon className={`w-6 h-6 ${v.color}`} />
               </div>
-              <h3 className="font-bold text-lg mb-2">{v.title}</h3>
+              <h3 className="text-lg mb-2 font-normal">{v.title}</h3>
               <p className="text-sm text-muted-foreground">{v.description}</p>
             </motion.div>
           ))}

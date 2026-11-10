@@ -136,7 +136,7 @@ export function WebHostingMigration() {
           ]}
         />
         <div className="rounded-3xl border border-border bg-card p-7">
-          <h3 className="text-xl font-bold tracking-tight">What to have ready</h3>
+          <h3 className="text-xl tracking-tight font-normal">What to have ready</h3>
           <ul className="mt-4 list-disc space-y-2 pl-5 text-base leading-relaxed text-muted-foreground marker:text-primary">
             <li>Login details for your current hosting control panel</li>
             <li>Access to the account where your domain is registered</li>
@@ -175,7 +175,7 @@ export function WebHostingExplained() {
             ]}
           />
           <div>
-            <h3 className="text-xl font-bold tracking-tight">How do I pay for web hosting in Kenya?</h3>
+            <h3 className="text-xl tracking-tight font-normal">How do I pay for web hosting in Kenya?</h3>
             <p className="mt-3 max-w-[70ch] border-l-4 border-primary pl-4 text-base font-medium leading-relaxed text-foreground md:text-[17px]">
               Pay by M-Pesa or card. Prices are shown in KES or USD based on your location, excluding VAT.
             </p>
@@ -196,7 +196,7 @@ export function WebHostingExplained() {
           </div>
         </div>
         <div>
-          <h3 className="mb-4 text-xl font-bold tracking-tight">Web hosting terms explained</h3>
+          <h3 className="mb-4 text-xl tracking-tight font-normal">Web hosting terms explained</h3>
           <Glossary
             items={[
               { term: "NVMe SSD", desc: "Fast solid-state storage that reads and writes data quicker than older SSD and hard-drive storage." },

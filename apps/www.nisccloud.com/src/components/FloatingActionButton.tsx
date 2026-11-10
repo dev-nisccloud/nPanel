@@ -377,7 +377,7 @@ export function FloatingActionButton({ className }: { className?: string }) {
               </div>
 
               <div className="relative z-10 flex-shrink-0 px-5 pb-8 pt-5">
-                <h2 className="text-[1.65rem] font-bold leading-tight tracking-tight text-white">
+                <h2 className="text-[1.65rem] leading-tight tracking-tight text-white font-normal">
                   Hi there 👋
                 </h2>
                 <p className="mt-0.5 text-[1.35rem] font-semibold leading-snug text-white/90">
@@ -469,7 +469,7 @@ export function FloatingActionButton({ className }: { className?: string }) {
               {messagesView === "guest-form" && (
                 <>
                   <div className="flex flex-shrink-0 items-center justify-between border-b px-4 pb-3 pt-4">
-                    <h2 className="text-base font-semibold text-foreground">Contact us</h2>
+                    <h2 className="text-base text-foreground font-normal">Contact us</h2>
                     <button
                       type="button"
                       className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-accent"
@@ -538,7 +538,7 @@ export function FloatingActionButton({ className }: { className?: string }) {
               {messagesView === "list" && (
                 <>
                   <div className="flex flex-shrink-0 items-center justify-between border-b px-4 pb-3 pt-4">
-                    <h2 className="text-base font-semibold text-foreground">Messages</h2>
+                    <h2 className="text-base text-foreground font-normal">Messages</h2>
                     <div className="flex items-center gap-1">
                       <button
                         type="button"
@@ -567,7 +567,7 @@ export function FloatingActionButton({ className }: { className?: string }) {
                         <div className="mb-4 w-fit rounded-full bg-muted/50 p-4">
                           <MessageSquare className="h-10 w-10 text-muted-foreground" />
                         </div>
-                        <h3 className="mb-1 text-base font-semibold">No messages yet</h3>
+                        <h3 className="mb-1 text-base font-normal">No messages yet</h3>
                         <p className="mb-5 max-w-[220px] text-sm text-muted-foreground">
                           Start a conversation and our team will reply here.
                         </p>
@@ -631,7 +631,7 @@ export function FloatingActionButton({ className }: { className?: string }) {
                     >
                       <ArrowLeft className="h-4 w-4" />
                     </button>
-                    <h2 className="flex-1 truncate text-base font-semibold text-foreground">
+                    <h2 className="flex-1 truncate text-base text-foreground font-normal">
                       {selectedTicketId
                         ? tickets.find((t) => t.id === selectedTicketId)?.subject ||
                           "Conversation"
@@ -745,7 +745,7 @@ export function FloatingActionButton({ className }: { className?: string }) {
               {!isSignedIn && !guestReady ? (
                 <>
                   <div className="flex flex-shrink-0 items-center justify-between border-b px-4 pb-3 pt-4">
-                    <h2 className="text-base font-semibold text-foreground">Live AI Support</h2>
+                    <h2 className="text-base text-foreground font-normal">Live AI Support</h2>
                     <button
                       type="button"
                       className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-accent"

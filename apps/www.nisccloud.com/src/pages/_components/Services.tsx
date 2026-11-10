@@ -147,7 +147,7 @@ export default function Services() {
               >
                 {s.tag.toUpperCase()}
               </span>
-              <h3 className="font-semibold text-base mb-2">{s.title}</h3>
+              <h3 className="text-base mb-2 font-normal">{s.title}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">{s.desc}</p>
             </motion.div>
           ))}

@@ -48,7 +48,7 @@ export function AgencyPlans() {
             key={option.name}
             className="flex flex-col rounded-2xl border border-border bg-card p-6"
           >
-            <h3 className="text-xl font-semibold">{option.name}</h3>
+            <h3 className="text-xl font-normal">{option.name}</h3>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
               {option.description}
             </p>

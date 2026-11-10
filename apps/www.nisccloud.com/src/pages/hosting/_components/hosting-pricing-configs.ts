@@ -97,6 +97,7 @@ export const EMAIL_HOSTING_PRICING_CONFIG: HostingPlansPricingConfig = {
     "IMAP, POP & SMTP for Outlook and phones",
     "Aliases & forwarding",
     "Daily backups",
+    "Free migration",
     "99.9% uptime target",
   ],
   fallbackFeatures: [

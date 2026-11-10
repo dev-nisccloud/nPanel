@@ -1,4 +1,4 @@
-import { ServiceExperience } from "@/pages/_components/ServiceExperience";
+﻿import { ServiceExperience } from "@/pages/_components/ServiceExperience";
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
 import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
 import { Code2, Gauge, GitBranch, Lock, Mail, RefreshCw, Shield, ShoppingCart } from "lucide-react";
@@ -151,7 +151,7 @@ export default function WordPressHostingPage() {
         {
           num: "03",
           title: "Move an Existing Site",
-          desc: "Share access to your current site and agree what the migration includes before the move.",
+          desc: "Share access to your current site. We move it free of charge and agree the switch-over time with you.",
         },
         {
           num: "04",
@@ -176,9 +176,9 @@ export default function WordPressHostingPage() {
           desc: "LiteSpeed cache, WordPress acceleration and a free CDN are part of every plan.",
         },
         {
-          title: "Planned Migrations",
+          title: "Free, Planned Migrations",
           visual: "migration",
-          desc: "Moves are scoped for access, plugins, testing and switch-over before work begins.",
+          desc: "We move your site free of charge, after checking access, plugins, testing and switch-over with you.",
         },
       ]}
       whySectionHeadline="Why WordPress sites run on Nisc Cloud"
@@ -209,7 +209,7 @@ export default function WordPressHostingPage() {
         },
         {
           q: "Can you migrate my existing WordPress site?",
-          a: "Yes, within a scope agreed before the move. We review access, files, database, plugins, themes and switch-over needs first; timing depends on site size, compatibility and access. Existing faults or extra fixes are quoted before work begins.",
+          a: "Yes, free of charge, within a scope agreed before the move. We review access, files, database, plugins, themes and switch-over needs first; timing depends on site size, compatibility and access. Existing faults or extra fixes are quoted before work begins.",
         },
         {
           q: "Which PHP versions can I use?",

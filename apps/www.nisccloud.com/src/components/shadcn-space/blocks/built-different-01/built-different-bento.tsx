@@ -25,7 +25,7 @@ function SimpleCard({ point }: { point: BuiltDifferentPoint }) {
   return (
     <article className="h-full rounded-2xl border border-border bg-card p-6">
       <span aria-hidden className="block h-1 w-10 rounded-full bg-primary" />
-      <h3 className="mt-5 text-base font-semibold tracking-tight text-foreground">{point.title}</h3>
+      <h3 className="mt-5 text-base tracking-tight text-foreground font-normal">{point.title}</h3>
       <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{point.desc}</p>
     </article>
   );
@@ -55,7 +55,7 @@ function BentoCard({
         <CardContent className="flex h-full flex-col gap-4 p-5 pt-5">
           <ContextualVisual point={point} theme={theme} loop={inView && !reduceMotion} />
           <div className="mt-auto space-y-1.5 text-center">
-            <h3 className="text-base font-semibold tracking-tight text-foreground">
+            <h3 className="text-base tracking-tight text-foreground font-normal">
               {point.title}
             </h3>
             <p className="text-sm leading-relaxed text-muted-foreground">

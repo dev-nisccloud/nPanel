@@ -158,7 +158,7 @@ export default function Features() {
                 </div>
 
                 <div className="flex flex-col gap-2 pt-6">
-                  <h3 className="font-bold text-xl tracking-tight">
+                  <h3 className="text-xl tracking-tight font-normal">
                     {feature.title}
                   </h3>
                   <p className="leading-relaxed text-muted-foreground text-sm">

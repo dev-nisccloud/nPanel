@@ -246,7 +246,7 @@ export const CLOSING_PRESETS: Record<string, ClosingPreset> = {
     eyebrow: "WordPress, handled",
     points: ["Automatic WordPress updates", "Daily backups on every plan"],
     primaryLabel: "Start your WordPress site",
-    secondary: { label: "Move my site to us", href: "/hosting/transfer" },
+    secondary: { label: "Migrate my site free", href: "/hosting/transfer" },
     card: { variant: "staging" },
   },
   "/hosting/email": {

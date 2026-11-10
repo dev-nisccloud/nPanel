@@ -71,7 +71,7 @@ export default function HybridEmailPage() {
                 >
                   <Mail className="mt-1 shrink-0 text-primary" />
                   <div>
-                    <h2 className="font-semibold">{name}</h2>
+                    <h2 className="font-normal">{name}</h2>
                     <p className="mt-1 text-sm text-muted-foreground">{text}</p>
                   </div>
                 </div>
@@ -117,7 +117,7 @@ export default function HybridEmailPage() {
                     className="rounded-2xl border border-border bg-card p-6"
                   >
                     <I className="mb-4 text-primary" />
-                    <h3 className="text-lg font-semibold">{String(title)}</h3>
+                    <h3 className="text-lg font-normal">{String(title)}</h3>
                     <p className="mt-3 leading-relaxed text-muted-foreground">
                       {String(body)}
                     </p>

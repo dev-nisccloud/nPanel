@@ -49,7 +49,7 @@ export default function PainAgitation() {
 
         <div className="grid gap-4 md:grid-cols-2 md:gap-6">
           <div className="rounded-3xl border border-border bg-muted/40 p-6 md:p-8">
-            <h3 className="mb-5 text-base font-bold tracking-tight text-muted-foreground md:text-lg">
+            <h3 className="mb-5 text-base tracking-tight text-muted-foreground md:text-lg font-normal">
               With fragmented providers
             </h3>
             <ul className="space-y-3.5">
@@ -68,7 +68,7 @@ export default function PainAgitation() {
           </div>
 
           <div className="flex flex-col rounded-3xl border border-primary/30 bg-primary/5 p-6 shadow-[0_12px_40px_-24px_color-mix(in_srgb,var(--color-primary)_55%,transparent)] md:p-8">
-            <h3 className="mb-5 text-base font-bold tracking-tight text-foreground md:text-lg">
+            <h3 className="mb-5 text-base tracking-tight text-foreground md:text-lg font-normal">
               With Nisc Cloud
             </h3>
             <ul className="mb-7 space-y-3.5">

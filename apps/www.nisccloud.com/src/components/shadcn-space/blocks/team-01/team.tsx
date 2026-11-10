@@ -105,7 +105,7 @@ const Team = () => {
                 <span className="inline-flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
                   <member.icon className="size-5" aria-hidden />
                 </span>
-                <h3 className="text-lg font-bold tracking-tight text-foreground">{member.role}</h3>
+                <h3 className="text-lg tracking-tight text-foreground font-normal">{member.role}</h3>
                 <p className="text-sm leading-relaxed text-muted-foreground">{member.description}</p>
               </motion.div>
             ))}

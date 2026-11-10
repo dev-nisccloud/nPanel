@@ -264,7 +264,7 @@ export function TransferDomainSection() {
         <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
           <ArrowLeftRight className="h-6 w-6" />
         </div>
-        <h2 className="text-xl font-semibold tracking-tight">Transfer your domain here</h2>
+        <h2 className="text-xl tracking-tight font-normal">Transfer your domain here</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Enter the domain you want to move. We will check if it can transfer and show the live price.
         </p>
@@ -330,7 +330,7 @@ export function TransferDomainSection() {
             <div className="flex gap-3">
               <Globe className="h-5 w-5 shrink-0 text-primary" />
               <div>
-                <h3 className="font-medium text-foreground">This domain is free to register</h3>
+                <h3 className="text-foreground font-normal">This domain is free to register</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {message} It is not currently registered, so you can register it instead of transferring.
                 </p>
@@ -350,7 +350,7 @@ export function TransferDomainSection() {
           <div className="mt-4 flex gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-left">
             <Lock className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-500" />
             <div>
-              <h3 className="font-medium text-foreground">Domain is locked</h3>
+              <h3 className="text-foreground font-normal">Domain is locked</h3>
               <p className="mt-1 text-sm text-muted-foreground">
                 This domain is locked at your current provider. Turn off transfer lock in their control panel, then try again.
               </p>
@@ -371,7 +371,7 @@ export function TransferDomainSection() {
           >
             <AlertCircle className="h-5 w-5 shrink-0 text-destructive" />
             <div>
-              <h3 className="font-medium text-destructive">This domain cannot transfer yet</h3>
+              <h3 className="text-destructive font-normal">This domain cannot transfer yet</h3>
               <p className="mt-1 text-sm text-muted-foreground">{message}</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button type="button" size="sm" variant="outline" onClick={validateAndFetchPrice}>
@@ -394,7 +394,7 @@ export function TransferDomainSection() {
 
         {showPriceUnavailable && (
           <div className="mt-4 rounded-lg border border-border bg-muted/20 p-4 text-left" role="status">
-            <h3 className="font-medium text-foreground">Transfer eligibility found, but pricing is unavailable</h3>
+            <h3 className="text-foreground font-normal">Transfer eligibility found, but pricing is unavailable</h3>
             <p className="mt-1 text-sm text-muted-foreground">
               Check again to request the current registry price. If it remains unavailable, our team can confirm the extension and transfer terms.
             </p>

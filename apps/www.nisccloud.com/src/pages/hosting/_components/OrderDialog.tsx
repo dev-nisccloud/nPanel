@@ -136,7 +136,7 @@ export default function OrderDialog({ open, onClose, plan, addons = [], serviceT
                 <Sparkles size={14} className="text-primary" />
                 <span className="text-xs font-bold text-primary uppercase tracking-widest">New Order</span>
               </div>
-              <h2 className="text-xl font-extrabold text-foreground">{plan?.name}</h2>
+              <h2 className="text-xl text-foreground font-normal">{plan?.name}</h2>
               <p className="text-muted-foreground text-sm mt-0.5">
                 <span className="text-2xl font-extrabold text-primary">KES {plan?.price.toLocaleString()}</span>
                 <span className="text-xs ml-1">/{plan?.period}</span>

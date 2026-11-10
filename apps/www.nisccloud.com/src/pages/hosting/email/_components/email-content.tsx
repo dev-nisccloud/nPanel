@@ -54,7 +54,7 @@ export function EmailPlanFit() {
           <>
             <span className="font-semibold">Every plan</span> includes email on your own domain, the AI writing
             assistant, spam, virus and phishing filtering, DKIM, SPF and DMARC set up for you, aliases and forwarding,
-            and daily backups. Plans differ by mailbox count and storage.
+            daily backups and free migration. Plans differ by mailbox count and storage.
           </>
         }
       />
@@ -148,7 +148,7 @@ export function EmailSetup() {
             ]}
           />
           <p className="mt-6 max-w-[65ch] text-[15px] leading-relaxed text-muted-foreground">
-            Moving from another provider? Tell us where your mail is now and how many mailboxes you have, and we agree
+            Moving from another provider? Migration is free. Tell us where your mail is now and how many mailboxes you have, and we agree
             what moves across and when your domain switches over.
           </p>
           <RelatedLinks className="mt-5" links={[{ label: "Register or transfer a domain", href: "/hosting/domains" }]} />
@@ -178,7 +178,7 @@ export function EmailExplained() {
             ]}
           />
           <div>
-            <h3 className="text-xl font-bold tracking-tight">Do I need a website to have business email?</h3>
+            <h3 className="text-xl tracking-tight font-normal">Do I need a website to have business email?</h3>
             <p className="mt-3 max-w-[70ch] border-l-4 border-primary pl-4 text-base font-medium leading-relaxed text-foreground md:text-[17px]">
               No. You only need a domain name. Your website can stay where it is, or you can add one later.
             </p>
@@ -192,7 +192,7 @@ export function EmailExplained() {
           </div>
         </div>
         <div>
-          <h3 className="mb-4 text-xl font-bold tracking-tight">Business email terms explained</h3>
+          <h3 className="mb-4 text-xl tracking-tight font-normal">Business email terms explained</h3>
           <Glossary
             items={[
               { term: "MX record", desc: "The domain setting that tells the internet which servers receive your email." },

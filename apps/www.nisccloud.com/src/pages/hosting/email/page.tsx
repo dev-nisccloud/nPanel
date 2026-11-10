@@ -1,4 +1,4 @@
-import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
+﻿import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
 import { Archive, AtSign, BadgeCheck, Forward, Mail, MonitorSmartphone, Shield, Sparkles } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
 import { EmailPricingSection } from "./_components/EmailPricingSection.tsx";
@@ -86,8 +86,8 @@ export default function EmailHostingPage() {
         },
         {
           icon: <Mail size={20} />,
-          title: "Planned Moves from Your Current Provider",
-          desc: "We confirm access, mailbox volume and the switch-over date with you first, so nothing is moved without a plan.",
+          title: "Free Migration From Your Current Provider",
+          desc: "We move your existing mailboxes free of charge, after confirming access, mailbox volume and the switch-over date with you.",
         },
       ]}
       plans={[]}
@@ -148,7 +148,7 @@ export default function EmailHostingPage() {
       faqs={[
         {
           q: "What is included with every business email plan?",
-          a: "Every plan includes email on your own domain, the AI writing assistant, spam, virus and phishing filtering, DKIM, SPF and DMARC set up for you, IMAP, POP and SMTP access, aliases and forwarding, daily backups and a 99.9% uptime target. Plans differ by mailbox count and storage.",
+          a: "Every plan includes email on your own domain, the AI writing assistant, spam, virus and phishing filtering, DKIM, SPF and DMARC set up for you, IMAP, POP and SMTP access, aliases and forwarding, daily backups, free migration and a 99.9% uptime target. Plans differ by mailbox count and storage.",
         },
         {
           q: "Do I need a website to get business email?",
@@ -160,7 +160,7 @@ export default function EmailHostingPage() {
         },
         {
           q: "Can I migrate from Google Workspace or Microsoft 365?",
-          a: "Yes. We assess moves from Google Workspace, Microsoft 365 and other IMAP providers. Source access, mailbox volume, what moves across and the switch-over date are agreed before we start.",
+          a: "Yes, and migration is free. We move mail from Google Workspace, Microsoft 365 and other IMAP providers. Source access, mailbox volume, what moves across and the switch-over date are agreed before we start.",
         },
         {
           q: "Can I use my business email on my phone?",

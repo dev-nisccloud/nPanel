@@ -3,7 +3,7 @@ import { Calendar, Key, Network, Unlock } from "lucide-react";
 export function TransferPrerequisites() {
   return (
     <div className="rounded-xl border bg-card p-6 shadow-sm">
-      <h2 className="text-lg font-semibold tracking-tight">Get your domain ready</h2>
+      <h2 className="text-lg tracking-tight font-normal">Get your domain ready</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Check these items before you start. Eligibility varies by registry, so uncertain results should be confirmed with your current registrar.
       </p>
@@ -13,7 +13,7 @@ export function TransferPrerequisites() {
             <Calendar className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="font-medium text-foreground">It is old enough to move</h3>
+            <h3 className="text-foreground font-normal">It is old enough to move</h3>
             <p className="mt-1 text-sm text-muted-foreground">
               Most domains need 60 or more days since registration or the last transfer before they can move again.
             </p>
@@ -24,7 +24,7 @@ export function TransferPrerequisites() {
             <Unlock className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="font-medium text-foreground">Transfer lock is off</h3>
+            <h3 className="text-foreground font-normal">Transfer lock is off</h3>
             <p className="mt-1 text-sm text-muted-foreground">
               Turn off transfer lock at your current provider. If you cannot find the setting, ask them or contact us for help.
             </p>
@@ -35,7 +35,7 @@ export function TransferPrerequisites() {
             <Key className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="font-medium text-foreground">You have an authorization code</h3>
+            <h3 className="text-foreground font-normal">You have an authorization code</h3>
             <p className="mt-1 text-sm text-muted-foreground">
               Get a transfer (EPP) code from your current provider. You will enter it on the cart page before payment.
             </p>
@@ -46,7 +46,7 @@ export function TransferPrerequisites() {
             <Network className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="font-medium text-foreground">Your DNS is documented</h3>
+            <h3 className="text-foreground font-normal">Your DNS is documented</h3>
             <p className="mt-1 text-sm text-muted-foreground">
               Save the current nameservers and important DNS records. Registrar transfer and DNS hosting are separate, so avoid changing DNS during the move.
             </p>

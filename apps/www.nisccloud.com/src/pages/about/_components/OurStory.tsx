@@ -90,7 +90,7 @@ export default function OurStory() {
                     <time className="text-xs font-semibold tabular-nums text-primary">
                       {m.year}
                     </time>
-                    <h3 className="text-base font-semibold text-foreground">
+                    <h3 className="text-base text-foreground font-normal">
                       {m.title}
                     </h3>
                   </div>

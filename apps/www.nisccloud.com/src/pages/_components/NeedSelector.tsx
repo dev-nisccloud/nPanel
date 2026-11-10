@@ -402,7 +402,7 @@ export default function NeedSelector() {
             >
               <div>
                 <p className="type-label mb-2 text-sky-700 dark:text-primary">{tab.stepLabel}</p>
-                <h3 className="text-2xl font-bold leading-snug tracking-tight text-foreground md:text-[1.75rem]">
+                <h3 className="text-2xl leading-snug tracking-tight text-foreground md:text-[1.75rem] font-normal">
                   {tab.headline} {tab.highlight}
                 </h3>
                 <p className="mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground md:text-base">{tab.subtext}</p>

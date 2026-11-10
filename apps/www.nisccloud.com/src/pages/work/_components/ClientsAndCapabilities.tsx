@@ -46,7 +46,7 @@ export default function ClientsAndCapabilities() {
     <>
       <section aria-labelledby="work-clients" className="px-4 md:px-8 pb-16 bg-background">
         <div className="max-w-7xl mx-auto">
-          <h2 id="work-clients" className="text-sm font-semibold text-muted-foreground mb-5">
+          <h2 id="work-clients" className="text-sm text-muted-foreground mb-5 font-normal">
             Some of the businesses we work with
           </h2>
           <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -69,7 +69,7 @@ export default function ClientsAndCapabilities() {
 
       <section aria-labelledby="work-capabilities" className="px-4 md:px-8 pb-16 bg-background">
         <div className="max-w-7xl mx-auto">
-          <h2 id="work-capabilities" className="text-2xl font-bold mb-2">
+          <h2 id="work-capabilities" className="text-2xl mb-2 font-normal">
             What we deliver
           </h2>
           <p className="text-sm text-muted-foreground mb-8 max-w-2xl">
@@ -86,7 +86,7 @@ export default function ClientsAndCapabilities() {
                   </div>
                 </div>
                 <div className="flex flex-1 flex-col p-5">
-                  <h3 className="text-lg font-bold mb-1">{c.title}</h3>
+                  <h3 className="text-lg mb-1 font-normal">{c.title}</h3>
                   <p className="text-sm text-muted-foreground mb-4">{c.description}</p>
                   <ul className="mb-5 space-y-1.5 text-sm">
                     {c.deliverables.map((d) => (
@@ -112,7 +112,7 @@ export default function ClientsAndCapabilities() {
               <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-primary">
                 Automation across the pillars
               </p>
-              <h3 className="text-xl font-bold">Zepo supports Build, Run and Grow</h3>
+              <h3 className="text-xl font-normal">Zepo supports Build, Run and Grow</h3>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                 Use Zepo for service questions, research, content and images,
                 technical guidance, SEO and marketing ideas, with escalation to

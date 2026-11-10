@@ -40,7 +40,7 @@ function renderSection(section: Section, i: number) {
         <h2
           key={i}
           id={id}
-          className="scroll-mt-28 text-xl font-bold text-foreground mt-8 mb-3"
+          className="scroll-mt-28 text-xl text-foreground mt-8 mb-3 font-normal"
         >
           {section.text}
         </h2>
@@ -237,7 +237,7 @@ export default function BlogPostPage() {
       <div className="min-h-screen bg-background">
         <Navbar />
         <div className="flex flex-col items-center justify-center py-32 text-center">
-          <h1 className="text-xl font-bold mb-3">Article not found</h1>
+          <h1 className="text-xl mb-3 font-normal">Article not found</h1>
           <Link to="/blog" className="text-primary text-sm underline hover:opacity-80">
             Back to Blog
           </Link>
@@ -317,7 +317,7 @@ export default function BlogPostPage() {
             </article>
 
             <section aria-labelledby="post-next-step" className="mt-12 rounded-2xl border border-primary/20 bg-primary/5 p-6 md:p-8">
-              <h2 id="post-next-step" className="text-xl font-bold text-foreground mb-2">Want help putting this into practice?</h2>
+              <h2 id="post-next-step" className="text-xl text-foreground mb-2 font-normal">Want help putting this into practice?</h2>
               <p className="text-sm text-muted-foreground leading-relaxed mb-5 max-w-xl">
                 Book a free strategy call and our Nairobi team will recommend a clear next step for your brand, website, hosting or marketing before you commit.
               </p>
