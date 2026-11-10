@@ -185,16 +185,23 @@ export default function NpanelShowcase() {
                 </li>
               ))}
             </ul>
-            <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
               <Button asChild className="h-11 gap-2 rounded-[10px] px-6 font-semibold">
                 <Link
-                  to={persona.cta.href}
-                  onClick={() => trackEvent("npanel_interest", { persona: persona.id, action: "cta", href: persona.cta.href })}
+                  to="/platform"
+                  onClick={() => trackEvent("npanel_interest", { persona: persona.id, action: "platform", href: "/platform" })}
                 >
-                  {persona.cta.label}
+                  Explore nPanel
                   <ArrowRight className="size-4" aria-hidden />
                 </Link>
               </Button>
+              <Link
+                to={persona.cta.href}
+                onClick={() => trackEvent("npanel_interest", { persona: persona.id, action: "persona_cta", href: persona.cta.href })}
+                className="inline-flex items-center gap-1.5 px-2 text-sm font-semibold text-foreground underline-offset-4 hover:underline"
+              >
+                {persona.cta.label}
+              </Link>
               <a
                 href={NPANEL_URL}
                 onClick={() => trackEvent("npanel_interest", { persona: persona.id, action: "sign_in" })}
@@ -218,6 +225,9 @@ export default function NpanelShowcase() {
                 <View />
               </motion.div>
             </AnimatePresence>
+            <p className="mt-3 text-center text-xs text-muted-foreground">
+              Illustrative nPanel view · sample business and data
+            </p>
           </div>
         </div>
       </div>

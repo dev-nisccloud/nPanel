@@ -18,11 +18,11 @@ export const PRICING_FAQS = [
   },
   {
     question: "Do I own my website and brand assets?",
-    answer: "Yes, completely. Once your project is delivered, all brand files, website code, and creative assets are yours. If you leave, we provide a full handover package.",
+    answer: "Once the agreed invoices are paid, you own the approved deliverables listed in your proposal, subject to any third-party software, stock-asset or licence terms. Your proposal also states what source files and handover materials are included.",
   },
   {
     question: "Can I cancel at any time?",
-    answer: "Monthly plans can be cancelled with 30 days notice. Annual plans are non-refundable, but we will always work with you to get value from your remaining term.",
+    answer: "Web hosting can be cancelled at any time and remains active until the end of the paid billing period. Automatically provisioned products and consumed credits are not refundable after provisioning or use. Managed services follow the cancellation terms in the approved proposal or service agreement.",
   },
   {
     question: "What platforms do you manage for social media?",
@@ -30,7 +30,7 @@ export const PRICING_FAQS = [
   },
   {
     question: "Do you work with businesses outside Kenya?",
-    answer: "Yes. We are based in Nairobi, Kenya. All communication is handled digitally, and support requests can be raised any time through nPanel, email or WhatsApp.",
+    answer: "Yes. We are based in Nairobi, Kenya and can work digitally with businesses elsewhere. Ticket requests can be raised through nPanel at any time; email, chat and phone support are available during working hours.",
   },
   {
     question: "Can you migrate my existing site?",

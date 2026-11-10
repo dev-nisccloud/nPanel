@@ -8,7 +8,7 @@ import Navbar from "@/pages/_components/Navbar.tsx";
 import Footer from "@/pages/_components/Footer.tsx";
 
 const NPANEL_URL = import.meta.env.VITE_NPANEL_APP_URL ?? "https://npanel.nisccloud.com";
-const ZEPO_PATH = "/services/zeepo-ai";
+const ZEPO_PATH = "/services/zepo-ai";
 
 const NPANEL_POINTS = [
   "Domains, hosting, email and servers in one account",
@@ -121,6 +121,9 @@ export default function PlatformPage() {
           </div>
           <div className="min-w-0">
             <NpanelBusinessArt />
+            <p className="mt-3 text-center text-xs text-muted-foreground">
+              Illustrative nPanel view · sample business and data
+            </p>
           </div>
         </div>
       </section>
@@ -129,6 +132,9 @@ export default function PlatformPage() {
         <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:px-8">
           <div className="min-w-0 lg:order-1">
             <ZeepoArt variant={1} />
+            <p className="mt-3 text-center text-xs text-muted-foreground">
+              Illustrative Zepo view · sample conversation and data
+            </p>
           </div>
           <div className="lg:order-2">
             <p className="text-sm font-semibold text-brand-orange">Zepo AI</p>

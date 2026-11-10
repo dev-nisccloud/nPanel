@@ -337,6 +337,7 @@ function ServiceHero({
   heroCta2,
   heroImageStandalone = false,
   onGetStarted,
+  onSecondary,
   primaryCtaLabel,
 }: {
   badge: string;
@@ -349,6 +350,7 @@ function ServiceHero({
   heroCta2?: string;
   heroImageStandalone?: boolean;
   onGetStarted: () => void;
+  onSecondary: () => void;
   primaryCtaLabel: string;
 }) {
   return (
@@ -408,13 +410,9 @@ function ServiceHero({
               <Button
                 variant="ghost"
                 className="border border-border/60 rounded-2xl h-12 cursor-pointer font-medium hover:border-primary/40 hover:bg-primary/5 transition-all"
-                onClick={() =>
-                  document
-                    .getElementById("pricing")
-                    ?.scrollIntoView({ behavior: "smooth" })
-                }
+                onClick={onSecondary}
               >
-                {heroCta2 ?? "View Pricing"}
+                {heroCta2}
               </Button>
             </div>
           </motion.div>
@@ -434,10 +432,20 @@ function ServiceHero({
           >
             {heroIllustration ? (
               heroIllustrationBare ? (
-                <div className="w-full min-w-0">{heroIllustration}</div>
-              ) : (
-                <div className="rounded-2xl overflow-hidden border border-border/40 shadow-2xl bg-gradient-to-br from-muted/60 to-muted/20 p-6">
+                <div className="w-full min-w-0">
                   {heroIllustration}
+                  <p className="mt-3 text-center text-xs text-muted-foreground">
+                    Illustration · sample business and data
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <div className="rounded-2xl overflow-hidden border border-border/40 shadow-2xl bg-gradient-to-br from-muted/60 to-muted/20 p-6">
+                    {heroIllustration}
+                  </div>
+                  <p className="mt-3 text-center text-xs text-muted-foreground">
+                    Illustration · sample business and data
+                  </p>
                 </div>
               )
             ) : heroImageStandalone ? (
@@ -497,7 +505,7 @@ export default function ServicePageShell({
   heroImage = "https://hercules-cdn.com/file_Y6bXDnbADxoripMl7V1UFfhr",
   heroIllustration,
   heroIllustrationBare = false,
-  heroCta2 = "View Pricing",
+  heroCta2,
   heroImageStandalone = false,
   plansUnderHero = false,
   customPlansSection,
@@ -589,8 +597,21 @@ export default function ServicePageShell({
     }
     scrollToPlans();
   }, [badge, customPlansSection, plans.length, scrollToPlans]);
+  const secondaryCtaLabel =
+    heroCta2 ?? (_serviceType === "hosting" ? "Compare Cloud Products" : "Explore Business Solutions");
+  const handleSecondaryCta = useCallback(() => {
+    if (heroCta2) {
+      document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" });
+      return;
+    }
+    window.location.assign(parent[1]);
+  }, [heroCta2, parent]);
   const primaryCtaLabel =
-    plans.length === 0 && !customPlansSection ? "Book a Free Strategy Call" : "Choose Your Plan";
+    plans.length === 0 && !customPlansSection
+      ? "Book a Free Strategy Call"
+      : _serviceType === "hosting"
+        ? "See Plans and Prices"
+        : "See Plans";
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
@@ -605,9 +626,10 @@ export default function ServicePageShell({
         heroImage={heroImage}
         heroIllustration={heroIllustration}
         heroIllustrationBare={heroIllustrationBare}
-        heroCta2={heroCta2}
+        heroCta2={secondaryCtaLabel}
         heroImageStandalone={heroImageStandalone}
         onGetStarted={handleDefaultCta}
+        onSecondary={handleSecondaryCta}
         primaryCtaLabel={primaryCtaLabel}
       />
 

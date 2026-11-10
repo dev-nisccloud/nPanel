@@ -36,7 +36,7 @@ const footerSections: FooterSection[] = [
       { label: "Paid Advertising", href: "/services/paid-ads" },
       { label: "Social Media", href: "/services/social-media" },
       { label: "Email Marketing", href: "/services/email-marketing" },
-      { label: "AI Automation", href: "/services/zeepo-ai" },
+      { label: "AI Automation", href: "/services/zepo-ai" },
     ],
   },
   {

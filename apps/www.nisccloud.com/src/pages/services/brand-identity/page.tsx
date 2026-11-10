@@ -120,7 +120,7 @@ export default function BrandIdentityPage() {
         { title: "Practical Business Assets", desc: "You leave with files, guidelines, and templates you can use across your website, social, and print materials right away.", visual: "assets" },
         { title: "Experienced Designers", desc: "Every project is handled by an experienced brand designer. You work with people who know how to run a clear process.", visual: "craft" },
         { title: "Fast Turnaround, Clear Process", desc: "Starter brands in a few days. Enterprise projects in about 7 to 10 days. We move quickly because the process is tight, not because we cut corners.", visual: "process" },
-        { title: "You Own Everything", desc: "All source files, all intellectual property. You get every original working file with full ownership transfer.", visual: "ownership" },
+        { title: "Clear Ownership and Handover", desc: "Once agreed invoices are paid, you own the approved deliverables listed in your proposal, subject to third-party licence terms. The proposal also states which source files are included.", visual: "ownership" },
       ]}
       faqs={[
         { q: "How many logo concepts will I receive?", a: "Depending on your plan: Starter gets 3 concepts, Growth gets 5, and Enterprise gets a set of directions agreed in your brief. Each concept is unique and comes with a design rationale explaining the thinking behind it." },

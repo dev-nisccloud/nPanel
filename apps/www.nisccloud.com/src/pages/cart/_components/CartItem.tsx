@@ -62,7 +62,7 @@ const SERVICE_META: Record<
     includedItems: [
       "Free SSL certificate included",
       "99.9% uptime target",
-      "24/7 support by ticket, email and chat",
+      "24/7 ticket support · email, chat and phone during working hours",
       "WordPress Toolkit and developer stack",
     ],
   },

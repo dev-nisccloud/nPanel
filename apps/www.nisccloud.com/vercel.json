@@ -33,6 +33,13 @@
       ]
     }
   ],
+  "redirects": [
+    {
+      "source": "/services/zeepo-ai",
+      "destination": "/services/zepo-ai",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/:path*",
@@ -75,11 +82,11 @@
       "destination": "/services/social-media/index.html"
     },
     {
-      "source": "/services/zeepo-ai",
-      "destination": "/services/zeepo-ai/index.html"
+      "source": "/services/zepo-ai",
+      "destination": "/services/zepo-ai/index.html"
     },
     {
-      "source": "/services/zepo-ai",
+      "source": "/services/zeepo-ai",
       "destination": "/spa.html"
     },
     {

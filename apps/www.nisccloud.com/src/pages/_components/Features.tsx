@@ -61,7 +61,7 @@ const features = [
   },
   {
     description:
-      "Raise a support request any time from nPanel, email or WhatsApp and our technical team picks it up.",
+      "Raise a ticket through nPanel at any time. Email, chat and phone support are available during working hours.",
     icon: Headset,
     title: "Expert Support",
   },

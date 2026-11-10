@@ -103,6 +103,11 @@ function RouteMeta() {
   return null;
 }
 
+function LegacyZepoRedirect() {
+  const { search, hash } = useLocation();
+  return <Navigate to={{ pathname: "/services/zepo-ai", search, hash }} replace />;
+}
+
 export function AppRoutes() {
   const { pathname } = useLocation();
   const hideFab = pathname === "/cart";
@@ -163,8 +168,8 @@ export function AppRoutes() {
           <Route path="/services/seo" element={<SeoPage />} />
           <Route path="/services/paid-ads" element={<PaidAdsPage />} />
           <Route path="/services/social-media" element={<SocialMediaPage />} />
-          <Route path="/services/zeepo-ai" element={<ZeepoAiPage />} />
-          <Route path="/services/zepo-ai" element={<Navigate to="/services/zeepo-ai" replace />} />
+          <Route path="/services/zepo-ai" element={<ZeepoAiPage />} />
+          <Route path="/services/zeepo-ai" element={<LegacyZepoRedirect />} />
           <Route
             path="/services/email-marketing"
             element={<EmailMarketingPage />}

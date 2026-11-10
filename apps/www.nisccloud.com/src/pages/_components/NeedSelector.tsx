@@ -97,7 +97,7 @@ const runTab: Tab = {
   highlight: "on one reliable setup.",
 
   subtext:
-    "Start with a domain, build a website customers can use, and connect professional email. Choose a hosting plan yourself or talk to us about bringing the whole setup together.",
+    "Choose domains, hosting, business email or cloud servers, then manage them through one connected account.",
 
   primaryCta: { label: "Explore Cloud Products", href: "/hosting" },
 
@@ -149,7 +149,7 @@ const tabs: Tab[] = [
     highlight: "customers remember.",
 
     subtext:
-      "Create a clear identity, a customer-ready website, an online store or custom software around the way your business works.",
+      "Create your identity, website, online store or software around the way your business works.",
 
     primaryCta: { label: "Explore Build Solutions", href: "/services" },
 
@@ -186,22 +186,22 @@ const tabs: Tab[] = [
   {
     icon: TrendingUp,
 
-    label: "Get More Customers",
+    label: "Grow My Customer Base",
 
     kind: "marketing",
 
     step: "03",
 
-    stepLabel: "Market",
+    stepLabel: "Grow",
 
-    badge: "MARKET",
+    badge: "GROW",
 
-    headline: "Marketing that brings",
+    headline: "Grow with clearer marketing",
 
-    highlight: "real buyers.",
+    highlight: "built around your goals.",
 
     subtext:
-      "Get a clear marketing strategy, create content worth noticing, and reach the people most likely to buy. Connect campaigns, social media, email and SEO / AEO / GEO around your business goals.",
+      "Connect strategy, content, paid media, email and search around the customers you want to reach.",
 
     primaryCta: { label: "Explore Growth Services", href: "/services/marketing" },
 
@@ -247,7 +247,7 @@ const tabs: Tab[] = [
 
     stepLabel: "Zepo AI",
 
-    badge: "ZEEPO AI",
+    badge: "ZEPO AI",
 
     headline: "Automate routine work with",
 
@@ -256,35 +256,35 @@ const tabs: Tab[] = [
     subtext:
       "Use Zepo AI and supported integrations to assist with customer conversations, follow-ups and repetitive workflows while your team stays in control.",
 
-    primaryCta: { label: "Explore Automation", href: "/services/zeepo-ai" },
+    primaryCta: { label: "Explore Automation", href: "/services/zepo-ai" },
 
     features: [
       {
         icon: Sparkles,
         label: "AI Content Writer",
         desc: "Help drafting posts, emails and adverts",
-        href: "/services/zeepo-ai",
+        href: "/services/zepo-ai",
       },
 
       {
         icon: Workflow,
-        label: "Marketing Automation",
-        desc: "Connect follow-ups and repeat tasks",
-        href: "/services/zeepo-ai",
+        label: "Marketing Guidance",
+        desc: "Get campaign ideas, sales hooks and practical next steps",
+        href: "/services/zepo-ai",
       },
 
       {
         icon: MessageSquare,
         label: "AI Chatbots",
         desc: "Answer common questions and hand over to your team",
-        href: "/services/zeepo-ai",
+        href: "/services/zepo-ai",
       },
 
       {
         icon: Zap,
-        label: "Lead Nurturing Flows",
-        desc: "Follow up with interested prospects",
-        href: "/services/zeepo-ai",
+        label: "Renewal Reminders",
+        desc: "Keep track of relevant Nisc Cloud service renewals",
+        href: "/services/zepo-ai",
       },
     ],
   },

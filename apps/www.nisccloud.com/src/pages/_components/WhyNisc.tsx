@@ -77,7 +77,8 @@ export default function WhyNisc() {
                 Your domain, code and data remain yours.
               </span>{" "}
               <span className="text-muted-foreground">
-                Leave when you want without losing your assets.
+                Subject to paid invoices and agreed third-party licence terms,
+                you can move without losing the assets you own.
               </span>
             </span>
           </p>

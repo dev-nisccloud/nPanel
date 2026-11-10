@@ -90,7 +90,7 @@ export default function HostingPage() {
           <p className="text-muted-foreground max-w-xl mx-auto mb-8">
             Domains, hosting, email, and SSL, all managed in one place. Fast for
             your visitors, wherever they are, with a 99.9% monthly uptime target
-            on hosting plans and 24/7 support by ticket, email and chat.
+            on hosting plans and 24/7 ticket support · email, chat and phone during working hours.
           </p>
           <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link

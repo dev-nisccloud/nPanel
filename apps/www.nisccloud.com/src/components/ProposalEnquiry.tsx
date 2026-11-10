@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { trpcMutation } from "@/lib/domain-search/api.ts";
 import { getAttribution } from "@/lib/attribution.ts";
 import { trackEvent } from "@/lib/track.ts";
@@ -49,7 +50,9 @@ function ChoiceGroup<T extends string>({
 }) {
   return (
     <fieldset>
-      <legend className="mb-2 text-sm font-semibold">{legend}</legend>
+      <legend className="mb-2 text-sm font-semibold">
+        {legend} <span className="text-destructive">*</span>
+      </legend>
       <div className="grid gap-2 sm:grid-cols-2">
         {options.map((option) => {
           const checked = value === option.value;
@@ -90,9 +93,11 @@ export default function ProposalEnquiry({ source = "homepage" }: { source?: stri
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [company, setCompany] = useState("");
+  const [website, setWebsite] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>("idle");
   const started = useRef(false);
+  const openedAt = useRef(Date.now());
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   const markStarted = () => {
@@ -144,6 +149,10 @@ export default function ProposalEnquiry({ source = "homepage" }: { source?: stri
       setError(problem);
       return;
     }
+    if (website || Date.now() - openedAt.current < 3000) {
+      setStatus("success");
+      return;
+    }
     const service = serviceOptions.find((option) => option.id === serviceId)!;
     const attribution = getAttribution();
     const attributionLines = Object.entries(attribution)
@@ -166,7 +175,7 @@ export default function ProposalEnquiry({ source = "homepage" }: { source?: stri
         phone: phone.trim() || undefined,
         company: company.trim() || undefined,
         service: service.value,
-        serviceName: `Corporate enquiry: ${service.label}`,
+        serviceName: `Project enquiry: ${service.label}`,
         budget,
         message,
         source: "contact",
@@ -200,7 +209,7 @@ export default function ProposalEnquiry({ source = "homepage" }: { source?: stri
       noValidate
       onSubmit={submit}
       onFocusCapture={markStarted}
-      className="rounded-3xl border border-border bg-card p-5 shadow-sm md:p-7"
+      className="relative rounded-3xl border border-border bg-card p-5 shadow-sm md:p-7"
       aria-describedby={error ? "proposal-error" : undefined}
     >
       <ol className="mb-5 flex gap-2" aria-label="Enquiry progress">
@@ -243,7 +252,7 @@ export default function ProposalEnquiry({ source = "homepage" }: { source?: stri
           />
           <div>
             <Label htmlFor="proposal-scope" className="mb-2 block text-sm font-semibold">
-              Briefly describe your requirements
+              Briefly describe your requirements <span className="text-destructive">*</span>
             </Label>
             <Textarea
               id="proposal-scope"
@@ -279,18 +288,19 @@ export default function ProposalEnquiry({ source = "homepage" }: { source?: stri
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <Label htmlFor="proposal-name" className="mb-2 block text-sm font-semibold">
-              Name
+              Name <span className="text-destructive">*</span>
             </Label>
-            <Input id="proposal-name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
+            <Input id="proposal-name" autoComplete="name" required value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div>
             <Label htmlFor="proposal-email" className="mb-2 block text-sm font-semibold">
-              Work email
+              Work email <span className="text-destructive">*</span>
             </Label>
             <Input
               id="proposal-email"
               type="email"
               autoComplete="email"
+              required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
@@ -321,6 +331,16 @@ export default function ProposalEnquiry({ source = "homepage" }: { source?: stri
         </p>
       )}
 
+      <input
+        type="text"
+        name="website"
+        hidden
+        tabIndex={-1}
+        autoComplete="off"
+        value={website}
+        onChange={(event) => setWebsite(event.target.value)}
+      />
+
       <div className="mt-6 flex items-center justify-between gap-3">
         {step > 0 ? (
           <Button type="button" variant="ghost" onClick={() => goTo(step - 1)} className="gap-1.5">
@@ -346,10 +366,19 @@ export default function ProposalEnquiry({ source = "homepage" }: { source?: stri
               <ArrowRight className="size-4" aria-hidden />
             </>
           ) : (
-            "Request a Proposal"
+            "Send enquiry"
           )}
         </Button>
       </div>
+      {step === 2 ? (
+        <p className="mt-4 text-center text-xs leading-relaxed text-muted-foreground">
+          We use your details to respond to this enquiry under our{" "}
+          <Link to="/privacy" className="font-medium text-foreground underline underline-offset-2">
+            Privacy Policy
+          </Link>
+          . Sending an enquiry does not subscribe you to marketing emails.
+        </p>
+      ) : null}
     </form>
   );
 }

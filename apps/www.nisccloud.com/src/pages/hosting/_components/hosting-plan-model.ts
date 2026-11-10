@@ -70,7 +70,7 @@ export function normaliseProductDescription(text: string | null): string | null 
     ? text
         .replace(/(?<!NVMe )\bSSD hosting\b/g, "NVMe SSD hosting")
         .replace(/\bWordPress toolkit\b/g, "WordPress Toolkit")
-        .replace(/24\/7 local support/gi, "24/7 support")
+        .replace(/24\/7 local support/gi, "24/7 ticket support")
     : text;
 }
 

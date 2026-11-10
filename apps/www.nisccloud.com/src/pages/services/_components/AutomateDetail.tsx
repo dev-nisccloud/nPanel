@@ -5,7 +5,7 @@ import { ShowcaseVisualCard } from "@/pages/_components/ServiceShowcaseSection.t
 
 const features: ServiceFeature[] = [
   { icon: Workflow, title: "CRM Workflows", desc: "HubSpot, Salesforce, GoHighLevel: we build automations that move leads through your funnel without manual chasing." },
-  { icon: MessageSquare, title: "AI Chatbots", href: "/services/zeepo-ai", desc: "Chatbots trained on your brand voice to qualify leads, answer questions, and book calls 24/7." },
+  { icon: MessageSquare, title: "Zepo AI Chat", href: "/services/zepo-ai", desc: "24/7 assistance for supported customer, marketing and Nisc Cloud service questions, with escalation to your team." },
   { icon: Bot, title: "Email Sequences", href: "/services/email-marketing", desc: "Drip campaigns triggered by behaviour: sign-ups, cart abandonment, re-engagement, and upsells." },
   { icon: BarChart3, title: "Reporting Dashboards", desc: "Clear dashboards showing traffic, conversations, conversions, and revenue in one place." },
 ];

@@ -89,10 +89,11 @@ export default function HomeClosing() {
               </span>
               <div>
                 <h3 className="text-xl font-bold tracking-tight">
-                  Corporate — Tailored to your business requirements.
+                  Discuss your project
                 </h3>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Discuss your requirements in three short steps.
+                  Tell us what you need in three short steps. We will reply with
+                  the next step and, where it fits, a scoped proposal.
                 </p>
               </div>
             </div>

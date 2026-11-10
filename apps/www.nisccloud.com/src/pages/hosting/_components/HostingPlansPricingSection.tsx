@@ -1,5 +1,6 @@
 import * as React from "react";
 import { CreditCard, Headphones, Lock, ReceiptText, type LucideIcon } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import {
   buildSharedHostingCartParams,
@@ -53,7 +54,7 @@ function withFallbackValues(plans: SharedHostingPlan[], config: HostingPlansPric
 function TrustRow({ freeSsl }: { freeSsl: boolean }) {
   const items: { icon: LucideIcon; text: string }[] = [
     ...(freeSsl ? [{ icon: Lock, text: "Free SSL on every plan" }] : []),
-    { icon: Headphones, text: "24/7 support by ticket, email and chat" },
+    { icon: Headphones, text: "24/7 ticket support · email, chat and phone during working hours" },
     { icon: CreditCard, text: "Pay with M-Pesa or card" },
     { icon: ReceiptText, text: "Prices in KES, excluding 16% VAT" },
   ];
@@ -99,7 +100,9 @@ export function HostingPlansPricingSection({
   const [productFeatures, setProductFeatures] = React.useState<ProductFeatureRow[]>([]);
   const [productDescription, setProductDescription] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const [slow, setSlow] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [requestKey, setRequestKey] = React.useState(0);
   const [pendingId, setPendingId] = React.useState<string | null>(null);
   const cycleOptions = billingCyclesFor(config.serviceType);
   const [cycle, setCycle] = React.useState<BillingCycle>("MONTHLY");
@@ -107,6 +110,9 @@ export function HostingPlansPricingSection({
 
   React.useEffect(() => {
     let active = true;
+    setLoading(true);
+    setSlow(false);
+    setError(null);
     config
       .fetchPlans()
       .then((data) => {
@@ -126,7 +132,13 @@ export function HostingPlansPricingSection({
     return () => {
       active = false;
     };
-  }, [config.serviceType, config.fetchPlans]);
+  }, [config.serviceType, config.fetchPlans, requestKey]);
+
+  React.useEffect(() => {
+    if (!loading) return;
+    const id = window.setTimeout(() => setSlow(true), 4_000);
+    return () => window.clearTimeout(id);
+  }, [loading, requestKey]);
 
   React.useEffect(() => {
     const reset = (e: PageTransitionEvent) => {
@@ -181,19 +193,39 @@ export function HostingPlansPricingSection({
           ) : null}
         </div>
 
-        {error && (
-          <Alert variant="destructive" className="mx-auto mb-8 max-w-2xl">
-            <AlertDescription>We could not load current pricing. Please contact our team for available plans.</AlertDescription>
-          </Alert>
-        )}
-
         {loading ? (
-          <PlanSkeleton />
+          <>
+            <p className="sr-only" aria-live="polite">
+              Loading current prices
+            </p>
+            {slow ? (
+              <p className="mb-6 text-center text-sm text-muted-foreground" role="status">
+                Still loading current prices from our billing system…
+              </p>
+            ) : null}
+            <PlanSkeleton />
+          </>
+        ) : error ? (
+          <Alert variant="destructive" className="mx-auto max-w-2xl">
+            <AlertDescription>
+              <p>We could not load current prices.</p>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <Button type="button" onClick={() => setRequestKey((key) => key + 1)}>
+                  Try again
+                </Button>
+                <Button asChild variant="outline">
+                  <Link to="/contact">Contact sales</Link>
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
         ) : models.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-lg border border-dashed bg-card/50 py-12">
-            <p className="mb-4 text-muted-foreground">No plans available at this time.</p>
+            <p className="mb-4 text-muted-foreground">
+              These plans are being updated. Contact us for current options.
+            </p>
             <Button asChild variant="outline">
-              <a href="/contact">Contact Us</a>
+              <Link to="/contact">Contact sales</Link>
             </Button>
           </div>
         ) : (

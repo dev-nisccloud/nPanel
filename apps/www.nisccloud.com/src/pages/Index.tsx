@@ -7,9 +7,7 @@ import NpanelShowcase from "./_components/NpanelShowcase.tsx";
 import BuildRunGrow from "./_components/BuildRunGrow.tsx";
 import CloudProducts from "./_components/CloudProducts.tsx";
 import DomainSearch from "./_components/DomainSearch.tsx";
-import PainAgitation from "./_components/PainAgitation.tsx";
 import WhyNisc from "./_components/WhyNisc.tsx";
-import ConnectedServices from "./_components/ConnectedServices.tsx";
 import Faq from "./_components/Faq.tsx";
 import HomeClosing from "./_components/HomeClosing.tsx";
 import Footer from "./_components/Footer.tsx";
@@ -40,9 +38,7 @@ export default function Index() {
         <BuildRunGrow />
         <CloudProducts />
         <DomainSearch compact />
-        <PainAgitation />
         <WhyNisc />
-        <ConnectedServices />
         <Faq />
         <HomeClosing />
       </main>

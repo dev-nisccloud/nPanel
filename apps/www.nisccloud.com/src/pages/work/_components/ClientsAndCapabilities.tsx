@@ -39,14 +39,6 @@ const CAPABILITIES: Capability[] = [
     linkLabel: "Marketing services",
     art: () => <SeoFlagshipArt />,
   },
-  {
-    title: "Automate",
-    description: "Zepo AI assistants that answer customers and follow up leads around the clock.",
-    deliverables: ["Website and WhatsApp assistants", "Lead follow-up", "Email marketing"],
-    href: "/services/zeepo-ai",
-    linkLabel: "Zepo AI",
-    art: () => <ZeepoArt />,
-  },
 ];
 
 export default function ClientsAndCapabilities() {
@@ -81,13 +73,20 @@ export default function ClientsAndCapabilities() {
             What we deliver
           </h2>
           <p className="text-sm text-muted-foreground mb-8 max-w-2xl">
-            Every engagement draws on the same four disciplines, so a client can start with one and add the rest without changing providers.
+            Start with Build, Run or Grow and add the other capabilities as your
+            business needs them. Automation supports work across all three
+            pillars rather than standing apart from them.
           </p>
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-3">
             {CAPABILITIES.map((c) => (
               <article key={c.title} className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
-                <div className="border-b border-border bg-muted/30 p-4" aria-hidden>
+                <div className="border-b border-border bg-muted/30 p-4">
+                  <p className="mb-2 text-xs font-medium text-muted-foreground">
+                    Illustration · sample business and data
+                  </p>
+                  <div aria-hidden>
                   {c.art()}
+                  </div>
                 </div>
                 <div className="flex flex-1 flex-col p-5">
                   <h3 className="text-lg font-bold mb-1">{c.title}</h3>
@@ -110,6 +109,34 @@ export default function ClientsAndCapabilities() {
               </article>
             ))}
           </div>
+
+          <article className="mt-6 grid overflow-hidden rounded-2xl border border-border bg-card md:grid-cols-[1fr_1.2fr]">
+            <div className="flex flex-col justify-center p-6 md:p-8">
+              <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-primary">
+                Automation across the pillars
+              </p>
+              <h3 className="text-xl font-bold">Zepo supports Build, Run and Grow</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                Use Zepo for service questions, research, content and images,
+                technical guidance, SEO and marketing ideas, with escalation to
+                customer service or technical support when a person is needed.
+              </p>
+              <Link
+                to="/services/zepo-ai"
+                className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-primary hover:opacity-80"
+              >
+                Explore Zepo <ArrowRight className="h-4 w-4" aria-hidden />
+              </Link>
+            </div>
+            <div className="border-t border-border bg-muted/30 p-4 md:border-t-0 md:border-l">
+              <p className="mb-2 text-xs font-medium text-muted-foreground">
+                Illustration · sample business and data
+              </p>
+              <div aria-hidden>
+                <ZeepoArt />
+              </div>
+            </div>
+          </article>
         </div>
       </section>
 

@@ -197,7 +197,7 @@ export default function TermsOfServicePage() {
       <ul>
         <li><strong>Brand Identity & Design:</strong> Logo design, brand guidelines, visual identity systems, and brand strategy.</li>
         <li><strong>Website Design & Development:</strong> Custom website design, landing pages, and e-commerce solutions.</li>
-        <li><strong>SEO / AEO / GEO:</strong> Search engine optimisation, answer engine optimisation, and geo-targeted ranking services.</li>
+        <li><strong>SEO / AEO / GEO:</strong> Search Engine Optimization, Answer Engine Optimization, and Generative Engine Optimization services. Local and map visibility are treated separately as local SEO services.</li>
         <li><strong>Paid Advertising:</strong> Campaign management on Google Ads, Meta Ads, TikTok Ads, and LinkedIn Ads.</li>
         <li><strong>Social Media Marketing:</strong> Content creation, scheduling, community management, and influencer campaigns.</li>
         <li><strong>Email Marketing:</strong> Sequence design, newsletter management, and marketing automation.</li>
@@ -362,10 +362,10 @@ export default function TermsOfServicePage() {
       <h2 id="refunds">10. Refund Policy</h2>
       <h3>10.1 Cloud Hosting Services</h3>
       <p>
-        We offer a <strong>7-day money-back guarantee</strong> on new shared hosting, WordPress
-        hosting, and business email hosting plans. If you are not satisfied, contact us within 7
-        days of the initial purchase and we will issue a full refund. This guarantee applies to
-        first-time purchases only and does not apply to renewals.
+        We offer a <strong>7-day money-back guarantee</strong> on new shared hosting and WordPress
+        hosting plans. If you are not satisfied, contact us within 7 days of the initial purchase
+        and we will issue a full refund. This guarantee applies to first-time purchases only and
+        does not apply to renewals.
       </p>
       <h3>10.2 VPS, VDS & Dedicated Servers</h3>
       <p>
@@ -382,8 +382,9 @@ export default function TermsOfServicePage() {
       </p>
       <h3>10.4 SSL Certificates</h3>
       <p>
-        SSL certificates may be refunded within <strong>30 days</strong> of purchase if not yet
-        issued or installed. Once a certificate has been issued, it is non-refundable.
+        SSL certificates are <strong>non-refundable</strong> once issued or provisioned. If
+        provisioning fails through our error, we will offer a refund or re-provision the affected
+        Service.
       </p>
       <h3>10.5 Marketing & Design Services</h3>
       <p>
@@ -397,13 +398,19 @@ export default function TermsOfServicePage() {
         AI service credits and automation service packages are non-refundable once consumed. Unused
         credits at the time of account termination will not be refunded.
       </p>
-      <h3>10.7 Policy Violations</h3>
+      <h3>10.7 Business Email Services</h3>
+      <p>
+        Business email plans are non-refundable once the mailboxes or related account resources
+        have been provisioned. If provisioning fails through our error, we will offer a refund or
+        re-provision the affected Service.
+      </p>
+      <h3>10.8 Policy Violations</h3>
       <p>
         No refund, including under the money-back guarantee in Section 10.1, is due for Services
         suspended or terminated because of a breach of the Acceptable Use Policy (Section 11) or
         Prohibited Conduct (Section 12).
       </p>
-      <h3>10.8 Process</h3>
+      <h3>10.9 Process</h3>
       <p>
         Refund requests must be submitted in writing to{" "}
         <a href="mailto:support@nisccloud.com">support@nisccloud.com</a>. Approved refunds are

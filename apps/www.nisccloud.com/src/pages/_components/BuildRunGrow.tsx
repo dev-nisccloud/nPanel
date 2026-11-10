@@ -448,7 +448,7 @@ export default function BuildRunGrow() {
             variant="outline"
             className="h-11 gap-2 rounded-full px-6 font-semibold"
           >
-            <Link to="/services/zeepo-ai">
+            <Link to="/services/zepo-ai">
               Explore Zepo AI
               <ArrowRight className="size-4" aria-hidden />
             </Link>

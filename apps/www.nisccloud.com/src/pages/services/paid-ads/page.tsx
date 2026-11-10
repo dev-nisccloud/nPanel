@@ -111,7 +111,7 @@ export default function PaidAdsPage() {
       ]}
       faqs={[
         { q: "How much budget do I need for paid ads to work?", a: "We recommend a minimum monthly ad spend of KES 30,000 for meaningful results on a single platform. This gives enough data for optimisation. Budgets of KES 100,000+ per month typically see better scale." },
-        { q: "How soon will I see results from my ads?", a: "Google Search ads can generate leads within 24 to 48 hours of launch. Meta and TikTok ads typically need 7 to 14 days of learning before performance stabilises. Fuller optimisation results are usually visible by month 2." },
+        { q: "How soon will I see results from my ads?", a: "A campaign can begin collecting delivery, click and conversion data after launch. How quickly qualified leads or sales arrive depends on the offer, audience, budget, creative, landing page and competition. We agree the measures that matter before launch and use the early data to improve the campaign." },
         { q: "Does the monthly fee include the ad budget?", a: "No. Our management fee covers strategy, setup, creative, and optimisation. Your ad spend budget is paid directly to Google, Meta, or TikTok. This is standard practice and ensures your ad budget goes to the platform." },
         { q: "Can you run ads for any industry?", a: "We work across most industries. We have strong experience in real estate, healthcare, education, retail, hospitality, and professional services. We will be honest if your industry has platform restrictions." },
         { q: "Do you create the ad images and copy?", a: "Yes. All plans include ad creative (images and copy). Higher plans also include video ads. We create content specifically tested for local audiences." },

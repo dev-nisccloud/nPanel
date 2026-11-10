@@ -726,14 +726,80 @@
 /* Homepage hero: midnight fading into brand blue in light mode, pure midnight in dark mode. */
 .hero-bg {
   background:
-    radial-gradient(85% 55% at 50% 112%, rgb(56 182 255 / 0.9), transparent 72%),
-    radial-gradient(55% 45% at 50% 0%, rgb(56 182 255 / 0.14), transparent 70%),
-    linear-gradient(180deg, #02070a 0%, #041a2b 42%, #0b4670 78%, #1a86c9 100%);
+    radial-gradient(85% 58% at 50% 112%, rgb(56 182 255 / 0.95), transparent 72%),
+    radial-gradient(60% 48% at 50% 0%, rgb(56 182 255 / 0.12), transparent 70%),
+    linear-gradient(180deg, rgb(2 7 10 / 0.55) 0, transparent 140px),
+    linear-gradient(180deg, #04121f 0%, #0a2c47 40%, #115a8e 75%, #2295d8 100%);
 }
 .dark .hero-bg {
   background: #02070a;
 }
 
+/* TEMPORARY violet-to-sky review concept (?hero=blue). White text stays over the violet part (AA); sky only reaches the logo band. */
+.hero-bg-blue {
+  background:
+    radial-gradient(90% 55% at 50% 115%, rgb(56 182 255 / 0.95), transparent 70%),
+    radial-gradient(50% 40% at 85% 10%, rgb(124 92 255 / 0.35), transparent 70%),
+    linear-gradient(180deg, #1a0f4d 0%, #2e1a8a 40%, #4a35c8 72%, #3f7fe6 100%);
+}
+[data-hero="blue"] .nav-over-hero.is-scrolled {
+  background: rgb(26 15 77 / 0.78);
+  border-bottom-color: rgb(255 255 255 / 0.08);
+}
+/* TEMPORARY "aurora" review concept (?hero=aurora): midnight-to-blue with a soft violet glow at the top. */
+.hero-bg-aurora {
+  background:
+    radial-gradient(45% 38% at 18% 0%, rgb(124 92 255 / 0.32), transparent 70%),
+    radial-gradient(40% 34% at 85% 8%, rgb(98 70 230 / 0.22), transparent 70%),
+    radial-gradient(85% 55% at 50% 112%, rgb(56 182 255 / 0.9), transparent 72%),
+    radial-gradient(55% 45% at 50% 0%, rgb(56 182 255 / 0.12), transparent 70%),
+    linear-gradient(180deg, #050826 0%, #061a35 42%, #0b4670 78%, #1a86c9 100%);
+}
+.dark .hero-bg-aurora {
+  background:
+    radial-gradient(45% 38% at 18% 0%, rgb(124 92 255 / 0.24), transparent 70%),
+    radial-gradient(40% 34% at 85% 8%, rgb(98 70 230 / 0.16), transparent 70%),
+    #02070a;
+}
+.hero-logo-glow::before {
+  content: "";
+  position: absolute;
+  inset: 10% 8% 20%;
+  z-index: -1;
+  border-radius: 9999px;
+  background: radial-gradient(closest-side, rgb(56 182 255 / 0.45), rgb(124 92 255 / 0.12) 60%, transparent);
+  filter: blur(30px);
+  pointer-events: none;
+}
+/* TEMPORARY "sky" review concepts: exact brand #38b6ff across the hero.
+   ?hero=sky uses white text (about 2.1:1, fails WCAG AA, comparison only); ?hero=sky-midnight uses midnight text (passes). */
+.hero-bg-sky {
+  background:
+    radial-gradient(70% 55% at 50% 0%, rgb(255 255 255 / 0.18), transparent 70%),
+    #38b6ff;
+}
+[data-hero="sky"] .nav-over-hero {
+  --primary: #ffffff;
+  --primary-foreground: #02070a;
+}
+[data-hero="sky"] .nav-over-hero .nav-logo {
+  filter: brightness(0) invert(1);
+}
+[data-hero="sky-midnight"] .nav-over-hero {
+  --foreground: #02070a;
+  --muted-foreground: rgb(2 7 10 / 0.75);
+  --muted: rgb(2 7 10 / 0.08);
+  --border: rgb(2 7 10 / 0.22);
+  --primary: #02070a;
+  --primary-foreground: #ffffff;
+}
+[data-hero="sky-midnight"] .nav-over-hero .nav-logo {
+  filter: brightness(0);
+}
+:is([data-hero="sky"], [data-hero="sky-midnight"]) .nav-over-hero.is-scrolled {
+  background: rgb(56 182 255 / 0.9);
+  border-bottom-color: rgb(2 7 10 / 0.08);
+}
 /* Scrolled navbar is solid white in light mode; dark mode keeps the midnight glass. */
 .nav-bar.glass-surface:not(:is(.dark *)) {
   background: #ffffff;

@@ -3,28 +3,28 @@ import { ShowcaseVisualCard } from "@/pages/_components/ServiceShowcaseSection.t
 
 const milestones = [
   {
-    year: "2018",
-    title: "The Spark",
+    year: "2019",
+    title: "Nisc Cloud Begins",
     description:
-      "We started with a simple goal: help local businesses get online with reliable hosting and clear marketing support.",
+      "Nisc Cloud started with a practical goal: give businesses reliable technology and a team that takes responsibility for getting the work done.",
   },
   {
-    year: "2020",
-    title: "The Atom Approach",
+    year: "Build",
+    title: "Make Ideas Real",
     description:
-      "After working with dozens of clients, we shaped a repeatable process: Create, Host, Market, Automate. It keeps projects clear and results measurable.",
+      "We help businesses shape their brand, launch websites and ecommerce experiences, and build software around the way they work.",
   },
   {
-    year: "2022",
-    title: "Growing With Our Clients",
+    year: "Run",
+    title: "Keep Business Moving",
     description:
-      "Word spread. We grew our team and started supporting businesses of every size, near and far, with the same hands-on approach.",
+      "Domains, hosting, email, servers and security keep the digital operation available, connected and supported through nPanel.",
   },
   {
-    year: "2024",
-    title: "Growing Businesses",
+    year: "Grow",
+    title: "Support Sustainable Growth",
     description:
-      "Today we help growing businesses get online, stay online, and grow. Free migration, setup help, and support from our team are part of how we work.",
+      "Marketing and automation support the same journey. Today, Nisc Cloud serves thousands of customers while keeping one accountable team across Build, Run and Grow.",
   },
 ];
 
@@ -55,12 +55,12 @@ export default function OurStory() {
             className="mb-10"
           >
             <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">
-              Built from the Ground Up
+              Built to Grow with Our Customers
             </h2>
             <p className="text-muted-foreground leading-relaxed max-w-lg">
-              Too many businesses were stuck between flaky hosting and scattered
-              marketing vendors. We built one team that handles both, with clear
-              plans and real support.
+              Since 2019, Nisc Cloud has grown from reliable infrastructure into
+              a technology company that brings cloud, software and digital growth
+              together for businesses, agencies and developers.
             </p>
           </motion.div>
 

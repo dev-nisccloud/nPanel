@@ -36,10 +36,11 @@ export default function ConnectedServices() {
             </Link>
           </div>
           <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-            As an authorised Microsoft 365 and Google Workspace partner, Nisc
-            Cloud helps you choose the right subscriptions and plan your
-            migration. For mixed teams, combine your chosen suite with Nisc Mail
-            on one corporate domain through Enterprise Hybrid Email.
+            As a Microsoft Cloud and Microsoft 365 partner, and a Google
+            Workspace partner, Nisc Cloud helps you choose the right
+            subscriptions and plan your migration. For mixed teams, combine your
+            chosen suite with Nisc Mail on one corporate domain through
+            Enterprise Hybrid Email.
           </p>
           <Link
             className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-primary"

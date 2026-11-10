@@ -232,7 +232,7 @@ export const productFamilies = [
       {
         label: "AI & Automation",
         desc: "Explore smarter everyday workflows.",
-        href: "/services/zeepo-ai",
+        href: "/services/zepo-ai",
         icon: Bot,
       },
     ],

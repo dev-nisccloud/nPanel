@@ -15,8 +15,8 @@ export const STATIC_PUBLIC_ROUTES = [
   "/services/seo",
   "/services/paid-ads",
   "/services/social-media",
-  "/services/zeepo-ai",
   "/services/zepo-ai",
+  "/services/zeepo-ai",
   "/services/email-marketing",
   "/contact",
   "/pricing",
@@ -58,7 +58,7 @@ export const PUBLIC_ROUTES: readonly string[] = [
 ];
 
 /** Redirects and the noindex cart keep the plain SPA shell; everything else is prerendered. */
-const NOT_PRERENDERED = new Set(["/cart", "/services/marketing", "/services/zepo-ai"]);
+const NOT_PRERENDERED = new Set(["/cart", "/services/marketing", "/services/zeepo-ai"]);
 
 export const PRERENDER_ROUTES: readonly string[] = PUBLIC_ROUTES.filter((r) => !NOT_PRERENDERED.has(r));
 

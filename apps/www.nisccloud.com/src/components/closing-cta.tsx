@@ -17,7 +17,7 @@ export type ClosingCtaProps = {
   className?: string;
 };
 
-const DEFAULT_POINTS = ["Free strategy call", "Pay with M-Pesa or card", "24/7 support by ticket, email and chat"];
+const DEFAULT_POINTS = ["Free strategy call", "Pay with M-Pesa or card", "24/7 ticket support · email, chat and phone during working hours"];
 
 function CtaAnchor({ link, className, children }: { link: CtaLink; className: string; children: React.ReactNode }) {
   if (link.onClick) {

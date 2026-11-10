@@ -173,6 +173,12 @@ Bun.serve({
       return Response.json({ status: "ok", service: "www-nisccloud" });
     }
 
+    if (pathname === "/services/zeepo-ai") {
+      const destination = new URL("/services/zepo-ai", request.url);
+      destination.search = new URL(request.url).search;
+      return Response.redirect(destination, 301);
+    }
+
     if (pathname.startsWith("/api/")) {
       try {
         return await proxyToBackend(request, clientAddress(request, server.requestIP(request)?.address ?? null));

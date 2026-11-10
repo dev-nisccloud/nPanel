@@ -3,7 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { CheckCircle, Loader2, Sparkles } from "lucide-react";
 import { trpcMutation } from "@/lib/domain-search/api.ts";
@@ -286,21 +286,18 @@ export default function ContactForm() {
             <Input id="company" placeholder={isCorporate ? "Organisation name" : "Optional"} {...register("company")} />
           </div>
 
-          <div aria-hidden className="absolute -left-[9999px] h-px w-px overflow-hidden">
-            <label htmlFor="website">Website</label>
-            <input id="website" type="text" tabIndex={-1} autoComplete="off" {...register("website")} />
-          </div>
+          <input type="text" hidden tabIndex={-1} autoComplete="off" {...register("website")} />
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label>
+              <Label htmlFor="service">
                 Service <span className="text-destructive">*</span>
               </Label>
               <Select
                 value={serviceValue ?? ""}
                 onValueChange={(v) => setValue("service", v, { shouldValidate: true })}
               >
-                <SelectTrigger className={errors.service ? "border-destructive" : ""}>
+                <SelectTrigger id="service" className={errors.service ? "border-destructive" : ""}>
                   <SelectValue placeholder="Select a service..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -316,12 +313,12 @@ export default function ContactForm() {
               )}
             </div>
             <div className="space-y-1.5">
-              <Label>Budget range</Label>
+              <Label htmlFor="budget">Budget range</Label>
               <Select
                 value={budgetValue ?? ""}
                 onValueChange={(v) => setValue("budget", v, { shouldValidate: true })}
               >
-                <SelectTrigger>
+                <SelectTrigger id="budget">
                   <SelectValue placeholder="Optional" />
                 </SelectTrigger>
                 <SelectContent>
@@ -418,7 +415,12 @@ export default function ContactForm() {
           </Button>
 
           <p className="text-center text-xs text-muted-foreground">
-            We typically respond within 24 hours. No spam, ever.
+            We typically respond within 24 hours. We use your details to respond
+            to this enquiry under our{" "}
+            <Link to="/privacy" className="font-medium text-foreground underline underline-offset-2">
+              Privacy Policy
+            </Link>
+            . Sending an enquiry does not subscribe you to marketing emails.
           </p>
         </form>
       </div>

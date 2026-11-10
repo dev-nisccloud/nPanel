@@ -121,7 +121,7 @@ export default function SeoPage() {
         { q: "How long before I see better visibility on Google?", a: "Most clients see measurable ranking improvements within 60 to 90 days. Stronger traffic growth typically builds at the 3 to 6 month mark. Competitive industries can take longer for top positions." },
         { q: "Who do you help with SEO?", a: "We help businesses that want to get found on Google, Maps, and AI answer tools. We combine technical SEO, local keyword strategy, Maps optimisation, and Answer Engine Optimisation." },
         { q: "What is the difference between SEO and AEO?", a: "SEO optimises for traditional search results. AEO (Answer Engine Optimisation) helps your content get cited and recommended by AI tools like ChatGPT, Gemini, and Perplexity when people ask questions related to your business." },
-        { q: "Do you guarantee specific rankings?", a: "No ethical SEO agency guarantees specific rankings. Search algorithms are complex. We commit to clear reporting, steady improvement, and extra work at no charge if there is no progress by month 3." },
+        { q: "Do you guarantee specific rankings?", a: "No. Search algorithms, competitors and generative systems change, so no provider can guarantee a position or an AI citation. We commit to the approved scope, clear reporting and work aimed at measurable improvement." },
         { q: "Do you do SEO for businesses outside major cities?", a: "Yes. We manage local SEO across Kenya, including multi-location work on our Enterprise plan." },
         { q: "How much does SEO cost?", a: "Our live pricing table above shows current plans in KES, typically with monthly or annual billing. Contact us for custom packages across multiple locations or industries." },
       ]}

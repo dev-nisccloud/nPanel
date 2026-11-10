@@ -55,7 +55,7 @@ const groups: Group[] = [
       {
         id: "web-hosting",
         label: "Web Hosting",
-        description: "Shared hosting to get your website online, with a 99.9% uptime target and 24/7 support.",
+        description: "Shared hosting to get your website online, with a 99.9% uptime target and 24/7 ticket support.",
         href: "/hosting/shared",
         component: SharedPricingSection,
       },
@@ -221,7 +221,7 @@ const groups: Group[] = [
         id: "zepo-ai",
         label: "AI & Automation",
         description: "Zepo AI chat assistants, lead capture and follow-up automation.",
-        href: "/services/zeepo-ai",
+        href: "/services/zepo-ai",
         component: ZepoAiPricing,
       },
     ],

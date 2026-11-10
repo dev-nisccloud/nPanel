@@ -51,7 +51,7 @@ export const HOME_FAQ_CATEGORIES = [
       {
         question: "What happens if my website goes down?",
         answer:
-          "Report it any time: our support team answers tickets, email and chat 24/7, and phone support is available in business hours. We work to restore service as quickly as possible against a 99.9% monthly uptime target on hosting plans, with service credits set out in our Terms of Service.",
+          "Report it any time through a support ticket. During working hours, our team also answers email, chat and phone enquiries. We work to restore service as quickly as possible against a 99.9% monthly uptime target on hosting plans, with service credits set out in our Terms of Service.",
       },
       {
         question: "Can I transfer my existing domain?",
@@ -71,12 +71,12 @@ export const HOME_FAQ_CATEGORIES = [
       {
         question: "How long does SEO take to show results?",
         answer:
-          "SEO is a steady process. Many clients see clearer movement in traffic and rankings within about 60 to 90 days. Stronger results usually need consistent work over several months. We set goals you can measure and report on progress.",
+          "SEO is a steady process, and timing varies by your starting position, competition, website and approved scope. We agree measurable goals, report on the work completed and track relevant search visibility and enquiries. We do not guarantee rankings or AI citations.",
       },
       {
         question: "What is AEO and GEO?",
         answer:
-          "AEO means making your content easy for AI answer tools to use. GEO means showing up in local and map-style results where people search nearby. Together with classic SEO, the goal is simple: people find you when they look for what you sell.",
+          "SEO means Search Engine Optimization: improving useful pages so they can be discovered in search results. AEO means Answer Engine Optimization: presenting clear, accurate answers to customer questions. GEO means Generative Engine Optimization: improving how accurately your business and expertise can be represented in AI-generated answers. Local SEO, including Google Business Profile and map visibility, is a separate area. No provider can guarantee rankings or AI citations.",
       },
       {
         question: "Do I need a minimum ad spend for paid advertising?",
@@ -116,7 +116,7 @@ export const HOME_FAQ_CATEGORIES = [
       {
         question: "Is there a long contract?",
         answer:
-          "Monthly services like hosting, SEO, ads, and social are month to month with 30 days notice to cancel. One-off projects like websites and brand work are paid by milestone. We do not lock you into long contracts.",
+          "Web and WordPress hosting can be cancelled through nPanel at any time and remains active until the end of the paid billing period. Automatically provisioned products and consumed credits are not refundable after provisioning or use. Managed marketing, design and software work follows the approved proposal or service agreement.",
       },
       {
         question: "What does the 30-day progress review mean?",
