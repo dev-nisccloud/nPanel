@@ -56,7 +56,7 @@ export default function VpsHostingPage() {
     <ServicePageShell
       badge="VPS Servers"
       headline={<>Flexible Compute. <span className="text-primary">More Control.</span> VPS for Growing Workloads.</>}
-      subtext="Choose flexible entry virtual compute for websites, applications and development environments that have outgrown shared hosting. Resource and storage specifications are shown on each live plan."
+      subtext="Choose flexible entry virtual compute for websites, applications and development environments that have outgrown standard web hosting. Resource and storage specifications are shown on each live plan."
       serviceType="hosting"
       heroIllustration={<HostingHeroIllustration config={vpsHeroConfig} />}
       heroIllustrationBare
@@ -120,7 +120,7 @@ export default function VpsHostingPage() {
         { num: "04", title: "Review as Usage Grows", desc: "Monitor demand and compare a larger VPS or higher-reservation VDS when the current size no longer fits." },
       ]}
       whyPoints={[
-        { title: "More Control Than Shared Hosting", visual: "code", desc: "Run a configurable virtual environment with root access and your own application stack." },
+        { title: "More Control Than Web Hosting", visual: "code", desc: "Run a configurable virtual environment with root access and your own application stack." },
         { title: "Start Without Oversizing", visual: "deploy", desc: "Select a practical virtual footprint now, then reassess as traffic, data or background processing increases." },
         { title: "A Clear Upgrade Path", visual: "growth", desc: "Compare a larger VPS, a higher-reservation VDS tier or dedicated hardware as requirements grow." },
         { title: "Useful for Varied Projects", visual: "integrate", desc: "Host supported websites, internal tools, test environments and application backends on a suitably sized plan." },

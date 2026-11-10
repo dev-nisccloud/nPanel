@@ -55,7 +55,7 @@ const groups: Group[] = [
       {
         id: "web-hosting",
         label: "Web Hosting",
-        description: "Shared hosting to get your website online, with a 99.9% uptime target and 24/7 ticket support.",
+        description: "Web hosting to get your website online, with a 99.9% uptime target.",
         href: "/hosting/shared",
         component: SharedPricingSection,
       },

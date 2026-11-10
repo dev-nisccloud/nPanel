@@ -59,7 +59,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
 export default function SharedHostingPage() {
   return (
     <ServicePageShell
-      badge="Shared Web Hosting"
+      badge="Web Hosting"
       headline={
         <>
           Fast, Reliable Web Hosting{" "}
@@ -112,7 +112,7 @@ export default function SharedHostingPage() {
         },
         {
           title: "Choose for the Workload", visual: "uptime",
-          desc: "Shared hosting suits standard websites. We can discuss WordPress-specific or server options when the workload needs a different environment.",
+          desc: "Web hosting suits standard business websites. We can discuss WordPress-specific or server options when the workload needs a different environment.",
         },
         {
           title: "Migration Has a Scope", visual: "migration",
@@ -125,7 +125,7 @@ export default function SharedHostingPage() {
       ]}
       faqs={[
         {
-          q: "What do I get with shared hosting?",
+          q: "What do I get with web hosting?",
           a: "You get NVMe SSD hosting, free SSL, daily backups and hosting tools managed through nPanel. Current plan prices are shown on this page and in the cart before you pay.",
         },
         {
@@ -138,7 +138,7 @@ export default function SharedHostingPage() {
         },
         {
           q: "Is WordPress hosting included?",
-          a: "Yes. All shared hosting plans include a one-click WordPress installer. For WordPress-specific optimisation, see our dedicated WordPress Hosting plans.",
+          a: "Yes. All web hosting plans include a one-click WordPress installer. For WordPress-specific optimisation, see our dedicated WordPress Hosting plans.",
         },
         {
           q: "What happens if I need more space?",
@@ -146,12 +146,12 @@ export default function SharedHostingPage() {
         },
         {
           q: "Do you offer a money-back guarantee?",
-          a: "Yes. New shared hosting accounts include a 7-day money-back guarantee, as set out in our Terms of Service. Contact our team within 7 days and we process your full refund.",
+          a: "Yes. New web hosting accounts include a 7-day money-back guarantee, as set out in our Terms of Service. Contact our team within 7 days and we process your full refund.",
         },
       ]}
       pricingNote="Prices are shown in KES or USD based on your location. Easy checkout. 7-day money-back guarantee on new accounts."
       ctaHeadline="Get Reliable Web Hosting Today"
-      ctaSubtext="Fast shared hosting with free SSL, daily backups, free migration help and everything managed in nPanel."
+      ctaSubtext="Fast web hosting with free SSL, daily backups, free migration help and everything managed in nPanel."
       showcaseBlocks={showcaseBlocks}
     />
   );

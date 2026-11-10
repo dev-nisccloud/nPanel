@@ -321,9 +321,9 @@ export const posts: Post[] = [
   {
     slug: "shared-vs-vps-hosting-kenya",
     category: "Cloud Hosting",
-    title: "Shared Hosting vs VPS in Kenya: Which One Does Your Business Actually Need?",
+    title: "Web Hosting vs VPS in Kenya: Which One Does Your Business Actually Need?",
     excerpt:
-      "Not all hosting is equal. We help you pick the right tier - from shared hosting at KES 350/mo to managed VPS - without overpaying for resources you'll never use.",
+      "Not all hosting is equal. We help you pick the right tier - from web hosting at KES 350/mo to managed VPS - without overpaying for resources you'll never use.",
     readTime: "5 min read",
     date: "Apr 5, 2025",
     gradient: "from-cyan-500/20 via-primary/10 to-transparent",
@@ -334,10 +334,10 @@ export const posts: Post[] = [
         type: "intro",
         text: "The most common mistake Kenyan businesses make with hosting is either overspending on resources they don't need, or underspending and suffering through slow load times and downtime that costs them customers. Here's how to choose correctly.",
       },
-      { type: "h2", text: "Shared Hosting: What It Is and Who It's For" },
+      { type: "h2", text: "Web Hosting: What It Is and Who It's For" },
       {
         type: "p",
-        text: "Shared hosting puts your website on a server alongside hundreds of other websites. You share CPU, RAM, and bandwidth. This makes it very affordable - our shared plans start at KES 350/month - but it means your performance can be affected by other sites on the server.",
+        text: "Web hosting puts your website on a server alongside other websites, which share its CPU, RAM, and bandwidth. This makes it very affordable - our web hosting plans start at KES 350/month - but it means your performance can be affected by other sites on the server.",
       },
       {
         type: "ul",
@@ -351,12 +351,12 @@ export const posts: Post[] = [
       {
         type: "stat-row",
         stats: [
-          { value: "99.9%", label: "Uptime target on shared hosting" },
+          { value: "99.9%", label: "Uptime target on web hosting" },
           { value: "KES 350", label: "Starting price per month" },
           { value: "Free", label: "Migration help on all plans" },
         ],
       },
-      { type: "h2", text: "VPS Hosting: When You've Outgrown Shared" },
+      { type: "h2", text: "VPS Hosting: When You've Outgrown Web Hosting" },
       {
         type: "p",
         text: "A Virtual Private Server gives you a dedicated slice of a physical server. Your resources are yours alone - CPU, RAM, and storage are not shared. This means consistent performance, more control, and the ability to handle significantly more traffic.",
@@ -376,10 +376,10 @@ export const posts: Post[] = [
         title: "The Decision Framework",
         text: "If your site is generating revenue, getting more than 5,000 visitors/month, or running an e-commerce store, move to VPS. The performance difference is significant and slow load times directly reduce sales - Google data shows a 1-second delay reduces conversions by 7%.",
       },
-      { type: "h2", text: "Migration: Moving from Shared to VPS" },
+      { type: "h2", text: "Migration: Moving from Web Hosting to VPS" },
       {
         type: "p",
-        text: "Migration from shared hosting to VPS sounds technical but doesn't have to be painful. Nisc Cloud handles all migrations for free when you upgrade with us. Our typical migration window is 2-4 hours with zero downtime using our staging protocol.",
+        text: "Migration from web hosting to VPS sounds technical but doesn't have to be painful. Nisc Cloud handles all migrations for free when you upgrade with us. Our typical migration window is 2-4 hours with zero downtime using our staging protocol.",
       },
       {
         type: "closing",

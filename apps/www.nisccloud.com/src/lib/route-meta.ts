@@ -26,7 +26,7 @@ export const ROUTE_META: Record<string, PageMeta> = {
   "/pricing": {
     title: "Pricing: Hosting, Domains, Email and Services",
     description:
-      "Transparent KES pricing for shared and WordPress hosting, VPS, VDS and dedicated servers, business email, SSL, websites, SEO, advertising and Zepo AI.",
+      "Transparent pricing for web and WordPress hosting, VPS, VDS and dedicated servers, business email, SSL, websites, SEO, advertising and Zepo AI.",
     jsonLd: [
       breadcrumbJsonLd([["Home", "/"], ["Pricing", "/pricing"]]),
       faqJsonLd(PRICING_FAQS.map((f) => ({ q: f.question, a: f.answer }))),

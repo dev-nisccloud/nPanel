@@ -178,7 +178,7 @@ export default function TermsOfServicePage() {
 
       <h3>5.1 Cloud Hosting Services</h3>
       <ul>
-        <li><strong>Shared Web Hosting:</strong> Managed shared-server hosting optimised for speed and reliability.</li>
+        <li><strong>Web Hosting:</strong> Managed hosting for business websites, optimised for speed and reliability.</li>
         <li><strong>WordPress Hosting:</strong> Specialist hosting environment optimised for WordPress websites.</li>
         <li><strong>VPS Hosting:</strong> Virtual Private Server instances with dedicated resources and root access.</li>
         <li><strong>VDS Hosting:</strong> Virtual Dedicated Server resources for higher-traffic workloads.</li>
@@ -362,7 +362,7 @@ export default function TermsOfServicePage() {
       <h2 id="refunds">10. Refund Policy</h2>
       <h3>10.1 Cloud Hosting Services</h3>
       <p>
-        We offer a <strong>7-day money-back guarantee</strong> on new shared hosting and WordPress
+        We offer a <strong>7-day money-back guarantee</strong> on new web hosting and WordPress
         hosting plans. If you are not satisfied, contact us within 7 days of the initial purchase
         and we will issue a full refund. This guarantee applies to first-time purchases only and
         does not apply to renewals.
@@ -601,7 +601,7 @@ export default function TermsOfServicePage() {
       <h2 id="sla">18. Service Availability & SLA</h2>
       <h3>18.1 Hosting Uptime Commitment</h3>
       <p>
-        For shared hosting, WordPress hosting, and business email hosting plans, we target a monthly
+        For web hosting, WordPress hosting, and business email hosting plans, we target a monthly
         uptime of <strong>99.9%</strong>, excluding scheduled maintenance windows and force majeure
         events. In the event of downtime attributable to us that falls below this commitment in a
         given calendar month, you may request a service credit equal to a proportionate amount of

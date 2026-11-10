@@ -41,7 +41,7 @@ type Category = {
 const categories: Category[] = [
   {
     id: "hosting",
-    label: "Shared Hosting",
+    label: "Web Hosting",
     icon: <Server size={18} />,
     color: "oklch(0.60 0.22 235)",
     articles: [

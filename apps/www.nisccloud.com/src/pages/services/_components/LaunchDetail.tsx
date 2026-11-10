@@ -6,7 +6,7 @@ import { ShowcaseVisualCard } from "@/pages/_components/ServiceShowcaseSection.t
 const features: ServiceFeature[] = [
   { icon: Zap, title: "Delivery & Performance", href: "/hosting", desc: "Choose hosting and optional delivery services around the website, application and audiences you need to support." },
   { icon: ShieldCheck, title: "Security by Scope", href: "/security", desc: "SSL, backups, monitoring and additional controls depend on the selected product and agreed service scope." },
-  { icon: Server, title: "Infrastructure Options", href: "/hosting/vps", desc: "Move from shared hosting to virtual or dedicated resources when the workload requires a different environment." },
+  { icon: Server, title: "Infrastructure Options", href: "/hosting/vps", desc: "Move from web hosting to virtual or dedicated resources when the workload requires a different environment." },
   { icon: Globe, title: "99.9% Uptime Target", desc: "We target 99.9% monthly uptime with continuous monitoring, incident response, and clear status updates." },
 ];
 

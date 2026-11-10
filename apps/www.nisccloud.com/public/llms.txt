@@ -68,7 +68,7 @@ Current prices, billing cycles and renewal prices are on https://nisccloud.com/p
 ## Cloud Products
 
 - [Hosting Overview](https://nisccloud.com/hosting): All hosting products
-- [Web Hosting](https://nisccloud.com/hosting/shared): Shared hosting plans
+- [Web Hosting](https://nisccloud.com/hosting/shared): Web hosting plans for business websites
 - [WordPress Hosting](https://nisccloud.com/hosting/wordpress): Managed WordPress hosting
 - [VPS](https://nisccloud.com/hosting/vps): Virtual private servers
 - [VDS](https://nisccloud.com/hosting/vds): Virtual dedicated servers
