@@ -21,6 +21,7 @@ import { trackEvent } from "@/lib/track.ts";
 import { BillingCycleSelector } from "@/components/pricing/BillingCycleSelector.tsx";
 import { buildPlanModels, normaliseProductDescription, type PlanModel } from "./hosting-plan-model.ts";
 import { PlanCardsSpotlight } from "./PlanCardsSpotlight.tsx";
+import { useCurrency } from "@/components/providers/currency.tsx";
 
 export type HostingPlanFallbackFeature = {
   label: string;
@@ -51,12 +52,18 @@ function withFallbackValues(plans: SharedHostingPlan[], config: HostingPlansPric
   }));
 }
 
-function TrustRow({ freeSsl }: { freeSsl: boolean }) {
+function TrustRow({
+  freeSsl,
+  currency,
+}: {
+  freeSsl: boolean;
+  currency: "KES" | "USD";
+}) {
   const items: { icon: LucideIcon; text: string }[] = [
     ...(freeSsl ? [{ icon: Lock, text: "Free SSL on every plan" }] : []),
     { icon: Headphones, text: "24/7 ticket support · email, chat and phone during working hours" },
     { icon: CreditCard, text: "Pay with M-Pesa or card" },
-    { icon: ReceiptText, text: "Prices in KES, excluding 16% VAT" },
+    { icon: ReceiptText, text: `Prices in ${currency}, excluding 16% VAT` },
   ];
   return (
     <ul className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-muted-foreground">
@@ -97,6 +104,7 @@ export function HostingPlansPricingSection({
   config: HostingPlansPricingConfig;
 }) {
   const [plans, setPlans] = React.useState<SharedHostingPlan[]>([]);
+  const { currency, kesToCurrencyRate } = useCurrency();
   const [productFeatures, setProductFeatures] = React.useState<ProductFeatureRow[]>([]);
   const [productDescription, setProductDescription] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -242,8 +250,10 @@ export function HostingPlansPricingSection({
               customTier={customTier}
               pendingId={pendingId}
               onChoose={handleChoose}
+              currency={currency}
+              kesToCurrencyRate={kesToCurrencyRate}
             />
-            <TrustRow freeSsl={freeSsl} />
+            <TrustRow freeSsl={freeSsl} currency={currency} />
           </>
         )}
       </div>

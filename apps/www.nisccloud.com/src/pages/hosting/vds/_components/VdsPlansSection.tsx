@@ -9,6 +9,8 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.tsx";
 import { VpsPlanFilter, type VpsPlanFilter as VpsPlanFilterType, DEFAULT_VPS_FILTER, applyVpsPlanFilter } from "./VpsPlanFilter.tsx";
+import { useCurrency } from "@/components/providers/currency.tsx";
+import { convertKesForDisplay, formatCurrency } from "@/lib/currency.ts";
 
 import {
   fetchVdsPlansPublic,
@@ -56,24 +58,19 @@ function getDriveDescription(plan: VpsPlan) {
   return plan.product_drive || " ";
 }
 
-function formatMoney(amount: number | undefined | null, currency: string) {
-  if (typeof amount !== "number" || !Number.isFinite(amount)) return "N/A";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 0,
-  }).format(amount);
-}
-
 function VpsPlanCard({
   plan,
   pricingSettings,
   usdToKesRate,
+  currency,
+  kesToCurrencyRate,
   locationName,
 }: {
   plan: VpsPlan;
   pricingSettings: PricingSettings | null;
   usdToKesRate: number | null;
+  currency: "KES" | "USD";
+  kesToCurrencyRate: number | null;
   locationName: string;
 }) {
   const isUnavailable = plan.stock === "unavailable";
@@ -85,8 +82,11 @@ function VpsPlanCard({
   // Convert to KES
   const monthlyKes = usdToKesRate !== null ? Math.ceil(monthlyUsdWithMargin * usdToKesRate) : null;
 
-  const displayMonthly = monthlyKes ?? monthlyUsdWithMargin;
-  const displayCurrency = monthlyKes !== null ? "KES" : "USD";
+  const displayMonthly =
+    monthlyKes !== null && kesToCurrencyRate !== null
+      ? convertKesForDisplay(monthlyKes, currency, kesToCurrencyRate)
+      : null;
+  const cartCurrency = monthlyKes !== null ? "KES" : "USD";
 
   return (
     <Card className="group transition-all hover:shadow-md hover:border-primary/50 h-full flex flex-col">
@@ -204,8 +204,8 @@ function VpsPlanCard({
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Price</p>
           <div className="mt-1 flex flex-col gap-0.5">
             <p className="text-xl font-bold leading-tight text-primary">
-              {formatMoney(displayMonthly, displayCurrency)}
-              <span className="align-super text-xs font-semibold text-muted-foreground ml-1">/mo</span>
+              {displayMonthly === null ? "Price unavailable" : formatCurrency(displayMonthly, currency)}
+              {displayMonthly !== null && <span className="align-super text-xs font-semibold text-muted-foreground ml-1">/mo</span>}
             </p>
           </div>
         </div>
@@ -221,7 +221,7 @@ function VpsPlanCard({
                     productId: plan.product_id,
                     planName: plan.product_name,
                     productName: "VDS Hosting",
-                    currency: displayCurrency,
+                    currency: cartCurrency,
                     serviceType: "vds",
                     locationName: plan.data_center,
                   }),
@@ -260,6 +260,7 @@ function VpsPlanSkeleton() {
 }
 
 export function VdsPlansSection() {
+  const { currency, kesToCurrencyRate } = useCurrency();
   const [plans, setPlans] = React.useState<VpsPlan[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [loadingMore, setLoadingMore] = React.useState(false);
@@ -331,18 +332,17 @@ export function VdsPlansSection() {
     }
   };
 
-  const displayCurrency = usdToKesRate !== null ? "KES" : "USD";
-
   const displayPrices = React.useMemo(() => {
     const map = new Map<number, number>();
+    if (usdToKesRate === null || kesToCurrencyRate === null) return map;
     for (const p of plans) {
       const baseMargin = pricingSettings?.base ?? null;
       const monthlyUsdWithMargin = applyMarginWith(baseMargin, p.product_monthly_price ?? 0).final;
-      const monthlyKes = usdToKesRate !== null ? Math.ceil(monthlyUsdWithMargin * usdToKesRate) : null;
-      map.set(p.product_id, monthlyKes ?? monthlyUsdWithMargin);
+      const monthlyKes = Math.ceil(monthlyUsdWithMargin * usdToKesRate);
+      map.set(p.product_id, convertKesForDisplay(monthlyKes, currency, kesToCurrencyRate));
     }
     return map;
-  }, [plans, pricingSettings, usdToKesRate]);
+  }, [plans, pricingSettings, usdToKesRate, currency, kesToCurrencyRate]);
 
   const filteredPlans = React.useMemo(
     () => applyVpsPlanFilter(plans, filter, displayPrices),
@@ -365,13 +365,13 @@ export function VdsPlansSection() {
           </Alert>
         )}
 
-        {!loading && plans.length > 0 && (
+        {!loading && plans.length > 0 && usdToKesRate !== null && kesToCurrencyRate !== null && (
           <div className="mb-8">
             <VpsPlanFilter
               plans={plans}
               filter={filter}
               onFilterChange={setFilter}
-              displayCurrency={displayCurrency}
+              displayCurrency={currency}
               displayPrices={displayPrices}
               totalCount={plans.length}
               filteredCount={filteredPlans.length}
@@ -394,6 +394,8 @@ export function VdsPlansSection() {
                 plan={plan} 
                 pricingSettings={pricingSettings}
                 usdToKesRate={usdToKesRate}
+                currency={currency}
+                kesToCurrencyRate={kesToCurrencyRate}
                 locationName={facilities.get(plan.data_center) ?? plan.data_center}
               />
             ))

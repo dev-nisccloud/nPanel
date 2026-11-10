@@ -23,6 +23,8 @@ export type StorefrontBillingCycle =
 
 export type StorefrontCartQuoteRequest = {
   handoff?: string;
+  currency?: "KES" | "USD";
+  billingCountry?: string;
   transferAuthCode?: string;
   main?: {
     serviceType?: string;
@@ -54,7 +56,20 @@ export type StorefrontCartQuoteRequest = {
 };
 
 export type StorefrontCartQuote = {
-  currency: string;
+  currency: "KES" | "USD";
+  quoteToken: string;
+  quoteExpiresAt: number;
+  sourceCurrency: "KES";
+  sourceSubtotal: number;
+  sourceTaxAmount: number;
+  sourceTotal: number;
+  fxRate: number;
+  fxProvider: "ExchangeRate-API" | "IDENTITY";
+  fxTimestamp: number;
+  fxExpiresAt: number;
+  taxPolicyId: "STANDARD_VAT" | "EXPORT_ZERO_RATED";
+  taxRate: number;
+  taxEvidenceMismatch: boolean;
   monthlyPrice: number;
   yearlyPrice: number;
   planName: string;
@@ -360,6 +375,7 @@ export async function initiateStorefrontStkPush(input: {
   storefrontToken: string;
   phone: string;
   cart: StorefrontCartQuoteRequest;
+  quoteToken: string;
 }): Promise<{ checkoutRequestId: string; message: string }> {
   return trpcMutation("storefront.payment.initiateStkPush", input);
 }
@@ -377,6 +393,7 @@ export type StorefrontJengaCustomer = {
 export async function initiateStorefrontJengaCheckout(input: {
   storefrontToken: string;
   cart: StorefrontCartQuoteRequest;
+  quoteToken: string;
   customer: StorefrontJengaCustomer;
   /** Origin of the storefront tab (window.location.origin). */
   returnOrigin: string;
@@ -388,6 +405,38 @@ export async function initiateStorefrontJengaCheckout(input: {
   message: string;
 }> {
   return trpcMutation("storefront.payment.initiateJengaCheckout", input);
+}
+
+export async function getPaystackAvailability(): Promise<{
+  enabled: boolean;
+  usdEnabled: boolean;
+  kesEnabled: boolean;
+}> {
+  return trpcQuery("storefront.payment.getPaystackAvailability");
+}
+
+export async function initiateStorefrontPaystackCheckout(input: {
+  storefrontToken: string;
+  cart: StorefrontCartQuoteRequest;
+  quoteToken: string;
+  email: string;
+}): Promise<{
+  reference: string;
+  accessCode: string;
+  amount: number;
+  currency: "KES" | "USD";
+}> {
+  return trpcMutation("storefront.payment.initiatePaystackCheckout", input);
+}
+
+export async function getStorefrontPaystackPaymentStatus(input: {
+  storefrontToken: string;
+  reference: string;
+}): Promise<{
+  status: "PENDING" | "SUCCESS" | "FAILED" | "REJECTED";
+  reference: string;
+}> {
+  return trpcQuery("storefront.payment.getPaystackPaymentStatus", input);
 }
 
 export async function getStorefrontJengaPaymentStatus(input: {
@@ -406,6 +455,7 @@ export async function getStorefrontJengaPaymentStatus(input: {
     productId?: string;
     billingCycle?: string;
     primaryDomain?: string;
+    quoteToken?: string;
   } | null;
 }> {
   return trpcQuery("storefront.payment.getJengaPaymentStatus", input);
@@ -458,6 +508,7 @@ export async function createStorefrontOrderFromPayment(input: {
   billingCycle: StorefrontBillingCycle;
   primaryDomain?: string;
   cart?: StorefrontCartQuoteRequest;
+  quoteToken: string;
 }): Promise<{ orderId: string; orderNumber: string; teamSlug: string }> {
   return trpcMutation("storefront.orders.createFromPayment", input);
 }

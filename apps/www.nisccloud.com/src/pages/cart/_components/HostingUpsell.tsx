@@ -14,6 +14,8 @@ import {
   type SharedHostingPricingData,
 } from "@/lib/vps-plans-api.ts";
 import { deriveMonthlyPrice, normalisePlanFeature } from "@/pages/hosting/_components/hosting-plan-model.ts";
+import { useCurrency } from "@/components/providers/currency.tsx";
+import { convertStorefrontAmount, formatCurrency } from "@/lib/currency.ts";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -226,10 +228,6 @@ function toUpsellPlanInfo(plan: LivePlan): UpsellPlanInfo {
   };
 }
 
-function fmt(amount: number, currency: string) {
-  return `${currency} ${amount.toLocaleString("en-KE")}`;
-}
-
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -244,6 +242,22 @@ export function HostingUpsell({
   initialCycles,
   initialSelectedPlanIds,
 }: HostingUpsellProps) {
+  const {
+    currency: displayCurrency,
+    kesToCurrencyRate,
+  } = useCurrency();
+  const fmt = (amount: number, sourceCurrency: string) =>
+    kesToCurrencyRate == null
+      ? "Updating…"
+      : formatCurrency(
+          convertStorefrontAmount(
+            amount,
+            sourceCurrency,
+            displayCurrency,
+            kesToCurrencyRate,
+          ),
+          displayCurrency,
+        );
   const [plansCatalog, setPlansCatalog] = React.useState<
     Partial<Record<HostingUpsellType, LivePlan[]>>
   >({});

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, Loader2, Send, Sparkles, Square } from "lucide-react";
+import { ArrowLeft, Loader2, Send, Square } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
 import { Button } from "@/components/ui/button.tsx";
+import { ZepoMascot } from "@/components/zepo-mascot.tsx";
 import { AiMarkdownRenderer } from "@/components/ai-markdown-renderer.tsx";
 import {
   createAuthSupportAiSession,
@@ -172,8 +173,8 @@ export function LiveAiSupportPanel({
         ) : (
           <div className="space-y-3">
             <div className="flex min-w-0 gap-2">
-              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
-                <Sparkles className="h-4 w-4 text-primary" />
+              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-sky-100 ring-1 ring-primary/15 dark:bg-sky-950">
+                <ZepoMascot className="size-[115%]" />
               </div>
               <div className="min-w-0 max-w-[min(85%,calc(100%-2.5rem))] overflow-hidden break-words [overflow-wrap:anywhere] rounded-2xl rounded-tl-md bg-muted/60 px-3 py-2 text-sm leading-relaxed">
                 {isSignedIn ? GREETING_SIGNED_IN : GREETING_GUEST}

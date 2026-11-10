@@ -2,10 +2,20 @@ import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
 import { SSL_PLANS, SERVICE_PACKAGE_NOTES } from "@/lib/service-packages.ts";
 import { Lock, Shield, Globe, Award, Zap, Eye, CheckCircle, Server } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
+import { useCurrency } from "@/components/providers/currency.tsx";
+import { convertKesForDisplay, formatCurrency } from "@/lib/currency.ts";
 
 // ─── Hero Illustration ────────────────────────────────────────────────────────
 
 function SslIllustration() {
+  const { currency, kesToCurrencyRate } = useCurrency();
+  const displayPrice = (amount: number) =>
+    kesToCurrencyRate == null
+      ? "Updating…"
+      : `${formatCurrency(
+          convertKesForDisplay(amount, currency, kesToCurrencyRate),
+          currency,
+        )}/yr`;
   return (
     <div className="space-y-3 select-none">
       {/* Browser address bar mockup */}
@@ -52,9 +62,9 @@ function SslIllustration() {
         <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Certificate Types</div>
         <div className="space-y-2">
           {[
-            { type: "DV Certificate", use: "Blogs and brochure sites", price: "KES 1,500/yr", badge: "Fast" },
-            { type: "OV Certificate", use: "Business websites", price: "KES 3,500/yr", badge: "Popular" },
-            { type: "EV Certificate", use: "E-commerce and fintech", price: "KES 8,000/yr", badge: "Highest Trust" },
+            { type: "DV Certificate", use: "Blogs and brochure sites", price: 1500, badge: "Fast" },
+            { type: "OV Certificate", use: "Business websites", price: 3500, badge: "Popular" },
+            { type: "EV Certificate", use: "E-commerce and fintech", price: 8000, badge: "Highest Trust" },
           ].map(({ type, use, price, badge }) => (
             <div key={type} className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-muted/40 border border-border/30">
               <div>
@@ -64,7 +74,7 @@ function SslIllustration() {
                 </div>
                 <div className="text-muted-foreground mt-0.5">{use}</div>
               </div>
-              <span className="font-bold text-primary shrink-0 ml-2">{price}</span>
+              <span className="font-bold text-primary shrink-0 ml-2">{displayPrice(price)}</span>
             </div>
           ))}
         </div>

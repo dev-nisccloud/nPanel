@@ -1,5 +1,5 @@
-import { ServiceExperience } from "@/pages/_components/ServiceExperience";
 import { HostingSupportArt } from "@/components/artwork/cloud-art.tsx";
+import { HostingStory } from "@/components/artwork/npanel-stories";
 import { HostingPerformanceArtwork } from "@/pages/_components/HostingReviewArtwork.tsx";
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
 import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
@@ -26,7 +26,8 @@ const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "nPanel Management",
     id: "management-preview",
-    artwork: <ServiceExperience mode="hosting" />,
+    artwork: <HostingStory />,
+    caption: false,
     headline: "Manage your hosting with a clean, simple dashboard",
     body: "Use nPanel to manage your Nisc Cloud services, review invoices and get support. Open the hosting tools included with your plan when you need to work on your website or email.",
     bullets: [
@@ -156,7 +157,7 @@ export default function SharedHostingPage() {
           a: "Yes. New shared hosting accounts include a 7-day money-back guarantee, as set out in our Terms of Service. Contact our team within 7 days and we process your full refund.",
         },
       ]}
-      pricingNote="All prices in KES. Easy checkout. 7-day money-back guarantee on new accounts."
+      pricingNote="Prices are shown in your selected currency. Easy checkout. 7-day money-back guarantee on new accounts."
       ctaHeadline="Get Reliable Web Hosting Today"
       ctaSubtext="Fast shared hosting with free SSL, daily backups, free migration help and everything managed in nPanel."
       showcaseBlocks={showcaseBlocks}

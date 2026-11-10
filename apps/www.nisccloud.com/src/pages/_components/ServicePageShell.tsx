@@ -29,6 +29,8 @@ import ServiceStatistics, {
 } from "@/components/shadcn-space/blocks/statistics-02/statistics.tsx";
 import BuiltDifferentBento from "@/components/shadcn-space/blocks/built-different-01/built-different-bento.tsx";
 import type { VisualTheme } from "@/components/shadcn-space/blocks/built-different-01/visual-context.ts";
+import { useCurrency } from "@/components/providers/currency.tsx";
+import { convertKesForDisplay, formatCurrency } from "@/lib/currency.ts";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -201,6 +203,14 @@ function PricingSection({
   note?: string;
   onSelect: (p: OrderPlan) => void;
 }) {
+  const { currency, kesToCurrencyRate } = useCurrency();
+  const displayKes = (amount: number) =>
+    kesToCurrencyRate == null
+      ? null
+      : formatCurrency(
+          convertKesForDisplay(amount, currency, kesToCurrencyRate),
+          currency,
+        );
   return (
     <section className="relative overflow-hidden py-16 md:py-20" id="pricing">
       <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-muted/20 to-transparent" />
@@ -257,11 +267,8 @@ function PricingSection({
                   <h3 className="font-bold text-lg mb-1">{plan.name}</h3>
                   <div className="mb-6 pb-6 border-b border-border/50">
                     <div className="flex items-end gap-1">
-                      <span className="text-xs text-muted-foreground font-medium mt-1 mr-0.5">
-                        KES
-                      </span>
                       <span className="text-4xl font-extrabold text-primary leading-none">
-                        {plan.price.toLocaleString()}
+                        {displayKes(plan.price) ?? "Updating…"}
                       </span>
                       <span className="text-muted-foreground text-sm mb-1">
                         /{plan.period}
@@ -313,7 +320,7 @@ function PricingSection({
                 >
                   <span className="font-medium">{a.label}</span>
                   <Badge variant="secondary" className="font-semibold">
-                    KES {a.price.toLocaleString()}/{a.period}
+                    {displayKes(a.price) ?? "Updating…"}/{a.period}
                   </Badge>
                 </div>
               ))}

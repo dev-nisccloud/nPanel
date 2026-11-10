@@ -32,6 +32,8 @@ import { kenicItemToDomainSearchResult } from "@/lib/domain-search/to-domain-sea
 import type { DomainSearchResult } from "@/lib/domain-search/types.ts";
 import { cn } from "@/lib/utils.ts";
 import { CartPillTabs } from "./CartPillTabs.tsx";
+import { useCurrency } from "@/components/providers/currency.tsx";
+import { convertKesForDisplay, formatCurrency } from "@/lib/currency.ts";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -102,7 +104,15 @@ function DomainUpsellInner({
   onTransferAuthCodeChange,
   required = false,
 }: DomainUpsellProps) {
-  const { calculatePricesBatch, getPricingInfo } = usePricing();
+  const { calculatePricesBatch, getPricingInfo, isConversionAvailable } = usePricing();
+  const { currency, kesToCurrencyRate } = useCurrency();
+  const formatDisplayKes = (amountKes: number) =>
+    kesToCurrencyRate === null
+      ? null
+      : formatCurrency(
+          convertKesForDisplay(amountKes, currency, kesToCurrencyRate),
+          currency,
+        );
 
   // ---- Search state ----
   const [input, setInput] = React.useState("");
@@ -464,6 +474,12 @@ function DomainUpsellInner({
 
     let cancelled = false;
     setTransferPricingLoading(true);
+    const sourceCurrency = transferResult.currency ?? "USD";
+    if (sourceCurrency !== "KES" && !isConversionAvailable) {
+      setTransferPriceKes(null);
+      setTransferPricingLoading(false);
+      return;
+    }
     calculatePricesBatch([rawResult])
       .then((priced) => {
         if (cancelled) return;
@@ -483,7 +499,7 @@ function DomainUpsellInner({
     return () => {
       cancelled = true;
     };
-  }, [transferStatus, transferResult, calculatePricesBatch]);
+  }, [transferStatus, transferResult, calculatePricesBatch, isConversionAvailable]);
 
   const transferReady =
     transferStatus === "valid" &&
@@ -498,12 +514,18 @@ function DomainUpsellInner({
   // ---- Helpers ----
   const isAvailable = (r: DomainSearchResult) => r.status === "free" || r.status === "available";
 
-  const getDomainPrice = (r: DomainSearchResult): number => {
+  const getDomainPrice = (r: DomainSearchResult): number | null => {
+    const sourceCurrency = r.price?.reseller?.currency ?? r.price?.product?.currency;
+    if (sourceCurrency && sourceCurrency !== "KES" && !isConversionAvailable) return null;
     const calc = r.price?.calculated;
-    if (calc?.convertedPrice) return Math.ceil(calc.convertedPrice);
-    if (calc?.finalPrice) return Math.ceil(calc.finalPrice);
-    if (r.price?.product?.price) return Math.ceil(r.price.product.price);
-    return 0;
+    if (calc?.displayCurrency === "KES" && calc.convertedPrice) {
+      return Math.ceil(calc.convertedPrice);
+    }
+    if (calc?.currency === "KES" && calc.finalPrice) return Math.ceil(calc.finalPrice);
+    if (r.price?.product?.currency === "KES" && r.price.product.price) {
+      return Math.ceil(r.price.product.price);
+    }
+    return null;
   };
 
   // ---- Add own domain ----
@@ -617,6 +639,7 @@ function DomainUpsellInner({
                 results.map((r) => {
                   const available = isAvailable(r);
                   const price = getDomainPrice(r);
+                  const displayPrice = price === null ? null : formatDisplayKes(price);
                   const isSelected = selectedDomain?.domain === r.domain;
                   const isExact =
                     !!searchTrigger?.exactDomain &&
@@ -663,11 +686,14 @@ function DomainUpsellInner({
                       </div>
 
                       <div className="flex items-center gap-3 shrink-0">
-                        {available && price > 0 && (
+                        {available && price !== null && price > 0 && (
                           <span className="text-sm font-bold text-foreground whitespace-nowrap">
-                            KES {price.toLocaleString()}
+                            {displayPrice ?? "Updating price…"}
                             <sup className="ml-0.5 text-[9px] font-normal text-muted-foreground">/yr</sup>
                           </span>
+                        )}
+                        {available && price === null && (
+                          <span className="text-xs text-muted-foreground">Price unavailable</span>
                         )}
                         {!available && (
                           <span className="text-xs text-muted-foreground">Taken</span>
@@ -680,9 +706,10 @@ function DomainUpsellInner({
                               "h-8 w-8 p-0 rounded-lg transition-all",
                               !isSelected && "border-primary text-primary hover:bg-primary/10",
                             )}
+                            disabled={price === null || kesToCurrencyRate === null}
                             onClick={() =>
                               onDomainSelect(
-                                isSelected ? null : { domain: r.domain, priceKes: price },
+                                isSelected ? null : { domain: r.domain, priceKes: price! },
                               )
                             }
                             aria-label={isSelected ? "Remove domain" : "Add domain"}
@@ -848,7 +875,7 @@ function DomainUpsellInner({
 
                 <div className="flex items-center gap-3 shrink-0">
                   <span className="text-sm font-bold text-foreground whitespace-nowrap">
-                    KES {transferPriceKes!.toLocaleString()}
+                    {formatDisplayKes(transferPriceKes!) ?? "Updating price…"}
                   </span>
                   <Button
                     size="sm"
@@ -858,6 +885,7 @@ function DomainUpsellInner({
                       selectedDomain?.domain !== transferResult.domain &&
                         "border-primary text-primary hover:bg-primary/10",
                     )}
+                    disabled={kesToCurrencyRate === null}
                     onClick={() => {
                       if (selectedDomain?.domain === transferResult.domain) {
                         onDomainSelect(null);
@@ -968,7 +996,7 @@ function DomainUpsellInner({
                         : "Domain registration added to your order"}
                     {!selectedDomain.isExisting && selectedDomain.priceKes > 0 && (
                       <span className="ml-1">
-                        · KES {selectedDomain.priceKes.toLocaleString()}
+                        · {formatDisplayKes(selectedDomain.priceKes) ?? "Updating price…"}
                         {selectedDomain.isTransfer ? "" : "/yr"}
                       </span>
                     )}

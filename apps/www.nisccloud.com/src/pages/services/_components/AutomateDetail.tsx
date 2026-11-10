@@ -1,11 +1,12 @@
 import { motion } from "motion/react";
 import { ServiceFeatureGrid, type ServiceFeature } from "./ServiceFeatureGrid.tsx";
-import { Check, Bot, Workflow, MessageSquare, BarChart3 } from "lucide-react";
+import { Check, Bot, Workflow, BarChart3 } from "lucide-react";
 import { ShowcaseVisualCard } from "@/pages/_components/ServiceShowcaseSection.tsx";
+import { ZepoMascot } from "@/components/zepo-mascot.tsx";
 
 const features: ServiceFeature[] = [
   { icon: Workflow, title: "CRM Workflows", desc: "HubSpot, Salesforce, GoHighLevel: we build automations that move leads through your funnel without manual chasing." },
-  { icon: MessageSquare, title: "Zepo AI Chat", href: "/services/zepo-ai", desc: "24/7 assistance for supported customer, marketing and Nisc Cloud service questions, with escalation to your team." },
+  { icon: ZepoMascot, title: "Zepo AI Chat", href: "/services/zepo-ai", desc: "24/7 assistance for supported customer, marketing and Nisc Cloud service questions, with escalation to your team." },
   { icon: Bot, title: "Email Sequences", href: "/services/email-marketing", desc: "Drip campaigns triggered by behaviour: sign-ups, cart abandonment, re-engagement, and upsells." },
   { icon: BarChart3, title: "Reporting Dashboards", desc: "Clear dashboards showing traffic, conversations, conversions, and revenue in one place." },
 ];

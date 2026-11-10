@@ -406,6 +406,25 @@
 }
 
 /* Artwork kit motion. Runs only on stages marked .art-live (on screen, motion allowed). */
+.npanel-window {
+  container-type: inline-size;
+}
+.platform-persona-stage {
+  padding: 0;
+}
+.npanel-org-copy {
+  display: none;
+}
+@container (min-width: 440px) {
+  .npanel-org-copy {
+    display: block;
+  }
+}
+@container (min-width: 500px) {
+  .npanel-business-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
 .art-meter-fill {
   transform-origin: left center;
 }
@@ -441,6 +460,12 @@
     background: currentColor;
     animation: ps-caret 1s steps(1) infinite;
   }
+  .art-live .npanel-ssh .ssh-connect { animation: ssh-connect 8s steps(28, end) infinite both; }
+  .art-live .npanel-ssh .ssh-welcome { animation: ssh-welcome 8s ease-out infinite both; }
+  .art-live .npanel-ssh .ssh-command { animation: ssh-command 8s steps(36, end) infinite both; }
+  .art-live .npanel-ssh .ssh-result { animation: ssh-result 8s ease-out infinite both; }
+  .art-live .npanel-ssh .ssh-prompt { animation: ssh-prompt 8s ease-out infinite both; }
+  .art-live .npanel-ssh .ssh-cursor { animation: ps-caret 0.9s steps(1) infinite; }
 }
 @keyframes art-rise {
   from { opacity: 0; transform: translateY(8px); }
@@ -457,6 +482,32 @@
 @keyframes art-rail {
   0%, 100% { box-shadow: 0 0 0 0 rgb(56 182 255 / 0); }
   50% { box-shadow: 0 0 0 4px rgb(56 182 255 / 0.2); }
+}
+@keyframes ssh-connect {
+  0% { opacity: 1; clip-path: inset(0 100% 0 0); }
+  16%, 88% { opacity: 1; clip-path: inset(0); }
+  100% { opacity: 0; clip-path: inset(0); }
+}
+@keyframes ssh-welcome {
+  0%, 17% { opacity: 0; transform: translateY(3px); }
+  22%, 88% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: none; }
+}
+@keyframes ssh-command {
+  0%, 28% { opacity: 0; clip-path: inset(0 100% 0 0); }
+  29% { opacity: 1; clip-path: inset(0 100% 0 0); }
+  48%, 88% { opacity: 1; clip-path: inset(0); }
+  100% { opacity: 0; clip-path: inset(0); }
+}
+@keyframes ssh-result {
+  0%, 50% { opacity: 0; transform: translateY(3px); }
+  56%, 88% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: none; }
+}
+@keyframes ssh-prompt {
+  0%, 62% { opacity: 0; }
+  68%, 88% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 /* Closing call-to-action banner. */

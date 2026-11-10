@@ -1,11 +1,12 @@
 import { motion } from "motion/react";
-import { LayoutDashboard, Headphones, BarChart3, Bot, ShieldCheck, Users } from "lucide-react";
+import { LayoutDashboard, Headphones, BarChart3, ShieldCheck, Users } from "lucide-react";
+import { ZepoMascot } from "@/components/zepo-mascot.tsx";
 
 const pillars = [
   { icon: LayoutDashboard, label: "One Clear Team", desc: "One team, one plan, one bill. Create, host, market, and automate without juggling vendors." },
   { icon: Headphones, label: "Real Support", desc: "Real people from our team when something needs fixing." },
   { icon: BarChart3, label: "Clear Reporting", desc: "We measure what matters and show you progress in plain language." },
-  { icon: Bot, label: "Zepo AI-Powered", desc: "Smart tools that help with content, campaigns, and follow-ups." },
+  { icon: ZepoMascot, label: "Zepo AI-Powered", desc: "Smart tools that help with content, campaigns, and follow-ups." },
   { icon: ShieldCheck, label: "Enterprise-Grade Security", desc: "SSL, WAF, DDoS protection, and a 99.9% uptime target on hosting." },
   { icon: Users, label: "Built for Growth", desc: "Hosting and marketing that work together for businesses of every size." },
 ];

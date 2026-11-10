@@ -1,7 +1,6 @@
 import { useEffect, useRef, type ReactNode, type RefObject } from "react";
 import { useArtLive } from "./use-art-live.ts";
 import {
-  Bot,
   Cloud,
   CreditCard,
   Globe,
@@ -15,6 +14,7 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
+import { ZepoMascot } from "@/components/zepo-mascot.tsx";
 
 /**
  * Nisc Cloud artwork kit: product-led 2D illustrations built from nPanel's real interface language
@@ -277,7 +277,7 @@ const navIcons = {
   marketing: Megaphone,
   seo: Search,
   creative: Layers,
-  zeepo: Bot,
+  zeepo: ZepoMascot,
   support: LifeBuoy,
   clients: Users,
   billing: CreditCard,
@@ -310,10 +310,11 @@ export function NpanelWindow({
   className?: string;
   bodyClassName?: string;
 }) {
+  const publicPath = path.replace(/^agency\//, "");
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-2xl border border-slate-200/80 bg-card shadow-[0_30px_60px_-30px_rgb(14_87_118_/_0.45)] dark:border-white/10",
+        "npanel-window overflow-hidden rounded-2xl border border-slate-200/80 bg-card shadow-[0_30px_60px_-30px_rgb(14_87_118_/_0.45)] dark:border-white/10",
         className,
       )}
     >
@@ -322,7 +323,7 @@ export function NpanelWindow({
         <span className="size-2 rounded-full bg-amber-400" />
         <span className="size-2 rounded-full bg-emerald-400" />
         <span className="ml-2 min-w-0 flex-1 truncate rounded-md bg-background/80 px-2 py-0.5 font-mono text-[10px] text-muted-foreground">
-          npanel.nisccloud.com/{path}
+          npanel.nisccloud.com/{publicPath}
         </span>
       </div>
       <div className="flex">

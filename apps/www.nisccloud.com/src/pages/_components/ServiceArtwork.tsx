@@ -6,7 +6,6 @@ import {
   Mail,
   Paintbrush,
   Search,
-  Sparkles,
   Check,
   ArrowUpRight,
   MonitorSmartphone,
@@ -16,6 +15,7 @@ import {
   FileText,
   ShieldCheck,
 } from "lucide-react";
+import { ZepoMascot } from "@/components/zepo-mascot.tsx";
 
 export type ArtworkKind =
   | "domains"
@@ -104,7 +104,7 @@ const scenes = {
   ai: {
     title: "More time for your next idea.",
     label: "Zepo AI",
-    icon: Sparkles,
+    icon: ZepoMascot,
     subtitle: "Put useful AI to work in your everyday workflows.",
     rows: [
       "Create content & campaign ideas",

@@ -5,13 +5,17 @@ import { billingCycleToMonths, type BillingCycle } from "@/lib/billing-cycle.ts"
 import { customTierEnquiryUrl, planTermPrice, type CustomTier } from "@/lib/plan-catalog.ts";
 import {
   FAIR_USE_HREF,
-  formatKes,
   getFeatureIcon,
   inlineLabel,
   tileLabel,
   type PlanFeature,
   type PlanModel,
 } from "./hosting-plan-model.ts";
+import {
+  convertStorefrontAmount,
+  formatCurrency,
+} from "@/lib/currency.ts";
+import type { StorefrontCurrency } from "@/components/providers/currency.tsx";
 
 type Props = {
   models: PlanModel[];
@@ -19,6 +23,8 @@ type Props = {
   customTier?: CustomTier;
   pendingId: string | null;
   onChoose: (model: PlanModel) => void;
+  currency: StorefrontCurrency;
+  kesToCurrencyRate: number | null;
 };
 
 const RECOMMENDED_BADGE = "bg-brand-orange";
@@ -89,18 +95,38 @@ function SpecLine({ feature, featured }: { feature: PlanFeature; featured: boole
   );
 }
 
-function PriceBlock({ model, cycle }: { model: PlanModel; cycle: BillingCycle }) {
+function PriceBlock({
+  model,
+  cycle,
+  currency,
+  kesToCurrencyRate,
+}: {
+  model: PlanModel;
+  cycle: BillingCycle;
+  currency: StorefrontCurrency;
+  kesToCurrencyRate: number | null;
+}) {
   const total = planTermPrice(model.plan.niscPrice, model.plan.billingCycle, cycle);
   if (total === 0) {
     return <p className="text-3xl font-extrabold tracking-tight text-foreground">Contact us</p>;
   }
+  if (kesToCurrencyRate == null) {
+    return <p className="text-sm text-muted-foreground">Updating price…</p>;
+  }
+  const sourceCurrency = model.plan.niscCurrency || "KES";
+  const displayTotal = convertStorefrontAmount(
+    total,
+    sourceCurrency,
+    currency,
+    kesToCurrencyRate,
+  );
   const months = billingCycleToMonths(cycle);
-  const perMonth = months === 1 ? total : Math.round(total / months);
+  const perMonth = months === 1 ? displayTotal : displayTotal / months;
   const { every, per } = termWords(cycle);
   return (
     <div>
       <p className="flex items-baseline gap-1">
-        <span className="text-4xl font-extrabold tracking-tight text-foreground tabular-nums">{formatKes(perMonth)}</span>
+        <span className="text-4xl font-extrabold tracking-tight text-foreground tabular-nums">{formatCurrency(perMonth, currency)}</span>
         <span className="text-sm font-medium text-muted-foreground">/month</span>
       </p>
       <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
@@ -108,12 +134,12 @@ function PriceBlock({ model, cycle }: { model: PlanModel; cycle: BillingCycle })
           <>Billed monthly · excl. 16% VAT</>
         ) : (
           <>
-            <span className="font-semibold text-foreground tabular-nums">{formatKes(total)}</span> billed {every} · excl.
+            <span className="font-semibold text-foreground tabular-nums">{formatCurrency(displayTotal, currency)}</span> billed {every} · excl.
             16% VAT
           </>
         )}
         {" "}<br />
-        Renews at {formatKes(total)}
+        Renews at {formatCurrency(displayTotal, currency)}
         {months <= 12 ? `/${per}` : ` ${every}`}
       </p>
     </div>
@@ -126,12 +152,16 @@ function SpotlightCard({
   pending,
   disabled,
   onChoose,
+  currency,
+  kesToCurrencyRate,
 }: {
   model: PlanModel;
   cycle: BillingCycle;
   pending: boolean;
   disabled: boolean;
   onChoose: () => void;
+  currency: StorefrontCurrency;
+  kesToCurrencyRate: number | null;
 }) {
   const { featured } = model;
   const priced = planTermPrice(model.plan.niscPrice, model.plan.billingCycle, cycle) > 0;
@@ -162,7 +192,12 @@ function SpotlightCard({
       </header>
 
       <div className="mt-5">
-        <PriceBlock model={model} cycle={cycle} />
+        <PriceBlock
+          model={model}
+          cycle={cycle}
+          currency={currency}
+          kesToCurrencyRate={kesToCurrencyRate}
+        />
       </div>
 
       <Button
@@ -250,7 +285,15 @@ function CustomTierCard({ tier }: { tier: CustomTier }) {
   );
 }
 
-export function PlanCardsSpotlight({ models, cycle, customTier, pendingId, onChoose }: Props) {
+export function PlanCardsSpotlight({
+  models,
+  cycle,
+  customTier,
+  pendingId,
+  onChoose,
+  currency,
+  kesToCurrencyRate,
+}: Props) {
   const anyFairUse = models.some((m) => m.features.some((f) => f.fairUse));
   const count = models.length + (customTier ? 1 : 0);
   return (
@@ -270,6 +313,8 @@ export function PlanCardsSpotlight({ models, cycle, customTier, pendingId, onCho
             pending={pendingId === model.plan.id}
             disabled={pendingId !== null}
             onChoose={() => onChoose(model)}
+            currency={currency}
+            kesToCurrencyRate={kesToCurrencyRate}
           />
         ))}
         {customTier ? <CustomTierCard tier={customTier} /> : null}

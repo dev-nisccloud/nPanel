@@ -1,7 +1,8 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
 import { ZEPO_AI_PLANS, SERVICE_PACKAGE_NOTES } from "@/lib/service-packages.ts";
-import { Bot, Zap, MessageSquare, BarChart2, Users, Calendar, Shield, Sparkles } from "lucide-react";
+import { Zap, MessageSquare, BarChart2, Users, Calendar, Shield, Sparkles } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
+import { ZepoMascot } from "@/components/zepo-mascot.tsx";
 
 const showcaseBlocks: ShowcaseBlock[] = [
   {
@@ -39,6 +40,8 @@ export default function AiAutomationPage() {
       serviceType="marketing"
       checkoutServiceType="ai_automation"
       checkoutProductName="Zepo AI"
+      heroImage="/brand/zepo-mascot.png"
+      heroImageStandalone
       trustStats={[
         { value: "24/7", label: "Chat Availability" },
         { value: "Human", label: "Handoff When Needed" },
@@ -47,7 +50,7 @@ export default function AiAutomationPage() {
       ]}
       features={[
         {
-          icon: <Bot size={20} />,
+          icon: <ZepoMascot className="size-7" />,
           title: "Nisc Cloud Service Assistant",
           desc: "Ask about domains, hosting, email, servers and other Nisc Cloud services. Zepo recommends suitable options from the information you provide.",
         },

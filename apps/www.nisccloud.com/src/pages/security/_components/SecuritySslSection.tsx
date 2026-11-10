@@ -2,6 +2,8 @@ import { motion } from "motion/react";
 import { Check, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Link } from "react-router-dom";
+import { useCurrency } from "@/components/providers/currency.tsx";
+import { convertKesForDisplay, formatCurrency } from "@/lib/currency.ts";
 
 const sslOptions = [
   {
@@ -39,6 +41,14 @@ const sslOptions = [
 ];
 
 export default function SecuritySslSection() {
+  const { currency, kesToCurrencyRate } = useCurrency();
+  const displayPrice = (amount: number) =>
+    kesToCurrencyRate == null
+      ? "Updating…"
+      : formatCurrency(
+          convertKesForDisplay(amount, currency, kesToCurrencyRate),
+          currency,
+        );
 
   return (
     <section className="py-20 border-y border-primary/10" style={{ background: "linear-gradient(160deg, oklch(0.96 0.04 235 / 0.50) 0%, oklch(0.95 0.05 225 / 0.35) 50%, oklch(0.95 0.05 195 / 0.40) 100%)" }}>
@@ -77,7 +87,7 @@ export default function SecuritySslSection() {
               <div className="mb-5">
                 <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mb-1">Starting From</p>
                 <div className="flex items-end gap-1">
-                  <span className="text-3xl font-extrabold text-primary leading-none">KES {opt.from.toLocaleString()}</span>
+                  <span className="text-3xl font-extrabold text-primary leading-none">{displayPrice(opt.from)}</span>
                   <span className="text-muted-foreground text-sm mb-0.5">/{opt.period}</span>
                 </div>
               </div>

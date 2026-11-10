@@ -3,10 +3,13 @@ import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
 import { BarChart2, TrendingUp, Search, Globe, Bot, Map, FileText, Zap } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
 import { SeoPricingSection } from "./_components/SeoPricingSection.tsx";
+import { SeoStory } from "@/components/artwork/npanel-stories";
 
 const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "Keyword Rank Tracking",
+    artwork: <SeoStory />,
+    caption: false,
     headline: "See which search terms bring people to you",
     body: "We track your target keywords and send you a plain-English report every month showing which positions improved, which pages earned traffic, and where we are focusing next.",
     bullets: [
@@ -127,7 +130,7 @@ export default function SeoPage() {
       ]}
       ctaHeadline="Start Getting Found Where Customers Search"
       ctaSubtext="We help people find you on Google, Maps, and AI answers, with clear monthly reporting. Start with a free strategy call and see your quickest wins."
-      pricingNote="Monthly retainer. All prices in KES. 3-month minimum for meaningful results."
+      pricingNote="Monthly retainer. Prices are shown in your selected currency. 3-month minimum for meaningful results."
       showcaseBlocks={showcaseBlocks}
     />
   );

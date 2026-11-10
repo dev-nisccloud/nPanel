@@ -505,6 +505,20 @@
       "when": 1794209616516,
       "tag": "0071_eager_randall_flagg",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1794309552086,
+      "tag": "0072_stiff_adam_warlock",
+      "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1794310812074,
+      "tag": "0073_cool_forge",
+      "breakpoints": true
     }
   ]
 }

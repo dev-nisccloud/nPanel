@@ -20,6 +20,8 @@ import {
 } from "./storefront-cart-pricing";
 import { resolveActiveNiscProductById } from "./planless-product-resolver";
 import { NISC_DOMAINS_PRODUCT_ID } from "./planless-services-billing";
+import { convertWithFxSnapshot, getAuthoritativeFxRate } from "./fx-rates";
+import type { StorefrontPriceQuotePayload } from "./storefront-price-quote";
 
 const HOSTING_SERVICE_TYPES = new Set([
 	"web_hosting",
@@ -101,9 +103,12 @@ export async function buildStorefrontCartOrderLines(input: {
 	cart: StorefrontCartQuoteInput;
 	primaryDomain?: string;
 	fallbackProductId?: string;
+	lockedQuote?: StorefrontPriceQuotePayload;
 }): Promise<{
 	lines: StorefrontCartOrderLine[];
-	quote: Awaited<ReturnType<typeof computeStorefrontCartQuote>>;
+	quote:
+		| Awaited<ReturnType<typeof computeStorefrontCartQuote>>
+		| StorefrontPriceQuotePayload;
 }> {
 	const parsed = storefrontCartQuoteInputSchema.parse(input.cart);
 
@@ -118,7 +123,12 @@ export async function buildStorefrontCartOrderLines(input: {
 		});
 	}
 
-	const quote = await computeStorefrontCartQuote(parsed);
+	const quote = input.lockedQuote ?? (await computeStorefrontCartQuote(parsed));
+	const convertLine = async (amount: number, sourceCurrency: string) =>
+		convertWithFxSnapshot(
+			amount,
+			await getAuthoritativeFxRate(sourceCurrency, parsed.currency),
+		);
 
 	const effectiveBillingCycle = normalizeStorefrontMainBillingCycle(
 		parsed.main.serviceType,
@@ -126,10 +136,11 @@ export async function buildStorefrontCartOrderLines(input: {
 	);
 
 	const mainQuote = await resolveMainLineQuote(parsed.main, parsed.hivelocity);
-	const mainPrice = pickCheckoutPrice(
+	const mainSourcePrice = pickCheckoutPrice(
 		{ monthly: mainQuote.monthly, yearly: mainQuote.yearly },
 		effectiveBillingCycle,
 	);
+	const mainPrice = await convertLine(mainSourcePrice, mainQuote.currency);
 
 	const resolvedMainProduct = await resolveActiveNiscProductById(
 		parsed.main.productId?.trim() ?? input.fallbackProductId?.trim() ?? "",
@@ -173,7 +184,10 @@ export async function buildStorefrontCartOrderLines(input: {
 				});
 			}
 
-			const transferPrice = await resolveDomainTransferUpsellPriceKes(domain);
+			const transferPrice = await convertLine(
+				await resolveDomainTransferUpsellPriceKes(domain),
+				"KES",
+			);
 
 			lines.push({
 				productId: await resolveDomainTransferProductId(),
@@ -188,7 +202,10 @@ export async function buildStorefrontCartOrderLines(input: {
 				},
 			});
 		} else {
-			const registrationPrice = await resolveDomainRetailPriceKes(domain);
+			const registrationPrice = await convertLine(
+				await resolveDomainRetailPriceKes(domain),
+				"KES",
+			);
 
 			lines.push({
 				productId: await resolveDomainRegistrationProductId(),
@@ -231,10 +248,11 @@ export async function buildStorefrontCartOrderLines(input: {
 			parsed.upsellHosting.planId,
 			parsed.upsellHosting.billingCycle,
 		);
-		const hostingPrice = pickCheckoutPrice(
+		const hostingSourcePrice = pickCheckoutPrice(
 			{ monthly: hostingPlan.monthly, yearly: hostingPlan.yearly },
 			parsed.upsellHosting.billingCycle,
 		);
+		const hostingPrice = await convertLine(hostingSourcePrice, hostingPlan.currency);
 
 		const domainForHosting =
 			parsed.main.serviceType === "domain_registration" ||
@@ -254,7 +272,21 @@ export async function buildStorefrontCartOrderLines(input: {
 	}
 
 	const lineSubtotal = lines.reduce((sum, line) => sum + line.itemPrice, 0);
-	if (lineSubtotal !== quote.subtotal) {
+	const roundingDifference =
+		Math.round((quote.subtotal - lineSubtotal) * 100) / 100;
+	if (
+		input.lockedQuote ||
+		Math.abs(roundingDifference) <= Math.max(0.01, lines.length * 0.01)
+	) {
+		if (lines[0]!.itemPrice + roundingDifference <= 0) {
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: "Locked checkout line total is invalid.",
+			});
+		}
+		lines[0]!.itemPrice =
+			Math.round((lines[0]!.itemPrice + roundingDifference) * 100) / 100;
+	} else {
 		throw new TRPCError({
 			code: "INTERNAL_SERVER_ERROR",
 			message: "Checkout line totals could not be reconciled. Please refresh and try again.",

@@ -9,12 +9,12 @@ import {
   Workflow,
   ShieldCheck,
   ArrowRight,
-  Bot,
   Megaphone,
   Store,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button.tsx";
+import { ZepoMascot } from "@/components/zepo-mascot.tsx";
 
 const services = [
   {
@@ -72,7 +72,7 @@ const services = [
     tag: "Market",
   },
   {
-    icon: Bot,
+    icon: ZepoMascot,
     title: "Zepo AI Content",
     desc: "AI-generated blog posts, social captions, ad copy, and email sequences - on demand, on brand.",
     tag: "Zepo AI",

@@ -3,10 +3,13 @@ import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
 import { EmailMarketingPricingSection } from "@/pages/services/email-marketing/_components/EmailMarketingPricingSection.tsx";
 import { Mail, Users, BarChart2, Zap, Target, RefreshCw, Shield, Inbox } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
+import { EmailMarketingStory } from "@/components/artwork/npanel-stories";
 
 const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "Campaign Analytics",
+    artwork: <EmailMarketingStory />,
+    caption: false,
     headline: "Email that earns more than it costs",
     body: "Email remains one of the highest-return marketing channels when it is done well. We design, write, and automate campaigns that turn your list into recurring revenue, with clear reporting every month.",
     bullets: [

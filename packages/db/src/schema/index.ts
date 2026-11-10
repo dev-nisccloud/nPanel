@@ -19,6 +19,7 @@ export * from "./nisc-orders";
 export * from "./notifications";
 export * from "./orders";
 export * from "./payment-transactions";
+export * from "./webhook-events";
 export * from "./quotations";
 export * from "./reporting";
 export * from "./seo-reports";

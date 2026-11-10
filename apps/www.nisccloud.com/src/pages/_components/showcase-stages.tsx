@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 import type { VisualTheme } from "@/components/shadcn-space/blocks/built-different-01/visual-context.ts";
+import { ZepoMascot } from "@/components/zepo-mascot.tsx";
 
 type StageProps = { label: string };
 
@@ -1127,24 +1128,11 @@ function BotStage() {
           <div className="flex flex-1 flex-col gap-2 p-2.5 md:p-3">
             <Glass className="flex items-center gap-2.5 p-2.5">
               <motion.div
-                className="flex size-10 items-center justify-center rounded-xl bg-white text-primary"
-                animate={{ borderRadius: ["0.75rem", "1.1rem", "0.75rem"] }}
+                className="flex size-11 items-center justify-center overflow-hidden rounded-xl bg-white"
+                animate={{ y: [0, -2, 0], rotate: [0, 1.5, 0] }}
                 transition={{ duration: 3, repeat: Infinity }}
               >
-                <div className="flex gap-1.5">
-                  {[0, 1].map((i) => (
-                    <motion.span
-                      key={i}
-                      className="size-1.5 rounded-full bg-primary"
-                      animate={{ scaleY: [1, 0.3, 1] }}
-                      transition={{
-                        duration: 2.8,
-                        repeat: Infinity,
-                        delay: i * 0.15,
-                      }}
-                    />
-                  ))}
-                </div>
+                <ZepoMascot className="size-[115%]" />
               </motion.div>
               <div>
                 <div className="text-[11px] font-bold text-slate-700">

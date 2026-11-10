@@ -6,6 +6,12 @@ import type { CartItemData, BillingCycle } from "./CartItem.tsx";
 import type { SelectedDomain } from "./DomainUpsell.tsx";
 import type { HivelocitySummaryLine } from "@/lib/vps-plans-api.ts";
 import { billingCyclePeriodLabel, periodPrice } from "@/lib/billing-cycle.ts";
+import {
+  convertKesForDisplay,
+  convertStorefrontAmount,
+  formatCurrency,
+} from "@/lib/currency.ts";
+import type { StorefrontCurrency } from "@/components/providers/currency.tsx";
 
 export type { HivelocitySummaryLine };
 
@@ -39,6 +45,10 @@ interface OrderSummaryProps {
   continueDisabled?: boolean;
   /** Server-computed totals override client-side math when present. */
   authoritativeTotals?: { subtotal: number; taxAmount: number; total: number };
+  currency: StorefrontCurrency;
+  kesToDisplayRate: number;
+  quoteExpiresAt?: number;
+  taxRate?: number;
   /** First load  full-page skeleton handles this; used for non-hivelocity carts. */
   quoteInitialLoading?: boolean;
   /** Background price validation (e.g. OS / add-on changes on VPS/VDS/dedicated). */
@@ -48,10 +58,6 @@ interface OrderSummaryProps {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function fmt(amount: number) {
-  return `KES ${amount.toLocaleString("en-KE", { minimumFractionDigits: 0 })}`;
-}
 
 function getItemPrice(item: CartItemData) {
   return periodPrice(item.monthlyPrice, item.yearlyPrice, item.billingCycle);
@@ -98,15 +104,30 @@ export function OrderSummary({
   hivelocityLines = [],
   continueDisabled = false,
   authoritativeTotals,
+  currency,
+  kesToDisplayRate,
+  quoteExpiresAt,
+  taxRate = 0.16,
   quoteInitialLoading = false,
   quoteSummaryLoading = false,
 }: OrderSummaryProps) {
+  const fmtKesLine = (amount: number) =>
+    formatCurrency(
+      convertKesForDisplay(amount, currency, kesToDisplayRate),
+      currency,
+    );
+  const fmtTotal = (amount: number) => formatCurrency(amount, currency);
   const mainPrice = getItemPrice(item);
 
   // Existing-domain costs nothing; purchased domain adds to total
   const domainPrice = selectedDomain && !selectedDomain.isExisting
     ? (selectedDomain.priceKes ?? 0)
     : 0;
+  const domainDisplayPrice = convertKesForDisplay(
+    domainPrice,
+    currency,
+    kesToDisplayRate,
+  );
 
   const hostingPrice = selectedHostingPlan
     ? periodPrice(
@@ -115,12 +136,29 @@ export function OrderSummary({
         hostingCycle,
       )
     : 0;
+  const hostingDisplayPrice = selectedHostingPlan
+    ? convertStorefrontAmount(
+    hostingPrice,
+    selectedHostingPlan.currency,
+    currency,
+    kesToDisplayRate,
+      )
+    : 0;
 
   const hivelocityExtras = hivelocityLines.reduce((s, l) => s + l.priceKes, 0);
+  const hivelocityDisplayExtras = convertKesForDisplay(
+    hivelocityExtras,
+    currency,
+    kesToDisplayRate,
+  );
 
-  const taxRate = 0.16;
-  const clientSubtotal = mainPrice + domainPrice + hostingPrice + hivelocityExtras;
-  const clientTaxAmount = Math.ceil(clientSubtotal * taxRate);
+  const clientSubtotal =
+    mainPrice + domainDisplayPrice + hostingDisplayPrice + hivelocityDisplayExtras;
+  const rawClientTax = clientSubtotal * taxRate;
+  const clientTaxAmount =
+    currency === "KES"
+      ? Math.ceil(rawClientTax)
+      : Math.round(rawClientTax * 100) / 100;
   const subtotal = authoritativeTotals?.subtotal ?? clientSubtotal;
   const taxAmount = authoritativeTotals?.taxAmount ?? clientTaxAmount;
   const total = authoritativeTotals?.total ?? clientSubtotal + clientTaxAmount;
@@ -151,7 +189,7 @@ export function OrderSummary({
             </p>
           </div>
           <span className="text-sm font-semibold text-foreground whitespace-nowrap">
-            {fmt(mainPrice)}
+            {fmtTotal(mainPrice)}
           </span>
         </div>
 
@@ -172,7 +210,7 @@ export function OrderSummary({
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
               <span className="text-sm font-semibold text-foreground whitespace-nowrap">
-                {selectedDomain.isExisting ? "" : domainPrice > 0 ? fmt(domainPrice) : "Free"}
+                {selectedDomain.isExisting ? "" : domainPrice > 0 ? fmtKesLine(domainPrice) : "Free"}
               </span>
               {onRemoveDomain && (
                 <button
@@ -200,7 +238,7 @@ export function OrderSummary({
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
               <span className="text-sm font-semibold text-foreground whitespace-nowrap">
-                {fmt(hostingPrice)}
+                {fmtKesLine(hostingPrice)}
               </span>
               {onRemoveHostingPlan && (
                 <button
@@ -224,7 +262,7 @@ export function OrderSummary({
               </p>
             </div>
             <span className="text-sm font-semibold text-foreground whitespace-nowrap shrink-0">
-              {fmt(line.priceKes)}
+              {fmtKesLine(line.priceKes)}
             </span>
           </div>
         ))}
@@ -233,15 +271,24 @@ export function OrderSummary({
 
         {/* Taxes */}
         <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>VAT (16%)</span>
-          <span>{fmt(taxAmount)}</span>
+          <span>VAT ({Math.round(taxRate * 100)}%)</span>
+          <span>{fmtTotal(taxAmount)}</span>
         </div>
 
         {/* Total */}
         <div className="flex items-center justify-between pt-1">
           <span className="text-base font-bold text-foreground">Total</span>
-          <span className="text-xl font-bold text-foreground">{fmt(total)}</span>
+          <span className="text-xl font-bold text-foreground">{fmtTotal(total)}</span>
         </div>
+        {quoteExpiresAt && (
+          <p className="text-right text-xs text-muted-foreground">
+            Price locked until{" "}
+            {new Date(quoteExpiresAt).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </p>
+        )}
 
         {/* Coupon  re-enable when promo codes are supported
         <button className="flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 font-medium mt-1 group">
@@ -272,7 +319,7 @@ export function OrderSummary({
         </Button>
 
         <p className="text-xs text-muted-foreground text-center mt-3">
-          Secure payment · Total includes 16% VAT
+          Secure payment · Total includes {Math.round(taxRate * 100)}% VAT
         </p>
       </div>
     </div>

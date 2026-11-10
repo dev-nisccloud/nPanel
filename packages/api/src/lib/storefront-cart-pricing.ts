@@ -11,15 +11,20 @@ import { agentCheckDomainAvailability } from "./agent-internal-tools/domains";
 import {
 	applyHivelocityMarginUsd,
 	getDefaultHivelocityMarginSettings,
-	resolveUsdToKesExchangeRate,
 	type HivelocityMarginRow,
 	type HivelocityProductTypeKey,
 } from "./hivelocity-display-pricing";
-import { ceilConvertedPrice, computeCeilVatTotals } from "./convert-price";
+import { ceilConvertedPrice } from "./convert-price";
 import { checkDomainTransferEligibility } from "./domain-transfer-check";
 import { toRetailPrice } from "./agent-internal-tools/pricing";
 import { hivelocityRequest } from "./hivelocity-client";
 import { extractHivelocityProductMonthlyUsd } from "./hivelocity-product-pricing";
+import {
+	convertWithFxSnapshot,
+	getAuthoritativeFxRate,
+	type FxRateSnapshot,
+} from "./fx-rates";
+import { computeTaxTotals, resolveTaxPolicy } from "./tax-policy";
 
 export const storefrontBillingCycleSchema = z.enum([
 	"MONTHLY",
@@ -110,6 +115,9 @@ export const storefrontCartMainLineSchema = z.object({
 });
 
 export const storefrontCartQuoteInputSchema = z.object({
+	currency: z.enum(["KES", "USD"]).default("KES"),
+	billingCountry: z.string().length(2).optional(),
+	ipCountry: z.string().length(2).optional(),
 	main: storefrontCartMainLineSchema,
 	transferAuthCode: z.string().min(1).optional(),
 	upsellDomain: z
@@ -140,7 +148,18 @@ export const storefrontCartQuoteInputSchema = z.object({
 export type StorefrontCartQuoteInput = z.infer<typeof storefrontCartQuoteInputSchema>;
 
 export type StorefrontCartQuote = {
-	currency: string;
+	currency: "KES" | "USD";
+	sourceCurrency: "KES";
+	sourceSubtotal: number;
+	sourceTaxAmount: number;
+	sourceTotal: number;
+	fxRate: number;
+	fxProvider: FxRateSnapshot["provider"];
+	fxTimestamp: number;
+	fxExpiresAt: number;
+	taxPolicyId: "STANDARD_VAT" | "EXPORT_ZERO_RATED";
+	taxRate: number;
+	taxEvidenceMismatch: boolean;
 	monthlyPrice: number;
 	yearlyPrice: number;
 	planName: string;
@@ -248,12 +267,11 @@ async function fetchHivelocityPricingMargins(productType: HivelocityProductTypeK
 function usdLineToKes(
 	monthlyUsd: number,
 	margin: HivelocityMarginRow | null,
-	kesRate: number | null,
+	kesRate: number,
 ): number {
 	if (monthlyUsd <= 0) return 0;
 	const marginedUsd = applyHivelocityMarginUsd(margin, monthlyUsd);
-	if (kesRate != null) return ceilConvertedPrice(marginedUsd * kesRate);
-	return Math.ceil(marginedUsd);
+	return ceilConvertedPrice(marginedUsd * kesRate);
 }
 
 function parseOptionMonthlyUsd(row: Record<string, unknown>): number {
@@ -398,12 +416,12 @@ async function resolveHivelocityBasePricing(
 		});
 	}
 
-	const [margins, kesRate] = await Promise.all([
+	const [margins, kesFx] = await Promise.all([
 		fetchHivelocityPricingMargins(productType),
-		resolveUsdToKesExchangeRate(),
+		getAuthoritativeFxRate("USD", "KES"),
 	]);
 
-	const baseKes = usdLineToKes(baseMonthlyUsd, margins.base, kesRate);
+	const baseKes = usdLineToKes(baseMonthlyUsd, margins.base, kesFx.rate);
 	const monthly = baseKes;
 	const yearly = Math.round(monthly * 12);
 
@@ -439,9 +457,9 @@ async function resolveHivelocityMainPricing(
 		});
 	}
 
-	const [margins, kesRate, osRaw, optionsRaw] = await Promise.all([
+	const [margins, kesFx, osRaw, optionsRaw] = await Promise.all([
 		fetchHivelocityPricingMargins(productType),
-		resolveUsdToKesExchangeRate(),
+		getAuthoritativeFxRate("USD", "KES"),
 		hivelocityRequest<unknown>(`/product/${hivelocityProductId}/operating-systems`, {
 			requireApiKey: true,
 		}),
@@ -458,7 +476,7 @@ async function resolveHivelocityMainPricing(
 		if (!row || typeof row !== "object") continue;
 		const r = row as Record<string, unknown>;
 		if (String(r.id) !== config.selectedOsId) continue;
-		extrasKes += usdLineToKes(parseOptionMonthlyUsd(r), margins.os, kesRate);
+		extrasKes += usdLineToKes(parseOptionMonthlyUsd(r), margins.os, kesFx.rate);
 		break;
 	}
 
@@ -475,11 +493,11 @@ async function resolveHivelocityMainPricing(
 			const r = row as Record<string, unknown>;
 			const id = Number(r.id);
 			if (!selectedOptionSet.has(id)) continue;
-			extrasKes += usdLineToKes(parseOptionMonthlyUsd(r), margins.addons, kesRate);
+			extrasKes += usdLineToKes(parseOptionMonthlyUsd(r), margins.addons, kesFx.rate);
 		}
 	}
 
-	const baseKes = usdLineToKes(baseMonthlyUsd, margins.base, kesRate);
+	const baseKes = usdLineToKes(baseMonthlyUsd, margins.base, kesFx.rate);
 	const monthly = baseKes + extrasKes;
 	const yearly = Math.round(monthly * 12);
 
@@ -612,6 +630,11 @@ export async function computeStorefrontCartQuote(
 	input: StorefrontCartQuoteInput,
 ): Promise<StorefrontCartQuote> {
 	const parsed = storefrontCartQuoteInputSchema.parse(input);
+	const targetCurrency = parsed.currency;
+	const toKes = async (amount: number, sourceCurrency: string) => {
+		const snapshot = await getAuthoritativeFxRate(sourceCurrency, "KES");
+		return convertWithFxSnapshot(amount, snapshot);
+	};
 
 	// Domains: yearly terms only. Transfers are always 1 year.
 	const effectiveBillingCycle = normalizeStorefrontMainBillingCycle(
@@ -620,16 +643,18 @@ export async function computeStorefrontCartQuote(
 	);
 
 	const mainQuote = await resolveMainLineQuote(parsed.main, parsed.hivelocity);
-	let subtotal = pickCheckoutPrice(
-		{ monthly: mainQuote.monthly, yearly: mainQuote.yearly },
+	const mainMonthlyKes = await toKes(mainQuote.monthly, mainQuote.currency);
+	const mainYearlyKes = await toKes(mainQuote.yearly, mainQuote.currency);
+	let sourceSubtotal = pickCheckoutPrice(
+		{ monthly: mainMonthlyKes, yearly: mainYearlyKes },
 		effectiveBillingCycle,
 	);
 
 	if (parsed.upsellDomain && !parsed.upsellDomain.isExisting) {
 		if (parsed.upsellDomain.isTransfer) {
-			subtotal += await resolveDomainTransferUpsellPriceKes(parsed.upsellDomain.domain);
+			sourceSubtotal += await resolveDomainTransferUpsellPriceKes(parsed.upsellDomain.domain);
 		} else {
-			subtotal += await resolveDomainRetailPriceKes(parsed.upsellDomain.domain);
+			sourceSubtotal += await resolveDomainRetailPriceKes(parsed.upsellDomain.domain);
 		}
 	}
 
@@ -638,25 +663,54 @@ export async function computeStorefrontCartQuote(
 			parsed.upsellHosting.planId,
 			parsed.upsellHosting.billingCycle,
 		);
-		subtotal += pickCheckoutPrice(
-			{ monthly: hostingPlan.monthly, yearly: hostingPlan.yearly },
+		const hostingMonthlyKes = await toKes(hostingPlan.monthly, hostingPlan.currency);
+		const hostingYearlyKes = await toKes(hostingPlan.yearly, hostingPlan.currency);
+		sourceSubtotal += pickCheckoutPrice(
+			{ monthly: hostingMonthlyKes, yearly: hostingYearlyKes },
 			parsed.upsellHosting.billingCycle,
 		);
 	}
 
-	if (subtotal < 1) {
+	if (sourceSubtotal < 1) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: "Unable to calculate a valid checkout total.",
 		});
 	}
 
-	const { vatAmount: taxAmount, totalIncVat: total } = computeCeilVatTotals(subtotal);
+	const taxPolicy = resolveTaxPolicy({
+		billingCountry: parsed.billingCountry,
+		ipCountry: parsed.ipCountry,
+	});
+	const sourceTax = computeTaxTotals(
+		sourceSubtotal,
+		taxPolicy.rate,
+		"KES",
+	);
+	const sourceTaxAmount = sourceTax.taxAmount;
+	const sourceTotal = sourceTax.total;
+	const fxSnapshot = await getAuthoritativeFxRate("KES", targetCurrency);
+	const subtotal = convertWithFxSnapshot(sourceSubtotal, fxSnapshot);
+	const monthlyPrice = convertWithFxSnapshot(mainMonthlyKes, fxSnapshot);
+	const yearlyPrice = convertWithFxSnapshot(mainYearlyKes, fxSnapshot);
+	const taxAmount = convertWithFxSnapshot(sourceTaxAmount, fxSnapshot);
+	const total = convertWithFxSnapshot(sourceTotal, fxSnapshot);
 
 	return {
-		currency: mainQuote.currency,
-		monthlyPrice: mainQuote.monthly,
-		yearlyPrice: mainQuote.yearly,
+		currency: targetCurrency,
+		sourceCurrency: "KES",
+		sourceSubtotal,
+		sourceTaxAmount,
+		sourceTotal,
+		fxRate: fxSnapshot.rate,
+		fxProvider: fxSnapshot.provider,
+		fxTimestamp: fxSnapshot.retrievedAt,
+		fxExpiresAt: fxSnapshot.expiresAt,
+		taxPolicyId: taxPolicy.id,
+		taxRate: taxPolicy.rate,
+		taxEvidenceMismatch: taxPolicy.evidenceMismatch,
+		monthlyPrice,
+		yearlyPrice,
 		planName: mainQuote.planName,
 		productName: mainQuote.productName,
 		serviceType: parsed.main.serviceType,

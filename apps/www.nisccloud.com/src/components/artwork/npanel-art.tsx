@@ -1,5 +1,4 @@
 import {
-  Bot,
   CheckCircle2,
   ChevronDown,
   CreditCard,
@@ -10,6 +9,7 @@ import {
   ShoppingCart,
   Terminal,
 } from "lucide-react";
+import { ZepoMascot } from "@/components/zepo-mascot.tsx";
 import { AgencyFlagshipArt } from "./flagship-art.tsx";
 import { ArtReveal, ArtStage, ArtSwap, Float, NpanelWindow, Panel, Pill, Ring, UiButton } from "./kit.tsx";
 
@@ -31,7 +31,7 @@ function OrgBadge({ initials, name, role }: { initials: string; name: string; ro
   return (
     <span className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-1.5 py-1">
       <Initials text={initials} />
-      <span className="hidden min-w-0 min-[420px]:block">
+      <span className="npanel-org-copy min-w-0">
         <span className="block truncate text-[9px] font-semibold text-foreground">{name}</span>
         <span className="block text-[8px] text-muted-foreground">{role}</span>
       </span>
@@ -41,7 +41,7 @@ function OrgBadge({ initials, name, role }: { initials: string; name: string; ro
 }
 
 /** Businesses: one customer dashboard for domains, hosting, email, billing and support. */
-export function NpanelBusinessArt() {
+export function NpanelBusinessArt({ compact = false }: { compact?: boolean } = {}) {
   const stats = [
     [Globe, "Domains", "2 active"],
     [Server, "Hosting", "1 active"],
@@ -49,8 +49,12 @@ export function NpanelBusinessArt() {
     [Mail, "Email", "4 mailboxes"],
   ] as const;
   return (
-    <ArtStage tone="sky" label="nPanel customer dashboard connecting domains, hosting, email, billing, support and Zepo AI">
-      <div className="sm:pb-12 sm:pr-12">
+    <ArtStage
+      tone="sky"
+      label="nPanel customer dashboard connecting domains, hosting, email, billing, support and Zepo AI"
+      className={compact ? "platform-persona-stage" : undefined}
+    >
+      <div className={compact ? "sm:pb-12" : "sm:pb-12 sm:pr-12"}>
         <NpanelWindow
           path="savanna-bakery/dashboard"
           active="home"
@@ -58,7 +62,7 @@ export function NpanelBusinessArt() {
           subtitle="Savanna Bakery"
           action={<OrgBadge initials="SB" name="Savanna Bakery" role="Owner" />}
         >
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="npanel-business-stats grid grid-cols-2 gap-2">
             {stats.map(([Icon, label, value]) => (
               <div key={label} className="rounded-xl border border-border bg-card p-2.5">
                 <Icon className="size-3.5 text-primary" />
@@ -69,7 +73,7 @@ export function NpanelBusinessArt() {
           </div>
           <div className="mt-2.5 rounded-xl border border-primary/25 bg-gradient-to-r from-primary/10 to-transparent p-3">
             <div className="flex items-center gap-2">
-              <span className="flex size-7 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-blue-600 text-white"><Bot className="size-3.5" /></span>
+              <span className="flex size-7 items-center justify-center overflow-hidden rounded-full bg-sky-100 ring-1 ring-primary/15 dark:bg-sky-950"><ZepoMascot className="size-[115%]" /></span>
               <p className="text-[10px] text-foreground">Ask Zepo about domains, hosting, invoices or your account.</p>
             </div>
             <div className="mt-2 flex flex-wrap gap-1.5">
@@ -99,15 +103,19 @@ export function NpanelBusinessArt() {
 }
 
 /** Developers: cloud servers by type plus a browser terminal session. */
-export function NpanelDeveloperArt() {
+export function NpanelDeveloperArt({ compact = false }: { compact?: boolean } = {}) {
   const servers = [
     ["web-01", "VPS Hosting", "Ubuntu LTS"],
     ["app-01", "VDS Hosting", "Ubuntu LTS"],
     ["db-01", "Dedicated Servers", "Debian"],
   ];
   return (
-    <ArtStage tone="slate" label="nPanel cloud servers list with VPS, VDS and dedicated servers and a terminal session">
-      <div className="sm:pb-28 sm:pr-10">
+    <ArtStage
+      tone="slate"
+      label="nPanel cloud servers list with VPS, VDS and dedicated servers and a terminal session"
+      className={compact ? "platform-persona-stage" : undefined}
+    >
+      <div className={compact ? "sm:pb-10" : "sm:pb-10 sm:pr-10"}>
         <NpanelWindow path="cloud-servers" active="cloud" title="Cloud Servers" subtitle="VPS, VDS and dedicated servers" action={<UiButton action="server">Order server</UiButton>}>
           <div className="space-y-1.5">
             {servers.map(([host, type, os], i) => (
@@ -143,10 +151,14 @@ export function NpanelDeveloperArt() {
           <Terminal className="size-3 text-sky-400" />
           <span className="text-[9px] font-semibold text-slate-200">SSH terminal · web-01</span>
         </div>
-        <pre className="whitespace-pre-wrap px-3 py-2 font-mono text-[9.5px] leading-relaxed text-slate-300">
-{`deploy@web-01:~$ systemctl status nginx
-`}<span className="text-emerald-400">● nginx.service  active (running)</span>{`
-deploy@web-01:~$ `}<span className="inline-block h-2.5 w-1.5 translate-y-0.5 bg-sky-400" />
+        <pre className="npanel-ssh overflow-hidden px-3 py-2 font-mono text-[9.5px] leading-relaxed text-slate-300">
+          <span className="ssh-connect block whitespace-nowrap">local:~$ ssh deploy@203.0.113.18</span>
+          <span className="ssh-welcome block text-slate-400">Connected to web-01 · Ubuntu LTS</span>
+          <span className="ssh-command block whitespace-nowrap">deploy@web-01:~$ systemctl status nginx</span>
+          <span className="ssh-result block text-emerald-400">● nginx.service active (running)</span>
+          <span className="ssh-prompt block whitespace-nowrap">
+            deploy@web-01:~$ <span className="ssh-cursor inline-block h-2.5 w-1.5 translate-y-0.5 bg-sky-400" />
+          </span>
         </pre>
       </Float>
     </ArtStage>
@@ -169,7 +181,7 @@ export function NpanelOperationsArt() {
   return (
     <ArtStage tone="slate" label="nPanel agency operations: items needing attention, service orders and support tickets">
       <div className="sm:pb-12 sm:pr-14">
-        <NpanelWindow path="agency/dashboard" active="home" title="Agency dashboard" subtitle="Operations overview">
+        <NpanelWindow path="dashboard" active="home" title="Business dashboard" subtitle="Operations overview">
           <div className="grid gap-2.5 sm:grid-cols-[1fr_1.2fr]">
             <Panel title="Needs attention">
               {attention.map(([t, tone]) => (

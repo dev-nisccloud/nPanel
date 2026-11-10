@@ -1,6 +1,5 @@
 import {
   ArrowUpRight,
-  Bot,
   CheckCircle2,
   Clock,
   CreditCard,
@@ -23,6 +22,7 @@ import {
   Upload,
 } from "lucide-react";
 import { ArtFlash, ArtReveal, ArtStage, ArtSwap, Float, KeyValues, Meter, NpanelWindow, Panel, Pill, TabStrip, UiButton } from "./kit.tsx";
+import { ZepoMascot } from "@/components/zepo-mascot.tsx";
 
 /** Variant compositions so multi-block pages do not repeat a layout. All data is fictional. */
 const DOMAIN = "savannabakery.co.ke";
@@ -305,7 +305,7 @@ export function SeoAnalyticsArt() {
   return (
     <ArtStage tone="sky" label="SEO analytics with a sample organic visits trend and top landing pages">
       <div className="sm:pb-10 sm:pr-14">
-        <NpanelWindow path="agency/seo" active="seo" title="Analytics" subtitle={DOMAIN} action={<Pill tone="sky">Review baseline</Pill>}>
+        <NpanelWindow path="growth/seo" active="seo" title="Analytics" subtitle={DOMAIN} action={<Pill tone="sky">Review baseline</Pill>}>
           <Panel title="Organic visits" hint="Last 6 months">
             <svg viewBox="0 0 200 60" className="h-16 w-full" aria-hidden>
               <defs>
@@ -445,7 +445,7 @@ export function ZeepoActivityArt() {
   return (
     <ArtStage tone="violet" label="Zepo AI activity list of tasks completed with the user">
       <div className="sm:pb-10 sm:pl-12">
-        <NpanelWindow path="agency/zeepo-ai/activity" active="zeepo" title="Zepo AI" subtitle="Activity">
+        <NpanelWindow path="zepo-ai/activity" active="zeepo" title="Zepo AI" subtitle="Activity">
           <div className="space-y-1.5">
             {items.map(([Icon, t]) => (
               <div key={t} className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
@@ -458,7 +458,7 @@ export function ZeepoActivityArt() {
         </NpanelWindow>
       </div>
       <Float className="sm:bottom-0 sm:left-0 sm:w-48">
-        <p className="flex items-center gap-1.5 text-[10px] font-semibold text-foreground"><Bot className="size-3.5 text-primary" /> You stay in control</p>
+        <p className="flex items-center gap-1.5 text-[10px] font-semibold text-foreground"><ZepoMascot className="size-5" /> You stay in control</p>
         <p className="mt-1 text-[9px] text-muted-foreground">Review drafts before you send or publish.</p>
       </Float>
     </ArtStage>
@@ -470,7 +470,7 @@ export function CreativeBriefArt() {
   return (
     <ArtStage tone="rose" label="Creative brief with goal, formats and references submitted for design">
       <div className="sm:pb-12 sm:pr-14">
-        <NpanelWindow path="agency/creative-assets" active="creative" title="Creative briefs" subtitle="New brief" action={<UiButton action="brief">Submit brief</UiButton>}>
+        <NpanelWindow path="brand/creative-assets" active="creative" title="Creative briefs" subtitle="New brief" action={<UiButton action="brief">Submit brief</UiButton>}>
           <KeyValues rows={[["Project", "Weekend menu launch"], ["Category", "Social media"], ["Formats", "Square · Story"], ["Due", "Thursday"]]} />
           <div className="mt-2.5">
             <p className="text-[8px] uppercase tracking-wide text-muted-foreground">References</p>

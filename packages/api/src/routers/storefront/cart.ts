@@ -16,6 +16,8 @@ import {
 	resolveStorefrontCartQuoteInput,
 	storefrontCartQuoteRequestSchema,
 } from "../../lib/storefront-cart-resolve";
+import { signStorefrontPriceQuote } from "../../lib/storefront-price-quote";
+import { getTrustedCountryCodeSync } from "@npanel/location";
 
 const createHandoffInputSchema = storefrontCartHandoffPayloadSchema.omit({
 	v: true,
@@ -49,9 +51,21 @@ export const storefrontCartRouter = router({
 	/** Resolve authoritative pricing (domains re-checked via KENIC/OpenProvider). */
 	quote: publicProcedure
 		.input(storefrontCartQuoteRequestSchema)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
 			const resolved = resolveStorefrontCartQuoteInput(input);
-			return computeStorefrontCartQuote(resolved);
+			const quote = await computeStorefrontCartQuote({
+				...resolved,
+				ipCountry: getTrustedCountryCodeSync(ctx.req.raw.headers) ?? undefined,
+			});
+			const quoteToken = signStorefrontPriceQuote(resolved, quote);
+			return {
+				...quote,
+				quoteToken,
+				quoteExpiresAt: Math.min(
+					Date.now() + 15 * 60 * 1000,
+					quote.fxExpiresAt,
+				),
+			};
 		}),
 });
 

@@ -47,6 +47,8 @@ export type ShowcaseBlock = {
   /** Optional section label  not rendered (kept for existing page data). */
   tag?: string;
   artwork?: ReactNode;
+  /** Set to false when the supplied artwork already carries its own disclosure. */
+  caption?: ReactNode | false;
   id?: string;
   headline: string;
   body: string;
@@ -134,9 +136,11 @@ function Block({ block, index }: { block: ShowcaseBlock; index: number }) {
       {block.artwork ?? (
         <ServiceExperience mode={mode} photo={index === 0} variant={index} />
       )}
-      <p className="mt-3 text-center text-xs text-muted-foreground">
-        Illustration · sample business and data
-      </p>
+      {block.caption !== false && (
+        <p className="mt-3 text-center text-xs text-muted-foreground">
+          {block.caption ?? "Illustration · sample business and data"}
+        </p>
+      )}
     </motion.div>
   );
 

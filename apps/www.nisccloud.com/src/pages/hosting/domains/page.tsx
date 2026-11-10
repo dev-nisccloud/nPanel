@@ -1,4 +1,4 @@
-import { ServiceExperience } from "@/pages/_components/ServiceExperience";
+import { DomainsStory } from "@/components/artwork/npanel-stories";
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
 import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
 import { Globe, Shield, RefreshCw, Lock, Award, Zap, Search } from "lucide-react";
@@ -10,7 +10,7 @@ export default function DomainsPage() {
       badge="Domain Registration"
       headline={<>Find a Clear Name. <span className="text-primary">Buy It Easily.</span></>}
       subtext="Register .co.ke, .com, .org and 200+ extensions with simple search and easy checkout. Your brand gets a name that is clear, memorable, and ready to connect to hosting or email."
-      showcaseBlocks={[{headline:"From a name to your next website",body:"Search for a domain, review the live availability and registration price, then connect the name to your website or email. This walkthrough illustrates the steps; use the domain search above for current results.",bullets:["Review registration and renewal terms", "Connect your hosting or email", "Keep ownership details current"],visual:"default",artwork:<ServiceExperience mode="domain"/>}]}
+      showcaseBlocks={[{headline:"From a name to your next website",body:"Search for a domain, review the live availability and registration price, then connect the name to your website or email. This walkthrough illustrates the steps; use the domain search above for current results.",bullets:["Review registration and renewal terms", "Connect your hosting or email", "Keep ownership details current"],visual:"default",artwork:<DomainsStory />,caption:false}]}
       serviceType="hosting"
       plans={[]}
       plansUnderHero

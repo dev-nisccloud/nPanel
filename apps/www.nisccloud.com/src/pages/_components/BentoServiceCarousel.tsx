@@ -1,6 +1,7 @@
-import { Paintbrush, Globe, Server, Mail, TrendingUp, ShieldCheck, Sparkles, Bot, Check } from "lucide-react";
+import { Paintbrush, Globe, Server, Mail, TrendingUp, ShieldCheck, Bot, Check } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useEffect, useState } from "react";
+import { ZepoMascot } from "@/components/zepo-mascot.tsx";
 
 const SERVICES = [
   { id: "1", title: "Brand Identity Design", icon: Paintbrush },
@@ -9,7 +10,7 @@ const SERVICES = [
   { id: "4", title: "Business Email Hosting", icon: Mail },
   { id: "5", title: "SEO & Paid Advertising", icon: TrendingUp },
   { id: "6", title: "SSL & Website Security", icon: ShieldCheck },
-  { id: "7", title: "Zepo AI Automation", icon: Sparkles },
+  { id: "7", title: "Zepo AI Automation", icon: ZepoMascot },
   { id: "8", title: "AI Chatbots & Lead Flows", icon: Bot },
 ];
 

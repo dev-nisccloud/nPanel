@@ -15,11 +15,12 @@ import {
 } from "@/lib/domain-search/kenic-schema.ts";
 import { nameForOpenProvider } from "@/lib/domain-search/search-utils.ts";
 import { getCustomerRetailDisplayPrice } from "@/lib/domain-search/customer-display-price.ts";
-import { formatPrice } from "@/lib/domain-search/format-price.ts";
 import { usePricing } from "@/lib/domain-search/pricing-context.tsx";
 import type { DomainSearchResult } from "@/lib/domain-search/types.ts";
 import { TldLogo } from "./TldLogo.tsx";
 import { AddDomainToCartButtons } from "./AddDomainToCartButtons.tsx";
+import { useCurrency } from "@/components/providers/currency.tsx";
+import { convertKesForDisplay, formatCurrency } from "@/lib/currency.ts";
 
 const EXACT_MATCH_WHY_CHOOSE =
   "This is your exact domain search, secure it before someone else does.";
@@ -39,8 +40,15 @@ export function ExactMatchSection({
   onAddToCart,
   onRemoveFromCart,
 }: ExactMatchSectionProps) {
-  const { getPricingInfo, calculatePricesBatch, hasDefaultSetting, isLoadingTldSettings } =
+  const {
+    getPricingInfo,
+    calculatePricesBatch,
+    hasDefaultSetting,
+    isConversionAvailable,
+    isLoadingTldSettings,
+  } =
     usePricing();
+  const { currency: selectedCurrency, kesToCurrencyRate } = useCurrency();
   const retailPricingReady = !isLoadingTldSettings && hasDefaultSetting;
 
   const normalizedRaw = React.useMemo(() => {
@@ -191,7 +199,12 @@ export function ExactMatchSection({
       createFinal,
       createCalc,
     });
-    const priceReady = kenicCard.available && retailPricingReady;
+    const priceReady =
+      kenicCard.available && retailPricingReady && currency === "KES" && kesToCurrencyRate !== null;
+    const displayPrice =
+      priceReady
+        ? convertKesForDisplay(createFinal, selectedCurrency, kesToCurrencyRate)
+        : null;
 
     return (
       <div className="bg-card border border-border rounded-lg p-4 md:p-5 hover:shadow-md transition-shadow flex flex-col relative min-h-[200px]">
@@ -212,8 +225,13 @@ export function ExactMatchSection({
         </div>
         {priceReady && (
           <div className="space-y-0.5 mb-2">
-            <div className="text-base font-bold text-foreground">{formatPrice(createFinal, currency)}</div>
+            <div className="text-base font-bold text-foreground">
+              {formatCurrency(displayPrice!, selectedCurrency)}
+            </div>
           </div>
+        )}
+        {kenicCard.available && retailPricingReady && !priceReady && (
+          <div className="mb-2 text-xs text-muted-foreground">Price unavailable</div>
         )}
         {kenicCard.available ? (
           <div>
@@ -248,8 +266,17 @@ export function ExactMatchSection({
   if (!isKenic && openProviderResult) {
     const r = openProviderResult;
     const { displayPrice, displayCurrency } = getCustomerRetailDisplayPrice(r);
+    const sourceCurrency = r.price?.reseller?.currency ?? "USD";
     const priceReady =
-      displayPrice != null && displayCurrency != null && !Number.isNaN(displayPrice);
+      displayPrice != null &&
+      displayCurrency === "KES" &&
+      (sourceCurrency === "KES" || isConversionAvailable) &&
+      !Number.isNaN(displayPrice) &&
+      kesToCurrencyRate !== null;
+    const selectedDisplayPrice =
+      priceReady
+        ? convertKesForDisplay(displayPrice!, selectedCurrency, kesToCurrencyRate)
+        : null;
     const isAvailable = r.status === "free";
     const tld = r.domain.includes(".") ? (r.domain.split(".").slice(-1)[0] ?? "") : "";
 
@@ -273,9 +300,12 @@ export function ExactMatchSection({
         {isAvailable && priceReady && (
           <div className="space-y-0.5 mb-2">
             <div className="text-base font-bold text-foreground">
-              {formatPrice(displayPrice!, displayCurrency!)}
+              {formatCurrency(selectedDisplayPrice!, selectedCurrency)}
             </div>
           </div>
+        )}
+        {isAvailable && !priceReady && (
+          <div className="mb-2 text-xs text-muted-foreground">Price unavailable</div>
         )}
         {isAvailable ? (
           <div>

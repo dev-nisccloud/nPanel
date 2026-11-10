@@ -274,6 +274,7 @@
         "@npanel/cart-store": "workspace:*",
         "@npanel/location": "workspace:*",
         "@number-flow/react": "^0.6.0",
+        "@paystack/inline-js": "^2.28.0",
         "@radix-ui/react-accordion": "^1.2.12",
         "@radix-ui/react-alert-dialog": "^1.1.15",
         "@radix-ui/react-aspect-ratio": "^1.1.8",
@@ -1299,6 +1300,8 @@
     "@orama/orama": ["@orama/orama@3.1.18", "", {}, "sha512-a61ljmRVVyG5MC/698C8/FfFDw5a8LOIvyOLW5fztgUXqUpc1jOfQzOitSCbge657OgXXThmY3Tk8fpiDb4UcA=="],
 
     "@oxc-project/types": ["@oxc-project/types@0.99.0", "", {}, "sha512-LLDEhXB7g1m5J+woRSgfKsFPS3LhR9xRhTeIoEBm5WrkwMxn6eZ0Ld0c0K5eHB57ChZX6I3uSmmLjZ8pcjlRcw=="],
+
+    "@paystack/inline-js": ["@paystack/inline-js@2.28.0", "", {}, "sha512-thCnRAsVcuqzfFJSc+b7i8/7wD0scnUl1yZaJIcr90c6kGpik9nmCa4rcV+6r3S25vfkuVTzqji4bjbK5INjNQ=="],
 
     "@pkgjs/parseargs": ["@pkgjs/parseargs@0.11.0", "", {}, "sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg=="],
 

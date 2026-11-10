@@ -52,6 +52,8 @@ import {
 } from "@/lib/storefront-checkout-api.ts";
 import { useStorefrontCartQuote } from "@/lib/use-storefront-cart-quote.ts";
 import { serviceTypeToHivelocityProductType } from "@/lib/hivelocity-default-hostname.ts";
+import { useCurrency } from "@/components/providers/currency.tsx";
+import { formatCurrency } from "@/lib/currency.ts";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -157,6 +159,7 @@ function EmptyCart() {
 // ---------------------------------------------------------------------------
 
 export default function CartPage() {
+  const { currency: selectedCurrency } = useCurrency();
   const [searchParams, setSearchParams] = useSearchParams();
   const handoff = searchParams.get("h")?.trim() ?? "";
   const resumeFromQuery = searchParams.get("resume") === "1";
@@ -260,7 +263,11 @@ export default function CartPage() {
   const cartQuoteRequest = React.useMemo((): StorefrontCartQuoteRequest | null => {
     if (!handoff) return null;
 
-    const request: StorefrontCartQuoteRequest = { handoff };
+    const request: StorefrontCartQuoteRequest = {
+      handoff,
+      currency: selectedCurrency,
+      billingCountry: checkoutSession?.jengaCustomer?.countryCode,
+    };
 
     // Only override handoff billing cycle after the user toggles it on the cart page.
     if (billingCycleUserSetRef.current && billingCycle) {
@@ -308,6 +315,8 @@ export default function CartPage() {
     hostingCycles,
     hivelocityConfig,
     transferAuthCode,
+    selectedCurrency,
+    checkoutSession?.jengaCustomer?.countryCode,
   ]);
 
   const { quote, quoteError, quoteInitialLoading, quoteRefreshing } = useStorefrontCartQuote(cartQuoteRequest);
@@ -767,6 +776,7 @@ export default function CartPage() {
       billingCycle: displayBillingCycle,
       primaryDomain: resolvePrimaryDomain(),
       cart: cartQuoteRequest ?? undefined,
+      quoteToken: quote?.quoteToken ?? "",
     });
 
     clearStorefrontCartDraft();
@@ -797,6 +807,7 @@ export default function CartPage() {
       storefrontToken: string;
       orderReference: string;
       cart?: StorefrontCartQuoteRequest;
+      quoteToken?: string;
     };
     try {
       stored = JSON.parse(raw) as typeof stored;
@@ -835,6 +846,7 @@ export default function CartPage() {
           billingCycle: displayBillingCycle,
           primaryDomain: resolvePrimaryDomain(),
           cart: stored.cart ?? cartQuoteRequest ?? undefined,
+          quoteToken: stored.quoteToken ?? quote?.quoteToken ?? "",
         });
         sessionStorage.removeItem("storefront_jenga_checkout");
         clearStorefrontCartDraft();
@@ -1038,6 +1050,10 @@ export default function CartPage() {
                   : undefined
               }
               quoteSummaryLoading={quoteSummaryLoading}
+              currency={currency as "KES" | "USD"}
+              kesToDisplayRate={quote?.fxRate ?? 1}
+              quoteExpiresAt={quote?.quoteExpiresAt}
+              taxRate={quote?.taxRate}
             />
           </div>
         </div>
@@ -1050,7 +1066,7 @@ export default function CartPage() {
               <div className="h-5 w-28 bg-accent animate-pulse rounded mt-0.5" />
             ) : (
               <p className="text-base font-bold text-foreground">
-                KES {checkoutTotal.toLocaleString()}
+                {formatCurrency(checkoutTotal, currency as "KES" | "USD")}
               </p>
             )}
           </div>
@@ -1095,7 +1111,9 @@ export default function CartPage() {
           storefrontToken={checkoutSession.storefrontToken}
           defaultPhone={checkoutSession.phone}
           totalAmount={checkoutTotal}
+          currency={currency as "KES" | "USD"}
           cart={cartQuoteRequest}
+          quoteToken={quote?.quoteToken ?? ""}
           customerPrefill={checkoutSession.jengaCustomer}
           onPaymentSuccess={handlePaymentSuccess}
         />

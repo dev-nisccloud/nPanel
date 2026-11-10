@@ -1,7 +1,6 @@
-import type { CSSProperties } from "react";
+import type { ComponentType, CSSProperties } from "react";
 import {
   BadgeCheck,
-  Bot,
   Globe,
   LayoutTemplate,
   Mail,
@@ -9,16 +8,16 @@ import {
   Receipt,
   Server,
   ShieldCheck,
-  type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
 import { useArtLive } from "./use-art-live.ts";
+import { ZepoMascot } from "@/components/zepo-mascot.tsx";
 
 /** One full tour of every service, in seconds. Each service owns an equal slot. */
 const CYCLE = 16;
 
 type Service = {
-  icon: LucideIcon;
+  icon: ComponentType<{ className?: string }>;
   label: string;
   detail: string;
   event: string;
@@ -35,7 +34,7 @@ const SERVICES: Service[] = [
   { icon: ShieldCheck, label: "Security", detail: "SSL · backups", event: "SSL certificate issued", tile: "from-emerald-400 to-emerald-600", side: "left", y: 302 },
   { icon: LayoutTemplate, label: "Websites", detail: "Design · build", event: "New website published", tile: "from-orange-400 to-brand-orange", side: "right", y: 92 },
   { icon: Megaphone, label: "Marketing", detail: "SEO · ads", event: "Campaign launched", tile: "from-rose-400 to-brand-orange", side: "right", y: 162 },
-  { icon: Bot, label: "Zepo AI", detail: "AI assistant", event: "Zepo AI answered an enquiry", tile: "from-violet-500 to-sky-500", side: "right", y: 232 },
+  { icon: ZepoMascot, label: "Zepo AI", detail: "AI assistant", event: "Zepo AI answered an enquiry", tile: "from-violet-500 to-sky-500", side: "right", y: 232 },
   { icon: Receipt, label: "Billing", detail: "One account", event: "Invoice paid · receipt sent", tile: "from-slate-800 to-brand-orange", side: "right", y: 302 },
 ];
 

@@ -1,6 +1,5 @@
 import {
   ArrowUp,
-  Bot,
   CalendarDays,
   Check,
   CheckCircle2,
@@ -19,6 +18,7 @@ import {
   Upload,
   Users,
 } from "lucide-react";
+import { ZepoMascot } from "@/components/zepo-mascot.tsx";
 import { ArtFlash, ArtReveal, ArtStage, ArtSwap, Float, Meter, NpanelWindow, Panel, Pill, UiButton } from "./kit.tsx";
 import { SeoFlagshipArt } from "./flagship-art.tsx";
 
@@ -54,7 +54,7 @@ export function EmailCampaignArt({ variant = 0 }: { variant?: number }) {
       <ArtStage tone="violet" label="Email campaign report with deliverability and engagement panels">
         <div className="sm:pb-12 sm:pl-12">
           <NpanelWindow
-            path="agency/nisc-email-marketing/campaigns"
+            path="email-marketing/campaigns"
             active="marketing"
             title="Weekend menu campaign"
             subtitle="Campaign report"
@@ -102,7 +102,7 @@ export function EmailCampaignArt({ variant = 0 }: { variant?: number }) {
   return (
     <ArtStage tone="violet" label="Email marketing setup checklist with a campaign email preview">
       <div className="sm:pb-6 sm:pr-40">
-        <NpanelWindow path="agency/nisc-email-marketing/campaigns" active="marketing" title="Get started with email marketing" subtitle="3 / 4 complete">
+        <NpanelWindow path="email-marketing/campaigns" active="marketing" title="Get started with email marketing" subtitle="3 / 4 complete">
           <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-muted">
             <ArtSwap
               on="send"
@@ -216,7 +216,7 @@ export function CreativeAssetsArt() {
   return (
     <ArtStage tone="amber" label="Creative asset review with version history, comments and approval">
       <div className="sm:pb-16 sm:pr-10">
-        <NpanelWindow path="agency/creative-assets" active="creative" title="Weekend menu poster" subtitle="Creative & design · Poster" action={<UiButton><Upload className="size-3" /> Upload new version</UiButton>}>
+        <NpanelWindow path="brand/creative-assets" active="creative" title="Weekend menu poster" subtitle="Creative & design · Poster" action={<UiButton><Upload className="size-3" /> Upload new version</UiButton>}>
           <div className="grid gap-2.5 sm:grid-cols-[1.1fr_1fr]">
             <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-br from-amber-100 via-orange-200 to-rose-200 p-3 dark:from-amber-200 dark:via-orange-300 dark:to-rose-300">
               <p className="text-[8px] font-bold tracking-[0.2em] text-orange-900/70">SAVANNA BAKERY</p>
@@ -263,8 +263,8 @@ export function CreativeAssetsArt() {
 
 function ZeepoAvatar({ className = "size-7" }: { className?: string }) {
   return (
-    <span className={`flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-blue-600 text-white shadow ${className}`}>
-      <Bot className="size-1/2" />
+    <span className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-sky-100 to-blue-100 shadow ring-1 ring-primary/15 dark:from-sky-950 dark:to-blue-950 ${className}`}>
+      <ZepoMascot className="size-[115%] object-contain" />
     </span>
   );
 }
@@ -313,7 +313,7 @@ export function ZeepoArt({ variant = 0 }: { variant?: number }) {
   return (
     <ArtStage tone="sky" label="Zepo AI chat answering a domain availability question with a register action">
       <div className="sm:pb-10 sm:pr-10">
-        <NpanelWindow path="agency/zeepo-ai" active="zeepo" title="Zepo AI" subtitle="New chat" bodyClassName="space-y-2.5">
+        <NpanelWindow path="zepo-ai" active="zeepo" title="Zepo AI" subtitle="New chat" bodyClassName="space-y-2.5">
           <div className="ml-auto w-fit max-w-[80%] rounded-2xl rounded-br-md bg-primary px-3 py-2 text-[10px] text-primary-foreground">
             Is savannacakes.co.ke available?
           </div>
@@ -372,7 +372,7 @@ export function AdsArt({ social = false }: { social?: boolean }) {
   return (
     <ArtStage tone={social ? "rose" : "amber"} label="Media buying campaigns across Meta, Google and LinkedIn channels with an ad preview">
       <div className="sm:pb-6 sm:pr-40">
-        <NpanelWindow path="agency/media-buying" active="marketing" title="Media buying" subtitle="Campaigns by channel">
+        <NpanelWindow path="marketing/media-buying" active="marketing" title="Media buying" subtitle="Campaigns by channel">
           <div className="mb-2.5 flex flex-wrap gap-1.5">
             {Object.keys(channelDots).map((c) => (
               <span key={c} className="flex items-center gap-1 rounded-full border border-border bg-card px-2 py-0.5 text-[9px] font-medium text-foreground">

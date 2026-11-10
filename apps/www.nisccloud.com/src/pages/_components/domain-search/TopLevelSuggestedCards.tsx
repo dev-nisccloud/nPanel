@@ -13,12 +13,13 @@ import {
 } from "@/lib/domain-search/kenic-schema.ts";
 import { nameForOpenProvider } from "@/lib/domain-search/search-utils.ts";
 import { getCustomerRetailDisplayPrice } from "@/lib/domain-search/customer-display-price.ts";
-import { formatPrice } from "@/lib/domain-search/format-price.ts";
 import { formatDomainBundleLabel } from "@npanel/cart-store";
 import { usePricing, useBundleTotalKes } from "@/lib/domain-search/pricing-context.tsx";
 import type { DomainSearchResult } from "@/lib/domain-search/types.ts";
 import { TldLogo } from "./TldLogo.tsx";
 import { AddDomainToCartButtons } from "./AddDomainToCartButtons.tsx";
+import { useCurrency } from "@/components/providers/currency.tsx";
+import { convertKesForDisplay, formatCurrency } from "@/lib/currency.ts";
 
 const TLD_WHY_CHOOSE: Record<string, string> = {
   "co.ke": "Kenya's most trusted commercial extension, ideal for local businesses and brands.",
@@ -65,7 +66,13 @@ export function TopLevelSuggestedCards({
   onAddDomainBundle,
   onRemoveDomainBundle,
 }: TopLevelSuggestedCardsProps) {
-  const { getPricingInfo, calculatePricesBatch, hasDefaultSetting, isLoadingTldSettings } = usePricing();
+  const {
+    getPricingInfo,
+    calculatePricesBatch,
+    hasDefaultSetting,
+    isConversionAvailable,
+    isLoadingTldSettings,
+  } = usePricing();
   const retailPricingReady = !isLoadingTldSettings && hasDefaultSetting;
 
   const name = React.useMemo(() => searchQuery.trim().toLowerCase().replace(/\s+/g, ""), [searchQuery]);
@@ -299,8 +306,13 @@ export function TopLevelSuggestedCards({
     const show = tld === "com" && showCom;
     if (!show || !r || r.status !== "free") continue;
     const { displayPrice, displayCurrency } = getCustomerRetailDisplayPrice(r);
+    const sourceCurrency = r.price?.reseller?.currency ?? "USD";
     const showPrice =
-      retailPricingReady && displayPrice != null && displayCurrency != null && !Number.isNaN(displayPrice);
+      retailPricingReady &&
+      (sourceCurrency === "KES" || isConversionAvailable) &&
+      displayPrice != null &&
+      displayCurrency != null &&
+      !Number.isNaN(displayPrice);
     cards.push(
       <SingleTldCard
         key={tld}
@@ -358,8 +370,17 @@ function SingleTldCard({
   onAddToCart: (result: DomainSearchResult) => void;
   onRemoveFromCart: (domain: string) => void;
 }) {
+  const { currency: selectedCurrency, kesToCurrencyRate } = useCurrency();
   const priceReady =
-    available && displayPrice != null && !Number.isNaN(displayPrice) && Boolean(currency);
+    available &&
+    displayPrice != null &&
+    !Number.isNaN(displayPrice) &&
+    currency === "KES" &&
+    kesToCurrencyRate !== null;
+  const selectedDisplayPrice =
+    priceReady
+      ? convertKesForDisplay(displayPrice!, selectedCurrency, kesToCurrencyRate)
+      : null;
 
   return (
     <div className="bg-card border border-border rounded-lg p-4 md:p-5 hover:shadow-md transition-shadow flex flex-col relative min-h-[200px]">
@@ -380,8 +401,13 @@ function SingleTldCard({
       </div>
       {priceReady && (
         <div className="space-y-0.5 mb-2">
-          <div className="text-base font-bold text-foreground">{formatPrice(displayPrice!, currency!)}</div>
+          <div className="text-base font-bold text-foreground">
+            {formatCurrency(selectedDisplayPrice!, selectedCurrency)}
+          </div>
         </div>
+      )}
+      {available && displayPrice != null && !priceReady && (
+        <div className="text-xs text-muted-foreground mb-2">Price unavailable</div>
       )}
       {available && TLD_WHY_CHOOSE[tld] ? (
         <div>
@@ -435,6 +461,8 @@ function BundleCard({
   }) => void;
   onRemoveDomainBundle: (domainNames: string[]) => void;
 }) {
+  const { currency, kesToCurrencyRate } = useCurrency();
+  const { isConversionAvailable } = usePricing();
   const buildBundleDomainResults = React.useCallback((): DomainSearchResult[] => {
     const results: DomainSearchResult[] = [];
     for (const item of bundleInfo.items) {
@@ -474,7 +502,9 @@ function BundleCard({
     [bundleDomains],
   );
   const bundleReady =
-    bundleTotalKes != null && bundleDomains.length === bundleInfo.items.length;
+    bundleTotalKes != null &&
+    bundleDomains.length === bundleInfo.items.length &&
+    (bundleInfo.items.every((item) => item.currency === "KES") || isConversionAvailable);
 
   const handleBundleCart = () => {
     if (!bundleReady || bundleTotalKes == null) return;
@@ -523,7 +553,12 @@ function BundleCard({
         ) : null}
       </div>
       <div className="text-base font-bold text-foreground mb-2 line-clamp-2 break-words">
-        {bundleTotalKes != null ? formatPrice(bundleTotalKes, DISPLAY_CURRENCY) : "-"}
+        {bundleReady && bundleTotalKes != null && kesToCurrencyRate !== null
+          ? formatCurrency(
+              convertKesForDisplay(bundleTotalKes, currency, kesToCurrencyRate),
+              currency,
+            )
+          : "Price unavailable"}
       </div>
       {TLD_WHY_CHOOSE.bundle ? (
         <div>
@@ -542,7 +577,7 @@ function BundleCard({
           variant="default"
           onClick={handleBundleCart}
           className="text-xs h-8 px-3 cursor-pointer"
-          disabled={!bundleReady}
+          disabled={!bundleReady || kesToCurrencyRate === null}
         >
           Buy now
         </Button>

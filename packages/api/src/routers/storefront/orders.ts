@@ -34,6 +34,7 @@ import {
 } from "../../lib/storefront-cart-resolve";
 import { buildStorefrontCartOrderLines } from "../../lib/storefront-cart-order-lines";
 import { storefrontBillingCycleSchema } from "../../lib/storefront-cart-pricing";
+import { verifyStorefrontPriceQuote } from "../../lib/storefront-price-quote";
 
 // ---------------------------------------------------------------------------
 // Helpers (mirrors nisc-service-orders.ts)
@@ -68,6 +69,7 @@ const createFromPaymentInputSchema = z.object({
   primaryDomain: z.string().optional(),
   /** Full cart payload  required for domain transfers (EPP code). */
   cart: storefrontCartQuoteRequestSchema.optional(),
+  quoteToken: z.string().min(1),
 });
 // ---------------------------------------------------------------------------
 // Router
@@ -95,6 +97,12 @@ export const storefrontOrdersRouter = router({
           paidAmount: paymentTransaction.paidAmount,
           currency: paymentTransaction.currency,
           status: paymentTransaction.status,
+          billingCountry: paymentTransaction.billingCountry,
+          ipCountry: paymentTransaction.ipCountry,
+          paymentCountry: paymentTransaction.paymentCountry,
+          taxPolicyId: paymentTransaction.taxPolicyId,
+          taxRate: paymentTransaction.taxRate,
+          taxEvidence: paymentTransaction.taxEvidence,
         })
         .from(paymentTransaction)
         .where(
@@ -141,29 +149,49 @@ export const storefrontOrdersRouter = router({
           message: "Checkout cart payload is required.",
         });
       }
+      const lockedQuoteResult = verifyStorefrontPriceQuote(
+        input.quoteToken,
+        resolvedCart,
+        { allowExpired: true },
+      );
+      if (!lockedQuoteResult.ok) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "The locked checkout quote is invalid or expired.",
+        });
+      }
 
       const { lines, quote } = await buildStorefrontCartOrderLines({
         cart: resolvedCart,
         primaryDomain: input.primaryDomain,
         fallbackProductId: input.productId,
+        lockedQuote: lockedQuoteResult.payload,
       });
 
       const paidAmountRaw = tx.paidAmount ?? tx.amount;
-      const paidTotal = Math.ceil(Number.parseFloat(paidAmountRaw));
+      const paidTotal = Number.parseFloat(paidAmountRaw);
       if (!Number.isFinite(paidTotal) || paidTotal <= 0) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "Payment amount is missing or invalid.",
         });
       }
-      if (paidTotal < quote.total) {
+      const paymentCurrency = tx.currency.trim().toUpperCase();
+      const quoteCurrency = quote.currency.trim().toUpperCase();
+      if (paymentCurrency !== quoteCurrency) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: `Paid amount (${paidTotal}) is less than the checkout total (${quote.total}). Underpayment is not allowed.`,
+          message: `Payment currency (${paymentCurrency}) does not match checkout currency (${quoteCurrency}).`,
+        });
+      }
+      if (Math.round(paidTotal * 100) !== Math.round(quote.total * 100)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Paid amount (${paidTotal}) does not match the checkout total (${quote.total}).`,
         });
       }
 
-      const currency = tx.currency ?? quote.currency ?? "KES";
+      const currency = quoteCurrency;
       const now = new Date();
       const orderNumber = generateNiscOrderNumber();
       const orderId = crypto.randomUUID();
@@ -261,6 +289,23 @@ export const storefrontOrdersRouter = router({
             subtotal: String(quote.subtotal),
             total: String(quote.total),
             currency,
+            sourceSubtotal: String(quote.sourceSubtotal),
+            sourceTotal: String(
+              "sourceTotal" in quote ? quote.sourceTotal : quote.total,
+            ),
+            sourceCurrency: quote.sourceCurrency,
+            fxRate: String(quote.fxRate),
+            fxProvider: quote.fxProvider,
+            fxTimestamp: new Date(quote.fxTimestamp),
+            fxExpiresAt: new Date(
+              "fxExpiresAt" in quote ? quote.fxExpiresAt : lockedQuoteResult.payload.exp,
+            ),
+            billingCountry: tx.billingCountry,
+            ipCountry: tx.ipCountry,
+            paymentCountry: tx.paymentCountry,
+            taxPolicyId: tx.taxPolicyId,
+            taxRate: tx.taxRate,
+            taxEvidence: tx.taxEvidence,
             createdAt: now,
             updatedAt: now,
           });

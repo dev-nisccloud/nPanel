@@ -195,7 +195,7 @@ export function AgencyFlagshipArt() {
         <span className="size-2 rounded-full bg-amber-400" />
         <span className="size-2 rounded-full bg-emerald-400" />
         <span className="ml-2 min-w-0 flex-1 truncate rounded-md bg-background px-2 py-1 font-mono text-[8px] text-muted-foreground">
-          npanel.nisccloud.com/agency/manage-organizations
+          npanel.nisccloud.com/manage-organizations
         </span>
         <span className="hidden rounded-md border border-border bg-background px-2 py-1 text-[8px] text-muted-foreground sm:block">
           Search ⌘K

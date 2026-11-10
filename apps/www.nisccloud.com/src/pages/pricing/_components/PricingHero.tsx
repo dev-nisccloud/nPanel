@@ -1,6 +1,8 @@
 import { motion } from "motion/react";
+import { useCurrency } from "@/components/providers/currency.tsx";
 
 export default function PricingHero() {
+  const { currency } = useCurrency();
   return (
     <section className="relative pt-28 pb-10 overflow-hidden md:pt-32">
       <div
@@ -18,7 +20,7 @@ export default function PricingHero() {
         }}
       />
       <div className="max-w-4xl mx-auto px-4 md:px-8 text-center relative">
-        <p className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-primary">Pricing · Kenya shillings (KES)</p>
+        <p className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-primary">Pricing · {currency}</p>
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -33,7 +35,7 @@ export default function PricingHero() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="text-lg text-muted-foreground max-w-2xl mx-auto mb-4"
         >
-          All prices in KES. No hidden fees. Every plan includes setup help and a dedicated account contact.
+          Prices are shown in {currency}. No hidden fees. Every plan includes setup help and a dedicated account contact.
         </motion.p>
       </div>
     </section>

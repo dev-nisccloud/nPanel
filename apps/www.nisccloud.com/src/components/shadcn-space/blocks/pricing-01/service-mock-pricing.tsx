@@ -4,6 +4,8 @@ import type { OrderPlan } from "@/pages/hosting/_components/OrderDialog.tsx";
 import { Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge.tsx";
 import { motion } from "motion/react";
+import { useCurrency } from "@/components/providers/currency.tsx";
+import { convertKesForDisplay, formatCurrency } from "@/lib/currency.ts";
 
 type ServiceAddon = {
   id: string;
@@ -40,7 +42,10 @@ function expandFeatures(plan: OrderPlan, all: OrderPlan[], seen: Set<string> = n
   });
 }
 
-function formatPlanPrice(plan: OrderPlan): { price: string; period: string } {
+function formatPlanPrice(
+  plan: OrderPlan,
+  displayPrice: (amount: number) => string,
+): { price: string; period: string } {
   const period =
     plan.period === "once"
       ? "one-time"
@@ -49,7 +54,7 @@ function formatPlanPrice(plan: OrderPlan): { price: string; period: string } {
         : `/${plan.period}`;
 
   return {
-    price: `KES ${plan.price.toLocaleString()}`,
+    price: displayPrice(plan.price),
     period,
   };
 }
@@ -80,8 +85,9 @@ function orderPlanToCardPlan(
   serviceName: string,
   totalPaidPlans: number,
   allPlans: OrderPlan[],
+  displayPrice: (amount: number) => string,
 ) {
-  const { price, period } = formatPlanPrice(plan);
+  const { price, period } = formatPlanPrice(plan, displayPrice);
 
   return {
     name: plan.name,
@@ -117,10 +123,25 @@ export function ServiceMockPricingSection({
   pricingNote?: string;
   addons?: ServiceAddon[];
 }) {
+  const { currency, kesToCurrencyRate } = useCurrency();
+  const displayPrice = (amount: number) =>
+    kesToCurrencyRate == null
+      ? "Updating…"
+      : formatCurrency(
+          convertKesForDisplay(amount, currency, kesToCurrencyRate),
+          currency,
+        );
   const paidPlans = plans.filter((plan) => plan.price > 0 && plan.period !== "quote");
   const cardPlans = [
     ...paidPlans.map((plan, index) =>
-      orderPlanToCardPlan(plan, index, serviceName, paidPlans.length, plans),
+      orderPlanToCardPlan(
+        plan,
+        index,
+        serviceName,
+        paidPlans.length,
+        plans,
+        displayPrice,
+      ),
     ),
     buildCustomQuotePlan(serviceName),
   ];
@@ -156,7 +177,7 @@ export function ServiceMockPricingSection({
                 >
                   <span className="font-medium">{addon.label}</span>
                   <Badge variant="secondary" className="font-semibold">
-                    KES {addon.price.toLocaleString()}/{addon.period}
+                    {displayPrice(addon.price)}/{addon.period}
                   </Badge>
                 </div>
               ))}

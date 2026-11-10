@@ -16,11 +16,12 @@ import {
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
 
 import { EmailPricingSection } from "./_components/EmailPricingSection.tsx";
+import { BusinessEmailStory } from "@/components/artwork/npanel-stories";
 
 // ─── Showcase blocks ──────────────────────────────────────────────────────────
 
 const showcaseBlocks: ShowcaseBlock[] = [
- {tag:"Nisc Mail",headline:"Your own business inbox. With AI built in.",body:"Nisc Mail is our in-house, cost-friendly business email service. Use your own domain in a dedicated mail client, with AI that drafts replies, helps you write new emails and summarises long messages. Review the wording before you send.",bullets:["AI reply drafting and writing help","Summaries of long emails","Professional addresses on your business domain"],visual:"businessMail"},
+ {tag:"Nisc Mail",headline:"Your own business inbox. With AI built in.",body:"Nisc Mail is our in-house, cost-friendly business email service. Use your own domain in a dedicated mail client, with AI that drafts replies, helps you write new emails and summarises long messages. Review the wording before you send.",bullets:["AI reply drafting and writing help","Summaries of long emails","Professional addresses on your business domain"],visual:"businessMail",artwork:<BusinessEmailStory />,caption:false},
  {tag:"Protection",headline:"Everyday email with protection built in.",body:"Nisc Mail includes malware, spam and phishing protection, with a 99.9% uptime target. Connect your mailbox to supported email clients such as Outlook, or use the Nisc Mail client for its integrated AI tools.",bullets:["Malware, spam and phishing protection","99.9% uptime target","Outlook and Thunderbird configuration support"],visual:"deliverability"},
  {tag:"Hybrid email",headline:"Pay for collaboration where your team needs it.",body:"Keep users who need Microsoft 365 or Google Workspace collaboration on those platforms. Move email-focused users to Nisc Mail on the same company domain. We assess mailbox allocation and mail routing so you can compare the proposed cost with your current setup.",bullets:["One business domain across the agreed platforms","Licences matched to user needs","Savings calculated from your actual licence mix"],visual:"businessMail"},
 ];
@@ -208,7 +209,7 @@ export default function EmailHostingPage() {
           a: "Our business email plans are designed for team communication. For bulk marketing emails or transactional sending (invoices, receipts), we recommend our separate email marketing service.",
         },
       ]}
-      pricingNote="Prices in KES excluding 16% VAT. The same monthly rate applies on every billing term."
+      pricingNote="Prices are shown in your selected currency, excluding 16% VAT. The same monthly rate applies on every billing term."
       ctaHeadline="Professional email on your business domain."
       ctaSubtext="New mailboxes are usually ready in approximately 30 minutes. Migration timing depends on the number of mailboxes and the amount of mail."
       showcaseBlocks={showcaseBlocks}

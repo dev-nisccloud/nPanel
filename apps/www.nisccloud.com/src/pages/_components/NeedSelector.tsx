@@ -6,7 +6,6 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   Server,
   TrendingUp,
-  Bot,
   ShoppingCart,
   HardDrive,
   Mail,
@@ -24,6 +23,7 @@ import {
   PenTool,
   MonitorSmartphone,
 } from "lucide-react";
+import { ZepoMascot } from "@/components/zepo-mascot.tsx";
 
 import { Link, useNavigate } from "react-router-dom";
 
@@ -237,7 +237,7 @@ const tabs: Tab[] = [
   },
 
   {
-    icon: Bot,
+    icon: ZepoMascot,
 
     label: "Automate My Business",
 
@@ -334,7 +334,7 @@ function GoalCardMini({ kind, active }: { kind: Tab["kind"]; active: boolean }) 
     <span className={cn("flex h-6 items-center gap-1.5 rounded-md px-2", active ? "bg-slate-950 text-white dark:bg-slate-900" : "bg-muted text-muted-foreground")} aria-hidden>
       <span className={cn("size-1.5 rounded-full", active ? "bg-primary" : "bg-current")} />
       <span className="h-px w-3 bg-current opacity-50" />
-      <Bot className="size-3" />
+      <ZepoMascot className="size-5" />
       <span className="h-px w-3 bg-current opacity-50" />
       <span className={cn("size-1.5 rounded-full", active ? "bg-brand-orange" : "bg-current")} />
     </span>

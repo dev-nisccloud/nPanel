@@ -132,7 +132,7 @@ export default function VdsHostingPage() {
         { q: "Can I scale my VDS up later?", a: "Available upgrade paths depend on the selected plan. Nisc Cloud can confirm the suitable VDS or dedicated tier for your next stage." },
         { q: "What network protection is included?", a: "Protection varies by plan and deployment. Confirm the included controls and any additional application-layer protection before purchase." },
       ]}
-      pricingNote="All prices in KES, excluding 16% VAT. Custom configurations available for enterprise clients."
+      pricingNote="Prices are shown in your selected currency, excluding 16% VAT. Custom configurations available for enterprise clients."
       ctaHeadline="Get a VDS That Performs as Hard as You Do"
       ctaSubtext="Move beyond VPS with higher-performance configurations and stronger reservation for demanding workloads."
       showcaseBlocks={showcaseBlocks}

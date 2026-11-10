@@ -12,9 +12,9 @@ import {
   MessageCircle,
   MessageSquare,
   Send,
-  Sparkles,
   X,
 } from "lucide-react";
+import { ZepoMascot } from "@/components/zepo-mascot.tsx";
 import {
   Popover,
   PopoverContent,
@@ -818,7 +818,7 @@ export function FloatingActionButton({ className }: { className?: string }) {
               [
                 { id: "home" as const, label: "Home", Icon: Home },
                 { id: "messages" as const, label: "Messages", Icon: MessageSquare },
-                { id: "ai" as const, label: "Live AI", Icon: Sparkles },
+                { id: "ai" as const, label: "Live AI", Icon: ZepoMascot },
               ]
             ).map(({ id, label, Icon }) => {
               const isActive = activeTab === id;

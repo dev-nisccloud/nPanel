@@ -13,6 +13,8 @@ import { usePricing } from "@/lib/domain-search/pricing-context.tsx";
 import { kenicItemToDomainSearchResult } from "@/lib/domain-search/to-domain-search-result.ts";
 import type { DomainSearchResult } from "@/lib/domain-search/types.ts";
 import { DomainResultList, DomainResultRow } from "./DomainResultRow.tsx";
+import { useCurrency } from "@/components/providers/currency.tsx";
+import { convertKesForDisplay } from "@/lib/currency.ts";
 
 const KENYAN_LIST_SKELETON = (
   <div className="space-y-0 mb-6">
@@ -59,6 +61,7 @@ export function KenyanTldCards({
   onRemoveFromCart,
 }: KenyanTldCardsProps) {
   const { getPricingInfo, hasDefaultSetting, isLoadingTldSettings } = usePricing();
+  const { currency: selectedCurrency, kesToCurrencyRate } = useCurrency();
   const retailPricingReady = !isLoadingTldSettings && hasDefaultSetting;
 
   const sanitized = React.useMemo(() => {
@@ -178,6 +181,11 @@ export function KenyanTldCards({
           </Button>
         </div>
       )}
+      {kesToCurrencyRate === null && list.some((item) => item.available) && (
+        <p className="mb-2 text-xs text-muted-foreground">
+          Updating prices for your selected currency…
+        </p>
+      )}
       <DomainResultList>
         {list.map((item) => {
           const createCalc = getPricingInfo(item.domain, item.createPrice ?? 0, item.currency ?? "KES");
@@ -187,18 +195,29 @@ export function KenyanTldCards({
             createFinal,
             createCalc,
           });
+          const displayPrice =
+            item.available && retailPricingReady && kesToCurrencyRate !== null
+              ? convertKesForDisplay(createFinal, selectedCurrency, kesToCurrencyRate)
+              : undefined;
+          const renewalPrice =
+            item.available &&
+            retailPricingReady &&
+            item.renewPrice != null &&
+            kesToCurrencyRate !== null
+              ? convertKesForDisplay(
+                  getPricingInfo(item.domain, item.renewPrice, currency).finalPrice,
+                  selectedCurrency,
+                  kesToCurrencyRate,
+                )
+              : null;
           return (
             <DomainResultRow
               key={item.domain}
               domain={item.domain}
               isAvailable={item.available}
-              displayPrice={item.available && retailPricingReady ? createFinal : undefined}
-              displayCurrency={item.available && retailPricingReady ? currency : undefined}
-              renewalPrice={
-                item.available && retailPricingReady && item.renewPrice != null
-                  ? getPricingInfo(item.domain, item.renewPrice, currency).finalPrice
-                  : null
-              }
+              displayPrice={displayPrice}
+              displayCurrency={displayPrice == null ? undefined : selectedCurrency}
+              renewalPrice={renewalPrice}
               reason={item.reason}
               displayResult={displayResult}
               isDomainInCart={isDomainInCart}

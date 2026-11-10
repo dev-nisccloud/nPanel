@@ -15,6 +15,8 @@ import { getCustomerRetailDisplayPrice } from "@/lib/domain-search/customer-disp
 import { usePricing } from "@/lib/domain-search/pricing-context.tsx";
 import type { DomainSearchResult } from "@/lib/domain-search/types.ts";
 import { DomainResultList, DomainResultRow } from "./DomainResultRow.tsx";
+import { useCurrency } from "@/components/providers/currency.tsx";
+import { convertKesForDisplay } from "@/lib/currency.ts";
 
 function RowSkeleton({ count = 4 }: { count?: number }) {
   return (
@@ -160,7 +162,8 @@ export function RecommendedDomainsList({
   onRemoveFromCart,
   renderRowActions,
 }: RecommendedDomainsListProps) {
-  const { getPricingInfo, calculatePricesBatch } = usePricing();
+  const { getPricingInfo, calculatePricesBatch, isConversionAvailable } = usePricing();
+  const { currency, kesToCurrencyRate } = useCurrency();
   const [results, setResults] = React.useState<DomainSearchResult[]>([]);
   const [batchIndex, setBatchIndex] = React.useState(0);
   const [hasMore, setHasMore] = React.useState(true);
@@ -309,13 +312,21 @@ export function RecommendedDomainsList({
             <DomainResultList>
               {visibleResults.map((result, index) => {
                 const { displayPrice, displayCurrency } = getCustomerRetailDisplayPrice(result);
+                const sourceCurrency = result.price?.reseller?.currency ?? "USD";
+                const convertedDisplayPrice =
+                  displayPrice != null &&
+                  displayCurrency === "KES" &&
+                  (sourceCurrency === "KES" || isConversionAvailable) &&
+                  kesToCurrencyRate !== null
+                    ? convertKesForDisplay(displayPrice, currency, kesToCurrencyRate)
+                    : undefined;
                 return (
                   <DomainResultRow
                     key={`${result.domain}-${index}`}
                     domain={result.domain}
                     isAvailable={result.status === "free"}
-                    displayPrice={displayPrice}
-                    displayCurrency={displayCurrency}
+                    displayPrice={convertedDisplayPrice}
+                    displayCurrency={convertedDisplayPrice == null ? undefined : currency}
                     reason={result.reason}
                     displayResult={result}
                     isDomainInCart={isDomainInCart}
@@ -331,6 +342,9 @@ export function RecommendedDomainsList({
 
       {!isInitialLoading && !isError && visibleResults.length === 0 && (
         <p className="text-sm text-muted-foreground py-2">No popular results yet.</p>
+      )}
+      {kesToCurrencyRate === null && visibleResults.length > 0 && (
+        <p className="text-xs text-muted-foreground py-2">Updating prices for your selected currency…</p>
       )}
 
       {/* Bottom-only loader for newly appended rows */}

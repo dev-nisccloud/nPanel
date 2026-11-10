@@ -4,7 +4,6 @@ import { motion, useInView, useReducedMotion } from "motion/react";
 import {
   ArrowRight,
   AtSign,
-  Bot,
   Globe,
   HardDrive,
   Mail,
@@ -13,6 +12,7 @@ import {
   Server,
   Share2,
 } from "lucide-react";
+import { ZepoMascot } from "@/components/zepo-mascot.tsx";
 import { Button } from "@/components/ui/button.tsx";
 
 /*
@@ -427,8 +427,8 @@ export default function BuildRunGrow() {
         </div>
 
         <div className="mt-6 flex flex-col gap-5 rounded-3xl border border-brand-orange/30 bg-gradient-to-r from-brand-orange/10 via-primary/5 to-transparent p-6 md:flex-row md:items-center md:p-7">
-          <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-brand-orange/15 text-[#b9411f] dark:text-brand-orange">
-            <Bot className="size-6" aria-hidden />
+          <span className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-sky-100 ring-1 ring-primary/15 dark:bg-sky-950">
+            <ZepoMascot className="size-[115%]" />
           </span>
           <div className="flex-1">
             <p className="font-mono text-xs font-bold tracking-[0.2em] text-[#b9411f] uppercase dark:text-brand-orange">

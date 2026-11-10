@@ -89,6 +89,7 @@ export async function computeSalesReportOverview(params: {
 	const activeSubs = await db.query.niscClientSubscription.findMany({
 		where: and(
 			eq(niscClientSubscription.status, ACTIVE),
+			eq(niscClientSubscription.agreedCurrency, currency),
 			isNull(niscClientSubscription.upgradedToSubscriptionId),
 			isNull(niscClientSubscription.downgradedToSubscriptionId),
 		),
@@ -121,6 +122,7 @@ export async function computeSalesReportOverview(params: {
 	// New MRR: subscriptions that started this month (subscriptionDate in range)
 	const newSubs = await db.query.niscClientSubscription.findMany({
 		where: and(
+			eq(niscClientSubscription.agreedCurrency, currency),
 			gte(niscClientSubscription.subscriptionDate, startOfThisMonth),
 			lte(niscClientSubscription.subscriptionDate, endOfThisMonth),
 		),
@@ -136,6 +138,7 @@ export async function computeSalesReportOverview(params: {
 	const churnedSubs = await db.query.niscClientSubscription.findMany({
 		where: and(
 			inArray(niscClientSubscription.status, [CANCELLED, EXPIRED]),
+			eq(niscClientSubscription.agreedCurrency, currency),
 			gte(niscClientSubscription.updatedAt, startOfThisMonth),
 			lte(niscClientSubscription.updatedAt, endOfThisMonth),
 		),
@@ -179,6 +182,7 @@ export async function computeSalesReportOverview(params: {
 		.from(invoice)
 		.where(
 			and(
+				eq(invoice.currency, currency),
 				gte(invoice.createdAt, trendMonths[0]?.month ?? from),
 				lte(invoice.createdAt, now),
 			),
@@ -239,7 +243,12 @@ export async function computeSalesReportOverview(params: {
 		.select({ teamId: invoice.teamId })
 		.from(invoice)
 		.where(
-			and(eq(invoice.status, "PAID"), gte(invoice.paidAt, from), lte(invoice.paidAt, to)),
+			and(
+				eq(invoice.status, "PAID"),
+				eq(invoice.currency, currency),
+				gte(invoice.paidAt, from),
+				lte(invoice.paidAt, to),
+			),
 		);
 	for (const inv of paidInvoices) {
 		if (inv.teamId) teamIdsFromSubs.add(inv.teamId);
@@ -253,6 +262,7 @@ export async function computeSalesReportOverview(params: {
 			gte(invoice.createdAt, from),
 			lte(invoice.createdAt, to),
 			eq(invoice.status, "PAID"),
+			eq(invoice.currency, currency),
 		),
 		with: { team: { columns: { id: true, name: true } } },
 	});
@@ -328,6 +338,7 @@ export async function computeSalesReportOverview(params: {
 				and(
 					inArray(niscClientSubscription.productId, domainProductIds),
 					eq(niscClientSubscription.status, ACTIVE),
+					eq(niscClientSubscription.agreedCurrency, currency),
 					gte(niscClientSubscription.nextRenewalDate, startOfThisMonth),
 					lte(niscClientSubscription.nextRenewalDate, endOfThisMonth),
 				),
@@ -338,9 +349,18 @@ export async function computeSalesReportOverview(params: {
 	const [renewedRow] = await db
 		.select({ c: count() })
 		.from(niscClientSubscriptionRenewal)
+		.innerJoin(
+			niscClientSubscription,
+			eq(
+				niscClientSubscriptionRenewal.subscriptionId,
+				niscClientSubscription.id,
+			),
+		)
 		.where(
 			and(
 				eq(niscClientSubscriptionRenewal.renewalType, "DOMAIN"),
+				eq(niscClientSubscriptionRenewal.renewalCurrency, currency),
+				eq(niscClientSubscription.agreedCurrency, currency),
 				gte(niscClientSubscriptionRenewal.renewalDate, startOfThisMonth),
 				lte(niscClientSubscriptionRenewal.renewalDate, endOfThisMonth),
 			),
@@ -358,6 +378,7 @@ export async function computeSalesReportOverview(params: {
 		.from(invoice)
 		.where(
 			and(
+				eq(invoice.currency, currency),
 				gte(invoice.createdAt, startOfThisMonth),
 				lte(invoice.createdAt, endOfThisMonth),
 			),
@@ -373,14 +394,23 @@ export async function computeSalesReportOverview(params: {
 	const [overdueRow] = await db
 		.select({ c: count() })
 		.from(invoice)
-		.where(and(eq(invoice.status, "OVERDUE"), lt(invoice.dueDate, now)));
+		.where(
+			and(
+				eq(invoice.status, "OVERDUE"),
+				eq(invoice.currency, currency),
+				lt(invoice.dueDate, now),
+			),
+		);
 	const overdueInvoices = Number(overdueRow?.c ?? 0);
 
 	const outstandingInvoices = await db
 		.select({ amount: invoice.amount })
 		.from(invoice)
 		.where(
-			notInArray(invoice.status, ["PAID", "CANCELLED", "WRITTEN_OFF", "REFUNDED"]),
+			and(
+				eq(invoice.currency, currency),
+				notInArray(invoice.status, ["PAID", "CANCELLED", "WRITTEN_OFF", "REFUNDED"]),
+			),
 		);
 	let outstandingAmount = 0;
 	for (const inv of outstandingInvoices) {
@@ -426,6 +456,7 @@ export async function computeSalesReportOverview(params: {
 	const activeSubsWithPlan = await db.query.niscClientSubscription.findMany({
 		where: and(
 			eq(niscClientSubscription.status, ACTIVE),
+			eq(niscClientSubscription.agreedCurrency, currency),
 			isNull(niscClientSubscription.upgradedToSubscriptionId),
 			isNull(niscClientSubscription.downgradedToSubscriptionId),
 		),
@@ -575,6 +606,7 @@ export async function computeSalesReportOverview(params: {
 	const upgrades = await db.query.niscClientSubscription.findMany({
 		where: and(
 			eq(niscClientSubscription.status, UPGRADED),
+			eq(niscClientSubscription.agreedCurrency, currency),
 			gte(niscClientSubscription.upgradedAt, startOfThisMonth),
 			lte(niscClientSubscription.upgradedAt, endOfThisMonth),
 		),
@@ -583,6 +615,7 @@ export async function computeSalesReportOverview(params: {
 	const downgrades = await db.query.niscClientSubscription.findMany({
 		where: and(
 			eq(niscClientSubscription.status, DOWNGRADED),
+			eq(niscClientSubscription.agreedCurrency, currency),
 			gte(niscClientSubscription.downgradedAt, startOfThisMonth),
 			lte(niscClientSubscription.downgradedAt, endOfThisMonth),
 		),
@@ -636,6 +669,7 @@ export async function computeSalesReportOverview(params: {
 		.where(
 			and(
 				eq(niscClientSubscription.status, ACTIVE),
+				eq(niscClientSubscription.agreedCurrency, currency),
 				isNull(niscClientSubscription.upgradedToSubscriptionId),
 				isNull(niscClientSubscription.downgradedToSubscriptionId),
 				gte(niscClientSubscription.nextRenewalDate, now),
@@ -652,6 +686,7 @@ export async function computeSalesReportOverview(params: {
 		.where(
 			and(
 				eq(niscClientSubscription.status, ACTIVE),
+				eq(niscClientSubscription.agreedCurrency, currency),
 				isNull(niscClientSubscription.upgradedToSubscriptionId),
 				isNull(niscClientSubscription.downgradedToSubscriptionId),
 				gte(niscClientSubscription.nextRenewalDate, in30),
@@ -668,6 +703,7 @@ export async function computeSalesReportOverview(params: {
 		.where(
 			and(
 				eq(niscClientSubscription.status, ACTIVE),
+				eq(niscClientSubscription.agreedCurrency, currency),
 				isNull(niscClientSubscription.upgradedToSubscriptionId),
 				isNull(niscClientSubscription.downgradedToSubscriptionId),
 				gte(niscClientSubscription.nextRenewalDate, in60),
@@ -700,6 +736,7 @@ export async function computeSalesReportOverview(params: {
 		.where(
 			and(
 				eq(niscClientSubscription.status, ACTIVE),
+				eq(niscClientSubscription.agreedCurrency, currency),
 				gte(niscClientSubscription.expiryDate, now),
 				lte(niscClientSubscription.expiryDate, in30),
 			),
@@ -720,7 +757,11 @@ export async function computeSalesReportOverview(params: {
 		})
 		.from(invoice)
 		.where(
-			and(eq(invoice.status, "PAID"), gte(invoice.paidAt, subMonths(now, 6))),
+			and(
+				eq(invoice.status, "PAID"),
+				eq(invoice.currency, currency),
+				gte(invoice.paidAt, subMonths(now, 6)),
+			),
 		);
 	const daysToPay: number[] = [];
 	for (const inv of paidForVelocity) {
@@ -750,6 +791,7 @@ export async function computeSalesReportOverview(params: {
 		.from(invoice)
 		.where(
 			and(
+				eq(invoice.currency, currency),
 				notInArray(invoice.status, ["PAID", "CANCELLED", "WRITTEN_OFF", "REFUNDED"]),
 				lt(invoice.dueDate, now),
 			),
@@ -790,6 +832,7 @@ export async function computeSalesReportOverview(params: {
 	const statusCounts = await db
 		.select({ status: invoice.status, c: count() })
 		.from(invoice)
+		.where(eq(invoice.currency, currency))
 		.groupBy(invoice.status);
 	const statusMap = new Map(
 		statusCounts.map((s) => [s.status, Number(s.c)]),
@@ -813,6 +856,7 @@ export async function computeSalesReportOverview(params: {
 		.where(
 			and(
 				eq(invoice.status, "PAID"),
+				eq(invoice.currency, currency),
 				gte(invoice.paidAt, startOfThisMonth),
 				lte(invoice.paidAt, endOfThisMonth),
 			),
@@ -827,7 +871,12 @@ export async function computeSalesReportOverview(params: {
 		.select({ tax: invoice.tax })
 		.from(invoice)
 		.where(
-			and(eq(invoice.status, "PAID"), gte(invoice.paidAt, from), lte(invoice.paidAt, to)),
+			and(
+				eq(invoice.status, "PAID"),
+				eq(invoice.currency, currency),
+				gte(invoice.paidAt, from),
+				lte(invoice.paidAt, to),
+			),
 		);
 	let taxCollectedPeriod = 0;
 	for (const inv of invoicesTaxPeriod) {
@@ -837,7 +886,11 @@ export async function computeSalesReportOverview(params: {
 		.select({ amount: creditNote.amount })
 		.from(creditNote)
 		.where(
-			and(gte(creditNote.issuedAt, from), lte(creditNote.issuedAt, to)),
+			and(
+				eq(creditNote.currency, currency),
+				gte(creditNote.issuedAt, from),
+				lte(creditNote.issuedAt, to),
+			),
 		);
 	let creditNotesIssuedPeriod = 0;
 	for (const cn of creditNotesPeriod) {
@@ -858,6 +911,7 @@ export async function computeSalesReportOverview(params: {
 		.where(
 			and(
 				eq(invoiceTransaction.status, "COMPLETED"),
+				eq(invoiceTransaction.currency, currency),
 				gte(invoiceTransaction.paidAt, from),
 				lte(invoiceTransaction.paidAt, to),
 			),
@@ -892,6 +946,7 @@ export async function computeSalesReportOverview(params: {
 		.where(
 			and(
 				eq(invoice.status, "PAID"),
+				eq(invoice.currency, currency),
 				isNotNull(invoice.teamId),
 				isNotNull(invoice.paidAt),
 			),
@@ -955,7 +1010,12 @@ export async function computeSalesReportOverview(params: {
 	const ordersAll = await db
 		.select({ status: niscOrder.status, total: niscOrder.total })
 		.from(niscOrder)
-		.where(gte(niscOrder.createdAt, subMonths(now, 3)));
+		.where(
+			and(
+				eq(niscOrder.currency, currency),
+				gte(niscOrder.createdAt, subMonths(now, 3)),
+			),
+		);
 	const orderPipelineMap = new Map<
 		string,
 		{ count: number; value: number }
@@ -992,6 +1052,7 @@ export async function computeSalesReportOverview(params: {
 	// --- Promo effectiveness ---
 	const redeems = await db.query.niscProductPromoRedeem.findMany({
 		where: and(
+			eq(niscProductPromoRedeem.currency, currency),
 			gte(niscProductPromoRedeem.redeemedAt, from),
 			lte(niscProductPromoRedeem.redeemedAt, to),
 		),
@@ -1008,6 +1069,7 @@ export async function computeSalesReportOverview(params: {
 		.where(
 			and(
 				isNotNull(niscOrder.niscProductPromoId),
+				eq(niscOrder.currency, currency),
 				gte(niscOrder.createdAt, from),
 				lte(niscOrder.createdAt, to),
 			),
@@ -1019,6 +1081,7 @@ export async function computeSalesReportOverview(params: {
 		.where(
 			and(
 				isNotNull(niscOrder.niscProductPromoId),
+				eq(niscOrder.currency, currency),
 				gte(niscOrder.createdAt, from),
 				lte(niscOrder.createdAt, to),
 			),
@@ -1033,6 +1096,7 @@ export async function computeSalesReportOverview(params: {
 		.where(
 			and(
 				isNull(niscOrder.niscProductPromoId),
+				eq(niscOrder.currency, currency),
 				gte(niscOrder.createdAt, from),
 				lte(niscOrder.createdAt, to),
 			),
@@ -1058,6 +1122,8 @@ export async function computeSalesReportOverview(params: {
 	const subsWithCost = await db.query.niscClientSubscription.findMany({
 		where: and(
 			eq(niscClientSubscription.status, ACTIVE),
+			eq(niscClientSubscription.agreedCurrency, currency),
+			eq(niscClientSubscription.agreedCostCurrency, currency),
 			isNull(niscClientSubscription.upgradedToSubscriptionId),
 			isNull(niscClientSubscription.downgradedToSubscriptionId),
 		),
@@ -1169,6 +1235,7 @@ export async function computeSalesReportOverview(params: {
 		.where(
 			and(
 				eq(invoice.status, "PAID"),
+				eq(invoice.currency, currency),
 				isNotNull(invoice.teamId),
 				isNotNull(invoice.paidAt),
 			),
@@ -1197,6 +1264,7 @@ export async function computeSalesReportOverview(params: {
 		.where(
 			and(
 				eq(invoice.status, "PAID"),
+				eq(invoice.currency, currency),
 				gte(invoice.paidAt, startOfPrevMonth),
 				lte(invoice.paidAt, endOfPrevMonth),
 			),
@@ -1213,6 +1281,7 @@ export async function computeSalesReportOverview(params: {
 		.where(
 			and(
 				eq(invoice.status, "PAID"),
+				eq(invoice.currency, currency),
 				gte(invoice.paidAt, sameMonthLastYear),
 				lte(invoice.paidAt, endSameMonthLastYear),
 			),

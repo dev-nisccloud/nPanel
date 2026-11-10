@@ -3,6 +3,7 @@ import { ArrowRight, ArrowUpRight, Check, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { NpanelAgencyArt, NpanelBusinessArt, NpanelDeveloperArt } from "@/components/artwork/npanel-art.tsx";
 import { ZeepoArt } from "@/components/artwork/growth-art.tsx";
+import { PlatformStories } from "@/components/artwork/npanel-stories/platform-stories.tsx";
 import { ClosingCta } from "@/components/closing-cta.tsx";
 import Navbar from "@/pages/_components/Navbar.tsx";
 import Footer from "@/pages/_components/Footer.tsx";
@@ -29,21 +30,24 @@ const PERSONAS = [
     body: "See every service, invoice and renewal for your business without chasing emails.",
     href: "/hosting",
     cta: "Hosting for businesses",
-    Art: NpanelBusinessArt,
+    artwork: <NpanelBusinessArt compact />,
+    visualClassName: "h-[430px] sm:h-[440px]",
   },
   {
     title: "Agencies",
     body: "Keep each client in its own organisation while you manage them from one agency account.",
     href: "/hosting/agency",
     cta: "Agency hosting",
-    Art: NpanelAgencyArt,
+    artwork: <NpanelAgencyArt />,
+    visualClassName: "h-[430px] sm:h-[440px]",
   },
   {
     title: "Developers",
     body: "Servers, domains and DNS alongside the billing and support for each project.",
     href: "/hosting/vps",
     cta: "Servers for developers",
-    Art: NpanelDeveloperArt,
+    artwork: <NpanelDeveloperArt compact />,
+    visualClassName: "h-[500px] sm:h-[440px]",
   },
 ];
 
@@ -102,8 +106,8 @@ export default function PlatformPage() {
       </section>
 
       <section id="npanel" className="scroll-mt-24 py-20 lg:py-28">
-        <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:px-8">
-          <div>
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="max-w-3xl">
             <p className="text-sm font-semibold text-primary">nPanel</p>
             <h2 className="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">
               Your services, bills and support, connected
@@ -119,11 +123,8 @@ export default function PlatformPage() {
               </a>
             </Button>
           </div>
-          <div className="min-w-0">
-            <NpanelBusinessArt />
-            <p className="mt-3 text-center text-xs text-muted-foreground">
-              Illustrative nPanel view · sample business and data
-            </p>
+          <div className="mt-14 rounded-[32px] border border-border/70 bg-muted/15 p-3 sm:p-6 lg:p-8">
+            <PlatformStories />
           </div>
         </div>
       </section>
@@ -157,10 +158,13 @@ export default function PlatformPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-center text-3xl font-extrabold tracking-tight sm:text-4xl">Built for how you work</h2>
           <div className="mt-12 grid gap-6 lg:grid-cols-3">
-            {PERSONAS.map(({ title, body, href, cta, Art }) => (
+            {PERSONAS.map(({ title, body, href, cta, artwork, visualClassName }) => (
               <article key={title} className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/10 focus-within:ring-2 focus-within:ring-primary motion-reduce:hover:translate-y-0">
-                <div className="pointer-events-none max-h-64 overflow-hidden border-b border-border/60" aria-hidden>
-                  <Art />
+                <div
+                  className={`pointer-events-none overflow-hidden border-b border-border/60 [&>figure]:h-full [&>figure]:max-w-none [&>figure]:rounded-none ${visualClassName}`}
+                  aria-hidden
+                >
+                  {artwork}
                 </div>
                 <div className="flex flex-1 flex-col p-6">
                   <h3 className="text-xl font-bold">{title}</h3>

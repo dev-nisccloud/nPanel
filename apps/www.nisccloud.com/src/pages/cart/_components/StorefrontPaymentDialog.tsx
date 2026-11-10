@@ -24,7 +24,9 @@ import {
   formatMpesaPhone,
   generateAccountReference,
   getStorefrontJengaPaymentStatus,
+  getStorefrontPaystackPaymentStatus,
   initiateStorefrontJengaCheckout,
+  initiateStorefrontPaystackCheckout,
   initiateStorefrontStkPush,
   queryStorefrontStkPush,
   submitJengaPaymentForm,
@@ -40,8 +42,13 @@ import {
   parseStorefrontStkQueryResponse,
 } from "@/lib/mpesa-payment-polling.ts";
 
-function fmtKes(amount: number) {
-  return `KES ${amount.toLocaleString("en-KE", { minimumFractionDigits: 0 })}`;
+function formatMoney(amount: number, currency: "KES" | "USD") {
+  return new Intl.NumberFormat(currency === "KES" ? "en-KE" : "en-US", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: currency === "KES" ? 0 : 2,
+    maximumFractionDigits: currency === "KES" ? 0 : 2,
+  }).format(amount);
 }
 
 function validateJengaCustomer(
@@ -68,7 +75,9 @@ interface StorefrontPaymentDialogProps {
   storefrontToken: string;
   defaultPhone: string;
   totalAmount: number;
+  currency: "KES" | "USD";
   cart: StorefrontCartQuoteRequest;
+  quoteToken: string;
   customerPrefill?: Partial<StorefrontJengaCustomer>;
   onPaymentSuccess: (checkoutRequestId: string) => Promise<void>;
 }
@@ -79,11 +88,15 @@ export function StorefrontPaymentDialog({
   storefrontToken,
   defaultPhone,
   totalAmount,
+  currency,
   cart,
+  quoteToken,
   customerPrefill,
   onPaymentSuccess,
 }: StorefrontPaymentDialogProps) {
-  const [paymentMethod, setPaymentMethod] = React.useState<string | null>("mpesa");
+  const [paymentMethod, setPaymentMethod] = React.useState<string | null>(
+    currency === "USD" ? "paystack" : "mpesa",
+  );
   const [phoneNumber, setPhoneNumber] = React.useState(defaultPhone);
   const [phoneError, setPhoneError] = React.useState("");
   const [accountReference] = React.useState(() => generateAccountReference());
@@ -129,7 +142,7 @@ export function StorefrontPaymentDialog({
       setPhase("form");
       setPaymentError(null);
       setPhoneError("");
-      setPaymentMethod("mpesa");
+      setPaymentMethod(currency === "USD" ? "paystack" : "mpesa");
       terminalStateDetectedRef.current = false;
       pollAttemptsRef.current = 0;
       setJengaCustomer({
@@ -146,7 +159,7 @@ export function StorefrontPaymentDialog({
     return () => {
       stopPolling();
     };
-  }, [open, defaultPhone, customerPrefill, stopPolling]);
+  }, [open, defaultPhone, customerPrefill, stopPolling, currency]);
 
   const handlePaymentFailure = React.useCallback(
     (msg: string) => {
@@ -292,6 +305,7 @@ export function StorefrontPaymentDialog({
         storefrontToken,
         phone: formatMpesaPhone(trimmed),
         cart,
+        quoteToken,
       });
       toast.message(res.message ?? "Check your phone for the M-Pesa prompt.");
       trackEvent("payment_initiated", { method: "mpesa" });
@@ -319,6 +333,7 @@ export function StorefrontPaymentDialog({
       const res = await initiateStorefrontJengaCheckout({
         storefrontToken,
         cart,
+        quoteToken,
         customer: {
           ...jengaCustomer,
           customerPhone: formatMpesaPhone(jengaCustomer.customerPhone),
@@ -333,6 +348,7 @@ export function StorefrontPaymentDialog({
           storefrontToken,
           orderReference: res.orderReference,
           cart,
+          quoteToken,
         }),
       );
       trackEvent("payment_initiated", { method: "card" });
@@ -343,6 +359,66 @@ export function StorefrontPaymentDialog({
       setPaymentError(msg);
       toast.error(msg);
       trackEvent("checkout_failure", { method: "card", stage: "initiation" });
+    }
+  };
+
+  const handlePaystackPay = async () => {
+    setPaymentError(null);
+    if (!requireTerms()) return;
+    const email =
+      customerPrefill?.customerEmail?.trim() || jengaCustomer.customerEmail.trim();
+    if (!email) {
+      setPaymentError("A billing email is required for secure card checkout.");
+      return;
+    }
+
+    setPhase("redirecting");
+    try {
+      const initialized = await initiateStorefrontPaystackCheckout({
+        storefrontToken,
+        cart,
+        quoteToken,
+        email,
+      });
+      const { default: PaystackPop } = await import("@paystack/inline-js");
+      const popup = new PaystackPop();
+      popup.resumeTransaction(initialized.accessCode, {
+        onSuccess: async () => {
+          try {
+            setPhase("creating");
+            const verified = await getStorefrontPaystackPaymentStatus({
+              storefrontToken,
+              reference: initialized.reference,
+            });
+            if (verified.status !== "SUCCESS") {
+              throw new Error("Payment is still being verified. Please try again shortly.");
+            }
+            await onPaymentSuccess(initialized.reference);
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : "Could not verify card payment.";
+            setPaymentError(message);
+            setPhase("form");
+          }
+        },
+        onCancel: () => {
+          setPhase("form");
+          setPaymentError("Card payment was cancelled.");
+        },
+        onError: (error: unknown) => {
+          setPhase("form");
+          setPaymentError(
+            error instanceof Error ? error.message : "Secure card checkout failed.",
+          );
+        },
+      });
+      trackEvent("payment_initiated", { method: "paystack_card" });
+    } catch (error) {
+      setPhase("form");
+      const message =
+        error instanceof Error ? error.message : "Could not start secure card checkout.";
+      setPaymentError(message);
+      toast.error(message);
     }
   };
 
@@ -366,7 +442,7 @@ export function StorefrontPaymentDialog({
         <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
           <DialogTitle>Complete payment</DialogTitle>
           <DialogDescription>
-            Pay {fmtKes(totalAmount)} to finish your order.
+            Pay {formatMoney(totalAmount, currency)} to finish your order.
           </DialogDescription>
         </DialogHeader>
 
@@ -419,6 +495,7 @@ export function StorefrontPaymentDialog({
           </div>
 
           <PaymentMethodAccordion value={paymentMethod} onValueChange={setPaymentMethod}>
+            {currency === "KES" && (
             <PaymentMethodOption
               value="mpesa"
               trigger={
@@ -457,7 +534,7 @@ export function StorefrontPaymentDialog({
                       onPhoneNumberChange={handlePhoneChange}
                       phoneError={phoneError}
                       amount={String(totalAmount)}
-                      amountHelperText={`Order total: ${fmtKes(totalAmount)}`}
+                      amountHelperText={`Order total: ${formatMoney(totalAmount, currency)}`}
                       accountReference={accountReference}
                       accountRefHelperText={`Reference (${accountReference.length}/12)`}
                     />
@@ -470,7 +547,9 @@ export function StorefrontPaymentDialog({
                 )}
               </PaymentMethodContent>
             </PaymentMethodOption>
+            )}
 
+            {currency === "KES" && (
             <PaymentMethodOption
               value="card"
               trigger={
@@ -506,6 +585,48 @@ export function StorefrontPaymentDialog({
                 )}
               </PaymentMethodContent>
             </PaymentMethodOption>
+            )}
+
+            {currency === "USD" && (
+              <PaymentMethodOption
+                value="paystack"
+                trigger={
+                  <PaymentMethodTrigger
+                    icon={<CreditCard className="h-7 w-7 text-foreground" />}
+                    title="Secure card"
+                    description="Pay in USD with Paystack Checkout"
+                  />
+                }
+              >
+                <PaymentMethodContent>
+                  {phase === "redirecting" || phase === "creating" ? (
+                    <div className="flex flex-col items-center py-8 text-center">
+                      <Loader2 className="mb-4 h-10 w-10 animate-spin text-primary" />
+                      <p className="text-sm font-medium text-foreground">
+                        {phase === "creating"
+                          ? "Verifying payment and creating your order…"
+                          : "Opening secure card checkout…"}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        Your card details are collected and processed by Paystack.
+                        Nisc Cloud does not receive or store your card number or CVV.
+                      </p>
+                      <div className="flex justify-end">
+                        <Button
+                          onClick={() => void handlePaystackPay()}
+                          className="min-w-[160px]"
+                        >
+                          Pay {formatMoney(totalAmount, "USD")}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </PaymentMethodContent>
+              </PaymentMethodOption>
+            )}
           </PaymentMethodAccordion>
         </div>
       </DialogContent>

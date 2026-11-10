@@ -10,7 +10,6 @@ import {
   ArrowLeftRight,
   BarChart2,
   Blocks,
-  Bot,
   Briefcase,
   Bug,
   Code2,
@@ -37,15 +36,13 @@ import {
   Wrench,
   Zap,
 } from "lucide-react";
+import { ZepoMascot } from "@/components/zepo-mascot.tsx";
 
 export const productFamilies = [
   {
     label: "Cloud & Hosting",
     icon: Server,
     href: "/hosting",
-    title: "A stronger foundation for your next move.",
-    description:
-      "Explore hosting, business email and server resources for your business.",
     groups: [
       {
         label: "Websites",
@@ -140,8 +137,6 @@ export const productFamilies = [
     label: "Domains",
     icon: Globe,
     href: "/hosting/domains",
-    title: "Your business starts with a name.",
-    description: "Register, transfer and look up domains.",
     items: [
       {
         label: "Domain Registration",
@@ -168,9 +163,6 @@ export const productFamilies = [
     label: "Security",
     icon: ShieldCheck,
     href: "/security",
-    title: "Keep your website safe and working.",
-    description:
-      "SSL, malware cleanup and ongoing care for WordPress and custom-coded websites.",
     items: [
       {
         label: "SSL Certificates",
@@ -197,9 +189,6 @@ export const productFamilies = [
     label: "Websites & Applications",
     icon: MonitorSmartphone,
     href: "/services/website-design",
-    title: "Bring your next idea to life.",
-    description:
-      "Start with your goals. Define the scope, then build the experience your customers need.",
     items: [
       {
         label: "Website Design",
@@ -233,7 +222,7 @@ export const productFamilies = [
         label: "AI & Automation",
         desc: "Explore smarter everyday workflows.",
         href: "/services/zepo-ai",
-        icon: Bot,
+        icon: ZepoMascot,
       },
     ],
   },
@@ -242,9 +231,6 @@ export const productFamilies = [
     label: "Brand & Marketing",
     icon: Palette,
     href: "/services",
-    title: "Build your brand. Reach your next customer.",
-    description:
-      "Connect strategy, creative production and marketing around your business goals.",
     items: [
       {
         label: "Brand Strategy & Identity",
@@ -374,13 +360,7 @@ export default function ProductsMegaMenu({
           })}
         </div>
 
-        <div className="min-w-0">
-          <div className="mb-4 px-3">
-            <p className="text-base font-semibold text-foreground">{family.title}</p>
-            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-              {family.description}
-            </p>
-          </div>
+        <div className="flex h-full min-w-0 flex-col">
           {grouped ? (
             <div className="grid grid-cols-2 gap-x-8 gap-y-5">
               {sections.map((section) => (
@@ -402,10 +382,17 @@ export default function ProductsMegaMenu({
           <Link
             to={family.href}
             onClick={onClose}
-            className="mt-4 flex items-center justify-between border-t border-border px-3 pt-3 text-sm font-semibold text-primary"
+            className={`group ${grouped ? "mt-4" : "mt-auto"} flex min-h-16 items-center justify-between rounded-xl border border-primary/20 bg-primary/[0.06] px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:border-primary/40 hover:bg-primary/[0.1] focus-visible:outline-2 focus-visible:outline-primary`}
           >
-            View all {family.label}
-            <ArrowRight size={16} />
+            <span>
+              <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-primary">
+                Explore category
+              </span>
+              <span className="mt-0.5 block">View all {family.label}</span>
+            </span>
+            <span className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform group-hover:translate-x-0.5">
+              <ArrowRight size={15} aria-hidden />
+            </span>
           </Link>
         </div>
       </div>

@@ -2,9 +2,10 @@ import * as React from "react";
 import { Globe, Package } from "lucide-react";
 import { trpcQuery } from "@/lib/domain-search/api.ts";
 import { checkKenicDomains, type KenicCheckItem } from "@/lib/domain-search/kenic-check.ts";
-import { formatPrice } from "@/lib/domain-search/format-price.ts";
 import { usePricing } from "@/lib/domain-search/pricing-context.tsx";
 import type { DomainSearchResult } from "@/lib/domain-search/types.ts";
+import { useCurrency } from "@/components/providers/currency.tsx";
+import { convertKesForDisplay, formatCurrency } from "@/lib/currency.ts";
 
 const localTlds = [
   { ext: ".co.ke", note: "Most popular" },
@@ -67,22 +68,27 @@ function PriceCell({
   loading: boolean;
   fallback?: string;
 }) {
+  const { currency, kesToCurrencyRate } = useCurrency();
   if (loading && !price) {
     return <span className="h-3.5 w-16 animate-pulse rounded bg-muted inline-block" />;
   }
   if (!price) {
     return <span className="text-xs text-muted-foreground">{fallback}</span>;
   }
+  if (price.currency !== "KES" || kesToCurrencyRate === null) {
+    return <span className="text-xs text-muted-foreground">Price unavailable</span>;
+  }
+  const displayAmount = convertKesForDisplay(price.amount, currency, kesToCurrencyRate);
   return (
     <span className="text-xs font-semibold text-primary tabular-nums">
-      {formatPrice(price.amount, price.currency)}
+      {formatCurrency(displayAmount, currency)}
       <span className="font-normal text-muted-foreground"> /yr</span>
     </span>
   );
 }
 
 export function DomainExtensionsSection() {
-  const { getPricingInfo, convertPricesBatch, isLoadingTldSettings, hasDefaultSetting } =
+  const { getPricingInfo, convertPricesBatch, isConversionAvailable, isLoadingTldSettings, hasDefaultSetting } =
     usePricing();
   const [pricesByExt, setPricesByExt] = React.useState<Record<string, PricedTld>>({});
   const [loading, setLoading] = React.useState(true);
@@ -128,12 +134,13 @@ export function DomainExtensionsSection() {
       if (currency === "KES") {
         return { amount: calc.finalPrice, currency: "KES" };
       }
+      if (!isConversionAvailable) return null;
       const [converted] = await convertPricesBatch(
         [{ amount: calc.finalPrice, currency }],
         "KES",
       );
       if (!converted || Number.isNaN(converted.convertedAmount)) {
-        return { amount: calc.finalPrice, currency: calc.currency };
+        return null;
       }
       return { amount: converted.convertedAmount, currency: "KES" };
     }
@@ -204,7 +211,7 @@ export function DomainExtensionsSection() {
     return () => {
       cancelled = true;
     };
-  }, [convertPricesBatch, getPricingInfo, isLoadingTldSettings, pricingReady, nearView]);
+  }, [convertPricesBatch, getPricingInfo, isConversionAvailable, isLoadingTldSettings, pricingReady, nearView]);
 
   const showLoading = loading || isLoadingTldSettings;
 
@@ -214,7 +221,7 @@ export function DomainExtensionsSection() {
         <h2 className="text-3xl font-bold mb-3">Every Extension Your Brand Needs</h2>
         <p className="text-sm text-muted-foreground max-w-lg mx-auto">
           Register local and global extensions to protect your brand. Live prices include our retail
-          margin and are shown in KES where available.
+          margin and are shown in your selected currency where available.
         </p>
       </div>
       <div className="grid md:grid-cols-2 gap-6">
