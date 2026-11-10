@@ -22,7 +22,7 @@ import { BusinessEmailStory } from "@/components/artwork/npanel-stories";
 
 const showcaseBlocks: ShowcaseBlock[] = [
  {tag:"Nisc Mail",headline:"Your own business inbox. With AI built in.",body:"Nisc Mail is our in-house, cost-friendly business email service. Use your own domain in a dedicated mail client, with AI that drafts replies, helps you write new emails and summarises long messages. Review the wording before you send.",bullets:["AI reply drafting and writing help","Summaries of long emails","Professional addresses on your business domain"],visual:"businessMail",artwork:<BusinessEmailStory />,caption:false},
- {tag:"Protection",headline:"Everyday email with protection built in.",body:"Nisc Mail includes malware, spam and phishing protection, with a 99.9% uptime target. Connect your mailbox to supported email clients such as Outlook, or use the Nisc Mail client for its integrated AI tools.",bullets:["Malware, spam and phishing protection","99.9% uptime target","Outlook and Thunderbird configuration support"],visual:"deliverability"},
+ {tag:"Protection",headline:"Understand the controls around business mail.",body:"Nisc Mail includes filtering intended to identify malware, spam and phishing, with a 99.9% uptime target. Use the Nisc Mail client for integrated AI tools or connect a currently supported third-party client.",bullets:["Inbound threat and nuisance-mail filtering","99.9% uptime target","Supported client configuration guidance"],visual:"deliverability"},
  {tag:"Hybrid email",headline:"Pay for collaboration where your team needs it.",body:"Keep users who need Microsoft 365 or Google Workspace collaboration on those platforms. Move email-focused users to Nisc Mail on the same company domain. We assess mailbox allocation and mail routing so you can compare the proposed cost with your current setup.",bullets:["One business domain across the agreed platforms","Licences matched to user needs","Savings calculated from your actual licence mix"],visual:"businessMail"},
 ];
 
@@ -51,9 +51,9 @@ export default function EmailHostingPage() {
 
         { value: "Secure", label: "Business Email" },
 
-        { value: "Free", label: "Migration Help" },
+        { value: "Scoped", label: "Migration Help" },
 
-        { value: "IMAP", label: "Works With Any Client" },
+        { value: "IMAP", label: "Supported Clients" },
       ]}
       features={[
         {
@@ -85,7 +85,7 @@ export default function EmailHostingPage() {
 
           title: "Webmail Access from Anywhere",
 
-          desc: "Access your email from any browser via Nisc webmail. Work from wherever your business takes you.",
+          desc: "Use Nisc webmail from a supported browser when you need access away from a configured desktop or mobile client.",
         },
 
         {
@@ -101,7 +101,7 @@ export default function EmailHostingPage() {
 
           title: "Daily Incremental Backups",
 
-          desc: "Mailboxes are backed up daily with incremental backups. If mail is lost, contact support and we will help restore it from the latest backup.",
+          desc: "Backup schedule, retention and restore scope are defined by the selected plan. Contact support to assess whether a requested message or mailbox can be restored.",
         },
 
         {
@@ -115,9 +115,9 @@ export default function EmailHostingPage() {
         {
           icon: <BarChart2 size={20} />,
 
-          title: "Free Mailbox Migration",
+          title: "Scoped Mailbox Migration",
 
-          desc: "Moving from another provider? We migrate your existing mailboxes at no charge. Timing depends on the number of mailboxes and the amount of mail.",
+          desc: "Moving from another provider? We first confirm source access, mailbox volume, supported data and cutover scope. Any included assistance is limited to that agreed scope.",
         },
       ]}
       plans={[]}
@@ -126,7 +126,7 @@ export default function EmailHostingPage() {
         {
           num: "01",
           title: "Choose Your Plan",
-          desc: "Pick a plan based on how many team members need email. All plans include spam filtering, webmail, and IMAP sync. Scale mailboxes as your team grows.",
+          desc: "Pick a live plan based on mailbox count, storage and required features. Review the listed inclusions before ordering and move up as the team grows.",
         },
 
         {
@@ -138,7 +138,7 @@ export default function EmailHostingPage() {
         {
           num: "03",
           title: "Create Your Mailboxes",
-          desc: "From your control panel, create mailboxes for every team member, up to your plan's limit. Set aliases and forwarding rules as needed.",
+          desc: "Create mailboxes up to the plan limit, then configure the aliases and forwarding options available to that plan.",
         },
 
         {
@@ -154,8 +154,8 @@ export default function EmailHostingPage() {
         },
 
         {
-          title: "Deliverability-First Infrastructure", visual: "inbox",
-          desc: "DKIM, SPF and DMARC are configured for you, helping receiving providers trust your domain so your emails reach inboxes rather than junk folders.",
+          title: "Domain Authentication Setup", visual: "inbox",
+          desc: "DKIM, SPF and DMARC configuration helps receiving providers assess messages from your domain; it does not guarantee inbox placement.",
         },
 
         {
@@ -164,8 +164,8 @@ export default function EmailHostingPage() {
         },
 
         {
-          title: "Works with Any Device or App", visual: "mobile",
-          desc: "Compatible with Microsoft Outlook, Mozilla Thunderbird and supported Gmail app configurations through standard email protocols. No proprietary client required.",
+          title: "Use Supported Mail Clients", visual: "mobile",
+          desc: "Standard protocols support common configurations such as Outlook and Thunderbird. Feature availability varies by client and setup.",
         },
 
         {
@@ -181,7 +181,7 @@ export default function EmailHostingPage() {
       faqs={[
         {
           q: "Can I migrate from Google Workspace or Microsoft 365?",
-          a: "Yes. We migrate your existing mailboxes from Google Workspace, Microsoft 365 or any IMAP provider at no charge. Timing depends on the number of mailboxes and the amount of mail, and we agree a cut-over time with you.",
+          a: "We can assess moves from Google Workspace, Microsoft 365 and compatible IMAP providers. Source access, mailbox volume, supported data, timing and any included assistance are agreed before the cutover.",
         },
 
         {
@@ -191,12 +191,12 @@ export default function EmailHostingPage() {
 
         {
           q: "How is my email secured?",
-          a: "All email is encrypted in transit using TLS. We configure DKIM, SPF, and DMARC to prevent spoofing.",
+          a: "Supported connections use TLS in transit, and DKIM, SPF and DMARC are configured to help receiving systems authenticate your domain. These controls reduce risk but cannot prevent every spoofing or phishing attempt.",
         },
 
         {
           q: "Can I create email aliases (e.g. info@ going to multiple mailboxes)?",
-          a: "Yes. Email aliases and forwarding rules are included on all plans. Set info@yourbusiness.co.ke to deliver to your entire sales team simultaneously.",
+          a: "Alias and forwarding availability depends on the selected plan and configuration. Check the live plan or ask support before designing a group-delivery workflow.",
         },
 
         {
@@ -209,9 +209,9 @@ export default function EmailHostingPage() {
           a: "Our business email plans are designed for team communication. For bulk marketing emails or transactional sending (invoices, receipts), we recommend our separate email marketing service.",
         },
       ]}
-      pricingNote="Prices are shown in your selected currency, excluding 16% VAT. The same monthly rate applies on every billing term."
+      pricingNote="Prices are shown in your selected currency, excluding 16% VAT. Review the live checkout for the selected term, amount billed and renewal basis."
       ctaHeadline="Professional email on your business domain."
-      ctaSubtext="New mailboxes are usually ready in approximately 30 minutes. Migration timing depends on the number of mailboxes and the amount of mail."
+      ctaSubtext="Choose a live mailbox plan, connect your domain and agree migration scope and timing where an existing service needs to move."
       showcaseBlocks={showcaseBlocks}
     />
   );

@@ -10,24 +10,24 @@ const showcaseBlocks: ShowcaseBlock[] = [
     tag: "Campaign Analytics",
     artwork: <EmailMarketingStory />,
     caption: false,
-    headline: "Email that earns more than it costs",
-    body: "Email remains one of the highest-return marketing channels when it is done well. We design, write, and automate campaigns that turn your list into recurring revenue, with clear reporting every month.",
+    headline: "Know what subscribers did next",
+    body: "Campaign reports show sends, opens, clicks, unsubscribes, and other events available from your email platform. Where store tracking is correctly connected, we can also review platform-attributed orders without treating attribution as proof of sole causation.",
     bullets: [
-      "Subject lines tested before full sends",
-      "Welcome sequences that convert new subscribers",
-      "Monthly reports you can actually understand",
+      "Engagement and list-health trends in plain language",
+      "Attributed order data where the platform supports it",
+      "Next-test recommendations based on observed behaviour",
     ],
     mockupRight: true,
     visual: "reporting",
   },
   {
     tag: "Automation Flows",
-    headline: "Your email list works while you sleep",
-    body: "We build automated email sequences that respond to customer behaviour: new subscribers, abandoned carts, purchase anniversaries, and re-engagement, so the right message reaches each person at the right moment.",
+    headline: "Follow up at useful customer moments",
+    body: "We map lifecycle messages around the customer events your systems can reliably provide. Each flow includes entry rules, exclusions, review points, and a clear purpose before it is activated.",
     bullets: [
-      "Welcome sequence for every new subscriber",
-      "Abandoned cart recovery emails with product reminders",
-      "Behavioural triggers based on clicks, purchases, and site visits",
+      "Welcome and onboarding journeys for eligible contacts",
+      "Cart or post-purchase flows when store data is available",
+      "Re-engagement rules designed to protect list quality",
     ],
     mockupRight: false,
     visual: "automation",
@@ -38,8 +38,8 @@ export default function EmailMarketingPage() {
   return (
     <ServicePageShell
       badge="Email Marketing"
-      headline={<>Turn Your Email List <br /><span className="text-primary">Into Steady Revenue</span></>}
-      subtext="Email still delivers strong returns when campaigns are well written and well timed. We design, write, and automate emails that convert subscribers into customers, and customers into loyal repeat buyers."
+      headline={<>Make Your Email List <br /><span className="text-primary">A Useful Customer Channel</span></>}
+      subtext="Plan campaigns and lifecycle messages around consented audiences, useful content, and measurable subscriber actions. We handle the agreed strategy, production, sending, and review cycle."
       serviceType="marketing"
       plansUnderHero
       customPlansSection={<EmailMarketingPricingSection />}
@@ -48,76 +48,76 @@ export default function EmailMarketingPage() {
       heroImageStandalone
       trustStats={[
         { value: "Segmented", label: "Audience Lists" },
-        { value: "Monthly", label: "Transparent Reporting" },
+        { value: "Reviewed", label: "Before Sending" },
         { value: "Free", label: "Strategy Call" },
-        { value: "Clear", label: "Campaign Reporting" },
+        { value: "Monthly", label: "Learning Cycle" },
       ]}
       features={[
         {
           icon: <Mail size={20} />,
           title: "Professional Email Design",
-          desc: "HTML email templates designed for your brand. Mobile-responsive layouts tested across major email clients: Gmail, Outlook, Apple Mail, and Android.",
+          desc: "Reusable, mobile-responsive templates aligned to your brand and checked in the email clients included in the agreed testing scope.",
         },
         {
           icon: <Users size={20} />,
-          title: "Advanced Segmentation",
-          desc: "Split your list by purchase history, engagement level, geography, and custom tags. The right message to the right subscriber increases clicks and revenue.",
+          title: "Practical Segmentation",
+          desc: "Group eligible contacts using the reliable fields available in your platform, such as purchase history, engagement, location, or customer tags.",
         },
         {
           icon: <RefreshCw size={20} />,
           title: "Automation Sequences",
-          desc: "Welcome series, abandoned cart recovery, post-purchase follow-ups, and win-back campaigns, triggered automatically based on subscriber behaviour.",
+          desc: "Build agreed welcome, cart, post-purchase, or win-back flows when the required events and consent status are available.",
         },
         {
           icon: <Target size={20} />,
           title: "A/B Subject Line Testing",
-          desc: "Every campaign can test subject lines on a subset of your list. The winner gets sent to everyone, maximising opens without extra effort.",
+          desc: "Where list size and platform features make a test meaningful, compare subject lines or content variants and record what the result suggests.",
         },
         {
           icon: <BarChart2 size={20} />,
           title: "Detailed Analytics & Reports",
-          desc: "Track open rates, click rates, revenue per email, unsubscribes, and list growth. Monthly reports with actionable insights to improve each campaign.",
+          desc: "Review delivery, clicks, unsubscribes, list changes, and configured conversion events. Revenue appears only where the connected platform can attribute it.",
         },
         {
           icon: <Zap size={20} />,
           title: "Behavioural Triggers",
-          desc: "Send emails based on what subscribers do: visited a product page, clicked a link, made a purchase. Behaviour-based emails convert better than one-size blasts.",
+          desc: "Use supported events such as sign-up, click, cart, or purchase to start relevant flows, with eligibility and suppression rules agreed first.",
         },
         {
           icon: <Shield size={20} />,
           title: "Deliverability Management",
-          desc: "We maintain sender reputation via DKIM, SPF, DMARC, and careful list practices. Your emails land in inboxes, not spam folders, at major providers.",
+          desc: "We configure available sender-authentication records and apply sound list practices. Inbox placement remains controlled by mailbox providers and cannot be guaranteed.",
         },
         {
           icon: <Inbox size={20} />,
           title: "List Hygiene & Cleaning",
-          desc: "Monthly list cleaning removes bounced, inactive, and spam-flagged addresses. A clean list improves deliverability and reduces cost per send.",
+          desc: "We review bounces, complaints, inactivity, and suppression rules on the agreed cadence to reduce avoidable sends and protect list quality.",
         },
       ]}
       process={[
-        { num: "01", title: "List Audit & Strategy", desc: "We audit your existing list health, segment structure, and historical campaign performance to identify quick wins and build your email marketing plan." },
-        { num: "02", title: "Template & Automation Build", desc: "Design your branded email templates, build your welcome sequence, and configure automation flows before the first campaign sends." },
-        { num: "03", title: "Campaign Execution", desc: "Monthly campaigns planned, written, designed, and tested. We manage everything. You approve the final copy before it sends." },
-        { num: "04", title: "Optimise & Scale", desc: "Monthly performance review identifies your best-performing content, highest-converting segments, and new automation opportunities." },
+        { num: "01", title: "Access, Consent & List Audit", desc: "We review data sources, consent records, list health, current segments, and available campaign history before recommending sends." },
+        { num: "02", title: "Message & Journey Build", desc: "We create the agreed templates, campaign themes, segments, and automation rules, then confirm exclusions and approval responsibilities." },
+        { num: "03", title: "Review & Send", desc: "Campaign copy, design, links, audience, and settings are checked and shared for approval before the scheduled send." },
+        { num: "04", title: "Learn & Adjust", desc: "We review engagement, list health, and configured conversion signals, then choose the next useful test or journey improvement." },
       ]}
       whyPoints={[
-        { title: "Strong Return When Done Well", desc: "Email marketing outperforms many other digital channels when lists are clean and messages are relevant. We build strategies that protect that advantage.", visual: "results" },
-        { title: "We Write Your Emails", desc: "Our copywriters craft every subject line and email body. You do not need to find time to write. We produce content in your brand voice after onboarding.", visual: "typing" },
-        { title: "Segmentation That Actually Works", desc: "Most email lists are treated as one blob. We segment by behaviour, purchase history, and geography to send relevant messages that convert better.", visual: "segments" },
-        { title: "Automation Running 24/7", desc: "Once built, your automation flows work continuously. A subscriber joins late at night and immediately enters your welcome sequence.", visual: "automation" },
-        { title: "Deliverability First Infrastructure", desc: "We manage sender reputation, list hygiene, and technical email configuration so campaigns reach inboxes at Gmail, Outlook, and beyond.", visual: "inbox" },
-        { title: "Transparent Reporting", desc: "Monthly reports show what your email programme earned. Open rate, click rate, revenue attributed, and list growth, every number in plain English.", visual: "reporting" },
+        { title: "Use the Audience You Have Permission to Reach", desc: "Strategy starts with lawful collection, current consent records, and useful expectations rather than simply sending to every address available.", visual: "results" },
+        { title: "Production Capacity Without the Blank Page", desc: "We draft subject lines, body copy, and layouts in your agreed voice, while your team retains review and factual approval.", visual: "typing" },
+        { title: "Segments Based on Real Data", desc: "We use fields and behaviours your systems can support instead of inventing precision from incomplete customer records.", visual: "segments" },
+        { title: "Automation With Guardrails", desc: "Entry, exit, suppression, and frequency rules help automated journeys stay relevant after activation.", visual: "automation" },
+        { title: "List Health Before Send Volume", desc: "Authentication, bounce handling, complaint monitoring, and hygiene reduce avoidable deliverability risk without promising inbox placement.", visual: "inbox" },
+        { title: "Reporting With Attribution Limits", desc: "Reports distinguish email-platform activity from attributed outcomes and explain the tracking assumptions behind conversion figures.", visual: "reporting" },
       ]}
       faqs={[
-        { q: "Do I need to already have an email list?", a: "No. We can help you build your list from scratch using your website, social media, and in-store channels. We set up lead magnets, sign-up forms, and list-building strategies alongside your campaigns." },
+        { q: "Do I need to already have an email list?", a: "No. We can scope consent-based sign-up forms, lead magnets, or in-store collection flows. We do not buy lists or treat an address as permission to market." },
         { q: "What email platform do you use?", a: "We work with Mailchimp, Klaviyo, ActiveCampaign, and Brevo. We recommend the best platform for your business size and goals during onboarding." },
         { q: "How do I get my email list to you?", a: "You export your existing contacts as a CSV and share it securely. We clean, import, and segment the list as part of our onboarding process." },
-        { q: "Can you integrate email with our e-commerce store?", a: "Yes. We integrate with WooCommerce, Shopify, and custom stores to pull product data, purchase history, and abandoned cart data into your email automation flows." },
-        { q: "Will the emails be compliant with data regulations?", a: "Yes. All campaigns include unsubscribe links, your business address, and comply with Kenya's Data Protection Act and international GDPR standards where applicable." },
-        { q: "How quickly can we start sending campaigns?", a: "Starter clients can often send their first campaign within 7 days of onboarding. Plans with automation build-out typically take 10 to 14 days before launch. A free strategy call maps your first campaigns before you commit." },
+        { q: "Can you integrate email with our e-commerce store?", a: "Often, provided the store, email platform, account permissions, and required events are compatible. Standard connectors can be scoped during onboarding; custom data work is assessed separately." },
+        { q: "Will the emails be compliant with data regulations?", a: "We can configure unsubscribe tools, sender details, suppression rules, and consent-aware workflows. Your organisation remains responsible for its lawful basis, notices, records, audience data, and legal review in every market it targets." },
+        { q: "How quickly can we start sending campaigns?", a: "Timing depends on account access, sender authentication, list condition, content, approvals, and automation complexity. We confirm a launch estimate after the audit rather than promise a fixed first-send date." },
       ]}
       ctaHeadline="Your Email List Is Ready to Work Harder"
-      ctaSubtext="Most businesses have an email list and never use it properly. We turn your list into a predictable monthly revenue channel, with free setup help and clear reporting."
+      ctaSubtext="Bring your current platform, audience sources, and campaign history. We will identify a useful first campaign or lifecycle journey and the data needed to measure it responsibly."
       pricingNote="Monthly retainer. No long-term contract. Cancel with 30-day notice."
       showcaseBlocks={showcaseBlocks}
     />

@@ -51,16 +51,16 @@ export default function SeoPage() {
     <ServicePageShell
       badge="SEO Services"
       headline={<>Help People Find You on <br /><span className="text-primary">Google, Maps & AI Answers</span></>}
-      subtext="We combine Search Engine Optimisation, Answer Engine Optimisation for AI tools, and local Maps SEO so more of the right people can discover your business. Clear reporting, and a free strategy call before you commit."
+      subtext="Build a stronger search foundation across traditional results, answer engines and local discovery. We define the scope, show the work and measure observed performance without promising rankings or AI citations."
       serviceType="marketing"
       plansUnderHero
       customPlansSection={<SeoPricingSection />}
       plans={[]}
       trustStats={[
-        { value: "Monthly", label: "Transparent Reporting" },
-        { value: "Local", label: "Search Focus" },
+        { value: "3", label: "Search Disciplines" },
+        { value: "Human", label: "Reviewed Work" },
         { value: "Free", label: "Strategy Call" },
-        { value: "Clear", label: "Monthly Reporting" },
+        { value: "Monthly", label: "Review Cadence" },
       ]}
       heroImage={niscWebsiteImage("seo-service.png")}
       heroImageStandalone
@@ -113,15 +113,13 @@ export default function SeoPage() {
         { num: "04", title: "Monitor, Report & Scale", desc: "Monthly rank tracking, traffic analysis, and continuous optimisation. Clear reporting and strategy adjustments based on what is working." },
       ]}
       whyPoints={[
-        { title: "SEO + AEO + Local Search Together", desc: "We optimise for Google, Maps, and AI answer tools, because that is where more discovery is heading.", visual: "maps" },
-        { title: "Local Search Understanding", desc: "We research how customers actually search, including local area names and everyday phrasing that generic tools miss.", visual: "localMarket" },
-        { title: "Transparent Monthly Reporting", desc: "Every month you get a clear report showing keyword positions, organic traffic, backlinks earned, and how that connects to leads.", visual: "reporting" },
+        { title: "One Search Foundation", desc: "Technical health, useful answers and accurate business information support traditional search, answer engines and local discovery.", visual: "maps" },
+        { title: "Work Prioritised by Intent", desc: "We connect search demand to the pages and customer actions that matter instead of chasing keywords in isolation.", visual: "localMarket" },
+        { title: "Evidence Before Expansion", desc: "Reporting separates activity, visibility, traffic and conversion signals so the next priorities are based on observed performance.", visual: "reporting" },
         { title: "No Black-Hat Tricks", desc: "We build visibility that can survive algorithm updates. No spam links, no keyword stuffing. Only strategies that compound over time.", visual: "ethical" },
-        { title: "See the Opportunity First", desc: "Book a free strategy call. We review where you rank today, the searches your customers use and the quickest wins, then send a clear proposal before you commit.", visual: "results" },
-        { title: "Built for Local Businesses", desc: "From e-commerce stores to professional services, we help businesses get found by the people looking for what they offer.", visual: "clarity" },
       ]}
       faqs={[
-        { q: "How long before I see better visibility on Google?", a: "Most clients see measurable ranking improvements within 60 to 90 days. Stronger traffic growth typically builds at the 3 to 6 month mark. Competitive industries can take longer for top positions." },
+        { q: "How long before I see better visibility on Google?", a: "Timing depends on the site, competition, technical issues, content and search demand. We establish a baseline, report observed changes and adjust priorities over time rather than promise a fixed result date." },
         { q: "Who do you help with SEO?", a: "We help businesses that want to get found on Google, Maps, and AI answer tools. We combine technical SEO, local keyword strategy, Maps optimisation, and Answer Engine Optimisation." },
         { q: "What is the difference between SEO and AEO?", a: "SEO optimises for traditional search results. AEO (Answer Engine Optimisation) helps your content get cited and recommended by AI tools like ChatGPT, Gemini, and Perplexity when people ask questions related to your business." },
         { q: "Do you guarantee specific rankings?", a: "No. Search algorithms, competitors and generative systems change, so no provider can guarantee a position or an AI citation. We commit to the approved scope, clear reporting and work aimed at measurable improvement." },
@@ -129,7 +127,7 @@ export default function SeoPage() {
         { q: "How much does SEO cost?", a: "Our live pricing table above shows current plans in KES, typically with monthly or annual billing. Contact us for custom packages across multiple locations or industries." },
       ]}
       ctaHeadline="Start Getting Found Where Customers Search"
-      ctaSubtext="We help people find you on Google, Maps, and AI answers, with clear monthly reporting. Start with a free strategy call and see your quickest wins."
+      ctaSubtext="Start with a review of your current search foundation, buyer questions and measurement needs. We will recommend a scoped next step."
       pricingNote="Monthly retainer. Prices are shown in your selected currency. 3-month minimum for meaningful results."
       showcaseBlocks={showcaseBlocks}
     />

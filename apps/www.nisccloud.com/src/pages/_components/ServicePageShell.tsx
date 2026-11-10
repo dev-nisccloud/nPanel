@@ -1,8 +1,12 @@
 import ServiceDecisionGuide from "./ServiceDecisionGuide";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useLocation } from "react-router-dom";
-import { motion } from "motion/react";
-import { breadcrumbJsonLd, faqJsonLd, serviceJsonLd, usePageMeta } from "@/lib/seo.ts";
+import {
+  breadcrumbJsonLd,
+  faqJsonLd,
+  serviceJsonLd,
+  usePageMeta,
+} from "@/lib/seo.ts";
 import { Check, ArrowRight, Sparkles, Star } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
@@ -58,6 +62,13 @@ export type WhyPoint = {
   visual?: VisualTheme;
 };
 
+export type StrategySection = {
+  eyebrow: string;
+  title: string;
+  desc: string;
+  items: string[];
+};
+
 export type Addon = {
   id: string;
   label: string;
@@ -86,6 +97,8 @@ export type ServicePageShellProps = {
   /** Render hero illustration without gradient frame or padding (e.g. terminal-only heroes). */
   heroIllustrationBare?: boolean;
   heroCta2?: string;
+  /** Optional destination for the secondary hero CTA. */
+  heroCta2Href?: string;
   heroTrustBadge?: { line1: string; line2: string };
   /** Floating badges over the hero image (trust badge + client count). Default true. */
   showHeroOverlays?: boolean;
@@ -100,6 +113,8 @@ export type ServicePageShellProps = {
   /** Optional headline for the Built Different bento section */
   whySectionHeadline?: string;
   whySectionBadge?: string;
+  /** Strategy-led buyer guidance, used by consultation services. */
+  strategySections?: StrategySection[];
 };
 
 // ─── Features Grid ────────────────────────────────────────────────────────────
@@ -124,7 +139,7 @@ const CornerPlus = () => (
         strokeWidth="1.5"
         stroke="currentColor"
         fill="none"
-        className={`absolute ${pos} text-primary/30 group-hover:text-primary/60 transition-colors duration-300`}
+        className={`absolute ${pos} text-primary/30`}
       >
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m6-6H6" />
       </svg>
@@ -138,13 +153,7 @@ function FeaturesGrid({ features }: { features: Feature[] }) {
   return (
     <section className="relative pt-16 pb-10 overflow-hidden border-t border-dashed border-border/50">
       <div className="relative max-w-7xl mx-auto px-4 md:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="mb-12 max-w-2xl mx-auto text-center"
-        >
+        <div className="mb-12 max-w-2xl mx-auto text-center">
           <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight leading-tight">
             What <span className="text-primary">You Get</span>
           </h2>
@@ -152,29 +161,24 @@ function FeaturesGrid({ features }: { features: Feature[] }) {
             Explore what is included and choose the service scope that fits your
             organisation.
           </p>
-        </motion.div>
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {features.map((f, i) => (
-            <motion.div
+          {features.map((f) => (
+            <div
               key={f.title}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: i * 0.06 }}
               className={cn(
-                "relative border border-dashed border-border hover:border-primary/40 rounded-2xl p-6 bg-card",
-                "flex flex-col justify-between min-h-[190px] group transition-all duration-300",
-                "hover:bg-primary/5 hover:shadow-xl hover:shadow-primary/5",
+                "relative border border-dashed border-border rounded-2xl p-6 bg-card",
+                "flex flex-col justify-between min-h-[190px]",
               )}
             >
               <CornerPlus />
               <div className="relative z-10 flex flex-col gap-4">
-                <div className="w-11 h-11 rounded-2xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary group-hover:shadow-lg group-hover:shadow-primary/25 transition-all duration-300">
+                <div className="w-11 h-11 rounded-2xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center">
                   {f.icon}
                 </div>
                 <div>
-                  <h3 className="font-bold text-base text-foreground mb-1.5 group-hover:text-primary transition-colors">
+                  <h3 className="font-bold text-base text-foreground mb-1.5">
                     {f.title}
                   </h3>
                   <p className="text-sm text-muted-foreground leading-relaxed">
@@ -182,9 +186,98 @@ function FeaturesGrid({ features }: { features: Feature[] }) {
                   </p>
                 </div>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
+      </div>
+    </section>
+  );
+}
+
+function StrategyGuide({ sections }: { sections: StrategySection[] }) {
+  return (
+    <section className="border-y border-border/60 bg-muted/20 py-16 md:py-24">
+      <div className="mx-auto grid max-w-7xl gap-12 px-4 md:px-8 lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)] lg:gap-20">
+        <div className="max-w-xl lg:sticky lg:top-28 lg:self-start">
+          <h2 className="text-3xl font-extrabold tracking-tight md:text-5xl">
+            Know what needs to change before changing how you look.
+          </h2>
+          <p className="mt-5 text-base leading-relaxed text-muted-foreground">
+            Brand strategy aligns the business, message and identity. The visual
+            work follows an approved direction instead of trying to solve every
+            problem through a new logo.
+          </p>
+        </div>
+        <div className="border-t border-border">
+          {sections.map((section) => (
+            <article
+              key={section.title}
+              className="grid gap-4 border-b border-border py-7 md:grid-cols-[9rem_1fr] md:gap-8 md:py-9"
+            >
+              <p className="text-sm font-semibold leading-snug text-primary">
+                {section.eyebrow}
+              </p>
+              <div>
+                <h3 className="text-xl font-bold md:text-2xl">
+                  {section.title}
+                </h3>
+                <p className="mt-3 max-w-2xl leading-relaxed text-muted-foreground">
+                  {section.desc}
+                </p>
+                <ul className="mt-5 grid gap-3 sm:grid-cols-2">
+                  {section.items.map((item) => (
+                    <li
+                      key={item}
+                      className="flex items-start gap-3 text-sm leading-relaxed"
+                    >
+                      <Check
+                        className="mt-0.5 size-4 shrink-0 text-primary"
+                        aria-hidden="true"
+                      />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ProcessSection({ steps }: { steps: ProcessStep[] }) {
+  return (
+    <section className="py-16 md:py-24">
+      <div className="mx-auto max-w-7xl px-4 md:px-8">
+        <div className="mb-12 max-w-2xl">
+          <p className="mb-3 text-sm font-semibold text-primary">
+            A clear working process
+          </p>
+          <h2 className="text-3xl font-extrabold tracking-tight md:text-5xl">
+            Know what happens next.
+          </h2>
+          <p className="mt-4 text-muted-foreground">
+            Each stage has a clear purpose, next step and point for your input.
+          </p>
+        </div>
+        <ol className="relative grid gap-0 border-y border-border md:grid-cols-2 lg:grid-cols-4">
+          {steps.map((step) => (
+            <li
+              key={step.num}
+              className="border-b border-border py-7 last:border-b-0 md:px-6 md:[&:nth-last-child(-n+2)]:border-b-0 lg:border-b-0 lg:border-r lg:first:pl-0 lg:last:border-r-0 lg:last:pr-0"
+            >
+              <span className="font-mono text-sm font-bold text-primary">
+                {step.num}
+              </span>
+              <h3 className="mt-5 text-lg font-bold">{step.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                {step.desc}
+              </p>
+            </li>
+          ))}
+        </ol>
       </div>
     </section>
   );
@@ -203,7 +296,8 @@ function PricingSection({
   note?: string;
   onSelect: (p: OrderPlan) => void;
 }) {
-  const { currency, kesToCurrencyRate } = useCurrency();
+  const { currency, kesToCurrencyRate, rateLoading, rateError, retryRate } =
+    useCurrency();
   const displayKes = (amount: number) =>
     kesToCurrencyRate == null
       ? null
@@ -221,9 +315,43 @@ function PricingSection({
           </h2>
           <p className="text-muted-foreground text-base max-w-md mx-auto">
             {note ??
-              "Every plan includes setup help. Upgrade, pause, or cancel when you need to."}
+              "Every plan includes setup help. Upgrade or request cancellation under the selected plan and Terms."}
           </p>
         </div>
+        {(rateLoading || rateError) && (
+          <div
+            className={cn(
+              "mx-auto mb-8 max-w-2xl rounded-2xl border px-4 py-3 text-sm",
+              rateError
+                ? "border-amber-500/30 bg-amber-500/10"
+                : "border-border bg-card",
+            )}
+            role="status"
+            aria-live="polite"
+          >
+            <p className="font-semibold">
+              {rateError
+                ? "USD conversion is temporarily unavailable."
+                : "Updating prices in your selected currency…"}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {rateError
+                ? "No unconverted price will be presented as USD. Retry, choose KES, or contact our team."
+                : "Current plan details remain visible while the conversion loads."}
+            </p>
+            {rateError && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="mt-3"
+                onClick={retryRate}
+              >
+                Try conversion again
+              </Button>
+            )}
+          </div>
+        )}
         <div
           className={cn(
             "grid gap-6",
@@ -238,17 +366,13 @@ function PricingSection({
             const popular =
               plan.id.includes("popular") || i === Math.floor(plans.length / 2);
             return (
-              <motion.div
+              <div
                 key={plan.id}
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.45, delay: i * 0.1 }}
                 className={cn(
-                  "relative rounded-2xl flex flex-col overflow-hidden transition-all duration-300",
+                  "relative rounded-2xl flex flex-col overflow-hidden",
                   popular
                     ? "border-2 border-primary shadow-2xl shadow-primary/20 scale-[1.02]"
-                    : "border border-border/60 bg-card hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1",
+                    : "border border-border/60 bg-card",
                 )}
               >
                 {popular && (
@@ -293,21 +417,17 @@ function PricingSection({
                         : "bg-muted/80 text-foreground hover:bg-primary hover:text-primary-foreground",
                     )}
                     onClick={() => onSelect(plan)}
+                    disabled={kesToCurrencyRate == null}
                   >
                     Choose {plan.name} <ArrowRight size={14} />
                   </Button>
                 </div>
-              </motion.div>
+              </div>
             );
           })}
         </div>
         {addons.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mt-12 max-w-2xl mx-auto"
-          >
+          <div className="mt-12 max-w-2xl mx-auto">
             <p className="text-center text-sm text-muted-foreground font-medium mb-4 flex items-center justify-center gap-2">
               <Sparkles size={14} className="text-primary" />
               Optional Add-ons
@@ -316,7 +436,7 @@ function PricingSection({
               {addons.map((a) => (
                 <div
                   key={a.id}
-                  className="flex items-center justify-between bg-card border border-border/60 rounded-2xl px-4 py-3.5 text-sm hover:border-primary/30 transition-colors"
+                  className="flex items-center justify-between bg-card border border-border/60 rounded-2xl px-4 py-3.5 text-sm"
                 >
                   <span className="font-medium">{a.label}</span>
                   <Badge variant="secondary" className="font-semibold">
@@ -325,7 +445,7 @@ function PricingSection({
                 </div>
               ))}
             </div>
-          </motion.div>
+          </div>
         )}
       </div>
     </section>
@@ -395,12 +515,7 @@ function ServiceHero({
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col items-center gap-8 lg:flex-row lg:gap-12">
           {/* Left: copy */}
-          <motion.div
-            initial={{ opacity: 0, x: -28 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6 }}
-            className="flex-1 flex flex-col items-start text-left max-w-2xl"
-          >
+          <div className="flex-1 flex flex-col items-start text-left max-w-2xl">
             <h1 className="text-[36px] font-extrabold leading-[1.15] mb-6 text-balance">
               {headline}
             </h1>
@@ -422,13 +537,10 @@ function ServiceHero({
                 {heroCta2}
               </Button>
             </div>
-          </motion.div>
+          </div>
 
           {/* Right: illustration */}
-          <motion.div
-            initial={{ opacity: 0, x: 28 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7, delay: 0.1 }}
+          <div
             className={
               heroImageStandalone
                 ? "flex-1 w-full lg:max-w-[720px] xl:max-w-[780px] relative"
@@ -441,18 +553,12 @@ function ServiceHero({
               heroIllustrationBare ? (
                 <div className="w-full min-w-0">
                   {heroIllustration}
-                  <p className="mt-3 text-center text-xs text-muted-foreground">
-                    Illustration · sample business and data
-                  </p>
                 </div>
               ) : (
                 <div>
                   <div className="rounded-2xl overflow-hidden border border-border/40 shadow-2xl bg-gradient-to-br from-muted/60 to-muted/20 p-6">
                     {heroIllustration}
                   </div>
-                  <p className="mt-3 text-center text-xs text-muted-foreground">
-                    Illustration · sample business and data
-                  </p>
                 </div>
               )
             ) : heroImageStandalone ? (
@@ -484,7 +590,7 @@ function ServiceHero({
                 />
               </div>
             )}
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>
@@ -501,7 +607,7 @@ export default function ServicePageShell({
   plans,
   addons = [],
   features = [],
-  process: _process, // re-enable with ProcessFeatureBlock below
+  process,
   whyPoints,
   faqs,
   ctaHeadline = "Ready to Get Started?",
@@ -513,18 +619,24 @@ export default function ServicePageShell({
   heroIllustration,
   heroIllustrationBare = false,
   heroCta2,
+  heroCta2Href,
   heroImageStandalone = false,
-  plansUnderHero = false,
   customPlansSection,
   checkoutServiceType,
   checkoutProductName,
   whySectionHeadline,
   whySectionBadge: _whySectionBadge,
+  strategySections,
 }: ServicePageShellProps) {
   const { pathname } = useLocation();
   const pageName = badge.replace(" · New", "");
-  const parent: [string, string] =
-    _serviceType === "hosting" ? ["Cloud Products", "/hosting"] : ["Business Solutions", "/services"];
+  const parent = useMemo<[string, string]>(
+    () =>
+      _serviceType === "hosting"
+        ? ["Cloud Products", "/hosting"]
+        : ["Business Solutions", "/services"],
+    [_serviceType],
+  );
   usePageMeta({
     title: pageName,
     description: subtext,
@@ -535,7 +647,8 @@ export default function ServicePageShell({
         name: pageName,
         description: subtext,
         path: pathname,
-        category: _serviceType === "hosting" ? "Cloud Hosting" : "Digital Services",
+        category:
+          _serviceType === "hosting" ? "Cloud Hosting" : "Digital Services",
       }),
       ...(faqs && faqs.length > 0 ? [faqJsonLd(faqs)] : []),
     ],
@@ -544,7 +657,10 @@ export default function ServicePageShell({
   const scrollToPlans = useCallback(() => {
     const target =
       document.getElementById("plans") ?? document.getElementById("pricing");
-    target?.scrollIntoView({ behavior: "smooth" });
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    target?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth" });
   }, []);
 
   const handlePlanSelect = useCallback(
@@ -599,20 +715,34 @@ export default function ServicePageShell({
 
   const handleDefaultCta = useCallback(() => {
     if (plans.length === 0 && !customPlansSection) {
-      window.location.assign(`/contact?serviceName=${encodeURIComponent(badge)}`);
+      window.location.assign(
+        `/contact?serviceName=${encodeURIComponent(badge)}`,
+      );
       return;
     }
     scrollToPlans();
   }, [badge, customPlansSection, plans.length, scrollToPlans]);
   const secondaryCtaLabel =
-    heroCta2 ?? (_serviceType === "hosting" ? "Compare Cloud Products" : "Explore Business Solutions");
+    heroCta2 ??
+    (_serviceType === "hosting"
+      ? "Compare Cloud Products"
+      : "Explore Business Solutions");
   const handleSecondaryCta = useCallback(() => {
+    if (heroCta2Href) {
+      window.location.assign(heroCta2Href);
+      return;
+    }
     if (heroCta2) {
-      document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" });
+      const reduceMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      document
+        .getElementById("pricing")
+        ?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth" });
       return;
     }
     window.location.assign(parent[1]);
-  }, [heroCta2, parent]);
+  }, [heroCta2, heroCta2Href, parent]);
   const primaryCtaLabel =
     plans.length === 0 && !customPlansSection
       ? "Book a Free Strategy Call"
@@ -624,60 +754,98 @@ export default function ServicePageShell({
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       <Navbar />
       <main id="main-content">
-
-      <ServiceHero
-        badge={badge}
-        headline={headline}
-        subtext={subtext}
-        plans={plans}
-        heroImage={heroImage}
-        heroIllustration={heroIllustration}
-        heroIllustrationBare={heroIllustrationBare}
-        heroCta2={secondaryCtaLabel}
-        heroImageStandalone={heroImageStandalone}
-        onGetStarted={handleDefaultCta}
-        onSecondary={handleSecondaryCta}
-        primaryCtaLabel={primaryCtaLabel}
-      />
-
-      {trustStats && (
-        <ServiceStatistics
-          compact
-          items={trustStatsToStatisticsItems(trustStats)}
+        <ServiceHero
+          badge={badge}
+          headline={headline}
+          subtext={subtext}
+          plans={plans}
+          heroImage={heroImage}
+          heroIllustration={heroIllustration}
+          heroIllustrationBare={heroIllustrationBare}
+          heroCta2={secondaryCtaLabel}
+          heroImageStandalone={heroImageStandalone}
+          onGetStarted={handleDefaultCta}
+          onSecondary={handleSecondaryCta}
+          primaryCtaLabel={primaryCtaLabel}
         />
-      )}
 
-      {plansUnderHero && <div id="pricing" className="scroll-mt-20">{renderPricingSection()}</div>}
+        {trustStats && (
+          <ServiceStatistics
+            compact
+            items={trustStatsToStatisticsItems(trustStats)}
+          />
+        )}
 
-      {features && features.length > 0 && <FeaturesGrid features={features} />}
+        {_serviceType === "hosting" ? (
+          <>
+            <div id="pricing" className="scroll-mt-20">
+              {renderPricingSection()}
+            </div>
 
-      {showcaseBlocks && showcaseBlocks.length > 0 && (
-        <ServiceShowcaseSection blocks={showcaseBlocks} />
-      )}
+            {showcaseBlocks && showcaseBlocks.length > 0 && (
+              <ServiceShowcaseSection blocks={showcaseBlocks} />
+            )}
 
-      {!plansUnderHero && <div id="pricing" className="scroll-mt-20">{renderPricingSection()}</div>}
+            {strategySections && strategySections.length > 0 && (
+              <StrategyGuide sections={strategySections} />
+            )}
 
-      {/* {process && <ProcessFeatureBlock steps={process} />} */}
+            {features.length > 0 && <FeaturesGrid features={features} />}
 
-      {whyPoints && (
-        <BuiltDifferentBento points={whyPoints} headline={whySectionHeadline} />
-      )}
+            {process && process.length > 0 && (
+              <ProcessSection steps={process} />
+            )}
+          </>
+        ) : (
+          <>
+            {showcaseBlocks && showcaseBlocks.length > 0 && (
+              <ServiceShowcaseSection blocks={showcaseBlocks} />
+            )}
 
-      <ServiceDecisionGuide />
+            {strategySections && strategySections.length > 0 && (
+              <StrategyGuide sections={strategySections} />
+            )}
 
-      {faqs && faqs.length > 0 ? (
-        <FaqBlock
-          faqs={faqs.map((faq) => ({ question: faq.q, answer: faq.a }))}
+            {features.length > 0 && <FeaturesGrid features={features} />}
+
+            {process && process.length > 0 && (
+              <ProcessSection steps={process} />
+            )}
+
+            <div id="pricing" className="scroll-mt-20">
+              {renderPricingSection()}
+            </div>
+          </>
+        )}
+
+        {whyPoints && (
+          <BuiltDifferentBento
+            points={whyPoints}
+            headline={whySectionHeadline}
+          />
+        )}
+
+        <ServiceDecisionGuide />
+
+        {faqs && faqs.length > 0 ? (
+          <FaqBlock
+            faqs={faqs.map((faq) => ({ question: faq.q, answer: faq.a }))}
+          />
+        ) : null}
+
+        <ClosingCta
+          headline={ctaHeadline}
+          subtext={ctaSubtext}
+          primary={{
+            label: primaryCtaLabel,
+            href: "#plans",
+            onClick: handleDefaultCta,
+          }}
+          secondary={{
+            label: "Talk to Our Team",
+            href: `/contact?serviceName=${encodeURIComponent(badge)}`,
+          }}
         />
-      ) : null}
-
-      <ClosingCta
-        headline={ctaHeadline}
-        subtext={ctaSubtext}
-        primary={{ label: primaryCtaLabel, href: "#plans", onClick: handleDefaultCta }}
-        secondary={{ label: "Talk to Our Team", href: `/contact?serviceName=${encodeURIComponent(badge)}` }}
-      />
-
       </main>
       <Footer />
     </div>

@@ -12,7 +12,7 @@ import { CloudServersStory } from "@/components/artwork/npanel-stories";
 
 const showcaseBlocks: ShowcaseBlock[] = [
   {
-    tag: "Server Monitoring",
+    tag: "Day-to-Day Visibility",
     artwork: <CloudServersStory />,
     caption: false,
     headline: "See what your virtual server is doing.",
@@ -26,11 +26,11 @@ const showcaseBlocks: ShowcaseBlock[] = [
     visual: "serverMonitor",
   },
   {
-    tag: "Straightforward Deployment",
-    headline: "Configure a VPS around your workload",
-    body: "Choose an available operating system and plan, add secure access details, and deploy a virtual environment for your application.",
+    tag: "Start with What You Need",
+    headline: "Configure an entry virtual server around your workload",
+    body: "Choose a currently available image and plan, add secure access details, and deploy a virtual environment without moving straight to a higher-reservation tier.",
     bullets: [
-      "A choice of supported operating systems",
+      "Current image choices shown during configuration",
       "Secure SSH and browser-terminal access",
       "Flexible environments for websites and applications",
     ],
@@ -38,9 +38,9 @@ const showcaseBlocks: ShowcaseBlock[] = [
     visual: "serverProvision",
   },
   {
-    tag: "Popular Use Cases",
-    headline: "Any workload. One powerful platform.",
-    body: "Teams use VPS environments for stores, APIs, business applications and development workloads that need more control than shared hosting.",
+    tag: "Where VPS Fits",
+    headline: "A flexible first step into virtual compute.",
+    body: "VPS suits websites, development environments and application services that need root-level control and a defined resource plan without dedicated hardware.",
     bullets: [
       "WooCommerce and eCommerce stores",
       "Payment APIs and application backends",
@@ -56,7 +56,7 @@ export default function VpsHostingPage() {
     <ServicePageShell
       badge="VPS Servers"
       headline={<>Flexible Compute. <span className="text-primary">More Control.</span> VPS for Growing Workloads.</>}
-      subtext="Configure a virtual server with guaranteed CPU and RAM and NVMe storage for websites, applications, development environments and workloads that have outgrown shared hosting."
+      subtext="Choose flexible entry virtual compute for websites, applications and development environments that have outgrown shared hosting. Resource and storage specifications are shown on each live plan."
       serviceType="hosting"
       heroIllustration={<HostingHeroIllustration config={vpsHeroConfig} />}
       heroIllustrationBare
@@ -64,8 +64,8 @@ export default function VpsHostingPage() {
       heroTrustBadge={{ line1: "Virtual server flexibility", line2: "Managed through nPanel" }}
       trustStats={[
         { value: "Root", label: "Authorised Access" },
-        { value: "NVMe", label: "Storage" },
-        { value: "Guaranteed", label: "CPU and RAM" },
+        { value: "Plan", label: "Defined Resources" },
+        { value: "Flexible", label: "Virtual Compute" },
         { value: "nPanel", label: "Management" },
       ]}
       features={[
@@ -86,8 +86,8 @@ export default function VpsHostingPage() {
         },
         {
           icon: <Network size={20} />,
-          title: "Connected for Real Workloads",
-          desc: "Run public websites, APIs and private application services with the connectivity included in your selected plan.",
+          title: "Connectivity by Plan",
+          desc: "Check the selected plan's network allocation before sizing a public website, API or private application service.",
         },
         {
           icon: <Shield size={20} />,
@@ -101,35 +101,35 @@ export default function VpsHostingPage() {
         },
         {
           icon: <Globe size={20} />,
-          title: "Fast for Your Visitors",
-          desc: "Built for responsive apps and sites. Your users get a fast experience wherever they are.",
+          title: "A Base You Can Tune",
+          desc: "Configure caching, application services and delivery choices around the needs and traffic profile of your site.",
         },
         {
           icon: <Terminal size={20} />,
-          title: "Full Root Access",
-          desc: "Complete control over your server environment. Install any software, configure custom kernel parameters, and run Docker containers without restrictions.",
+          title: "Administrative Access",
+          desc: "Use the authorised access included with the selected service to configure supported software, subject to platform limits and the Acceptable Use Policy.",
         },
       ]}
       plansUnderHero={true}
       customPlansSection={<VpsPlansSection />}
       plans={[]}
       process={[
-        { num: "01", title: "Configure Your VPS", desc: "Choose your plan, operating system (Ubuntu, CentOS, Debian, AlmaLinux), and add your SSH public key for secure access." },
+        { num: "01", title: "Choose a Starting Size", desc: "Compare live VPS plans, select an available system image and add your SSH public key where supported." },
         { num: "02", title: "Provision Securely", desc: "Provisioning details and authorised access information are provided for your configured server." },
-        { num: "03", title: "Deploy Your Stack", desc: "Connect through SSH or the authorised browser terminal and deploy the software your workload requires." },
-        { num: "04", title: "Monitor and Scale", desc: "Review the environment and move to a larger configuration when your requirements increase." },
+        { num: "03", title: "Prepare the Workload", desc: "Connect through the authorised access method and configure a supported application stack within the service scope." },
+        { num: "04", title: "Review as Usage Grows", desc: "Monitor demand and compare a larger VPS or higher-reservation VDS when the current size no longer fits." },
       ]}
       whyPoints={[
         { title: "More Control Than Shared Hosting", visual: "code", desc: "Run a configurable virtual environment with root access and your own application stack." },
-        { title: "Practical Deployment", visual: "deploy", desc: "Choose your OS, add your key and prepare the server around your workload." },
-        { title: "A Clear Upgrade Path", visual: "growth", desc: "Move to a larger VPS, a higher-reservation VDS tier or dedicated hardware as requirements grow." },
-        { title: "Built for Connected Applications", visual: "integrate", desc: "Host public services, internal tools and application backends on a plan selected for your traffic needs." },
-        { title: "Full Control, No Restrictions", visual: "ownership", desc: "Run Docker, Kubernetes, custom firewall rules, VPN servers, game servers, or any workload. Root access means total freedom." },
-        { title: "Managed Support Available", visual: "support", desc: "Don't want to manage your server yourself? Add our managed services option and our team handles updates, security patches, and optimisation." },
+        { title: "Start Without Oversizing", visual: "deploy", desc: "Select a practical virtual footprint now, then reassess as traffic, data or background processing increases." },
+        { title: "A Clear Upgrade Path", visual: "growth", desc: "Compare a larger VPS, a higher-reservation VDS tier or dedicated hardware as requirements grow." },
+        { title: "Useful for Varied Projects", visual: "integrate", desc: "Host supported websites, internal tools, test environments and application backends on a suitably sized plan." },
+        { title: "Control Within a Defined Service", visual: "ownership", desc: "Configure the environment using the access provided, subject to technical compatibility, plan limits and the Acceptable Use Policy." },
+        { title: "Optional Management Scope", visual: "support", desc: "Ask which updates, security work and optimisation tasks can be included for the selected plan before ordering." },
       ]}
       faqs={[
-        { q: "What operating systems are available?", a: "We offer Ubuntu 20.04/22.04/24.04, Debian 11/12, CentOS 7/8/9, AlmaLinux 8/9, and Rocky Linux 8/9. Custom ISO uploads are available on Enterprise plans." },
-        { q: "Can I run Docker or Kubernetes on my VPS?", a: "Yes. You have full root access and can install and run Docker, Docker Compose, or Kubernetes clusters without restrictions from our side." },
+        { q: "What operating systems are available?", a: "Image availability changes by plan and platform. Review the current choices during configuration or ask Nisc Cloud to confirm a required distribution or custom-image need before purchase." },
+        { q: "Can I run containers on my VPS?", a: "Container tooling may be used when it is compatible with the selected plan, system image and service policies. Cluster workloads should be sized and designed for their actual resource needs." },
         { q: "Is an uptime SLA available?", a: "Applicable availability commitments depend on the selected service and agreement. Confirm the current SLA terms with Nisc Cloud before purchase." },
         { q: "Is managed hosting available for VPS?", a: "Managed assistance may be added where available. Scope and response coverage are confirmed in the selected service agreement." },
         { q: "Can I scale my VPS up later?", a: "Available upgrade paths depend on the selected plan. Nisc Cloud can confirm the suitable VPS, VDS or dedicated tier for your next stage." },

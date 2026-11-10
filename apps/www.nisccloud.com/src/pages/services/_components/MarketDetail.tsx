@@ -30,7 +30,7 @@ const metrics = [
 
 export default function MarketDetail() {
   return (
-    <section id="market" className="py-24 bg-background">
+    <section id="grow" className="py-24 bg-background">
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         <div className="grid lg:grid-cols-2 gap-16 items-center mb-16">
           <motion.div
@@ -40,11 +40,11 @@ export default function MarketDetail() {
             transition={{ duration: 0.6 }}
           >
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-5">
-              Full-Stack Growth. <br />
-              <span className="text-primary">Clear Reporting.</span>
+              Grow with Connected Channels. <br />
+              <span className="text-primary">Learn from Clear Evidence.</span>
             </h2>
             <p className="text-muted-foreground text-lg leading-relaxed mb-8">
-              We do not run channels in isolation. SEO, paid ads, social, and email feed one growth plan, with reporting you can understand. It starts with a free strategy call and a clear proposal before you commit.
+              Connect search, paid media, social and email around the same audience and business goals. Reporting separates activity, observed performance and the next decision.
             </p>
             <ul className="grid grid-cols-2 gap-2 mb-8">
               {included.map((item) => (

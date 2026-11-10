@@ -66,7 +66,8 @@ marketing never promises more than the Terms do.
 | "Helps meet PCI-DSS expectations for payment pages" | `/hosting/ssl` | **Verified** (hedged) | Kept. |
 | "Bank-Grade Security" | Homepage `Features` | **Unverified** marketing superlative | Renamed "Security Built In". |
 | Tier 3 / ISO 27001 / SOC 2 / "100% hardware ownership" / SLA credits on servers | Previously on VPS/VDS/Dedicated pages | **Unverified / Outdated** | Removed in the earlier pass of this engagement; dedicated page now states exclusive allocation does not imply hardware ownership. |
-| "Authorised Microsoft partner" / "authorised Microsoft 365 and Google Workspace partner" | `PartnerServicePage`, homepage hybrid email section, `/hosting/hybrid-email` | **Needs verification by owner** | Kept pending confirmation of Microsoft Partner Center and Google Partner status. Remove "authorised" if either cannot be evidenced. |
+| "Authorised Microsoft partner" / "authorised Microsoft 365 and Google Workspace partner" | Previously in `PartnerServicePage`, homepage hybrid email section and `/hosting/hybrid-email` | **Unverified** | Partner-status wording has been removed. Microsoft 365 and Google Workspace remain described as supported third-party products. Restore partner wording only after evidence is approved. |
+| "KeNIC-accredited registrar" and "licensed by the Communications Authority of Kenya" | `/hosting/domains` | **Needs verification by owner** | Kept because these are specific, material credentials. Confirm the current legal entity, licence/accreditation category, number, expiry/current status and permitted logo treatment before launch. |
 | "Registered Data Controller · ODPC Reg. No. 160-3417-5D07" | Footer | **Needs verification by owner** | Kept. Confirm the registration number and that it is current. |
 | Sectigo as certificate authority | `/hosting/ssl` | **Verified** (product fact in pricing configs) | Kept; now used as a trust stat. |
 | "Your domain, code and data remain yours" | Homepage `WhyNisc` | **Verified** against Terms ownership clauses | Kept. |
@@ -79,10 +80,27 @@ marketing never promises more than the Terms do.
 | "Most transfers complete in 5 to 7 days" | `/hosting/domains` | **Verified** (registry transfer window) | Kept. |
 | "often in under 30 minutes" email setup | `/hosting/email` | **Needs verification by owner** | Kept (hedged). |
 | AMD EPYC, 10 Gbps, "< 5 minutes" provisioning | Previously on server pages | **Unverified** | Removed in the earlier pass. |
+| "30-day delivery + manager training" | Enterprise ecommerce package in `src/lib/service-packages.ts` | **Unverified fixed deadline** | Replaced with "Delivery schedule and manager training confirmed in your proposal." |
+
+## 7. Plan scope, ownership and cancellation
+
+| Claim | Where it appeared | Class | Action taken |
+| --- | --- | --- | --- |
+| "Upgrade, pause, or cancel when you need to" | Shared service-page pricing shell | **Contradictory / unsupported** — Terms allow cancellation but do not establish universal pause behaviour or immediate cancellation | Replaced with a reference to upgrade or cancellation under the selected plan and Terms. |
+| "You own all files forever" | Brand identity package note | **Too broad** — conflicts with proposal scope, payment conditions and third-party licence limits | Aligned to the detailed brand page and Terms: approved deliverables transfer after agreed invoices are paid, subject to the proposal and third-party licences. |
+| "No long-term contract. Cancel with 30-day notice" / social-media cancellation wording | Email-marketing pricing note and service-package notes | **Needs business verification** | Kept pending confirmation that current statements of work use the same notice period and do not impose a minimum term. |
+| "Dedicated account manager" | `/services/social-media` and services hub growth content | **Needs business verification** | Kept. Confirm which plans include a named/consistent account lead and the practical coverage when that person is unavailable. |
+| Unqualified auto-scaling, CDN, DDoS, daily-backup and security inclusion | Homepage service summaries and services hub | **Unsupported as universal inclusions** | Qualified as plan-defined or available options. Live product specifications remain the purchase source of truth. |
+
+## 8. Public service status
+
+| Check | Evidence | Decision |
+| --- | --- | --- |
+| Maintained first-party status page | No status-page link or route is present in the public website source. On 2026-11-10, `status.nisccloud.com` returned an error, `nisccloud.com/status` resolved to the generic coming-soon page, and `npanel.nisccloud.com/status` returned no public status content. Search results for “NISC Cloud” pointed to an unrelated US utility provider at `status.cloud.coop`. | **Not verified.** Do not add a status-page link. Confirm the first-party URL and incident-maintenance process before exposing one in navigation or the footer. |
 
 ## Items requiring owner authorisation before launch
 
-1. Confirm Microsoft and Google partner status or remove "authorised".
+1. Provide approved evidence before restoring any Microsoft or Google partner-status wording.
 2. Confirm the ODPC registration number in the footer.
 3. Confirm permission for each client logo on the homepage and the figures in `/work` case studies.
 4. Decide whether a refund policy for security services should exist; if so, add it to the Terms and only then to marketing.
@@ -91,3 +109,7 @@ marketing never promises more than the Terms do.
 7. Edit the Web Hosting and WordPress Hosting product descriptions in nPanel admin (they are rendered verbatim on `/pricing`, `/hosting/shared` and `/hosting/wordpress`) to remove "24/7 local support", "Lightning-fast", "enterprise security" and "in minutes".
 8. Supply real team members (names, titles, consented photos) for `/about`, or keep the role-based section.
 9. Replace or remove the `/work` case studies unless each client, figure and image is real and approved.
+10. Provide a maintained first-party service-status URL before adding a public status link.
+11. Confirm KeNIC accreditation and Communications Authority licensing evidence and approved logo use.
+12. Confirm cancellation notice and minimum-term rules for email marketing and social media retainers.
+13. Confirm which managed-service plans include a dedicated account manager.

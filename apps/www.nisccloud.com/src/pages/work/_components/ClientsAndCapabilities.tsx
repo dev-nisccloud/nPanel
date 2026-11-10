@@ -81,9 +81,6 @@ export default function ClientsAndCapabilities() {
             {CAPABILITIES.map((c) => (
               <article key={c.title} className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
                 <div className="border-b border-border bg-muted/30 p-4">
-                  <p className="mb-2 text-xs font-medium text-muted-foreground">
-                    Illustration · sample business and data
-                  </p>
                   <div aria-hidden>
                   {c.art()}
                   </div>
@@ -129,9 +126,6 @@ export default function ClientsAndCapabilities() {
               </Link>
             </div>
             <div className="border-t border-border bg-muted/30 p-4 md:border-t-0 md:border-l">
-              <p className="mb-2 text-xs font-medium text-muted-foreground">
-                Illustration · sample business and data
-              </p>
               <div aria-hidden>
                 <ZeepoArt />
               </div>

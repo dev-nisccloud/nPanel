@@ -7,24 +7,24 @@ import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.t
 const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "Content Performance",
-    headline: "Content that builds community, not just followers",
-    body: "We do not chase empty metrics. Every post is crafted to generate real engagement: comments, shares, DMs, and ultimately paying customers. Clear monthly reporting shows what worked.",
+    headline: "Learn which content earns attention",
+    body: "We review reach, saves, comments, shares, profile actions, and configured website signals to understand what your audience responds to. Reports separate observed platform activity from broader business outcomes.",
     bullets: [
-      "Full monthly content calendar approved before anything publishes",
+      "Planned content shared through the agreed review workflow",
       "Platform-native formats: Reels, carousels, Stories, TikToks",
-      "Posting times tuned for when your audience is online",
+      "Publishing times adjusted using available audience data",
     ],
     mockupRight: true,
     visual: "engagement",
   },
   {
     tag: "Community Management",
-    headline: "Every comment replied to. Every DM answered.",
-    body: "We manage your inbox in your brand voice. Fast, professional responses build customer loyalty and prevent the silent damage of ignored messages.",
+    headline: "A clear response path for your community",
+    body: "Within the channels, hours, and response scope in your plan, we triage comments and messages using agreed guidance. Sensitive, sales-critical, or account-specific issues move to your team.",
     bullets: [
-      "All DMs, comments, and mentions monitored and replied",
-      "Review management across Google, Facebook, and TrustPilot",
-      "Crisis escalation protocol: we alert you before it goes public",
+      "Agreed inboxes monitored on the contracted schedule",
+      "Response guidance and escalation contacts documented",
+      "Reviews covered only on the selected supported channels",
     ],
     mockupRight: false,
     visual: "inbox",
@@ -36,58 +36,58 @@ export default function SocialMediaPage() {
     <ServicePageShell
       badge="Social Media Management"
       headline={<>Build a Following. <br /><span className="text-primary">Build a Business.</span></>}
-      subtext="Posting randomly on social media does not grow businesses. We manage your Facebook, Instagram, LinkedIn, TikTok, and X with a clear content strategy that builds community, drives engagement, and turns followers into customers."
+      subtext="Plan, produce, publish, and review social content on the channels selected for your business. The service creates a consistent operating rhythm while your team keeps control of facts, approvals, and sensitive responses."
       serviceType="marketing"
       checkoutServiceType="social_media"
       checkoutProductName="Social Media"
       heroImage={niscWebsiteImage("Social media marketing.png")}
       heroImageStandalone
       trustStats={[
-        { value: "Approved", label: "Before Publishing" },
+        { value: "Planned", label: "Review Workflow" },
         { value: "Dedicated", label: "Account Manager" },
         { value: "Free", label: "Strategy Call" },
-        { value: "Clear", label: "Monthly Reporting" },
+        { value: "Monthly", label: "Performance Review" },
       ]}
       features={[
         {
           icon: <Calendar size={20} />,
           title: "Strategic Content Calendar",
-          desc: "Monthly content plan built around your brand, cultural moments, industry trends, and business goals, approved by you before publishing.",
+          desc: "A forward content plan built around your offers, audience questions, relevant moments, and the review workflow agreed during onboarding.",
         },
         {
           icon: <Camera size={20} />,
           title: "Professional Content Creation",
-          desc: "Designed graphics, carousel posts, story templates, and short-form video scripts: branded, high-quality, and tuned for each platform.",
+          desc: "Create the graphics, carousels, story assets, copy, or video scripts included in your plan, adapted for the selected channels.",
         },
         {
           icon: <Share2 size={20} />,
           title: "Multi-Platform Management",
-          desc: "We manage Facebook, Instagram, LinkedIn, TikTok, and X from a single strategy. Consistent messaging, platform-native formats, and cross-platform amplification.",
+          desc: "Coordinate the channels in your selected plan from one strategy while adapting format, tone, and publishing details to each platform.",
         },
         {
           icon: <MessageSquare size={20} />,
           title: "Community Management",
-          desc: "We monitor and respond to comments, DMs, and reviews in your brand voice, building genuine relationships with your audience.",
+          desc: "Monitor and triage the agreed comments, messages, or reviews during contracted coverage, using approved responses and escalation rules.",
         },
         {
           icon: <TrendingUp size={20} />,
-          title: "Hashtag & Algorithm Strategy",
-          desc: "Research-based hashtag sets, posting time optimisation, and engagement-first tactics that work with each platform's algorithm.",
+          title: "Discovery & Publishing Tests",
+          desc: "Test topics, formats, keywords, hashtags, and posting windows using platform guidance and your account's observed performance.",
         },
         {
           icon: <Users size={20} />,
-          title: "Audience Growth Campaigns",
-          desc: "Targeted follower growth through engagement campaigns, collaborations, and content that attracts the right audience: real people, not bots.",
+          title: "Audience Development",
+          desc: "Use useful content, collaborations, and approved campaigns to reach relevant people. Follower or lead growth is measured, not guaranteed.",
         },
         {
           icon: <BarChart2 size={20} />,
           title: "Monthly Analytics Reports",
-          desc: "Clear monthly reports showing follower growth, reach, engagement, best-performing content, and social media's contribution to website traffic and leads.",
+          desc: "Review reach, audience change, engagement, content performance, and configured referral events, with attribution limits stated clearly.",
         },
         {
           icon: <Star size={20} />,
           title: "Reputation & Review Management",
-          desc: "Monitor and respond to Google, Facebook, and TrustPilot reviews. Build a strong reputation that converts new customers before they contact you.",
+          desc: "For supported channels included in scope, organise review monitoring, draft responses, and escalate issues that need an authorised decision.",
         },
       ]}
       plans={SOCIAL_MEDIA_PLANS}
@@ -97,29 +97,29 @@ export default function SocialMediaPage() {
         { id: "social-ads", label: "Social Media Ad Boosting Management", price: 15000, period: "month" },
       ]}
       process={[
-        { num: "01", title: "Brand & Audience Audit", desc: "We review your existing social presence, analyse your target audience, study competitors, and identify content opportunities that will grow your business." },
-        { num: "02", title: "Strategy & Content Plan", desc: "Build your 30-day content calendar including post types, topics, visual style, hashtag strategy, and posting schedule, all approved by you before we publish." },
-        { num: "03", title: "Create & Publish", desc: "Our designers and copywriters produce all content. We schedule everything, engage with your community daily, and adapt to trending moments when useful." },
-        { num: "04", title: "Analyse & Improve", desc: "Monthly deep-dive into performance data. We identify what drove the most reach, engagement, and leads, then improve next month's strategy." },
+        { num: "01", title: "Brand, Channel & Risk Audit", desc: "We review your current accounts, target audience, access, brand rules, competitors, and issues that require an authorised response." },
+        { num: "02", title: "Strategy & Review Plan", desc: "We define content pillars, selected channels, formats, publishing cadence, approval route, response coverage, and escalation contacts." },
+        { num: "03", title: "Create & Publish", desc: "We produce the content included in your plan, route it through the agreed review process, and schedule approved posts." },
+        { num: "04", title: "Measure & Refine", desc: "Monthly review connects platform metrics to content decisions, documents what was tested, and shapes the next calendar." },
       ]}
       whyPoints={[
-        { title: "Local-Fluent Content", desc: "We know local culture, trending topics, public holidays, and the type of content that resonates with audiences across Kenya and the diaspora.", visual: "localMarket" },
-        { title: "Real Engagement, Not Empty Metrics", desc: "We do not chase likes alone. We build communities that comment, share, DM, and become customers. Engagement quality matters most.", visual: "engagement" },
-        { title: "Dedicated Account Manager", desc: "You have one person who knows your brand inside out, not a rotating team. Consistent quality and a direct communication channel.", visual: "support" },
-        { title: "Content Approved Before Publishing", desc: "You review and approve the full month's content before anything goes live. Brand safety and message accuracy stay in your control.", visual: "approval" },
-        { title: "We Handle Everything", desc: "Strategy, design, copywriting, scheduling, community management, reporting. You do not need to think about social media day to day.", visual: "calendar" },
-        { title: "Platform Algorithm Experts", desc: "Instagram, TikTok, LinkedIn, and Facebook algorithms change constantly. Our team tracks updates and adjusts content strategy to maintain reach.", visual: "algorithm" },
+        { title: "Context Before Trends", desc: "Local moments and platform trends are used only when they fit your audience, brand, and business purpose.", visual: "localMarket" },
+        { title: "Quality Signals Over Vanity Counts", desc: "We look beyond follower totals to saves, replies, profile actions, qualified conversations, and other signals relevant to your goal.", visual: "engagement" },
+        { title: "A Consistent Account Lead", desc: "A dedicated account manager coordinates the calendar, feedback, production, and reporting so decisions have a clear owner.", visual: "support" },
+        { title: "Control Through a Defined Workflow", desc: "Your onboarding records who reviews planned content, what may be scheduled after approval, and how urgent changes are handled.", visual: "approval" },
+        { title: "A Repeatable Publishing Operation", desc: "Strategy, production, scheduling, scoped community work, and reporting run on one documented cadence rather than ad hoc requests.", visual: "calendar" },
+        { title: "Adaptation Based on Evidence", desc: "Platform changes inform testing, but your own account data and business goals determine what the team repeats or stops.", visual: "algorithm" },
       ]}
       faqs={[
-        { q: "Will you post content without my approval?", a: "Never. We create the full monthly content calendar and share it with you for review and approval at least 5 days before the first post of the month. You can request changes before anything is published." },
+        { q: "Will you post content without my approval?", a: "We agree the review and publishing workflow during onboarding. Planned content is shared for review on the agreed schedule; once approved, it may be scheduled. Time-sensitive changes and delegated publishing rules are documented separately." },
         { q: "How do you create content if you don't know my business?", a: "We start with a comprehensive onboarding session where we learn your brand voice, target customer, key messages, and business goals. We also research your industry and competitors ongoing." },
-        { q: "Can you manage our WhatsApp Business account too?", a: "WhatsApp Business management is available as a custom add-on for Enterprise clients. We manage broadcast lists, automated responses, and customer communication flows." },
-        { q: "Do you respond to negative comments or complaints?", a: "Yes. Community management includes responding to all comments and DMs including negative ones, in a professional, brand-consistent way. For serious issues, we escalate to you before responding." },
-        { q: "How long before we see growth?", a: "Organic growth is steady. Expect meaningful progress within the first 30 days of active work, with stronger compounding over the next few months. Growth often accelerates when combined with paid ads." },
-        { q: "What platforms do you support?", a: "We manage Facebook, Instagram, LinkedIn, TikTok, X (Twitter), YouTube Shorts, and Pinterest. Not every platform is right for every business. We recommend the best combination based on where your customers spend time." },
+        { q: "Can you manage our WhatsApp Business account too?", a: "WhatsApp Business work may be scoped for Enterprise clients after reviewing account access, consent, message types, response ownership, and the available platform tools." },
+        { q: "Do you respond to negative comments or complaints?", a: "Within contracted community-management coverage, we can triage and draft or send approved responses. Legal, safety, account, refund, and high-risk complaints are escalated to your authorised team according to the response guide." },
+        { q: "How long before we see growth?", a: "There is no reliable fixed growth window. Baseline audience quality, content supply, channel maturity, competition, spend, and platform changes all affect results. Early reporting focuses on establishing a baseline and learning what earns relevant responses." },
+        { q: "What platforms do you support?", a: "Plans can cover selected channels such as Facebook, Instagram, LinkedIn, TikTok, or X. Other channels are confirmed during scoping; the recommended mix depends on your audience, content capacity, and plan." },
       ]}
       ctaHeadline="Let's Build a Social Presence That Generates Real Business"
-      ctaSubtext="Your customers are on social media right now. We help them see useful content from you, with clear reporting. Book a free strategy call to see what we would post first."
+      ctaSubtext="Choose the audience, channels, and business questions that matter most. We will propose a content rhythm, review workflow, and measurement plan your team can sustain."
       pricingNote={SERVICE_PACKAGE_NOTES.SOCIAL_MEDIA}
       showcaseBlocks={showcaseBlocks}
     />

@@ -42,7 +42,7 @@ export default function HybridEmailPage() {
               </a>
             </div>
             <p className="mt-5 text-sm text-muted-foreground">
-              Reduce unnecessary suite licences by moving email-focused users to Nisc Mail. We calculate potential savings from your actual licence mix and migration costs.
+              We review your actual licence mix, collaboration needs and migration scope before presenting a tailored annual quotation. Lower cost is possible, but not assumed.
             </p>
           </div>
           <div className="rounded-2xl border border-border bg-card p-6 md:p-8">
@@ -129,15 +129,15 @@ export default function HybridEmailPage() {
         </section>
         <section className="mx-auto max-w-7xl px-4 py-16 md:px-8">
           <p className="text-sm font-semibold text-primary">
-            Cloud productivity partnerships
+            Cloud productivity options
           </p>
           <h2 className="mt-3 text-3xl font-bold">
             Google Workspace. Microsoft 365. Nisc Mail.
           </h2>
           <p className="mt-4 max-w-2xl leading-relaxed text-muted-foreground">
-            Our Google Workspace and Microsoft 365 partnerships support a
-            practical choice of cloud suite and mailbox configuration. Your
-            proposal sets out the products, licence terms and services included.
+            Choose the suite and mailbox configuration that fits each team.
+            Your proposal identifies the products, licence terms, routing,
+            migration responsibilities and support services included.
           </p>
           <Link
             to="/contact?service=launch&serviceName=Enterprise%20Hybrid%20Email"

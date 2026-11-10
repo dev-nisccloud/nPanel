@@ -224,9 +224,6 @@ export function ServiceArtwork({
           </p>
         </div>
       </div>
-      <p className="relative mt-4 text-right text-[10px] text-muted-foreground">
-        Service illustration
-      </p>
     </div>
   );
 }

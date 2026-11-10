@@ -34,8 +34,8 @@ export default function PaidAdsPage() {
   return (
     <ServicePageShell
       badge="Paid Advertising Management"
-      headline={<>Google, Meta & TikTok Ads <br /><span className="text-primary">That Bring Real Customers</span></>}
-      subtext="Stop spending on ads that get clicks but no customers. We run performance-first campaigns on Google, Facebook, Instagram, and TikTok with clear tracking and reporting."
+      headline={<>Paid media built around <br /><span className="text-primary">accountable decisions</span></>}
+      subtext="Plan, launch and improve campaigns across Google, Meta and TikTok with agreed goals, clear budget ownership and measurement that distinguishes platform activity from business outcomes."
       serviceType="marketing"
       checkoutServiceType="paid_ads"
       checkoutProductName="Paid Ads"
@@ -43,9 +43,9 @@ export default function PaidAdsPage() {
       heroImageStandalone
       trustStats={[
         { value: "Separate", label: "Fee From Ad Spend" },
-        { value: "Monthly", label: "Performance Reports" },
+        { value: "Agreed", label: "Campaign Measures" },
         { value: "Free", label: "Strategy Call" },
-        { value: "Clear", label: "Lead & Sales Reporting" },
+        { value: "Monthly", label: "Review Cadence" },
       ]}
       features={[
         {
@@ -102,12 +102,10 @@ export default function PaidAdsPage() {
         { num: "04", title: "Report & Scale", desc: "Monthly reports with plain-English insights. We show what your ad budget produced and how we will improve results next month." },
       ]}
       whyPoints={[
-        { title: "We Understand Local Buyers", desc: "Ad copy that works elsewhere does not always work here. We craft messaging, visuals, and offers tuned to local culture and buying behaviour.", visual: "localMarket" },
-        { title: "No Wasted Impressions", desc: "We focus on targeting precision. Every impression should be seen by someone more likely to buy, not wasted on the wrong audience.", visual: "targeting" },
+        { title: "Brief Before Budget", desc: "The campaign starts with the audience, offer, destination and customer action—not with a platform setting.", visual: "localMarket" },
+        { title: "Channel Choice Has a Reason", desc: "Search, social prospecting and remarketing play different roles. We recommend channels around intent and available evidence.", visual: "targeting" },
         { title: "Management Fee Separate from Ad Spend", desc: "Our management fee is fixed. Your ad spend goes to the platforms. No hidden markups on ad spend.", visual: "pricing" },
-        { title: "Conversion Tracking Done Properly", desc: "We set up Google Tag Manager, Meta Pixel, and server-side tracking so every lead is attributed clearly.", visual: "tracking" },
-        { title: "Accountable, Measurable Results", desc: "We agree on KPIs upfront: cost per lead, cost per sale, and return targets. Every report shows progress against these metrics.", visual: "results" },
-        { title: "Creative That Converts", desc: "Pretty ads do not always convert. We test direct-response creative, testimonial ads, and offer-led copy to find what drives sales.", visual: "creative" },
+        { title: "Measurement With Context", desc: "Reports distinguish spend, delivery, attributed actions and confirmed business outcomes, including known tracking limitations.", visual: "tracking" },
       ]}
       faqs={[
         { q: "How much budget do I need for paid ads to work?", a: "We recommend a minimum monthly ad spend of KES 30,000 for meaningful results on a single platform. This gives enough data for optimisation. Budgets of KES 100,000+ per month typically see better scale." },
@@ -117,8 +115,8 @@ export default function PaidAdsPage() {
         { q: "Do you create the ad images and copy?", a: "Yes. All plans include ad creative (images and copy). Higher plans also include video ads. We create content specifically tested for local audiences." },
         { q: "What if my ads aren't performing?", a: "Performance issues are normal, especially in the first 30 days. We optimise continuously. We review results against the targets agreed in your proposal every month and adjust budgets, audiences and creative." },
       ]}
-      ctaHeadline="Turn Your Ad Budget Into Clear Results"
-      ctaSubtext="We build campaigns with proper tracking, weekly optimisation, and reporting you can understand. Let's make every shilling work harder."
+      ctaHeadline="Plan Your Next Paid-Media Move"
+      ctaSubtext="Bring your offer, current campaigns and budget range. We will identify the questions to resolve before recommending a scoped campaign."
       pricingNote={SERVICE_PACKAGE_NOTES.PAID_ADS}
       showcaseBlocks={showcaseBlocks}
     />

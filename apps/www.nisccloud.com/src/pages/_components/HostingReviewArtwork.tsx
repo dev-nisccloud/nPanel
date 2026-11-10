@@ -73,9 +73,6 @@ export function HostingPerformanceArtwork() {
           <circle className="brg-ring" cx="492.3" cy="369.7" r="6.6" fill="none" stroke="#38b6ff" strokeWidth="1.2" />
         </svg>
       </div>
-      <figcaption className="mt-3 text-center text-xs text-muted-foreground">
-        Illustrative performance report. Results depend on your website.
-      </figcaption>
     </figure>
   );
 }
@@ -161,9 +158,6 @@ export function HostingManagementArtwork() {
           </div>
         </div>
       </div>
-      <figcaption className="mt-3 text-center text-xs text-muted-foreground">
-        Illustrative nPanel view
-      </figcaption>
     </figure>
   );
 }

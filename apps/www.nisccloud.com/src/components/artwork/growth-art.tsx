@@ -88,7 +88,6 @@ export function EmailCampaignArt({ variant = 0 }: { variant?: number }) {
         <Float className="sm:bottom-0 sm:left-0 sm:w-40">
           <Pill tone="sky">Sent</Pill>
           <p className="mt-1.5 text-[11px] font-semibold text-foreground">Report ready</p>
-          <p className="text-[9px] text-muted-foreground">Sample figures for illustration</p>
         </Float>
       </ArtStage>
     );

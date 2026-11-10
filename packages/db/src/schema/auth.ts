@@ -1,5 +1,5 @@
-import { relations } from "drizzle-orm";
-import { pgTable, text, timestamp, boolean, index, integer } from "drizzle-orm/pg-core";
+import { relations, sql } from "drizzle-orm";
+import { pgTable, text, timestamp, boolean, index, integer, check } from "drizzle-orm/pg-core";
 import { agencyRole } from "./agency-rbac";
 
 export const user = pgTable("user", {
@@ -13,6 +13,8 @@ export const user = pgTable("user", {
   lastAccessedTeamId: text("last_accessed_team_id"),
   lastLoginAt: timestamp("last_login_at"),
   image: text("image"),
+  displayCurrency: text("display_currency"),
+  displayCurrencyUpdatedAt: timestamp("display_currency_updated_at"),
 
   notificationSoundEnabled: boolean("notification_sound_enabled").default(true),
   browserNotificationsEnabled: boolean("browser_notifications_enabled").default(false),
@@ -48,6 +50,7 @@ export const user = pgTable("user", {
   index("user_agencyRoleId_idx").on(table.agencyRoleId),
   index("user_status_idx").on(table.status),
   index("user_lastAccessedTeamId_idx").on(table.lastAccessedTeamId),
+  check("user_display_currency_check", sql`${table.displayCurrency} is null or ${table.displayCurrency} in ('KES', 'USD')`),
 ]);
 
 export const session = pgTable(

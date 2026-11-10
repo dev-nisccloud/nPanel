@@ -1,4 +1,4 @@
-import { Trash2 } from "lucide-react";
+import { RefreshCw, Timer, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Separator } from "@/components/ui/separator.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
@@ -48,6 +48,9 @@ interface OrderSummaryProps {
   currency: StorefrontCurrency;
   kesToDisplayRate: number;
   quoteExpiresAt?: number;
+  quoteExpiresIn?: number | null;
+  quoteExpired?: boolean;
+  onRefreshQuote?: () => void;
   taxRate?: number;
   /** First load  full-page skeleton handles this; used for non-hivelocity carts. */
   quoteInitialLoading?: boolean;
@@ -107,6 +110,9 @@ export function OrderSummary({
   currency,
   kesToDisplayRate,
   quoteExpiresAt,
+  quoteExpiresIn,
+  quoteExpired = false,
+  onRefreshQuote,
   taxRate = 0.16,
   quoteInitialLoading = false,
   quoteSummaryLoading = false,
@@ -163,6 +169,8 @@ export function OrderSummary({
   const taxAmount = authoritativeTotals?.taxAmount ?? clientTaxAmount;
   const total = authoritativeTotals?.total ?? clientSubtotal + clientTaxAmount;
   const summaryBusy = quoteSummaryLoading || (quoteInitialLoading && !authoritativeTotals);
+  const quoteMinutes = quoteExpiresIn == null ? null : Math.floor(quoteExpiresIn / 60_000);
+  const quoteSeconds = quoteExpiresIn == null ? null : Math.floor((quoteExpiresIn % 60_000) / 1_000);
 
   return (
     <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
@@ -280,14 +288,32 @@ export function OrderSummary({
           <span className="text-base font-bold text-foreground">Total</span>
           <span className="text-xl font-bold text-foreground">{fmtTotal(total)}</span>
         </div>
-        {quoteExpiresAt && (
-          <p className="text-right text-xs text-muted-foreground">
-            Price locked until{" "}
-            {new Date(quoteExpiresAt).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
+        {quoteExpiresAt && !quoteExpired && (
+          <p className="flex items-center justify-end gap-1.5 text-right text-xs text-muted-foreground" aria-live="polite">
+            <Timer className="size-3.5" aria-hidden="true" />
+            Price locked for {quoteMinutes}:{String(quoteSeconds ?? 0).padStart(2, "0")}
           </p>
+        )}
+        {quoteExpired && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm" role="status">
+            <p className="font-semibold text-foreground">This price lock has expired.</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Refresh the quote before continuing. We will show any change before payment.
+            </p>
+            {onRefreshQuote && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="mt-3"
+                onClick={onRefreshQuote}
+                disabled={quoteSummaryLoading}
+              >
+                <RefreshCw className={`size-3.5 ${quoteSummaryLoading ? "animate-spin" : ""}`} />
+                Refresh price
+              </Button>
+            )}
+          </div>
         )}
 
         {/* Coupon  re-enable when promo codes are supported
@@ -307,7 +333,7 @@ export function OrderSummary({
           form={step === 2 ? customerFormId : undefined}
           className="hidden lg:inline-flex w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base shadow-sm transition-all"
           onClick={step === 1 ? onContinue : undefined}
-          disabled={isContinueLoading || summaryBusy || continueDisabled}
+          disabled={isContinueLoading || summaryBusy || continueDisabled || quoteExpired}
         >
           {summaryBusy
             ? "Please wait…"

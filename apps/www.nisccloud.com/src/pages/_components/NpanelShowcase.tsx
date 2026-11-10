@@ -225,9 +225,6 @@ export default function NpanelShowcase() {
                 <View />
               </motion.div>
             </AnimatePresence>
-            <p className="mt-3 text-center text-xs text-muted-foreground">
-              Illustrative nPanel view · sample business and data
-            </p>
           </div>
         </div>
       </div>

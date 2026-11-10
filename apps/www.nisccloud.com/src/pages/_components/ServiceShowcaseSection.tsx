@@ -5,15 +5,35 @@ import { useLocation } from "react-router-dom";
  */
 
 import type { ReactNode } from "react";
-import { motion, useReducedMotion } from "motion/react";
 import { CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
 import type { VisualTheme } from "@/components/shadcn-space/blocks/built-different-01/visual-context.ts";
-import { HostingFlagshipArt, SeoFlagshipArt, BrandWebFlagshipArt } from "@/components/artwork/flagship-art.tsx";
-import { HostingSupportArt, MigrationArt, SslArt } from "@/components/artwork/cloud-art.tsx";
-import { SeoAnalyticsArt, ZeepoActivityArt, CheckoutArt, CreativeBriefArt } from "@/components/artwork/more-art.tsx";
-import { NpanelBusinessArt, NpanelOperationsArt } from "@/components/artwork/npanel-art.tsx";
-import { TeamWorkspaceArt, BrandKitArt, ZeepoArt, AdsArt } from "@/components/artwork/growth-art.tsx";
+import {
+  HostingFlagshipArt,
+  SeoFlagshipArt,
+  BrandWebFlagshipArt,
+} from "@/components/artwork/flagship-art.tsx";
+import {
+  HostingSupportArt,
+  MigrationArt,
+  SslArt,
+} from "@/components/artwork/cloud-art.tsx";
+import {
+  SeoAnalyticsArt,
+  ZeepoActivityArt,
+  CheckoutArt,
+  CreativeBriefArt,
+} from "@/components/artwork/more-art.tsx";
+import {
+  NpanelBusinessArt,
+  NpanelOperationsArt,
+} from "@/components/artwork/npanel-art.tsx";
+import {
+  TeamWorkspaceArt,
+  BrandKitArt,
+  ZeepoArt,
+  AdsArt,
+} from "@/components/artwork/growth-art.tsx";
 
 /**
  * Approved artwork for the legacy `visual` theme keys still used by
@@ -43,10 +63,43 @@ const THEME_ARTWORK: Partial<Record<VisualTheme, () => ReactNode>> = {
   code: () => <BrandWebFlagshipArt />,
 };
 
+export type ShowcaseVisualKind = "concept-illustration" | "npanel-product-view";
+
+function OperationalProofVisual({
+  children,
+  kind = "concept-illustration",
+  caption,
+  className,
+}: {
+  children: ReactNode;
+  kind?: ShowcaseVisualKind;
+  caption?: ReactNode | false;
+  className?: string;
+}) {
+  return (
+    <figure
+      className={cn("w-full", className)}
+      data-showcase-visual-kind={kind}
+    >
+      <div>{children}</div>
+      {caption !== false && caption != null && (
+        <figcaption className="mt-3 text-center text-xs text-muted-foreground">
+          {caption}
+        </figcaption>
+      )}
+    </figure>
+  );
+}
+
 export type ShowcaseBlock = {
   /** Optional section label  not rendered (kept for existing page data). */
   tag?: string;
   artwork?: ReactNode;
+  /**
+   * Defaults to concept artwork. Use `npanel-product-view` only for a
+   * verified screenshot of the real nPanel interface.
+   */
+  visualKind?: ShowcaseVisualKind;
   /** Set to false when the supplied artwork already carries its own disclosure. */
   caption?: ReactNode | false;
   id?: string;
@@ -70,26 +123,58 @@ export function ShowcaseVisualCard({
   visual,
   headline,
   className,
+  visualKind = "concept-illustration",
 }: {
   visual: VisualTheme;
   headline: string;
   className?: string;
+  visualKind?: ShowcaseVisualKind;
 }) {
   const render = THEME_ARTWORK[visual] ?? THEME_ARTWORK.clarity!;
   return (
-    <div className={cn("w-full", className)} data-showcase-headline={headline}>
-      {render()}
-      <p className="mt-3 text-center text-xs text-muted-foreground">
-        Illustration · sample business and data
-      </p>
-    </div>
+    <OperationalProofVisual
+      kind={visualKind}
+      className={className}
+      caption={false}
+    >
+      <div className="w-full" data-showcase-headline={headline}>
+        {render()}
+      </div>
+    </OperationalProofVisual>
   );
 }
 
 function Block({ block, index }: { block: ShowcaseBlock; index: number }) {
-  const {pathname}=useLocation();
-  const reduced = useReducedMotion();
-  const mode: ExperienceMode = (pathname.includes("vps") || pathname.includes("dedicated") || pathname.includes("vds")) ? "terminal" : pathname.includes("wordpress") ? "wordpress" : pathname.includes("transfer") ? "migration" : pathname.includes("email-marketing") ? "marketing" : pathname.includes("email") ? "mail" : pathname.includes("brand") ? "brand" : pathname.includes("ecommerce") ? "commerce" : pathname.includes("seo") ? "search" : pathname.includes("zeepo") ? "ai" : pathname.includes("social") || pathname.includes("paid-ads") ? "marketing" : pathname.includes("domain") ? "domain" : pathname.includes("website-design") ? "web" : "hosting";
+  const { pathname } = useLocation();
+  const mode: ExperienceMode =
+    pathname.includes("vps") ||
+    pathname.includes("dedicated") ||
+    pathname.includes("vds")
+      ? "terminal"
+      : pathname.includes("wordpress")
+        ? "wordpress"
+        : pathname.includes("transfer")
+          ? "migration"
+          : pathname.includes("email-marketing")
+            ? "marketing"
+            : pathname.includes("email")
+              ? "mail"
+              : pathname.includes("brand")
+                ? "brand"
+                : pathname.includes("ecommerce")
+                  ? "commerce"
+                  : pathname.includes("seo")
+                    ? "search"
+                    : pathname.includes("zeepo")
+                      ? "ai"
+                      : pathname.includes("social") ||
+                          pathname.includes("paid-ads")
+                        ? "marketing"
+                        : pathname.includes("domain")
+                          ? "domain"
+                          : pathname.includes("website-design")
+                            ? "web"
+                            : "hosting";
 
   const right =
     block.visualRight !== undefined
@@ -99,13 +184,7 @@ function Block({ block, index }: { block: ShowcaseBlock; index: number }) {
         : index % 2 === 0;
 
   const text = (
-    <motion.div
-      initial={reduced ? false : { opacity: 0, x: right ? -28 : 28 }}
-      whileInView={{ opacity: 1, x: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.55 }}
-      className="flex flex-col justify-center"
-    >
+    <div className="flex flex-col justify-center">
       <h3 className="mb-4 text-2xl font-bold leading-snug tracking-tight md:text-3xl">
         {block.headline}
       </h3>
@@ -123,25 +202,18 @@ function Block({ block, index }: { block: ShowcaseBlock; index: number }) {
           </li>
         ))}
       </ul>
-    </motion.div>
+    </div>
   );
 
   const visualPanel = (
-    <motion.div
-      initial={reduced ? false : { opacity: 0, x: right ? 28 : -28 }}
-      whileInView={{ opacity: 1, x: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.55, delay: 0.08 }}
+    <OperationalProofVisual
+      kind={block.visualKind}
+      caption={block.caption}
     >
       {block.artwork ?? (
         <ServiceExperience mode={mode} photo={index === 0} variant={index} />
       )}
-      {block.caption !== false && (
-        <p className="mt-3 text-center text-xs text-muted-foreground">
-          {block.caption ?? "Illustration · sample business and data"}
-        </p>
-      )}
-    </motion.div>
+    </OperationalProofVisual>
   );
 
   return (

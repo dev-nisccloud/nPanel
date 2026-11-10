@@ -20,12 +20,12 @@ const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "WordPress Performance",
  artwork: <ServiceExperience mode="wordpress" photo />,
-    headline: "Tuned for WordPress from day one.",
-    body: "Our stack is built for WordPress: PHP 8.3, MariaDB, OPcache, and LiteSpeed Cache pre-configured. Sites that used to feel slow load cleaner and faster on our platform.",
+    headline: "A hosting environment selected for WordPress.",
+    body: "Current plans combine WordPress-aware configuration and caching options. Check the live plan details for included software versions, tools and resource limits.",
     bullets: [
-      "LiteSpeed Cache pre-installed and configured automatically",
-      "PHP 8.3 with OPcache for faster WordPress execution",
-      "HTTP/2 multiplexing for parallel asset loading",
+      "WordPress-aware setup on eligible plans",
+      "Current runtime details shown with the plan",
+      "Caching and delivery options by plan",
     ],
     mockupRight: true,
     visual: "wpPerf",
@@ -34,11 +34,11 @@ const showcaseBlocks: ShowcaseBlock[] = [
     tag: "Staging and Safety",
  artwork: <ServiceExperience mode="wordpress" />,
     headline: "Test changes before they go live.",
-    body: "One-click staging environments let you test plugin updates, redesigns, and new features on a full clone of your live site. Push to production only when you are confident. Available on Business and Agency plans.",
+    body: "Where included, staging gives you a separate place to review plugin updates, redesigns and new features before applying them to production. Check the selected plan for workflow and retention details.",
     bullets: [
-      "One-click staging site creation, no technical setup required",
-      "Auto WordPress updates tested on staging before going live",
-      "30-day backup retention, restore any version in one click",
+      "Staging availability shown on the selected plan",
+      "A safer review path for eligible updates",
+      "Backup and restore terms defined by plan",
     ],
     mockupRight: false,
     visual: "wpStaging",
@@ -55,62 +55,62 @@ export default function WordPressHostingPage() {
           <span className="text-primary">Fast, Secure and Managed</span>
         </>
       }
-      subtext="Purpose-built WordPress infrastructure with auto-updates, daily backups, and a staging environment. Focus on your business. We handle the technical complexity."
+      subtext="Choose managed WordPress hosting for a simpler operating path across setup, updates, backups and support. Exact tools, retention and management scope are shown on each live plan."
       serviceType="hosting"
       plansUnderHero
       customPlansSection={<WordPressPricingSection />}
       heroImage={niscWebsiteImage("wordpress hosting.png")}
       heroImageStandalone
       heroTrustBadge={{
-        line1: "PHP 8.3 and LiteSpeed Cache",
-        line2: "Free migration and WordPress-aware support",
+        line1: "WordPress-aware hosting",
+        line2: "Scoped migration and support options",
       }}
       trustStats={[
-        { value: "Free", label: "Expert Migration" },
+        { value: "Scoped", label: "Migration Assistance" },
         { value: "99.9%", label: "Uptime Target" },
-        { value: "Free", label: "Migration Included" },
-        { value: "Daily", label: "Automated Backups" },
+        { value: "Plan", label: "Managed Features" },
+        { value: "Listed", label: "Backup Schedule" },
       ]}
       features={[
         {
           icon: <Globe size={20} />,
           title: "WordPress-Optimised Stack",
-          desc: "PHP 8.3, MariaDB 10.11, OPcache, and LiteSpeed. Every layer is tuned for WordPress so your site stays fast for visitors wherever they are.",
+          desc: "Review the selected plan for its current PHP, database, caching and web-server configuration before checking plugin or theme requirements.",
         },
         {
           icon: <Zap size={20} />,
           title: "Built-In WP Caching",
-          desc: "LiteSpeed Cache plugin pre-installed and configured. Static pages served directly from cache, reducing server load and page load times.",
+          desc: "Eligible plans include WordPress caching options that can reduce repeated processing when configured for the site.",
         },
         {
           icon: <Shield size={20} />,
           title: "WordPress Firewall and Malware Scanning",
-          desc: "Dedicated WordPress WAF blocks common attacks like SQL injection, XSS, and brute-force login attempts before they reach your site.",
+          desc: "Available protection can help filter common web attacks and scan for suspicious content. Included controls vary by plan and do not replace secure site maintenance.",
         },
         {
           icon: <Code2 size={20} />,
           title: "One-Click Staging Environment",
-          desc: "Test plugin updates, theme changes, and new features on a full copy of your live site. Push to production with a single click when you are satisfied.",
+          desc: "Where the plan includes staging, test plugin updates, theme changes and new features away from the live site before a planned release.",
         },
         {
           icon: <RefreshCw size={20} />,
           title: "Automatic WordPress Updates",
-          desc: "Core WordPress updates are applied automatically during low-traffic hours. We test on your staging environment first, to reduce the risk of disruption to your live site.",
+          desc: "Update handling depends on the selected plan and management scope. Confirm which core, theme and plugin updates are automated or reviewed.",
         },
         {
           icon: <BarChart2 size={20} />,
           title: "Performance Dashboard",
-          desc: "Monitor your WordPress site's speed, uptime, database health, and resource usage from one clean dashboard. Get alerted before problems affect visitors.",
+          desc: "Review the service and resource information available for your plan, then add application monitoring where your site requires it.",
         },
         {
           icon: <Lock size={20} />,
           title: "Free SSL and HTTP/2",
-          desc: "Free SSL certificate provisioned quickly. HTTP/2 multiplexing means multiple resources load in parallel, which helps WordPress sites with many assets.",
+          desc: "Check the live plan for included TLS certificate and protocol support, plus any activation requirements for your domain.",
         },
         {
           icon: <Headphones size={20} />,
           title: "WordPress Expert Support",
-          desc: "Our support team understands WordPress. We help with plugin conflicts, theme issues, and performance problems, not just basic server tickets.",
+          desc: "WordPress-aware assistance is available within the support scope of the selected plan; custom-code and third-party remediation may need separate work.",
         },
       ]}
       plans={[]}
@@ -142,13 +142,13 @@ export default function WordPressHostingPage() {
         },
         {
           num: "02",
-          title: "WordPress Auto-Installed",
-          desc: "A clean WordPress install is ready with your chosen domain, free SSL, and LiteSpeed Cache pre-configured.",
+          title: "Prepare WordPress",
+          desc: "Set up a clean installation with the domain, certificate and caching options included in the selected plan.",
         },
         {
           num: "03",
-          title: "We Migrate Your Existing Site",
-          desc: "Already have a WordPress site? Our team migrates it for free: database, files, plugins, and all, with careful planning to limit downtime.",
+          title: "Scope an Existing-Site Move",
+          desc: "If you are moving a site, confirm its size, dependencies, access and cutover plan. Included migration help is limited to the scope agreed before work starts.",
         },
         {
           num: "04",
@@ -159,7 +159,7 @@ export default function WordPressHostingPage() {
       whyPoints={[
         {
           title: "Managed So You Don't Have To", visual: "deploy",
-          desc: "Updates, backups, security patches. We handle all of it automatically. You focus on content and customers, not server administration.",
+          desc: "Confirm which updates, backups and security tasks the chosen plan handles, so your team knows what remains its responsibility.",
         },
         {
           title: "WooCommerce Ready Out of the Box", visual: "payment",
@@ -170,8 +170,8 @@ export default function WordPressHostingPage() {
           desc: "Caching and a WordPress-tuned stack keep pages responsive for visitors wherever they are.",
         },
         {
-          title: "Free Expert Migration", visual: "migration",
-          desc: "We migrate WordPress sites with backups, testing and a planned cutover. Your current site stays live while we move you over.",
+          title: "Planned Migration Assistance", visual: "migration",
+          desc: "Eligible moves are scoped for access, backups, testing and cutover first. Extra remediation is quoted before it begins.",
         },
         {
           title: "Real WordPress Help on Support", visual: "support",
@@ -179,13 +179,13 @@ export default function WordPressHostingPage() {
         },
         {
           title: "Room to Grow With Traffic", visual: "growth",
-          desc: "Our WordPress plans are built to handle busy days, product launches, and traffic spikes without falling over.",
+          desc: "Compare plan limits and move to a larger profile as measured traffic, storage and processing needs increase.",
         },
       ]}
       faqs={[
         {
           q: "Can you migrate my existing WordPress site?",
-          a: "Yes, and it is free within the scope we agree before the move. Our migration team moves your site including plugins, themes, media, and database with minimal downtime. Most migrations complete within 24 hours. Extra work, such as fixing an existing fault, is quoted first and only charged once you approve it.",
+          a: "Migration assistance may be included within a scope agreed before the move. We review access, files, database, plugins, themes and cutover needs first; timing depends on site size, compatibility and access. Existing faults or extra remediation are quoted before work begins.",
         },
         {
           q: "Will my WooCommerce store work?",
@@ -197,20 +197,20 @@ export default function WordPressHostingPage() {
         },
         {
           q: "Can I use my own custom WordPress theme?",
-          a: "Yes. You have full access to your WordPress admin and can install any theme or plugin. We don't restrict what you can build.",
+          a: "You can manage themes and plugins through WordPress, subject to technical compatibility, plan resources, licensing, security controls and the Acceptable Use Policy.",
         },
         {
           q: "Is PHP version configurable?",
-          a: "Yes. You can switch between PHP 7.4, 8.1, 8.2, and 8.3 from your control panel. We recommend PHP 8.3 for best WordPress performance.",
+          a: "Available PHP versions depend on the current platform and selected plan. Confirm the required version before purchase, especially for older themes or plugins.",
         },
         {
           q: "Do you offer a money-back guarantee?",
           a: "Yes. New WordPress hosting accounts include a 7-day money-back guarantee, as set out in our Terms of Service. Contact support within 7 days and we process your refund.",
         },
       ]}
-      pricingNote="Prices are shown in your selected currency, excluding 16% VAT. Free migration included on all plans, within the agreed scope."
+      pricingNote="Prices are shown in your selected currency, excluding 16% VAT. Any included migration assistance is limited to the scope agreed before work starts."
       ctaHeadline="Get Managed WordPress Hosting That Just Works"
-      ctaSubtext="Stop fighting slow, unreliable hosting. Get a WordPress platform that is fast, secure, and backed by WordPress-aware support and free migration."
+      ctaSubtext="Choose a WordPress plan with clearly listed management, backup, staging and migration scope."
       showcaseBlocks={showcaseBlocks}
     />
   );

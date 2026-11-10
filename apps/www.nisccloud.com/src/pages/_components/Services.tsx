@@ -32,13 +32,13 @@ const services = [
   {
     icon: Server,
     title: "Cloud Hosting",
-    desc: "Reliable hosting with auto-scaling, CDN, DDoS protection, and a 99.9% uptime target.",
+    desc: "Plan-defined hosting with available CDN and security options, plus a 99.9% uptime target on eligible plans.",
     tag: "Host",
   },
   {
     icon: ShieldCheck,
     title: "Domains & Email",
-    desc: "Your domain and business email @yourdomain. SSL, backups, and security included.",
+    desc: "Your domain and business email @yourdomain, with SSL, backup, and security options defined by the selected plan.",
     tag: "Host",
   },
   {

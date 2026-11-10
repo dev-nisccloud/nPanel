@@ -519,6 +519,13 @@
       "when": 1794310812074,
       "tag": "0073_cool_forge",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1794329218137,
+      "tag": "0074_minor_red_shift",
+      "breakpoints": true
     }
   ]
 }

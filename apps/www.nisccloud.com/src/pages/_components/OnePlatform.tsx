@@ -7,7 +7,7 @@ const pillars = [
   { icon: Headphones, label: "Real Support", desc: "Real people from our team when something needs fixing." },
   { icon: BarChart3, label: "Clear Reporting", desc: "We measure what matters and show you progress in plain language." },
   { icon: ZepoMascot, label: "Zepo AI-Powered", desc: "Smart tools that help with content, campaigns, and follow-ups." },
-  { icon: ShieldCheck, label: "Enterprise-Grade Security", desc: "SSL, WAF, DDoS protection, and a 99.9% uptime target on hosting." },
+  { icon: ShieldCheck, label: "Security by Plan", desc: "SSL, WAF, DDoS controls, and a 99.9% uptime target where listed for the selected hosting plan." },
   { icon: Users, label: "Built for Growth", desc: "Hosting and marketing that work together for businesses of every size." },
 ];
 

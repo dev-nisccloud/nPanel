@@ -4,12 +4,12 @@ import SecurityHero from "../_components/SecurityHero.tsx";
 import SecurityMacbookSection from "../_components/SecurityMacbookSection.tsx";
 import SecurityPlans from "../_components/SecurityPlans.tsx";
 import SecurityFeatures from "../_components/SecurityFeatures.tsx";
-import SecurityCTA from "../_components/SecurityCTA.tsx";
 import {
   EmailGateArtwork,
   EmailSecurityScreen,
 } from "../_components/EmailSecurityArtwork.tsx";
 import FaqBlock from "@/components/shadcn-space/blocks/faq-01/faq.tsx";
+import { ClosingCta } from "@/components/closing-cta.tsx";
 import type { OrderPlan } from "@/pages/hosting/_components/OrderDialog.tsx";
 import {
   ShieldCheck,
@@ -24,22 +24,22 @@ const emailFaqs = [
   {
     question: "What is email security and why does my business need it?",
     answer:
-      "Email security protects your inbox from spam, phishing, malware attachments, and business email compromise. Without it, one malicious message can steal passwords, spread ransomware, or trick staff into wiring money. Managed email security filters threats before they reach your team.",
+      "Email security adds filtering and monitoring for spam, phishing, malware attachments, and business email compromise. One malicious message can steal passwords, spread ransomware, or trick staff into wiring money. Managed controls help identify and quarantine suspected threats before delivery, but they cannot remove every risk.",
   },
   {
     question: "How does anti-phishing protection work?",
     answer:
-      "Our filters check sender reputation, domain authentication (SPF, DKIM, and DMARC), link destinations, and message content. Suspicious messages are quarantined or tagged so employees do not click fake login pages or invoice scams.",
+      "Our filters check sender reputation, domain authentication (SPF, DKIM, and DMARC), link destinations, and message content. Suspected messages can be quarantined or tagged to reduce the likelihood of employees opening fake login pages or invoice scams.",
   },
   {
     question: "Will legitimate emails still get through?",
     answer:
-      "Yes. We tune filters to block threats while delivering real customer and supplier mail. You can review quarantine, whitelist trusted senders, and adjust rules so important messages are not lost.",
+      "The filters are tuned to separate likely threats from legitimate customer and supplier mail, but no filter can eliminate every false positive. Quarantine review, trusted-sender lists, and adjustable rules give your team control over held messages.",
   },
   {
     question: "Does email security work with Microsoft 365 and Google Workspace?",
     answer:
-      "Yes. We can sit in front of Microsoft 365, Google Workspace, or your hosted business email. Mail is scanned as it arrives, then delivered clean to your existing mailboxes.",
+      "It can work with supported Microsoft 365, Google Workspace, and hosted business email configurations. We verify your domain, mail flow, administrative access, and provider compatibility before changing delivery settings.",
   },
   {
     question: "What is DMARC and do I need it?",
@@ -49,12 +49,12 @@ const emailFaqs = [
   {
     question: "Can you stop ransomware arriving by email?",
     answer:
-      "Email is a common ransomware path. Our malware scanning strips or blocks dangerous attachments and suspicious links before they open on employee devices, reducing the chance of encryption attacks starting in the inbox.",
+      "Email is a common ransomware path. Malware scanning can detect and block known dangerous attachments and suspicious links during mail processing, reducing risk without guaranteeing that every ransomware attempt will be stopped.",
   },
   {
     question: "How quickly can email security be set up?",
     answer:
-      "Most businesses are protected within one business day. We update your MX or gateway settings, verify SPF/DKIM/DMARC, run a short monitoring period, then hand over quarantine access and reporting.",
+      "Setup time depends on DNS access, the current mail provider, mailbox count, and any change-control requirements. After confirming the scope, we update the agreed mail-routing settings, review SPF/DKIM/DMARC, validate delivery, and hand over the included quarantine and reporting access.",
   },
 ];
 
@@ -82,7 +82,7 @@ const emailPlans: OrderPlan[] = [
       "Everything in Standard",
       "Protect up to 50 mailboxes",
       "Advanced anti-spoofing rules",
-      "URL rewrite & click-time protection",
+      "URL rewrite & click-time checks where supported",
       "Priority incident support",
       "Monthly security review call",
     ],
@@ -93,21 +93,21 @@ const emailFeatures = [
   {
     icon: Ban,
     title: "Spam and Junk Filtering",
-    desc: "Block bulk spam and unwanted newsletters so your team spends time on real customer and partner messages, not inbox cleanup.",
+    desc: "Filter bulk spam and unwanted newsletters so your team spends less time on inbox cleanup and more time on customer and partner messages.",
     color: "text-orange-500",
     bg: "bg-orange-500/10",
   },
   {
     icon: MailWarning,
     title: "Phishing and Spoof Defence",
-    desc: "Detect fake invoices, credential-harvesting links, and lookalike domains before staff click. Protect your brand with SPF, DKIM, and DMARC.",
+    desc: "Identify suspicious invoices, credential-harvesting links, and lookalike domains for filtering or quarantine. Strengthen domain authentication with SPF, DKIM, and DMARC.",
     color: "text-red-500",
     bg: "bg-red-500/10",
   },
   {
     icon: ScanLine,
     title: "Malware Attachment Scanning",
-    desc: "Scan every attachment for trojans, macros, and ransomware. Dangerous files are blocked or sandboxed so devices stay clean.",
+    desc: "Inspect supported attachment types for known trojans, malicious macros, and ransomware indicators. Suspected files can be blocked or isolated for review.",
     color: "text-blue-500",
     bg: "bg-blue-500/10",
   },
@@ -142,24 +142,24 @@ export default function EmailSecurityPage() {
       <SecurityHero
         title={
           <>
-            Stop Phishing Before
+            Catch Suspected Phishing Before
             {" "}<br />
             <span className="text-primary">It Reaches Your Inbox</span>
           </>
         }
-        description="Business email security that filters spam, blocks phishing, scans attachments for malware, and hardens SPF, DKIM, and DMARC so criminals cannot spoof your domain."
+        description="Business email security that filters spam, identifies suspected phishing, scans supported attachments for malware, and strengthens SPF, DKIM, and DMARC against domain spoofing."
         visual={<EmailGateArtwork />}
         plansId="email-security-plans"
       />
       <SecurityMacbookSection
         title={
           <>
-            Threats filtered,
+            Threat signals reviewed,
             {" "}<br />
-            <span className="text-primary">before they land</span>
+            <span className="text-primary">during mail processing</span>
           </>
         }
-        description="See spam blocked, phishing quarantined, and malware attachments stopped in real time so your team stays focused on real work."
+        description="See suspected spam, phishing, and malicious attachments identified during mail processing so your team can review threats without losing sight of real work."
         screen={<EmailSecurityScreen />}
         srTitle="Nisc Cloud Email Security quarantine, domain authentication and daily totals"
       />
@@ -168,10 +168,10 @@ export default function EmailSecurityPage() {
         plans={emailPlans}
         serviceName="Email Security"
         title="Choose Your Email Protection"
-        subtitle="Works with Microsoft 365, Google Workspace, and hosted business email."
+        subtitle="Designed for supported Microsoft 365, Google Workspace, and hosted business email configurations."
       />
       <SecurityFeatures
-        title="Inbox Protection That Blocks Real Attacks"
+        title="Inbox Protection for Real Attack Paths"
         description="Layered email security designed for Kenyan businesses that rely on email for invoices, approvals, and customer support."
         features={emailFeatures}
       />
@@ -179,11 +179,13 @@ export default function EmailSecurityPage() {
         faqs={emailFaqs}
         title="Everything you need to know about email security"
       />
-      <SecurityCTA
-        title="Protect Every Mailbox Your Business Depends On"
-        description="Add managed spam filtering, anti-phishing, malware scanning, and domain authentication so one bad email cannot take down your company."
-        ctaLabel="View Email Security Plans"
-        plansId="email-security-plans"
+      <ClosingCta
+        eyebrow="Stay protected"
+        headline="Protect Every Mailbox Your Business Depends On"
+        subtext="Add managed spam filtering, anti-phishing, malware scanning, and domain authentication to reduce the risk that one malicious email disrupts your company."
+        primary={{ label: "View Email Security Plans", href: "#email-security-plans" }}
+        secondary={{ label: "Talk to an Expert", href: "/contact" }}
+        points={["Setup guidance included", "Pay with M-Pesa or card", "Ticket portal available 24/7 · staffed email, chat and phone support during working hours"]}
       />
       </main>
       <Footer />

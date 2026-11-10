@@ -232,6 +232,11 @@ export function TransferDomainSection() {
     parsedDomain != null &&
     hasNumericPrice &&
     (pricingHook.isLoadingTldSettings || isPricingProcessing || !transferPricingReady);
+  const showPriceUnavailable =
+    status === "valid" &&
+    parsedDomain != null &&
+    !showPricingLoading &&
+    !showReadyCard;
 
   const handleContinueToCart = async () => {
     if (!parsedDomain || !provider || displayPrice == null) return;
@@ -352,6 +357,9 @@ export function TransferDomainSection() {
               <p className="mt-2 text-sm text-muted-foreground">
                 After unlocking, wait about 15 seconds for the change to show, then check the domain again.
               </p>
+              <Button type="button" size="sm" variant="outline" className="mt-3" onClick={validateAndFetchPrice}>
+                Check again
+              </Button>
             </div>
           </div>
         )}
@@ -365,6 +373,14 @@ export function TransferDomainSection() {
             <div>
               <h3 className="font-medium text-destructive">This domain cannot transfer yet</h3>
               <p className="mt-1 text-sm text-muted-foreground">{message}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button type="button" size="sm" variant="outline" onClick={validateAndFetchPrice}>
+                  Check again
+                </Button>
+                <Button asChild type="button" size="sm" variant="ghost">
+                  <Link to="/whois">Review WHOIS details</Link>
+                </Button>
+              </div>
             </div>
           </div>
         )}
@@ -374,6 +390,23 @@ export function TransferDomainSection() {
             <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
             Applying your live transfer price…
           </p>
+        )}
+
+        {showPriceUnavailable && (
+          <div className="mt-4 rounded-lg border border-border bg-muted/20 p-4 text-left" role="status">
+            <h3 className="font-medium text-foreground">Transfer eligibility found, but pricing is unavailable</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Check again to request the current registry price. If it remains unavailable, our team can confirm the extension and transfer terms.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button type="button" size="sm" variant="outline" onClick={validateAndFetchPrice}>
+                Retry price
+              </Button>
+              <Button asChild type="button" size="sm" variant="ghost">
+                <Link to="/contact?serviceName=Domain%20Transfer">Contact our team</Link>
+              </Button>
+            </div>
+          </div>
         )}
       </div>
 
@@ -389,6 +422,15 @@ export function TransferDomainSection() {
             isLoading={isNavigatingToCart}
             onContinueToCart={handleContinueToCart}
           />
+          <div className="mx-auto mt-4 max-w-2xl rounded-xl border border-border/70 bg-muted/20 p-4 text-sm">
+            <p className="font-semibold text-foreground">Before checkout</p>
+            <p className="mt-1 leading-relaxed text-muted-foreground">
+              Save the current nameservers, keep DNS unchanged during the transfer, unlock the domain and request the current EPP code. Eligibility and code validity are finally confirmed after provider submission.
+            </p>
+            <Link to="/whois" className="mt-3 inline-flex font-semibold text-primary hover:underline">
+              Review current WHOIS and nameservers
+            </Link>
+          </div>
         </div>
       )}
     </div>

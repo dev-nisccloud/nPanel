@@ -3,10 +3,9 @@ import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const PILLARS = [
-  { label: "01 Create", id: "#create" },
-  { label: "02 Launch", id: "#launch" },
-  { label: "03 Market", id: "#market" },
-  { label: "04 Automate", id: "#automate" },
+  { label: "01 Build", id: "#build" },
+  { label: "02 Run", id: "#run" },
+  { label: "03 Grow", id: "#grow" },
 ];
 
 export default function ServiceHero() {
@@ -19,7 +18,7 @@ export default function ServiceHero() {
           transition={{ duration: 0.5 }}
           className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-primary"
         >
-          Business solutions · Nairobi, Kenya
+          Business solutions
         </motion.p>
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
@@ -27,9 +26,9 @@ export default function ServiceHero() {
           transition={{ duration: 0.6 }}
           className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.1] tracking-tight mb-6 text-balance"
         >
-          Everything Your Brand
+          Build with purpose. Run with control.
           {" "}<br />
-          <span className="text-primary">Needs to Grow.</span>
+          <span className="text-primary">Grow with clarity.</span>
         </motion.h1>
 
         <motion.p
@@ -38,7 +37,7 @@ export default function ServiceHero() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8"
         >
-          Brand identity, website design, hosting, SEO, paid ads, social media and AI automation from one Kenyan team. Four service pillars that work together: create your brand, launch online, market to the right people, and automate the follow-up, with clear reporting and support when you need it.
+          Bring brand, software, cloud infrastructure and digital growth into one accountable operation. Automation supports every stage while your team stays in control.
         </motion.p>
 
         <motion.div

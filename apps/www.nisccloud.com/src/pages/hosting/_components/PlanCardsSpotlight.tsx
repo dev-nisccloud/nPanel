@@ -203,7 +203,7 @@ function SpotlightCard({
       <Button
         size="lg"
         onClick={onChoose}
-        disabled={disabled}
+        disabled={disabled || (priced && kesToCurrencyRate == null)}
         variant={featured ? "default" : "outline"}
         className={cn(
           "mt-5 w-full gap-2 font-semibold",

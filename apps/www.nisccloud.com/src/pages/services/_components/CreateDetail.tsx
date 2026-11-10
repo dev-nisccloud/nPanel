@@ -11,17 +11,17 @@ const features: ServiceFeature[] = [
 ];
 
 const included = [
-  "Logo + icon system (3 concepts)",
-  "Full colour & typography guide",
-  "Custom website (up to 10 pages)",
-  "Mobile-responsive design",
-  "Brand asset library",
-  "Strategy session included",
+  "Brand and positioning scope",
+  "Visual and verbal identity systems",
+  "Website or software experience design",
+  "Responsive implementation",
+  "Approved source assets and handover",
+  "Clear review and approval stages",
 ];
 
 export default function CreateDetail() {
   return (
-    <section id="create" className="py-24 bg-background">
+    <section id="build" className="py-24 bg-background">
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         <div className="grid lg:grid-cols-2 gap-16 items-center mb-16">
           <motion.div
@@ -35,7 +35,7 @@ export default function CreateDetail() {
               <span className="text-primary">Brand from the Ground Up.</span>
             </h2>
             <p className="text-muted-foreground text-lg leading-relaxed mb-8">
-              Before you launch, you need an identity that looks professional and feels consistent. We craft the visual and verbal pieces of your brand so you can grow with confidence.
+              Turn strategy into a brand, website or software experience people can understand and use. Scope, ownership and approval stages are agreed before delivery begins.
             </p>
             <ul className="grid grid-cols-2 gap-2">
               {included.map((item) => (

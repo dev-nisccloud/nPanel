@@ -49,7 +49,7 @@ export function PlatformStories() {
         role="tablist"
         aria-label="Explore nPanel workflows"
         onKeyDown={onKeyDown}
-        className="flex gap-2 overflow-x-auto pb-2 [scrollbar-width:thin]"
+        className="flex flex-wrap gap-2"
       >
         {STORIES.map((story, index) => (
           <button
@@ -63,7 +63,7 @@ export function PlatformStories() {
             tabIndex={index === active ? 0 : -1}
             onClick={() => setActive(index)}
             className={cn(
-              "shrink-0 rounded-full border px-4 py-2 text-sm font-semibold outline-none transition focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+              "rounded-full border px-4 py-2 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
               index === active
                 ? "border-primary bg-primary text-primary-foreground"
                 : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
@@ -83,11 +83,8 @@ export function PlatformStories() {
           <p className="text-sm font-semibold text-primary">{selected.label} in nPanel</p>
           <h3 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">{selected.title}</h3>
           <p className="mt-4 leading-relaxed text-muted-foreground">{selected.body}</p>
-          <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
-            Product-accurate interface reconstruction. Names and data are fictional.
-          </p>
         </div>
-        <Suspense fallback={<div className="min-h-[380px] animate-pulse rounded-[28px] bg-muted" aria-label="Loading nPanel story" />}>
+        <Suspense fallback={<div className="min-h-[380px] rounded-[28px] bg-muted" aria-label="Loading nPanel story" />}>
           <ActiveStory active />
         </Suspense>
       </div>

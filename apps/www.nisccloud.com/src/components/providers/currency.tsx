@@ -4,9 +4,14 @@ import {
 	useContext,
 	useEffect,
 	useMemo,
+	useRef,
 	useState,
 } from "react";
-import { trpcQuery } from "@/lib/domain-search/api.ts";
+import {
+	trpcCredentialedMutation,
+	trpcCredentialedQuery,
+	trpcQuery,
+} from "@/lib/domain-search/api.ts";
 
 export type StorefrontCurrency = "KES" | "USD";
 
@@ -16,7 +21,10 @@ type CurrencyContextValue = {
 	source: "fallback" | "location" | "manual";
 	kesToCurrencyRate: number | null;
 	rateLoading: boolean;
+	locationLoading: boolean;
+	rateError: boolean;
 	setCurrency: (currency: StorefrontCurrency) => void;
+	retryRate: () => void;
 };
 
 const CurrencyContext = createContext<CurrencyContextValue | null>(null);
@@ -65,21 +73,63 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
 		manualCurrency === "USD" ? null : 1,
 	);
 	const [rateLoading, setRateLoading] = useState(false);
+	const [locationLoading, setLocationLoading] = useState(!manualCurrency);
+	const [rateError, setRateError] = useState(false);
+	const [rateRequest, setRateRequest] = useState(0);
+	const manualSelectionRef = useRef(Boolean(manualCurrency));
+	const selectionVersionRef = useRef(0);
 
 	useEffect(() => {
-		if (manualCurrency) return;
+		let active = true;
+		const requestVersion = selectionVersionRef.current;
+		void trpcCredentialedQuery<{
+			authenticated: boolean;
+			currency: StorefrontCurrency | null;
+		}>("storefront.auth.displayCurrencyPreference")
+			.then((preference) => {
+				if (!active || !preference.authenticated) return;
+				if (preference.currency && requestVersion === selectionVersionRef.current) {
+					manualSelectionRef.current = true;
+					persistCurrency(preference.currency);
+					setCurrencyState(preference.currency);
+					setSource("manual");
+					return;
+				}
+				if (!preference.currency && manualCurrency) {
+					return trpcCredentialedMutation(
+						"storefront.auth.updateDisplayCurrencyPreference",
+						{ currency: manualCurrency },
+					);
+				}
+			})
+			.catch(() => {
+				// Guests and temporarily unavailable account sync keep the local preference.
+			});
+		return () => {
+			active = false;
+		};
+	}, [manualCurrency]);
+
+	useEffect(() => {
+		if (manualCurrency) {
+			setLocationLoading(false);
+			return;
+		}
 		let active = true;
 		void trpcQuery<{ countryCode: string | null; currency: StorefrontCurrency }>(
 			"storefront.location.detect",
 		)
 			.then((result) => {
-				if (!active || !isCurrency(result.currency)) return;
+				if (!active || manualSelectionRef.current || !isCurrency(result.currency)) return;
 				setCountryCode(result.countryCode);
 				setCurrencyState(result.currency);
 				setSource("location");
 			})
 			.catch(() => {
 				// Fail safely to KES for uncertain/local traffic.
+			})
+			.finally(() => {
+				if (active) setLocationLoading(false);
 			});
 		return () => {
 			active = false;
@@ -90,10 +140,12 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
 		if (currency === "KES") {
 			setKesToCurrencyRate(1);
 			setRateLoading(false);
+			setRateError(false);
 			return;
 		}
 		let active = true;
 		setRateLoading(true);
+		setRateError(false);
 		setKesToCurrencyRate(null);
 		void trpcQuery<{ rate: number }>("storefront.location.displayFx", {
 			currency,
@@ -105,6 +157,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
 			})
 			.catch(() => {
 				// Leave the rate unavailable; never relabel an unconverted amount.
+				if (active) setRateError(true);
 			})
 			.finally(() => {
 				if (active) setRateLoading(false);
@@ -112,12 +165,24 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
 		return () => {
 			active = false;
 		};
-	}, [currency]);
+	}, [currency, rateRequest]);
 
 	const setCurrency = useCallback((next: StorefrontCurrency) => {
+		selectionVersionRef.current += 1;
+		manualSelectionRef.current = true;
 		persistCurrency(next);
 		setCurrencyState(next);
 		setSource("manual");
+		void trpcCredentialedMutation(
+			"storefront.auth.updateDisplayCurrencyPreference",
+			{ currency: next },
+		).catch(() => {
+			// Guests keep the browser preference; it can sync after sign-in.
+		});
+	}, []);
+
+	const retryRate = useCallback(() => {
+		setRateRequest((request) => request + 1);
 	}, []);
 
 	const value = useMemo(
@@ -127,13 +192,19 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
 			source,
 			kesToCurrencyRate,
 			rateLoading,
+			locationLoading,
+			rateError,
 			setCurrency,
+			retryRate,
 		}),
 		[
 			countryCode,
 			currency,
 			kesToCurrencyRate,
+			locationLoading,
+			rateError,
 			rateLoading,
+			retryRate,
 			setCurrency,
 			source,
 		],

@@ -11,9 +11,9 @@ import { VdsPlansSection } from "./_components/VdsPlansSection.tsx";
 
 const showcaseBlocks: ShowcaseBlock[] = [
   {
-    tag: "Server Monitoring",
-    headline: "A clearer view of higher-performance workloads.",
-    body: "Review core resource and service information in your management workspace, then connect the monitoring stack your application requires.",
+    tag: "Production Oversight",
+    headline: "Watch the services that depend on steadier sizing.",
+    body: "Review core resource and service information for a production-sized environment, then connect the application monitoring and alerting your operating model requires.",
     bullets: [
       "Resource and service visibility",
       "Browser-based terminal access for authorised users",
@@ -23,11 +23,11 @@ const showcaseBlocks: ShowcaseBlock[] = [
     visual: "serverMonitor",
   },
   {
-    tag: "Configured Deployment",
-    headline: "Build a VDS around demanding workloads",
-    body: "Select an available VDS configuration and operating system, add secure access details, and provision an environment with stronger resource reservation than VPS.",
+    tag: "Reservation-Led Sizing",
+    headline: "Size a VDS for sustained production demand",
+    body: "Compare live VDS configurations, select an available image and provision an environment positioned for stronger resource reservation than entry VPS plans.",
     bullets: [
-      "A choice of supported operating systems",
+      "Current image choices shown during configuration",
       "Secure SSH and browser-terminal access",
       "Higher-performance configurations above VPS",
     ],
@@ -35,9 +35,9 @@ const showcaseBlocks: ShowcaseBlock[] = [
     visual: "serverProvision",
   },
   {
-    tag: "Popular Use Cases",
-    headline: "Any workload. One powerful platform.",
-    body: "Teams use VDS environments for stores, APIs, business applications and production workloads that need stronger reservation than standard VPS.",
+    tag: "Production Fit",
+    headline: "For services where resource consistency matters more.",
+    body: "VDS is suited to production applications, databases and business systems whose measured demand justifies a stronger reservation profile than entry VPS.",
     bullets: [
       "WooCommerce and eCommerce stores",
       "Payment APIs and application backends",
@@ -53,16 +53,16 @@ export default function VdsHostingPage() {
     <ServicePageShell
       badge="VDS Servers"
       headline={<>Higher-Performance Virtual Compute. <span className="text-primary">Stronger Reservation.</span></>}
-      subtext="Step up from VPS to higher-resource VDS configurations with guaranteed, reserved CPU and RAM and NVMe storage for demanding applications, production services and growing workloads."
+      subtext="Step up from entry VPS to production-oriented virtual compute with stronger reservation and larger sizing options. Exact CPU, memory, storage and network allocations are shown on each live plan."
       serviceType="hosting"
       heroIllustration={<HostingHeroIllustration config={vdsHeroConfig} />}
       heroIllustrationBare
       showHeroOverlays={false}
       heroTrustBadge={{ line1: "The tier above VPS", line2: "Managed through nPanel" }}
       trustStats={[
-        { value: "Guaranteed", label: "Reserved CPU and RAM" },
+        { value: "Stronger", label: "Resource Reservation" },
         { value: "Root", label: "Authorised Access" },
-        { value: "NVMe", label: "Storage" },
+        { value: "Live", label: "Plan Specifications" },
         { value: "nPanel", label: "Management" },
       ]}
       features={[
@@ -83,8 +83,8 @@ export default function VdsHostingPage() {
         },
         {
           icon: <Network size={20} />,
-          title: "Connected for Production",
-          desc: "Run public services, application backends and private systems with the connectivity included in your selected plan.",
+          title: "Plan Production Traffic",
+          desc: "Match the selected plan's network allocation to expected traffic, integrations and data movement before deployment.",
         },
         {
           icon: <Shield size={20} />,
@@ -98,35 +98,35 @@ export default function VdsHostingPage() {
         },
         {
           icon: <Globe size={20} />,
-          title: "Fast for Your Visitors",
-          desc: "Built for responsive apps and sites. Your users get a fast experience wherever they are.",
+          title: "Sized for Sustained Demand",
+          desc: "Choose VDS when measured production usage calls for a stronger virtual resource profile than entry compute.",
         },
         {
           icon: <Terminal size={20} />,
-          title: "Full Root Access",
-          desc: "Complete control over your server environment. Install any software, configure custom kernel parameters, and run Docker containers without restrictions.",
+          title: "Administrative Access",
+          desc: "Configure supported services using the authorised access included with the plan, subject to platform limits and the Acceptable Use Policy.",
         },
       ]}
       plansUnderHero={true}
       customPlansSection={<VdsPlansSection />}
       plans={[]}
       process={[
-        { num: "01", title: "Configure Your VDS", desc: "Choose your plan, operating system (Ubuntu, CentOS, Debian, AlmaLinux), and add your SSH public key for secure access." },
-        { num: "02", title: "Provision Securely", desc: "Provisioning details and authorised access information are provided for your configured server." },
-        { num: "03", title: "Deploy Your Stack", desc: "Connect through SSH or the authorised browser terminal and deploy the software your workload requires." },
-        { num: "04", title: "Monitor and Scale", desc: "Review the environment and move to a larger VDS or dedicated server when requirements increase." },
+        { num: "01", title: "Measure the Requirement", desc: "Use application demand, database load and growth expectations to compare current VDS plan specifications." },
+        { num: "02", title: "Choose the Reservation", desc: "Select a live configuration and available system image, then provide secure access details where supported." },
+        { num: "03", title: "Move Into Production", desc: "Deploy the supported stack, monitoring and recovery procedures required by your service." },
+        { num: "04", title: "Review Capacity", desc: "Track sustained demand and compare a larger VDS or dedicated allocation when the production profile changes." },
       ]}
       whyPoints={[
         { title: "A Step Above VPS", visual: "speed", desc: "Choose stronger resource reservation and higher-performance configurations for demanding workloads." },
-        { title: "Practical Deployment", visual: "deploy", desc: "Choose your OS, add your key and prepare the server around your workload." },
+        { title: "Production-Oriented Sizing", visual: "deploy", desc: "Choose a resource profile from measured demand rather than treating VDS as a generic VPS substitute." },
         { title: "A Clear Upgrade Path", visual: "growth", desc: "Move to a larger VDS or exclusive dedicated hardware as requirements grow." },
-        { title: "Built for Connected Applications", visual: "integrate", desc: "Host public services, internal tools and application backends on a plan selected for your traffic needs." },
-        { title: "Full Control, No Restrictions", visual: "ownership", desc: "Run Docker, Kubernetes, custom firewall rules, VPN servers, game servers, or any workload. Root access means total freedom." },
-        { title: "Managed Support Available", visual: "support", desc: "Don't want to manage your server yourself? Add our managed services option and our team handles updates, security patches, and optimisation." },
+        { title: "Capacity for Core Services", visual: "integrate", desc: "Size customer-facing applications, databases and internal systems against the selected plan's stated allocations." },
+        { title: "Control Within a Defined Service", visual: "ownership", desc: "Configure the environment using the access provided, subject to technical compatibility, plan limits and the Acceptable Use Policy." },
+        { title: "Define Operational Ownership", visual: "support", desc: "Confirm whether your team or Nisc Cloud owns updates, security work and optimisation tasks before the service starts." },
       ]}
       faqs={[
-        { q: "What operating systems are available?", a: "We offer Ubuntu 20.04/22.04/24.04, Debian 11/12, CentOS 7/8/9, AlmaLinux 8/9, and Rocky Linux 8/9. Custom ISO uploads are available on Enterprise plans." },
-        { q: "Can I run Docker or Kubernetes on my VDS?", a: "Yes. You have full root access and can install and run Docker, Docker Compose, or Kubernetes clusters without restrictions from our side." },
+        { q: "What operating systems are available?", a: "Image availability changes by plan and platform. Review the current choices during configuration or ask Nisc Cloud to confirm a required distribution or custom-image need before purchase." },
+        { q: "Can I run containers on my VDS?", a: "Container tooling may be used when it is compatible with the selected plan, system image and service policies. Production clusters should be designed around measured capacity and resilience requirements." },
         { q: "Is an uptime SLA available?", a: "Applicable availability commitments depend on the selected service and agreement. Confirm the current SLA terms with Nisc Cloud before purchase." },
         { q: "Is managed hosting available for VDS?", a: "Managed assistance may be added where available. Scope and response coverage are confirmed in the selected service agreement." },
         { q: "Can I scale my VDS up later?", a: "Available upgrade paths depend on the selected plan. Nisc Cloud can confirm the suitable VDS or dedicated tier for your next stage." },

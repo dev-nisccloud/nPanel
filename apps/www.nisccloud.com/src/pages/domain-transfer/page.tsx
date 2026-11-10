@@ -22,7 +22,7 @@ export default function DomainTransferPage() {
           <span className="text-primary">We Help You Through It.</span>
         </>
       }
-      subtext="Bring your domain to one place with your hosting and email. Check if it can move, see the live transfer price, then finish checkout with your authorization code. Free setup help from our team if you get stuck."
+      subtext="Bring an eligible domain into the same account as your hosting and email. Check live support and pricing, then follow the registry-specific transfer steps with scoped help where needed."
       serviceType="hosting"
       plans={[]}
       plansUnderHero
@@ -30,12 +30,13 @@ export default function DomainTransferPage() {
       heroImage={niscWebsiteImage("domain transfer.png")}
       heroImageStandalone
       heroCta2="Check Your Domain"
-      heroTrustBadge={{ line1: "Free transfer help", line2: "1 year renewal included" }}
+      heroCta2Href="#pricing"
+      heroTrustBadge={{ line1: "Eligibility checked live", line2: "Registry terms shown before purchase" }}
       trustStats={[
-        { value: "5-7", label: "Days Typical Transfer" },
-        { value: "200+", label: "Extensions Supported" },
-        { value: "Free", label: "Transfer Help" },
-        { value: "Free", label: "Setup Help" },
+        { value: "Live", label: "Transfer Eligibility" },
+        { value: "Registry", label: "Completion Timing" },
+        { value: "Scoped", label: "Transfer Help" },
+        { value: "Clear", label: "Next Steps" },
       ]}
       features={[
         {
@@ -55,23 +56,23 @@ export default function DomainTransferPage() {
         },
         {
           icon: <RefreshCw size={20} />,
-          title: "Renewal Included",
-          desc: "A successful transfer adds one year to your registration, so your expiry date moves forward with the move.",
+          title: "Renewal Terms by Extension",
+          desc: "Some registry transfers extend the registration term while others do not. The live result and applicable registry rules determine the outcome.",
         },
         {
           icon: <Globe size={20} />,
           title: "Local and Global Names",
-          desc: "Move .co.ke, .com, .org, and many other endings into one account you can manage in one place.",
+          desc: "Use the checker to confirm whether a Kenyan or international extension can currently move into your account.",
         },
         {
           icon: <Headphones size={20} />,
           title: "Real Help When You Need It",
-          desc: "Support for unlock steps, auth codes, and status updates if your current registrar is slow.",
+          desc: "Ask for guidance on eligible unlock steps, authorisation codes and status checks within the agreed support scope.",
         },
         {
           icon: <Clock size={20} />,
           title: "Know What Happens Next",
-          desc: "We keep the process clear from check to completion so you always know the next step.",
+          desc: "The required approvals and completion window vary by extension, registry and current registrar; we explain the applicable next step.",
         },
         {
           icon: <CheckCircle2 size={20} />,
@@ -98,7 +99,7 @@ export default function DomainTransferPage() {
         {
           num: "04",
           title: "Approve and Finish",
-          desc: "Confirm the transfer email from your current registrar if they send one. When done, manage the domain here.",
+          desc: "Complete any approval requested by the current registrar or registry. Timing and final status depend on those parties and the extension.",
         },
       ]}
       whySectionBadge="Why Transfer With Us"
@@ -114,11 +115,11 @@ export default function DomainTransferPage() {
         },
         {
           title: "Help If the Move Stalls", visual: "migration",
-          desc: "If a transfer sits waiting, our team helps you chase updates so you are not left guessing.",
+          desc: "If a transfer waits on an approval or registrar action, we help identify the current status and the party that must act next.",
         },
         {
-          title: "One Extra Year Included", visual: "ownership",
-          desc: "When the transfer succeeds, you get one year of registration added to the domain.",
+          title: "Extension-Specific Renewal", visual: "ownership",
+          desc: "Any registration extension follows the registry policy shown for the transfer; an extra year is not universal across extensions.",
         },
         {
           title: "Ready for Hosting and Email", visual: "integrate",
@@ -132,7 +133,7 @@ export default function DomainTransferPage() {
       faqs={[
         {
           q: "How long does a domain transfer take?",
-          a: "Most transfers finish in about 5 to 7 days. The exact time depends on your current registrar and how quickly you approve any confirmation emails.",
+          a: "Timing varies by extension, registry, current registrar, lock status and required approval. The checker and transfer instructions provide the applicable expectation; some transfers may be faster or slower.",
         },
         {
           q: "What is an authorization or EPP code?",
@@ -148,7 +149,7 @@ export default function DomainTransferPage() {
         },
         {
           q: "Does the transfer price include renewal?",
-          a: "Yes. The transfer price includes one extra year of registration added when the transfer completes successfully.",
+          a: "It depends on the extension and registry policy. Review the live transfer result and checkout terms to see whether the transfer extends the registration period.",
         },
         {
           q: "Can I transfer a .co.ke domain?",
@@ -160,7 +161,7 @@ export default function DomainTransferPage() {
         },
       ]}
       ctaHeadline="Ready to Move Your Domain?"
-      ctaSubtext="Check eligibility in seconds. If you need help unlocking your domain or finding your authorization code, our team is ready to help."
+      ctaSubtext="Check current eligibility and price, then review the extension-specific steps, timing and renewal treatment before you start."
     />
   );
 }

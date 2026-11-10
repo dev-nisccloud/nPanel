@@ -4,24 +4,24 @@ import { Check, Server, Zap, ShieldCheck, Globe } from "lucide-react";
 import { ShowcaseVisualCard } from "@/pages/_components/ServiceShowcaseSection.tsx";
 
 const features: ServiceFeature[] = [
-  { icon: Zap, title: "Fast CDN Delivery", href: "/hosting", desc: "Content delivered from a global network so your site loads quickly for visitors wherever they are." },
-  { icon: ShieldCheck, title: "Strong Security", href: "/security", desc: "WAF, DDoS protection, SSL, vulnerability scanning, and daily backups included as standard." },
-  { icon: Server, title: "Auto-Scaling Infra", href: "/hosting/vps", desc: "Traffic spike? Our infrastructure scales to handle the load without unnecessary downtime." },
+  { icon: Zap, title: "Delivery & Performance", href: "/hosting", desc: "Choose hosting and optional delivery services around the website, application and audiences you need to support." },
+  { icon: ShieldCheck, title: "Security by Scope", href: "/security", desc: "SSL, backups, monitoring and additional controls depend on the selected product and agreed service scope." },
+  { icon: Server, title: "Infrastructure Options", href: "/hosting/vps", desc: "Move from shared hosting to virtual or dedicated resources when the workload requires a different environment." },
   { icon: Globe, title: "99.9% Uptime Target", desc: "We target 99.9% monthly uptime with continuous monitoring, incident response, and clear status updates." },
 ];
 
 const included = [
-  "Managed cloud hosting",
-  "Free SSL certificate",
-  "Daily automated backups",
-  "DDoS protection included",
-  "Global CDN delivery",
-  "Free setup help",
+  "Hosting matched to the workload",
+  "SSL and DNS configuration",
+  "Backup options by selected plan",
+  "Security controls by service scope",
+  "CDN options where required",
+  "Connected management through nPanel",
 ];
 
 export default function LaunchDetail() {
   return (
-    <section id="launch" className="py-24 bg-background">
+    <section id="run" className="py-24 bg-background">
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         <div className="grid lg:grid-cols-2 gap-16 items-center mb-16">
           <motion.div
@@ -42,11 +42,11 @@ export default function LaunchDetail() {
             className="order-1 lg:order-2"
           >
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-5">
-              Reliable Cloud Hosting. <br />
-              <span className="text-primary">Simple to Launch.</span>
+              Run Your Services <br />
+              <span className="text-primary">with Clear Control.</span>
             </h2>
             <p className="text-muted-foreground text-lg leading-relaxed mb-8">
-              We host your site on solid cloud infrastructure and help you get online without the technical stress. From domain to deployment, we handle the setup so you can focus on your customers.
+              Keep domains, hosting, email, billing and support connected through nPanel. The selected plan defines the resources, controls and support responsibilities included.
             </p>
             <ul className="grid grid-cols-2 gap-2">
               {included.map((item) => (

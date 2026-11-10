@@ -58,8 +58,17 @@ export function TransferEppCodeField({ domain, value, onChange }: TransferEppCod
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          You must enter a valid authorization code before continuing to checkout.
+          The code is checked by the registry or provider after submission; this form only confirms that a code was entered.
         </p>
+        <details className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3 text-sm">
+          <summary className="cursor-pointer font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+            Where do I find the code?
+          </summary>
+          <div className="mt-3 space-y-2 leading-relaxed text-muted-foreground">
+            <p>Open the domain or transfer settings at your current registrar and request the EPP, auth or transfer code.</p>
+            <p>Turn off transfer lock first. After entering the code here, avoid regenerating it unless the transfer fails and your registrar asks you to create a new one.</p>
+          </div>
+        </details>
       </div>
     </div>
   );

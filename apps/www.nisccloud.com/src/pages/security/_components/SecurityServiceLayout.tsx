@@ -190,7 +190,7 @@ export default function SecurityServiceLayout({
         subtext={closingDescription}
         primary={{ label: ctaLabel, href: contactHref }}
         secondary={{ label: "View Security Plans", href: "/security#security-plans" }}
-        points={["Setup help included", "Pay with M-Pesa or card", "24/7 ticket support · email, chat and phone during working hours"]}
+        points={["Setup guidance included", "Pay with M-Pesa or card", "Ticket portal available 24/7 · staffed email, chat and phone support during working hours"]}
       />
 
       </main>

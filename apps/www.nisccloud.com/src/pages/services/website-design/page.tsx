@@ -16,12 +16,12 @@ import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.t
 const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "Speed & Performance",
-    headline: "Fast load times. On mobile and desktop.",
-    body: "Most visitors arrive on mobile, often on busy networks. We build sites that load quickly, stay stable, and feel easy to use from the first tap.",
+    headline: "A lighter experience for everyday connections",
+    body: "We reduce avoidable page weight and test key templates across screen sizes before launch. Actual load time and PageSpeed results still depend on content, third-party scripts, hosting, device, and network conditions.",
     bullets: [
-      "Strong Google PageSpeed performance on every site we build",
-      "CDN delivery, image compression, and lazy loading built in",
-      "Core Web Vitals checked before launch day",
+      "Responsive images, lazy loading, and sensible script budgets",
+      "Lab checks on representative pages before launch",
+      "Performance findings documented for the agreed scope",
     ],
     mockupRight: true,
     visual: "speed",
@@ -40,23 +40,23 @@ const showcaseBlocks: ShowcaseBlock[] = [
       />
     ),
     headline: "Built to turn browsers into buyers",
-    body: "A website that does not generate leads is just an expensive brochure. Every page we build uses clear CTAs, lead capture forms, and WhatsApp chat so customers can reach you easily.",
+    body: "We map a clear next step for each important page, whether that is an enquiry, call, quote request, or purchase. The result is a site structured around customer decisions instead of decoration alone.",
     bullets: [
-      "WhatsApp chat integration so customers contact you in one tap",
-      "Clear CTA placement that guides people to the next step",
-      "Lead capture forms with instant email notification",
+      "Calls to action matched to page intent",
+      "Forms and contact options agreed during discovery",
+      "Tracking points defined for meaningful enquiries",
     ],
     mockupRight: false,
     visual: "funnel",
   },
   {
     tag: "SEO-Ready from Day One",
-    headline: "Set up so people can find you",
-    body: "Most agencies build websites first, then think about SEO. We bake in proper structure, schema markup, sitemap, and Core Web Vitals from the wireframe stage so you start with a solid foundation.",
+    headline: "A technical foundation search engines can read",
+    body: "Site structure, page hierarchy, crawl signals, and metadata are considered during the build rather than added as an afterthought. This creates a sound starting point; rankings still depend on competition, content, authority, and ongoing work.",
     bullets: [
-      "Proper H1 to H6 hierarchy, canonical tags, and schema markup",
-      "XML sitemap and Google Search Console submission on launch",
-      "On-page keyword targeting for your top service pages",
+      "Heading structure, canonical tags, and relevant schema",
+      "XML sitemap and launch-time indexing checks",
+      "On-page setup for the priority pages in scope",
     ],
     mockupRight: true,
     visual: "growth",
@@ -81,16 +81,16 @@ export default function WebsiteDesignPage() {
       heroImage={niscWebsiteImage("website_design_development.png")}
       heroImageStandalone
       trustStats={[
-        { value: "Fixed", label: "Project Pricing" },
-        { value: "<2s", label: "Target Page Load Speed" },
-        { value: "Included", label: "Post-Launch Support" },
-        { value: "Free", label: "Setup Help Included" },
+        { value: "Scoped", label: "Project Proposal" },
+        { value: "Tested", label: "Before Launch" },
+        { value: "Responsive", label: "Mobile to Desktop" },
+        { value: "Guided", label: "Handover" },
       ]}
       features={[
         {
           icon: <Monitor size={20} />,
-          title: "Pixel-Perfect Design",
-          desc: "Custom designs built in Figma first, then coded with care. Every pixel is deliberate. No page builder templates or generic themes.",
+          title: "Purpose-Built Page Design",
+          desc: "Key page layouts are designed around your content, audience, and actions before development begins, so you can review the direction early.",
         },
         {
           icon: <Smartphone size={20} />,
@@ -100,12 +100,12 @@ export default function WebsiteDesignPage() {
         {
           icon: <Code2 size={20} />,
           title: "Clean, Semantic Code",
-          desc: "Hand-coded with React or optimised CMS builds. Clean code means faster speeds, easier updates, and better search engine crawlability.",
+          desc: "React or an appropriate CMS is selected around your editing needs. Semantic structure supports accessibility, maintenance, and search-engine understanding.",
         },
         {
           icon: <Zap size={20} />,
-          title: "Sub-2 Second Load Speed",
-          desc: "Compressed images, lazy loading, CDN delivery, and minimal JavaScript help your site load fast even on busy mobile networks.",
+          title: "Performance-Conscious Build",
+          desc: "Image optimisation, lazy loading, caching, and script restraint are applied where suitable. Measured results vary with hosting, content, integrations, devices, and networks.",
         },
         {
           icon: <Globe size={20} />,
@@ -114,18 +114,18 @@ export default function WebsiteDesignPage() {
         },
         {
           icon: <ShoppingBag size={20} />,
-          title: "Lead Generation Focused",
-          desc: "Clear CTAs, contact forms, WhatsApp chat integration, and conversion paths designed to capture leads around the clock.",
+          title: "Clear Enquiry Paths",
+          desc: "Calls to action, forms, and optional contact integrations are arranged around the next step you want qualified visitors to take.",
         },
         {
           icon: <Lock size={20} />,
-          title: "SSL & Security Hardened",
-          desc: "HTTPS SSL certificates, secure hosting, regular backups, firewall protection, and malware scanning keep your site and visitors safe.",
+          title: "Security Basics Planned",
+          desc: "HTTPS, access controls, updates, backups, and hosting protections are documented according to the selected platform and service scope.",
         },
         {
           icon: <BarChart2 size={20} />,
           title: "Analytics & Tracking",
-          desc: "Google Analytics 4, Meta Pixel, and Google Tag Manager installed and configured so you can see where your leads come from.",
+          desc: "Agreed analytics and advertising tags can be configured so your team can inspect traffic and enquiry events, subject to consent and platform settings.",
         },
       ]}
       plans={WEBSITE_DESIGN_PLANS}
@@ -163,50 +163,50 @@ export default function WebsiteDesignPage() {
         {
           num: "03",
           title: "Build & Optimise",
-          desc: "We code the site, integrate tools, run speed and security tests, and QA every element across mobile, tablet, and desktop.",
+          desc: "We build the approved pages, connect the integrations in scope, and test representative journeys across mobile, tablet, and desktop.",
         },
         {
           num: "04",
           title: "Launch & Handover",
-          desc: "We deploy to your domain, submit to Google Search Console, and hand over training so you can manage your site confidently.",
+          desc: "After approval, we deploy to the agreed environment, complete launch checks, and show your team how to manage the parts included in the handover.",
         },
       ]}
       whyPoints={[
         {
-          title: "Built for Real Connections",
-          desc: "Sites tuned for everyday mobile use so customers can browse, read, and contact you without friction.",
+          title: "Decisions Before Decoration",
+          desc: "Navigation, page order, and calls to action begin with what customers need to understand and do, giving design choices a clear purpose.",
           visual: "mobile",
         },
         {
           title: "No Page Builders",
-          desc: "We do not use Wix, Squarespace, or GoDaddy builders. Every site is professionally coded for performance, flexibility, and longevity.",
+          desc: "Where a custom build is agreed, you are not boxed into a generic hosted-site template. We select the implementation approach during discovery.",
           visual: "code",
         },
         {
           title: "SEO-Ready from Day One",
-          desc: "Most agencies build the site first, then think about SEO. We bake it in from the wireframe stage so you avoid months of retrofit work.",
+          desc: "Search structure is considered during planning, reducing avoidable technical rework without promising a particular ranking or traffic result.",
           visual: "growth",
         },
         {
           title: "Conversion Architecture",
-          desc: "We study your customer journey and design every page with one goal: turning more visitors into leads, calls, or sales.",
+          desc: "Priority pages are matched to a defined buyer question and next action, making the journey easier to evaluate and improve after launch.",
           visual: "funnel",
         },
         {
-          title: "Transparent Fixed Pricing",
-          desc: "No hourly billing surprises. Fixed project price, fixed scope, fixed delivery date. You know what you are getting and when.",
+          title: "Scope Before Commitment",
+          desc: "The proposal records deliverables, assumptions, price, and an estimated schedule. Changes, delayed content, or added integrations are agreed separately.",
           visual: "pricing",
         },
         {
-          title: "Post-Launch Support Included",
-          desc: "Every plan includes post-launch support. We are available to fix bugs, make updates, and answer questions after your site goes live.",
+          title: "A Defined Handover",
+          desc: "Training, launch checks, and any post-launch assistance follow the selected plan or proposal, so ownership and support boundaries are clear.",
           visual: "support",
         },
       ]}
       faqs={[
         {
           q: "How long does it take to build a website?",
-          a: "Essential sites (up to 5 pages) are delivered in 10 days. Professional sites take 14 days. Enterprise projects take 21 days. These timelines assume you provide content and feedback promptly.",
+          a: "Typical planning estimates are about 10 days for an Essential site, 14 days for Professional, and 21 days for Enterprise. Your proposal confirms the estimate after scope review; content, feedback, integrations, and changes can affect it.",
         },
         {
           q: "Do I need to provide the content?",
@@ -214,7 +214,7 @@ export default function WebsiteDesignPage() {
         },
         {
           q: "Will my website help me get found on Google?",
-          a: "We build every site with on-page SEO fundamentals: proper tags, site structure, speed, and schema. For ongoing growth, we recommend pairing with our SEO service.",
+          a: "We include the on-page and technical foundations in your scope, such as page structure, metadata, and relevant schema. These help search engines understand the site but do not guarantee rankings; ongoing content and authority work may be needed.",
         },
         {
           q: "What platform will my website be built on?",
@@ -222,15 +222,15 @@ export default function WebsiteDesignPage() {
         },
         {
           q: "Can I update the website myself after launch?",
-          a: "Yes. If built on WordPress or a CMS, we provide a full training session. If on React, we handle updates for you through our maintenance plan.",
+          a: "That depends on the agreed platform. CMS builds can include editor access and handover training; custom React updates may require a maintenance arrangement or a separately scoped content interface.",
         },
         {
           q: "Do you provide hosting?",
-          a: "Yes. We recommend and set up hosting on Nisc Cloud for reliable speed and support. Hosting is separate from development cost.",
+          a: "Yes. We can recommend and configure an appropriate Nisc Cloud hosting option. Hosting is priced separately, and performance and support terms follow the selected hosting plan.",
         },
       ]}
       ctaHeadline="Let's Build a Website That Works Harder"
-      ctaSubtext="A professional, fast, SEO-ready website helps more people find you and get in touch. We can usually deliver in under 3 weeks."
+      ctaSubtext="Plan a website around the questions your customers ask, the actions you want them to take, and a scope your team can review before work begins."
       pricingNote={SERVICE_PACKAGE_NOTES.WEBSITE_DESIGN}
       showcaseBlocks={showcaseBlocks}
     />

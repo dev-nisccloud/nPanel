@@ -54,7 +54,7 @@ export function EmailMarketingStory({ active = true, compact = false }: { active
             </NpanelWindow>
           </StoryScene>
           <StoryScene show={step === 3}>
-            <NpanelWindow path="email-marketing/reports/autumn-update" active="marketing" title="Campaign report" subtitle="Aggregate sample data" action={<Pill tone="green">Sent</Pill>}>
+            <NpanelWindow path="email-marketing/reports/autumn-update" active="marketing" title="Campaign report" subtitle="Campaign totals" action={<Pill tone="green">Sent</Pill>}>
               <div className="grid grid-cols-3 gap-2">
                 <StoryStat label="Delivered" value="98.4%" detail="Sample" />
                 <StoryStat label="Opened" value="44.1%" detail="Sample" />

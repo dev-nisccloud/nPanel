@@ -86,49 +86,41 @@ export default function SharedHostingPage() {
       process={[
         {
           num: "01",
-          title: "Choose Your Plan",
-          desc: "Pick a plan that fits your website size and traffic. Not sure? Start with Business, our most popular option for growing sites.",
+          title: "Compare Current Plans",
+          desc: "Review live capacity, billing terms and included features. Ask for guidance if your traffic or application needs are uncertain.",
         },
         {
           num: "02",
-          title: "Register or Transfer Domain",
-          desc: "Claim your domain or transfer an existing one. We guide you through setup, or handle the transfer for free.",
+          title: "Connect a Domain",
+          desc: "Register, transfer or use a domain you already own. The cart shows the selected path and its current price before payment.",
         },
         {
           num: "03",
-          title: "Hosting Ready After Checkout",
-          desc: "After checkout, your hosting is set up with SSL and email ready to use, and your hosting tools open from nPanel. We help you get live without the guesswork.",
+          title: "Provision the Service",
+          desc: "After confirmed payment, provisioning begins and access details are sent when the hosting service is ready.",
         },
         {
           num: "04",
-          title: "Launch Your Website",
-          desc: "Install WordPress with one click, import your existing site, or let our team migrate it for free. You are live and ready for customers.",
+          title: "Set Up or Migrate",
+          desc: "Use the included hosting tools or agree a migration scope with our team before moving an existing website.",
         },
       ]}
       whyPoints={[
         {
-          title: "Fast for Every Visitor", visual: "speed",
-          desc: "LiteSpeed and NVMe SSD keep pages responsive. Your site feels quick for visitors wherever they are.",
+          title: "Know What You Are Buying", visual: "speed",
+          desc: "Live plan cards show the current capacity, billing term and included features before you enter checkout.",
         },
         {
-          title: "Built to Stay Online", visual: "uptime",
-          desc: "Hosting is monitored and maintained so your website stays available. If something needs attention, our team is ready to help.",
+          title: "Choose for the Workload", visual: "uptime",
+          desc: "Shared hosting suits standard websites. We can discuss WordPress-specific or server options when the workload needs a different environment.",
         },
         {
-          title: "Free Website Migration", visual: "migration",
-          desc: "Moving from another host? Our team migrates your site, databases, and emails for free within an agreed scope, with careful planning to limit downtime.",
+          title: "Migration Has a Scope", visual: "migration",
+          desc: "We review the website, database, email and DNS requirements before confirming what migration assistance is included.",
         },
         {
-          title: "Clear Pricing", visual: "pricing",
-          desc: "Every price is shown upfront. No surprise renewal shocks, and no charges for features listed as free.",
-        },
-        {
-          title: "Paying Is Simple", visual: "payment",
-          desc: "Easy checkout so you can get started without friction. Support is available from your nPanel account if you need a hand.",
-        },
-        {
-          title: "Everything in One Account", visual: "integrate",
-          desc: "Domains, hosting, email, invoices and support stay connected in nPanel, so you always know where to look.",
+          title: "Manage the Service in nPanel", visual: "integrate",
+          desc: "Hosting, related domains, invoices and support remain connected to the same Nisc Cloud account.",
         },
       ]}
       faqs={[

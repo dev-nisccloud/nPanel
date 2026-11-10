@@ -15,7 +15,8 @@ export default function AgencyHostingPage() {
       heroIllustration={<NpanelAgencyArt />}
       heroIllustrationBare
       showHeroOverlays={false}
-      heroCta2="Explore plan options"
+      heroCta2="Compare cloud products"
+      heroCta2Href="/hosting"
       showcaseBlocks={[
         {
           tag: "Hosting for agencies",

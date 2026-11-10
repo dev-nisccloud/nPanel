@@ -11,9 +11,9 @@ import { DedicatedPlansSection } from "./_components/DedicatedPlansSection.tsx";
 
 const showcaseBlocks: ShowcaseBlock[] = [
   {
-    tag: "Server Monitoring",
-    headline: "Visibility for demanding infrastructure.",
-    body: "Review core server and service information in your management workspace, then connect the observability stack your application requires.",
+    tag: "Physical Infrastructure Oversight",
+    headline: "Operate an exclusive server with a defined ownership model.",
+    body: "Review available server and service information, connect the observability stack your application requires, and assign hardware, system and application responsibilities.",
     bullets: [
       "Server and service visibility",
       "Secure administrative access",
@@ -35,13 +35,13 @@ const showcaseBlocks: ShowcaseBlock[] = [
     visual: "serverProvision",
   },
   {
-    tag: "Popular Use Cases",
-    headline: "Maximum power for demanding workloads.",
-    body: "Teams choose dedicated servers for high-throughput databases, large-scale applications and specialist workloads that benefit from exclusive physical infrastructure.",
+    tag: "When Physical Allocation Fits",
+    headline: "Choose dedicated for hardware-specific requirements.",
+    body: "Dedicated servers fit workloads that justify exclusive physical allocation, a particular hardware profile or an operational model that virtual tiers cannot satisfy.",
     bullets: [
       "High-traffic databases and data warehouses",
-      "Game servers and real-time streaming platforms",
-      "Machine learning and GPU compute workloads",
+      "Latency-sensitive and high-throughput services",
+      "Specialist compute where suitable hardware is available",
     ],
     mockupRight: true,
     visual: "bareMetal",
@@ -53,7 +53,7 @@ export default function DedicatedServersHostingPage() {
     <ServicePageShell
       badge="Dedicated Servers"
       headline={<>Exclusive Physical Infrastructure. <span className="text-primary">Greater Hardware Control.</span></>}
-      subtext="Dedicated servers give you exclusive use of physical hardware, with guaranteed CPU and RAM that is never shared and NVMe storage, for demanding workloads, custom environments and infrastructure that has moved beyond virtual tiers."
+      subtext="Use an exclusively allocated physical server for hardware-specific, high-throughput or operationally demanding workloads. Processor, memory, storage, network and management options are confirmed for each configuration."
       serviceType="hosting"
       heroIllustration={<HostingHeroIllustration config={dedicatedHeroConfig} />}
       heroIllustrationBare
@@ -62,7 +62,7 @@ export default function DedicatedServersHostingPage() {
       trustStats={[
         { value: "1:1", label: "Physical Allocation" },
         { value: "Root", label: "Authorised Access" },
-        { value: "NVMe", label: "Storage" },
+        { value: "Scoped", label: "Storage Options" },
         { value: "nPanel", label: "Service Management" },
       ]}
       features={[
@@ -111,18 +111,18 @@ export default function DedicatedServersHostingPage() {
       customPlansSection={<DedicatedPlansSection />}
       plans={[]}
       process={[
-        { num: "01", title: "Configure Your Server", desc: "Choose your CPU, RAM, storage, and OS. Select your RAID configuration and any extras you need." },
+        { num: "01", title: "Define the Requirement", desc: "Document compute, memory, storage, resilience, network, access and operating-system needs before choosing hardware." },
         { num: "02", title: "Hardware Provisioning", desc: "The selected server is configured and tested. Provisioning timing and access details are confirmed for the order." },
-        { num: "03", title: "Deploy Your Stack", desc: "Use the authorised administrative access to deploy databases, applications or other supported workloads." },
-        { num: "04", title: "Monitor and Scale", desc: "Track hardware metrics, network utilisation, and uptime from your management portal. Add more servers as you grow." },
+        { num: "03", title: "Accept and Deploy", desc: "Confirm the delivered configuration and authorised access, then deploy the supported database, application or specialist stack." },
+        { num: "04", title: "Operate the Hardware", desc: "Monitor the metrics available for the service and plan capacity, maintenance and additional servers around measured demand." },
       ]}
       whyPoints={[
         { title: "Exclusive Physical Allocation", visual: "ownership", desc: "The server hardware is allocated exclusively to your service for the subscription term; this does not imply transfer of hardware ownership." },
-        { title: "Greater Hardware Control", visual: "code", desc: "Choose available management and access options around the configuration you select." },
+        { title: "Configuration Before Commitment", visual: "code", desc: "Validate processor, memory, storage, network and access requirements against currently available hardware." },
         { title: "Storage Resilience Options", visual: "security", desc: "Select available storage and redundancy configurations based on workload and recovery requirements." },
         { title: "Planned Networking", visual: "integrate", desc: "Confirm throughput, addressing and protection requirements as part of the server configuration." },
         { title: "Evidence-Based Compliance", visual: "ethical", desc: "Any facility, security or compliance requirement is verified for the proposed deployment before it is included in an agreement." },
-        { title: "Managed Assistance Available", visual: "support", desc: "Ask Nisc Cloud to define the available maintenance and operational scope for your configuration." },
+        { title: "Defined Operational Boundaries", visual: "support", desc: "Agree who handles hardware, operating-system and application tasks, and what assistance is available for the configuration." },
       ]}
       faqs={[
         { q: "How long does provisioning take?", a: "Provisioning depends on hardware availability and the selected configuration. Nisc Cloud confirms the expected window before the order is finalised." },

@@ -205,6 +205,12 @@ export default function CartPage() {
   });
   const resumeHandledRef = React.useRef(false);
   const [paymentOpen, setPaymentOpen] = React.useState(false);
+  const [paymentAttempt, setPaymentAttempt] = React.useState<{
+    totalAmount: number;
+    currency: "KES" | "USD";
+    cart: StorefrontCartQuoteRequest;
+    quoteToken: string;
+  } | null>(null);
   const [checkoutSession, setCheckoutSession] = React.useState<{
     storefrontToken: string;
     teamSlug: string;
@@ -319,7 +325,15 @@ export default function CartPage() {
     checkoutSession?.jengaCustomer?.countryCode,
   ]);
 
-  const { quote, quoteError, quoteInitialLoading, quoteRefreshing } = useStorefrontCartQuote(cartQuoteRequest);
+  const {
+    quote,
+    quoteError,
+    quoteInitialLoading,
+    quoteRefreshing,
+    quoteExpiresIn,
+    quoteExpired,
+    retryQuote,
+  } = useStorefrontCartQuote(cartQuoteRequest);
 
   const serviceType = quote?.serviceType ?? "";
   const planId = quote?.planId ?? "";
@@ -534,7 +548,7 @@ export default function CartPage() {
   const quoteSummaryLoading = quoteRefreshing;
 
   const canContinueStep1 = React.useMemo(() => {
-    if (quoteInitialLoading || !quote || quoteSummaryLoading) return false;
+    if (quoteInitialLoading || !quote || quoteSummaryLoading || quoteExpired) return false;
     if (quoteError) return false;
     if (isDomainTransfer && !transferAuthCode.trim()) return false;
     if (selectedDomain?.isTransfer && !transferAuthCode.trim()) return false;
@@ -554,6 +568,7 @@ export default function CartPage() {
     quote,
     quoteError,
     quoteSummaryLoading,
+    quoteExpired,
     isDomainTransfer,
     transferAuthCode,
     selectedDomain,
@@ -613,6 +628,18 @@ export default function CartPage() {
 
   const checkoutTotal = quote?.total ?? 0;
 
+  const capturePaymentAttempt = () => {
+    if (!quote || !cartQuoteRequest || quoteExpired || quoteRefreshing) {
+      throw new Error("Pricing changed before payment opened. Refresh the quote and try again.");
+    }
+    return {
+      totalAmount: quote.total,
+      currency: quote.currency,
+      cart: cartQuoteRequest,
+      quoteToken: quote.quoteToken,
+    };
+  };
+
   const resolvePrimaryDomain = (): string | undefined => {
     if (serviceType === "domain_registration" || serviceType === "domain_transfer") return planName;
     // Existing domains name the hosting subscription; purchased domains also link hosting to that name.
@@ -623,6 +650,7 @@ export default function CartPage() {
   const handleSubmit = async (info: CustomerInfo) => {
     setIsSubmitting(true);
     try {
+      const attempt = capturePaymentAttempt();
       const exists = await checkStorefrontEmail(info.email);
       if (exists) {
         toast.error(
@@ -656,6 +684,7 @@ export default function CartPage() {
           countryCode: "KE",
         },
       });
+      setPaymentAttempt(attempt);
       setPaymentOpen(true);
     } catch (err) {
       toast.error(
@@ -669,6 +698,7 @@ export default function CartPage() {
   const handleSignedInSubmit = async (teamId: string) => {
     setIsSubmitting(true);
     try {
+      const attempt = capturePaymentAttempt();
       const issued = await issueStorefrontCheckoutToken(teamId);
       const prefill =
         checkoutIdentity.status === "signed-in"
@@ -694,6 +724,7 @@ export default function CartPage() {
             }
           : undefined,
       });
+      setPaymentAttempt(attempt);
       setPaymentOpen(true);
     } catch (err) {
       toast.error(
@@ -887,7 +918,14 @@ export default function CartPage() {
         <Navbar />
         <main className="max-w-6xl mx-auto px-4 md:px-6 xl:px-8 pt-24 md:pt-28 pb-8">
           <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-            {quoteError}
+            <p>{quoteError}</p>
+            <button
+              type="button"
+              onClick={retryQuote}
+              className="mt-3 rounded-lg bg-destructive px-3 py-2 text-xs font-bold text-destructive-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Try pricing again
+            </button>
           </div>
           <Link
             to="/"
@@ -928,7 +966,14 @@ export default function CartPage() {
 
         {showQuoteErrorBanner && (
           <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-            {quoteError}
+            <p>{quoteError}</p>
+            <button
+              type="button"
+              onClick={retryQuote}
+              className="mt-3 rounded-lg border border-destructive/30 px-3 py-2 text-xs font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Retry current pricing
+            </button>
           </div>
         )}
 
@@ -1038,6 +1083,7 @@ export default function CartPage() {
               hivelocityLines={isHivelocityPlan ? [] : hivelocitySummaryLines}
               continueDisabled={
                 (step === 1 && !canContinueStep1) ||
+                quoteExpired ||
                 (step === 2 && checkoutIdentity.status === "loading")
               }
               authoritativeTotals={
@@ -1053,6 +1099,9 @@ export default function CartPage() {
               currency={currency as "KES" | "USD"}
               kesToDisplayRate={quote?.fxRate ?? 1}
               quoteExpiresAt={quote?.quoteExpiresAt}
+              quoteExpiresIn={quoteExpiresIn}
+              quoteExpired={quoteExpired}
+              onRefreshQuote={retryQuote}
               taxRate={quote?.taxRate}
             />
           </div>
@@ -1079,6 +1128,7 @@ export default function CartPage() {
               isSubmitting ||
               showSkeleton ||
               quoteSummaryLoading ||
+              quoteExpired ||
               (step === 1 && !canContinueStep1) ||
               (step === 2 && checkoutIdentity.status === "loading")
             }
@@ -1104,16 +1154,19 @@ export default function CartPage() {
         </main>
       )}
 
-      {checkoutSession && cartQuoteRequest && !showSkeleton && (
+      {checkoutSession && paymentAttempt && !showSkeleton && (
         <StorefrontPaymentDialog
           open={paymentOpen}
-          onOpenChange={setPaymentOpen}
+          onOpenChange={(open) => {
+            setPaymentOpen(open);
+            if (!open) setPaymentAttempt(null);
+          }}
           storefrontToken={checkoutSession.storefrontToken}
           defaultPhone={checkoutSession.phone}
-          totalAmount={checkoutTotal}
-          currency={currency as "KES" | "USD"}
-          cart={cartQuoteRequest}
-          quoteToken={quote?.quoteToken ?? ""}
+          totalAmount={paymentAttempt.totalAmount}
+          currency={paymentAttempt.currency}
+          cart={paymentAttempt.cart}
+          quoteToken={paymentAttempt.quoteToken}
           customerPrefill={checkoutSession.jengaCustomer}
           onPaymentSuccess={handlePaymentSuccess}
         />

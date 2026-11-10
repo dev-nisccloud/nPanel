@@ -36,12 +36,12 @@ const groups: { id: string; title: string; intro: string; cols: string; items: C
   {
     id: "servers",
     title: "Cloud & dedicated servers",
-    intro: "Reserved compute for applications, high-traffic sites and workloads that need root access.",
+    intro: "Plan-defined compute for applications, high-traffic sites and workloads that need root access.",
     cols: "lg:grid-cols-3",
     items: [
-      { icon: <Cpu size={24} />, title: "VPS Servers", desc: "Dedicated resources, full root access, scalable power.", price: "See plans and prices", href: "/hosting/vps" },
-      { icon: <HardDrive size={24} />, title: "VDS Hosting", desc: "Virtual dedicated servers with reserved, isolated resources.", price: "Custom pricing", href: "/hosting/vds" },
-      { icon: <TrendingUp size={24} />, title: "Dedicated Servers", desc: "Bare metal servers with IPMI access, allocated exclusively to you.", price: "Custom pricing", href: "/hosting/dedicated-servers" },
+      { icon: <Cpu size={24} />, title: "VPS Servers", desc: "Plan-defined virtual compute, root access where included, and upgrade options.", price: "See plans and prices", href: "/hosting/vps" },
+      { icon: <HardDrive size={24} />, title: "VDS Hosting", desc: "Virtual dedicated servers with reserved resources defined in your quotation.", price: "Custom pricing", href: "/hosting/vds" },
+      { icon: <TrendingUp size={24} />, title: "Dedicated Servers", desc: "Quoted bare-metal configurations allocated to one customer, with IPMI where available.", price: "Custom pricing", href: "/hosting/dedicated-servers" },
     ],
   },
   {
@@ -90,7 +90,8 @@ export default function HostingPage() {
           <p className="text-muted-foreground max-w-xl mx-auto mb-8">
             Domains, hosting, email, and SSL, all managed in one place. Fast for
             your visitors, wherever they are, with a 99.9% monthly uptime target
-            on hosting plans and 24/7 ticket support · email, chat and phone during working hours.
+            on eligible hosting plans. The ticket portal is available 24/7, with
+            staffed email, chat and phone support during working hours.
           </p>
           <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link

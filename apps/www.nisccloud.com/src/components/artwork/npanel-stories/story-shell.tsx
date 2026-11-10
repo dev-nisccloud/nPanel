@@ -109,9 +109,6 @@ export function StoryShell({
           )}
         </div>
       </div>
-      <figcaption className="mt-3 text-center text-xs text-muted-foreground">
-        Real nPanel interface · sample business and data
-      </figcaption>
     </figure>
   );
 }
