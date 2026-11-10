@@ -304,7 +304,7 @@ export default function HelpCentrePage() {
             <span className="inline-block bg-primary/10 text-primary text-xs font-bold uppercase tracking-widest px-4 py-1.5 rounded-full mb-5">
               Help Centre
             </span>
-            <h1 className="text-4xl md:text-5xl font-extrabold mb-4 text-balance">
+            <h1 className="type-h1 mb-4 text-balance">
               How can we help you?
             </h1>
             <p className="text-lg text-muted-foreground mb-8 max-w-xl mx-auto">

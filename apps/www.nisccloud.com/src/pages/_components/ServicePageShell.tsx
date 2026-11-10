@@ -166,7 +166,7 @@ function FeaturesGrid({ features }: { features: Feature[] }) {
     <section className="relative pt-16 pb-10 overflow-hidden border-t border-dashed border-border/50">
       <div className="relative max-w-7xl mx-auto px-4 md:px-8">
         <div className="mb-12 max-w-2xl mx-auto text-center">
-          <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight leading-tight">
+          <h2 className="type-h2">
             What <span className="text-primary">You Get</span>
           </h2>
           <p className="text-muted-foreground text-base mt-3">
@@ -211,7 +211,7 @@ function StrategyGuide({ sections }: { sections: StrategySection[] }) {
     <section className="border-y border-border/60 bg-muted/20 py-16 md:py-24">
       <div className="mx-auto grid max-w-7xl gap-12 px-4 md:px-8 lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)] lg:gap-20">
         <div className="max-w-xl lg:sticky lg:top-28 lg:self-start">
-          <h2 className="text-3xl font-extrabold tracking-tight md:text-5xl">
+          <h2 className="type-h2">
             Know what needs to change before changing how you look.
           </h2>
           <p className="mt-5 text-base leading-relaxed text-muted-foreground">
@@ -267,7 +267,7 @@ function ProcessSection({ steps }: { steps: ProcessStep[] }) {
           <p className="mb-3 text-sm font-semibold text-primary">
             A clear working process
           </p>
-          <h2 className="text-3xl font-extrabold tracking-tight md:text-5xl">
+          <h2 className="type-h2">
             Know what happens next.
           </h2>
           <p className="mt-4 text-muted-foreground">
@@ -321,7 +321,7 @@ function PricingSection({
       <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-muted/20 to-transparent" />
       <div className="relative max-w-7xl mx-auto px-4 md:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
+          <h2 className="type-h2 mb-3">
             Simple Pricing
           </h2>
           <p className="text-muted-foreground text-base max-w-md mx-auto">
@@ -502,7 +502,7 @@ function ServiceHero({
         <div className="flex flex-col items-center gap-8 lg:flex-row lg:gap-12">
           {/* Left: copy */}
           <div className="flex-1 flex flex-col items-start text-left max-w-2xl">
-            <h1 className="text-[36px] font-extrabold leading-[1.15] mb-6 text-balance">
+            <h1 className="type-h1 mb-6 text-balance">
               {headline}
             </h1>
             <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-xl">

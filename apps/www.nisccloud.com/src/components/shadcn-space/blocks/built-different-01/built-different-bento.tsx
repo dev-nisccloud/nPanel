@@ -87,7 +87,7 @@ export default function BuiltDifferentBento({
         className={cn("relative border-t border-border/40 bg-muted/15 py-16 md:py-20 dark:bg-transparent", className)}
       >
         <div className="mx-auto max-w-7xl px-4 md:px-8">
-          <h2 className="mb-10 text-3xl font-bold tracking-tight md:text-4xl">{headline}</h2>
+          <h2 className="type-h2 mb-10">{headline}</h2>
           <div
             className={cn(
               "grid grid-cols-1 gap-4 sm:grid-cols-2",
@@ -123,7 +123,7 @@ export default function BuiltDifferentBento({
               {badge}
             </span>
           ) : null}
-          <h2 className="text-3xl font-bold tracking-tight md:text-4xl">{headline}</h2>
+          <h2 className="type-h2">{headline}</h2>
           {subtext ? (
             <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">{subtext}</p>
           ) : null}

@@ -8,7 +8,7 @@ export default function WorkHero() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45 }}
-          className="text-[36px] font-extrabold leading-[1.15] mb-3 text-balance"
+          className="type-h1 mb-3 text-balance"
         >
           Businesses we <span className="text-primary">build, run and grow</span>
         </motion.h1>

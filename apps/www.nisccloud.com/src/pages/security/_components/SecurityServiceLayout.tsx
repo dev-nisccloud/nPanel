@@ -80,7 +80,7 @@ export default function SecurityServiceLayout({
         <div className="mx-auto flex max-w-7xl flex-col items-center gap-12 lg:flex-row lg:gap-16">
           <div className="max-w-2xl flex-1">
             <span className="text-xs font-semibold text-primary">{badge}</span>
-            <h1 className="mt-3 mb-5 text-[36px] font-extrabold leading-[1.15] text-balance">
+            <h1 className="type-h1 mt-3 mb-5 text-balance">
               {title}
             </h1>
             <p className="mb-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
@@ -119,7 +119,7 @@ export default function SecurityServiceLayout({
 
       <section id="how-it-works" className="border-y border-border/60 bg-muted/30 px-4 py-20">
         <div className="mx-auto max-w-6xl">
-          <h2 className="mb-10 text-center text-3xl font-bold">{stepsTitle}</h2>
+          <h2 className="type-h2 mb-10 text-center">{stepsTitle}</h2>
           <ol className="grid gap-5 md:grid-cols-3">
             {steps.map((step, index) => (
               <li key={step.title} className="rounded-3xl border border-border bg-card p-6">
@@ -137,7 +137,7 @@ export default function SecurityServiceLayout({
       <section className="px-4 py-20">
         <div className="mx-auto max-w-7xl">
           <div className="mb-12 text-center">
-            <h2 className="mb-3 text-3xl font-bold">{coverageTitle}</h2>
+            <h2 className="type-h2 mb-3">{coverageTitle}</h2>
             <p className="mx-auto max-w-xl text-sm text-muted-foreground">{coverageDescription}</p>
           </div>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -163,7 +163,7 @@ export default function SecurityServiceLayout({
 
       <section className="px-4 pb-20">
         <div className="mx-auto max-w-5xl">
-          <h2 className="mb-8 text-center text-3xl font-bold">{platformsTitle}</h2>
+          <h2 className="type-h2 mb-8 text-center">{platformsTitle}</h2>
           <div className="grid gap-5 md:grid-cols-2">
             {platforms.map((platform) => (
               <div key={platform.title} className="rounded-3xl border border-border bg-card p-7">

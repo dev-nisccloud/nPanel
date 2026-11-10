@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+﻿import { Link } from "react-router-dom";
 import { ArrowRight, Check } from "lucide-react";
 import { ServiceMockPricingSection } from "@/components/shadcn-space/blocks/pricing-01/service-mock-pricing.tsx";
 import type { OrderPlan } from "@/pages/hosting/_components/OrderDialog.tsx";
@@ -107,7 +107,7 @@ export function EnquiryPanel({ title, body, points, serviceName, cta }: EnquiryP
       <div className="grid gap-8 p-7 md:grid-cols-[minmax(0,1fr)_auto] md:items-end md:p-9">
         <div>
           <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-primary">Custom pricing</p>
-          <h3 className="mt-2 text-2xl font-bold tracking-tight md:text-3xl">{title}</h3>
+          <h3 className="mt-2 type-h3">{title}</h3>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/70 md:text-base">{body}</p>
           <ul className="mt-6 grid gap-2.5 text-sm sm:grid-cols-3">
             {points.map((point) => (

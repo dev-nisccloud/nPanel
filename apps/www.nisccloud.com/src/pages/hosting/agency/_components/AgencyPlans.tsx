@@ -35,7 +35,7 @@ const options = [
 export function AgencyPlans() {
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 md:px-8">
-      <h2 className="text-3xl font-bold">
+      <h2 className="type-h2">
         Agency hosting plans, shaped around your clients
       </h2>
       <p className="mt-3 max-w-2xl text-muted-foreground">

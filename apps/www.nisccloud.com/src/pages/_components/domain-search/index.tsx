@@ -115,7 +115,7 @@ function DomainSearchContent({ compact = false }: DomainSearchProps) {
 
       <div className="max-w-7xl mx-auto px-4 md:px-8 relative">
         <div className="text-center mb-4">
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">
+          <h2 className="type-h2 mb-2">
             Search for your domain
           </h2>
           <p className="text-muted-foreground text-base max-w-xl mx-auto">

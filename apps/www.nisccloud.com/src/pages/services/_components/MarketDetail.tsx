@@ -39,7 +39,7 @@ export default function MarketDetail() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-5">
+            <h2 className="type-h2 mb-5">
               Grow with Connected Channels. <br />
               <span className="text-primary">Learn from Clear Evidence.</span>
             </h2>

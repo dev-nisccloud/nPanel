@@ -95,7 +95,7 @@ export default function NpanelShowcase() {
           <p className="type-label mb-2 text-sky-700 dark:text-primary">Meet nPanel</p>
           <h2
             id="npanel-heading"
-            className="text-balance text-3xl font-bold tracking-tight md:text-4xl"
+            className="type-h2 text-balance"
           >
             Your digital operation. One connected workspace.
           </h2>

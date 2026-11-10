@@ -41,7 +41,7 @@ export default function LaunchDetail() {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="order-1 lg:order-2"
           >
-            <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-5">
+            <h2 className="type-h2 mb-5">
               Run Your Services <br />
               <span className="text-primary">with Clear Control.</span>
             </h2>

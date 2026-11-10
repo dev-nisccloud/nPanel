@@ -79,7 +79,7 @@ const Team = () => {
             <Badge variant="outline" className="px-3 py-1 h-auto text-sm">
               Team
             </Badge>
-            <h2 className="text-3xl md:text-5xl font-medium text-foreground">
+            <h2 className="type-h2 text-foreground">
               The team behind your account
             </h2>
             <p className="text-base text-muted-foreground">

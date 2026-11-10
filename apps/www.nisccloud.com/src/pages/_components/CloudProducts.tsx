@@ -67,7 +67,7 @@ export default function CloudProducts() {
             </p>
             <h2
               id="cloud-products-heading"
-              className="text-balance text-3xl font-bold tracking-tight md:text-4xl"
+              className="type-h2 text-balance"
             >
               Cloud products, ready when you are.
             </h2>

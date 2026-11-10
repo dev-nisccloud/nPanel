@@ -129,7 +129,7 @@ export default function PlatformPage() {
           <div className="relative mx-auto grid max-w-7xl gap-12 px-4 pb-20 pt-32 sm:px-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,.65fr)] lg:items-end lg:px-8 lg:pb-28 lg:pt-44">
             <div>
               <p className="text-sm font-semibold text-primary">The Nisc Cloud platform</p>
-              <h1 className="mt-4 max-w-4xl text-4xl font-extrabold leading-[1.04] tracking-[-0.045em] sm:text-5xl lg:text-7xl">
+              <h1 className="type-h1 mt-4 max-w-4xl">
                 One account for the digital business you are building.
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl">
@@ -186,7 +186,7 @@ export default function PlatformPage() {
             <div className="grid gap-10 lg:grid-cols-[minmax(280px,.68fr)_minmax(0,1.4fr)] lg:items-end">
               <div>
                 <p className="text-sm font-semibold text-primary">nPanel</p>
-                <h2 className="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl">
+                <h2 className="type-h2 mt-2">
                   The working view of your Nisc Cloud account.
                 </h2>
               </div>
@@ -227,7 +227,7 @@ export default function PlatformPage() {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="max-w-3xl">
               <p className="text-sm font-semibold text-primary">Choose your path</p>
-              <h2 id="audiences-heading" className="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">
+              <h2 id="audiences-heading" className="type-h2 mt-2">
                 Built around the way you operate.
               </h2>
               <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
@@ -257,7 +257,7 @@ export default function PlatformPage() {
             <div className="grid gap-8 border-b border-border pb-10 lg:grid-cols-[1fr_.7fr] lg:items-end">
               <div>
                 <p className="text-sm font-semibold text-primary">Connected services</p>
-                <h2 id="products-heading" className="mt-2 max-w-3xl text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl">
+                <h2 id="products-heading" className="type-h2 mt-2 max-w-3xl">
                   Build, run and grow without stitching together the journey yourself.
                 </h2>
               </div>
@@ -292,7 +292,7 @@ export default function PlatformPage() {
             <div id="zepo-ai" className="mt-6 grid scroll-mt-24 border-y border-border bg-muted/20 lg:grid-cols-[minmax(0,1fr)_minmax(340px,.85fr)]">
               <div className="p-7 sm:p-10 lg:p-12">
                 <p className="text-sm font-semibold text-brand-orange">Zepo AI</p>
-                <h2 className="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">AI help built into the way you work.</h2>
+                <h2 className="type-h2 mt-2">AI help built into the way you work.</h2>
                 <p className="mt-4 max-w-xl text-lg leading-relaxed text-muted-foreground">
                   Zepo AI supports customer conversations, follow-ups and repetitive workflows in the services
                   where it is available.

@@ -186,7 +186,7 @@ export function HostingPlansPricingSection({
     <section id={config.sectionId ?? "plans"} className="bg-muted/10 py-14 md:py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-14 flex flex-col items-center gap-2 text-center">
-          <h2 className="text-[36px] font-extrabold leading-[1.15] tracking-tight">{config.title}</h2>
+          <h2 className="type-h2">{config.title}</h2>
           {intro ? (
             <p className="mx-auto max-w-2xl whitespace-pre-line text-lg leading-relaxed text-muted-foreground">{intro}</p>
           ) : loading ? (

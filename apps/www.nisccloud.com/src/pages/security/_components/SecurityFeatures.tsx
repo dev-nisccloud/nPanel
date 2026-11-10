@@ -70,7 +70,7 @@ export default function SecurityFeatures({
     <section className="py-20">
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-3">{title}</h2>
+          <h2 className="type-h2 mb-3">{title}</h2>
           <p className="text-muted-foreground max-w-xl mx-auto text-sm">{description}</p>
         </div>
 

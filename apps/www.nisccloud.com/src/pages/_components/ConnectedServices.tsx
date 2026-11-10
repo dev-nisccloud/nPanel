@@ -15,7 +15,7 @@ export default function ConnectedServices() {
           </p>
           <h2
             id="partnerships-heading"
-            className="mt-2 text-2xl font-bold tracking-tight md:text-3xl"
+            className="type-h2 mt-2"
           >
             The right tools for each team.
           </h2>

@@ -306,7 +306,7 @@ export default function NeedSelector() {
           className="mb-5 text-center md:mb-6"
         >
           <p className="type-label mb-2 text-sky-700 dark:text-primary">Start with your goal</p>
-          <h2 className="mx-auto max-w-2xl text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+          <h2 className="type-h2 mx-auto max-w-2xl text-foreground">
             What do you need{" "}
             <PointerHighlight {...pointerHighlightProps} containerClassName="inline-block align-baseline">
               <span className="text-primary">today?</span>

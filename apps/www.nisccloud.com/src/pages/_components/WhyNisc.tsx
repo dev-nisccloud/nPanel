@@ -43,7 +43,7 @@ export default function WhyNisc() {
         <div className="mx-auto mb-10 max-w-2xl text-center">
           <h2
             id="why-heading"
-            className="text-balance text-3xl font-bold tracking-tight md:text-4xl"
+            className="type-h2 text-balance"
           >
             Built for more than getting online.
           </h2>

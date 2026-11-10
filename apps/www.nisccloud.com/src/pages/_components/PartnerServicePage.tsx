@@ -70,7 +70,7 @@ export default function PartnerServicePage({ kind }: { kind: keyof typeof offeri
         <LicencePlansSection kind={kind as "microsoft-365" | "google-workspace"} />
       ) : (
         <section className="mx-auto max-w-7xl px-4 py-12 md:px-8">
-          <h2 className="text-3xl font-semibold">Get a migration assessment</h2>
+          <h2 className="type-h2">Get a migration assessment</h2>
           <p className="mt-4 max-w-2xl leading-relaxed text-muted-foreground">
             Tell us about your current website and hosting. We will confirm the scope, timing and cost before any changes to your live services.
           </p>

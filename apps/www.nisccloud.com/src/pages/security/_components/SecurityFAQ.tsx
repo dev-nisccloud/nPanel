@@ -42,7 +42,7 @@ export default function SecurityFAQ() {
       <div className="max-w-3xl mx-auto px-4 md:px-8">
         <div className="text-center mb-12">
           <span className="text-xs font-mono font-bold tracking-widest text-primary uppercase">FAQ</span>
-          <h2 className="text-3xl font-bold mt-2 mb-3">Website Security Questions</h2>
+          <h2 className="type-h2 mt-2 mb-3">Website Security Questions</h2>
           <p className="text-muted-foreground max-w-xl mx-auto text-sm">Everything you need to know about protecting your website.</p>
         </div>
 

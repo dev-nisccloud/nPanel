@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+﻿import { Link, useLocation } from "react-router-dom";
 import { ArrowRight, Check } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
 import {
@@ -9,8 +9,15 @@ import {
   ServerRack,
   ShieldScan,
   StorefrontReceipt,
+  InboxCard,
+  SpecSheet,
+  DomainTicker,
+  StagingSwitch,
+  SitesBoard,
+  BrandBoard,
   type ClosingVariant,
 } from "./closing-visuals.tsx";
+import { CLOSING_PRESETS, CLOSING_THEMES, type ClosingLayout } from "./closing-presets.ts";
 
 export type ClosingDetails = {
   variant: ClosingVariant;
@@ -21,6 +28,9 @@ export type ClosingDetails = {
   actionLabel?: string;
   /** Timeline and shield: the sequence shown. */
   items?: string[];
+  rows?: { label: string; value: string }[];
+  command?: string;
+  title?: string;
 };
 
 type CtaLink = { label: string; href: string; external?: boolean; onClick?: () => void };
@@ -95,95 +105,154 @@ function ClosingCard({ details, steps, primary, secondary }: { details?: Closing
     case "rack":
       return <ServerRack />;
     case "command":
-      return <CommandBar />;
+      return <CommandBar command={details.command} title={details.title} lines={details.items} />;
     case "brief":
       return <BriefCard fields={details.items ?? steps} />;
     case "paths":
-      return <PathChooser primary={primary} secondary={details.actionLabel ?? "Talk to our team"} />;
+      return <PathChooser primary={primary} secondary={details.actionLabel ?? secondary ?? "Talk to our team"} />;
     case "shield":
       return <ShieldScan checks={details.items ?? ["SSL certificate", "Firewall rules", "Backups", "Malware scan"]} />;
+    case "inbox":
+      return <InboxCard address={details.items?.[0]} />;
+    case "spec":
+      return <SpecSheet rows={details.rows ?? []} />;
+    case "domains":
+      return <DomainTicker names={details.items ?? []} />;
+    case "staging":
+      return <StagingSwitch />;
+    case "sites":
+      return <SitesBoard sites={details.items ?? []} />;
+    case "brand":
+      return <BrandBoard />;
     default:
       return <HowItWorks steps={steps} />;
   }
 }
 
+const LOGO_POSITION: Record<ClosingLayout, string> = {
+  split: "-bottom-16 -right-10 w-[420px]",
+  reverse: "-bottom-16 -left-10 w-[420px]",
+  centered: "-top-24 left-1/2 w-[520px] -translate-x-1/2",
+};
+
 export function ClosingCta({
-  eyebrow = "Ready when you are",
+  eyebrow,
   headline,
   subtext,
   primary,
   secondary,
-  points = DEFAULT_POINTS,
+  points,
   note,
   steps = DEFAULT_STEPS,
   details,
   className,
 }: ClosingCtaProps) {
+  const { pathname } = useLocation();
+  const preset = CLOSING_PRESETS[pathname.replace(/\/+$/, "") || "/"];
+  const theme = CLOSING_THEMES[preset?.theme ?? "sky"];
+  const dark = theme.tone === "dark";
+  const layout = theme.layout;
+
+  const primaryLink = preset?.primaryLabel ? { ...primary, label: preset.primaryLabel } : primary;
+  const secondaryLink = preset?.secondary ?? secondary;
+  const shownPoints = points ?? preset?.points ?? DEFAULT_POINTS;
+  const card: ClosingDetails | undefined = preset
+    ? { ...details, ...preset.card, actionLabel: preset.primaryLabel ?? details?.actionLabel }
+    : details;
+
+  const copy = (
+    <div className={cn(layout === "centered" && "mx-auto max-w-3xl text-center")}>
+      <p className={cn("type-label flex items-center gap-2", layout === "centered" && "justify-center", dark ? "text-white/80" : "text-[#02070a]/75")}>
+        <span className={cn("size-2 rounded-full", theme.dot)} aria-hidden />
+        {eyebrow ?? preset?.eyebrow ?? "Ready when you are"}
+      </p>
+      <h2
+        id="closing-cta-heading"
+        className={cn("type-h2 mt-3 max-w-2xl text-balance", layout === "centered" && "mx-auto")}
+      >
+        {headline}
+      </h2>
+      <p className={cn("mt-4 max-w-[60ch] text-base leading-relaxed md:text-lg", layout === "centered" && "mx-auto", dark ? "text-white/80" : "text-[#02070a]/80")}>
+        {subtext}
+      </p>
+
+      <div className={cn("mt-7 flex flex-col gap-3 sm:flex-row", layout === "centered" && "sm:justify-center")}>
+        <CtaAnchor
+          link={primaryLink}
+          className={cn(
+            "group inline-flex h-12 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-6 text-base font-bold shadow-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+            theme.primaryButton,
+          )}
+        >
+          {primaryLink.label}
+          <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
+        </CtaAnchor>
+        {secondaryLink ? (
+          <CtaAnchor
+            link={secondaryLink}
+            className={cn(
+              "inline-flex h-12 items-center justify-center whitespace-nowrap rounded-xl px-6 text-base font-semibold transition focus-visible:outline-none focus-visible:ring-2",
+              theme.secondaryButton,
+            )}
+          >
+            {secondaryLink.label}
+          </CtaAnchor>
+        ) : null}
+      </div>
+
+      {shownPoints.length > 0 ? (
+        <ul className={cn("mt-6 flex flex-wrap gap-2", layout === "centered" && "justify-center")}>
+          {shownPoints.map((point) => (
+            <li
+              key={point}
+              className={cn("inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium", dark ? "bg-white/10" : "bg-white/50")}
+            >
+              <Check className="size-4 shrink-0" strokeWidth={3} aria-hidden />
+              {point}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {note ? <p className={cn("mt-4 text-sm leading-relaxed", dark ? "text-white/70" : "text-[#02070a]/75")}>{note}</p> : null}
+    </div>
+  );
+
+  const visual = (
+    <div className={cn("relative", layout === "centered" && "mx-auto w-full max-w-md", layout === "reverse" && "lg:order-first")}>
+      <ClosingCard details={card} steps={steps} primary={primaryLink.label} secondary={secondaryLink?.label} />
+    </div>
+  );
+
   return (
     <section className={cn("px-4 py-14 sm:px-6 md:py-20 lg:px-8", className)} aria-labelledby="closing-cta-heading">
-      <div className="relative mx-auto max-w-7xl overflow-hidden rounded-[28px] bg-[linear-gradient(120deg,#5cc4ff_0%,#38b6ff_45%,#1592e0_100%)] text-[#02070a] shadow-[0_40px_80px_-50px_rgb(2_132_199_/_0.9)] dark:bg-[linear-gradient(120deg,#0e4a73_0%,#0b3a5c_55%,#07243a_100%)] dark:text-white">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgb(255_255_255_/_0.35)_1px,transparent_0)] [background-size:22px_22px] [mask-image:linear-gradient(to_left,black,transparent_70%)]"
-        />
+      <div
+        className={cn(
+          "relative mx-auto max-w-7xl overflow-hidden rounded-[28px] shadow-[0_40px_80px_-50px_rgb(2_7_10_/_0.7)]",
+          theme.surface,
+          dark ? "text-white" : "text-[#02070a]",
+        )}
+      >
+        <div aria-hidden className={cn("pointer-events-none absolute inset-0", theme.pattern)} />
         <img
           src="/nisciconoriginal.png"
           alt=""
           aria-hidden
-          className="pointer-events-none absolute -bottom-16 -right-10 w-[420px] max-w-none opacity-[0.14] brightness-0 invert"
+          className={cn(
+            "pointer-events-none absolute max-w-none brightness-0",
+            LOGO_POSITION[layout],
+            dark ? "opacity-[0.12] invert" : "opacity-[0.08]",
+          )}
         />
 
-        <div className="relative grid gap-10 px-6 py-10 sm:px-10 md:py-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] lg:items-center lg:gap-14 lg:px-14 lg:py-14">
-          <div>
-            <p className="type-label flex items-center gap-2 text-[#02070a]/80 dark:text-sky-200">
-              <span className="size-2 rounded-full bg-brand-orange" aria-hidden />
-              {eyebrow}
-            </p>
-            <h2
-              id="closing-cta-heading"
-              className="mt-3 max-w-2xl text-balance text-3xl font-extrabold leading-[1.1] tracking-tight md:text-4xl lg:text-[2.75rem]"
-            >
-              {headline}
-            </h2>
-            <p className="mt-4 max-w-[60ch] text-base leading-relaxed text-[#02070a]/80 md:text-lg dark:text-white/80">{subtext}</p>
-
-            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-              <CtaAnchor
-                link={primary}
-                className="group inline-flex h-12 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[#02070a] px-6 text-base font-bold text-white shadow-lg shadow-[#02070a]/25 transition hover:bg-[#02070a]/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#02070a] focus-visible:ring-offset-2 focus-visible:ring-offset-primary dark:bg-primary dark:text-[#02070a] dark:hover:bg-primary/90"
-              >
-                {primary.label}
-                <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
-              </CtaAnchor>
-              {secondary ? (
-                <CtaAnchor
-                  link={secondary}
-                  className="inline-flex h-12 items-center justify-center whitespace-nowrap rounded-xl border border-[#02070a]/25 bg-white/30 px-6 text-base font-semibold text-[#02070a] transition hover:bg-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#02070a] dark:border-white/25 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
-                >
-                  {secondary.label}
-                </CtaAnchor>
-              ) : null}
-            </div>
-
-            {points.length > 0 ? (
-              <ul className="mt-6 flex flex-wrap gap-2">
-                {points.map((point) => (
-                  <li
-                    key={point}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-white/40 px-3 py-1.5 text-sm font-medium dark:bg-white/10"
-                  >
-                    <Check className="size-4 shrink-0" strokeWidth={3} aria-hidden />
-                    {point}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            {note ? <p className="mt-4 text-sm leading-relaxed text-[#02070a]/75 dark:text-white/70">{note}</p> : null}
-          </div>
-
-          <div className="relative">
-            <ClosingCard details={details} steps={steps} primary={primary.label} secondary={secondary?.label} />
-          </div>
+        <div
+          className={cn(
+            "relative grid gap-10 px-6 py-10 sm:px-10 md:py-12 lg:px-14 lg:py-14",
+            layout === "split" && "lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] lg:items-center lg:gap-14",
+            layout === "reverse" && "lg:grid-cols-[minmax(320px,0.85fr)_minmax(0,1.15fr)] lg:items-center lg:gap-14",
+          )}
+        >
+          {copy}
+          {visual}
         </div>
       </div>
     </section>

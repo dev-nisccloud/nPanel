@@ -14,7 +14,7 @@ export default function HybridEmailPage() {
             <span className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-1 text-sm font-medium">
               New · Enterprise Hybrid Email Solutions
             </span>
-            <h1 className="mt-6 text-4xl font-bold tracking-tight md:text-5xl">
+            <h1 className="type-h1 mt-6">
               One corporate domain.
               {" "}<br />
               <span className="text-primary">
@@ -83,13 +83,13 @@ export default function HybridEmailPage() {
             </p>
           </div>
         </section>
-        <section className="mx-auto grid max-w-7xl items-center gap-10 px-4 py-12 md:grid-cols-2 md:px-8"><ServiceExperience mode="collaboration" photo/><div><h2 className="text-3xl font-semibold">Keep the tools people use. Reduce the licences they do not need.</h2><p className="mt-5 leading-relaxed text-muted-foreground">Users who rely on shared documents, meetings and suite-specific collaboration remain on Google Workspace or Microsoft 365. Users who primarily send and receive email move to Nisc Mail. Both groups keep addresses on the same company domain, with routing and migration configured for the agreed setup.</p><div className="mt-6 flex flex-wrap gap-4"><Link to="/hosting/email" className="underline">Explore Nisc Mail</Link><Link to="/hosting/microsoft-365" className="underline">Microsoft 365</Link><Link to="/hosting/google-workspace" className="underline">Google Workspace</Link></div></div></section>
+        <section className="mx-auto grid max-w-7xl items-center gap-10 px-4 py-12 md:grid-cols-2 md:px-8"><ServiceExperience mode="collaboration" photo/><div><h2 className="type-h2">Keep the tools people use. Reduce the licences they do not need.</h2><p className="mt-5 leading-relaxed text-muted-foreground">Users who rely on shared documents, meetings and suite-specific collaboration remain on Google Workspace or Microsoft 365. Users who primarily send and receive email move to Nisc Mail. Both groups keep addresses on the same company domain, with routing and migration configured for the agreed setup.</p><div className="mt-6 flex flex-wrap gap-4"><Link to="/hosting/email" className="underline">Explore Nisc Mail</Link><Link to="/hosting/microsoft-365" className="underline">Microsoft 365</Link><Link to="/hosting/google-workspace" className="underline">Google Workspace</Link></div></div></section>
         <section
           id="how-it-works"
           className="border-y border-border bg-muted/30 py-16"
         >
           <div className="mx-auto max-w-7xl px-4 md:px-8">
-            <h2 className="text-3xl font-bold">
+            <h2 className="type-h2">
               Designed around your workforce.
             </h2>
             <div className="mt-8 grid gap-5 md:grid-cols-3">
@@ -131,7 +131,7 @@ export default function HybridEmailPage() {
           <p className="text-sm font-semibold text-primary">
             Cloud productivity options
           </p>
-          <h2 className="mt-3 text-3xl font-bold">
+          <h2 className="type-h2 mt-3">
             Google Workspace. Microsoft 365. Nisc Mail.
           </h2>
           <p className="mt-4 max-w-2xl leading-relaxed text-muted-foreground">

@@ -73,7 +73,7 @@ const Feature = ({
                     {badge}
                   </Badge>
                 ) : null}
-                <h2 className="text-3xl font-semibold text-foreground md:text-4xl">{title}</h2>
+                <h2 className="type-h2 text-foreground">{title}</h2>
                 <p className="text-lg font-normal text-muted-foreground">{description}</p>
               </div>
               {ctaLabel && ctaHref ? (

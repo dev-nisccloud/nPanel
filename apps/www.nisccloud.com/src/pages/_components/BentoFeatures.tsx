@@ -183,7 +183,7 @@ export default function BentoFeatures() {
           transition={{ duration: 0.5 }}
           className="mx-auto flex max-w-3xl flex-col items-center justify-center gap-3 text-center"
         >
-          <h2 className="text-balance text-3xl font-bold tracking-tight md:text-4xl">
+          <h2 className="type-h2 text-balance">
             Why Choose Us
           </h2>
           <p className="max-w-2xl text-base text-muted-foreground">

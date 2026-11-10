@@ -27,7 +27,7 @@ export default function ContactHero() {
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.05 }}
-          className="mb-3 text-balance text-3xl font-bold tracking-tight md:text-4xl"
+          className="type-h1 mb-3 text-balance"
         >
           Tell us what you need.
           <span className="text-primary"> We&apos;ll help you grow.</span>

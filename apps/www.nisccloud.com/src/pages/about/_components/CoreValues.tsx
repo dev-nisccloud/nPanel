@@ -63,7 +63,7 @@ export default function CoreValues() {
           transition={{ duration: 0.5 }}
           className="text-center mb-16"
         >
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">Core Values</h2>
+          <h2 className="type-h2 mb-4">Core Values</h2>
           <p className="text-muted-foreground max-w-xl mx-auto">
             These are not words on a wall. They shape every decision, every
             plan, and every result we ship.

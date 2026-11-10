@@ -46,7 +46,7 @@ export default function BlogPage() {
           transition={{ duration: 0.5 }}
           className="text-center mb-12"
         >
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-5">
+          <h1 className="type-h1 mb-5">
             Insights That{" "}
             <span className="text-primary">Move the Needle</span>
           </h1>

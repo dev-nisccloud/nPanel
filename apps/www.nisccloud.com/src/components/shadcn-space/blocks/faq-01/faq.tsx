@@ -96,7 +96,7 @@ export default function Faq({
               {badge}
             </Badge>
           ) : null}
-          <h2 className="max-w-2xl text-center text-3xl font-bold tracking-tight md:text-4xl">
+          <h2 className="type-h2 max-w-2xl text-center">
             {title}
           </h2>
         </div>

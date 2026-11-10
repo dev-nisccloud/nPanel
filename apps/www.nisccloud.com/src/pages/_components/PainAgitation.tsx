@@ -36,7 +36,7 @@ export default function PainAgitation() {
         >
           <h2
             id="comparison-heading"
-            className="text-balance text-3xl font-bold tracking-tight md:text-4xl"
+            className="type-h2 text-balance"
           >
             Your digital services should work together.
           </h2>

@@ -1,9 +1,22 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, ShieldCheck, Terminal } from "lucide-react";
+import { Check, Cpu, Globe, HardDrive, Mail, MemoryStick, Network, ShieldCheck, Terminal } from "lucide-react";
 import { useInView, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils.ts";
 
-export type ClosingVariant = "storefront" | "timeline" | "rack" | "command" | "brief" | "paths" | "shield";
+export type ClosingVariant =
+  | "storefront"
+  | "timeline"
+  | "rack"
+  | "command"
+  | "brief"
+  | "paths"
+  | "shield"
+  | "inbox"
+  | "spec"
+  | "domains"
+  | "staging"
+  | "sites"
+  | "brand";
 
 /** Plays a short sequence once when the visual scrolls into view; reduced motion jumps to the end. */
 function useSequence(steps: number, stepMs = 450, startMs = 350) {
@@ -139,10 +152,13 @@ export function ServerRack() {
   );
 }
 
-/** Platform: a mini nPanel window typing the sign-in command. */
-export function CommandBar() {
+/** Platform and Zepo AI: a mini window typing a command once. */
+export function CommandBar({
+  command = "open npanel.nisccloud.com",
+  title = "nPanel",
+  lines = ["Signed in to your workspace", "Domains, hosting, email and invoices together"],
+}: { command?: string; title?: string; lines?: string[] }) {
   const { ref, step } = useSequence(1, 0, 200);
-  const command = "open npanel.nisccloud.com";
   const [typed, setTyped] = useState(0);
   const reduceMotion = useReducedMotion() ?? false;
   useEffect(() => {
@@ -166,16 +182,17 @@ export function CommandBar() {
     <div ref={ref} className={cn(SHELL, "bg-[#02070a] text-slate-100 dark:ring-white/10")}>
       <div className="flex items-center gap-2 border-b border-white/10 pb-3">
         <Terminal className="size-4 text-primary" />
-        <span className="text-sm font-semibold text-white">nPanel</span>
+        <span className="text-sm font-semibold text-white">{title}</span>
       </div>
-      <p className="mt-3 font-mono text-[13px]">
+      <p className="mt-3 break-words font-mono text-[13px]">
         <span className="mr-2 text-primary">$</span>
         {command.slice(0, typed)}
         <span className="ml-0.5 inline-block h-4 w-1.5 translate-y-0.5 bg-primary" aria-hidden />
       </p>
-      <ul className="mt-3 space-y-1 text-xs text-white/60" aria-hidden>
-        <li>Signed in to your workspace</li>
-        <li>Domains, hosting, email and invoices together</li>
+      <ul className={cn("mt-3 space-y-1 text-sm text-white/70 transition-opacity duration-500", typed >= command.length ? "opacity-100" : "opacity-0")} aria-hidden>
+        {lines.map((line) => (
+          <li key={line}>{line}</li>
+        ))}
       </ul>
     </div>
   );
@@ -283,6 +300,200 @@ export function ShieldScan({ checks }: { checks: string[] }) {
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+/** Business email: a branded address types into a new-message window. */
+export function InboxCard({ address = "you@yourbusiness.co.ke" }: { address?: string }) {
+  const { ref, step } = useSequence(1, 0, 300);
+  const reduceMotion = useReducedMotion() ?? false;
+  const [typed, setTyped] = useState(0);
+  useEffect(() => {
+    if (step === 0) return;
+    if (reduceMotion) {
+      setTyped(address.length);
+      return;
+    }
+    const id = window.setInterval(() => setTyped((n) => (n >= address.length ? n : n + 1)), 60);
+    return () => window.clearInterval(id);
+  }, [address.length, reduceMotion, step]);
+  const done = typed >= address.length;
+  return (
+    <div ref={ref} className={SHELL}>
+      <div className="flex items-center gap-2 border-b border-border pb-3">
+        <Mail className="size-4 text-amber-600" aria-hidden />
+        <p className="type-label text-amber-700 dark:text-amber-300">New message</p>
+      </div>
+      <dl className="mt-3 space-y-2.5 text-[15px]">
+        <div className="flex gap-3">
+          <dt className="w-14 shrink-0 text-muted-foreground">From</dt>
+          <dd className="min-w-0 break-all font-semibold">
+            {address.slice(0, typed)}
+            {!done ? <span className="ml-0.5 inline-block h-4 w-1.5 translate-y-0.5 bg-amber-500" aria-hidden /> : null}
+          </dd>
+        </div>
+        <div className="flex gap-3">
+          <dt className="w-14 shrink-0 text-muted-foreground">Subject</dt>
+          <dd className="font-medium">Your quote is ready</dd>
+        </div>
+      </dl>
+      <div className={cn("mt-4 flex flex-wrap gap-2 transition-opacity duration-500", done ? "opacity-100" : "opacity-0")}>
+        {["Your own domain", "Works on phone and desktop", "Spam filtering"].map((tag) => (
+          <span key={tag} className="rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-800 dark:text-amber-200">
+            {tag}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Dedicated servers: a hardware spec sheet that fills in row by row. */
+export function SpecSheet({ rows }: { rows: { label: string; value: string }[] }) {
+  const { ref, step } = useSequence(rows.length, 320);
+  const icons = [Cpu, MemoryStick, HardDrive, Network];
+  return (
+    <div ref={ref} className={cn(SHELL, "bg-[#0d1117] text-white dark:bg-[#0d1117]")}>
+      <p className="type-label text-slate-300">Server spec</p>
+      <ul className="mt-4 space-y-2">
+        {rows.map((row, i) => {
+          const Icon = icons[i % icons.length];
+          return (
+            <li
+              key={row.label}
+              className={cn(
+                "flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 transition-all duration-500",
+                i < step ? "opacity-100" : "opacity-30",
+              )}
+            >
+              <Icon className="size-4 shrink-0 text-slate-300" aria-hidden />
+              <span className="text-sm text-white/70">{row.label}</span>
+              <span className="ml-auto text-right text-[15px] font-semibold">{row.value}</span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+/** Domains: names are checked one after another and come back available. */
+export function DomainTicker({ names }: { names: string[] }) {
+  const { ref, step } = useSequence(names.length, 500);
+  return (
+    <div ref={ref} className={SHELL}>
+      <div className="flex items-center gap-2 rounded-xl border border-border px-3 py-2.5">
+        <Globe className="size-4 text-sky-600" aria-hidden />
+        <span className="text-[15px] font-medium text-muted-foreground">Find your name</span>
+      </div>
+      <ul className="mt-3 space-y-2">
+        {names.map((name, i) => (
+          <li key={name} className="flex items-center justify-between gap-3 rounded-xl bg-muted/50 px-3 py-2">
+            <span className="min-w-0 break-all text-[15px] font-semibold">{name}</span>
+            <span
+              className={cn(
+                "shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors duration-300",
+                i < step ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" : "bg-muted text-muted-foreground",
+              )}
+            >
+              {i < step ? "Check now" : "…"}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** WordPress: a switch the visitor flips to push staging changes live. */
+export function StagingSwitch() {
+  const [live, setLive] = useState(false);
+  return (
+    <div className={SHELL}>
+      <p className="type-label text-indigo-700 dark:text-indigo-300">Staging to live</p>
+      <div className="mt-4 grid grid-cols-2 gap-2 text-center">
+        {["Staging", "Live site"].map((label, i) => {
+          const on = i === (live ? 1 : 0);
+          return (
+            <div
+              key={label}
+              className={cn(
+                "rounded-xl border px-3 py-4 transition-all duration-500",
+                on ? "border-indigo-500 bg-indigo-500/10" : "border-border opacity-60",
+              )}
+            >
+              <p className="text-[15px] font-semibold">{label}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{i === 0 ? "Test changes safely" : "Your visitors see this"}</p>
+            </div>
+          );
+        })}
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={live}
+        onClick={() => setLive((v) => !v)}
+        className="mt-4 flex w-full cursor-pointer items-center justify-between rounded-xl bg-muted/60 px-3 py-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+      >
+        <span className="text-sm font-semibold">{live ? "Changes are live" : "Push changes live"}</span>
+        <span className={cn("relative h-6 w-11 rounded-full transition-colors", live ? "bg-indigo-600" : "bg-slate-300 dark:bg-slate-700")}>
+          <span className={cn("absolute top-0.5 size-5 rounded-full bg-white shadow transition-all", live ? "left-[22px]" : "left-0.5")} />
+        </span>
+      </button>
+    </div>
+  );
+}
+
+/** Agency hosting: client sites lighting up in one panel. */
+export function SitesBoard({ sites }: { sites: string[] }) {
+  const { ref, step } = useSequence(sites.length, 300);
+  return (
+    <div ref={ref} className={SHELL}>
+      <div className="flex items-center justify-between">
+        <p className="type-label text-violet-700 dark:text-violet-300">Client sites</p>
+        <span className="text-xs font-semibold text-muted-foreground">One nPanel login</span>
+      </div>
+      <ul className="mt-4 grid grid-cols-2 gap-2">
+        {sites.map((site, i) => (
+          <li
+            key={site}
+            className={cn(
+              "flex items-center gap-2 rounded-xl border px-3 py-2.5 transition-all duration-500",
+              i < step ? "border-violet-500/40 bg-violet-500/[0.07]" : "border-border",
+            )}
+          >
+            <span className={cn("size-2 shrink-0 rounded-full transition-colors", i < step ? "bg-emerald-500" : "bg-muted-foreground/30")} aria-hidden />
+            <span className="min-w-0 truncate text-sm font-semibold">{site}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** Brand identity: a brand board that assembles swatch by swatch. */
+export function BrandBoard() {
+  const { ref, step } = useSequence(4, 380);
+  const swatches = ["#0b0b0f", "#ff7a1a", "#f5efe6", "#38b6ff"];
+  return (
+    <div ref={ref} className={SHELL}>
+      <p className="type-label text-orange-700 dark:text-orange-300">Brand board</p>
+      <div className="mt-4 flex items-end gap-3">
+        <span className="text-5xl font-extrabold leading-none tracking-tight">Aa</span>
+        <span className="pb-1 text-sm text-muted-foreground">Typeface, voice and logo rules</span>
+      </div>
+      <div className="mt-4 grid grid-cols-4 gap-2">
+        {swatches.map((hex, i) => (
+          <span
+            key={hex}
+            className={cn("h-14 rounded-xl ring-1 ring-black/10 transition-all duration-500", i < step ? "scale-100 opacity-100" : "scale-90 opacity-0")}
+            style={{ background: hex }}
+            aria-hidden
+          />
+        ))}
+      </div>
+      <p className="mt-3 text-sm font-medium">Logo, colours, type and guidelines in one kit</p>
     </div>
   );
 }

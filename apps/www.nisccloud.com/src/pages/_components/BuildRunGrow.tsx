@@ -51,7 +51,7 @@ export default function BuildRunGrow() {
       <div className="mx-auto max-w-7xl px-4 md:px-8">
         <div className="mb-8 max-w-2xl">
           <p className="type-label mb-2 text-sky-700 dark:text-primary">Build. Run. Grow.</p>
-          <h2 id="brg-heading" className="text-balance text-2xl font-bold tracking-tight md:text-3xl">
+          <h2 id="brg-heading" className="type-h2 text-balance">
             One partner for every stage of your digital business.
           </h2>
         </div>

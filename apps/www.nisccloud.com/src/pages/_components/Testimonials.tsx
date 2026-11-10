@@ -44,7 +44,7 @@ export default function Testimonials() {
           transition={{ duration: 0.5 }}
           className="text-center mb-10"
         >
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
+          <h2 className="type-h2 mb-3">
             What Our Clients Say
           </h2>
           <p className="text-muted-foreground text-base max-w-xl mx-auto">

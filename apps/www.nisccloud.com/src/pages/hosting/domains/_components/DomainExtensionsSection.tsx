@@ -218,7 +218,7 @@ export function DomainExtensionsSection() {
   return (
     <section ref={sectionRef} className="max-w-5xl mx-auto px-4 md:px-8 pb-20 pt-4">
       <div className="text-center mb-12">
-        <h2 className="text-3xl font-bold mb-3">Every Extension Your Brand Needs</h2>
+        <h2 className="type-h2 mb-3">Every Extension Your Brand Needs</h2>
         <p className="text-sm text-muted-foreground max-w-lg mx-auto">
           Register local and global extensions to protect your brand. Live prices include our retail
           margin and are shown in KES or USD based on your location.

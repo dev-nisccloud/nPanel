@@ -55,7 +55,7 @@ export default function SecuritySslSection() {
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         <div className="text-center mb-12">
           <span className="text-xs font-mono font-bold tracking-widest text-primary uppercase">SSL Solutions</span>
-          <h2 className="text-3xl font-bold mt-2 mb-3">Self-Managed or Fully Managed SSL</h2>
+          <h2 className="type-h2 mt-2 mb-3">Self-Managed or Fully Managed SSL</h2>
           <p className="text-muted-foreground max-w-xl mx-auto text-sm">
             An SSL certificate adds the padlock and HTTPS to your site. Without it, browsers show a Not Secure warning that drives visitors away.
           </p>

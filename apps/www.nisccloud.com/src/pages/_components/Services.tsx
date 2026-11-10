@@ -114,7 +114,7 @@ export default function Services() {
           <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 text-xs text-primary font-mono mb-4">
             WHAT WE DO
           </div>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
+          <h2 className="type-h2 mb-3">
             Every Service. One Team.
           </h2>
           <p className="text-muted-foreground text-base max-w-xl mx-auto">

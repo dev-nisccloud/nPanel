@@ -273,7 +273,7 @@ export default function BlogPostPage() {
               className="mb-8"
             >
               <p className="text-xs font-medium text-primary mb-3">{post.category}</p>
-              <h1 className="text-[36px] font-extrabold leading-[1.15] text-foreground mb-4 text-balance">
+              <h1 className="type-h1 text-foreground mb-4 text-balance">
                 {post.title}
               </h1>
               <p className="text-base text-muted-foreground mb-5 leading-relaxed">

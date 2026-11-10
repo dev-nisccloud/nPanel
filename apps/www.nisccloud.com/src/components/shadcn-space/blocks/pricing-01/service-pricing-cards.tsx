@@ -124,7 +124,7 @@ export default function ServicePricingCards({ title, subtitle, plans }: ServiceP
     <section className="@container bg-background py-24">
       <div className="mx-auto max-w-5xl px-6">
         <div className="text-center">
-          <h2 className="text-balance text-[36px] font-extrabold leading-[1.15] tracking-tight">{title}</h2>
+          <h2 className="type-h2 text-balance">{title}</h2>
           {subtitle ? (
             <p className="mx-auto mt-4 max-w-xl text-balance text-lg text-muted-foreground">{subtitle}</p>
           ) : null}

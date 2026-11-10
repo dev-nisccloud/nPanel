@@ -32,7 +32,7 @@ export function ContentBand({
     >
       <div className="mx-auto max-w-7xl px-4 md:px-8">
         {label ? <p className="type-label mb-3 text-sky-700 dark:text-primary">{label}</p> : null}
-        <h2 id={`${id}-heading`} className="max-w-3xl text-balance text-3xl font-bold tracking-tight md:text-4xl">
+        <h2 id={`${id}-heading`} className="type-h2 max-w-3xl text-balance">
           {title}
         </h2>
         <p className="mt-5 max-w-[70ch] border-l-4 border-primary pl-4 text-lg font-medium leading-relaxed text-foreground">

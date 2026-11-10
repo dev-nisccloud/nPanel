@@ -351,7 +351,7 @@ export default function PricingPlans() {
               <div className="flex flex-col gap-3 border-b border-border/60 pb-6 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-primary">{current.group.label}</p>
-                  <h2 className="mt-1.5 text-2xl font-bold tracking-tight text-foreground md:text-3xl">{current.label}</h2>
+                  <h2 className="type-h2 mt-1.5 text-foreground">{current.label}</h2>
                   <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">{current.description}</p>
                 </div>
                 <Link

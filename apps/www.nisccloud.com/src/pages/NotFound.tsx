@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+﻿import { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button.tsx";
 import { usePageMeta } from "@/lib/seo.ts";
@@ -27,7 +27,7 @@ export default function NotFound() {
       <div className="text-center space-y-6">
         <div className="space-y-2">
           <p className="font-mono text-sm font-bold uppercase tracking-[0.2em] text-muted-foreground">404</p>
-          <h1 className="type-h2">Page not found</h1>
+          <h1 className="type-h1">Page not found</h1>
         </div>
         <p className="text-lg text-muted-foreground max-w-md mx-auto">
           The page you requested does not exist or has moved. Try one of these instead.

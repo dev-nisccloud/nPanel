@@ -12,7 +12,7 @@ export default function AboutHero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="text-[36px] font-extrabold leading-[1.15] mb-6 text-balance"
+          className="type-h1 mb-6 text-balance"
         >
           Build. Run. Grow.{" "}
           <span className="text-primary">With One Technology Partner.</span>

@@ -33,7 +33,7 @@ export default function OnePlatform() {
           <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 text-xs text-primary font-mono mb-4">
             WHY NISC CLOUD
           </div>
-          <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
+          <h2 className="type-h2 mb-4">
             Everything You Need. One Platform.
           </h2>
           <p className="text-muted-foreground text-lg max-w-xl mx-auto">

@@ -151,7 +151,7 @@ export function LicencePlansSection({ kind }: { kind: keyof typeof VENDORS }) {
     <section id="plans" className="bg-muted/10 py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-12 flex flex-col items-center gap-3 text-center">
-          <h2 className="text-[36px] font-extrabold leading-[1.15] tracking-tight">{vendor.title} plans</h2>
+          <h2 className="type-h2">{vendor.title} plans</h2>
           <p className="mx-auto max-w-2xl text-lg leading-relaxed text-muted-foreground">
             Choose licences around the work each person does. We confirm the plan mix, your KES price and
             migration in one proposal.

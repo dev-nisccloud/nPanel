@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+﻿import { motion } from "motion/react";
 import { CheckCircle2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { ShowcaseVisualCard } from "@/pages/_components/ServiceShowcaseSection.tsx";
@@ -45,7 +45,7 @@ export default function AlternatingFeatureBlocks({ items }: Props) {
                 {item.tag}
               </span>
             ) : null}
-            <h3 className="mb-4 text-2xl font-bold leading-snug tracking-tight md:text-3xl">
+            <h3 className="mb-4 type-h3">
               {item.headline}
             </h3>
             <p className="mb-6 text-[15px] leading-relaxed text-muted-foreground">

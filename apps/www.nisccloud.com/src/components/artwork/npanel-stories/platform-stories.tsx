@@ -1,4 +1,4 @@
-import { lazy, Suspense, useRef, useState, type ComponentType, type KeyboardEvent } from "react";
+﻿import { lazy, Suspense, useRef, useState, type ComponentType, type KeyboardEvent } from "react";
 import { cn } from "@/lib/utils.ts";
 
 type StoryComponent = ComponentType<{ active?: boolean; compact?: boolean }>;
@@ -81,7 +81,7 @@ export function PlatformStories() {
       >
         <div>
           <p className="text-sm font-semibold text-primary">{selected.label} in nPanel</p>
-          <h3 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">{selected.title}</h3>
+          <h3 className="mt-2 type-h3">{selected.title}</h3>
           <p className="mt-4 leading-relaxed text-muted-foreground">{selected.body}</p>
         </div>
         <Suspense fallback={<div className="min-h-[380px] rounded-[28px] bg-muted" aria-label="Loading nPanel story" />}>

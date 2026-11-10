@@ -1,4 +1,4 @@
-import { ServiceExperience, type ExperienceMode } from "./ServiceExperience";
+﻿import { ServiceExperience, type ExperienceMode } from "./ServiceExperience";
 import { useLocation } from "react-router-dom";
 /**
  * Alternating content + Quiet Stage visual panels under "What You Get".
@@ -185,7 +185,7 @@ function Block({ block, index }: { block: ShowcaseBlock; index: number }) {
 
   const text = (
     <div className="flex flex-col justify-center">
-      <h3 className="mb-4 text-2xl font-bold leading-snug tracking-tight md:text-3xl">
+      <h3 className="mb-4 type-h3">
         {block.headline}
       </h3>
       <p className="mb-6 text-base leading-relaxed text-muted-foreground md:text-lg">

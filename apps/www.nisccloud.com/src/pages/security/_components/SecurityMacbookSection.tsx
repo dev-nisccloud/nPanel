@@ -38,7 +38,7 @@ export default function SecurityMacbookSection({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.45 }}
-            className="mb-4 text-4xl font-extrabold leading-tight text-foreground sm:text-5xl"
+            className="type-h2 mb-4 text-foreground"
           >
             {title}
           </motion.h2>

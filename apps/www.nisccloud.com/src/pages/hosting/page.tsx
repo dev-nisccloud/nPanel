@@ -143,7 +143,7 @@ export default function HostingPage() {
           <div className="mx-auto grid max-w-7xl items-start gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-14">
             <div>
               <p className="type-label mb-3 text-sky-700 dark:text-primary">Cloud products</p>
-              <h1 id="hosting-heading" className="text-balance text-4xl font-extrabold tracking-tight md:text-5xl">
+              <h1 id="hosting-heading" className="type-h1 text-balance">
                 Everything your website needs to go live and stay fast
               </h1>
               <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground">
@@ -195,7 +195,7 @@ export default function HostingPage() {
         <div className="mx-auto max-w-7xl space-y-14 px-4 py-14 md:px-8">
           {GROUPS.map((g) => (
             <section key={g.id} id={g.id} aria-labelledby={`${g.id}-heading`} className="scroll-mt-24">
-              <h2 id={`${g.id}-heading`} className="text-2xl font-bold tracking-tight md:text-3xl">
+              <h2 id={`${g.id}-heading`} className="type-h2">
                 {g.title}
               </h2>
               <p className="mb-5 mt-2 max-w-2xl text-sm text-muted-foreground md:text-base">{g.intro}</p>

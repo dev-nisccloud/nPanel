@@ -24,7 +24,7 @@ export default function ServiceHero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.1] tracking-tight mb-6 text-balance"
+          className="type-h1 mb-6 text-balance"
         >
           Build with purpose. Run with control.
           {" "}<br />

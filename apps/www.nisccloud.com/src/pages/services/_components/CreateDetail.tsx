@@ -30,7 +30,7 @@ export default function CreateDetail() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-5">
+            <h2 className="type-h2 mb-5">
               We Build Your <br />
               <span className="text-primary">Brand from the Ground Up.</span>
             </h2>

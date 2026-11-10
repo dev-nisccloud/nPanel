@@ -41,7 +41,7 @@ export default function SecurityHero({
             transition={{ duration: 0.6 }}
             className="flex-1 flex flex-col items-start text-left max-w-2xl"
           >
-            <h1 className="text-[36px] font-extrabold leading-[1.15] mb-6 text-balance">
+            <h1 className="type-h1 mb-6 text-balance">
               {title}
             </h1>
             <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-xl">

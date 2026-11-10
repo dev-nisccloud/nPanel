@@ -82,7 +82,7 @@ export default function Features() {
           <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 text-xs text-primary font-mono mb-4 tracking-wide">
             CLEARING THE PATH
           </div>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3 text-balance">
+          <h2 className="type-h2 mb-3 text-balance">
             Removing the roadblocks to your success
           </h2>
           <p className="text-muted-foreground text-base max-w-2xl mx-auto">

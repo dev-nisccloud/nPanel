@@ -18,7 +18,7 @@ export function TransferToolSection() {
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-mono tracking-wide text-primary">
               START YOUR TRANSFER
             </div>
-            <h2 className="mb-3 text-3xl font-bold tracking-tight md:text-4xl">
+            <h2 className="type-h2 mb-3">
               Check If Your Domain Can Move
             </h2>
             <p className="mx-auto max-w-xl text-base text-muted-foreground">

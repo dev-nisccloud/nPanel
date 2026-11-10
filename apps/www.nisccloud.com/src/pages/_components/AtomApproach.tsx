@@ -120,7 +120,7 @@ export default function AtomApproach() {
           transition={{ duration: 0.5 }}
           className="text-center mb-14"
         >
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
+          <h2 className="type-h2 mb-3">
             Create. Host. Market. Automate.
           </h2>
           <p className="text-muted-foreground text-base max-w-xl mx-auto">

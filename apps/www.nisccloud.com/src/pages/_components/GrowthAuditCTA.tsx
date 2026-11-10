@@ -49,7 +49,7 @@ export default function GrowthAuditCTA() {
             FREE GROWTH AUDIT
           </div>
 
-          <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight leading-[1.1] mb-5 text-balance">
+          <h2 className="type-h2 mb-5 text-balance">
             Not sure where to start?
             <br className="hidden md:block" />
             <span className="text-primary"> We will show you what matters most.</span>
