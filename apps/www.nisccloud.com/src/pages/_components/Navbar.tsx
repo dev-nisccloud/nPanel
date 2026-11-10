@@ -88,7 +88,7 @@ const navItems: NavItem[] = [
       {
         label: "Website Hosting",
         desc: "Simple hosting that stays fast",
-        href: "/hosting/shared",
+        href: "/hosting/web-hosting",
         icon: <Server size={16} />,
       },
       {

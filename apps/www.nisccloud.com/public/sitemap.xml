@@ -123,7 +123,7 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://nisccloud.com/services/zeepo-ai</loc>
+    <loc>https://nisccloud.com/services/zepo-ai</loc>
     <lastmod>2026-07-17</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
@@ -131,7 +131,7 @@
 
   <!-- Hosting products -->
   <url>
-    <loc>https://nisccloud.com/hosting/shared</loc>
+    <loc>https://nisccloud.com/hosting/web-hosting</loc>
     <lastmod>2026-07-17</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
@@ -261,7 +261,7 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://nisccloud.com/blog/shared-vs-vps-hosting-kenya</loc>
+    <loc>https://nisccloud.com/blog/web-hosting-vs-vps-kenya</loc>
     <lastmod>2026-07-17</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>

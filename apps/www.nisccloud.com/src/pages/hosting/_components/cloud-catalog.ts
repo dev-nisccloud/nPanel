@@ -46,7 +46,7 @@ export type CloudProduct = {
 };
 
 export const PRODUCTS: Record<ProductKey, CloudProduct> = {
-  shared: { title: "Web Hosting", desc: "Managed hosting for business websites, with tools in nPanel.", href: "/hosting/shared", icon: Server, action: "plans" },
+  shared: { title: "Web Hosting", desc: "Managed hosting for business websites, with tools in nPanel.", href: "/hosting/web-hosting", icon: Server, action: "plans" },
   wordpress: { title: "Managed WordPress Hosting", desc: "WordPress-ready hosting with updates and backups handled by plan.", href: "/hosting/wordpress", icon: LayoutTemplate, action: "plans" },
   agency: { title: "Agency Hosting", desc: "Host client websites and manage each client from one account.", href: "/hosting/agency", icon: Building2, action: "quote", isNew: true },
   vps: { title: "VPS Servers", desc: "Plan-defined virtual compute, with root access where included.", href: "/hosting/vps", icon: Cpu, action: "plans" },

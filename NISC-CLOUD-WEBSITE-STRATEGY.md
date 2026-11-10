@@ -63,7 +63,7 @@ Candidate themes recovered from the old homepage, not verified historical rankin
 
 | Theme | Proposed destination to validate |
 | --- | --- |
-| Web hosting Kenya / developer hosting | /hosting/shared and a developer-hosting page only if offered |
+| Web hosting Kenya / developer hosting | /hosting/web-hosting and a developer-hosting page only if offered |
 | VPS hosting Kenya / dedicated servers Kenya | /hosting/vps, /hosting/dedicated-servers |
 | Business email hosting | /hosting/email |
 | Search engine optimization Kenya | /services/seo |

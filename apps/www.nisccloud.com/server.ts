@@ -4,7 +4,7 @@
 import { existsSync, readFileSync, statSync } from "fs";
 import { extname, join, normalize } from "path";
 // Public routes get their prerendered file; unknown paths get the SPA shell (React 404 page) with a 404 status.
-import { SPA_SHELL_FILE, isPublicRoute, routeHtmlFile } from "./src/lib/public-routes.ts";
+import { PERMANENT_REDIRECTS, SPA_SHELL_FILE, isPublicRoute, routeHtmlFile } from "./src/lib/public-routes.ts";
 import { SECURITY_HEADERS } from "./src/lib/security-headers.ts";
 
 const API_TARGET = (
@@ -173,8 +173,9 @@ Bun.serve({
       return Response.json({ status: "ok", service: "www-nisccloud" });
     }
 
-    if (pathname === "/services/zeepo-ai") {
-      const destination = new URL("/services/zepo-ai", request.url);
+    const redirectTo = PERMANENT_REDIRECTS[pathname.replace(/\/+$/, "") || "/"];
+    if (redirectTo) {
+      const destination = new URL(redirectTo, request.url);
       destination.search = new URL(request.url).search;
       return Response.redirect(destination, 301);
     }

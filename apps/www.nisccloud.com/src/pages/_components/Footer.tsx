@@ -17,7 +17,7 @@ const footerSections: FooterSection[] = [
     title: "Cloud",
     links: [
       { label: "Domain Registration", href: "/hosting/domains" },
-      { label: "Web Hosting", href: "/hosting/shared" },
+      { label: "Web Hosting", href: "/hosting/web-hosting" },
       { label: "WordPress Hosting", href: "/hosting/wordpress" },
       { label: "VPS Servers", href: "/hosting/vps" },
       { label: "Business Email", href: "/hosting/email" },

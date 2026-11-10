@@ -68,7 +68,7 @@ Current prices, billing cycles and renewal prices are on https://nisccloud.com/p
 ## Cloud Products
 
 - [Hosting Overview](https://nisccloud.com/hosting): All hosting products
-- [Web Hosting](https://nisccloud.com/hosting/shared): Web hosting plans for business websites
+- [Web Hosting](https://nisccloud.com/hosting/web-hosting): Web hosting plans for business websites
 - [WordPress Hosting](https://nisccloud.com/hosting/wordpress): Managed WordPress hosting
 - [VPS](https://nisccloud.com/hosting/vps): Virtual private servers
 - [VDS](https://nisccloud.com/hosting/vds): Virtual dedicated servers
@@ -98,7 +98,7 @@ Current prices, billing cycles and renewal prices are on https://nisccloud.com/p
 - [What is AEO / GEO and Why SEO Alone Is Not Enough](https://nisccloud.com/blog/what-is-aeo-geo-and-why-seo-alone-is-not-enough)
 - [M-Pesa E-commerce Checklist for Kenya](https://nisccloud.com/blog/mpesa-ecommerce-checklist-kenya)
 - [Zepo AI Explained](https://nisccloud.com/blog/zeepo-ai-explained)
-- [Shared vs VPS Hosting in Kenya](https://nisccloud.com/blog/shared-vs-vps-hosting-kenya)
+- [Web Hosting vs VPS in Kenya](https://nisccloud.com/blog/web-hosting-vs-vps-kenya)
 - [Google Ads vs Meta Ads Kenya 2025](https://nisccloud.com/blog/google-ads-vs-meta-ads-kenya-2025)
 - [Brand Consistency on Social Media in Kenya](https://nisccloud.com/blog/brand-consistency-social-media-kenya)
 - [Email Marketing Still Works in 2025](https://nisccloud.com/blog/email-marketing-still-works-2025)

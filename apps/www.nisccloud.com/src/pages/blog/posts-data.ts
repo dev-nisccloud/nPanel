@@ -319,7 +319,7 @@ export const posts: Post[] = [
     ],
   },
   {
-    slug: "shared-vs-vps-hosting-kenya",
+    slug: "web-hosting-vs-vps-kenya",
     category: "Cloud Hosting",
     title: "Web Hosting vs VPS in Kenya: Which One Does Your Business Actually Need?",
     excerpt:

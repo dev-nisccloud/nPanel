@@ -38,6 +38,16 @@
       "source": "/services/zeepo-ai",
       "destination": "/services/zepo-ai",
       "permanent": true
+    },
+    {
+      "source": "/hosting/shared",
+      "destination": "/hosting/web-hosting",
+      "permanent": true
+    },
+    {
+      "source": "/blog/shared-vs-vps-hosting-kenya",
+      "destination": "/blog/web-hosting-vs-vps-kenya",
+      "permanent": true
     }
   ],
   "rewrites": [
@@ -84,10 +94,6 @@
     {
       "source": "/services/zepo-ai",
       "destination": "/services/zepo-ai/index.html"
-    },
-    {
-      "source": "/services/zeepo-ai",
-      "destination": "/spa.html"
     },
     {
       "source": "/services/email-marketing",
@@ -138,8 +144,8 @@
       "destination": "/hosting/agency/index.html"
     },
     {
-      "source": "/hosting/shared",
-      "destination": "/hosting/shared/index.html"
+      "source": "/hosting/web-hosting",
+      "destination": "/hosting/web-hosting/index.html"
     },
     {
       "source": "/hosting/wordpress",
@@ -238,8 +244,8 @@
       "destination": "/blog/zeepo-ai-explained/index.html"
     },
     {
-      "source": "/blog/shared-vs-vps-hosting-kenya",
-      "destination": "/blog/shared-vs-vps-hosting-kenya/index.html"
+      "source": "/blog/web-hosting-vs-vps-kenya",
+      "destination": "/blog/web-hosting-vs-vps-kenya/index.html"
     },
     {
       "source": "/blog/google-ads-vs-meta-ads-kenya-2025",
@@ -252,6 +258,18 @@
     {
       "source": "/blog/email-marketing-still-works-2025",
       "destination": "/blog/email-marketing-still-works-2025/index.html"
+    },
+    {
+      "source": "/services/zeepo-ai",
+      "destination": "/spa.html"
+    },
+    {
+      "source": "/hosting/shared",
+      "destination": "/spa.html"
+    },
+    {
+      "source": "/blog/shared-vs-vps-hosting-kenya",
+      "destination": "/spa.html"
     }
   ]
 }

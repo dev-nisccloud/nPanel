@@ -22,7 +22,7 @@ const products = [
     icon: Server,
     title: "Website Hosting",
     desc: "Reliable hosting for business websites.",
-    href: "/hosting/shared",
+    href: "/hosting/web-hosting",
   },
   {
     icon: LayoutTemplate,

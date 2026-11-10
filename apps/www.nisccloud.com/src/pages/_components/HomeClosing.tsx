@@ -5,7 +5,7 @@ import ProposalEnquiry from "@/components/ProposalEnquiry.tsx";
 
 const selfServiceProducts = [
   { label: "Domains", href: "/hosting/domains" },
-  { label: "Website hosting", href: "/hosting/shared" },
+  { label: "Website hosting", href: "/hosting/web-hosting" },
   { label: "Business email", href: "/hosting/email" },
   { label: "VPS & servers", href: "/hosting/vps" },
   { label: "SSL certificates", href: "/security/ssl" },

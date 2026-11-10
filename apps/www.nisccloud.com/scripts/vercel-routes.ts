@@ -8,7 +8,7 @@
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { PUBLIC_ROUTES, routeHtmlFile } from "../src/lib/public-routes.ts";
+import { PERMANENT_REDIRECTS, PUBLIC_ROUTES, routeHtmlFile } from "../src/lib/public-routes.ts";
 import { SECURITY_HEADERS } from "../src/lib/security-headers.ts";
 
 export const API_REWRITE = {
@@ -22,6 +22,11 @@ export function buildVercelConfig() {
     outputDirectory: "dist",
     trailingSlash: false,
     headers: [{ source: "/(.*)", headers: SECURITY_HEADERS }],
+    redirects: Object.entries(PERMANENT_REDIRECTS).map(([source, destination]) => ({
+      source,
+      destination,
+      permanent: true,
+    })),
     rewrites: [API_REWRITE, ...PUBLIC_ROUTES.map((source) => ({ source, destination: routeHtmlFile(source) }))],
   };
 }

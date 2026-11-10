@@ -50,7 +50,7 @@ export const productFamilies = [
           {
             label: "Website Hosting",
             desc: "A dependable home for your website.",
-            href: "/hosting/shared",
+            href: "/hosting/web-hosting",
             icon: AppWindow,
           },
           {

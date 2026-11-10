@@ -16,7 +16,6 @@ export const STATIC_PUBLIC_ROUTES = [
   "/services/paid-ads",
   "/services/social-media",
   "/services/zepo-ai",
-  "/services/zeepo-ai",
   "/services/email-marketing",
   "/contact",
   "/pricing",
@@ -29,7 +28,7 @@ export const STATIC_PUBLIC_ROUTES = [
   "/hosting/google-workspace",
   "/hosting/transfer",
   "/hosting/agency",
-  "/hosting/shared",
+  "/hosting/web-hosting",
   "/hosting/wordpress",
   "/hosting/vps",
   "/hosting/vds",
@@ -52,13 +51,21 @@ export const STATIC_PUBLIC_ROUTES = [
   "/cookies",
 ] as const;
 
+/** Retired URLs and their replacements, served as permanent (301/308) redirects by every host. */
+export const PERMANENT_REDIRECTS: Readonly<Record<string, string>> = {
+  "/services/zeepo-ai": "/services/zepo-ai",
+  "/hosting/shared": "/hosting/web-hosting",
+  "/blog/shared-vs-vps-hosting-kenya": "/blog/web-hosting-vs-vps-kenya",
+};
+
 export const PUBLIC_ROUTES: readonly string[] = [
   ...STATIC_PUBLIC_ROUTES,
   ...posts.map((p) => `/blog/${p.slug}`),
+  ...Object.keys(PERMANENT_REDIRECTS),
 ];
 
 /** Redirects and the noindex cart keep the plain SPA shell; everything else is prerendered. */
-const NOT_PRERENDERED = new Set(["/cart", "/services/marketing", "/services/zeepo-ai"]);
+const NOT_PRERENDERED = new Set(["/cart", "/services/marketing", ...Object.keys(PERMANENT_REDIRECTS)]);
 
 export const PRERENDER_ROUTES: readonly string[] = PUBLIC_ROUTES.filter((r) => !NOT_PRERENDERED.has(r));
 

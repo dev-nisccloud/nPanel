@@ -1,6 +1,7 @@
 import { lazy, Suspense, useLayoutEffect } from "react";
 import { Analytics } from "@vercel/analytics/react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { PERMANENT_REDIRECTS } from "./lib/public-routes.ts";
 import { applyPageMeta } from "./lib/seo.ts";
 import { ROUTE_META } from "./lib/route-meta.ts";
 import { DefaultProviders } from "./components/providers/default.tsx";
@@ -29,7 +30,7 @@ const GoogleWorkspacePage = lazy(() => import("./pages/hosting/google-workspace/
 const TransferHostingPage = lazy(() => import("./pages/hosting/transfer/page.tsx"));
 // Hosting pages
 const HostingPage = lazy(() => import("./pages/hosting/page.tsx"));
-const SharedHostingPage = lazy(() => import("./pages/hosting/shared/page.tsx"));
+const WebHostingPage = lazy(() => import("./pages/hosting/shared/page.tsx"));
 const WordPressHostingPage = lazy(
   () => import("./pages/hosting/wordpress/page.tsx"),
 );
@@ -103,9 +104,9 @@ function RouteMeta() {
   return null;
 }
 
-function LegacyZepoRedirect() {
+function LegacyRedirect({ to }: { to: string }) {
   const { search, hash } = useLocation();
-  return <Navigate to={{ pathname: "/services/zepo-ai", search, hash }} replace />;
+  return <Navigate to={{ pathname: to, search, hash }} replace />;
 }
 
 export function AppRoutes() {
@@ -142,7 +143,7 @@ export function AppRoutes() {
 <Route path="/hosting/google-workspace" element={<GoogleWorkspacePage />} />
 <Route path="/hosting/transfer" element={<TransferHostingPage />} />
           <Route path="/hosting/agency" element={<AgencyHostingPage />} />
-          <Route path="/hosting/shared" element={<SharedHostingPage />} />
+          <Route path="/hosting/web-hosting" element={<WebHostingPage />} />
           <Route path="/hosting/wordpress" element={<WordPressHostingPage />} />
           <Route path="/hosting/vps" element={<VpsHostingPage />} />
           <Route path="/hosting/vds" element={<VdsHostingPage />} />
@@ -169,7 +170,6 @@ export function AppRoutes() {
           <Route path="/services/paid-ads" element={<PaidAdsPage />} />
           <Route path="/services/social-media" element={<SocialMediaPage />} />
           <Route path="/services/zepo-ai" element={<ZeepoAiPage />} />
-          <Route path="/services/zeepo-ai" element={<LegacyZepoRedirect />} />
           <Route
             path="/services/email-marketing"
             element={<EmailMarketingPage />}
@@ -199,6 +199,10 @@ export function AppRoutes() {
 
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/blog/:slug" element={<BlogPostPage />} />
+
+          {Object.entries(PERMANENT_REDIRECTS).map(([from, to]) => (
+            <Route key={from} path={from} element={<LegacyRedirect to={to} />} />
+          ))}
 
           {/* Shared cart / checkout page */}
           <Route path="/cart" element={<CartPage />} />

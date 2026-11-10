@@ -104,6 +104,7 @@ The website currently uses cautious wording for each of these. Confirm, correct,
 | OPS-05 | Preview deploy of the website; check status codes (200/301/404), proxy timeouts for slow registry calls, robots/noindex on preview | P1 | Dev | Not started |
 | OPS-06 | Write a rollback plan for the server deploy and migrations | P1 | Backend | Not started |
 | OPS-07 | Don't commit `bun.lock` from a sparse checkout; exclude `.agents/` and `skills-lock.json` | P1 | Dev | Ongoing rule |
+| OPS-08 | After deploy, check the 301s (`/hosting/shared` → `/hosting/web-hosting`, `/blog/shared-vs-vps-hosting-kenya` → `/blog/web-hosting-vs-vps-kenya`, `/services/zeepo-ai` → `/services/zepo-ai`) and resubmit `sitemap.xml` in Google Search Console | P1 | Dev/Owner | Not started — redirects come from `PERMANENT_REDIRECTS` in `src/lib/public-routes.ts` |
 
 ### 3.2 Payments and checkout
 
