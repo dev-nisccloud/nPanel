@@ -55,7 +55,7 @@ export default function WordPressHostingPage() {
           <span className="text-primary">Fast, Secure and Managed</span>
         </>
       }
-      subtext="Choose managed WordPress hosting for a simpler operating path across setup, updates, backups and support. Exact tools, retention and management scope are shown on each live plan."
+      subtext="Choose managed WordPress hosting for a simpler operating path across setup, updates, backups and support."
       serviceType="hosting"
       plansUnderHero
       customPlansSection={<WordPressPricingSection />}

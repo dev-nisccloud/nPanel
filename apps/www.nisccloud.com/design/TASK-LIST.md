@@ -186,6 +186,7 @@ Every product and service page should follow the Web Hosting pattern when it is 
 - Typical slots: "which plan/package fits" after pricing; a comparison table with the current product highlighted after the showcase; migration or onboarding steps after the process; a plain-language "what is…" explanation, local payment notes and a glossary before the FAQ.
 - FAQs answer real buyer questions directly; the FAQ structured data is generated from the visible FAQ.
 - Only owner-confirmed facts; no invented figures, rankings or guarantees.
+- No filler that points at other parts of the page, such as "Live prices are shown in the plans below" or "…shown on each live plan".
 - Readable sizes: body text 16–17px, supporting text at least 15px, small labels at least 12px.
 - When a page with the short `ServiceDecisionGuide` (WordPress, Business Email, Website Design, SEO, E-commerce) gets the new content, fold those paragraphs into it.
 

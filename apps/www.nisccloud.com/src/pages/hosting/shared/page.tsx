@@ -97,7 +97,7 @@ export default function SharedHostingPage() {
     <ServicePageShell
       badge="Web Hosting"
       headline="Fast, Reliable Web Hosting That Stays Online"
-      subtext="Host your website and email together on NVMe SSD servers with a CDN, DDoS protection, malware scanning, daily backups and free SSL, all managed through nPanel. Live prices are shown in the plans below."
+      subtext="Host your website and email together on NVMe SSD servers with a CDN, DDoS protection, malware scanning, daily backups and free SSL, all managed through nPanel."
       serviceType="hosting"
       plansUnderHero
       customPlansSection={<SharedPricingSection />}
@@ -139,7 +139,7 @@ export default function SharedHostingPage() {
       whyPoints={[
         {
           title: "Know What You Are Buying", visual: "speed",
-          desc: "Live plan cards show the current capacity, billing term and included features before you enter checkout.",
+          desc: "Every plan lists its capacity, billing term and included features before you reach checkout.",
         },
         {
           title: "Choose for the Workload", visual: "uptime",
@@ -166,7 +166,7 @@ export default function SharedHostingPage() {
       faqs={[
         {
           q: "What do I get with web hosting?",
-          a: "You get NVMe SSD hosting with email hosting, free SSL, a CDN, DDoS protection, malware and antivirus scanning, daily backups, SSH access and hosting tools managed through nPanel. Current plan prices are shown on this page and in the cart before you pay.",
+          a: "You get NVMe SSD hosting with email hosting, free SSL, a CDN, DDoS protection, malware and antivirus scanning, daily backups, SSH access and hosting tools managed through nPanel.",
         },
         {
           q: "Is email hosting included?",

@@ -56,7 +56,7 @@ export default function VpsHostingPage() {
     <ServicePageShell
       badge="VPS Servers"
       headline={<>Flexible Compute. <span className="text-primary">More Control.</span> VPS for Growing Workloads.</>}
-      subtext="Choose flexible entry virtual compute for websites, applications and development environments that have outgrown standard web hosting. Resource and storage specifications are shown on each live plan."
+      subtext="Choose flexible entry virtual compute for websites, applications and development environments that have outgrown standard web hosting."
       serviceType="hosting"
       heroIllustration={<HostingHeroIllustration config={vpsHeroConfig} />}
       heroIllustrationBare

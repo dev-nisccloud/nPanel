@@ -53,7 +53,7 @@ export default function VdsHostingPage() {
     <ServicePageShell
       badge="VDS Servers"
       headline={<>Higher-Performance Virtual Compute. <span className="text-primary">Stronger Reservation.</span></>}
-      subtext="Step up from entry VPS to production-oriented virtual compute with stronger reservation and larger sizing options. Exact CPU, memory, storage and network allocations are shown on each live plan."
+      subtext="Step up from entry VPS to production-oriented virtual compute with stronger reservation and larger sizing options."
       serviceType="hosting"
       heroIllustration={<HostingHeroIllustration config={vdsHeroConfig} />}
       heroIllustrationBare
