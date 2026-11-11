@@ -249,14 +249,11 @@ const ScrollStack = ({
         smoothWheel: true,
         touchMultiplier: 2,
         infinite: false,
-        normalizeWheel: true,
         wheelMultiplier: 1,
-        touchInertiaMultiplier: 35,
         lerp: 0.1,
         syncTouch: true,
-        syncTouchLerp: 0.075,
-        touchInertia: 0.6
-      } as any);
+        syncTouchLerp: 0.075
+      });
 
       lenis.on('scroll', handleScroll);
 
@@ -296,9 +293,9 @@ const ScrollStack = ({
       card.style.transformOrigin = 'top center';
       card.style.backfaceVisibility = 'hidden';
       card.style.transform = 'translateZ(0)';
-      (card.style as any).webkitTransform = 'translateZ(0)';
+      card.style.setProperty('-webkit-transform', 'translateZ(0)');
       card.style.perspective = '1000px';
-      (card.style as any).webkitPerspective = '1000px';
+      card.style.setProperty('-webkit-perspective', '1000px');
     });
 
     setupLenis();

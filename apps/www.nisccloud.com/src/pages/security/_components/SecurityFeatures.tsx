@@ -20,24 +20,24 @@ const defaultFeatures: SecurityFeatureItem[] = [
   },
   {
     icon: Flame,
-    title: "Firewall Helps Prevent Hackers",
+    title: "Firewall helps prevent hackers",
     desc: "Our Web Application Firewall (WAF) protects against security threats, blocks malicious traffic, and prevents future attacks automatically.",
     color: "text-orange-500",
     bg: "bg-orange-500/10",
   },
   {
     icon: ScanLine,
-    title: "Daily Malware Scanning",
+    title: "Daily malware scanning",
     desc: "Your site is scanned up to 4 times daily. If malware is detected, you get instant alerts and our experts remove it fast.",
     color: "text-blue-500",
     bg: "bg-blue-500/10",
   },
   {
     icon: Activity,
-    title: "Continuous Site Monitoring",
+    title: "Continuous site monitoring",
     desc: "We monitor blacklist status, SEO spam injections, SSL changes, and website uptime, then alert you when something needs attention.",
-    color: "text-violet-500",
-    bg: "bg-violet-500/10",
+    color: "text-primary",
+    bg: "bg-primary/10",
   },
   {
     icon: Lock,
@@ -48,7 +48,7 @@ const defaultFeatures: SecurityFeatureItem[] = [
   },
   {
     icon: Database,
-    title: "Secure Daily Backups",
+    title: "Secure daily backups",
     desc: "Encrypted off-site backups stored daily. If anything goes wrong, restore your site to a clean state in minutes.",
     color: "text-cyan-500",
     bg: "bg-cyan-500/10",
@@ -62,7 +62,7 @@ type SecurityFeaturesProps = {
 };
 
 export default function SecurityFeatures({
-  title = "Everything You Need to Stay Secure",
+  title = "Everything you need to stay secure",
   description = "A complete security setup that helps protect your site before, during, and after an attack.",
   features = defaultFeatures,
 }: SecurityFeaturesProps = {}) {
@@ -70,7 +70,7 @@ export default function SecurityFeatures({
     <section className="py-20">
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-3">{title}</h2>
+          <h2 className="type-h2 mb-3">{title}</h2>
           <p className="text-muted-foreground max-w-xl mx-auto text-sm">{description}</p>
         </div>
 
@@ -87,7 +87,7 @@ export default function SecurityFeatures({
               <div className={`w-11 h-11 rounded-2xl ${f.bg} ${f.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
                 <f.icon size={20} />
               </div>
-              <h3 className="font-semibold text-foreground mb-2">{f.title}</h3>
+              <h3 className="type-h3 text-foreground mb-2">{f.title}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
             </motion.div>
           ))}

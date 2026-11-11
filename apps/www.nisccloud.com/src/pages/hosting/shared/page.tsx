@@ -1,3 +1,13 @@
+import { HostingSupportArt, MailboxesArt } from "@/components/artwork/cloud-art.tsx";
+import { WebHostingStackArt } from "./_components/WebHostingStackArt.tsx";
+import {
+  WebHostingComparison,
+  WebHostingExplained,
+  WebHostingMigration,
+  WebHostingPlanFit,
+} from "./_components/web-hosting-content.tsx";
+import { HostingStory } from "@/components/artwork/npanel-stories";
+import { HostingPerformanceArtwork } from "@/pages/_components/HostingReviewArtwork.tsx";
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
 import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
@@ -8,27 +18,75 @@ import { SharedPricingSection } from "./_components/SharedPricingSection.tsx";
 const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "Speed Dashboard",
-    headline: "Fast for your visitors, wherever they are.",
-    body: "Your site should feel quick for every visitor. We use LiteSpeed and NVMe SSD storage so pages load smoothly, and CDN options are available when you need a wider reach.",
+    id: "performance-preview",
+    artwork: <HostingPerformanceArtwork />,
+    headline: "Performance and protection, included.",
+    body: "Every plan runs on NVMe SSD storage with a CDN, DDoS protection, malware and antivirus scanning, daily backups and free SSL, so your site stays fast and protected without extra add-ons. Protection works best alongside good habits: keep WordPress, Joomla, themes and plugins updated, and use strong, unique passwords.",
     bullets: [
-      "LiteSpeed web server, much faster than typical Apache hosting",
-      "NVMe SSD storage with very fast disk reads",
-      "CDN integration available for global audiences",
+      "CDN and NVMe SSD storage for fast page loads",
+      "DDoS protection, plus malware and antivirus scanning",
+      "Daily backups and free SSL on every plan",
     ],
     mockupRight: true,
     visual: "speed",
   },
   {
-    tag: "cPanel Management",
-    headline: "Manage your hosting with a clean, simple dashboard",
-    body: "cPanel gives you clear control over your hosting account. Create email addresses, manage files, install WordPress with one click, and view resource usage, without needing deep technical knowledge.",
+    tag: "Supported technologies",
+    id: "supported-technologies",
+    artwork: <WebHostingStackArt />,
+    caption: false,
+    headline: "Run WordPress, PHP, Laravel, Joomla, Node.js or your own code.",
+    body: "Host a WordPress site, a custom website or an application built with PHP, Laravel, Joomla or Node.js. With SSH and command-line access you can run database migrations, install dependencies and build steps from a terminal instead of uploading files one at a time.",
     bullets: [
-      "One-click WordPress, Joomla, and 50+ app installer",
-      "Create professional email addresses like you@yourbusiness.co.ke",
-      "Daily automatic backups, restore any file in one click",
+      "WordPress and Joomla sites",
+      "Custom websites and PHP, Laravel or Node.js applications",
+      "SSH and command-line access for deployments and maintenance",
+    ],
+    mockupRight: false,
+    visual: "code",
+  },
+  {
+    tag: "Email included",
+    id: "email-included",
+    artwork: <MailboxesArt />,
+    headline: "Website and email hosting in one package.",
+    body: "Every web hosting plan includes email hosting on your own domain, so your website and mailboxes are set up and managed together in nPanel. If you only need email, Business Email is available on its own, and teams that also use Microsoft 365 or Google Workspace can combine them with Nisc Mail through Enterprise Hybrid Email.",
+    bullets: [
+      "Professional email addresses on your domain",
+      "Website and email managed in one nPanel account",
+      "Business Email and Enterprise Hybrid Email are also sold separately",
+    ],
+    mockupRight: true,
+    visual: "integrate",
+  },
+  {
+    tag: "nPanel Management",
+    id: "management-preview",
+    artwork: <HostingStory />,
+    caption: false,
+    headline: "Manage your hosting with a clean, simple dashboard",
+    body: "Use nPanel to manage your Nisc Cloud services, review invoices and get support. Open the hosting tools included with your plan when you need to work on your website or email.",
+    bullets: [
+      "Find your domains, hosting and email services in one account",
+      "Review invoices and service renewals without switching accounts",
+      "Contact support when you need help with setup or changes",
     ],
     mockupRight: false,
     visual: "cpanel",
+  },
+  {
+    tag: "Hosting support",
+    id: "hosting-support",
+    headline: "Support for your next step",
+    body: "Get help with your hosting setup, migration questions and ongoing service needs. Start from your Nisc Cloud account so the conversation stays connected to your services.",
+    bullets: [
+      "Ask for guidance before moving your website",
+      "Get help finding the right hosting tools",
+      "Keep service and billing questions in one place",
+    ],
+    visual: "speed",
+    visualRight: true,
+    artwork: <HostingSupportArt />,
   },
 ];
 
@@ -37,47 +95,115 @@ const showcaseBlocks: ShowcaseBlock[] = [
 export default function SharedHostingPage() {
   return (
     <ServicePageShell
-      badge="Shared Web Hosting"
-      headline={<>Fast, Reliable Web Hosting <span className="text-primary">That Stays Online</span></>}
-      subtext="Host your website on NVMe SSD servers with free SSL, cPanel, daily backups, and 24/7 support. Starting at KES 350/mo. Fast for your visitors, wherever they are."
+      badge="Web Hosting"
+      headline="Fast, reliable web hosting that stays online"
+      subtext="Host your website and email together on NVMe SSD servers with a CDN, DDoS protection, malware scanning, daily backups and free SSL, all managed through nPanel."
       serviceType="hosting"
       plansUnderHero
       customPlansSection={<SharedPricingSection />}
       plans={[]}
       heroImage={niscWebsiteImage("website hosting.png")}
       heroImageStandalone
-      heroTrustBadge={{ line1: "NVMe SSD and free SSL", line2: "99.99% uptime and 24/7 support" }}
+      heroTrustBadge={{
+        line1: "NVMe SSD and free SSL",
+        line2: "Managed through nPanel",
+      }}
       trustStats={[
-        { value: "100+", label: "Clients Hosted" },
-        { value: "99.99%", label: "Uptime Target" },
-        { value: "24/7", label: "Support" },
-        { value: "Free", label: "Migration Help" },
+        { value: "Email", label: "Hosting Included" },
+        { value: "CDN", label: "& DDoS Protection" },
+        { value: "Daily", label: "Backups & Malware Scans" },
+        { value: "SSH", label: "& Command-Line Access" },
       ]}
       process={[
-        { num: "01", title: "Choose Your Plan", desc: "Pick a plan that fits your website size and traffic. Not sure? Start with Business, our most popular option for growing sites." },
-        { num: "02", title: "Register or Transfer Domain", desc: "Claim your domain or transfer an existing one. We guide you through setup, or handle the transfer for free." },
-        { num: "03", title: "Hosting Ready After Checkout", desc: "After easy checkout, your account is set up with cPanel, SSL, and email ready to use. We help you get live without the guesswork." },
-        { num: "04", title: "Launch Your Website", desc: "Install WordPress with one click, import your existing site, or let our team migrate it for free. You are live and ready for customers." },
+        {
+          num: "01",
+          title: "Compare current plans",
+          desc: "Review live capacity, billing terms and included features. Ask for guidance if your traffic or application needs are uncertain.",
+        },
+        {
+          num: "02",
+          title: "Connect a domain",
+          desc: "Register, transfer or use a domain you already own. The cart shows the selected path and its current price before payment.",
+        },
+        {
+          num: "03",
+          title: "Provision the service",
+          desc: "After confirmed payment, provisioning begins and access details are sent when the hosting service is ready.",
+        },
+        {
+          num: "04",
+          title: "Set up or migrate",
+          desc: "Use the included hosting tools or agree a migration scope with our team before moving an existing website.",
+        },
       ]}
       whyPoints={[
-        { title: "Fast for Every Visitor", desc: "LiteSpeed and NVMe SSD keep pages responsive. Your site feels quick for visitors wherever they are." },
-        { title: "99.99% Uptime Focus", desc: "We treat uptime as a promise, not a slogan. If something goes wrong, our 24/7 team is ready to help." },
-        { title: "Free Website Migration", desc: "Moving from another host? Our team migrates your site, databases, and emails for free, with careful planning to limit downtime." },
-        { title: "Clear Pricing", desc: "Every price is shown upfront. No surprise renewal shocks, and no charges for features listed as free." },
-        { title: "Paying Is Simple", desc: "Easy checkout so you can get started without friction. Support is available 24/7 if you need a hand." },
-        { title: "Trusted by 100+ Clients", desc: "Businesses choose us for reliable hosting, honest support, and help when they need it." },
+        {
+          title: "Know what you are buying", visual: "speed",
+          desc: "Every plan lists its capacity, billing term and included features before you reach checkout.",
+        },
+        {
+          title: "Choose for the Workload", visual: "uptime",
+          desc: "Web hosting suits standard business websites. We can discuss WordPress-specific or server options when the workload needs a different environment.",
+        },
+        {
+          title: "Migration has a scope", visual: "migration",
+          desc: "We review the website, database, email and DNS requirements before confirming what migration assistance is included.",
+        },
+        {
+          title: "Manage the service in nPanel", visual: "integrate",
+          desc: "Hosting, related domains, invoices and support remain connected to the same Nisc Cloud account.",
+        },
       ]}
+      whySectionHeadline="Why businesses host with Nisc Cloud"
+      whySectionVariant="simple"
+      contentSlots={{
+        afterPricing: <WebHostingPlanFit />,
+        afterShowcase: <WebHostingComparison />,
+        afterProcess: <WebHostingMigration />,
+        beforeFaq: <WebHostingExplained />,
+      }}
+      faqTitle="Web hosting questions"
       faqs={[
-        { q: "What do I get with shared hosting?", a: "You get NVMe SSD hosting, free SSL, cPanel, daily backups, and 24/7 support. Plans start at KES 350/mo." },
-        { q: "Can I host a .co.ke website with you?", a: "Yes. You can register or transfer your domain and host it with us under one account, so naming and hosting stay simple." },
-        { q: "How long does setup take after payment?", a: "We provision your hosting after checkout and send cPanel access by email. Setup help is available 24/7 if you need guidance." },
-        { q: "Is WordPress hosting included?", a: "Yes. All shared hosting plans include a one-click WordPress installer via Softaculous. For WordPress-specific optimisation, see our dedicated WordPress Hosting plans." },
-        { q: "What happens if I need more space?", a: "We notify you at 80% usage. Upgrade your plan from cPanel with no migration and no downtime. We never suspend without warning." },
-        { q: "Do you offer a money-back guarantee?", a: "Yes. 30-day money-back guarantee on all new hosting accounts. Contact our team and we process your full refund." },
+        {
+          q: "What do I get with web hosting?",
+          a: "You get NVMe SSD hosting with email hosting, free SSL, a CDN, DDoS protection, malware and antivirus scanning, daily backups, SSH access and hosting tools managed through nPanel.",
+        },
+        {
+          q: "Is email hosting included?",
+          a: "Yes. Every web hosting plan includes email hosting on your own domain; the number of mailboxes depends on the plan. If you only need email, Business Email is available separately.",
+        },
+        {
+          q: "Which technologies can I run?",
+          a: "WordPress, Joomla, custom websites and applications built with PHP, Laravel or Node.js. SSH and command-line access are included for deployments and maintenance.",
+        },
+        {
+          q: "How is my website protected?",
+          a: "Every plan includes DDoS protection, malware and antivirus scanning, daily backups and free SSL, with a CDN to keep pages loading quickly.",
+        },
+        {
+          q: "Can I host a .co.ke website with you?",
+          a: "Yes. You can register or transfer your domain and host it with us under one account, so naming and hosting stay simple.",
+        },
+        {
+          q: "How long does setup take after payment?",
+          a: "We provision your hosting after checkout and send your access details by email. Setup help is available from your nPanel account if you need guidance.",
+        },
+        {
+          q: "Is WordPress hosting included?",
+          a: "Yes. All web hosting plans include a one-click WordPress installer. For WordPress-specific optimisation, see our dedicated WordPress Hosting plans.",
+        },
+        {
+          q: "What happens if I need more space?",
+          a: "We notify you as you approach your plan's limits. You can upgrade to a larger plan from nPanel without migrating your website.",
+        },
+        {
+          q: "Do you offer a money-back guarantee?",
+          a: "Yes. New web hosting accounts include a 7-day money-back guarantee, as set out in our Terms of Service. Contact our team within 7 days and we process your full refund.",
+        },
       ]}
-      pricingNote="All prices in KES. Easy checkout. 30-day money-back guarantee."
-      ctaHeadline="Get Reliable Web Hosting From KES 350/mo"
-      ctaSubtext="Join 100+ clients on fast shared hosting with free SSL, daily backups, free migration, and 24/7 support."
+      pricingNote="Prices are shown in KES or USD based on your location. Easy checkout. 7-day money-back guarantee on new accounts."
+      ctaHeadline="Get reliable web hosting today"
+      ctaSubtext="Website and email hosting in one package, with CDN, DDoS protection, malware scanning, daily backups and everything managed in nPanel."
       showcaseBlocks={showcaseBlocks}
     />
   );

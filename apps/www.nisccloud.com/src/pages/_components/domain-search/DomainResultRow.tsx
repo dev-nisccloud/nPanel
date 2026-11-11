@@ -10,6 +10,8 @@ export interface DomainResultRowProps {
   isAvailable: boolean;
   displayPrice?: number;
   displayCurrency?: string;
+  /** Retail renewal price per year; omitted when the registry did not return one. */
+  renewalPrice?: number | null;
   reason?: string | null;
   displayResult: DomainSearchResult;
   isDomainInCart: (domain: string) => boolean;
@@ -22,6 +24,7 @@ export function DomainResultRow({
   isAvailable,
   displayPrice,
   displayCurrency,
+  renewalPrice,
   reason,
   displayResult,
   isDomainInCart,
@@ -33,6 +36,8 @@ export function DomainResultRow({
     displayPrice != null &&
     !Number.isNaN(displayPrice) &&
     Boolean(displayCurrency);
+  const renewalKnown = priceReady && renewalPrice != null && renewalPrice > 0;
+  const introductory = renewalKnown && Math.abs(renewalPrice! - displayPrice!) >= 1;
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-4 first:pt-0">
@@ -63,7 +68,12 @@ export function DomainResultRow({
             <span className="font-bold text-sm text-primary">
               {formatPrice(displayPrice!, displayCurrency!)}
             </span>
-            <span className="text-sm text-foreground"> /1st yr</span>
+            <span className="text-sm text-foreground">{renewalKnown && !introductory ? " /yr" : " /1st yr"}</span>
+            <p className="text-[11px] text-muted-foreground">
+              {renewalKnown
+                ? `Renews at ${formatPrice(renewalPrice!, displayCurrency!)}/yr`
+                : "Renewal price shown in cart"}
+            </p>
           </div>
         )}
         <AddDomainToCartButtons

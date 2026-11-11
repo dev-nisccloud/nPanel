@@ -1,5 +1,5 @@
 import { Context } from "hono";
-import { db, eq } from "@npanel/db";
+import { and, db, eq } from "@npanel/db";
 import {
   paymentTransaction,
   paymentTransactionActivityLog,
@@ -15,6 +15,8 @@ import { randomUUID } from "node:crypto";
 import { claimWebhookEvent } from "@npanel/api/lib/webhook-idempotency";
 import { applySuccessfulPaymentToInvoiceSafe } from "@npanel/api/lib/invoice-apply-gateway-payment";
 import { resolveNiscCustomerNotificationRecipient } from "@npanel/api/lib/nisc-order-invoice-billing";
+import { queryStkPushForUser } from "@npanel/api/routers/payment-gateway/mpesa/query-stk-push-status";
+import { completeStorefrontOrderFromVerifiedPayment } from "@npanel/api/lib/storefront-order-completion";
 
 /**
  * M-Pesa Webhook Handler
@@ -64,119 +66,113 @@ export async function handleMpesaWebhook(c: Context) {
     const now = new Date();
 
     const transaction = await db.query.paymentTransaction.findFirst({
-      where: eq(paymentTransaction.checkoutRequestId, checkoutRequestId),
+      where: and(
+        eq(paymentTransaction.checkoutRequestId, checkoutRequestId),
+        eq(paymentTransaction.gateway, "MPESA"),
+      ),
     });
 
-    // If poll marked SUCCESS before the webhook arrived, still backfill receipt / paidAmount.
-    if (transaction?.status === "SUCCESS" && isPaymentSuccessful(validatedCallback)) {
-      const receipt = paymentStatus.metadata?.mpesaReceiptNumber || null;
-      const paidFromCallback = paymentStatus.metadata?.amount;
-      const needsReceipt = receipt && !transaction.receiptNumber;
-      const needsPaidAmount =
-        paidFromCallback != null &&
-        Number.isFinite(paidFromCallback) &&
-        !transaction.paidAmount;
-      if (needsReceipt || needsPaidAmount) {
-        await db.update(paymentTransaction)
-          .set({
-            ...(needsReceipt
-              ? {
-                  receiptNumber: receipt,
-                  gatewayTransactionId: receipt,
-                }
-              : {}),
-            ...(needsPaidAmount
-              ? { paidAmount: String(Math.ceil(paidFromCallback)) }
-              : {}),
-            rawResponse: validatedCallback as any,
-            updatedAt: now,
-          })
-          .where(eq(paymentTransaction.id, transaction.id));
-      }
-      await applySuccessfulPaymentToInvoiceSafe(transaction.id);
+    if (!transaction) {
       return c.json({
         ResultCode: 0,
-        ResultDesc: "Already processed",
+        ResultDesc: "Unknown checkout reference",
       });
     }
 
-    const idempotencyKey = `${checkoutRequestId}:${paymentStatus.resultCode}`;
-    const claimed = await claimWebhookEvent("mpesa", idempotencyKey);
+    // Daraja callbacks are not signed. Treat the callback only as a signal to
+    // query Daraja server-to-server; never derive a terminal state from its body.
+    await queryStkPushForUser(checkoutRequestId, transaction.userId);
+
+    const verifiedTransaction = await db.query.paymentTransaction.findFirst({
+      where: eq(paymentTransaction.id, transaction.id),
+    });
+    if (!verifiedTransaction) {
+      return c.json({ ResultCode: 0, ResultDesc: "Transaction unavailable" });
+    }
+
+    if (verifiedTransaction.status === "SUCCESS") {
+      await completeStorefrontOrderFromVerifiedPayment({
+        checkoutRequestId,
+        userId: verifiedTransaction.userId,
+        teamId: verifiedTransaction.teamId,
+        metadata: verifiedTransaction.metadata,
+      });
+    }
+
+    const idempotencyKey =
+      `${checkoutRequestId}:${verifiedTransaction.status}:${verifiedTransaction.gatewayStatus || "unknown"}`;
+    const claimed = await claimWebhookEvent("mpesa_verified", idempotencyKey);
     if (!claimed) {
-      return c.json({
-        ResultCode: 0,
-        ResultDesc: "Duplicate callback",
-      });
+      return c.json({ ResultCode: 0, ResultDesc: "Duplicate callback" });
     }
 
-    if (isPaymentSuccessful(validatedCallback)) {
-      if (transaction) {
-        const receipt = paymentStatus.metadata?.mpesaReceiptNumber || null;
-        const paidFromCallback = paymentStatus.metadata?.amount;
-        await db.update(paymentTransaction)
-          .set({
-            status: "SUCCESS",
-            gatewayStatus: "0",
-            gatewayMessage: paymentStatus.resultDesc,
-            gatewayTransactionId: receipt,
-            receiptNumber: receipt,
-            ...(paidFromCallback != null && Number.isFinite(paidFromCallback)
-              ? { paidAmount: String(Math.ceil(paidFromCallback)) }
-              : { paidAmount: transaction.amount }),
-            rawResponse: validatedCallback as any,
-            processedAt: now,
-            updatedAt: now,
-          })
-          .where(eq(paymentTransaction.id, transaction.id));
+    if (
+      verifiedTransaction.status === "SUCCESS" &&
+      isPaymentSuccessful(validatedCallback)
+    ) {
+      const callbackAmount = paymentStatus.metadata?.amount;
+      const expectedAmount = Number(verifiedTransaction.amount);
+      const amountMatches =
+        callbackAmount != null &&
+        Number.isFinite(callbackAmount) &&
+        Number.isFinite(expectedAmount) &&
+        Math.round(callbackAmount * 100) === Math.round(expectedAmount * 100);
+      const receipt = amountMatches
+        ? paymentStatus.metadata?.mpesaReceiptNumber || null
+        : null;
 
+      if (!amountMatches) {
         await db.insert(paymentTransactionActivityLog).values({
           id: randomUUID(),
-          transactionId: transaction.id,
-          userId: transaction.userId,
-          action: "SUCCESS",
-          description: `Payment completed successfully. Receipt: ${paymentStatus.metadata?.mpesaReceiptNumber}`,
+          transactionId: verifiedTransaction.id,
+          userId: verifiedTransaction.userId,
+          action: "CALLBACK_METADATA_REJECTED",
+          description: "M-Pesa callback metadata rejected: amount mismatch",
           metadata: {
-            receiptNumber: paymentStatus.metadata?.mpesaReceiptNumber,
-            amount: paymentStatus.metadata?.amount,
-            transactionDate: paymentStatus.metadata?.transactionDate,
-            phoneNumber: paymentStatus.metadata?.phoneNumber,
+            expectedAmount: verifiedTransaction.amount,
+            callbackAmount: callbackAmount ?? null,
           },
           ipAddress: clientIp !== "unknown" ? clientIp : null,
           userAgent: req.headers.get("user-agent") || null,
           createdAt: now,
         });
+      } else if (receipt && !verifiedTransaction.receiptNumber) {
+        await db.update(paymentTransaction)
+          .set({
+            receiptNumber: receipt,
+            gatewayTransactionId: receipt,
+            paidAmount: verifiedTransaction.amount,
+            updatedAt: now,
+          })
+          .where(eq(paymentTransaction.id, verifiedTransaction.id));
+      }
 
-        await applySuccessfulPaymentToInvoiceSafe(transaction.id);
+      await applySuccessfulPaymentToInvoiceSafe(verifiedTransaction.id);
 
-        // Async email sending
+      if (transaction.status !== "SUCCESS") {
         try {
           const recipient = await resolveNiscCustomerNotificationRecipient({
-            teamId: transaction.teamId,
-            userId: transaction.userId,
+            teamId: verifiedTransaction.teamId,
+            userId: verifiedTransaction.userId,
           });
-
           if (recipient) {
-            const formattedAmount = paymentStatus.metadata?.amount
-              ? new Intl.NumberFormat("en-US", {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              }).format(paymentStatus.metadata.amount)
-              : transaction.amount;
-
+            const formattedAmount = new Intl.NumberFormat("en-US", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            }).format(expectedAmount);
             const emailHtml = await renderPaymentReceiptEmail({
               customerName: recipient.name,
-              receiptNumber: paymentStatus.metadata?.mpesaReceiptNumber || "N/A",
+              receiptNumber: receipt || "Payment Confirmed",
               transactionDate: now.toLocaleString(),
               amount: formattedAmount,
-              currency: transaction.currency || "KES",
+              currency: verifiedTransaction.currency,
               paymentMethod: "M-Pesa",
               supportEmail: "support@nisccloud.com",
               supportPhone: "+254 748 777 666",
             });
-
             await sendEmail({
               to: recipient.email,
-              subject: `Payment Receipt - ${paymentStatus.metadata?.mpesaReceiptNumber || "Payment Confirmed"}`,
+              subject: `Payment Receipt - ${receipt || "Payment Confirmed"}`,
               html: emailHtml,
             });
           }
@@ -184,48 +180,17 @@ export async function handleMpesaWebhook(c: Context) {
           console.error("[Webhook][M-Pesa] Failed to send email:", emailError);
         }
       }
-    } else {
-      const transactionStatus = paymentStatus.resultCode === 1032 ? "CANCELLED" : "FAILED";
-      if (transaction) {
-        await db.update(paymentTransaction)
-          .set({
-            status: transactionStatus,
-            gatewayStatus: String(paymentStatus.resultCode),
-            gatewayMessage: paymentStatus.resultDesc,
-            rawError: validatedCallback as any,
-            failedAt: transactionStatus === "FAILED" ? now : null,
-            updatedAt: now,
-          })
-          .where(eq(paymentTransaction.id, transaction.id));
-
-        await db.insert(paymentTransactionActivityLog).values({
-          id: randomUUID(),
-          transactionId: transaction.id,
-          userId: transaction.userId,
-          action: transactionStatus === "CANCELLED" ? "CANCEL" : "FAIL",
-          description: transactionStatus === "CANCELLED"
-            ? `Payment cancelled by user: ${paymentStatus.resultDesc}`
-            : `Payment failed: ${paymentStatus.resultDesc}`,
-          metadata: {
-            resultCode: paymentStatus.resultCode,
-            resultDesc: paymentStatus.resultDesc,
-          },
-          ipAddress: clientIp !== "unknown" ? clientIp : null,
-          userAgent: req.headers.get("user-agent") || null,
-          createdAt: now,
-        });
-      }
     }
 
     return c.json({
       ResultCode: 0,
-      ResultDesc: "Callback processed successfully",
+      ResultDesc: "Callback verified",
     });
   } catch (error) {
     console.error("[Webhook][M-Pesa] Unexpected error:", error);
     return c.json({
-      ResultCode: 0,
-      ResultDesc: "Callback received",
-    });
+      ResultCode: 1,
+      ResultDesc: "Temporary processing failure",
+    }, 503);
   }
 }

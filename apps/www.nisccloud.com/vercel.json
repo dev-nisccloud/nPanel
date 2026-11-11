@@ -1,14 +1,275 @@
 {
   "buildCommand": "cd ../.. && turbo build --filter=www.nisccloud.com",
   "outputDirectory": "dist",
+  "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' https://vercel.live; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://npanel.nisccloud.com https://vercel.live; frame-src https://vercel.live; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self' https:; upgrade-insecure-requests"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+        },
+        {
+          "key": "Cross-Origin-Opener-Policy",
+          "value": "same-origin-allow-popups"
+        }
+      ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/services/zeepo-ai",
+      "destination": "/services/zepo-ai",
+      "permanent": true
+    },
+    {
+      "source": "/hosting/shared",
+      "destination": "/hosting/web-hosting",
+      "permanent": true
+    },
+    {
+      "source": "/blog/shared-vs-vps-hosting-kenya",
+      "destination": "/blog/web-hosting-vs-vps-kenya",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/:path*",
       "destination": "https://npanel-server.nisccloud.com/api/:path*"
     },
     {
-      "source": "/(.*)",
+      "source": "/",
       "destination": "/index.html"
+    },
+    {
+      "source": "/services",
+      "destination": "/services/index.html"
+    },
+    {
+      "source": "/services/marketing",
+      "destination": "/spa.html"
+    },
+    {
+      "source": "/services/brand-identity",
+      "destination": "/services/brand-identity/index.html"
+    },
+    {
+      "source": "/services/website-design",
+      "destination": "/services/website-design/index.html"
+    },
+    {
+      "source": "/services/ecommerce",
+      "destination": "/services/ecommerce/index.html"
+    },
+    {
+      "source": "/services/seo",
+      "destination": "/services/seo/index.html"
+    },
+    {
+      "source": "/services/paid-ads",
+      "destination": "/services/paid-ads/index.html"
+    },
+    {
+      "source": "/services/social-media",
+      "destination": "/services/social-media/index.html"
+    },
+    {
+      "source": "/services/zepo-ai",
+      "destination": "/services/zepo-ai/index.html"
+    },
+    {
+      "source": "/services/email-marketing",
+      "destination": "/services/email-marketing/index.html"
+    },
+    {
+      "source": "/contact",
+      "destination": "/contact/index.html"
+    },
+    {
+      "source": "/pricing",
+      "destination": "/pricing/index.html"
+    },
+    {
+      "source": "/about",
+      "destination": "/about/index.html"
+    },
+    {
+      "source": "/platform",
+      "destination": "/platform/index.html"
+    },
+    {
+      "source": "/work",
+      "destination": "/work/index.html"
+    },
+    {
+      "source": "/blog",
+      "destination": "/blog/index.html"
+    },
+    {
+      "source": "/hosting",
+      "destination": "/hosting/index.html"
+    },
+    {
+      "source": "/hosting/microsoft-365",
+      "destination": "/hosting/microsoft-365/index.html"
+    },
+    {
+      "source": "/hosting/google-workspace",
+      "destination": "/hosting/google-workspace/index.html"
+    },
+    {
+      "source": "/hosting/transfer",
+      "destination": "/hosting/transfer/index.html"
+    },
+    {
+      "source": "/hosting/agency",
+      "destination": "/hosting/agency/index.html"
+    },
+    {
+      "source": "/hosting/web-hosting",
+      "destination": "/hosting/web-hosting/index.html"
+    },
+    {
+      "source": "/hosting/wordpress",
+      "destination": "/hosting/wordpress/index.html"
+    },
+    {
+      "source": "/hosting/vps",
+      "destination": "/hosting/vps/index.html"
+    },
+    {
+      "source": "/hosting/vds",
+      "destination": "/hosting/vds/index.html"
+    },
+    {
+      "source": "/hosting/dedicated-servers",
+      "destination": "/hosting/dedicated-servers/index.html"
+    },
+    {
+      "source": "/hosting/domains",
+      "destination": "/hosting/domains/index.html"
+    },
+    {
+      "source": "/hosting/hybrid-email",
+      "destination": "/hosting/hybrid-email/index.html"
+    },
+    {
+      "source": "/hosting/email",
+      "destination": "/hosting/email/index.html"
+    },
+    {
+      "source": "/hosting/ssl",
+      "destination": "/hosting/ssl/index.html"
+    },
+    {
+      "source": "/help",
+      "destination": "/help/index.html"
+    },
+    {
+      "source": "/whois",
+      "destination": "/whois/index.html"
+    },
+    {
+      "source": "/domain-transfer",
+      "destination": "/domain-transfer/index.html"
+    },
+    {
+      "source": "/security",
+      "destination": "/security/index.html"
+    },
+    {
+      "source": "/security/email",
+      "destination": "/security/email/index.html"
+    },
+    {
+      "source": "/security/ssl",
+      "destination": "/security/ssl/index.html"
+    },
+    {
+      "source": "/security/malware-removal",
+      "destination": "/security/malware-removal/index.html"
+    },
+    {
+      "source": "/security/website-maintenance",
+      "destination": "/security/website-maintenance/index.html"
+    },
+    {
+      "source": "/cart",
+      "destination": "/spa.html"
+    },
+    {
+      "source": "/terms",
+      "destination": "/terms/index.html"
+    },
+    {
+      "source": "/privacy",
+      "destination": "/privacy/index.html"
+    },
+    {
+      "source": "/cookies",
+      "destination": "/cookies/index.html"
+    },
+    {
+      "source": "/blog/why-every-kenyan-sme-needs-a-digital-identity",
+      "destination": "/blog/why-every-kenyan-sme-needs-a-digital-identity/index.html"
+    },
+    {
+      "source": "/blog/what-is-aeo-geo-and-why-seo-alone-is-not-enough",
+      "destination": "/blog/what-is-aeo-geo-and-why-seo-alone-is-not-enough/index.html"
+    },
+    {
+      "source": "/blog/mpesa-ecommerce-checklist-kenya",
+      "destination": "/blog/mpesa-ecommerce-checklist-kenya/index.html"
+    },
+    {
+      "source": "/blog/zeepo-ai-explained",
+      "destination": "/blog/zeepo-ai-explained/index.html"
+    },
+    {
+      "source": "/blog/web-hosting-vs-vps-kenya",
+      "destination": "/blog/web-hosting-vs-vps-kenya/index.html"
+    },
+    {
+      "source": "/blog/google-ads-vs-meta-ads-kenya-2025",
+      "destination": "/blog/google-ads-vs-meta-ads-kenya-2025/index.html"
+    },
+    {
+      "source": "/blog/brand-consistency-social-media-kenya",
+      "destination": "/blog/brand-consistency-social-media-kenya/index.html"
+    },
+    {
+      "source": "/blog/email-marketing-still-works-2025",
+      "destination": "/blog/email-marketing-still-works-2025/index.html"
+    },
+    {
+      "source": "/services/zeepo-ai",
+      "destination": "/spa.html"
+    },
+    {
+      "source": "/hosting/shared",
+      "destination": "/spa.html"
+    },
+    {
+      "source": "/blog/shared-vs-vps-hosting-kenya",
+      "destination": "/spa.html"
     }
   ]
 }

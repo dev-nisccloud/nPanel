@@ -290,6 +290,15 @@ const checkoutIdentityOutputSchema = z.discriminatedUnion("authenticated", [
   }),
 ]);
 
+const displayCurrencySchema = z.enum(["KES", "USD"]);
+const displayCurrencyPreferenceOutputSchema = z.discriminatedUnion("authenticated", [
+  z.object({ authenticated: z.literal(false), currency: z.null() }),
+  z.object({
+    authenticated: z.literal(true),
+    currency: displayCurrencySchema.nullable(),
+  }),
+]);
+
 // ---------------------------------------------------------------------------
 // Router
 // ---------------------------------------------------------------------------
@@ -377,6 +386,44 @@ export const storefrontAuthRouter = router({
           role: m.role as PurchaseRole,
         })),
       };
+    }),
+
+  displayCurrencyPreference: publicProcedure
+    .output(displayCurrencyPreferenceOutputSchema)
+    .query(async ({ ctx }) => {
+      if (!assertLandingPageOrigin(requestHeaders(ctx), "soft")) {
+        return { authenticated: false as const, currency: null };
+      }
+      const userId = ctx.session?.user?.id;
+      if (!userId) {
+        return { authenticated: false as const, currency: null };
+      }
+
+      const [userRow] = await db
+        .select({ currency: user.displayCurrency })
+        .from(user)
+        .where(eq(user.id, userId))
+        .limit(1);
+      const currency =
+        userRow?.currency === "KES" || userRow?.currency === "USD"
+          ? userRow.currency
+          : null;
+      return { authenticated: true as const, currency };
+    }),
+
+  updateDisplayCurrencyPreference: publicProcedure
+    .input(z.object({ currency: displayCurrencySchema }))
+    .output(z.object({ currency: displayCurrencySchema }))
+    .mutation(async ({ ctx, input }) => {
+      const { userId } = await requireStorefrontSessionUser(ctx);
+      await db
+        .update(user)
+        .set({
+          displayCurrency: input.currency,
+          displayCurrencyUpdatedAt: new Date(),
+        })
+        .where(eq(user.id, userId));
+      return { currency: input.currency };
     }),
 
   /**

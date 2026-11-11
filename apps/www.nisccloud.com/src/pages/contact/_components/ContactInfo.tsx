@@ -1,5 +1,6 @@
 import { motion } from "motion/react";
-import { Mail, Phone, MapPin } from "lucide-react";
+import { Mail, Phone, MapPin, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const contactDetails = [
   {
@@ -7,14 +8,14 @@ const contactDetails = [
     label: "Email",
     value: "sales@nisccloud.com",
     href: "mailto:sales@nisccloud.com",
-    sub: "We reply within 24 hours",
+    sub: "We reply within one working day",
   },
   {
     icon: Phone,
     label: "Phone",
     value: "+254 748 777 666",
     href: "tel:+254748777666",
-    sub: "Sales Mon–Fri · Support 24/7",
+    sub: "Sales Mon–Fri · Support requests any time",
   },
   {
     icon: MapPin,
@@ -25,6 +26,12 @@ const contactDetails = [
   },
 ];
 
+const quickRoutes = [
+  { label: "Search for a domain", href: "/hosting/domains" },
+  { label: "Compare hosting and service plans", href: "/pricing" },
+  { label: "Browse the Help Centre", href: "/help" },
+];
+
 export default function ContactInfo() {
   return (
     <motion.aside
@@ -33,7 +40,7 @@ export default function ContactInfo() {
       transition={{ duration: 0.45, delay: 0.08 }}
       className="rounded-2xl border border-border/60 bg-card p-6"
     >
-      <h3 className="mb-1 text-base font-semibold tracking-tight">Talk to us directly</h3>
+      <h2 className="type-h3 mb-1">Talk to us directly</h2>
       <p className="mb-5 text-sm text-muted-foreground">
         Prefer email or a call? Reach the team here.
       </p>
@@ -60,6 +67,23 @@ export default function ContactInfo() {
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="mt-6 border-t border-border/60 pt-5">
+        <h2 className="type-h3 mb-3">Ready to start on your own?</h2>
+        <ul className="space-y-1">
+          {quickRoutes.map((r) => (
+            <li key={r.href}>
+              <Link
+                to={r.href}
+                className="group -mx-2 flex items-center justify-between rounded-lg px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-primary/5 hover:text-foreground"
+              >
+                {r.label}
+                <ArrowRight size={14} className="text-primary transition-transform group-hover:translate-x-0.5" aria-hidden />
+              </Link>
+            </li>
+          ))}
+        </ul>
       </div>
     </motion.aside>
   );

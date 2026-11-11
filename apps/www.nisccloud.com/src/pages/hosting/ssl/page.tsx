@@ -1,10 +1,21 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
+import { SSL_PLANS, SERVICE_PACKAGE_NOTES } from "@/lib/service-packages.ts";
 import { Lock, Shield, Globe, Award, Zap, Eye, CheckCircle, Server } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
+import { useCurrency } from "@/components/providers/currency.tsx";
+import { convertKesForDisplay, formatCurrency } from "@/lib/currency.ts";
 
 // ─── Hero Illustration ────────────────────────────────────────────────────────
 
 function SslIllustration() {
+  const { currency, kesToCurrencyRate } = useCurrency();
+  const displayPrice = (amount: number) =>
+    kesToCurrencyRate == null
+      ? "Updating…"
+      : `${formatCurrency(
+          convertKesForDisplay(amount, currency, kesToCurrencyRate),
+          currency,
+        )}/yr`;
   return (
     <div className="space-y-3 select-none">
       {/* Browser address bar mockup */}
@@ -51,9 +62,9 @@ function SslIllustration() {
         <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Certificate Types</div>
         <div className="space-y-2">
           {[
-            { type: "DV Certificate", use: "Blogs and brochure sites", price: "KES 1,500/yr", badge: "Fast" },
-            { type: "OV Certificate", use: "Business websites", price: "KES 3,500/yr", badge: "Popular" },
-            { type: "EV Certificate", use: "E-commerce and fintech", price: "KES 8,000/yr", badge: "Highest Trust" },
+            { type: "DV Certificate", use: "Blogs and brochure sites", price: 1500, badge: "Fast" },
+            { type: "OV Certificate", use: "Business websites", price: 3500, badge: "Popular" },
+            { type: "EV Certificate", use: "E-commerce and fintech", price: 8000, badge: "Highest Trust" },
           ].map(({ type, use, price, badge }) => (
             <div key={type} className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-muted/40 border border-border/30">
               <div>
@@ -63,7 +74,7 @@ function SslIllustration() {
                 </div>
                 <div className="text-muted-foreground mt-0.5">{use}</div>
               </div>
-              <span className="font-bold text-primary shrink-0 ml-2">{price}</span>
+              <span className="font-bold text-primary shrink-0 ml-2">{displayPrice(price)}</span>
             </div>
           ))}
         </div>
@@ -105,7 +116,7 @@ export default function SslPage() {
   return (
     <ServicePageShell
       badge="SSL Certificates"
-      headline={<>Secure Your Website. <span className="text-primary">Earn Your Visitors' Trust.</span></>}
+      headline={<>Secure your website. <span className="text-primary">Earn your visitors' trust.</span></>}
       subtext="SSL certificates encrypt customer data, support better search visibility, and display the padlock that tells visitors your site is safe. Essential for every business website and online store."
       serviceType="hosting"
       checkoutServiceType="ssl_certificate"
@@ -113,128 +124,71 @@ export default function SslPage() {
       heroIllustration={<SslIllustration />}
       heroTrustBadge={{ line1: "256-bit AES Encryption", line2: "Issued in under 1 hour" }}
       trustStats={[
-        { value: "100+", label: "Clients Protected" },
+        { value: "Sectigo", label: "Certificate Authority" },
         { value: "256-bit", label: "Encryption Strength" },
-        { value: "24/7", label: "Support" },
+        { value: "Free", label: "Installation Help" },
         { value: "< 1hr", label: "Average Issuance Time" },
       ]}
       features={[
         {
           icon: <Lock size={20} />,
-          title: "256-Bit Encryption",
+          title: "256-bit encryption",
           desc: "Industry-standard 256-bit AES encryption protects all data transmitted between your visitors' browsers and your server, the same strength used by banks and governments.",
         },
         {
           icon: <Shield size={20} />,
-          title: "Malware and Phishing Warnings Removed",
+          title: "Malware and phishing warnings removed",
           desc: "Google Chrome and Firefox display scary warnings for sites without SSL. An SSL certificate removes these warnings and shows the trusted padlock instead.",
         },
         {
           icon: <Globe size={20} />,
-          title: "Google SEO Ranking Support",
+          title: "Google SEO ranking support",
           desc: "Google has confirmed HTTPS as a ranking signal. Secure sites are better positioned in search results, which helps your online visibility.",
         },
         {
           icon: <Award size={20} />,
-          title: "Globally Trusted Certificate Authorities",
-          desc: "Our SSL certificates are issued by DigiCert, Sectigo, and GlobalSign, trusted CAs worldwide. Compatible with nearly all browsers and mobile devices.",
+          title: "Issued by Sectigo",
+          desc: "Our SSL certificates are issued by Sectigo, a globally recognised certificate authority. Compatible with nearly all browsers and mobile devices.",
         },
         {
           icon: <Zap size={20} />,
-          title: "Fast Issuance and Installation",
+          title: "Fast issuance and installation",
           desc: "Domain Validated (DV) certificates issue in under 1 hour. For Business and Extended Validation certificates, we guide you through the verification process step by step.",
         },
         {
           icon: <Eye size={20} />,
-          title: "Extended Validation (EV) Green Bar",
-          desc: "EV SSL certificates display your company name in the browser address bar, providing maximum visual trust. Ideal for e-commerce, financial services, and government sites.",
+          title: "Extended validation (EV)",
+          desc: "EV SSL is the strictest validation level. Your verified company details appear in the certificate information. Suited to e-commerce, financial services, and government sites.",
         },
         {
           icon: <CheckCircle size={20} />,
-          title: "Wildcard and Multi-Domain Support",
+          title: "Wildcard and multi-domain support",
           desc: "Secure unlimited subdomains with one Wildcard certificate. Multi-Domain (SAN) certificates cover multiple sites under a single certificate, reducing cost and complexity.",
         },
         {
           icon: <Server size={20} />,
-          title: "Free SSL Installation Assistance",
+          title: "Free SSL installation assistance",
           desc: "Not technical? Our team installs and configures your SSL certificate on your server free of charge. We test HTTPS enforcement and fix mixed-content issues before handing over.",
         },
       ]}
-      plans={[
-        {
-          id: "ssl-dv",
-          name: "Domain Validation (DV)",
-          price: 1500,
-          period: "yr",
-          features: [
-            "Single Domain Protection",
-            "256-Bit Encryption",
-            "Issued in under 1 Hour",
-            "Free Installation Support",
-            "Padlock in Browser Address Bar",
-            "Google SEO Support",
-            "Broad Browser Compatibility",
-            "KES 500,000 Warranty",
-            "Ideal for Blogs and Brochure Sites",
-          ],
-        },
-        {
-          id: "ssl-ov-popular",
-          name: "Organisation Validation (OV)",
-          price: 3500,
-          period: "yr",
-          features: [
-            "Single Domain Protection",
-            "256-Bit Encryption",
-            "Issued in under 3 Business Days",
-            "Free Installation Support",
-            "Company Name in Certificate Details",
-            "Padlock in Browser Address Bar",
-            "Google SEO Support",
-            "Broad Browser Compatibility",
-            "KES 1,500,000 Warranty",
-            "Ideal for Business Websites",
-            "Wildcard Option Available",
-          ],
-        },
-        {
-          id: "ssl-ev",
-          name: "Extended Validation (EV)",
-          price: 8000,
-          period: "yr",
-          features: [
-            "Single Domain Protection",
-            "256-Bit Encryption",
-            "Issued in under 5 Business Days",
-            "Free Installation Support",
-            "Company Name Visible in Address Bar",
-            "Highest Trust Level Available",
-            "Google SEO Support",
-            "Broad Browser Compatibility",
-            "KES 5,000,000 Warranty",
-            "Ideal for E-Commerce and Fintech",
-            "Ideal for Banks and Government Portals",
-            "Dedicated Validation Support",
-          ],
-        },
-      ]}
+      plans={SSL_PLANS}
       addons={[
         { id: "ssl-addon-wildcard", label: "Wildcard Upgrade (unlimited subdomains)", price: 2000, period: "yr" },
         { id: "ssl-addon-san", label: "Multi-Domain SAN (up to 5 domains)", price: 2500, period: "yr" },
       ]}
       process={[
-        { num: "01", title: "Choose Certificate Type", desc: "Select DV for a basic padlock, OV to show your company name in certificate details, or EV for the highest visible trust level on e-commerce and banking sites." },
-        { num: "02", title: "Domain Verification", desc: "For DV certificates, verify domain ownership via email or DNS record. For OV/EV, we guide you through business document submission." },
-        { num: "03", title: "Certificate Issued", desc: "DV certificates issue in under 1 hour. OV takes 1 to 3 business days. EV takes 3 to 5 business days after document verification is complete." },
-        { num: "04", title: "We Install and Test for You", desc: "Our team installs the certificate on your server, enforces HTTPS redirects, fixes mixed-content warnings, and confirms the padlock appears correctly in all browsers." },
+        { num: "01", title: "Choose certificate type", desc: "Select DV for a basic padlock, OV to show your company name in certificate details, or EV for the highest visible trust level on e-commerce and banking sites." },
+        { num: "02", title: "Domain verification", desc: "For DV certificates, verify domain ownership via email or DNS record. For OV/EV, we guide you through business document submission." },
+        { num: "03", title: "Certificate issued", desc: "DV certificates issue in under 1 hour. OV takes 1 to 3 business days. EV takes 3 to 5 business days after document verification is complete." },
+        { num: "04", title: "We install and test for you", desc: "Our team installs the certificate on your server, enforces HTTPS redirects, fixes mixed-content warnings, and confirms the padlock appears correctly in all browsers." },
       ]}
       whyPoints={[
-        { title: "HTTPS Is No Longer Optional", desc: "Google marks all HTTP websites as 'Not Secure'. Without SSL, you lose visitor trust, search visibility, and customers who see the warning and leave." },
-        { title: "Protects Your Customers' Data", desc: "SSL encrypts credit card numbers, personal details, and login credentials in transit. A practical obligation for any website that collects user data." },
-        { title: "Builds Checkout Confidence", desc: "Visitors feel safer entering details when they see the padlock. Secure sites support smoother, more trusted form and payment flows." },
-        { title: "Free Installation Included", desc: "We don't just sell you a certificate. We install it. Our team configures Apache, Nginx, or cPanel to enforce HTTPS and resolve mixed-content warnings." },
-        { title: "Expiry Reminders, Never Go Unsecured", desc: "You will receive email and SMS alerts at 60, 30, and 7 days before expiry. We also offer auto-renewal so your site is never accidentally left without a valid certificate." },
-        { title: "Works Across Common Hosting Setups", desc: "Our SSL certificates work on cPanel, Plesk, AWS, Azure, and standalone Linux/Windows servers. Whatever platform your website runs on, we can help." },
+        { title: "HTTPS is no longer optional", visual: "security", desc: "Google marks all HTTP websites as 'Not Secure'. Without SSL, you lose visitor trust, search visibility, and customers who see the warning and leave." },
+        { title: "Protects your customers' data", visual: "ownership", desc: "SSL encrypts credit card numbers, personal details, and login credentials in transit. A practical obligation for any website that collects user data." },
+        { title: "Builds checkout confidence", visual: "payment", desc: "Visitors feel safer entering details when they see the padlock. Secure sites support smoother, more trusted form and payment flows." },
+        { title: "Installation support included", visual: "support", desc: "Our team can help install the certificate, enforce HTTPS and resolve mixed-content warnings within the agreed hosting setup." },
+        { title: "Expiry reminders, never go unsecured", visual: "automation", desc: "You will receive email and SMS alerts at 60, 30, and 7 days before expiry. We also offer auto-renewal so your site is never accidentally left without a valid certificate." },
+        { title: "Works across common hosting setups", visual: "integrate", desc: "Sectigo certificates support common web-server and cloud configurations. We confirm compatibility with your environment before installation." },
       ]}
       faqs={[
         { q: "What is the difference between DV, OV, and EV certificates?", a: "DV (Domain Validated) proves you control the domain and issues in minutes. OV (Organisation Validated) also verifies your business details. EV (Extended Validation) provides the highest trust level. For most business websites, OV is a strong choice." },
@@ -244,9 +198,9 @@ export default function SslPage() {
         { q: "Is SSL required for accepting online payments?", a: "Yes. Sites that collect payment or personal information need HTTPS with a valid SSL certificate. It is a basic requirement for secure checkout and forms." },
         { q: "What happens if my SSL expires?", a: "An expired SSL certificate causes browsers to show a full-page security warning that blocks most visitors. We send reminders well in advance and can set up auto-renewal so this never happens to you." },
       ]}
-      pricingNote="Prices shown are per year. Multi-year discounts available. Free installation included on all plans."
-      ctaHeadline="Secure Your Website Today"
-      ctaSubtext="Join 100+ clients who trust our SSL certificates. Get the padlock, protect customer data, and keep your site looking safe in the browser."
+      pricingNote={SERVICE_PACKAGE_NOTES.SSL}
+      ctaHeadline="Secure your website today"
+      ctaSubtext="Get the padlock, protect customer data, and keep your site looking safe in the browser."
       showcaseBlocks={showcaseBlocks}
     />
   );

@@ -20,7 +20,7 @@ import {
 	salesReportOverviewSchema,
 } from "./sales-overview-schemas";
 
-/** Aggregate daily team snapshots into one row per team (total amount), sorted by amount desc, top N. */
+/** Aggregate daily team snapshots by team and currency, sorted by amount desc, top N. */
 function aggregateRevenueByTeam(
     rows: { teamId: string; teamName: string; amount: unknown; date: Date; period: string; currency: string }[],
     limit: number
@@ -28,11 +28,12 @@ function aggregateRevenueByTeam(
     const byTeam = new Map<string, { teamId: string; teamName: string; amount: number; date: Date; period: string; currency: string }>();
     for (const r of rows) {
         const amount = Number(r.amount);
-        const existing = byTeam.get(r.teamId);
+        const aggregationKey = `${r.teamId}:${r.currency}`;
+        const existing = byTeam.get(aggregationKey);
         if (existing) {
             existing.amount += amount;
         } else {
-            byTeam.set(r.teamId, {
+            byTeam.set(aggregationKey, {
                 teamId: r.teamId,
                 teamName: r.teamName,
                 amount,
@@ -46,7 +47,7 @@ function aggregateRevenueByTeam(
         .sort((a, b) => b.amount - a.amount)
         .slice(0, limit)
         .map(({ teamId, teamName, amount, date, period, currency }) => ({
-            id: `${teamId}-${date.toISOString()}`,
+            id: `${teamId}-${currency}-${date.toISOString()}`,
             teamId,
             teamName,
             amount,
@@ -79,6 +80,7 @@ export const salesReportsRouter = router({
             from: z.coerce.date().optional(),
             to: z.coerce.date().optional(),
             limit: z.number().optional().default(30),
+            currency: z.string().optional().default("KES"),
         }))
         .output(z.array(salesReportSnapshotSchema))
         .query(async ({ input }) => {
@@ -88,6 +90,7 @@ export const salesReportsRouter = router({
             const results = await db.query.salesReportSnapshot.findMany({
                 where: and(
                     eq(salesReportSnapshot.period, "DAILY"),
+                    eq(salesReportSnapshot.currency, input.currency),
                     gte(salesReportSnapshot.date, startDate),
                     lte(salesReportSnapshot.date, endDate),
                 ),
@@ -101,6 +104,7 @@ export const salesReportsRouter = router({
                 const newResults = await db.query.salesReportSnapshot.findMany({
                     where: and(
                         eq(salesReportSnapshot.period, "DAILY"),
+                        eq(salesReportSnapshot.currency, input.currency),
                         gte(salesReportSnapshot.date, startDate),
                         lte(salesReportSnapshot.date, endDate),
                     ),
@@ -134,6 +138,7 @@ export const salesReportsRouter = router({
             from: z.coerce.date().optional(),
             to: z.coerce.date().optional(),
             limit: z.number().optional().default(10),
+            currency: z.string().optional().default("KES"),
         }))
         .output(z.array(revenueByServiceSnapshotSchema))
         .query(async ({ input }) => {
@@ -143,6 +148,7 @@ export const salesReportsRouter = router({
             const results = await db.query.revenueByServiceSnapshot.findMany({
                 where: and(
                     eq(revenueByServiceSnapshot.period, "DAILY"),
+                    eq(revenueByServiceSnapshot.currency, input.currency),
                     gte(revenueByServiceSnapshot.date, startDate),
                     lte(revenueByServiceSnapshot.date, endDate),
                 ),
@@ -155,6 +161,7 @@ export const salesReportsRouter = router({
                 const newResults = await db.query.revenueByServiceSnapshot.findMany({
                     where: and(
                         eq(revenueByServiceSnapshot.period, "DAILY"),
+                        eq(revenueByServiceSnapshot.currency, input.currency),
                         gte(revenueByServiceSnapshot.date, startDate),
                         lte(revenueByServiceSnapshot.date, endDate),
                     ),
@@ -178,6 +185,7 @@ export const salesReportsRouter = router({
             from: z.coerce.date().optional(),
             to: z.coerce.date().optional(),
             limit: z.number().optional().default(10),
+            currency: z.string().optional().default("KES"),
         }))
         .output(z.array(revenueByTeamSnapshotSchema))
         .query(async ({ input }) => {
@@ -187,6 +195,7 @@ export const salesReportsRouter = router({
             const results = await db.query.revenueByTeamSnapshot.findMany({
                 where: and(
                     eq(revenueByTeamSnapshot.period, "DAILY"),
+                    eq(revenueByTeamSnapshot.currency, input.currency),
                     gte(revenueByTeamSnapshot.date, startDate),
                     lte(revenueByTeamSnapshot.date, endDate),
                 ),
@@ -198,6 +207,7 @@ export const salesReportsRouter = router({
                 const newResults = await db.query.revenueByTeamSnapshot.findMany({
                     where: and(
                         eq(revenueByTeamSnapshot.period, "DAILY"),
+                        eq(revenueByTeamSnapshot.currency, input.currency),
                         gte(revenueByTeamSnapshot.date, startDate),
                         lte(revenueByTeamSnapshot.date, endDate),
                     ),

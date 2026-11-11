@@ -1,9 +1,11 @@
 import * as React from "react";
 import { Globe, Package } from "lucide-react";
-import { trpcMutation, trpcQuery } from "@/lib/domain-search/api.ts";
-import { formatPrice } from "@/lib/domain-search/format-price.ts";
+import { trpcQuery } from "@/lib/domain-search/api.ts";
+import { checkKenicDomains, type KenicCheckItem } from "@/lib/domain-search/kenic-check.ts";
 import { usePricing } from "@/lib/domain-search/pricing-context.tsx";
 import type { DomainSearchResult } from "@/lib/domain-search/types.ts";
+import { useCurrency } from "@/components/providers/currency.tsx";
+import { convertKesForDisplay, formatCurrency } from "@/lib/currency.ts";
 
 const localTlds = [
   { ext: ".co.ke", note: "Most popular" },
@@ -24,6 +26,34 @@ const globalTlds = [
 /** Stable probe label used only to fetch create/list prices (not shown to users). */
 const PRICE_PROBE_NAME = "nisccloudprice";
 
+const PROBE_FEES_KEY = "nisc_kenic_probe_fees";
+/** Registry list prices change rarely; reuse them so this table never queues ahead of a customer's search. */
+const PROBE_FEES_TTL_MS = 6 * 60 * 60 * 1000;
+
+async function loadKenicProbeFees(domains: string[]): Promise<{ normalized: KenicCheckItem[] }> {
+  try {
+    const raw = localStorage.getItem(PROBE_FEES_KEY);
+    if (raw) {
+      const cached = JSON.parse(raw) as { at: number; domains: string; normalized: KenicCheckItem[] };
+      if (cached.domains === domains.join(",") && Date.now() - cached.at < PROBE_FEES_TTL_MS) {
+        return { normalized: cached.normalized };
+      }
+    }
+  } catch {
+    // ignore unreadable cache
+  }
+  const fresh = await checkKenicDomains(domains, { background: true });
+  try {
+    localStorage.setItem(
+      PROBE_FEES_KEY,
+      JSON.stringify({ at: Date.now(), domains: domains.join(","), normalized: fresh.normalized }),
+    );
+  } catch {
+    // storage full or disabled
+  }
+  return fresh;
+}
+
 type PricedTld = {
   amount: number;
   currency: string;
@@ -38,30 +68,58 @@ function PriceCell({
   loading: boolean;
   fallback?: string;
 }) {
+  const { currency, kesToCurrencyRate } = useCurrency();
   if (loading && !price) {
     return <span className="h-3.5 w-16 animate-pulse rounded bg-muted inline-block" />;
   }
   if (!price) {
     return <span className="text-xs text-muted-foreground">{fallback}</span>;
   }
+  if (price.currency !== "KES" || kesToCurrencyRate === null) {
+    return <span className="text-xs text-muted-foreground">Price unavailable</span>;
+  }
+  const displayAmount = convertKesForDisplay(price.amount, currency, kesToCurrencyRate);
   return (
     <span className="text-xs font-semibold text-primary tabular-nums">
-      {formatPrice(price.amount, price.currency)}
+      {formatCurrency(displayAmount, currency)}
       <span className="font-normal text-muted-foreground"> /yr</span>
     </span>
   );
 }
 
 export function DomainExtensionsSection() {
-  const { getPricingInfo, convertPricesBatch, isLoadingTldSettings, hasDefaultSetting } =
+  const { getPricingInfo, convertPricesBatch, isConversionAvailable, isLoadingTldSettings, hasDefaultSetting } =
     usePricing();
   const [pricesByExt, setPricesByExt] = React.useState<Record<string, PricedTld>>({});
   const [loading, setLoading] = React.useState(true);
+  const sectionRef = React.useRef<HTMLElement>(null);
+  const [nearView, setNearView] = React.useState(false);
 
   const pricingReady = !isLoadingTldSettings && hasDefaultSetting;
 
+  // The KeNIC registry answers one check at a time; loading this table only once it is on
+  // screen keeps its price probe from queuing ahead of a customer's search.
   React.useEffect(() => {
-    if (isLoadingTldSettings) return;
+    const el = sectionRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setNearView(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setNearView(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.15 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  React.useEffect(() => {
+    if (isLoadingTldSettings || !nearView) return;
 
     let cancelled = false;
 
@@ -76,12 +134,13 @@ export function DomainExtensionsSection() {
       if (currency === "KES") {
         return { amount: calc.finalPrice, currency: "KES" };
       }
+      if (!isConversionAvailable) return null;
       const [converted] = await convertPricesBatch(
         [{ amount: calc.finalPrice, currency }],
         "KES",
       );
       if (!converted || Number.isNaN(converted.convertedAmount)) {
-        return { amount: calc.finalPrice, currency: calc.currency };
+        return null;
       }
       return { amount: converted.convertedAmount, currency: "KES" };
     }
@@ -94,19 +153,7 @@ export function DomainExtensionsSection() {
       const openExtensions = globalTlds.map(({ ext }) => ext.replace(/^\./, ""));
 
       const [kenicRes, openRes] = await Promise.allSettled([
-        trpcMutation<{
-          normalized?: Array<{
-            domain: string;
-            available: boolean;
-            currency?: string;
-            createFee?: { amount: number; currency: string };
-          }>;
-        }>("kenic.domainCheck.check", {
-          domains: kenicDomains,
-          withFee: true,
-          currency: "KES",
-          periodYears: 1,
-        }),
+        loadKenicProbeFees(kenicDomains),
         trpcQuery<{
           success: boolean;
           data?: {
@@ -164,24 +211,24 @@ export function DomainExtensionsSection() {
     return () => {
       cancelled = true;
     };
-  }, [convertPricesBatch, getPricingInfo, isLoadingTldSettings, pricingReady]);
+  }, [convertPricesBatch, getPricingInfo, isConversionAvailable, isLoadingTldSettings, pricingReady, nearView]);
 
   const showLoading = loading || isLoadingTldSettings;
 
   return (
-    <section className="max-w-5xl mx-auto px-4 md:px-8 pb-20 pt-4">
+    <section ref={sectionRef} className="max-w-5xl mx-auto px-4 md:px-8 pb-20 pt-4">
       <div className="text-center mb-12">
-        <h2 className="text-3xl font-bold mb-3">Every Extension Your Brand Needs</h2>
+        <h2 className="type-h2 mb-3">Every extension your brand needs</h2>
         <p className="text-sm text-muted-foreground max-w-lg mx-auto">
-          Register local and global extensions to protect your brand. Live prices include our retail
-          margin and are shown in KES where available.
+          Register local and global extensions to protect your brand. Prices are live and shown in KES or USD
+          based on your location.
         </p>
       </div>
       <div className="grid md:grid-cols-2 gap-6">
         <div className="rounded-2xl border border-border bg-card p-6">
           <div className="flex items-center gap-2 mb-4">
             <Globe size={18} className="text-primary" />
-            <h3 className="font-bold">Local Extensions</h3>
+            <h3 className="type-h3">Local extensions</h3>
           </div>
           <div className="space-y-3">
             {localTlds.map(({ ext, note }) => (
@@ -202,7 +249,7 @@ export function DomainExtensionsSection() {
         <div className="rounded-2xl border border-border bg-card p-6">
           <div className="flex items-center gap-2 mb-4">
             <Globe size={18} className="text-primary" />
-            <h3 className="font-bold">Global Extensions</h3>
+            <h3 className="type-h3">Global extensions</h3>
           </div>
           <div className="grid grid-cols-2 gap-3">
             {globalTlds.map(({ ext }) => (
@@ -219,6 +266,10 @@ export function DomainExtensionsSection() {
           <p className="text-xs text-muted-foreground mt-4">
             +190 more extensions available. Search above for live pricing on any TLD.
           </p>
+          <p className="text-xs text-muted-foreground mt-2">
+            Prices are for the first year, excluding VAT. The renewal price is shown in search
+            results or in your cart before you pay.
+          </p>
         </div>
       </div>
       <div className="mt-6 rounded-2xl border border-primary/30 bg-primary/5 p-5 flex items-start gap-4">
@@ -226,7 +277,7 @@ export function DomainExtensionsSection() {
           <Package size={18} />
         </div>
         <div>
-          <h4 className="font-bold text-sm mb-1">Protect Your Brand Across Key Extensions</h4>
+          <h4 className="font-bold text-sm mb-1">Protect your brand across key extensions</h4>
           <p className="text-xs text-muted-foreground leading-relaxed">
             Register .co.ke, .com, .ke, and .net together when you want wider name protection. Search
             your name to see availability and the live price for each extension.

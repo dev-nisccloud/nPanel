@@ -82,7 +82,7 @@ export default function BentoOrbitingIcons() {
           duration={3}
           delay={index * 0.15}
           gradientStartColor="#38b6ff"
-          gradientStopColor="#6366f1"
+          gradientStopColor="var(--primary)"
         />
       ))}
       <AnimatedBeam
@@ -91,7 +91,7 @@ export default function BentoOrbitingIcons() {
         toRef={userRef}
         duration={3}
         gradientStartColor="#38b6ff"
-        gradientStopColor="#6366f1"
+        gradientStopColor="var(--primary)"
       />
     </div>
   );

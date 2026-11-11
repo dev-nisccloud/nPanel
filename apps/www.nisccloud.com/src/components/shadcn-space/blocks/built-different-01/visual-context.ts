@@ -246,20 +246,46 @@ export function detectVisualTheme(point: BuiltDifferentPoint): VisualTheme {
   return "default";
 }
 
+/**
+ * Several hosting themes render the same scene (see VisualByTheme). Uniqueness
+ * must be enforced on the rendered scene, otherwise two cards in one section
+ * can show identical artwork under different theme names.
+ */
+const VISUAL_FAMILY: Partial<Record<VisualTheme, VisualTheme>> = {
+  serverMonitor: "reporting",
+  serverProvision: "deploy",
+  workloads: "deploy",
+  resourceIsolation: "ownership",
+  bareMetal: "deploy",
+  cpanel: "deploy",
+  wpPerf: "speed",
+  wpStaging: "process",
+  deliverability: "inbox",
+  businessMail: "inbox",
+};
+
+export function visualFamily(theme: VisualTheme): VisualTheme {
+  return VISUAL_FAMILY[theme] ?? theme;
+}
+
 /** Ensure every card in a section gets a distinct visual. */
 export function assignUniqueThemes(points: BuiltDifferentPoint[]): VisualTheme[] {
   const used = new Set<VisualTheme>();
 
   return points.map((point) => {
     const preferred = detectVisualTheme(point);
-    if (!used.has(preferred)) {
-      used.add(preferred);
+    const family = visualFamily(preferred);
+    // Pinned visuals are authored per section; "default" is a neutral icon
+    // card and may legitimately repeat.
+    if (point.visual || preferred === "default" || !used.has(family)) {
+      used.add(family);
       return preferred;
     }
 
     for (const alt of FALLBACK_ORDER) {
-      if (!used.has(alt)) {
-        used.add(alt);
+      const altFamily = visualFamily(alt);
+      if (!used.has(altFamily)) {
+        used.add(altFamily);
         return alt;
       }
     }

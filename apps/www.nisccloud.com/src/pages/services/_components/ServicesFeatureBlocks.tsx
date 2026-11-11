@@ -2,7 +2,7 @@ import AlternatingFeatureBlocks from "@/components/AlternatingFeatureBlocks.tsx"
 
 const items = [
   {
-    headline: "We create and position your brand clearly",
+    headline: "Build the brand, software and customer experience",
     description:
       "Before you can compete, you need a brand that looks professional and earns trust. We craft your logo, website, and voice so your business looks like a clear choice for your customers.",
     bullets: [
@@ -10,54 +10,54 @@ const items = [
       "Custom website designed to turn visitors into customers",
       "Clear copy that speaks to your exact audience",
       "Brand guidelines so everything stays consistent",
-      "Starter brands delivered in about 7 days",
+      "Scope, delivery stages and ownership agreed before work begins",
     ],
-    stat: { value: "7 days", label: "typical brand delivery" },
+    stat: { value: "Build", label: "strategy, design and software" },
     visual: "brand" as const,
     imageRight: true,
   },
   {
-    headline: "We take your business online and keep it reliable",
+    headline: "Run the infrastructure and operations behind it",
     description:
       "A great website means nothing if it goes down or loads slowly. We host you on solid cloud infrastructure that is fast, secure, and available, with professional email that matches your domain.",
     bullets: [
-      "Managed cloud hosting with 99.99% uptime",
+      "Managed cloud hosting with a 99.9% uptime target",
       "Business email at your domain (info@yourbusiness.co.ke)",
       "Free SSL certificate so visitors see the padlock",
-      "Daily automated backups and DDoS protection",
-      "Free setup help so you can go live quickly",
+      "Backup and DDoS controls where included in the selected plan",
+      "Setup responsibilities confirmed for your selected plan",
     ],
-    stat: { value: "99.99%", label: "uptime we aim to deliver" },
+    stat: { value: "99.9%", label: "monthly uptime target" },
     visual: "uptime" as const,
     imageRight: false,
   },
   {
-    headline: "We put you in front of the right people",
+    headline: "Grow through connected search and campaigns",
     description:
       "Having a strong brand online is only half the work. We help people find you through SEO, paid ads, social media, and email, with clear reporting so you see what is working.",
     bullets: [
       "SEO that helps people find you on Google, Maps, and AI answers",
-      "Google, Meta and TikTok ads managed for real leads and sales",
+      "Google, Meta and TikTok campaigns tied to agreed measures",
       "Social media content, scheduling and community management",
       "Email campaigns that nurture leads into customers",
       "Clear reporting so you know where every lead comes from",
     ],
-    stat: { value: "30 days", label: "results promise on active work" },
+    stat: { value: "Free", label: "strategy call before you commit" },
     visual: "growth" as const,
     imageRight: true,
   },
   {
-    headline: "We help your business follow up without the grind",
+    headline: "Automation supports Build, Run and Grow",
     description:
-      "We set up AI chatbots, automated follow-up sequences, and CRM workflows that reply to leads quickly, day or night, so your team can focus on closing and serving customers.",
+      "Use approved automation for supported conversations, follow-up and operational tasks. Your team controls the context, reviews outputs and keeps a human path for work that needs judgement.",
     bullets: [
-      "AI chatbot that answers questions and qualifies leads",
-      "Automated email and WhatsApp follow-up sequences",
-      "CRM workflows that move leads through your sales process",
-      "Clear reporting on conversations, leads and bookings",
-      "24/7 availability with human handoff when needed",
+      "Zepo assistance for supported customer and service questions",
+      "Email sequences and integrations scoped to the selected tools",
+      "Workflow recommendations reviewed before activation",
+      "Clear activity records and escalation paths",
+      "Capabilities confirmed for your account and service",
     ],
-    stat: { value: "24/7", label: "AI and support coverage" },
+    stat: { value: "Across", label: "Build, Run and Grow" },
     visual: "automation" as const,
     imageRight: false,
   },

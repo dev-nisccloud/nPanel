@@ -66,6 +66,14 @@ export async function applySuccessfulPaymentToInvoice(
 	if (inv.status === "CANCELLED" || inv.status === "WRITTEN_OFF" || inv.status === "REFUNDED") {
 		return { ok: true, skipped: true, reason: "invoice_closed" };
 	}
+	const paymentCurrency = pay.currency.trim().toUpperCase();
+	const invoiceCurrency = inv.currency.trim().toUpperCase();
+	if (paymentCurrency !== invoiceCurrency) {
+		return {
+			ok: false,
+			error: `Payment currency ${paymentCurrency} does not match invoice currency ${invoiceCurrency}`,
+		};
+	}
 
 	const existingTxs = await db
 		.select({
@@ -147,7 +155,7 @@ export async function applySuccessfulPaymentToInvoice(
 			status: "COMPLETED",
 			method,
 			amount: String(recordedNum),
-			currency: pay.currency ?? inv.currency ?? "KES",
+			currency: invoiceCurrency,
 			paidAt: pay.processedAt ?? now,
 			recordedBy: pay.userId,
 			reference: pay.receiptNumber || pay.checkoutRequestId || null,

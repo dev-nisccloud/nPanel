@@ -717,7 +717,7 @@ export default function WhoisChecker() {
 			<div className="w-full max-w-4xl mx-auto flex flex-col gap-6">
 				{/* ── Header ──────────────────────────────────────────────────────── */}
 				<div className="flex flex-col gap-1">
-					<h1 className="text-base font-semibold tracking-tight">WHOIS Checker</h1>
+					<h1 className="type-h1">WHOIS Checker</h1>
 					<p className="text-xs text-muted-foreground">
 					Look up registration details for any domain. Free to use.
 				</p>

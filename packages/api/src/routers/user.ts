@@ -28,6 +28,12 @@ const updateNotificationPreferencesInputSchema = z.object({
     browserNotificationPermission: z.enum(["default", "granted", "denied"]).optional(),
 });
 
+const displayCurrencySchema = z.enum(["KES", "USD"]);
+const displayCurrencyPreferenceSchema = z.object({
+    currency: displayCurrencySchema.nullable(),
+    updatedAt: z.date().nullable(),
+});
+
 function getActorId(ctx: { session: { user?: { id?: string } } | null }) {
     const userId = ctx.session?.user?.id;
     if (!userId) {
@@ -37,6 +43,59 @@ function getActorId(ctx: { session: { user?: { id?: string } } | null }) {
 }
 
 export const userRouter = router({
+    getDisplayCurrencyPreference: protectedProcedure
+        .output(displayCurrencyPreferenceSchema)
+        .query(async ({ ctx }) => {
+            const userId = getActorId(ctx);
+            const [userRow] = await db
+                .select({
+                    currency: user.displayCurrency,
+                    updatedAt: user.displayCurrencyUpdatedAt,
+                })
+                .from(user)
+                .where(eq(user.id, userId))
+                .limit(1);
+
+            if (!userRow) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+            }
+
+            return {
+                currency: userRow.currency === "KES" || userRow.currency === "USD"
+                    ? userRow.currency
+                    : null,
+                updatedAt: userRow.updatedAt,
+            };
+        }),
+
+    updateDisplayCurrencyPreference: protectedProcedure
+        .input(z.object({ currency: displayCurrencySchema }))
+        .output(displayCurrencyPreferenceSchema)
+        .mutation(async ({ ctx, input }) => {
+            const userId = getActorId(ctx);
+            const updatedAt = new Date();
+            const [updatedUser] = await db
+                .update(user)
+                .set({
+                    displayCurrency: input.currency,
+                    displayCurrencyUpdatedAt: updatedAt,
+                })
+                .where(eq(user.id, userId))
+                .returning({
+                    currency: user.displayCurrency,
+                    updatedAt: user.displayCurrencyUpdatedAt,
+                });
+
+            if (!updatedUser) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+            }
+
+            return {
+                currency: input.currency,
+                updatedAt: updatedUser.updatedAt,
+            };
+        }),
+
     // Get current user's notification preferences
     getNotificationPreferences: protectedProcedure
         .output(notificationPreferencesSchema)

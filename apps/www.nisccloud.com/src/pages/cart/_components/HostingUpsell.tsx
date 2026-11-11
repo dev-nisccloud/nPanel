@@ -6,12 +6,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils.ts";
 import type { BillingCycle } from "./CartItem.tsx";
 import { periodPrice, SERVICE_BILLING_CYCLES } from "@/lib/billing-cycle.ts";
+import { isPlanListed, publicPlanName } from "@/lib/plan-catalog.ts";
 import {
   fetchSharedHostingPlansPublic,
   fetchWordPressHostingPlansPublic,
   fetchEmailHostingPlansPublic,
   type SharedHostingPricingData,
 } from "@/lib/vps-plans-api.ts";
+import { deriveMonthlyPrice, isHiddenPublicFeature, normalisePlanFeature } from "@/pages/hosting/_components/hosting-plan-model.ts";
+import { useCurrency } from "@/components/providers/currency.tsx";
+import { convertStorefrontAmount, formatCurrency } from "@/lib/currency.ts";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -120,9 +124,9 @@ const SLOTS: UpsellSlot[] = [
 const FALLBACK_FEATURES: Record<HostingUpsellType, FeatureRow[]> = {
   web_hosting: [
     { label: "Websites", value: "Up to 3" },
-    { label: "SSD storage", value: "20 GB" },
+    { label: "NVMe SSD storage", value: "20 GB" },
     { label: "SSL certificate", value: null },
-    { label: "Uptime target", value: "99.99%" },
+    { label: "Uptime target", value: "99.9%" },
   ],
   wordpress_hosting: [
     { label: "WordPress pre-installed", value: null },
@@ -133,7 +137,7 @@ const FALLBACK_FEATURES: Record<HostingUpsellType, FeatureRow[]> = {
   email_hosting: [
     { label: "Mailbox storage", value: "5 GB" },
     { label: "Spam & virus protection", value: null },
-    { label: "Webmail & mobile sync", value: null },
+    { label: "Phone and desktop sync", value: null },
     { label: "Custom domain address", value: null },
   ],
 };
@@ -168,21 +172,22 @@ function buildLivePlan(
   data: SharedHostingPricingData,
   type: HostingUpsellType,
 ): LivePlan {
-  const monthlyPrice = parseFloat(pick.niscPrice ?? "0") || 0;
-  const yearlyPrice = yearlyPick
-    ? parseFloat(yearlyPick.niscPrice ?? "0") || 0
-    : Math.round(monthlyPrice * 12);
+  const monthlyPrice = deriveMonthlyPrice(pick.niscPrice, pick.billingCycle);
+  const listed = parseFloat(pick.niscPrice ?? "0") || 0;
+  const yearlyPrice =
+    pick.billingCycle === "YEARLY"
+      ? listed
+      : yearlyPick
+        ? parseFloat(yearlyPick.niscPrice ?? "0") || 0
+        : Math.round(monthlyPrice * 12);
 
   const feats: FeatureRow[] =
     data.productFeatures.length && pick.featureValues.length
       ? data.productFeatures
           .map((f, i) => {
-            const cell = pick.featureValues[i];
-            if (!cell?.available) return null;
-            return {
-              label: f.label,
-              value: cell.valueOverride != null && cell.valueOverride !== "" ? cell.valueOverride : null,
-            };
+            const feature = normalisePlanFeature(f, pick.featureValues[i]);
+            if (!feature.value || isHiddenPublicFeature(feature.label)) return null;
+            return { label: feature.label, value: feature.boolean ? null : feature.value };
           })
           .filter((f): f is FeatureRow => f !== null)
           .slice(0, 5)
@@ -201,13 +206,14 @@ function buildLivePlan(
 }
 
 function buildAllLivePlans(data: SharedHostingPricingData, type: HostingUpsellType): LivePlan[] {
-  const monthly = data.plans.filter((p) => p.billingCycle === "MONTHLY");
+  const monthlyNames = new Set(data.plans.filter((p) => p.billingCycle === "MONTHLY").map((p) => p.name));
   const yearly = data.plans.filter((p) => p.billingCycle === "YEARLY");
-  const pool = monthly.length ? monthly : data.plans;
+  // A plan listed only with a yearly price is still sold monthly; drop yearly rows that duplicate a monthly one.
+  const pool = data.plans.filter((p) => isPlanListed(p) && (p.billingCycle !== "YEARLY" || !monthlyNames.has(p.name)));
   if (!pool.length) return [];
 
   return pool.map((pick) => {
-    const yearlyPick = yearly.find((p) => p.name === pick.name);
+    const yearlyPick = pick.billingCycle === "YEARLY" ? undefined : yearly.find((p) => p.name === pick.name);
     return buildLivePlan(pick, yearlyPick, data, type);
   });
 }
@@ -220,10 +226,6 @@ function toUpsellPlanInfo(plan: LivePlan): UpsellPlanInfo {
     yearlyPrice: plan.yearlyPrice,
     currency: plan.currency,
   };
-}
-
-function fmt(amount: number, currency: string) {
-  return `${currency} ${amount.toLocaleString("en-KE")}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -240,6 +242,22 @@ export function HostingUpsell({
   initialCycles,
   initialSelectedPlanIds,
 }: HostingUpsellProps) {
+  const {
+    currency: displayCurrency,
+    kesToCurrencyRate,
+  } = useCurrency();
+  const fmt = (amount: number, sourceCurrency: string) =>
+    kesToCurrencyRate == null
+      ? "Updating…"
+      : formatCurrency(
+          convertStorefrontAmount(
+            amount,
+            sourceCurrency,
+            displayCurrency,
+            kesToCurrencyRate,
+          ),
+          displayCurrency,
+        );
   const [plansCatalog, setPlansCatalog] = React.useState<
     Partial<Record<HostingUpsellType, LivePlan[]>>
   >({});
@@ -349,7 +367,7 @@ export function HostingUpsell({
 
   return (
     <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
-      <h3 className="text-base font-bold text-foreground mb-1">
+      <h3 className="type-h3 text-foreground mb-1">
         Turn your domain into a website
       </h3>
       <p className="text-sm text-muted-foreground mb-4">
@@ -423,7 +441,7 @@ export function HostingUpsell({
                     <div className="flex items-start justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-bold text-foreground">
-                          {plan ? `${plan.name}  ${slot.label}` : slot.label}
+                          {plan ? `${publicPlanName(plan.planId, plan.name)} · ${slot.label}` : slot.label}
                         </p>
                       </div>
                       <div className="text-right shrink-0">
@@ -522,7 +540,7 @@ export function HostingUpsell({
                                 >
                                   <span className="min-w-0">
                                     <span className="block text-xs font-semibold text-foreground truncate">
-                                      {option.name}
+                                      {publicPlanName(option.planId, option.name)}
                                       {option.isRecommended && (
                                         <span className="ml-1.5 text-[10px] font-medium text-primary">
                                           Recommended

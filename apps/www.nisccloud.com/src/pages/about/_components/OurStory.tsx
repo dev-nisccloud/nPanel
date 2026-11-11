@@ -1,29 +1,30 @@
 import { motion } from "motion/react";
+import { ShowcaseVisualCard } from "@/pages/_components/ServiceShowcaseSection.tsx";
 
 const milestones = [
   {
-    year: "2018",
-    title: "The Spark",
+    year: "2019",
+    title: "Nisc Cloud begins",
     description:
-      "We started with a simple goal: help local businesses get online with reliable hosting and clear marketing support.",
+      "Nisc Cloud started with a practical goal: give businesses reliable technology and a team that takes responsibility for getting the work done.",
   },
   {
-    year: "2020",
-    title: "The Atom Approach",
+    year: "Build",
+    title: "Make ideas real",
     description:
-      "After working with dozens of clients, we shaped a repeatable process: Create, Host, Market, Automate. It keeps projects clear and results measurable.",
+      "We help businesses shape their brand, launch websites and ecommerce experiences, and build software around the way they work.",
   },
   {
-    year: "2022",
-    title: "Growing With Our Clients",
+    year: "Run",
+    title: "Keep business moving",
     description:
-      "Word spread. We grew our team and started supporting businesses of every size, near and far, with the same hands-on approach.",
+      "Domains, hosting, email, servers and security keep the digital operation available, connected and supported through nPanel.",
   },
   {
-    year: "2024",
-    title: "100+ Businesses",
+    year: "Grow",
+    title: "Support sustainable growth",
     description:
-      "Today we help 100+ businesses get online, stay online, and grow. Free migration, setup help, and 24/7 support are part of how we work.",
+      "Marketing and automation support the same journey. Today, Nisc Cloud serves thousands of customers while keeping one accountable team across Build, Run and Grow.",
   },
 ];
 
@@ -38,15 +39,10 @@ export default function OurStory() {
           transition={{ duration: 0.7 }}
           className="relative"
         >
-          <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-3xl" />
-          <img
-            src="https://images.unsplash.com/photo-1556761175-b413da4baf72?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NzIwMTN8MHwxfHNlYXJjaHwzfHx0ZWNoJTIwdGVhbSUyMHByb2Zlc3Npb25hbHMlMjBvZmZpY2UlMjBjb2xsYWJvcmF0aW9ufGVufDB8fHx8MTc3NzYxOTExNnww&ixlib=rb-4.1.0&q=80&w=1080"
-            alt="Our team collaborating"
-            className="relative rounded-2xl w-full object-cover aspect-[4/3]"
-          />
+          <ShowcaseVisualCard visual="uptime" headline="Hosting, web and growth together" />
           <div className="absolute -bottom-5 -right-4 sm:-right-6 bg-primary text-primary-foreground rounded-xl px-5 py-3.5 shadow-xl">
-            <p className="text-2xl font-bold leading-none">100+</p>
-            <p className="text-xs opacity-80 mt-1">Businesses growing with us</p>
+            <p className="text-2xl font-bold leading-none">One team</p>
+            <p className="text-xs opacity-80 mt-1">Hosting, web and growth together</p>
           </div>
         </motion.div>
 
@@ -58,13 +54,13 @@ export default function OurStory() {
             transition={{ duration: 0.5 }}
             className="mb-10"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">
-              Built from the Ground Up
+            <h2 className="type-h2 mb-4">
+              Built to Grow with Our Customers
             </h2>
             <p className="text-muted-foreground leading-relaxed max-w-lg">
-              Too many businesses were stuck between flaky hosting and scattered
-              marketing vendors. We built one team that handles both, with clear
-              plans and real support.
+              Since 2019, Nisc Cloud has grown from reliable infrastructure into
+              a technology company that brings cloud, software and digital growth
+              together for businesses, agencies and developers.
             </p>
           </motion.div>
 
@@ -94,7 +90,7 @@ export default function OurStory() {
                     <time className="text-xs font-semibold tabular-nums text-primary">
                       {m.year}
                     </time>
-                    <h3 className="text-base font-semibold text-foreground">
+                    <h3 className="type-h3 text-foreground">
                       {m.title}
                     </h3>
                   </div>

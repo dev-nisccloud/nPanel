@@ -9,12 +9,12 @@ import {
   Workflow,
   ShieldCheck,
   ArrowRight,
-  Bot,
   Megaphone,
   Store,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button.tsx";
+import { ZepoMascot } from "@/components/zepo-mascot.tsx";
 
 const services = [
   {
@@ -32,13 +32,13 @@ const services = [
   {
     icon: Server,
     title: "Cloud Hosting",
-    desc: "Reliable hosting with auto-scaling, CDN, DDoS protection, and a 99.99% uptime target.",
+    desc: "Plan-defined hosting with available CDN and security options, plus a 99.9% uptime target on eligible plans.",
     tag: "Host",
   },
   {
     icon: ShieldCheck,
     title: "Domains & Email",
-    desc: "Your domain and business email @yourdomain. SSL, backups, and security included.",
+    desc: "Your domain and business email @yourdomain, with SSL, backup, and security options defined by the selected plan.",
     tag: "Host",
   },
   {
@@ -72,28 +72,27 @@ const services = [
     tag: "Market",
   },
   {
-    icon: Bot,
-    title: "Zeepo AI Content",
+    icon: ZepoMascot,
+    title: "Zepo AI Content",
     desc: "AI-generated blog posts, social captions, ad copy, and email sequences - on demand, on brand.",
-    tag: "Zeepo AI",
+    tag: "Zepo AI",
   },
   {
     icon: Workflow,
     title: "Marketing Automation",
     desc: "CRM workflows, lead scoring, chatbot flows, and AI-powered nurture sequences - your business on autopilot.",
-    tag: "Zeepo AI",
+    tag: "Zepo AI",
   },
 ];
 
 const tagColor: Record<string, string> = {
   Create: "oklch(0.60 0.22 235)",
   Host: "oklch(0.55 0.18 195)",
-  Market: "oklch(0.50 0.20 265)",
-  "Zeepo AI": "oklch(0.45 0.18 160)",
+  Market: "oklch(0.42 0.10 240)",
+  "Zepo AI": "oklch(0.58 0.17 38)",
 };
 
 export default function Services() {
-  const navigate = useNavigate();
   return (
     <section id="services" className="py-14 relative">
       <div
@@ -115,8 +114,8 @@ export default function Services() {
           <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 text-xs text-primary font-mono mb-4">
             WHAT WE DO
           </div>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
-            Every Service. One Team.
+          <h2 className="type-h2 mb-3">
+            Every service. One team.
           </h2>
           <p className="text-muted-foreground text-base max-w-xl mx-auto">
             All the tools your Kenyan business needs to grow - packaged as one integrated ecosystem.
@@ -148,7 +147,7 @@ export default function Services() {
               >
                 {s.tag.toUpperCase()}
               </span>
-              <h3 className="font-semibold text-base mb-2">{s.title}</h3>
+              <h3 className="type-h3 mb-2">{s.title}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">{s.desc}</p>
             </motion.div>
           ))}
@@ -161,13 +160,12 @@ export default function Services() {
           transition={{ duration: 0.4, delay: 0.3 }}
           className="mt-10 text-center"
         >
-          <Button
+          <Button asChild
             size="lg"
-            onClick={() => navigate("/pricing")}
             className="bg-primary text-primary-foreground hover:opacity-90 cursor-pointer font-semibold gap-2"
-          >
+          ><Link to={"/pricing"}>
             See Pricing <ArrowRight size={16} />
-          </Button>
+          </Link></Button>
         </motion.div>
       </div>
     </section>

@@ -1,7 +1,8 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { trpcMutation, trpcQuery } from "@/lib/domain-search/api.ts";
+import { trpcQuery } from "@/lib/domain-search/api.ts";
+import { checkKenicDomains } from "@/lib/domain-search/kenic-check.ts";
 import { getRecommendedBatch } from "@/lib/domain-search/tld-sections.ts";
 import {
   isUnavailableKenicTld,
@@ -14,6 +15,8 @@ import { getCustomerRetailDisplayPrice } from "@/lib/domain-search/customer-disp
 import { usePricing } from "@/lib/domain-search/pricing-context.tsx";
 import type { DomainSearchResult } from "@/lib/domain-search/types.ts";
 import { DomainResultList, DomainResultRow } from "./DomainResultRow.tsx";
+import { useCurrency } from "@/components/providers/currency.tsx";
+import { convertKesForDisplay } from "@/lib/currency.ts";
 
 function RowSkeleton({ count = 4 }: { count?: number }) {
   return (
@@ -75,22 +78,7 @@ async function fetchBatchResults(params: {
   if (kenic.length > 0) {
     try {
       const kenicDomains = kenic.map((tld) => `${name}.${tld}`);
-      const data = await trpcMutation<{
-        normalized?: Array<{
-          domain: string;
-          available: boolean;
-          reason?: string;
-          currency?: string;
-          createFee?: { amount: number; currency: string };
-          renewFee?: { amount: number; currency: string };
-          transferFee?: { amount: number; currency: string };
-        }>;
-      }>("kenic.domainCheck.check", {
-        domains: kenicDomains,
-        withFee: true,
-        currency: "KES",
-        periodYears: 1,
-      });
+      const data = await checkKenicDomains(kenicDomains);
       const cards = normalizeToKenicCards(name, data?.normalized ?? []);
       for (const item of cards) {
         const createCalc = getPricingInfo(
@@ -174,7 +162,8 @@ export function RecommendedDomainsList({
   onRemoveFromCart,
   renderRowActions,
 }: RecommendedDomainsListProps) {
-  const { getPricingInfo, calculatePricesBatch } = usePricing();
+  const { getPricingInfo, calculatePricesBatch, isConversionAvailable } = usePricing();
+  const { currency, kesToCurrencyRate } = useCurrency();
   const [results, setResults] = React.useState<DomainSearchResult[]>([]);
   const [batchIndex, setBatchIndex] = React.useState(0);
   const [hasMore, setHasMore] = React.useState(true);
@@ -297,7 +286,7 @@ export function RecommendedDomainsList({
   return (
     <section className="mb-6">
       <div className="flex items-baseline justify-between gap-3 mb-3">
-        <h3 className="text-base font-semibold tracking-tight text-card-foreground">
+        <h3 className="type-h3 text-card-foreground">
           Popular extensions
         </h3>
         <p className="text-xs text-muted-foreground">
@@ -323,13 +312,21 @@ export function RecommendedDomainsList({
             <DomainResultList>
               {visibleResults.map((result, index) => {
                 const { displayPrice, displayCurrency } = getCustomerRetailDisplayPrice(result);
+                const sourceCurrency = result.price?.reseller?.currency ?? "USD";
+                const convertedDisplayPrice =
+                  displayPrice != null &&
+                  displayCurrency === "KES" &&
+                  (sourceCurrency === "KES" || isConversionAvailable) &&
+                  kesToCurrencyRate !== null
+                    ? convertKesForDisplay(displayPrice, currency, kesToCurrencyRate)
+                    : undefined;
                 return (
                   <DomainResultRow
                     key={`${result.domain}-${index}`}
                     domain={result.domain}
                     isAvailable={result.status === "free"}
-                    displayPrice={displayPrice}
-                    displayCurrency={displayCurrency}
+                    displayPrice={convertedDisplayPrice}
+                    displayCurrency={convertedDisplayPrice == null ? undefined : currency}
                     reason={result.reason}
                     displayResult={result}
                     isDomainInCart={isDomainInCart}
@@ -345,6 +342,9 @@ export function RecommendedDomainsList({
 
       {!isInitialLoading && !isError && visibleResults.length === 0 && (
         <p className="text-sm text-muted-foreground py-2">No popular results yet.</p>
+      )}
+      {kesToCurrencyRate === null && visibleResults.length > 0 && (
+        <p className="text-xs text-muted-foreground py-2">Updating prices…</p>
       )}
 
       {/* Bottom-only loader for newly appended rows */}

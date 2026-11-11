@@ -1,12 +1,13 @@
 import { motion } from "motion/react";
-import { LayoutDashboard, Headphones, BarChart3, Bot, ShieldCheck, Users } from "lucide-react";
+import { LayoutDashboard, Headphones, BarChart3, ShieldCheck, Users } from "lucide-react";
+import { ZepoMascot } from "@/components/zepo-mascot.tsx";
 
 const pillars = [
   { icon: LayoutDashboard, label: "One Clear Team", desc: "One team, one plan, one bill. Create, host, market, and automate without juggling vendors." },
-  { icon: Headphones, label: "24/7 Support", desc: "Real people ready around the clock when something needs fixing." },
+  { icon: Headphones, label: "Real Support", desc: "Real people from our team when something needs fixing." },
   { icon: BarChart3, label: "Clear Reporting", desc: "We measure what matters and show you progress in plain language." },
-  { icon: Bot, label: "Zeepo AI-Powered", desc: "Smart tools that help with content, campaigns, and follow-ups." },
-  { icon: ShieldCheck, label: "Strong Security", desc: "SSL, WAF, DDoS protection, and a 99.99% uptime target on hosting." },
+  { icon: ZepoMascot, label: "Zepo AI-Powered", desc: "Smart tools that help with content, campaigns, and follow-ups." },
+  { icon: ShieldCheck, label: "Security by Plan", desc: "SSL, WAF, DDoS controls, and a 99.9% uptime target where listed for the selected hosting plan." },
   { icon: Users, label: "Built for Growth", desc: "Hosting and marketing that work together for businesses of every size." },
 ];
 
@@ -32,8 +33,8 @@ export default function OnePlatform() {
           <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 text-xs text-primary font-mono mb-4">
             WHY NISC CLOUD
           </div>
-          <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
-            Everything You Need. One Platform.
+          <h2 className="type-h2 mb-4">
+            Everything you need. One platform.
           </h2>
           <p className="text-muted-foreground text-lg max-w-xl mx-auto">
             Stop juggling 5 vendors. One dashboard, one team, one invoice - from brand creation to market domination.
