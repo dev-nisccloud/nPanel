@@ -233,15 +233,6 @@ export default function Footer() {
         <AccreditationStrip />
       </div>
 
-      {/* Oversized wordmark */}
-      <p
-        aria-hidden
-        className="pointer-events-none mx-auto -mb-[0.22em] max-w-7xl select-none px-4 text-center text-[17vw] font-black leading-none tracking-tighter text-transparent md:px-8 lg:text-[12rem]"
-        style={{ WebkitTextStroke: "1px rgb(56 182 255 / 0.18)", backgroundImage: "linear-gradient(to bottom, rgb(56 182 255 / 0.10), transparent 75%)", WebkitBackgroundClip: "text", backgroundClip: "text" }}
-      >
-        Nisc Cloud
-      </p>
-
       <div className="relative border-t border-white/10 bg-black/40 backdrop-blur">
         <div className="mx-auto flex max-w-7xl flex-col gap-1.5 px-4 py-4 text-sm text-slate-400 md:px-8">
           <div className="flex flex-col items-center justify-between gap-2 md:flex-row">
