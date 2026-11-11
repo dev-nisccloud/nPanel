@@ -3,6 +3,7 @@
  * Format: "(identifier) Service - Action" with subscription dates from billing cycle.
  * Domains use Transfer / Registration / Renewal; subscription services use Subscription (or Renewal).
  */
+import { enrichInvoiceLineTaxTypeLabel } from "../agency-invoice-pdf/tis-receipt-totals";
 import type { NiscOrderItemForInvoice } from "../schemas/nisc-order-invoice";
 import { formatInvoiceDate } from "./nisc-datetime-format";
 
@@ -274,7 +275,9 @@ function looksLikeKraItemCode(value: string): boolean {
 
 /** PDF / preview line text: title and subscription on separate lines for wrapping. */
 export function formatInvoiceLineItemForPdf(name: string, description?: string | null): string {
-	const desc = normalizeStoredInvoicePeriodDescription(description)?.trim();
+	const desc = enrichInvoiceLineTaxTypeLabel(
+		normalizeStoredInvoicePeriodDescription(description)?.trim() ?? "",
+	).trim();
 	if (!desc || looksLikeKraItemCode(desc)) return name;
 	return `${name}\n${desc}`;
 }

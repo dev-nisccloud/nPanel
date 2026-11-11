@@ -7,7 +7,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const BASE = (process.env.ETIMS_CERT_NGROK_URL ?? "https://498a-197-232-51-43.ngrok-free.app").replace(/\/$/, "");
+const BASE = (process.env.ETIMS_CERT_NGROK_URL ?? "https://ffe3-197-232-51-43.ngrok-free.app").replace(/\/$/, "");
 const LAST = "20180101000000";
 const PARENT = "KE1NTBA0000001";
 const CHILD = "KE1NTBA0000002";
@@ -121,8 +121,53 @@ function nestedRows(payload: unknown, keys: string[]): Array<Record<string, unkn
 }
 
 function expectedCounter(message: string): number | null {
+    const seq =
+        message.match(/invcNo sequence, expected:\s*(\d+)/i) ??
+        message.match(/use the expected value:\s*(\d+)/i) ??
+        message.match(/rsdQty mismatch.*?Expected:\s*(\d+(?:\.\d+)?)/i) ??
+        message.match(/sarNo.*?Expected:\s*(\d+(?:\.\d+)?)/i);
+    if (seq) return Number(seq[1]);
+    if (/taxblAmt|taxAmt|splyAm|totAmt|totTax|on item:/i.test(message)) return null;
     const m = message.match(/Expected:\s*(\d+(?:\.\d+)?)\s+but\s+found/i);
     return m ? Number(m[1]) : null;
+}
+
+function remapPurchaseItems(items: Array<Record<string, unknown>>) {
+    return items.map((row, i) => ({
+        ...row,
+        itemSeq: i + 1,
+        itemCd: PARENT,
+        itemClsCd: "1010150100",
+        pkgUnitCd: "NT",
+        qtyUnitCd: "BA",
+    }));
+}
+
+function patchPurchaseFromError(purchase: Record<string, unknown>, message: string): boolean {
+    const items = Array.isArray(purchase.itemList)
+        ? (purchase.itemList as Array<Record<string, unknown>>)
+        : [];
+    const item = message.match(/Invalid (\w+) on item:\s*(\d+)\.\s*Expected:\s*([\d.]+),\s*But Found:\s*([\d.]+)/i);
+    if (item) {
+        const field = item[1].replace(/splyAmnt/i, "splyAmt");
+        const idx = Number(item[2]) - 1;
+        const expected = Number(item[3]);
+        const row = items[idx];
+        if (!row || !Number.isFinite(expected)) return false;
+        row[field] = expected;
+        if (/^splyAmt$/i.test(field)) row.prc = expected;
+        console.log(`  purchase patch item ${idx + 1} ${field}=${expected}`);
+        return true;
+    }
+    const header = message.match(/Invalid (\w+)\s*\.?\s*Expected:\s*([\d.]+),\s*But Found:\s*([\d.]+)/i);
+    if (header && !/invcNo|sequence|rsdQty|sarNo/i.test(message)) {
+        const expected = Number(header[2]);
+        if (!Number.isFinite(expected)) return false;
+        purchase[header[1]] = expected;
+        console.log(`  purchase patch header ${header[1]}=${expected}`);
+        return true;
+    }
+    return false;
 }
 
 function expectedItemSeq(message: string): number | null {
@@ -234,6 +279,7 @@ function sessionCmcKey(tin: string): string | null {
 }
 
 async function main() {
+    console.log(`walk ${BASE}`);
     const salesDt = kraDate();
     const cfmDt = kraDateTime();
     const log: Array<{ step: string; ok: boolean; cd: string | null; detail: string }> = [];
@@ -606,58 +652,70 @@ async function main() {
     for (let n = 0; n < queued.length; n++) {
         const row = queued[n]!;
         const spplrInvcNo = Number(row.spplrInvcNo);
-        const itemList = Array.isArray(row.itemList) && row.itemList.length ? row.itemList : [saleLine];
+        const origItems = Array.isArray(row.itemList) && row.itemList.length ? row.itemList : [saleLine];
+        const purchase: Record<string, unknown> = {
+            spplrTin: String(row.spplrTin ?? tin),
+            invcNo: pInvc,
+            orgInvcNo: 0,
+            spplrBhfId: String(row.spplrBhfId ?? "00"),
+            spplrNm: String(row.spplrNm ?? "Application Test Supplier"),
+            spplrInvcNo,
+            regTyCd: "M",
+            pchsTyCd: "N",
+            rcptTyCd: "P",
+            pmtTyCd: String(row.pmtTyCd ?? "01"),
+            pchsSttsCd: "02",
+            cfmDt,
+            pchsDt: salesDt,
+            wrhsDt: null,
+            cnclReqDt: null,
+            cnclDt: null,
+            rfdDt: null,
+            totItemCnt: origItems.length,
+            taxblAmtA: Number(row.taxblAmtA ?? 0),
+            taxblAmtB: Number(row.taxblAmtB ?? 0),
+            taxblAmtC: Number(row.taxblAmtC ?? 0),
+            taxblAmtD: Number(row.taxblAmtD ?? 0),
+            taxblAmtE: Number(row.taxblAmtE ?? 0),
+            taxRtA: Number(row.taxRtA ?? 0),
+            taxRtB: Number(row.taxRtB ?? 16),
+            taxRtC: Number(row.taxRtC ?? 0),
+            taxRtD: Number(row.taxRtD ?? 0),
+            taxRtE: Number(row.taxRtE ?? 0),
+            taxAmtA: Number(row.taxAmtA ?? 0),
+            taxAmtB: Number(row.taxAmtB ?? 0),
+            taxAmtC: Number(row.taxAmtC ?? 0),
+            taxAmtD: Number(row.taxAmtD ?? 0),
+            taxAmtE: Number(row.taxAmtE ?? 0),
+            totTaxblAmt: Number(row.totTaxblAmt ?? 0),
+            totTaxAmt: Number(row.totTaxAmt ?? 0),
+            totAmt: Number(row.totAmt ?? 0),
+            remark: `purchase of supplier invc ${spplrInvcNo}`,
+            ...AUDITOR,
+            itemList: origItems,
+        };
+        let remapped = false;
         let payload: unknown = null;
-        for (let i = 0; i < 6; i++) {
-            payload = await call("POST", "etimsCert.purchases.sendPurchaseTransaction", {
-                purchase: {
-                    spplrTin: String(row.spplrTin ?? tin),
-                    invcNo: pInvc,
-                    orgInvcNo: 0,
-                    spplrBhfId: String(row.spplrBhfId ?? "00"),
-                    spplrNm: String(row.spplrNm ?? "Application Test Supplier"),
-                    spplrInvcNo,
-                    regTyCd: "M",
-                    pchsTyCd: "N",
-                    rcptTyCd: "P",
-                    pmtTyCd: String(row.pmtTyCd ?? "01"),
-                    pchsSttsCd: "02",
-                    cfmDt,
-                    pchsDt: salesDt,
-                    wrhsDt: null,
-                    cnclReqDt: null,
-                    cnclDt: null,
-                    rfdDt: null,
-                    totItemCnt: itemList.length,
-                    taxblAmtA: Number(row.taxblAmtA ?? 0),
-                    taxblAmtB: Number(row.taxblAmtB ?? 0),
-                    taxblAmtC: Number(row.taxblAmtC ?? 0),
-                    taxblAmtD: Number(row.taxblAmtD ?? 0),
-                    taxblAmtE: Number(row.taxblAmtE ?? 0),
-                    taxRtA: Number(row.taxRtA ?? 0),
-                    taxRtB: Number(row.taxRtB ?? 16),
-                    taxRtC: Number(row.taxRtC ?? 0),
-                    taxRtD: Number(row.taxRtD ?? 0),
-                    taxRtE: Number(row.taxRtE ?? 0),
-                    taxAmtA: Number(row.taxAmtA ?? 0),
-                    taxAmtB: Number(row.taxAmtB ?? 0),
-                    taxAmtC: Number(row.taxAmtC ?? 0),
-                    taxAmtD: Number(row.taxAmtD ?? 0),
-                    taxAmtE: Number(row.taxAmtE ?? 0),
-                    totTaxblAmt: Number(row.totTaxblAmt ?? 0),
-                    totTaxAmt: Number(row.totTaxAmt ?? 0),
-                    totAmt: Number(row.totAmt ?? 0),
-                    remark: `purchase of supplier invc ${spplrInvcNo}`,
-                    ...AUDITOR,
-                    itemList,
-                },
-            });
+        for (let i = 0; i < 12; i++) {
+            payload = await call("POST", "etimsCert.purchases.sendPurchaseTransaction", { purchase });
             const recObj = asRecord(payload);
             if (recObj?.success === true || isPass(resultCdOf(payload))) break;
-            const next = expectedCounter(String(recObj?.errorMessage ?? resultMsgOf(payload)));
-            if (next == null || next === pInvc) break;
-            console.log(`  purchase invcNo ${pInvc} rejected, retry ${next}`);
-            pInvc = next;
+            const msg = String(recObj?.errorMessage ?? resultMsgOf(payload));
+            const next = expectedCounter(msg);
+            if (next != null && next !== Number(purchase.invcNo)) {
+                console.log(`  purchase invcNo ${purchase.invcNo} rejected, retry ${next}`);
+                purchase.invcNo = next;
+                pInvc = next;
+                continue;
+            }
+            if (!remapped && /does not exist in your inventory|item management package/i.test(msg)) {
+                purchase.itemList = remapPurchaseItems(origItems);
+                remapped = true;
+                console.log(`  purchase ${spplrInvcNo} remapped items onto ${PARENT}`);
+                continue;
+            }
+            if (patchPurchaseFromError(purchase, msg)) continue;
+            break;
         }
         rec(`17 sendPurchaseTransaction #${n + 1}`, payload, `invcNo=${pInvc} spplrInvcNo=${spplrInvcNo}`);
         pInvc += 1;

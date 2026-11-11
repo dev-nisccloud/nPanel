@@ -42,7 +42,9 @@ const SUBTOTAL = "1000.00";
 const TAX = "160.00";
 const TOTAL = "1160.00";
 const TAX_PCT = 16;
-const NGROK = process.env.ETIMS_CERT_NGROK_URL ?? "https://loverlike-cinderella-signatureless.ngrok-free.dev";
+const LINE_DESCRIPTION = "KE1NTBA0000001 · 1010150100 · Tax B (16%) · BA × NT";
+const LINE_METADATA = { etimsTaxTyCd: "B" } as const;
+const NGROK = process.env.ETIMS_CERT_NGROK_URL ?? "https://ffe3-197-232-51-43.ngrok-free.app";
 
 /** Filled from live `etimsCert.sales.getInvoiceDetails` (this cert session). */
 const SALE_FISCAL = {
@@ -257,6 +259,21 @@ async function loadCertSession() {
 	console.log(`Cert TIN=${CERT_TIN} bhf=${CERT_BHF_ID} sale=#${SALE_INVC_NO} credit=#${CN_INVC_NO}`);
 }
 
+function pdfPageCount(buffer: Buffer): number {
+	const latin = buffer.toString("latin1");
+	const catalog = latin.match(/\/Type\s*\/Pages\b[\s\S]{0,200}?\/Count\s+(\d+)/);
+	if (catalog) return Number(catalog[1]);
+	return (latin.match(/\/Type\s*\/Page\b/g) ?? []).length;
+}
+
+function assertSinglePdfPage(kind: string, buffer: Buffer) {
+	const pages = pdfPageCount(buffer);
+	if (pages !== 1) {
+		throw new Error(`${kind} must be exactly 1 page, got ${pages}`);
+	}
+	console.log(`${kind} pages=1 (${buffer.length} bytes)`);
+}
+
 function assertSandboxQr(kind: string, url: string | null) {
 	const expectedPrefix = `https://etims-sbx.kra.go.ke/common/link/etims/receipt/indexEtimsReceiptData?Data=${CERT_TIN}${CERT_BHF_ID}`;
 	if (!url?.startsWith(expectedPrefix)) {
@@ -289,6 +306,14 @@ async function createInvoice(params: { teamId: string; createdBy: string }) {
 				},
 			})
 			.where(eq(invoice.id, existing.id));
+		await db
+			.update(invoiceLineItem)
+			.set({
+				description: LINE_DESCRIPTION,
+				metadata: LINE_METADATA,
+				updatedAt: now,
+			})
+			.where(eq(invoiceLineItem.invoiceId, existing.id));
 		console.log(
 			`Updated invoice ${existing.invoiceNumber} (${existing.id}) ISSUED=${formatKraSdcDateTimeFull(SALE_FISCAL.data.sdcDateTime)}`,
 		);
@@ -347,11 +372,12 @@ async function createInvoice(params: { teamId: string; createdBy: string }) {
 		invoiceId,
 		position: 0,
 		name: "nPanel Cert VAT16",
-		description: "KE1NTBA0000001 · 1010150100 · Tax B · BA × NT",
+		description: LINE_DESCRIPTION,
 		quantity: 1,
 		unit: "BA",
 		price: SUBTOTAL,
 		total: SUBTOTAL,
+		metadata: LINE_METADATA,
 		createdAt: now,
 		updatedAt: now,
 	});
@@ -517,6 +543,7 @@ async function main() {
 	const invoicePdf = await generateInvoicePdfBuffer(invoiceDetail);
 	const invoiceName = sanitizeInvoicePdfFilename(inv.invoiceNumber ?? "INV-0001");
 	const invoicePath = path.join(OUT_DIR, invoiceName);
+	assertSinglePdfPage("Invoice PDF", invoicePdf);
 	await writeFile(invoicePath, invoicePdf);
 
 	const creditDetail = await getCreditNoteDetailForPdf(db, cn.id);
@@ -524,6 +551,7 @@ async function main() {
 	const creditPdf = await generateCreditNotePdfBuffer(creditDetail);
 	const creditName = sanitizeInvoicePdfFilename(cn.creditNumber ?? "CN-0004").replace(/^INV/i, "CN");
 	const creditPath = path.join(OUT_DIR, creditName.startsWith("CN") ? creditName : `CN-${creditName}`);
+	assertSinglePdfPage("Credit note PDF", creditPdf);
 	await writeFile(creditPath, creditPdf);
 
 	const saleIssued = formatKraSdcDateTimeFull(SALE_FISCAL.data.sdcDateTime);

@@ -2,7 +2,7 @@ import React from "react";
 import { currencyList } from "@/lib/currency";
 import { ChevronDown } from "lucide-react";
 import type { InvoiceItemDetails, Item } from "@/routes/agency.invoicing/types";
-import { tisTaxRateLabel } from "@npanel/api/agency-invoice-pdf/tis-receipt-totals";
+import { tisTaxTypeWithRateLabel } from "@npanel/api/agency-invoice-pdf/tis-receipt-totals";
 
 export const InvoiceDetailsPreview: React.FC<
   InvoiceItemDetails & { onClick?: (step: string) => void }
@@ -54,7 +54,7 @@ export const InvoiceDetailsPreview: React.FC<
         </div>
       </div>
       {items.map(({ itemDescription, amount, qty, etimsTaxTyCd }, index) => {
-        const taxRateLabel = tisTaxRateLabel(etimsTaxTyCd);
+        const taxRateLabel = tisTaxTypeWithRateLabel(etimsTaxTyCd);
         return (
         <div
           className={`grid grid-cols-2 items-center border-b ${
@@ -66,9 +66,9 @@ export const InvoiceDetailsPreview: React.FC<
             <p className="truncate text-xs font-medium text-gray-600">
               {itemDescription}
             </p>
-            {taxRateLabel && (
+            {taxRateLabel && !(itemDescription ?? "").includes(taxRateLabel) && (
               <p className="text-[10px] text-gray-500 mt-1">
-                Tax rate: {taxRateLabel}
+                {taxRateLabel}
               </p>
             )}
           </div>

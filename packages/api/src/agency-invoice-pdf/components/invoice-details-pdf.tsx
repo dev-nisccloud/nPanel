@@ -8,7 +8,7 @@ import {
   buildTisReceiptTotals,
   formatTisMoney,
   tisCreditNoteBandLines,
-  tisTaxRateLabel,
+  tisTaxTypeWithRateLabel,
   type TisReceiptTotals,
 } from "../tis-receipt-totals";
 
@@ -114,7 +114,7 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
         </Text>
       </View>
       {itemsNormalized.map(({ itemDescription, amount, qty, billingCycle, etimsTaxTyCd }, index) => {
-        const taxRateLabel = tisTaxRateLabel(etimsTaxTyCd);
+        const taxRateLabel = tisTaxTypeWithRateLabel(etimsTaxTyCd);
         const containerStyle = {
           paddingVertical: compactLineItems ? 5 : 14,
           ...pdfUtils.borderBottom,
@@ -141,9 +141,9 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
                   Billing: {formatBillingCycle(billingCycle)}
                 </Text>
               )}
-              {taxRateLabel && (
+              {taxRateLabel && !(itemDescription ?? "").includes(taxRateLabel) && (
                 <Text style={{ ...lineText, fontSize: compactLineItems ? 7 : 9, color: "#666", marginTop: compactLineItems ? 2 : 4 }}>
-                  Tax rate: {taxRateLabel}
+                  {taxRateLabel}
                 </Text>
               )}
             </View>
@@ -191,7 +191,7 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
         />
       </View>
       {isCopyReceipt ? (
-        <View wrap={false} style={{ width: "100%", paddingHorizontal: 40, paddingTop: compactLineItems ? 14 : 20 }}>
+        <View wrap={false} style={{ width: "100%", paddingHorizontal: 40, paddingTop: compactLineItems ? 6 : 12 }}>
           <Text
             style={{
               fontSize: (Number(totalsText.fontSize) || 9) * 2,
@@ -231,7 +231,7 @@ function TotalsRow({
     <View
       style={{
         marginHorizontal: 40,
-        paddingVertical: compactLineItems ? 5 : 14,
+        paddingVertical: compactLineItems ? 3 : 6,
         ...pdfUtils.flexRowItemCenter,
         ...(border ? pdfUtils.borderBottom : {}),
       }}

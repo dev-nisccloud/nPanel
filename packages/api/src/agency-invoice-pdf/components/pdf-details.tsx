@@ -39,7 +39,7 @@ export const PdfDetails = ({
     ) : null}
 
     {isCreditNote ? (
-      <View style={{ paddingHorizontal: 40, paddingBottom: 8 }}>
+      <View style={{ paddingHorizontal: 40, paddingBottom: 4 }}>
         {invoiceTerms.originalCuInvoiceNo ? (
           <Text style={{ fontSize: 9, fontWeight: "bold", color: "#111827", marginBottom: 4 }}>
             ORIGINAL CU INVOICE NO.#: {invoiceTerms.originalCuInvoiceNo}
