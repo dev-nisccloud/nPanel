@@ -134,7 +134,7 @@ export function WordPressMigration() {
           ]}
         />
         <div className="rounded-3xl border border-border bg-card p-7">
-          <h3 className="text-xl tracking-tight font-normal">What to have ready</h3>
+          <h3 className="type-h3">What to have ready</h3>
           <ul className="mt-4 list-disc space-y-2 pl-5 text-base leading-relaxed text-muted-foreground marker:text-primary">
             <li>An administrator login for your WordPress dashboard</li>
             <li>Access to your current hosting control panel or SFTP</li>
@@ -177,7 +177,7 @@ export function WordPressExplained() {
             ]}
           />
           <div>
-            <h3 className="text-xl tracking-tight font-normal">Is managed WordPress hosting right for a WooCommerce store?</h3>
+            <h3 className="type-h3">Is managed WordPress hosting right for a WooCommerce store?</h3>
             <p className="mt-3 max-w-[70ch] border-l-4 border-primary pl-4 text-base font-medium leading-relaxed text-foreground md:text-[17px]">
               Yes. Business and Performance plans are WooCommerce ready, with object cache and a staging copy to test
               changes before customers see them.
@@ -198,7 +198,7 @@ export function WordPressExplained() {
           </div>
         </div>
         <div>
-          <h3 className="mb-4 text-xl tracking-tight font-normal">WordPress hosting terms explained</h3>
+          <h3 className="type-h3 mb-4">WordPress hosting terms explained</h3>
           <Glossary
             items={[
               { term: "Staging", desc: "A private copy of your site where you can test updates and changes before they go live." },

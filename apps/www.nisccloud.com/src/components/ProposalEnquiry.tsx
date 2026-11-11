@@ -195,7 +195,7 @@ export default function ProposalEnquiry({ source = "homepage" }: { source?: stri
     return (
       <div role="status" className="rounded-3xl border border-primary/30 bg-card p-6 text-center md:p-8">
         <CheckCircle2 className="mx-auto mb-3 size-10 text-primary" aria-hidden />
-        <h3 className="text-xl tracking-tight font-normal">Thank you, {name.trim().split(" ")[0]}.</h3>
+        <h3 className="type-h3">Thank you, {name.trim().split(" ")[0]}.</h3>
         <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
           Your requirements have been sent to our team. We will contact you at{" "}
           <span className="font-semibold text-foreground">{email.trim()}</span> to discuss the next steps.
@@ -236,7 +236,7 @@ export default function ProposalEnquiry({ source = "homepage" }: { source?: stri
       <h3
         ref={headingRef}
         tabIndex={-1}
-        className="mb-4 text-lg tracking-tight outline-none font-normal"
+        className="type-h3 mb-4 outline-none"
       >
         Step {step + 1} of 3: {stepTitles[step]}
       </h3>

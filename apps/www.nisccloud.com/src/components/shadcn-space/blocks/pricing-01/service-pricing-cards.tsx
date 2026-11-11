@@ -82,7 +82,7 @@ function PlanCard({ plan }: { plan: ServicePricingCardPlan }) {
         />
         <div className={cn("relative", plan.fullWidth && "md:flex md:items-start md:justify-between md:gap-10")}>
           <div className={cn(plan.fullWidth && "md:max-w-xs")}>
-            <h3 className="pt-1 text-xl tracking-tight font-normal">{plan.name}</h3>
+            <h3 className="type-h3 pt-1">{plan.name}</h3>
             <p className="mt-1 text-sm text-muted-foreground">{plan.description}</p>
             <p className="mt-5 flex flex-wrap items-baseline gap-1">
               <span

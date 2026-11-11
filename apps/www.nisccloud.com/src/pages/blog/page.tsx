@@ -104,7 +104,7 @@ export default function BlogPage() {
                     </span>
                     <span className="text-xs text-muted-foreground font-mono">FEATURED</span>
                   </div>
-                  <h2 className="text-xl text-foreground leading-snug mb-3 group-hover:text-primary transition-colors font-normal">
+                  <h2 className="type-h3 text-foreground mb-3 group-hover:text-primary transition-colors">
                     <Link to={`/blog/${post.slug}`} className="after:absolute after:inset-0 focus-visible:outline-none">{post.title}</Link>
                   </h2>
                   <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
@@ -149,7 +149,7 @@ export default function BlogPage() {
                       {post.category}
                     </span>
                   </div>
-                  <h2 className="text-base text-foreground leading-snug mb-2 group-hover:text-primary transition-colors flex-1 font-normal">
+                  <h2 className="type-h3 text-foreground mb-2 group-hover:text-primary transition-colors flex-1">
                     <Link to={`/blog/${post.slug}`} className="after:absolute after:inset-0 focus-visible:outline-none">{post.title}</Link>
                   </h2>
                   <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 mb-4">
@@ -187,7 +187,7 @@ export default function BlogPage() {
           transition={{ duration: 0.5 }}
           className="mt-20 rounded-3xl bg-primary/5 border border-primary/20 p-10 text-center"
         >
-          <h2 className="text-2xl mb-2 font-normal">Want help putting this into practice?</h2>
+          <h2 className="type-h3 mb-2">Want help putting this into practice?</h2>
           <p className="text-muted-foreground text-sm mb-6 max-w-lg mx-auto">
             Book a free strategy call and we will look at your brand, website, hosting or marketing and recommend a clear next step before you commit.
           </p>

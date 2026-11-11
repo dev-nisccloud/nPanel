@@ -207,7 +207,7 @@ export default function ContactForm() {
         <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
           <CheckCircle size={28} className="text-primary" />
         </div>
-        <h3 className="mb-2 text-xl tracking-tight font-normal">Message received</h3>
+        <h3 className="type-h3 mb-2">Message received</h3>
         <p className="mx-auto max-w-sm text-sm leading-relaxed text-muted-foreground">
           Thanks for reaching out. Someone on our team will review your message and follow up within
           24 hours.
@@ -224,7 +224,7 @@ export default function ContactForm() {
       className="space-y-6"
     >
       <div className="rounded-2xl border border-border/60 bg-card p-6 md:p-8">
-        <h2 className="mb-1 text-lg tracking-tight md:text-xl font-normal">Send us a message</h2>
+        <h2 className="type-h3 mb-1">Send us a message</h2>
         <p className="mb-6 text-sm text-muted-foreground">
           {isCorporate
             ? "Tell us what you need and we will come back with a tailored proposal. Only the starred fields are required."

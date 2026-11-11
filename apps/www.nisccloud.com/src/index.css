@@ -227,46 +227,83 @@
     border-radius: 9999px;
   }
 
+  /*
+   * Type scale: 2px above the Hostinger scale at each step, so hierarchy is always
+   * display > h1 > h2 > h3 > body. Phone / tablet / desktop.
+   */
+
+  /* Homepage hero only: 50 / 72 / 98px. */
   .type-display {
-    font-size: clamp(2.75rem, 5.5vw, 5rem);
-    font-weight: 700;
-    line-height: 0.98;
-    letter-spacing: -0.045em;
+    font-size: 3.125rem;
+    font-weight: 600;
+    line-height: 1.02;
+    letter-spacing: -0.03em;
   }
 
-  /* One page title per route: 32px on phones, 38px from tablet up, on every public page. */
+  /* Page titles: 38 / 44 / 50px. */
   .type-h1 {
-    font-size: 2rem;
+    font-size: 2.375rem;
     font-weight: 400;
-    line-height: 1.2;
+    line-height: 1.16;
     letter-spacing: -0.02em;
   }
 
-  /* Section headings: 28px on phones, 32px from tablet up. */
+  /* Section headings: 30 / 34 / 38px. */
   .type-h2 {
-    font-size: 1.75rem;
+    font-size: 1.875rem;
     font-weight: 400;
-    line-height: 1.25;
+    line-height: 1.2;
     letter-spacing: -0.015em;
   }
 
-  /* Sub-section headings: 22px. */
+  /* Card and sub-section headings: 20 / 22px. */
   .type-h3 {
-    font-size: 1.375rem;
+    font-size: 1.25rem;
     font-weight: 400;
-    line-height: 1.35;
+    line-height: 1.4;
     letter-spacing: -0.01em;
   }
 
+  /* Hero supporting line: 20 / 24 / 26px. */
+  .type-lead {
+    font-size: 1.25rem;
+    font-weight: 400;
+    line-height: 1.35;
+  }
+
   @media (min-width: 768px) {
+    .type-display {
+      font-size: 4.5rem;
+    }
     .type-h1 {
-      font-size: 2.375rem;
+      font-size: 2.75rem;
     }
     .type-h2 {
-      font-size: 2rem;
+      font-size: 2.125rem;
+    }
+    .type-h3 {
+      font-size: 1.375rem;
+    }
+    .type-lead {
+      font-size: 1.5rem;
     }
   }
 
+  @media (min-width: 1280px) {
+    .type-display {
+      font-size: 6.125rem;
+      font-weight: 700;
+    }
+    .type-h1 {
+      font-size: 3.125rem;
+    }
+    .type-h2 {
+      font-size: 2.375rem;
+    }
+    .type-lead {
+      font-size: 1.625rem;
+    }
+  }
   .type-body-lg {
     font-size: clamp(1rem, 1.4vw, 1.125rem);
     line-height: 1.7;

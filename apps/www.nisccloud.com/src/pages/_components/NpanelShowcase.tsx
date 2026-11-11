@@ -161,7 +161,7 @@ export default function NpanelShowcase() {
           className="grid items-center gap-8 lg:grid-cols-2 lg:gap-14"
         >
           <div>
-            <h3 className="text-2xl tracking-tight md:text-[1.75rem] font-normal">
+            <h3 className="type-h3">
               {persona.heading}
             </h3>
             <p className="mt-3 max-w-lg leading-relaxed text-muted-foreground">

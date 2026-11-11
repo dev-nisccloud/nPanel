@@ -144,7 +144,7 @@ export function KenyanTldCards({
     return (
       <section className="mb-6">
         {!embeddedInTabs && (
-          <h3 className="text-base tracking-tight text-card-foreground mb-4 font-normal">
+          <h3 className="type-h3 text-card-foreground mb-4">
             Give your brand a Kenyan vibe
           </h3>
         )}
@@ -159,7 +159,7 @@ export function KenyanTldCards({
   return (
     <section className="mb-6">
       {!embeddedInTabs && (
-        <h3 className="text-base tracking-tight text-card-foreground mb-4 font-normal">
+        <h3 className="type-h3 text-card-foreground mb-4">
           Give your brand a Kenyan vibe
         </h3>
       )}

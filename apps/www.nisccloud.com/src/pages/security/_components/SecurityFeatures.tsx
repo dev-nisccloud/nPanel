@@ -87,7 +87,7 @@ export default function SecurityFeatures({
               <div className={`w-11 h-11 rounded-2xl ${f.bg} ${f.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
                 <f.icon size={20} />
               </div>
-              <h3 className="text-foreground mb-2 font-normal">{f.title}</h3>
+              <h3 className="type-h3 text-foreground mb-2">{f.title}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
             </motion.div>
           ))}

@@ -19,7 +19,7 @@ function CardBody({ f }: { f: ServiceFeature }) {
       <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
         <f.icon size={16} />
       </div>
-      <h3 className="mb-1 text-sm font-normal">{f.title}</h3>
+      <h3 className="type-h3 mb-1">{f.title}</h3>
       <p className="text-xs leading-relaxed text-muted-foreground">{f.desc}</p>
       {f.href ? (
         <span className="mt-auto inline-flex items-center gap-1 pt-3 text-xs font-semibold text-primary">

@@ -178,7 +178,7 @@ export function EmailExplained() {
             ]}
           />
           <div>
-            <h3 className="text-xl tracking-tight font-normal">Do I need a website to have business email?</h3>
+            <h3 className="type-h3">Do I need a website to have business email?</h3>
             <p className="mt-3 max-w-[70ch] border-l-4 border-primary pl-4 text-base font-medium leading-relaxed text-foreground md:text-[17px]">
               No. You only need a domain name. Your website can stay where it is, or you can add one later.
             </p>
@@ -192,7 +192,7 @@ export function EmailExplained() {
           </div>
         </div>
         <div>
-          <h3 className="mb-4 text-xl tracking-tight font-normal">Business email terms explained</h3>
+          <h3 className="type-h3 mb-4">Business email terms explained</h3>
           <Glossary
             items={[
               { term: "MX record", desc: "The domain setting that tells the internet which servers receive your email." },

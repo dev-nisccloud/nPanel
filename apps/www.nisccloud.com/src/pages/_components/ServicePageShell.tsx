@@ -190,7 +190,7 @@ function FeaturesGrid({ features }: { features: Feature[] }) {
                   {f.icon}
                 </div>
                 <div>
-                  <h3 className="text-base text-foreground mb-1.5 font-normal">
+                  <h3 className="type-h3 text-foreground mb-1.5">
                     {f.title}
                   </h3>
                   <p className="text-[15px] text-muted-foreground leading-relaxed">
@@ -230,7 +230,7 @@ function StrategyGuide({ sections }: { sections: StrategySection[] }) {
                 {section.eyebrow}
               </p>
               <div>
-                <h3 className="text-xl md:text-2xl font-normal">
+                <h3 className="type-h3">
                   {section.title}
                 </h3>
                 <p className="mt-3 max-w-2xl leading-relaxed text-muted-foreground">
@@ -283,7 +283,7 @@ function ProcessSection({ steps }: { steps: ProcessStep[] }) {
               <span className="text-base font-bold text-sky-700 dark:text-primary">
                 {step.num}
               </span>
-              <h3 className="mt-5 text-lg font-normal">{step.title}</h3>
+              <h3 className="type-h3 mt-5">{step.title}</h3>
               <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
                 {step.desc}
               </p>
@@ -374,7 +374,7 @@ function PricingSection({
                     popular && "bg-gradient-to-b from-primary/5 to-transparent",
                   )}
                 >
-                  <h3 className="text-lg mb-1 font-normal">{plan.name}</h3>
+                  <h3 className="type-h3 mb-1">{plan.name}</h3>
                   <div className="mb-6 pb-6 border-b border-border/50">
                     <div className="flex items-end gap-1">
                       <span className="text-4xl font-extrabold text-primary leading-none">

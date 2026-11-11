@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type MouseEvent } from "react";
+﻿import { useState, useRef, useEffect, type MouseEvent } from "react";
 import ProductsMegaMenu, {
   productFamilies,
   productSections,
@@ -479,7 +479,7 @@ export default function Navbar() {
                       cancelClose();
                       openDropdown(item.href);
                     }}
-                    className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer font-medium ${
+                    className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer font-normal ${
                       activeDropdown === item.href
                         ? "text-primary bg-primary/5"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -501,7 +501,7 @@ export default function Navbar() {
                       cancelClose();
                       setActiveDropdown(null);
                     }}
-                    className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm transition-colors font-medium ${
+                    className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm transition-colors font-normal ${
                       isCurrentPage && !item.external
                         ? "text-foreground"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted/50"

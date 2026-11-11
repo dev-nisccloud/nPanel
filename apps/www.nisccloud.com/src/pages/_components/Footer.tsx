@@ -1,4 +1,4 @@
-import { ArrowUpRight, Mail, MapPin, Phone } from "lucide-react";
+﻿import { ArrowUpRight, Mail, MapPin, Phone } from "lucide-react";
 import { Link } from "react-router-dom";
 import AccreditationStrip from "./AccreditationStrip.tsx";
 
@@ -148,7 +148,7 @@ export default function Footer() {
             <Link to="/" className="mb-5 flex w-fit items-center rounded-lg transition-opacity hover:opacity-85" aria-label="Nisc Cloud home">
               <img src="/nisccloud-logo.svg" alt="Nisc Cloud" className="h-11 w-auto object-contain" />
             </Link>
-            <p className="max-w-md text-2xl font-bold leading-tight tracking-tight text-white md:text-[1.75rem]">
+            <p className="type-h3 max-w-md text-white">
               Technology, infrastructure and growth for{" "}
               <span className="text-primary">modern businesses.</span>
             </p>

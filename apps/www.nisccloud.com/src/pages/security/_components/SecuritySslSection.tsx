@@ -72,7 +72,7 @@ export default function SecuritySslSection() {
               className="bg-card rounded-3xl border border-border p-7 flex flex-col hover:border-primary/40 hover:shadow-lg transition-all"
             >
               <span className="text-[10px] font-mono font-bold tracking-widest text-primary uppercase mb-3">{opt.type}</span>
-              <h3 className="text-xl mb-3 font-normal">{opt.name}</h3>
+              <h3 className="type-h3 mb-3">{opt.name}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed mb-5">{opt.desc}</p>
 
               <ul className="space-y-2.5 mb-6 flex-1">
@@ -108,7 +108,7 @@ export default function SecuritySslSection() {
           transition={{ duration: 0.5 }}
           className="mt-12 text-center max-w-2xl mx-auto"
         >
-          <h3 className="text-xl mb-3 font-normal">Beyond SSL - Get Comprehensive Website Security</h3>
+          <h3 className="type-h3 mb-3">Beyond SSL - Get Comprehensive Website Security</h3>
           <p className="text-muted-foreground text-sm leading-relaxed">
             SSL encrypts your traffic. Now add malware detection and removal, daily backups, and a Web Application Firewall to truly protect your website from every angle.
           </p>

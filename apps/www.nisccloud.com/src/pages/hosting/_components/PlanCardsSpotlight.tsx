@@ -224,7 +224,7 @@ function SpotlightCard({
       ) : null}
 
       <header>
-        <h3 className="text-xl tracking-tight font-normal">{model.displayName}</h3>
+        <h3 className="type-h3">{model.displayName}</h3>
         {model.audience ? <p className="mt-1 min-h-10 text-sm text-muted-foreground">{model.audience}</p> : null}
       </header>
 
@@ -301,7 +301,7 @@ function CustomTierCard({ tier }: { tier: CustomTier }) {
         <Building2 className="h-4.5 w-4.5" />
       </span>
       <header className="mt-4">
-        <h3 className="text-xl tracking-tight font-normal">{tier.name}</h3>
+        <h3 className="type-h3">{tier.name}</h3>
         <p className="mt-1 min-h-10 text-sm text-white/65">{tier.audience}</p>
       </header>
       <div className="mt-5">

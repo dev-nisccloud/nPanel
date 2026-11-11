@@ -171,7 +171,7 @@ export default function AtomApproach() {
               </div>
 
               {/* Headline */}
-              <h3 className="text-base leading-snug mb-2 text-foreground font-normal">
+              <h3 className="type-h3 mb-2 text-foreground">
                 {step.headline}
               </h3>
 

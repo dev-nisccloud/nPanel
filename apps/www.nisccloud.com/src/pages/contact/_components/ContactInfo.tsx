@@ -40,7 +40,7 @@ export default function ContactInfo() {
       transition={{ duration: 0.45, delay: 0.08 }}
       className="rounded-2xl border border-border/60 bg-card p-6"
     >
-      <h2 className="mb-1 text-base tracking-tight font-normal">Talk to us directly</h2>
+      <h2 className="type-h3 mb-1">Talk to us directly</h2>
       <p className="mb-5 text-sm text-muted-foreground">
         Prefer email or a call? Reach the team here.
       </p>
@@ -70,7 +70,7 @@ export default function ContactInfo() {
       </div>
 
       <div className="mt-6 border-t border-border/60 pt-5">
-        <h2 className="mb-3 text-sm tracking-tight font-normal">Ready to start on your own?</h2>
+        <h2 className="type-h3 mb-3">Ready to start on your own?</h2>
         <ul className="space-y-1">
           {quickRoutes.map((r) => (
             <li key={r.href}>

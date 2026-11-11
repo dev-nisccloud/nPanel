@@ -228,7 +228,7 @@ export function DomainExtensionsSection() {
         <div className="rounded-2xl border border-border bg-card p-6">
           <div className="flex items-center gap-2 mb-4">
             <Globe size={18} className="text-primary" />
-            <h3 className="font-normal">Local Extensions</h3>
+            <h3 className="type-h3">Local Extensions</h3>
           </div>
           <div className="space-y-3">
             {localTlds.map(({ ext, note }) => (
@@ -249,7 +249,7 @@ export function DomainExtensionsSection() {
         <div className="rounded-2xl border border-border bg-card p-6">
           <div className="flex items-center gap-2 mb-4">
             <Globe size={18} className="text-primary" />
-            <h3 className="font-normal">Global Extensions</h3>
+            <h3 className="type-h3">Global Extensions</h3>
           </div>
           <div className="grid grid-cols-2 gap-3">
             {globalTlds.map(({ ext }) => (

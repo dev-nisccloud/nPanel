@@ -64,7 +64,7 @@ export function SslPlanSummary() {
       <div className="grid gap-4 md:grid-cols-3">
         {SSL_PLANS.map((plan) => (
           <article key={plan.id} className="flex flex-col rounded-2xl border border-border bg-card p-6">
-            <h3 className="text-lg text-foreground font-normal">{plan.name}</h3>
+            <h3 className="type-h3 text-foreground">{plan.name}</h3>
             <p className="mt-3 flex items-baseline gap-1">
               <span className="text-2xl font-bold tracking-tight text-foreground">{displayPrice(plan.price)}</span>
               <span className="text-sm text-muted-foreground">/{plan.period === "yr" ? "year" : plan.period}</span>

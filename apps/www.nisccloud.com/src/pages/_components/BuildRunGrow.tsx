@@ -61,7 +61,7 @@ export default function BuildRunGrow() {
             <article key={tag} className="flex flex-col bg-card p-6">
               <PillarIcon pillar={pillar} active />
               <p className={`type-label mt-4 ${tagClass}`}>{tag}</p>
-              <h3 className="mt-1 text-lg leading-snug tracking-tight font-normal">{title}</h3>
+              <h3 className="type-h3 mt-1">{title}</h3>
               <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">{items}</p>
               <Link
                 to={cta.href}

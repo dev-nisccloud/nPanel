@@ -75,7 +75,7 @@ export function DomainSearchSection({
   return (
     <section className="mb-8">
       {!isSelected && (
-        <h3 className="text-base tracking-tight text-card-foreground mb-4 font-normal">
+        <h3 className="type-h3 text-card-foreground mb-4">
           {title}
         </h3>
       )}

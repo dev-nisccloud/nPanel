@@ -207,7 +207,7 @@ export default function BentoFeatures() {
                 <BentoServiceCarousel />
               </div>
               <div className="flex flex-col gap-1 p-8 border-t border-border">
-                <h3 className="text-xl text-foreground font-normal">
+                <h3 className="type-h3 text-foreground">
                   One team for the full journey
                 </h3>
                 <p className="text-base font-normal text-muted-foreground">
@@ -231,7 +231,7 @@ export default function BentoFeatures() {
                 <BentoOrbitingIcons />
               </div>
               <div className="flex flex-col gap-1 p-8 border-t border-border">
-                <h3 className="text-xl text-foreground font-normal">
+                <h3 className="type-h3 text-foreground">
                   Tools that work together
                 </h3>
                 <p className="text-base font-normal text-muted-foreground">
@@ -253,7 +253,7 @@ export default function BentoFeatures() {
             <div className="rounded-xl border border-border h-full flex flex-col">
               <PricingVisual />
               <div className="flex flex-col gap-1 p-8 border-t border-border">
-                <h3 className="text-xl text-foreground font-normal">
+                <h3 className="type-h3 text-foreground">
                   Pricing you can understand
                 </h3>
                 <p className="text-base font-normal text-muted-foreground">
@@ -275,7 +275,7 @@ export default function BentoFeatures() {
             <div className="rounded-xl border border-border h-full flex flex-col">
               <OwnershipVisual />
               <div className="flex flex-col gap-1 p-8 border-t border-border">
-                <h3 className="text-xl text-foreground font-normal">
+                <h3 className="type-h3 text-foreground">
                   You keep what we build
                 </h3>
                 <p className="text-base font-normal text-muted-foreground">
@@ -297,7 +297,7 @@ export default function BentoFeatures() {
             <div className="rounded-xl border border-border h-full flex flex-col">
               <ResultsVisual />
               <div className="flex flex-col gap-1 p-8 border-t border-border">
-                <h3 className="text-xl text-foreground font-normal">
+                <h3 className="type-h3 text-foreground">
                   A clear first 30 days
                 </h3>
                 <p className="text-base font-normal text-muted-foreground">

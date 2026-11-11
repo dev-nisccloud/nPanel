@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   Accordion,
@@ -52,7 +52,7 @@ function FaqAccordion({ faqs }: { faqs: FaqBlockItem[] }) {
             delayClasses[index] ?? "delay-500",
           )}
         >
-          <AccordionTrigger className="flex w-full cursor-pointer items-start justify-between gap-3 px-4 py-4 text-left text-base font-medium hover:no-underline md:text-[17px] [&>svg:last-child]:hidden">
+          <AccordionTrigger className="flex w-full cursor-pointer items-start justify-between gap-3 px-4 py-4 text-left text-lg font-normal hover:no-underline md:text-xl [&>svg:last-child]:hidden">
             <span className="min-w-0 flex-1 pr-2">{faq.question}</span>
             <PlusIcon
               aria-hidden

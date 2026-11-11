@@ -61,7 +61,7 @@ export default function WhyNisc() {
               <span className="mb-5 flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                 <Icon className="size-5" aria-hidden />
               </span>
-              <h3 className="tracking-tight font-normal">{title}</h3>
+              <h3 className="type-h3">{title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                 {body}
               </p>

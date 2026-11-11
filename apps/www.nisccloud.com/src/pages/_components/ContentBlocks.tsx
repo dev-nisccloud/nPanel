@@ -141,7 +141,7 @@ export function PlanFitGrid({
             )}
           >
             <div className="flex items-center justify-between">
-              <h3 className="text-xl tracking-tight font-normal">{plan.name}</h3>
+              <h3 className="type-h3">{plan.name}</h3>
               <PlanFitMeter level={plan.level} max={max} />
             </div>
             <p className="mt-3 text-base font-semibold text-foreground">{plan.bestFor}</p>

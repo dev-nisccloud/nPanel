@@ -33,7 +33,7 @@ export default function ServiceDecisionGuide() {
     <section className="mx-auto grid max-w-7xl gap-8 border-t border-border px-4 py-14 md:grid-cols-2 md:px-8">
       {[0, 2].map((i) => (
         <article key={guide[i]}>
-          <h2 className="text-2xl text-foreground font-normal">{guide[i]}</h2>
+          <h2 className="type-h3 text-foreground">{guide[i]}</h2>
           <p className="mt-4 text-base leading-relaxed text-muted-foreground">
             {guide[i + 1]}
           </p>

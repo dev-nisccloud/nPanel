@@ -286,7 +286,7 @@ export function RecommendedDomainsList({
   return (
     <section className="mb-6">
       <div className="flex items-baseline justify-between gap-3 mb-3">
-        <h3 className="text-base tracking-tight text-card-foreground font-normal">
+        <h3 className="type-h3 text-card-foreground">
           Popular extensions
         </h3>
         <p className="text-xs text-muted-foreground">

@@ -1,4 +1,4 @@
-import { useEffect, type CSSProperties } from "react";
+﻿import { useEffect, type CSSProperties } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
@@ -93,7 +93,7 @@ export default function Hero() {
           id="hero-heading"
           aria-label="Build. Run. Grow."
           {...rise(0.05, 12)}
-          className="mb-5 font-sans text-[2.6rem] font-extrabold leading-none tracking-tight text-foreground max-[360px]:text-[2.3rem] sm:text-6xl lg:text-7xl xl:text-[5rem]"
+          className="type-display mb-5 text-foreground max-[360px]:text-[2.5rem]"
         >
           Build<span className={dot}>.</span> Run<span className={dot}>.</span> Grow
           <span className={dot}>.</span>
@@ -101,10 +101,10 @@ export default function Hero() {
 
         <motion.h2
           {...rise(0.1)}
-          className="mb-6 text-[1.35rem] font-semibold leading-[1.25] tracking-tight text-muted-foreground min-[380px]:text-2xl md:text-3xl"
+          className="type-lead mb-6 text-muted-foreground"
         >
           One accountable technology partner to help you
-          <span className="block font-bold sm:whitespace-nowrap">
+          <span className="block font-medium sm:whitespace-nowrap">
             <TypedPhrase phrases={HERO_PHRASES} className={blue ? "text-[#8fd6ff]" : aurora ? "text-[#5ec4ff]" : sky ? "text-white" : skyMid ? "text-[#02070a]" : "text-primary"} caretClassName={skyMid ? "bg-[#02070a]" : "bg-white"} />
           </span>
         </motion.h2>

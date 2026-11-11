@@ -25,7 +25,7 @@ function ProductFinder({
 }) {
   return (
     <div>
-      <h2 id="finder-heading" className="text-lg tracking-tight font-normal">
+      <h2 id="finder-heading" className="type-h3">
         What are you putting online?
       </h2>
       <div role="group" aria-labelledby="finder-heading" className="mt-3 flex flex-wrap gap-2">
@@ -109,7 +109,7 @@ function ProductCard({ productKey, recommended }: { productKey: ProductKey; reco
       <span className="mb-4 flex size-11 items-center justify-center rounded-xl bg-primary/10 text-sky-700 dark:text-primary">
         <Icon size={22} strokeWidth={1.9} aria-hidden />
       </span>
-      <h3 className="flex flex-wrap items-center gap-2 text-lg font-normal">
+      <h3 className="type-h3 flex flex-wrap items-center gap-2">
         {product.title}
         {product.isNew ? (
           <span className="rounded-full bg-brand-orange/15 px-2 py-0.5 text-xs font-semibold text-[#b9411f] dark:text-brand-orange">

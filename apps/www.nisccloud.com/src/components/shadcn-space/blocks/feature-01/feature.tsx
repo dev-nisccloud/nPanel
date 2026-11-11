@@ -106,7 +106,7 @@ const Feature = ({
                         />
                       </AvatarFallback>
                     </Avatar>
-                    <h3 className="text-xl sm:text-2xl font-normal">
+                    <h3 className="type-h3">
                       &ldquo;{testimonial.quote}&rdquo;
                     </h3>
                   </CardContent>
@@ -136,7 +136,7 @@ const Feature = ({
                         <value.icon className="h-6 w-6 text-muted-foreground" strokeWidth={1.5} />
                         {value.title ? (
                           <>
-                            <h3 className="text-base text-foreground font-normal">
+                            <h3 className="type-h3 text-foreground">
                               {value.title}
                             </h3>
                             <p className="text-sm font-normal leading-relaxed text-muted-foreground">

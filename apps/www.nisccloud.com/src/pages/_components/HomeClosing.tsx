@@ -38,7 +38,7 @@ export default function HomeClosing() {
           <div className="flex flex-col rounded-3xl bg-primary p-7 text-[#02070a] md:p-8 lg:sticky lg:top-24 lg:self-start">
             <ShoppingCart className="mb-5 size-8" aria-hidden />
             <p className="type-label">Self-service</p>
-            <h3 className="mt-2 text-2xl tracking-tight font-normal">
+            <h3 className="type-h3 mt-2">
               Ready to buy? Start online.
             </h3>
             <p className="mt-3 text-sm leading-relaxed text-[#02070a]/80">
@@ -86,7 +86,7 @@ export default function HomeClosing() {
                 <Building2 className="size-5" aria-hidden />
               </span>
               <div>
-                <h3 className="text-xl tracking-tight font-normal">
+                <h3 className="type-h3">
                   Discuss your project
                 </h3>
                 <p className="mt-1 text-sm text-muted-foreground">
