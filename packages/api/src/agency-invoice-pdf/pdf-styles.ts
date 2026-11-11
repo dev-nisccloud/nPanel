@@ -93,22 +93,22 @@ export const pdfUtils = StyleSheet.create({
 export const pdfContainers = StyleSheet.create({
     page: {
         fontFamily: "Geist",
-        paddingTop: 28,
-        paddingBottom: 28,
+        paddingTop: 16,
+        paddingBottom: 20,
         paddingLeft: 0,
         paddingRight: 0,
     },
     /** Reserve space so body content does not overlap the fixed payment strip and eTIMS footer. */
     pageWithEtimsFooter: {
         fontFamily: "Geist",
-        paddingTop: 28,
-        paddingBottom: 310,
+        paddingTop: 14,
+        paddingBottom: 188,
         paddingLeft: 0,
         paddingRight: 0,
     },
     invoiceTerms: {
         paddingHorizontal: 40,
-        paddingVertical: 20,
+        paddingVertical: 8,
         display: 'flex',
         alignItems: "center",
         flexDirection: 'row',
@@ -131,8 +131,8 @@ export const pdfContainers = StyleSheet.create({
         display: "flex",
         justifyContent: "flex-start",
         alignItems: "flex-start",
-        height: 40,
-        marginBottom: 12,
+        height: 32,
+        marginBottom: 6,
     }
 })
 
@@ -143,20 +143,20 @@ export const pdfContainers = StyleSheet.create({
  * CSS px @ 96dpi → PDF pt: 180×60 → 135×45 (3:1).
  */
 export const pdfBrandingLogoBox = {
-    width: 135,
-    height: 45,
+    width: 108,
+    height: 36,
 } as const
 
 /** Names, document title, and term values: the facts the invoice insists on. */
 export const pdfPartyEmphasis = {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: "bold" as const,
     color: "#111827",
 }
 
 /** Address, email, and PIN lines. Same size as the emphasis lines, without the weight. */
 export const pdfPartyDetail = {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: "normal" as const,
     color: colors.gray600,
 }

@@ -91,7 +91,7 @@ export function AgencyInvoicePdfPage({
 				fixed
 				style={{
 					position: "absolute",
-					bottom: 4,
+					bottom: 2,
 					right: 40,
 					fontSize: 8,
 					color: "#6b7280",
