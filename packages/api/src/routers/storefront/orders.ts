@@ -70,6 +70,8 @@ const createFromPaymentInputSchema = z.object({
   /** Full cart payload  required for domain transfers (EPP code). */
   cart: storefrontCartQuoteRequestSchema.optional(),
   quoteToken: z.string().min(1),
+  /** VPS, VDS and dedicated servers: hostname entered in the cart. */
+  serverHostname: z.string().trim().max(253).optional(),
 });
 // ---------------------------------------------------------------------------
 // Router
@@ -166,6 +168,7 @@ export const storefrontOrdersRouter = router({
         primaryDomain: input.primaryDomain,
         fallbackProductId: input.productId,
         lockedQuote: lockedQuoteResult.payload,
+        serverHostname: input.serverHostname,
       });
 
       const paidAmountRaw = tx.paidAmount ?? tx.amount;

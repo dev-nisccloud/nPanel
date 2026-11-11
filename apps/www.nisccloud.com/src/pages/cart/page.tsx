@@ -30,7 +30,8 @@ import type { SelectedDomain } from "./_components/DomainUpsell.tsx";
 import type { HostingUpsellType, UpsellPlanInfo } from "./_components/HostingUpsell.tsx";
 import type { SelectedHostingPlan } from "./_components/OrderSummary.tsx";
 import type { CustomerInfo } from "./_components/CustomerInfoStep.tsx";
-import { computeHivelocitySummaryLines } from "@/lib/vps-plans-api.ts";
+import { computeHivelocitySummaryLines, formatOptionPriceKes } from "@/lib/vps-plans-api.ts";
+import { describeServerSelection } from "./_components/server-options.ts";
 import {
   checkStorefrontEmail,
   clearStorefrontCartDraft,
@@ -620,6 +621,19 @@ export default function CartPage() {
     });
   }, [hivelocityConfig, hivelocityPricing]);
 
+  const serverComponents = React.useMemo(() => {
+    if (!isHivelocityPlan || !hivelocityConfig || !hivelocityPricing || hivelocityPricing.loading) return [];
+    const { osList, addonGroups, pricing, kesRate } = hivelocityPricing;
+    return describeServerSelection({
+      selectedOsId: hivelocityConfig.selectedOsId,
+      selectedOptionIds: hivelocityConfig.selectedOptionIds,
+      osList,
+      addonGroups,
+      osPrice: (usd) => formatOptionPriceKes(usd, pricing?.os ?? null, kesRate),
+      addonPrice: (usd) => formatOptionPriceKes(usd, pricing?.addons ?? null, kesRate),
+    });
+  }, [isHivelocityPlan, hivelocityConfig, hivelocityPricing]);
+
   const showQuoteErrorBanner = Boolean(
     quoteError &&
     !quoteSummaryLoading &&
@@ -808,6 +822,7 @@ export default function CartPage() {
       primaryDomain: resolvePrimaryDomain(),
       cart: cartQuoteRequest ?? undefined,
       quoteToken: quote?.quoteToken ?? "",
+      serverHostname: hivelocityConfig?.hostname.trim() || undefined,
     });
 
     clearStorefrontCartDraft();
@@ -878,6 +893,7 @@ export default function CartPage() {
           primaryDomain: resolvePrimaryDomain(),
           cart: stored.cart ?? cartQuoteRequest ?? undefined,
           quoteToken: stored.quoteToken ?? quote?.quoteToken ?? "",
+          serverHostname: hivelocityConfig?.hostname.trim() || undefined,
         });
         sessionStorage.removeItem("storefront_jenga_checkout");
         clearStorefrontCartDraft();
@@ -1041,6 +1057,7 @@ export default function CartPage() {
                       config={hivelocityConfig}
                       onChange={setHivelocityConfig}
                       onPricingContext={handleHivelocityPricingContext}
+                      planName={cartItem.planName}
                     />
                   )}
                 </motion.div>
@@ -1081,6 +1098,7 @@ export default function CartPage() {
               step={step}
               customerFormId={detailsFormId}
               hivelocityLines={isHivelocityPlan ? [] : hivelocitySummaryLines}
+              serverComponents={serverComponents}
               continueDisabled={
                 (step === 1 && !canContinueStep1) ||
                 quoteExpired ||

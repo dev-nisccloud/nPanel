@@ -279,6 +279,30 @@ function parseOptionMonthlyUsd(row: Record<string, unknown>): number {
 	return Number.isFinite(price) && price > 0 ? price : 0;
 }
 
+function parseOptionName(row: Record<string, unknown>): string {
+	return String(row.name ?? row.optionName ?? row.operatingSystem ?? "").trim();
+}
+
+export type HivelocityQuoteLine = {
+	kind: "base" | "os" | "addon";
+	name: string;
+	optionId?: number;
+	monthlyKes: number;
+};
+
+/** What the customer configured, priced per month, as needed to provision and record the server. */
+export type HivelocityQuoteDetails = {
+	productType: HivelocityProductTypeKey;
+	osName: string;
+	osOptionId: number | null;
+	optionIds: number[];
+	basePriceUsd: number;
+	osPriceUsd: number;
+	addonsPriceUsd: number;
+	usdToKesRate: number;
+	lines: HivelocityQuoteLine[];
+};
+
 export async function resolveNiscPlanQuote(
 	planId: string,
 	billingCycle: StorefrontBillingCycle,
@@ -432,7 +456,7 @@ async function resolveHivelocityMainPricing(
 	serviceType: string,
 	hivelocityProductId: number,
 	config: NonNullable<StorefrontCartQuoteInput["hivelocity"]>,
-): Promise<{ monthly: number; yearly: number }> {
+): Promise<{ monthly: number; yearly: number; details: HivelocityQuoteDetails }> {
 	const productType = serviceTypeToHivelocityProductType(serviceType);
 	if (!productType) {
 		throw new TRPCError({
@@ -469,14 +493,29 @@ async function resolveHivelocityMainPricing(
 		}),
 	]);
 
+	const baseKes = usdLineToKes(baseMonthlyUsd, margins.base, kesFx.rate);
+	const lines: HivelocityQuoteLine[] = [{ kind: "base", name: "Server", monthlyKes: baseKes }];
 	let extrasKes = 0;
+	let osName = "";
+	let osOptionId: number | null = null;
+	let osPriceUsd = 0;
 
 	const osRows = Array.isArray(osRaw) ? osRaw : [];
 	for (const row of osRows) {
 		if (!row || typeof row !== "object") continue;
 		const r = row as Record<string, unknown>;
 		if (String(r.id) !== config.selectedOsId) continue;
-		extrasKes += usdLineToKes(parseOptionMonthlyUsd(r), margins.os, kesFx.rate);
+		osPriceUsd = parseOptionMonthlyUsd(r);
+		const osKes = usdLineToKes(osPriceUsd, margins.os, kesFx.rate);
+		extrasKes += osKes;
+		osName = parseOptionName(r);
+		osOptionId = Number.isFinite(Number(r.id)) ? Number(r.id) : null;
+		lines.push({
+			kind: "os",
+			name: osName || "Operating system",
+			...(osOptionId != null ? { optionId: osOptionId } : {}),
+			monthlyKes: osKes,
+		});
 		break;
 	}
 
@@ -485,6 +524,8 @@ async function resolveHivelocityMainPricing(
 			? (optionsRaw as Record<string, unknown>)
 			: {};
 	const selectedOptionSet = new Set(config.selectedOptionIds);
+	const pricedOptionIds = new Set<number>();
+	let addonsPriceUsd = 0;
 
 	for (const value of Object.values(optionGroups)) {
 		const rows = Array.isArray(value) ? value : [];
@@ -492,16 +533,34 @@ async function resolveHivelocityMainPricing(
 			if (!row || typeof row !== "object") continue;
 			const r = row as Record<string, unknown>;
 			const id = Number(r.id);
-			if (!selectedOptionSet.has(id)) continue;
-			extrasKes += usdLineToKes(parseOptionMonthlyUsd(r), margins.addons, kesFx.rate);
+			if (!selectedOptionSet.has(id) || pricedOptionIds.has(id)) continue;
+			pricedOptionIds.add(id);
+			const usd = parseOptionMonthlyUsd(r);
+			const kes = usdLineToKes(usd, margins.addons, kesFx.rate);
+			addonsPriceUsd += usd;
+			extrasKes += kes;
+			lines.push({ kind: "addon", name: parseOptionName(r) || `Add-on ${id}`, optionId: id, monthlyKes: kes });
 		}
 	}
 
-	const baseKes = usdLineToKes(baseMonthlyUsd, margins.base, kesFx.rate);
 	const monthly = baseKes + extrasKes;
 	const yearly = Math.round(monthly * 12);
 
-	return { monthly, yearly };
+	return {
+		monthly,
+		yearly,
+		details: {
+			productType,
+			osName,
+			osOptionId,
+			optionIds: [...pricedOptionIds],
+			basePriceUsd: baseMonthlyUsd,
+			osPriceUsd,
+			addonsPriceUsd,
+			usdToKesRate: kesFx.rate,
+			lines,
+		},
+	};
 }
 
 export async function resolveMainLineQuote(
@@ -513,6 +572,7 @@ export async function resolveMainLineQuote(
 	planName: string;
 	productName: string;
 	currency: string;
+	hivelocity?: HivelocityQuoteDetails;
 }> {
 	const billingCycle = main.billingCycle;
 	const productName = main.productName?.trim() || "Nisc Cloud Service";
@@ -602,10 +662,12 @@ export async function resolveMainLineQuote(
 		);
 
 		return {
-			...pricing,
+			monthly: pricing.monthly,
+			yearly: pricing.yearly,
 			planName: main.planName?.trim() || "Server Plan",
 			productName,
 			currency: "KES",
+			hivelocity: pricing.details,
 		};
 	}
 
@@ -643,6 +705,12 @@ export async function computeStorefrontCartQuote(
 	);
 
 	const mainQuote = await resolveMainLineQuote(parsed.main, parsed.hivelocity);
+	if (mainQuote.hivelocity && !mainQuote.hivelocity.osName) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "The selected operating system is no longer available for this server. Choose another one.",
+		});
+	}
 	const mainMonthlyKes = await toKes(mainQuote.monthly, mainQuote.currency);
 	const mainYearlyKes = await toKes(mainQuote.yearly, mainQuote.currency);
 	let sourceSubtotal = pickCheckoutPrice(

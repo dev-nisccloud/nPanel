@@ -1,6 +1,6 @@
 import {
   Globe, Mail, BarChart2, Palette, Monitor, Zap, ShoppingBag,
-  Megaphone, Trash2, Check,
+  Megaphone, Trash2, Check, Server,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
@@ -152,6 +152,39 @@ const SERVICE_META: Record<
       "Payment gateway integration",
       "Product catalogue management",
       "Order & inventory tracking",
+    ],
+  },
+  vps: {
+    icon: <Server className="w-6 h-6" />,
+    color: "text-primary",
+    bgColor: "bg-primary/10",
+    includedItems: [
+      "Full root access",
+      "DDoS protection and backups",
+      "Dedicated IPv4 address",
+      "10TB bandwidth on a 1Gbps port",
+    ],
+  },
+  vds: {
+    icon: <Server className="w-6 h-6" />,
+    color: "text-primary",
+    bgColor: "bg-primary/10",
+    includedItems: [
+      "Dedicated vCPU cores",
+      "10TB bandwidth on a 1Gbps port",
+      "You manage the operating system",
+      "Servers and billing in nPanel",
+    ],
+  },
+  dedicated_servers: {
+    icon: <Server className="w-6 h-6" />,
+    color: "text-primary",
+    bgColor: "bg-primary/10",
+    includedItems: [
+      "A physical server used only by you",
+      "CPU, memory and disks as listed",
+      "You manage the operating system",
+      "Servers and billing in nPanel",
     ],
   },
   paid_ads: {

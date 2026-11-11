@@ -164,7 +164,7 @@ function SizeCard({
       await navigateToStorefrontCart(
         buildVpsCartParams({
           productId: location.plan.product_id,
-          planName: location.plan.product_name,
+          planName: `VPS ${tier.name}`,
           productName: "VPS Hosting",
           currency: location.monthlyKes !== null ? "KES" : "USD",
           serviceType: "vps",

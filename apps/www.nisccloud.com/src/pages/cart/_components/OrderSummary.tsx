@@ -12,6 +12,8 @@ import {
   formatCurrency,
 } from "@/lib/currency.ts";
 import type { StorefrontCurrency } from "@/components/providers/currency.tsx";
+import { BrandLogo } from "@/components/server-logos.tsx";
+import type { ServerComponentLine } from "./server-options.ts";
 
 export type { HivelocitySummaryLine };
 
@@ -41,6 +43,8 @@ interface OrderSummaryProps {
   customerFormId?: string;
   /** Billable Hivelocity OS / add-on lines (VPS, VDS, dedicated). */
   hivelocityLines?: HivelocitySummaryLine[];
+  /** VPS, VDS and dedicated: the OS and add-ons already counted in the main line's price. */
+  serverComponents?: ServerComponentLine[];
   /** Disable continue until required cart fields are complete. */
   continueDisabled?: boolean;
   /** Server-computed totals override client-side math when present. */
@@ -105,6 +109,7 @@ export function OrderSummary({
   step,
   customerFormId,
   hivelocityLines = [],
+  serverComponents = [],
   continueDisabled = false,
   authoritativeTotals,
   currency,
@@ -200,6 +205,25 @@ export function OrderSummary({
             {fmtTotal(mainPrice)}
           </span>
         </div>
+
+        {serverComponents.length > 0 && (
+          <div className="rounded-xl bg-muted/40 p-3">
+            <ul className="space-y-2">
+              {serverComponents.map((line) => (
+                <li key={line.name} className="flex items-center justify-between gap-2 text-sm">
+                  <span className="flex min-w-0 items-center gap-2 text-foreground">
+                    {line.logo ? <BrandLogo name={line.name} size="sm" className="size-6 rounded-md p-1" /> : null}
+                    <span className="truncate">{line.name}</span>
+                  </span>
+                  <span className="shrink-0 text-muted-foreground">
+                    {line.price === "Included" ? "Included" : `+${line.price}`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-xs text-muted-foreground">Already counted in the price above.</p>
+          </div>
+        )}
 
         {/* Domain line */}
         {selectedDomain && (

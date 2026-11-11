@@ -509,6 +509,7 @@ export async function createStorefrontOrderFromPayment(input: {
   primaryDomain?: string;
   cart?: StorefrontCartQuoteRequest;
   quoteToken: string;
+  serverHostname?: string;
 }): Promise<{ orderId: string; orderNumber: string; teamSlug: string }> {
   return trpcMutation("storefront.orders.createFromPayment", input);
 }
