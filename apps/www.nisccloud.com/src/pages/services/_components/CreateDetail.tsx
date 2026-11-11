@@ -31,8 +31,8 @@ export default function CreateDetail() {
             transition={{ duration: 0.6 }}
           >
             <h2 className="type-h2 mb-5">
-              We Build Your <br />
-              <span className="text-primary">Brand from the Ground Up.</span>
+              We build your <br />
+              <span className="text-primary">brand from the ground up.</span>
             </h2>
             <p className="text-muted-foreground text-lg leading-relaxed mb-8">
               Turn strategy into a brand, website or software experience people can understand and use. Scope, ownership and approval stages are agreed before delivery begins.

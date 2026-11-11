@@ -15,7 +15,7 @@ export default function AboutHero() {
           className="type-h1 mb-6 text-balance"
         >
           Build. Run. Grow.{" "}
-          <span className="text-primary">With One Technology Partner.</span>
+          <span className="text-primary">With one technology partner.</span>
         </motion.h1>
 
         <motion.p

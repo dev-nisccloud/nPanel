@@ -38,7 +38,7 @@ export default function ContactHero() {
           transition={{ duration: 0.45, delay: 0.1 }}
           className="mx-auto max-w-xl text-base text-muted-foreground"
         >
-          Share your goals and we&apos;ll follow up within 24 hours with a clear next step.
+          Share your goals and we&apos;ll follow up within one working day with a clear next step.
         </motion.p>
       </div>
     </section>

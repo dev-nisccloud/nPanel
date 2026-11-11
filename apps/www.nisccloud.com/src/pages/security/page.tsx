@@ -43,42 +43,42 @@ const securityPlans: OrderPlan[] = [
 const securityFeatures: SecurityFeatureItem[] = [
   {
     icon: ShieldCheck,
-    title: "SSL Certificate Included",
+    title: "SSL certificate included",
     desc: "Included SSL enables HTTPS encryption for compatible domains. Certificate validation and coverage are confirmed for the selected plan.",
     color: "text-emerald-500",
     bg: "bg-emerald-500/10",
   },
   {
     icon: Flame,
-    title: "Managed Firewall Rules",
+    title: "Managed firewall rules",
     desc: "A Web Application Firewall can filter known malicious traffic patterns for compatible sites, reducing exposure without guaranteeing prevention of every attack.",
     color: "text-orange-500",
     bg: "bg-orange-500/10",
   },
   {
     icon: ScanLine,
-    title: "Scheduled Malware Scanning",
+    title: "Scheduled malware scanning",
     desc: "Scan cadence, alerting, and any included cleanup scope are confirmed for your selected plan and website configuration.",
     color: "text-blue-500",
     bg: "bg-blue-500/10",
   },
   {
     icon: Activity,
-    title: "Site Monitoring",
+    title: "Site monitoring",
     desc: "Available monitoring can track blacklist status, SEO spam indicators, SSL changes, and uptime, with coverage defined by your plan.",
     color: "text-primary",
     bg: "bg-primary/10",
   },
   {
     icon: Lock,
-    title: "DDoS Risk Mitigation",
+    title: "DDoS risk mitigation",
     desc: "Where included, DDoS controls help absorb or filter disruptive traffic. Protection depends on the service configuration and attack profile.",
     color: "text-red-500",
     bg: "bg-red-500/10",
   },
   {
     icon: Database,
-    title: "Plan-Defined Backups",
+    title: "Plan-defined backups",
     desc: "Where backups are included, capacity, schedule, retention, storage location, and restore options are confirmed before activation.",
     color: "text-cyan-500",
     bg: "bg-cyan-500/10",
@@ -131,7 +131,7 @@ export default function SecurityPage() {
           </>
         }
         description="Review available firewall, malware scan, SSL, backup, DDoS, and monitoring signals from one security view. Coverage and update cadence depend on your plan."
-        srTitle="Nisc Cloud Security Dashboard showing plan-defined website protection controls"
+        srTitle="Illustration of a Nisc Cloud security view with firewall, malware scan, SSL and backup status"
       />
       <SecurityPlans plans={securityPlans} />
       <SecurityFeatures features={securityFeatures} />
@@ -141,7 +141,7 @@ export default function SecurityPage() {
       />
       <ClosingCta
         eyebrow="Stay protected"
-        headline="Protect Your Site With Clear, Managed Security"
+        headline="Protect your site with clear, managed security"
         subtext="Add plan-defined SSL, malware scanning, firewall controls, and backup options to reduce website risk with a scope confirmed before activation."
         primary={{ label: "View Security Plans", href: "#security-plans" }}
         secondary={{ label: "Talk to an Expert", href: "/contact" }}

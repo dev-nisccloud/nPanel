@@ -66,21 +66,21 @@ const sslPlans = SSL_PLANS;
 const sslFeatures = [
   {
     icon: Lock,
-    title: "256-Bit Encryption",
+    title: "256-bit encryption",
     desc: "Industry-standard AES encryption protects passwords, payment details, and form data in transit between browsers and your server.",
     color: "text-emerald-500",
     bg: "bg-emerald-500/10",
   },
   {
     icon: ShieldCheck,
-    title: "Browser Trust Padlock",
+    title: "Browser trust padlock",
     desc: "Remove Not Secure warnings in Chrome, Firefox, Safari, and Edge. Show visitors the padlock that signals a safe connection.",
     color: "text-blue-500",
     bg: "bg-blue-500/10",
   },
   {
     icon: Globe,
-    title: "SEO Ranking Support",
+    title: "SEO ranking support",
     desc: "HTTPS is a confirmed Google ranking signal. Secure sites avoid warning-driven bounce rates that damage search performance.",
     color: "text-brand-orange",
     bg: "bg-brand-orange/10",
@@ -94,14 +94,14 @@ const sslFeatures = [
   },
   {
     icon: Zap,
-    title: "Fast Issuance and Setup",
+    title: "Fast issuance and setup",
     desc: "DV certificates often issue in under an hour. Our team installs, enforces HTTPS, and clears mixed-content issues for you.",
     color: "text-cyan-500",
     bg: "bg-cyan-500/10",
   },
   {
     icon: CheckCircle,
-    title: "Wildcard and Multi-Domain Options",
+    title: "Wildcard and multi-domain options",
     desc: "Secure unlimited first-level subdomains with Wildcard, or cover several domains with one Multi-Domain (SAN) certificate.",
     color: "text-red-500",
     bg: "bg-red-500/10",
@@ -142,11 +142,11 @@ export default function SslCertificatePage() {
         sectionId="ssl-certificate-plans"
         plans={sslPlans}
         serviceName="SSL Certificate"
-        title="Choose Your SSL Certificate"
+        title="Choose your SSL certificate"
         subtitle="Prices are per year, excluding VAT. Free installation included."
       />
       <SecurityFeatures
-        title="Everything You Need for Trusted HTTPS"
+        title="Everything you need for trusted HTTPS"
         description="From first issuance to renewal reminders, we help Kenyan businesses keep the padlock on and customer data encrypted."
         features={sslFeatures}
       />
@@ -155,7 +155,7 @@ export default function SslCertificatePage() {
         title="Everything you need to know about SSL certificates"
       />
       <SecurityCTA
-        title="Secure Your Website With a Trusted SSL Certificate"
+        title="Secure your website with a trusted SSL certificate"
         description="Encrypt traffic, earn the browser padlock, and protect checkout and login forms with DV, OV, or EV certificates installed by our team."
         ctaLabel="View SSL Plans"
         plansId="ssl-certificate-plans"

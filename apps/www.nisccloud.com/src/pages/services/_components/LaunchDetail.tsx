@@ -42,8 +42,8 @@ export default function LaunchDetail() {
             className="order-1 lg:order-2"
           >
             <h2 className="type-h2 mb-5">
-              Run Your Services <br />
-              <span className="text-primary">with Clear Control.</span>
+              Run your services <br />
+              <span className="text-primary">with clear control.</span>
             </h2>
             <p className="text-muted-foreground text-lg leading-relaxed mb-8">
               Keep domains, hosting, email, billing and support connected through nPanel. The selected plan defines the resources, controls and support responsibilities included.

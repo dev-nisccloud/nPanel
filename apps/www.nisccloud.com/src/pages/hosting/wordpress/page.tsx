@@ -102,17 +102,17 @@ export default function WordPressHostingPage() {
         },
         {
           icon: <RefreshCw size={20} />,
-          title: "Automatic WordPress Updates",
+          title: "Automatic WordPress updates",
           desc: "WordPress updates are applied automatically on every plan, so your site stays current.",
         },
         {
           icon: <Shield size={20} />,
-          title: "Malware Scanning and Removal",
+          title: "Malware scanning and removal",
           desc: "Every plan scans for malware and removes it, alongside DDoS protection and daily backups.",
         },
         {
           icon: <Code2 size={20} />,
-          title: "Staging Environment",
+          title: "Staging environment",
           desc: "Business and Performance include a staging copy for testing updates before they go live.",
         },
         {
@@ -132,7 +132,7 @@ export default function WordPressHostingPage() {
         },
         {
           icon: <Mail size={20} />,
-          title: "Email Included",
+          title: "Email included",
           desc: "Every WordPress plan includes email accounts on your domain, managed in nPanel.",
         },
       ]}
@@ -140,7 +140,7 @@ export default function WordPressHostingPage() {
       process={[
         {
           num: "01",
-          title: "Pick Your Plan",
+          title: "Pick your plan",
           desc: "Launch for one site, Business for staging and WooCommerce stores, Performance for busy or multiple sites.",
         },
         {
@@ -150,33 +150,33 @@ export default function WordPressHostingPage() {
         },
         {
           num: "03",
-          title: "Move an Existing Site",
+          title: "Move an existing site",
           desc: "Share access to your current site. We move it free of charge and agree the switch-over time with you.",
         },
         {
           num: "04",
-          title: "Launch and Manage",
+          title: "Launch and manage",
           desc: "Updates, backups, staging and email stay in one nPanel account after launch.",
         },
       ]}
       whyPoints={[
         {
-          title: "Updates Handled for You",
+          title: "Updates handled for you",
           visual: "deploy",
           desc: "Automatic WordPress updates on every plan keep your site current without manual work.",
         },
         {
-          title: "Security Built In",
+          title: "Security built in",
           visual: "security",
           desc: "Malware scanning and removal, DDoS protection and daily backups come with every plan.",
         },
         {
-          title: "Speed Without Extra Plugins",
+          title: "Speed without extra plugins",
           visual: "speed",
           desc: "LiteSpeed cache, WordPress acceleration and a free CDN are part of every plan.",
         },
         {
-          title: "Free, Planned Migrations",
+          title: "Free, planned migrations",
           visual: "migration",
           desc: "We move your site free of charge, after checking access, plugins, testing and switch-over with you.",
         },

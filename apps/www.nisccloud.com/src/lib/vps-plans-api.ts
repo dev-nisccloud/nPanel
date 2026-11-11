@@ -93,6 +93,7 @@ export async function trpcQuery<T>(procedure: string, input?: unknown, timeoutMs
 /** A cold server-catalogue read upstream can take ~20 s; allow headroom before giving up. */
 const CATALOG_TIMEOUT_MS = 45_000;
 const CATALOG_CACHE_PREFIX = "nisc_catalog:";
+const CATALOG_CACHE_MAX_CHARS = 120_000;
 const catalogInflight = new Map<string, Promise<unknown>>();
 
 /**
@@ -121,7 +122,9 @@ async function catalogQuery<T extends { success?: boolean }>(
     .then((value) => {
       if (value?.success !== false) {
         try {
-          sessionStorage.setItem(key, JSON.stringify({ at: Date.now(), value }));
+          const entry = JSON.stringify({ at: Date.now(), value });
+          // Large pages (dedicated inventory) would crowd out the cart draft kept in the same storage.
+          if (entry.length <= CATALOG_CACHE_MAX_CHARS) sessionStorage.setItem(key, entry);
         } catch {
           // storage full or disabled
         }

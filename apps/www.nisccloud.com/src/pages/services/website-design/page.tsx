@@ -69,9 +69,9 @@ export default function WebsiteDesignPage() {
       badge="Website Design & Development"
       headline={
         <>
-          Websites That Turn
+          Websites that turn
           {" "}<br />
-          <span className="text-primary">Visitors Into Customers</span>
+          <span className="text-primary">visitors into customers</span>
         </>
       }
       subtext="A beautiful website means little if it does not convert. We design and build fast, mobile-first websites that help people find you, trust you, and get in touch."
@@ -89,42 +89,42 @@ export default function WebsiteDesignPage() {
       features={[
         {
           icon: <Monitor size={20} />,
-          title: "Purpose-Built Page Design",
+          title: "Purpose-built page design",
           desc: "Key page layouts are designed around your content, audience, and actions before development begins, so you can review the direction early.",
         },
         {
           icon: <Smartphone size={20} />,
-          title: "Mobile-First Development",
+          title: "Mobile-first development",
           desc: "Most visitors browse on mobile. Every site we build is optimised for mobile screens, touch interactions, and slower connections.",
         },
         {
           icon: <Code2 size={20} />,
-          title: "Clean, Semantic Code",
+          title: "Clean, semantic code",
           desc: "React or an appropriate CMS is selected around your editing needs. Semantic structure supports accessibility, maintenance, and search-engine understanding.",
         },
         {
           icon: <Zap size={20} />,
-          title: "Performance-Conscious Build",
+          title: "Performance-conscious build",
           desc: "Image optimisation, lazy loading, caching, and script restraint are applied where suitable. Measured results vary with hosting, content, integrations, devices, and networks.",
         },
         {
           icon: <Globe size={20} />,
-          title: "On-Page SEO Built-In",
+          title: "On-page SEO built-in",
           desc: "Every page is built with proper title tags, meta descriptions, structured data, sitemap, and Core Web Vitals in mind from day one.",
         },
         {
           icon: <ShoppingBag size={20} />,
-          title: "Clear Enquiry Paths",
+          title: "Clear enquiry paths",
           desc: "Calls to action, forms, and optional contact integrations are arranged around the next step you want qualified visitors to take.",
         },
         {
           icon: <Lock size={20} />,
-          title: "Security Basics Planned",
+          title: "Security basics planned",
           desc: "HTTPS, access controls, updates, backups, and hosting protections are documented according to the selected platform and service scope.",
         },
         {
           icon: <BarChart2 size={20} />,
-          title: "Analytics & Tracking",
+          title: "Analytics & tracking",
           desc: "Agreed analytics and advertising tags can be configured so your team can inspect traffic and enquiry events, subject to consent and platform settings.",
         },
       ]}
@@ -152,7 +152,7 @@ export default function WebsiteDesignPage() {
       process={[
         {
           num: "01",
-          title: "Discovery & Wireframe",
+          title: "Discovery & wireframe",
           desc: "We map your user journey, define your site structure, and build wireframes showing how every page will flow before design begins.",
         },
         {
@@ -162,43 +162,43 @@ export default function WebsiteDesignPage() {
         },
         {
           num: "03",
-          title: "Build & Optimise",
+          title: "Build & optimise",
           desc: "We build the approved pages, connect the integrations in scope, and test representative journeys across mobile, tablet, and desktop.",
         },
         {
           num: "04",
-          title: "Launch & Handover",
+          title: "Launch & handover",
           desc: "After approval, we deploy to the agreed environment, complete launch checks, and show your team how to manage the parts included in the handover.",
         },
       ]}
       whyPoints={[
         {
-          title: "Decisions Before Decoration",
+          title: "Decisions before decoration",
           desc: "Navigation, page order, and calls to action begin with what customers need to understand and do, giving design choices a clear purpose.",
           visual: "mobile",
         },
         {
-          title: "No Page Builders",
+          title: "No page builders",
           desc: "Where a custom build is agreed, you are not boxed into a generic hosted-site template. We select the implementation approach during discovery.",
           visual: "code",
         },
         {
-          title: "SEO-Ready from Day One",
+          title: "SEO-ready from day one",
           desc: "Search structure is considered during planning, reducing avoidable technical rework without promising a particular ranking or traffic result.",
           visual: "growth",
         },
         {
-          title: "Conversion Architecture",
+          title: "Conversion architecture",
           desc: "Priority pages are matched to a defined buyer question and next action, making the journey easier to evaluate and improve after launch.",
           visual: "funnel",
         },
         {
-          title: "Scope Before Commitment",
+          title: "Scope before commitment",
           desc: "The proposal records deliverables, assumptions, price, and an estimated schedule. Changes, delayed content, or added integrations are agreed separately.",
           visual: "pricing",
         },
         {
-          title: "A Defined Handover",
+          title: "A defined handover",
           desc: "Training, launch checks, and any post-launch assistance follow the selected plan or proposal, so ownership and support boundaries are clear.",
           visual: "support",
         },
@@ -229,7 +229,7 @@ export default function WebsiteDesignPage() {
           a: "Yes. We can recommend and configure an appropriate Nisc Cloud hosting option. Hosting is priced separately, and performance and support terms follow the selected hosting plan.",
         },
       ]}
-      ctaHeadline="Let's Build a Website That Works Harder"
+      ctaHeadline="Let's build a website that works harder"
       ctaSubtext="Plan a website around the questions your customers ask, the actions you want them to take, and a scope your team can review before work begins."
       pricingNote={SERVICE_PACKAGE_NOTES.WEBSITE_DESIGN}
       showcaseBlocks={showcaseBlocks}

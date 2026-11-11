@@ -55,7 +55,7 @@ export default function SecuritySslSection() {
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         <div className="text-center mb-12">
           <span className="text-xs font-mono font-bold tracking-widest text-primary uppercase">SSL Solutions</span>
-          <h2 className="type-h2 mt-2 mb-3">Self-Managed or Fully Managed SSL</h2>
+          <h2 className="type-h2 mt-2 mb-3">Self-managed or fully managed SSL</h2>
           <p className="text-muted-foreground max-w-xl mx-auto text-sm">
             An SSL certificate adds the padlock and HTTPS to your site. Without it, browsers show a Not Secure warning that drives visitors away.
           </p>
@@ -108,7 +108,7 @@ export default function SecuritySslSection() {
           transition={{ duration: 0.5 }}
           className="mt-12 text-center max-w-2xl mx-auto"
         >
-          <h3 className="type-h3 mb-3">Beyond SSL - Get Comprehensive Website Security</h3>
+          <h3 className="type-h3 mb-3">Beyond SSL: complete website security</h3>
           <p className="text-muted-foreground text-sm leading-relaxed">
             SSL encrypts your traffic. Now add malware detection and removal, daily backups, and a Web Application Firewall to truly protect your website from every angle.
           </p>

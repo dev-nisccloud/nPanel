@@ -20,7 +20,7 @@ export default function SecurityMacbookSection({
   ),
   description = "Firewall, malware scans, SSL, backups, and DDoS defence monitored in one place so you always know your site is safe.",
   screen = <SecurityDashboardScreen />,
-  srTitle = "Nisc Cloud Security Dashboard real-time threat monitoring",
+  srTitle = "Illustration of a Nisc Cloud security view with firewall, malware scan, SSL and backup status",
 }: SecurityMacbookSectionProps = {}) {
   return (
     <section className="relative overflow-hidden border-t border-border/40 bg-background">
@@ -54,12 +54,8 @@ export default function SecurityMacbookSection({
           </motion.p>
         </div>
 
-        <div className="w-full overflow-hidden">
-          <MacbookScroll
-            showGradient={false}
-            content={screen}
-            title={<span className="sr-only">{srTitle}</span>}
-          />
+        <div className="w-full overflow-hidden" role="img" aria-label={srTitle}>
+          <MacbookScroll showGradient={false} content={screen} />
         </div>
       </div>
     </section>

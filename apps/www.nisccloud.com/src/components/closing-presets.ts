@@ -294,8 +294,8 @@ export const CLOSING_PRESETS: Record<string, ClosingPreset> = {
     card: {
       variant: "command",
       title: "Your VDS",
-      command: "ssh root@your-vds",
-      items: ["Dedicated vCPU and RAM", "Scale when you need more"],
+      command: "cores held for this server",
+      items: ["Dedicated vCPU on every size", "10TB on a 1Gbps port"],
     },
   },
   "/hosting/dedicated-servers": {
@@ -310,7 +310,7 @@ export const CLOSING_PRESETS: Record<string, ClosingPreset> = {
         { label: "Processor", value: "Chosen to fit" },
         { label: "Memory", value: "Sized to fit" },
         { label: "Storage", value: "Sized to fit" },
-        { label: "Network", value: "Agreed on quote" },
+        { label: "Network", value: "Shown per machine" },
       ],
     },
   },

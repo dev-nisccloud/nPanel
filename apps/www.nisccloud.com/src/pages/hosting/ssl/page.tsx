@@ -116,7 +116,7 @@ export default function SslPage() {
   return (
     <ServicePageShell
       badge="SSL Certificates"
-      headline={<>Secure Your Website. <span className="text-primary">Earn Your Visitors' Trust.</span></>}
+      headline={<>Secure your website. <span className="text-primary">Earn your visitors' trust.</span></>}
       subtext="SSL certificates encrypt customer data, support better search visibility, and display the padlock that tells visitors your site is safe. Essential for every business website and online store."
       serviceType="hosting"
       checkoutServiceType="ssl_certificate"
@@ -132,17 +132,17 @@ export default function SslPage() {
       features={[
         {
           icon: <Lock size={20} />,
-          title: "256-Bit Encryption",
+          title: "256-bit encryption",
           desc: "Industry-standard 256-bit AES encryption protects all data transmitted between your visitors' browsers and your server, the same strength used by banks and governments.",
         },
         {
           icon: <Shield size={20} />,
-          title: "Malware and Phishing Warnings Removed",
+          title: "Malware and phishing warnings removed",
           desc: "Google Chrome and Firefox display scary warnings for sites without SSL. An SSL certificate removes these warnings and shows the trusted padlock instead.",
         },
         {
           icon: <Globe size={20} />,
-          title: "Google SEO Ranking Support",
+          title: "Google SEO ranking support",
           desc: "Google has confirmed HTTPS as a ranking signal. Secure sites are better positioned in search results, which helps your online visibility.",
         },
         {
@@ -152,22 +152,22 @@ export default function SslPage() {
         },
         {
           icon: <Zap size={20} />,
-          title: "Fast Issuance and Installation",
+          title: "Fast issuance and installation",
           desc: "Domain Validated (DV) certificates issue in under 1 hour. For Business and Extended Validation certificates, we guide you through the verification process step by step.",
         },
         {
           icon: <Eye size={20} />,
-          title: "Extended Validation (EV)",
+          title: "Extended validation (EV)",
           desc: "EV SSL is the strictest validation level. Your verified company details appear in the certificate information. Suited to e-commerce, financial services, and government sites.",
         },
         {
           icon: <CheckCircle size={20} />,
-          title: "Wildcard and Multi-Domain Support",
+          title: "Wildcard and multi-domain support",
           desc: "Secure unlimited subdomains with one Wildcard certificate. Multi-Domain (SAN) certificates cover multiple sites under a single certificate, reducing cost and complexity.",
         },
         {
           icon: <Server size={20} />,
-          title: "Free SSL Installation Assistance",
+          title: "Free SSL installation assistance",
           desc: "Not technical? Our team installs and configures your SSL certificate on your server free of charge. We test HTTPS enforcement and fix mixed-content issues before handing over.",
         },
       ]}
@@ -177,18 +177,18 @@ export default function SslPage() {
         { id: "ssl-addon-san", label: "Multi-Domain SAN (up to 5 domains)", price: 2500, period: "yr" },
       ]}
       process={[
-        { num: "01", title: "Choose Certificate Type", desc: "Select DV for a basic padlock, OV to show your company name in certificate details, or EV for the highest visible trust level on e-commerce and banking sites." },
-        { num: "02", title: "Domain Verification", desc: "For DV certificates, verify domain ownership via email or DNS record. For OV/EV, we guide you through business document submission." },
-        { num: "03", title: "Certificate Issued", desc: "DV certificates issue in under 1 hour. OV takes 1 to 3 business days. EV takes 3 to 5 business days after document verification is complete." },
-        { num: "04", title: "We Install and Test for You", desc: "Our team installs the certificate on your server, enforces HTTPS redirects, fixes mixed-content warnings, and confirms the padlock appears correctly in all browsers." },
+        { num: "01", title: "Choose certificate type", desc: "Select DV for a basic padlock, OV to show your company name in certificate details, or EV for the highest visible trust level on e-commerce and banking sites." },
+        { num: "02", title: "Domain verification", desc: "For DV certificates, verify domain ownership via email or DNS record. For OV/EV, we guide you through business document submission." },
+        { num: "03", title: "Certificate issued", desc: "DV certificates issue in under 1 hour. OV takes 1 to 3 business days. EV takes 3 to 5 business days after document verification is complete." },
+        { num: "04", title: "We install and test for you", desc: "Our team installs the certificate on your server, enforces HTTPS redirects, fixes mixed-content warnings, and confirms the padlock appears correctly in all browsers." },
       ]}
       whyPoints={[
-        { title: "HTTPS Is No Longer Optional", visual: "security", desc: "Google marks all HTTP websites as 'Not Secure'. Without SSL, you lose visitor trust, search visibility, and customers who see the warning and leave." },
-        { title: "Protects Your Customers' Data", visual: "ownership", desc: "SSL encrypts credit card numbers, personal details, and login credentials in transit. A practical obligation for any website that collects user data." },
-        { title: "Builds Checkout Confidence", visual: "payment", desc: "Visitors feel safer entering details when they see the padlock. Secure sites support smoother, more trusted form and payment flows." },
-        { title: "Installation Support Included", visual: "support", desc: "Our team can help install the certificate, enforce HTTPS and resolve mixed-content warnings within the agreed hosting setup." },
-        { title: "Expiry Reminders, Never Go Unsecured", visual: "automation", desc: "You will receive email and SMS alerts at 60, 30, and 7 days before expiry. We also offer auto-renewal so your site is never accidentally left without a valid certificate." },
-        { title: "Works Across Common Hosting Setups", visual: "integrate", desc: "Sectigo certificates support common web-server and cloud configurations. We confirm compatibility with your environment before installation." },
+        { title: "HTTPS is no longer optional", visual: "security", desc: "Google marks all HTTP websites as 'Not Secure'. Without SSL, you lose visitor trust, search visibility, and customers who see the warning and leave." },
+        { title: "Protects your customers' data", visual: "ownership", desc: "SSL encrypts credit card numbers, personal details, and login credentials in transit. A practical obligation for any website that collects user data." },
+        { title: "Builds checkout confidence", visual: "payment", desc: "Visitors feel safer entering details when they see the padlock. Secure sites support smoother, more trusted form and payment flows." },
+        { title: "Installation support included", visual: "support", desc: "Our team can help install the certificate, enforce HTTPS and resolve mixed-content warnings within the agreed hosting setup." },
+        { title: "Expiry reminders, never go unsecured", visual: "automation", desc: "You will receive email and SMS alerts at 60, 30, and 7 days before expiry. We also offer auto-renewal so your site is never accidentally left without a valid certificate." },
+        { title: "Works across common hosting setups", visual: "integrate", desc: "Sectigo certificates support common web-server and cloud configurations. We confirm compatibility with your environment before installation." },
       ]}
       faqs={[
         { q: "What is the difference between DV, OV, and EV certificates?", a: "DV (Domain Validated) proves you control the domain and issues in minutes. OV (Organisation Validated) also verifies your business details. EV (Extended Validation) provides the highest trust level. For most business websites, OV is a strong choice." },
@@ -199,7 +199,7 @@ export default function SslPage() {
         { q: "What happens if my SSL expires?", a: "An expired SSL certificate causes browsers to show a full-page security warning that blocks most visitors. We send reminders well in advance and can set up auto-renewal so this never happens to you." },
       ]}
       pricingNote={SERVICE_PACKAGE_NOTES.SSL}
-      ctaHeadline="Secure Your Website Today"
+      ctaHeadline="Secure your website today"
       ctaSubtext="Get the padlock, protect customer data, and keep your site looking safe in the browser."
       showcaseBlocks={showcaseBlocks}
     />

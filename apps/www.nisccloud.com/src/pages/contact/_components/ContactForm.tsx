@@ -190,7 +190,7 @@ export default function ContactForm() {
         budget: data.budget || "unspecified",
         has_plan: Boolean(prefilledPlan),
       });
-      toast.success("Message sent! We'll be in touch within 24 hours.");
+      toast.success("Message sent. We'll reply within one working day.");
     } catch (error) {
       trackEvent("contact_form_submit_error", { service: data.service });
       toast.error(error instanceof Error ? error.message : "Could not send your message. Please try again.");
@@ -415,7 +415,7 @@ export default function ContactForm() {
           </Button>
 
           <p className="text-center text-xs text-muted-foreground">
-            We typically respond within 24 hours. We use your details to respond
+            We usually reply within one working day. We use your details to respond
             to this enquiry under our{" "}
             <Link to="/privacy" className="font-medium text-foreground underline underline-offset-2">
               Privacy Policy

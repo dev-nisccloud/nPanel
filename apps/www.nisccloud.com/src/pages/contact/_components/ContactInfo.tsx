@@ -8,7 +8,7 @@ const contactDetails = [
     label: "Email",
     value: "sales@nisccloud.com",
     href: "mailto:sales@nisccloud.com",
-    sub: "We reply within 24 hours",
+    sub: "We reply within one working day",
   },
   {
     icon: Phone,

@@ -77,7 +77,7 @@ export function WebHostingComparison() {
         links
         columns={[
           { title: "Web Hosting", href: "#plans" },
-          { title: "Managed WordPress Hosting", href: "/hosting/wordpress" },
+          { title: "Managed WordPress hosting", href: "/hosting/wordpress" },
           { title: "VPS Servers", href: "/hosting/vps" },
         ]}
         rows={[

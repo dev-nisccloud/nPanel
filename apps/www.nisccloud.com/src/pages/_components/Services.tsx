@@ -115,7 +115,7 @@ export default function Services() {
             WHAT WE DO
           </div>
           <h2 className="type-h2 mb-3">
-            Every Service. One Team.
+            Every service. One team.
           </h2>
           <p className="text-muted-foreground text-base max-w-xl mx-auto">
             All the tools your Kenyan business needs to grow - packaged as one integrated ecosystem.

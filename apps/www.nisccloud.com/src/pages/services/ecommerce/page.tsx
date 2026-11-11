@@ -34,7 +34,7 @@ export default function EcommercePage() {
   return (
     <ServicePageShell
       badge="E-commerce Store Development"
-      headline={<>Sell Online With <br /><span className="text-primary">A Store That Makes Buying Easy</span></>}
+      headline={<>Sell online with <br /><span className="text-primary">a store that makes buying easy</span></>}
       subtext="Build a mobile-friendly store around your catalogue, checkout, payment providers, and delivery workflow. Your team gets a clear place to manage products and orders after handover."
       serviceType="marketing"
       checkoutServiceType="ecommerce"
@@ -50,42 +50,42 @@ export default function EcommercePage() {
       features={[
         {
           icon: <CreditCard size={20} />,
-          title: "Payment Gateway Setup",
+          title: "Payment gateway setup",
           desc: "We configure the card, bank, or mobile-money methods supported by your selected gateway and account. Provider approval, fees, settlement, and availability remain subject to that provider.",
         },
         {
           icon: <Smartphone size={20} />,
-          title: "Mobile Shopping Experience",
+          title: "Mobile shopping experience",
           desc: "Fast checkout, thumb-friendly product browsing, and a clear path from product page to payment confirmation on any phone.",
         },
         {
           icon: <ShoppingCart size={20} />,
-          title: "Complete Store Management",
+          title: "Complete store management",
           desc: "Manage products, categories, prices, discounts, and orders from the selected store platform, with handover training for the workflows included in your plan.",
         },
         {
           icon: <Package size={20} />,
-          title: "Inventory & Stock Control",
+          title: "Inventory & stock control",
           desc: "Track stock, variants, and low-stock thresholds using the capabilities of the chosen platform. Bulk import can be configured for compatible catalogue data.",
         },
         {
           icon: <Truck size={20} />,
-          title: "Delivery & Logistics Integration",
+          title: "Delivery & logistics integration",
           desc: "Set delivery zones, rates, collection rules, or supported courier connections. Bespoke carrier APIs and tracking flows are assessed and quoted separately.",
         },
         {
           icon: <BarChart2 size={20} />,
-          title: "Sales Analytics Dashboard",
+          title: "Sales analytics dashboard",
           desc: "Review store orders, product performance, and configured checkout events. The exact metrics and refresh timing depend on platform and tracking support.",
         },
         {
           icon: <Shield size={20} />,
-          title: "Secure Payments",
+          title: "Secure payments",
           desc: "Checkout uses HTTPS and supported payment-provider flows so card details are handled according to the selected gateway's implementation. Fraud tools and compliance scope vary by provider.",
         },
         {
           icon: <Globe size={20} />,
-          title: "SEO-Optimised Product Pages",
+          title: "SEO-optimised product pages",
           desc: "Product templates can include clear URLs, metadata, and relevant product schema. Search visibility still depends on catalogue quality, competition, authority, and ongoing optimisation.",
         },
       ]}
@@ -96,18 +96,18 @@ export default function EcommercePage() {
         { id: "ecom-productphotos", label: "Product Photography (30 SKUs)", price: 25000, period: "once" },
       ]}
       process={[
-        { num: "01", title: "Store Strategy", desc: "We review your catalogue, customer journey, operating team, target markets, and provider accounts to define the store structure and integration scope." },
-        { num: "02", title: "Design & Build", desc: "We create the storefront, configure the agreed catalogue structure, and build the priority browse-to-checkout journeys." },
-        { num: "03", title: "Payments & Delivery", desc: "Supported gateways, delivery rules, notifications, tax settings, and order states are configured and tested within the agreed scope." },
-        { num: "04", title: "Launch & Train", desc: "After approval, we launch and train your team on products, orders, refunds, reporting, and the operational limits of each connected provider." },
+        { num: "01", title: "Store strategy", desc: "We review your catalogue, customer journey, operating team, target markets, and provider accounts to define the store structure and integration scope." },
+        { num: "02", title: "Design & build", desc: "We create the storefront, configure the agreed catalogue structure, and build the priority browse-to-checkout journeys." },
+        { num: "03", title: "Payments & delivery", desc: "Supported gateways, delivery rules, notifications, tax settings, and order states are configured and tested within the agreed scope." },
+        { num: "04", title: "Launch & train", desc: "After approval, we launch and train your team on products, orders, refunds, reporting, and the operational limits of each connected provider." },
       ]}
       whyPoints={[
-        { title: "Operations Shape the Build", desc: "Catalogue ownership, fulfilment, returns, and reporting are discussed before platform choices are locked in.", visual: "mobile" },
-        { title: "Designed Around Your Market", desc: "Currency, delivery expectations, product information, and payment preferences are scoped for the customers you plan to serve.", visual: "localMarket" },
-        { title: "Stock Rules You Can Manage", desc: "Inventory behaviour is configured around variants, thresholds, and team workflows supported by your selected platform.", visual: "inventory" },
-        { title: "Provider Terms Stay Visible", desc: "Gateway settlement, fees, verification, refunds, and disputes remain governed by your chosen provider rather than hidden behind a universal promise.", visual: "payment" },
-        { title: "Room for Planned Growth", desc: "We discuss catalogue size, campaigns, integrations, and expected traffic so the proposed architecture fits today's scope and likely next steps.", visual: "growth" },
-        { title: "Handover With Boundaries", desc: "Training covers the agreed store workflows. Maintenance, new integrations, and ongoing assistance follow the selected plan or a separate scope.", visual: "support" },
+        { title: "Operations shape the build", desc: "Catalogue ownership, fulfilment, returns, and reporting are discussed before platform choices are locked in.", visual: "mobile" },
+        { title: "Designed around your market", desc: "Currency, delivery expectations, product information, and payment preferences are scoped for the customers you plan to serve.", visual: "localMarket" },
+        { title: "Stock rules you can manage", desc: "Inventory behaviour is configured around variants, thresholds, and team workflows supported by your selected platform.", visual: "inventory" },
+        { title: "Provider terms stay visible", desc: "Gateway settlement, fees, verification, refunds, and disputes remain governed by your chosen provider rather than hidden behind a universal promise.", visual: "payment" },
+        { title: "Room for planned growth", desc: "We discuss catalogue size, campaigns, integrations, and expected traffic so the proposed architecture fits today's scope and likely next steps.", visual: "growth" },
+        { title: "Handover with boundaries", desc: "Training covers the agreed store workflows. Maintenance, new integrations, and ongoing assistance follow the selected plan or a separate scope.", visual: "support" },
       ]}
       faqs={[
         { q: "How do payments work for my customers?", a: "Customers see the methods enabled for your store and approved by your selected gateway. The exact card, bank, or mobile-money flow, confirmation timing, fees, and availability depend on that provider and your merchant account." },
@@ -117,7 +117,7 @@ export default function EcommercePage() {
         { q: "Can the store handle flash sales and high traffic?", a: "Capacity depends on the selected platform, hosting resources, catalogue, extensions, and expected peak. Tell us about planned promotions during discovery so we can recommend caching, infrastructure, and load testing appropriate to the risk." },
         { q: "Do you integrate with Jumia or other marketplaces?", a: "Marketplace integration is assessed case by case. It requires a suitable seller account, an available and permitted API, compatible catalogue data, and a separately confirmed Enterprise scope." },
       ]}
-      ctaHeadline="Plan a Store Your Team Can Operate"
+      ctaHeadline="Plan a store your team can operate"
       ctaSubtext="Bring your catalogue, preferred payment providers, and delivery workflow. We will map the build, integration scope, and handover before implementation starts."
       pricingNote={SERVICE_PACKAGE_NOTES.ECOMMERCE}
       showcaseBlocks={showcaseBlocks}

@@ -1,50 +1,33 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
-import { Server, Cpu, HardDrive, Network, Shield, Zap, Globe, Terminal } from "lucide-react";
+import { Cpu, HardDrive, MapPin, Network, Server, Settings } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
-import {
-  HostingHeroIllustration,
-  vdsHeroConfig,
-} from "../_components/HostingHeroIllustration.tsx";
+import { CloudServersStory } from "@/components/artwork/npanel-stories";
+import { ReservedCoresArt } from "./_components/ReservedCoresArt.tsx";
 import { VdsPlansSection } from "./_components/VdsPlansSection.tsx";
-
-// ─── Showcase blocks ──────────────────────────────────────────────────────────
+import { VdsComparison, VdsExplained, VdsGettingStarted, VdsPlanFit } from "./_components/vds-content.tsx";
 
 const showcaseBlocks: ShowcaseBlock[] = [
   {
-    tag: "Production Oversight",
-    headline: "Watch the services that depend on steadier sizing.",
-    body: "Review core resource and service information for a production-sized environment, then connect the application monitoring and alerting your operating model requires.",
-    bullets: [
-      "Resource and service visibility",
-      "Browser-based terminal access for authorised users",
-      "A practical base for application monitoring",
-    ],
+    tag: "Your server, in nPanel",
+    artwork: <CloudServersStory />,
+    caption: false,
+    headline: "Your reserved server, next to your domains and email.",
+    body: "Order a size and a location, then manage the server in nPanel with the rest of your account.",
+    bullets: ["Dedicated vCPU cores on every size", "10TB of bandwidth on a 1Gbps port", "Servers, domains and invoices in one account"],
     mockupRight: true,
     visual: "serverMonitor",
   },
   {
-    tag: "Reservation-Led Sizing",
-    headline: "Size a VDS for sustained production demand",
-    body: "Compare live VDS configurations, select an available image and provision an environment positioned for stronger resource reservation than entry VPS plans.",
+    tag: "When reserved cores help",
+    headline: "For work that cannot wait its turn on a shared core.",
+    body: "A VDS keeps its virtual CPU cores for your server. That suits production apps and databases that slow down when a VPS has to share the processor.",
     bullets: [
-      "Current image choices shown during configuration",
-      "Secure SSH and browser-terminal access",
-      "Higher-performance configurations above VPS",
+      "Stores and APIs with steady traffic",
+      "Databases that should not compete for cores",
+      "A step up from VPS, short of a whole machine",
     ],
     mockupRight: false,
-    visual: "serverProvision",
-  },
-  {
-    tag: "Production Fit",
-    headline: "For services where resource consistency matters more.",
-    body: "VDS is suited to production applications, databases and business systems whose measured demand justifies a stronger reservation profile than entry VPS.",
-    bullets: [
-      "WooCommerce and eCommerce stores",
-      "Payment APIs and application backends",
-      "SaaS platforms, CRMs, and custom business apps",
-    ],
-    mockupRight: true,
-    visual: "resourceIsolation",
+    visual: "workloads",
   },
 ];
 
@@ -52,89 +35,131 @@ export default function VdsHostingPage() {
   return (
     <ServicePageShell
       badge="VDS Servers"
-      headline={<>Higher-Performance Virtual Compute. <span className="text-primary">Stronger Reservation.</span></>}
-      subtext="Step up from entry VPS to production-oriented virtual compute with stronger reservation and larger sizing options."
+      headline={
+        <>
+          Virtual cores <span className="text-primary">reserved for your server</span>, with 10TB of bandwidth
+        </>
+      }
+      subtext="A VDS keeps its vCPU cores for you, so other customers do not share them. Choose a size and a location, then manage the operating system yourself."
       serviceType="hosting"
-      heroIllustration={<HostingHeroIllustration config={vdsHeroConfig} />}
+      heroIllustration={<ReservedCoresArt />}
       heroIllustrationBare
       showHeroOverlays={false}
-      heroTrustBadge={{ line1: "The tier above VPS", line2: "Managed through nPanel" }}
       trustStats={[
-        { value: "Stronger", label: "Resource Reservation" },
-        { value: "Root", label: "Authorised Access" },
-        { value: "Live", label: "Plan Specifications" },
-        { value: "nPanel", label: "Management" },
+        { value: "vCPU", label: "Dedicated cores" },
+        { value: "10TB", label: "Bandwidth, 1Gbps port" },
+        { value: "You", label: "Manage the OS" },
+        { value: "nPanel", label: "Servers and billing" },
       ]}
       features={[
         {
-          icon: <Server size={20} />,
-          title: "Stronger Resource Reservation",
-          desc: "VDS is positioned above VPS with higher-performance configurations and stronger reservation, as specified by the selected plan.",
+          icon: <Cpu size={20} />,
+          title: "Dedicated vCPU cores",
+          desc: "The processor cores on every VDS are dedicated virtual cores, held for your server.",
         },
         {
-          icon: <Cpu size={20} />,
-          title: "Higher-Performance Compute",
-          desc: "Select an available CPU and memory profile designed for more demanding production and data workloads.",
+          icon: <Server size={20} />,
+          title: "A clear step up from VPS",
+          desc: "Choose a VDS when a virtual server is right, but the cores need to stay yours.",
         },
         {
           icon: <HardDrive size={20} />,
-          title: "Fast Storage Options",
-          desc: "Available VDS plans use modern storage suited to databases, file services and application workloads.",
+          title: "Memory and storage on the card",
+          desc: "Each size shows its memory and storage. Current sizes run from 4 GB to 16 GB of memory.",
         },
         {
           icon: <Network size={20} />,
-          title: "Plan Production Traffic",
-          desc: "Match the selected plan's network allocation to expected traffic, integrations and data movement before deployment.",
+          title: "10TB bandwidth on a 1Gbps port",
+          desc: "Every size includes 10TB of monthly data transfer on a 1Gbps network port.",
         },
         {
-          icon: <Shield size={20} />,
-          title: "Security Options",
-          desc: "Combine server controls, secure access and available network protections around your deployment requirements.",
+          icon: <MapPin size={20} />,
+          title: "Choose a server location",
+          desc: "Each card lists the cities where that size is in stock. The price follows the city you pick.",
         },
         {
-          icon: <Zap size={20} />,
-          title: "Configured Provisioning",
-          desc: "Choose a supported operating system, add secure access details and prepare the environment for your stack.",
-        },
-        {
-          icon: <Globe size={20} />,
-          title: "Sized for Sustained Demand",
-          desc: "Choose VDS when measured production usage calls for a stronger virtual resource profile than entry compute.",
-        },
-        {
-          icon: <Terminal size={20} />,
-          title: "Administrative Access",
-          desc: "Configure supported services using the authorised access included with the plan, subject to platform limits and the Acceptable Use Policy.",
+          icon: <Settings size={20} />,
+          title: "You manage the operating system",
+          desc: "Install your own stack and keep it updated. The operating systems available are shown when you configure the server.",
         },
       ]}
-      plansUnderHero={true}
+      plansUnderHero
       customPlansSection={<VdsPlansSection />}
       plans={[]}
       process={[
-        { num: "01", title: "Measure the Requirement", desc: "Use application demand, database load and growth expectations to compare current VDS plan specifications." },
-        { num: "02", title: "Choose the Reservation", desc: "Select a live configuration and available system image, then provide secure access details where supported." },
-        { num: "03", title: "Move Into Production", desc: "Deploy the supported stack, monitoring and recovery procedures required by your service." },
-        { num: "04", title: "Review Capacity", desc: "Track sustained demand and compare a larger VDS or dedicated allocation when the production profile changes." },
+        { num: "01", title: "Choose a size and a city", desc: "Compare dedicated cores and memory, then pick a location on the card." },
+        { num: "02", title: "Pick an operating system", desc: "Choose from the operating systems shown for that server during setup." },
+        { num: "03", title: "Sign in and install", desc: "The server appears in nPanel. Sign in and install the software you need." },
+        { num: "04", title: "Move up when you outgrow it", desc: "Choose a larger VDS, or a dedicated server when you need a physical machine." },
       ]}
       whyPoints={[
-        { title: "A Step Above VPS", visual: "speed", desc: "Choose stronger resource reservation and higher-performance configurations for demanding workloads." },
-        { title: "Production-Oriented Sizing", visual: "deploy", desc: "Choose a resource profile from measured demand rather than treating VDS as a generic VPS substitute." },
-        { title: "A Clear Upgrade Path", visual: "growth", desc: "Move to a larger VDS or exclusive dedicated hardware as requirements grow." },
-        { title: "Capacity for Core Services", visual: "integrate", desc: "Size customer-facing applications, databases and internal systems against the selected plan's stated allocations." },
-        { title: "Control Within a Defined Service", visual: "ownership", desc: "Configure the environment using the access provided, subject to technical compatibility, plan limits and the Acceptable Use Policy." },
-        { title: "Define Operational Ownership", visual: "support", desc: "Confirm whether your team or Nisc Cloud owns updates, security work and optimisation tasks before the service starts." },
+        { title: "Cores that stay yours", visual: "speed", desc: "Dedicated vCPU cores are held for your server instead of being shared." },
+        { title: "Steadier than a busy VPS", visual: "deploy", desc: "Use a VDS when production apps or databases need performance that does not dip when the host is busy." },
+        { title: "A path to a physical server", visual: "growth", desc: "Start on a VDS, then move to a dedicated server when the workload needs the whole machine." },
+        { title: "One account for everything", visual: "integrate", desc: "Your server sits in nPanel with your domains, email and invoices." },
       ]}
+      whySectionHeadline="Why teams choose a Nisc Cloud VDS"
+      whySectionVariant="simple"
+      contentSlots={{
+        afterPricing: <VdsPlanFit />,
+        afterShowcase: <VdsComparison />,
+        afterProcess: <VdsGettingStarted />,
+        beforeFaq: <VdsExplained />,
+      }}
+      faqTitle="VDS questions"
       faqs={[
-        { q: "What operating systems are available?", a: "Image availability changes by plan and platform. Review the current choices during configuration or ask Nisc Cloud to confirm a required distribution or custom-image need before purchase." },
-        { q: "Can I run containers on my VDS?", a: "Container tooling may be used when it is compatible with the selected plan, system image and service policies. Production clusters should be designed around measured capacity and resilience requirements." },
-        { q: "Is an uptime SLA available?", a: "Applicable availability commitments depend on the selected service and agreement. Confirm the current SLA terms with Nisc Cloud before purchase." },
-        { q: "Is managed hosting available for VDS?", a: "Managed assistance may be added where available. Scope and response coverage are confirmed in the selected service agreement." },
-        { q: "Can I scale my VDS up later?", a: "Available upgrade paths depend on the selected plan. Nisc Cloud can confirm the suitable VDS or dedicated tier for your next stage." },
-        { q: "What network protection is included?", a: "Protection varies by plan and deployment. Confirm the included controls and any additional application-layer protection before purchase." },
+        {
+          q: "What is a VDS?",
+          a: "A VDS (virtual dedicated server) is a virtual server with dedicated vCPU cores. Those cores are held for your server. You manage the operating system.",
+        },
+        {
+          q: "How is a VDS different from a VPS?",
+          a: "Both are virtual servers you manage. On a VDS the vCPU cores are dedicated to you, so other customers do not share them. A VPS is the smaller, more flexible starting point.",
+        },
+        {
+          q: "What is included with every VDS?",
+          a: "Every VDS includes dedicated vCPU cores, the memory and storage shown on the card, and 10TB of bandwidth on a 1Gbps port. You manage the operating system.",
+        },
+        {
+          q: "Is the VDS managed?",
+          a: "No. You look after the operating system, updates and the software you install. If you want the server managed for you, choose Web Hosting or WordPress Hosting.",
+        },
+        {
+          q: "Which size should I choose?",
+          a: "2 dedicated cores and 4 GB of memory suit a single app. 4 cores and 8 GB suit most production apps and stores. 8 cores and 16 GB suit heavier databases and several services.",
+        },
+        {
+          q: "Where are the servers located?",
+          a: "Each plan card lists the cities where that size is in stock. Choose a city on the card before checkout. Prices can differ by city.",
+        },
+        {
+          q: "Will a distant server be slow for visitors in Kenya?",
+          a: "Distance adds a small delay. It matters little for APIs and background work. For a public website, a CDN in front of the server serves pages and images from closer to your visitors.",
+        },
+        {
+          q: "Can I upgrade my VDS later?",
+          a: "Contact us to move to a larger VDS, or to a dedicated server when you need a physical machine.",
+        },
+        {
+          q: "Which operating systems can I choose?",
+          a: "The operating systems available for that server are shown when you configure it. You manage whichever system you choose.",
+        },
+        {
+          q: "Can I install my own software?",
+          a: "Yes. You manage the server, so you can install the languages, databases and tools your project needs, as long as the workload fits the size and follows our Acceptable Use Policy.",
+        },
+        {
+          q: "How much bandwidth do I get?",
+          a: "Every size includes 10TB of data transfer per month on a 1Gbps port.",
+        },
+        {
+          q: "What does dedicated vCPU mean?",
+          a: "It means the virtual processor cores on your VDS are reserved for your server. Other customers' servers do not run on those cores.",
+        },
       ]}
-      pricingNote="Prices are shown in KES or USD based on your location, excluding 16% VAT. Custom configurations available for enterprise clients."
-      ctaHeadline="Get a VDS That Performs as Hard as You Do"
-      ctaSubtext="Move beyond VPS with higher-performance configurations and stronger reservation for demanding workloads."
+      pricingNote="Prices are shown in KES or USD based on your location, excluding 16% VAT. Prices can differ by server location."
+      ctaHeadline="Reserved cores, ready for production"
+      ctaSubtext="Dedicated vCPU cores and 10TB of bandwidth on every size, managed in nPanel."
       showcaseBlocks={showcaseBlocks}
     />
   );

@@ -40,8 +40,8 @@ export default function MarketDetail() {
             transition={{ duration: 0.6 }}
           >
             <h2 className="type-h2 mb-5">
-              Grow with Connected Channels. <br />
-              <span className="text-primary">Learn from Clear Evidence.</span>
+              Grow with connected channels. <br />
+              <span className="text-primary">Learn from clear evidence.</span>
             </h2>
             <p className="text-muted-foreground text-lg leading-relaxed mb-8">
               Connect search, paid media, social and email around the same audience and business goals. Reporting separates activity, observed performance and the next decision.

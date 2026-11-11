@@ -12,12 +12,12 @@ import {
 /* ── data ─────────────────────────────────────────────── */
 
 const EVENTS = [
-  { id: 1, tone: "danger" as const, label: "SQL injection blocked", detail: "WAF · 185.220.x.x" },
-  { id: 2, tone: "ok" as const, label: "Malware scan complete", detail: "Clean · 4× daily" },
-  { id: 3, tone: "info" as const, label: "DDoS traffic absorbed", detail: "3.2K req/s · 4 min" },
-  { id: 4, tone: "ok" as const, label: "SSL certificate renewed", detail: "Valid 365 days" },
-  { id: 5, tone: "danger" as const, label: "XSS attempt blocked", detail: "WAF · 91.108.x.x" },
-  { id: 6, tone: "ok" as const, label: "Backup stored off-site", detail: "Encrypted · daily" },
+  { id: 1, tone: "danger" as const, label: "SQL injection blocked", detail: "Firewall rule matched" },
+  { id: 2, tone: "ok" as const, label: "Malware scan complete", detail: "No threats found" },
+  { id: 3, tone: "info" as const, label: "Flood traffic filtered", detail: "At the network edge" },
+  { id: 4, tone: "ok" as const, label: "SSL certificate renewed", detail: "Renewed automatically" },
+  { id: 5, tone: "danger" as const, label: "XSS attempt blocked", detail: "Firewall rule matched" },
+  { id: 6, tone: "ok" as const, label: "Backup stored off-site", detail: "Encrypted copy" },
 ];
 
 const LAYERS = [
@@ -53,7 +53,7 @@ const LAYERS = [
     icon: Database,
     label: "Backups",
     status: "Current",
-    hint: "Off-site daily",
+    hint: "Off-site copy",
     bars: [70, 70, 70, 70, 70, 70, 100],
     color: "#06b6d4",
   },
@@ -185,18 +185,10 @@ type SecurityDashboardScreenProps = {
 export default function SecurityDashboardScreen({
   productLabel = "Security",
 }: SecurityDashboardScreenProps = {}) {
-  const [threatCount, setThreatCount] = useState(2841);
   const [eventIndex, setEventIndex] = useState(0);
   const [scanning, setScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [activeLayer, setActiveLayer] = useState(0);
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      setThreatCount((n) => n + Math.floor(Math.random() * 2) + 1);
-    }, 3200);
-    return () => clearInterval(id);
-  }, []);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -285,28 +277,21 @@ export default function SecurityDashboardScreen({
             transition={{ delay: 0.35 }}
             className="mt-1.5 text-[11px] font-bold tracking-tight text-slate-800"
           >
-            A+ Secure
+            Protected
           </motion.p>
-          <p className="text-[7px] text-slate-400">All systems healthy</p>
+          <p className="text-[7px] text-slate-400">Every layer switched on</p>
 
           <div className="mt-2.5 w-full space-y-1.5">
-            <div className="flex items-end justify-between rounded-lg bg-slate-50 px-2 py-1.5 ring-1 ring-slate-100">
-              <div>
-                <p className="text-[6.5px] font-medium uppercase tracking-wider text-slate-400">Threats blocked</p>
-                <motion.p
-                  key={threatCount}
-                  initial={{ opacity: 0.4, y: 3 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-[13px] font-bold leading-none text-slate-800 tabular-nums"
-                >
-                  {threatCount.toLocaleString()}
-                </motion.p>
-              </div>
-              <Activity className="mb-0.5 h-3 w-3 text-primary/70" />
+            <div className="flex items-center justify-between rounded-lg bg-slate-50 px-2 py-1.5 ring-1 ring-slate-100">
+              <p className="text-[8px] font-medium text-slate-500">Protection layers</p>
+              <Activity className="h-3 w-3 text-primary/70" />
             </div>
-            <div className="flex items-center justify-between px-1">
-              <span className="text-[7px] text-slate-400">Uptime</span>
-              <span className="text-[8px] font-semibold text-emerald-600 tabular-nums">99.98%</span>
+            <div className="flex flex-wrap gap-1 px-1">
+              {LAYERS.map((layer) => (
+                <span key={layer.key} className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[7px] font-medium text-emerald-700">
+                  {layer.label}
+                </span>
+              ))}
             </div>
           </div>
         </div>

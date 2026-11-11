@@ -27,7 +27,7 @@ export default function PricingHero() {
           transition={{ duration: 0.6 }}
           className="type-h1 mb-4 text-balance"
         >
-          Clear Plans for Hosting &amp; Marketing
+          Clear plans for hosting &amp; marketing
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 20 }}

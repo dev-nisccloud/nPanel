@@ -46,6 +46,8 @@ In this order. Nothing here has been done yet.
 | BIZ-06 | Provide test access: M-Pesa Daraja and Jenga sandboxes, KeNIC OT&E credentials, registrar sandbox, a resettable test customer | Owner/Backend | Not started | Needed for PAY-05 |
 | BIZ-07 | Edit the Web Hosting and WordPress product descriptions in nPanel admin | Owner | Partial | The Web Hosting and WordPress pages now show approved intros instead, but `/pricing` may still show the nPanel text ("24/7 local support", "Lightning-fast", "enterprise security", "in minutes") |
 | BIZ-10 | Add "Daily backups" and "DDoS protection" to the WordPress **Launch** plan in the nPanel catalogue | Owner | Not started | Owner confirmed (11 Nov 2026) every WordPress plan has them; the catalogue lists them on Business and Performance only, so Launch's plan card omits them |
+| BIZ-13 | Replace the `/security` hero image: "website security.png" shows an "A+ Security Score" that no plan measures | Owner | Not started | Code-side fake stats on the security dashboard were removed 11 Nov 2026; the score is baked into the image |
+| BIZ-14 | Confirm the dedicated-server checkout add-ons we resell: supplier "Linux/cPanel/Windows Managed Services", LiteSpeed licences, daily backups and Wasabi object storage appear as paid options | Owner | Not started | Pages say servers are unmanaged by default; the add-ons are optional and were already visible in the old checkout |
 | BIZ-12 | Review VPS pricing: two supplier sizes cost more than larger sizes (2 cores/4 GB/80 GB at Ksh 3,411 vs 4 cores/8 GB/80 GB at Ksh 2,437; 8 cores/16 GB/320 GB at Ksh 11,694 vs 12 cores/24 GB/240 GB at Ksh 10,557) | Owner | Not started | Owner decision (11 Nov 2026): keep both sizes visible and reprice them in nPanel. The public page reads prices live, so no website change is needed afterwards |
 | BIZ-11 | Remove "Premium webmail" from the Business Email plans in the nPanel catalogue, and drop "webmail" from the email product description | Owner | Not started | Owner decision (11 Nov 2026): webmail is not mentioned publicly. The website hides the row (`isHiddenPublicFeature`) and overrides the description until the catalogue is updated |
 | BIZ-08 | Legal review of a fair-use clause for "Unlimited*" resources | Legal | Not started | Draft wording is in `pre-launch-remediation-log.md` |
@@ -163,7 +165,7 @@ From the read-only nPanel backend review (chat, 10 Nov) and `security-audit-repo
 
 | ID | Task | Pri | Who | Status |
 | --- | --- | --- | --- | --- |
-| CLM-01 | Remove "24/7" human support wording on `/help` and in `public/llms.txt`; replace "within 24 hours" on `/contact` with "within one working day" | P1 | Dev | Not started |
+| CLM-01 | Remove "24/7" human support wording on `/help` and in `public/llms.txt`; replace "within 24 hours" on `/contact` with "within one working day" | P1 | Dev | In progress: `/contact` done 11 Nov 2026; `/help` and `llms.txt` still open |
 | CLM-02 | Change "99.9% uptime SLA" to "uptime target" and remove "500+ businesses", "300+ campaigns" and ownership comparisons in Zepo AI prompts (`zeepo-ai/prompts.js`, `zeepo-agent/prompts.js`) | P1 | Dev | Not started |
 | CLM-03 | Remove or qualify fixed timelines (website 10/14/21 days, "live in hours", WordPress "2 to 3 minutes", domain "within minutes") | P1 | Dev | Not started (waiting on EVD-13) |
 | CLM-04 | Remove "thousands of customers" (About), KES 50M ad spend and the named byline, Zepo ROI and WhatsApp statistics in blog posts | P1 | Dev | Not started (waiting on EVD-16) |

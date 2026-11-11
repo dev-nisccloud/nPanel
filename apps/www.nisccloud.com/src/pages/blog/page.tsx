@@ -47,8 +47,8 @@ export default function BlogPage() {
           className="text-center mb-12"
         >
           <h1 className="type-h1 mb-5">
-            Insights That{" "}
-            <span className="text-primary">Move the Needle</span>
+            Insights that{" "}
+            <span className="text-primary">move the needle</span>
           </h1>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto">
             Practical guides on branding, SEO, hosting, AI automation, and digital growth - written for Kenyan businesses.

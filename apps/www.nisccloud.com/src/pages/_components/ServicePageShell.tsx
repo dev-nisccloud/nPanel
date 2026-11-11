@@ -167,7 +167,7 @@ function FeaturesGrid({ features }: { features: Feature[] }) {
       <div className="relative max-w-7xl mx-auto px-4 md:px-8">
         <div className="mb-12 max-w-2xl mx-auto text-center">
           <h2 className="type-h2">
-            What <span className="text-primary">You Get</span>
+            What <span className="text-primary">you get</span>
           </h2>
           <p className="text-muted-foreground text-base mt-3">
             Explore what is included and choose the service scope that fits your
@@ -322,7 +322,7 @@ function PricingSection({
       <div className="relative max-w-7xl mx-auto px-4 md:px-8">
         <div className="text-center mb-16">
           <h2 className="type-h2 mb-3">
-            Simple Pricing
+            Simple pricing
           </h2>
           <p className="text-muted-foreground text-base max-w-md mx-auto">
             {note ??
@@ -362,7 +362,7 @@ function PricingSection({
                 )}
               >
                 {popular && (
-                  <div className="bg-brand-orange text-[#02070A] text-xs font-bold text-center py-2.5 tracking-widest flex items-center justify-center gap-1.5">
+                  <div className="bg-primary text-[#02070A] text-xs font-bold text-center py-2.5 tracking-widest flex items-center justify-center gap-1.5">
                     <Star size={10} className="fill-current" />
                     MOST POPULAR
                     <Star size={10} className="fill-current" />

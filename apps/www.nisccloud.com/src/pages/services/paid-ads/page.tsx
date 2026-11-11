@@ -50,22 +50,22 @@ export default function PaidAdsPage() {
       features={[
         {
           icon: <Target size={20} />,
-          title: "Precision Audience Targeting",
+          title: "Precision audience targeting",
           desc: "Target by location, interests, job title, and custom audiences built from your existing customers.",
         },
         {
           icon: <TrendingUp size={20} />,
-          title: "Conversion-Focused Ad Creative",
+          title: "Conversion-focused ad creative",
           desc: "We write copy and design visuals for local audiences: culturally relevant ads that stop the scroll and drive action.",
         },
         {
           icon: <BarChart2 size={20} />,
-          title: "Rigorous A/B Testing",
+          title: "Rigorous A/B testing",
           desc: "Continuously test headlines, images, audiences, and landing pages to find what converts best, then scale winners.",
         },
         {
           icon: <Globe size={20} />,
-          title: "Google Search & Shopping Ads",
+          title: "Google Search & Shopping ads",
           desc: "Capture high-intent buyers searching for exactly what you sell. We manage Search, Display, Shopping, and YouTube campaigns.",
         },
         {
@@ -75,17 +75,17 @@ export default function PaidAdsPage() {
         },
         {
           icon: <Zap size={20} />,
-          title: "TikTok Performance Ads",
+          title: "TikTok performance ads",
           desc: "Native TikTok video ads with UGC-style creative, In-Feed ads, and placements for brand building and e-commerce.",
         },
         {
           icon: <Eye size={20} />,
-          title: "Retargeting & Remarketing",
+          title: "Retargeting & remarketing",
           desc: "Re-engage website visitors, video viewers, and social engagers with follow-up ads that bring hesitant prospects back.",
         },
         {
           icon: <DollarSign size={20} />,
-          title: "Budget Optimisation & Bidding",
+          title: "Budget optimisation & bidding",
           desc: "Smart bidding, dayparting, device adjustments, and budget allocation across channels to get more from every shilling spent.",
         },
       ]}
@@ -96,16 +96,16 @@ export default function PaidAdsPage() {
         { id: "ads-tiktok", label: "TikTok Ads Add-On (to any plan)", price: 20000, period: "month" },
       ]}
       process={[
-        { num: "01", title: "Audit & Strategy", desc: "We audit any existing campaigns, research competitors, and build a full-funnel advertising plan targeting your highest-value customer segments." },
-        { num: "02", title: "Build & Launch", desc: "Campaign structure, audience targeting, ad creative, tracking pixels, and conversion goals all set up and tested before spend begins." },
-        { num: "03", title: "Optimise Weekly", desc: "Daily monitoring and weekly optimisation: pause underperforming ads, scale winners, test new audiences, and refine targeting based on real data." },
-        { num: "04", title: "Report & Scale", desc: "Monthly reports with plain-English insights. We show what your ad budget produced and how we will improve results next month." },
+        { num: "01", title: "Audit & strategy", desc: "We audit any existing campaigns, research competitors, and build a full-funnel advertising plan targeting your highest-value customer segments." },
+        { num: "02", title: "Build & launch", desc: "Campaign structure, audience targeting, ad creative, tracking pixels, and conversion goals all set up and tested before spend begins." },
+        { num: "03", title: "Optimise weekly", desc: "Daily monitoring and weekly optimisation: pause underperforming ads, scale winners, test new audiences, and refine targeting based on real data." },
+        { num: "04", title: "Report & scale", desc: "Monthly reports with plain-English insights. We show what your ad budget produced and how we will improve results next month." },
       ]}
       whyPoints={[
-        { title: "Brief Before Budget", desc: "The campaign starts with the audience, offer, destination and customer action—not with a platform setting.", visual: "localMarket" },
-        { title: "Channel Choice Has a Reason", desc: "Search, social prospecting and remarketing play different roles. We recommend channels around intent and available evidence.", visual: "targeting" },
-        { title: "Management Fee Separate from Ad Spend", desc: "Our management fee is fixed. Your ad spend goes to the platforms. No hidden markups on ad spend.", visual: "pricing" },
-        { title: "Measurement With Context", desc: "Reports distinguish spend, delivery, attributed actions and confirmed business outcomes, including known tracking limitations.", visual: "tracking" },
+        { title: "Brief before budget", desc: "The campaign starts with the audience, offer, destination and customer action—not with a platform setting.", visual: "localMarket" },
+        { title: "Channel choice has a reason", desc: "Search, social prospecting and remarketing play different roles. We recommend channels around intent and available evidence.", visual: "targeting" },
+        { title: "Management fee separate from ad spend", desc: "Our management fee is fixed. Your ad spend goes to the platforms. No hidden markups on ad spend.", visual: "pricing" },
+        { title: "Measurement with context", desc: "Reports distinguish spend, delivery, attributed actions and confirmed business outcomes, including known tracking limitations.", visual: "tracking" },
       ]}
       faqs={[
         { q: "How much budget do I need for paid ads to work?", a: "We recommend a minimum monthly ad spend of KES 30,000 for meaningful results on a single platform. This gives enough data for optimisation. Budgets of KES 100,000+ per month typically see better scale." },
@@ -115,7 +115,7 @@ export default function PaidAdsPage() {
         { q: "Do you create the ad images and copy?", a: "Yes. All plans include ad creative (images and copy). Higher plans also include video ads. We create content specifically tested for local audiences." },
         { q: "What if my ads aren't performing?", a: "Performance issues are normal, especially in the first 30 days. We optimise continuously. We review results against the targets agreed in your proposal every month and adjust budgets, audiences and creative." },
       ]}
-      ctaHeadline="Plan Your Next Paid-Media Move"
+      ctaHeadline="Plan your next paid-media move"
       ctaSubtext="Bring your offer, current campaigns and budget range. We will identify the questions to resolve before recommending a scoped campaign."
       pricingNote={SERVICE_PACKAGE_NOTES.PAID_ADS}
       showcaseBlocks={showcaseBlocks}

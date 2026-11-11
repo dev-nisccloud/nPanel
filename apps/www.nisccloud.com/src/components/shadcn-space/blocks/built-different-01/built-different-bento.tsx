@@ -70,7 +70,7 @@ function BentoCard({
 
 export default function BuiltDifferentBento({
   points,
-  headline = "Why Teams Choose Us",
+  headline = "Why teams choose us",
   subtext,
   badge,
   className,

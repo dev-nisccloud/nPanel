@@ -19,7 +19,7 @@ export function TransferToolSection() {
               START YOUR TRANSFER
             </div>
             <h2 className="type-h2 mb-3">
-              Check If Your Domain Can Move
+              Check if your domain can move
             </h2>
             <p className="mx-auto max-w-xl text-base text-muted-foreground">
               Enter your domain to see if it can transfer and to get the live transfer price. We will guide you through the rest.

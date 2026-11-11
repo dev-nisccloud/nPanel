@@ -74,6 +74,10 @@ export default function PartnerServicePage({ kind }: { kind: keyof typeof offeri
           <p className="mt-4 max-w-2xl leading-relaxed text-muted-foreground">
             Tell us about your current website and hosting. We will confirm the scope, timing and cost before any changes to your live services.
           </p>
+          <p className="mt-3 max-w-2xl font-medium leading-relaxed text-foreground">
+            Moving a WordPress site to our WordPress Hosting, or your email to Nisc Mail? That migration is free. If the
+            site needs extra fixes, we quote them first.
+          </p>
           <Link className="mt-6 inline-flex min-h-11 items-center rounded-[10px] bg-primary px-6 py-3 font-semibold text-primary-foreground" to={contactHref}>
             Request a proposal
           </Link>

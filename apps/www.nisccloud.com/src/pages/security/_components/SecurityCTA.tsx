@@ -9,7 +9,7 @@ type SecurityCTAProps = {
 };
 
 export default function SecurityCTA({
-  title = "Protect Your Site With Clear, Managed Security",
+  title = "Protect your site with clear, managed security",
   description = "Add SSL, malware scanning, firewall protection, and backups so your website stays safe and available for your customers.",
   ctaLabel = "View Security Plans",
   plansId = "security-plans",

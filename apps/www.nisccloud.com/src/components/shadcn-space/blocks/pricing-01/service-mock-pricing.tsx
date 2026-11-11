@@ -111,7 +111,7 @@ function orderPlanToCardPlan(
 export function ServiceMockPricingSection({
   plans,
   serviceName,
-  title = "Simple, Transparent Pricing",
+  title = "Simple, transparent pricing",
   subtitle,
   pricingNote,
   addons = [],

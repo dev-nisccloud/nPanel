@@ -34,7 +34,7 @@ export default function OnePlatform() {
             WHY NISC CLOUD
           </div>
           <h2 className="type-h2 mb-4">
-            Everything You Need. One Platform.
+            Everything you need. One platform.
           </h2>
           <p className="text-muted-foreground text-lg max-w-xl mx-auto">
             Stop juggling 5 vendors. One dashboard, one team, one invoice - from brand creation to market domination.

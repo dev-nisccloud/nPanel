@@ -63,42 +63,42 @@ export default function BrandIdentityPage() {
       features={[
         {
           icon: <Palette size={20} />,
-          title: "Custom Logo Design",
+          title: "Custom logo design",
           desc: "Unique, scalable logos crafted from scratch, not templates. Delivered in all formats: SVG, PNG, PDF, and editable source files.",
         },
         {
           icon: <Layers size={20} />,
-          title: "Full Brand System",
+          title: "Full brand system",
           desc: "Colour palettes, typography hierarchies, spacing rules, and visual tone documented in a brand guide your whole team can use.",
         },
         {
           icon: <PenTool size={20} />,
-          title: "Brand Guidelines Document",
+          title: "Brand guidelines document",
           desc: "A professional PDF brand manual covering logo usage rules, do's and don'ts, mockups, and application examples across print and digital.",
         },
         {
           icon: <Award size={20} />,
-          title: "Positioning & Value Proposition",
+          title: "Positioning & value proposition",
           desc: "Define the audience, category, difference and value your brand should communicate before visual design begins.",
         },
         {
           icon: <Sparkles size={20} />,
-          title: "Business Card & Stationery",
+          title: "Business card & stationery",
           desc: "Professional business cards, letterheads, and email signatures that carry your brand identity into every customer touchpoint.",
         },
         {
           icon: <FileText size={20} />,
-          title: "Social Media Kit",
+          title: "Social media kit",
           desc: "Pre-sized profile images, cover photos, and post templates for Facebook, Instagram, LinkedIn, and X, ready to publish on day one.",
         },
         {
           icon: <Users size={20} />,
-          title: "Audience & Category Insight",
+          title: "Audience & category insight",
           desc: "Review customer needs, alternatives and category conventions to identify useful opportunities for distinction.",
         },
         {
           icon: <Globe size={20} />,
-          title: "Rollout & Governance",
+          title: "Rollout & governance",
           desc: "Document approval, ownership and usage rules so internal teams and external partners can apply the brand consistently.",
         },
       ]}
@@ -157,12 +157,12 @@ export default function BrandIdentityPage() {
         { num: "04", title: "Deliver", desc: "Handover the agreed files, guidance and rollout plan with clear ownership and next steps." },
       ]}
       whyPoints={[
-        { title: "Market Context, Not Assumptions", desc: "We consider the audience, category and market evidence relevant to the brief rather than relying on generic design trends.", visual: "localMarket" },
-        { title: "Strategy Before Aesthetics", desc: "Every design decision is rooted in research, not personal taste. Your logo should communicate before a word is spoken.", visual: "strategy" },
-        { title: "Practical Business Assets", desc: "You leave with files, guidelines, and templates you can use across your website, social, and print materials right away.", visual: "assets" },
-        { title: "Experienced Designers", desc: "Every project is handled by an experienced brand designer. You work with people who know how to run a clear process.", visual: "craft" },
-        { title: "Approval Gates and Governance", desc: "Strategy, direction and final applications are reviewed at clear milestones so decisions do not get lost in subjective revision cycles.", visual: "process" },
-        { title: "Clear Ownership and Handover", desc: "Once agreed invoices are paid, you own the approved deliverables listed in your proposal, subject to third-party licence terms. The proposal also states which source files are included.", visual: "ownership" },
+        { title: "Market context, not assumptions", desc: "We consider the audience, category and market evidence relevant to the brief rather than relying on generic design trends.", visual: "localMarket" },
+        { title: "Strategy before aesthetics", desc: "Every design decision is rooted in research, not personal taste. Your logo should communicate before a word is spoken.", visual: "strategy" },
+        { title: "Practical business assets", desc: "You leave with files, guidelines, and templates you can use across your website, social, and print materials right away.", visual: "assets" },
+        { title: "Experienced designers", desc: "Every project is handled by an experienced brand designer. You work with people who know how to run a clear process.", visual: "craft" },
+        { title: "Approval gates and governance", desc: "Strategy, direction and final applications are reviewed at clear milestones so decisions do not get lost in subjective revision cycles.", visual: "process" },
+        { title: "Clear ownership and handover", desc: "Once agreed invoices are paid, you own the approved deliverables listed in your proposal, subject to third-party licence terms. The proposal also states which source files are included.", visual: "ownership" },
       ]}
       faqs={[
         { q: "How many logo concepts will I receive?", a: "Starter includes three concepts. Enterprise directions and review stages are agreed in the project brief before work begins." },
@@ -172,7 +172,7 @@ export default function BrandIdentityPage() {
         { q: "How do revisions work?", a: "Revisions are round-based on Starter (2 rounds), agreed per project on Growth and above. Each revision round means you give consolidated feedback and we implement all changes before the next review." },
         { q: "Can you rebrand an existing business without losing our existing customers?", a: "Yes. Our Enterprise plan includes a rebrand approach with customer communication planning, a transition timeline, and guidelines for phasing out old assets without confusing customers." },
       ]}
-      ctaHeadline="Ready to Build a Brand People Trust?"
+      ctaHeadline="Ready to build a brand people trust?"
       ctaSubtext="A clear visual identity helps you win clients, contracts, and credibility. Let's build something professional and useful together."
       pricingNote={SERVICE_PACKAGE_NOTES.BRAND_IDENTITY}
       showcaseBlocks={showcaseBlocks}

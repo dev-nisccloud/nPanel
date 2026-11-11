@@ -9,7 +9,7 @@ const tabs = [
     label: "Dashboard",
     icon: LayoutDashboard,
     image: "https://hercules-cdn.com/file_jLLWeWPpwCBV44YLcf6RS6wg",
-    headline: "Your Business at a Glance",
+    headline: "Your business at a glance",
     desc: "See domains, orders, invoices, subscriptions, website visitors and email campaign performance - all from one screen the moment you log in.",
     points: ["Domains & hosting status", "Orders & invoices summary", "Website traffic (30-day chart)", "Email campaign performance"],
     color: "oklch(0.55 0.18 195)",
@@ -19,7 +19,7 @@ const tabs = [
     label: "Domains",
     icon: Globe,
     image: "https://hercules-cdn.com/file_0dKysquD3hsQyce6fCxGWSq4",
-    headline: "Search & Register Your Domain",
+    headline: "Search & register your domain",
     desc: "Find available .com, .co.ke, .net, .io and more. See live pricing in KSh, register instantly, and manage your entire portfolio from one place.",
     points: ["Live domain availability search", "KSh pricing with discounts", "Domain portfolio manager", "Transfer existing domains"],
     color: "oklch(0.42 0.10 240)",
@@ -29,7 +29,7 @@ const tabs = [
     label: "Marketing",
     icon: TrendingUp,
     image: "https://hercules-cdn.com/file_Xlak0r0hue2UNA9W07ZSTkGa",
-    headline: "Track Every Marketing Result",
+    headline: "Track every marketing result",
     desc: "Monitor SEO rankings, Google Ads, Meta campaigns, and social media growth. See what's working and where to invest next - all in real time.",
     points: ["Social media analytics", "Ad spend & ROAS tracking", "SEO ranking movements", "Lead generation funnels"],
     color: "oklch(0.58 0.22 25)",
@@ -39,7 +39,7 @@ const tabs = [
     label: "Email & CRM",
     icon: Mail,
     image: "https://hercules-cdn.com/file_W78KZEqOP2TVuD53comVsMZG",
-    headline: "Manage Clients & Campaigns",
+    headline: "Manage clients & campaigns",
     desc: "Run email campaigns, manage client accounts, track billing, and handle KRA eTIMS from a single unified panel - no extra tools needed.",
     points: ["Email marketing campaigns", "Client & billing management", "KRA eTIMS integration", "CRM & service orders"],
     color: "oklch(0.60 0.22 235)",
@@ -80,7 +80,7 @@ export default function DashboardPreview() {
             NPANEL - YOUR COMMAND CENTER
           </div>
           <h2 className="type-h2 mb-3 text-balance">
-            One Dashboard to Run Your Entire Business
+            One dashboard to run your entire business
           </h2>
           <p className="text-muted-foreground text-base max-w-2xl mx-auto">
             No more 5 logins and 5 vendor calls. nPanel gives you a single screen to manage your cloud, track marketing, handle billing, and stay in full control.

@@ -45,7 +45,7 @@ const features = [
     description:
       "Your websites and apps run on reliable hosting with a 99.9% uptime target and fast load times for your visitors.",
     icon: Server,
-    title: "Lightning Fast Hosting",
+    title: "Lightning fast hosting",
   },
   {
     description:

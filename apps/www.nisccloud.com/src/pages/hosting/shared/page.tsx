@@ -96,7 +96,7 @@ export default function SharedHostingPage() {
   return (
     <ServicePageShell
       badge="Web Hosting"
-      headline="Fast, Reliable Web Hosting That Stays Online"
+      headline="Fast, reliable web hosting that stays online"
       subtext="Host your website and email together on NVMe SSD servers with a CDN, DDoS protection, malware scanning, daily backups and free SSL, all managed through nPanel."
       serviceType="hosting"
       plansUnderHero
@@ -117,28 +117,28 @@ export default function SharedHostingPage() {
       process={[
         {
           num: "01",
-          title: "Compare Current Plans",
+          title: "Compare current plans",
           desc: "Review live capacity, billing terms and included features. Ask for guidance if your traffic or application needs are uncertain.",
         },
         {
           num: "02",
-          title: "Connect a Domain",
+          title: "Connect a domain",
           desc: "Register, transfer or use a domain you already own. The cart shows the selected path and its current price before payment.",
         },
         {
           num: "03",
-          title: "Provision the Service",
+          title: "Provision the service",
           desc: "After confirmed payment, provisioning begins and access details are sent when the hosting service is ready.",
         },
         {
           num: "04",
-          title: "Set Up or Migrate",
+          title: "Set up or migrate",
           desc: "Use the included hosting tools or agree a migration scope with our team before moving an existing website.",
         },
       ]}
       whyPoints={[
         {
-          title: "Know What You Are Buying", visual: "speed",
+          title: "Know what you are buying", visual: "speed",
           desc: "Every plan lists its capacity, billing term and included features before you reach checkout.",
         },
         {
@@ -146,11 +146,11 @@ export default function SharedHostingPage() {
           desc: "Web hosting suits standard business websites. We can discuss WordPress-specific or server options when the workload needs a different environment.",
         },
         {
-          title: "Migration Has a Scope", visual: "migration",
+          title: "Migration has a scope", visual: "migration",
           desc: "We review the website, database, email and DNS requirements before confirming what migration assistance is included.",
         },
         {
-          title: "Manage the Service in nPanel", visual: "integrate",
+          title: "Manage the service in nPanel", visual: "integrate",
           desc: "Hosting, related domains, invoices and support remain connected to the same Nisc Cloud account.",
         },
       ]}
@@ -202,7 +202,7 @@ export default function SharedHostingPage() {
         },
       ]}
       pricingNote="Prices are shown in KES or USD based on your location. Easy checkout. 7-day money-back guarantee on new accounts."
-      ctaHeadline="Get Reliable Web Hosting Today"
+      ctaHeadline="Get reliable web hosting today"
       ctaSubtext="Website and email hosting in one package, with CDN, DDoS protection, malware scanning, daily backups and everything managed in nPanel."
       showcaseBlocks={showcaseBlocks}
     />

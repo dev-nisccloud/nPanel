@@ -20,21 +20,21 @@ const defaultFeatures: SecurityFeatureItem[] = [
   },
   {
     icon: Flame,
-    title: "Firewall Helps Prevent Hackers",
+    title: "Firewall helps prevent hackers",
     desc: "Our Web Application Firewall (WAF) protects against security threats, blocks malicious traffic, and prevents future attacks automatically.",
     color: "text-orange-500",
     bg: "bg-orange-500/10",
   },
   {
     icon: ScanLine,
-    title: "Daily Malware Scanning",
+    title: "Daily malware scanning",
     desc: "Your site is scanned up to 4 times daily. If malware is detected, you get instant alerts and our experts remove it fast.",
     color: "text-blue-500",
     bg: "bg-blue-500/10",
   },
   {
     icon: Activity,
-    title: "Continuous Site Monitoring",
+    title: "Continuous site monitoring",
     desc: "We monitor blacklist status, SEO spam injections, SSL changes, and website uptime, then alert you when something needs attention.",
     color: "text-primary",
     bg: "bg-primary/10",
@@ -48,7 +48,7 @@ const defaultFeatures: SecurityFeatureItem[] = [
   },
   {
     icon: Database,
-    title: "Secure Daily Backups",
+    title: "Secure daily backups",
     desc: "Encrypted off-site backups stored daily. If anything goes wrong, restore your site to a clean state in minutes.",
     color: "text-cyan-500",
     bg: "bg-cyan-500/10",
@@ -62,7 +62,7 @@ type SecurityFeaturesProps = {
 };
 
 export default function SecurityFeatures({
-  title = "Everything You Need to Stay Secure",
+  title = "Everything you need to stay secure",
   description = "A complete security setup that helps protect your site before, during, and after an attack.",
   features = defaultFeatures,
 }: SecurityFeaturesProps = {}) {

@@ -218,17 +218,17 @@ export function DomainExtensionsSection() {
   return (
     <section ref={sectionRef} className="max-w-5xl mx-auto px-4 md:px-8 pb-20 pt-4">
       <div className="text-center mb-12">
-        <h2 className="type-h2 mb-3">Every Extension Your Brand Needs</h2>
+        <h2 className="type-h2 mb-3">Every extension your brand needs</h2>
         <p className="text-sm text-muted-foreground max-w-lg mx-auto">
-          Register local and global extensions to protect your brand. Live prices include our retail
-          margin and are shown in KES or USD based on your location.
+          Register local and global extensions to protect your brand. Prices are live and shown in KES or USD
+          based on your location.
         </p>
       </div>
       <div className="grid md:grid-cols-2 gap-6">
         <div className="rounded-2xl border border-border bg-card p-6">
           <div className="flex items-center gap-2 mb-4">
             <Globe size={18} className="text-primary" />
-            <h3 className="type-h3">Local Extensions</h3>
+            <h3 className="type-h3">Local extensions</h3>
           </div>
           <div className="space-y-3">
             {localTlds.map(({ ext, note }) => (
@@ -249,7 +249,7 @@ export function DomainExtensionsSection() {
         <div className="rounded-2xl border border-border bg-card p-6">
           <div className="flex items-center gap-2 mb-4">
             <Globe size={18} className="text-primary" />
-            <h3 className="type-h3">Global Extensions</h3>
+            <h3 className="type-h3">Global extensions</h3>
           </div>
           <div className="grid grid-cols-2 gap-3">
             {globalTlds.map(({ ext }) => (
@@ -277,7 +277,7 @@ export function DomainExtensionsSection() {
           <Package size={18} />
         </div>
         <div>
-          <h4 className="font-bold text-sm mb-1">Protect Your Brand Across Key Extensions</h4>
+          <h4 className="font-bold text-sm mb-1">Protect your brand across key extensions</h4>
           <p className="text-xs text-muted-foreground leading-relaxed">
             Register .co.ke, .com, .ke, and .net together when you want wider name protection. Search
             your name to see availability and the live price for each extension.

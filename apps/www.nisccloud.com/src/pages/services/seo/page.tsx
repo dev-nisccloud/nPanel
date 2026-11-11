@@ -7,7 +7,7 @@ import { SeoStory } from "@/components/artwork/npanel-stories";
 
 const showcaseBlocks: ShowcaseBlock[] = [
   {
-    tag: "Keyword Rank Tracking",
+    tag: "Keyword rank tracking",
     artwork: <SeoStory />,
     caption: false,
     headline: "See which search terms bring people to you",
@@ -21,7 +21,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
     visual: "reporting",
   },
   {
-    tag: "Answer Engine Optimisation",
+    tag: "Answer engine optimisation",
     headline: "Get found in Google, Maps, and AI answers",
     body: "Search is changing. People still use Google, but they also ask AI tools for recommendations. We help your content show up where customers look for answers.",
     bullets: [
@@ -50,7 +50,7 @@ export default function SeoPage() {
   return (
     <ServicePageShell
       badge="SEO Services"
-      headline={<>Help People Find You on <br /><span className="text-primary">Google, Maps & AI Answers</span></>}
+      headline={<>Help people find you on <br /><span className="text-primary">Google, Maps & AI answers</span></>}
       subtext="Build a stronger search foundation across traditional results, answer engines and local discovery. We define the scope, show the work and measure observed performance without promising rankings or AI citations."
       serviceType="marketing"
       plansUnderHero
@@ -67,27 +67,27 @@ export default function SeoPage() {
       features={[
         {
           icon: <Search size={20} />,
-          title: "Technical SEO Audit",
+          title: "Technical SEO audit",
           desc: "Full crawl of your website uncovering speed issues, broken links, duplicate content, crawl errors, and indexation problems that can block search visibility.",
         },
         {
           icon: <FileText size={20} />,
-          title: "Keyword Research & Strategy",
+          title: "Keyword research & strategy",
           desc: "Identify the phrases customers actually search, including local area names and everyday language that generic keyword tools often miss.",
         },
         {
           icon: <TrendingUp size={20} />,
-          title: "On-Page SEO Optimisation",
+          title: "On-page SEO optimisation",
           desc: "Rewrite and optimise title tags, meta descriptions, heading structures, internal linking, and content depth on every key page.",
         },
         {
           icon: <BarChart2 size={20} />,
-          title: "Authority Link Building",
+          title: "Authority link building",
           desc: "Earn high-quality backlinks from news sites, business directories, and industry publications that signal trust to search engines.",
         },
         {
           icon: <Bot size={20} />,
-          title: "Answer Engine Optimisation (AEO)",
+          title: "Answer engine optimisation (AEO)",
           desc: "Optimise your content for ChatGPT, Perplexity, Google AI Overviews, and similar tools so your business can be recommended when people ask questions.",
         },
         {
@@ -97,26 +97,26 @@ export default function SeoPage() {
         },
         {
           icon: <Globe size={20} />,
-          title: "SEO Content Marketing",
+          title: "SEO content marketing",
           desc: "Monthly blog articles, landing pages, and thought leadership content targeting real search intent. Every piece is researched and written to help people find and trust you.",
         },
         {
           icon: <Zap size={20} />,
-          title: "Core Web Vitals & Page Speed",
+          title: "Core Web Vitals & page speed",
           desc: "Improve LCP, CLS, and INP to meet page experience requirements. This matters especially for mobile visitors on everyday connections.",
         },
       ]}
       process={[
-        { num: "01", title: "Audit & Research", desc: "Complete technical SEO audit, competitor analysis, and keyword research to identify the fastest useful path to better visibility." },
-        { num: "02", title: "On-Page Foundation", desc: "Fix technical issues, optimise existing pages, and implement the keyword strategy across your site structure, content, and metadata." },
-        { num: "03", title: "Authority Building", desc: "Publish useful content, earn credible backlinks, and strengthen your Google Business Profile presence for local searches." },
-        { num: "04", title: "Monitor, Report & Scale", desc: "Monthly rank tracking, traffic analysis, and continuous optimisation. Clear reporting and strategy adjustments based on what is working." },
+        { num: "01", title: "Audit & research", desc: "Complete technical SEO audit, competitor analysis, and keyword research to identify the fastest useful path to better visibility." },
+        { num: "02", title: "On-page foundation", desc: "Fix technical issues, optimise existing pages, and implement the keyword strategy across your site structure, content, and metadata." },
+        { num: "03", title: "Authority building", desc: "Publish useful content, earn credible backlinks, and strengthen your Google Business Profile presence for local searches." },
+        { num: "04", title: "Monitor, report & scale", desc: "Monthly rank tracking, traffic analysis, and continuous optimisation. Clear reporting and strategy adjustments based on what is working." },
       ]}
       whyPoints={[
-        { title: "One Search Foundation", desc: "Technical health, useful answers and accurate business information support traditional search, answer engines and local discovery.", visual: "maps" },
-        { title: "Work Prioritised by Intent", desc: "We connect search demand to the pages and customer actions that matter instead of chasing keywords in isolation.", visual: "localMarket" },
-        { title: "Evidence Before Expansion", desc: "Reporting separates activity, visibility, traffic and conversion signals so the next priorities are based on observed performance.", visual: "reporting" },
-        { title: "No Black-Hat Tricks", desc: "We build visibility that can survive algorithm updates. No spam links, no keyword stuffing. Only strategies that compound over time.", visual: "ethical" },
+        { title: "One search foundation", desc: "Technical health, useful answers and accurate business information support traditional search, answer engines and local discovery.", visual: "maps" },
+        { title: "Work prioritised by intent", desc: "We connect search demand to the pages and customer actions that matter instead of chasing keywords in isolation.", visual: "localMarket" },
+        { title: "Evidence before expansion", desc: "Reporting separates activity, visibility, traffic and conversion signals so the next priorities are based on observed performance.", visual: "reporting" },
+        { title: "No black-hat tricks", desc: "We build visibility that can survive algorithm updates. No spam links, no keyword stuffing. Only strategies that compound over time.", visual: "ethical" },
       ]}
       faqs={[
         { q: "How long before I see better visibility on Google?", a: "Timing depends on the site, competition, technical issues, content and search demand. We establish a baseline, report observed changes and adjust priorities over time rather than promise a fixed result date." },
@@ -126,7 +126,7 @@ export default function SeoPage() {
         { q: "Do you do SEO for businesses outside major cities?", a: "Yes. We manage local SEO across Kenya, including multi-location work on our Enterprise plan." },
         { q: "How much does SEO cost?", a: "Our live pricing table above shows current plans in KES, typically with monthly or annual billing. Contact us for custom packages across multiple locations or industries." },
       ]}
-      ctaHeadline="Start Getting Found Where Customers Search"
+      ctaHeadline="Start getting found where customers search"
       ctaSubtext="Start with a review of your current search foundation, buyer questions and measurement needs. We will recommend a scoped next step."
       pricingNote="Monthly retainer. Prices are shown in KES or USD based on your location. 3-month minimum for meaningful results."
       showcaseBlocks={showcaseBlocks}

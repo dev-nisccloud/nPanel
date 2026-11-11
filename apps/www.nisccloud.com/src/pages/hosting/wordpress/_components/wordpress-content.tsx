@@ -70,7 +70,7 @@ export function WordPressComparison() {
         highlight={0}
         links
         columns={[
-          { title: "Managed WordPress Hosting", href: "#plans" },
+          { title: "Managed WordPress hosting", href: "#plans" },
           { title: "Web Hosting", href: "/hosting/web-hosting" },
           { title: "VPS Servers", href: "/hosting/vps" },
         ]}

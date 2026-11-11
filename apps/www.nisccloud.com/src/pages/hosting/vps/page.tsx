@@ -56,7 +56,7 @@ export default function VpsHostingPage() {
       features={[
         {
           icon: <KeyRound size={20} />,
-          title: "Full Root Access and SSH Keys",
+          title: "Full root access and SSH keys",
           desc: "Sign in as root with your SSH key and configure the server exactly as your project needs.",
         },
         {
@@ -71,17 +71,17 @@ export default function VpsHostingPage() {
         },
         {
           icon: <Archive size={20} />,
-          title: "Backups Included",
+          title: "Backups included",
           desc: "Backups come with every plan. Keep your own copies of critical data as well.",
         },
         {
           icon: <Globe size={20} />,
-          title: "Dedicated IPv4 Address",
+          title: "Dedicated IPv4 address",
           desc: "Your server gets its own public IPv4 address to point your domains and services at.",
         },
         {
           icon: <Network size={20} />,
-          title: "10TB Bandwidth on a 1Gbps Port",
+          title: "10TB bandwidth on a 1Gbps port",
           desc: "Every size includes 10TB of monthly data transfer on a 1Gbps network port.",
         },
       ]}
@@ -89,16 +89,16 @@ export default function VpsHostingPage() {
       customPlansSection={<VpsPlansSection />}
       plans={[]}
       process={[
-        { num: "01", title: "Choose a Size and Location", desc: "Compare sizes by cores and memory, and pick a server location on the card." },
-        { num: "02", title: "Pick Your Operating System", desc: "Choose a Linux distribution or Windows Server and add your SSH public key." },
-        { num: "03", title: "Sign In and Set Up", desc: "Connect over SSH as root, update the system and install your stack." },
-        { num: "04", title: "Grow When You Need To", desc: "Move to a larger VPS, a VDS or a dedicated server as your workload grows." },
+        { num: "01", title: "Choose a size and location", desc: "Compare sizes by cores and memory, and pick a server location on the card." },
+        { num: "02", title: "Pick your operating system", desc: "Choose a Linux distribution or Windows Server and add your SSH public key." },
+        { num: "03", title: "Sign in and set up", desc: "Connect over SSH as root, update the system and install your stack." },
+        { num: "04", title: "Grow when you need to", desc: "Move to a larger VPS, a VDS or a dedicated server as your workload grows." },
       ]}
       whyPoints={[
-        { title: "Control Web Hosting Cannot Give", visual: "code", desc: "Install any software, run background jobs and open the ports your project needs." },
-        { title: "Protected From Day One", visual: "security", desc: "DDoS protection and backups are included on every size." },
-        { title: "A Clear Path Up", visual: "growth", desc: "Start small, then move to a larger VPS, a VDS or dedicated hardware without changing provider." },
-        { title: "One Account for Everything", visual: "integrate", desc: "Your servers sit in nPanel with your domains, email and invoices." },
+        { title: "Control web hosting cannot give", visual: "code", desc: "Install any software, run background jobs and open the ports your project needs." },
+        { title: "Protected from day one", visual: "security", desc: "DDoS protection and backups are included on every size." },
+        { title: "A clear path up", visual: "growth", desc: "Start small, then move to a larger VPS, a VDS or dedicated hardware without changing provider." },
+        { title: "One account for everything", visual: "integrate", desc: "Your servers sit in nPanel with your domains, email and invoices." },
       ]}
       whySectionHeadline="Why developers and businesses choose a Nisc Cloud VPS"
       whySectionVariant="simple"

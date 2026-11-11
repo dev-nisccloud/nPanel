@@ -51,17 +51,17 @@ export default function EmailHostingPage() {
       features={[
         {
           icon: <AtSign size={20} />,
-          title: "Email on Your Own Domain",
+          title: "Email on your own domain",
           desc: "Addresses like info@, sales@ and your own name at yourbusiness.co.ke, created from your nPanel account.",
         },
         {
           icon: <Sparkles size={20} />,
-          title: "AI Writing Assistant",
+          title: "AI writing assistant",
           desc: "In the Nisc Mail client, AI drafts replies, helps you write new messages and summarises long threads. You approve every message.",
         },
         {
           icon: <Shield size={20} />,
-          title: "Spam, Virus and Phishing Filtering",
+          title: "Spam, virus and phishing filtering",
           desc: "Multi-layer filtering checks incoming mail for spam, phishing and malicious attachments before it reaches your team.",
         },
         {
@@ -71,22 +71,22 @@ export default function EmailHostingPage() {
         },
         {
           icon: <MonitorSmartphone size={20} />,
-          title: "Outlook, Thunderbird and Phone Apps",
+          title: "Outlook, Thunderbird and phone apps",
           desc: "IMAP, POP and secure SMTP work with Outlook, Thunderbird and phone mail apps. IMAP keeps folders in step on every device.",
         },
         {
           icon: <Forward size={20} />,
-          title: "Aliases and Forwarding",
+          title: "Aliases and forwarding",
           desc: "Point info@ or sales@ at the right people, and forward mail where it needs to go, on every plan.",
         },
         {
           icon: <Archive size={20} />,
-          title: "Daily Backups",
+          title: "Daily backups",
           desc: "Mail is backed up daily. Contact support to check whether a particular message or mailbox can be restored.",
         },
         {
           icon: <Mail size={20} />,
-          title: "Free Migration From Your Current Provider",
+          title: "Free migration from your current provider",
           desc: "We move your existing mailboxes free of charge, after confirming access, mailbox volume and the switch-over date with you.",
         },
       ]}
@@ -95,43 +95,43 @@ export default function EmailHostingPage() {
       process={[
         {
           num: "01",
-          title: "Choose Your Plan",
+          title: "Choose your plan",
           desc: "Pick a plan by how many mailboxes and how much storage your team needs, and move up as you grow.",
         },
         {
           num: "02",
-          title: "Connect Your Domain",
+          title: "Connect your domain",
           desc: "Point your domain's MX record to Nisc Mail. We send step-by-step instructions, or set it up for you.",
         },
         {
           num: "03",
-          title: "Create Your Mailboxes",
+          title: "Create your mailboxes",
           desc: "Create mailboxes up to your plan's limit, then add aliases and forwarding.",
         },
         {
           num: "04",
-          title: "Sign In on Your Devices",
+          title: "Sign in on your devices",
           desc: "Use the Nisc Mail client, or add the account to Outlook, Thunderbird or your phone with our setup guides.",
         },
       ]}
       whyPoints={[
         {
-          title: "Look Established From the First Email",
+          title: "Look established from the first email",
           visual: "brand",
           desc: "A quote from sales@yourbusiness.co.ke earns more trust than the same quote from a free Gmail or Yahoo address.",
         },
         {
-          title: "Mailboxes Stay With the Business",
+          title: "Mailboxes stay with the business",
           visual: "security",
           desc: "When someone leaves, their mailbox and customer conversations stay with you, ready to forward or reassign.",
         },
         {
-          title: "Grows With Your Team",
+          title: "Grows with your team",
           visual: "growth",
           desc: "Add mailboxes up to your plan's limit from nPanel, and move up a plan without changing provider.",
         },
         {
-          title: "Help With the Fiddly Parts",
+          title: "Help with the fiddly parts",
           visual: "support",
           desc: "Domain records, aliases, forwarding or device setup: our team helps you get it right.",
         },

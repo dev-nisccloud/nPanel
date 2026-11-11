@@ -92,42 +92,42 @@ const emailPlans: OrderPlan[] = [
 const emailFeatures = [
   {
     icon: Ban,
-    title: "Spam and Junk Filtering",
+    title: "Spam and junk filtering",
     desc: "Filter bulk spam and unwanted newsletters so your team spends less time on inbox cleanup and more time on customer and partner messages.",
     color: "text-orange-500",
     bg: "bg-orange-500/10",
   },
   {
     icon: MailWarning,
-    title: "Phishing and Spoof Defence",
+    title: "Phishing and spoof defence",
     desc: "Identify suspicious invoices, credential-harvesting links, and lookalike domains for filtering or quarantine. Strengthen domain authentication with SPF, DKIM, and DMARC.",
     color: "text-red-500",
     bg: "bg-red-500/10",
   },
   {
     icon: ScanLine,
-    title: "Malware Attachment Scanning",
+    title: "Malware attachment scanning",
     desc: "Inspect supported attachment types for known trojans, malicious macros, and ransomware indicators. Suspected files can be blocked or isolated for review.",
     color: "text-blue-500",
     bg: "bg-blue-500/10",
   },
   {
     icon: Lock,
-    title: "Encrypted Message Transport",
+    title: "Encrypted message transport",
     desc: "Enforce TLS where supported so messages travel encrypted between servers, reducing eavesdropping risk on the public internet.",
     color: "text-emerald-500",
     bg: "bg-emerald-500/10",
   },
   {
     icon: Inbox,
-    title: "Quarantine You Control",
+    title: "Quarantine you control",
     desc: "Review held messages, release false positives, and whitelist trusted senders from a simple portal without waiting on IT tickets.",
     color: "text-primary",
     bg: "bg-primary/10",
   },
   {
     icon: ShieldCheck,
-    title: "Business Email Compromise Alerts",
+    title: "Business email compromise alerts",
     desc: "Flag unusual CEO/finance impersonation patterns and sudden rule changes that often signal account takeover attempts.",
     color: "text-cyan-500",
     bg: "bg-cyan-500/10",
@@ -167,11 +167,11 @@ export default function EmailSecurityPage() {
         sectionId="email-security-plans"
         plans={emailPlans}
         serviceName="Email Security"
-        title="Choose Your Email Protection"
+        title="Choose your email protection"
         subtitle="Designed for supported Microsoft 365, Google Workspace, and hosted business email configurations."
       />
       <SecurityFeatures
-        title="Inbox Protection for Real Attack Paths"
+        title="Inbox protection for real attack paths"
         description="Layered email security designed for Kenyan businesses that rely on email for invoices, approvals, and customer support."
         features={emailFeatures}
       />
@@ -181,7 +181,7 @@ export default function EmailSecurityPage() {
       />
       <ClosingCta
         eyebrow="Stay protected"
-        headline="Protect Every Mailbox Your Business Depends On"
+        headline="Protect every mailbox your business depends on"
         subtext="Add managed spam filtering, anti-phishing, malware scanning, and domain authentication to reduce the risk that one malicious email disrupts your company."
         primary={{ label: "View Email Security Plans", href: "#email-security-plans" }}
         secondary={{ label: "Talk to an Expert", href: "/contact" }}

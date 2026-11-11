@@ -19,9 +19,9 @@ type SecurityHeroProps = {
 export default function SecurityHero({
   title = (
     <>
-      Keep Your Website
+      Keep your website
       {" "}<br />
-      <span className="text-primary">Safe and Online</span>
+      <span className="text-primary">safe and online</span>
     </>
   ),
   description = "SSL certificates, malware scanning, firewall protection, and daily backups, managed by our security team so you can focus on your business.",

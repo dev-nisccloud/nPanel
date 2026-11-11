@@ -4,25 +4,25 @@ import { ShowcaseVisualCard } from "@/pages/_components/ServiceShowcaseSection.t
 const milestones = [
   {
     year: "2019",
-    title: "Nisc Cloud Begins",
+    title: "Nisc Cloud begins",
     description:
       "Nisc Cloud started with a practical goal: give businesses reliable technology and a team that takes responsibility for getting the work done.",
   },
   {
     year: "Build",
-    title: "Make Ideas Real",
+    title: "Make ideas real",
     description:
       "We help businesses shape their brand, launch websites and ecommerce experiences, and build software around the way they work.",
   },
   {
     year: "Run",
-    title: "Keep Business Moving",
+    title: "Keep business moving",
     description:
       "Domains, hosting, email, servers and security keep the digital operation available, connected and supported through nPanel.",
   },
   {
     year: "Grow",
-    title: "Support Sustainable Growth",
+    title: "Support sustainable growth",
     description:
       "Marketing and automation support the same journey. Today, Nisc Cloud serves thousands of customers while keeping one accountable team across Build, Run and Grow.",
   },
