@@ -185,10 +185,10 @@ function Block({ block, index }: { block: ShowcaseBlock; index: number }) {
 
   const text = (
     <div className="flex flex-col justify-center">
-      <h3 className="mb-4 type-h3">
+      <h3 className="type-h2 mb-4 text-balance">
         {block.headline}
       </h3>
-      <p className="mb-6 text-base leading-relaxed text-muted-foreground md:text-lg">
+      <p className="mb-6 text-base leading-relaxed text-muted-foreground">
         {block.body}
       </p>
       <ul className="space-y-2.5">

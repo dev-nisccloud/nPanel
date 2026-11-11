@@ -548,7 +548,7 @@ function DomainUpsellInner({
     <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
       <div className="flex items-center gap-2 mb-1">
         <Search className="w-5 h-5 text-muted-foreground" />
-        <h3 className="text-base font-bold text-foreground">
+        <h3 className="type-h3 text-foreground">
           {required ? "Domain required" : "Secure your domain"}
         </h3>
         {required && (

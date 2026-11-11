@@ -1,4 +1,4 @@
-﻿import * as React from "react";
+import * as React from "react";
 import { Check, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
@@ -367,7 +367,7 @@ export function HostingUpsell({
 
   return (
     <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
-      <h3 className="text-base font-bold text-foreground mb-1">
+      <h3 className="type-h3 text-foreground mb-1">
         Turn your domain into a website
       </h3>
       <p className="text-sm text-muted-foreground mb-4">

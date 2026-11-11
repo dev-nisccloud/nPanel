@@ -299,7 +299,7 @@ export function HivelocityConfigStep({ config, onChange, onPricingContext }: Hiv
     <div className="space-y-4">
       <div className="bg-card border border-border rounded-2xl p-5 shadow-sm space-y-4">
         <div>
-          <h2 className="text-base font-bold text-foreground">Operating system</h2>
+          <h2 className="type-h3 text-foreground">Operating system</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
             Choose one OS for your server. Your choice determines which apps and control panels are
             available below.
@@ -352,7 +352,7 @@ export function HivelocityConfigStep({ config, onChange, onPricingContext }: Hiv
       {Object.keys(displayAddonGroups).length > 0 && (
         <div className="bg-card border border-border rounded-2xl p-5 shadow-sm space-y-3">
           <div>
-            <h2 className="text-base font-bold text-foreground">Add-ons</h2>
+            <h2 className="type-h3 text-foreground">Add-ons</h2>
             <p className="text-sm text-muted-foreground mt-0.5">
               Optional extras  availability depends on your selected operating system.
             </p>

@@ -175,7 +175,7 @@ export function OrderSummary({
   return (
     <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
       <div className="px-5 pt-5 pb-4 border-b border-border">
-        <h2 className="text-base font-bold text-foreground">Order summary</h2>
+        <h2 className="type-h3 text-foreground">Order summary</h2>
       </div>
 
       <div className="px-5 py-4 space-y-3">

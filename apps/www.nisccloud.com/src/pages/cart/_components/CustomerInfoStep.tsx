@@ -156,7 +156,7 @@ function StepHeader({
         <ArrowLeft className="w-4 h-4" />
       </button>
       <div>
-        <h2 className="text-lg font-bold text-foreground">{title}</h2>
+        <h2 className="type-h3 text-foreground">{title}</h2>
         <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>
       </div>
     </div>

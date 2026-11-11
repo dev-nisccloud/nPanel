@@ -1,4 +1,4 @@
-﻿import {
+import {
   Globe, Mail, BarChart2, Palette, Monitor, Zap, ShoppingBag,
   Megaphone, Trash2, Check,
 } from "lucide-react";
@@ -240,7 +240,7 @@ export function CartItem({ item, onBillingCycleChange, onRemove }: CartItemProps
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
                 {item.productName}
               </p>
-              <h3 className="text-base font-bold text-foreground mt-0.5 leading-tight">
+              <h3 className="type-h3 text-foreground mt-0.5">
                 {item.planName}
               </h3>
             </div>

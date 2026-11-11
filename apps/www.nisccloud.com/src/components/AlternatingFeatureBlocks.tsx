@@ -45,15 +45,15 @@ export default function AlternatingFeatureBlocks({ items }: Props) {
                 {item.tag}
               </span>
             ) : null}
-            <h3 className="mb-4 type-h3">
+            <h3 className="type-h2 mb-4 text-balance">
               {item.headline}
             </h3>
-            <p className="mb-6 text-[15px] leading-relaxed text-muted-foreground">
+            <p className="mb-6 text-base leading-relaxed text-muted-foreground">
               {item.description}
             </p>
             <ul className="space-y-2.5">
               {item.bullets.map((b) => (
-                <li key={b} className="flex items-start gap-3 text-sm text-muted-foreground">
+                <li key={b} className="flex items-start gap-3 text-base text-muted-foreground">
                   <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-primary" />
                   {b}
                 </li>

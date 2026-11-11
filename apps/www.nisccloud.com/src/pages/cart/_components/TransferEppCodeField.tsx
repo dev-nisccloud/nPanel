@@ -20,7 +20,7 @@ export function TransferEppCodeField({ domain, value, onChange }: TransferEppCod
           <Key className="h-5 w-5" />
         </div>
         <div>
-          <h3 className="text-base font-bold text-foreground">Authorization code (EPP code)</h3>
+          <h3 className="type-h3 text-foreground">Authorization code (EPP code)</h3>
           <p className="mt-0.5 text-sm text-muted-foreground">
             Required to transfer <span className="font-medium text-foreground">{domain}</span>. Get this code
             from your current registrar.

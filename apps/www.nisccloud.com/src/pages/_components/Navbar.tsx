@@ -311,7 +311,7 @@ function MegaDropdown({
           >
             <span className="mt-0.5 text-primary shrink-0">{child.icon}</span>
             <span>
-              <span className="block text-sm font-semibold text-foreground group-hover:text-primary transition-colors leading-snug">
+              <span className="block text-sm font-medium text-foreground group-hover:text-primary transition-colors leading-snug">
                 {child.label}
               </span>
               <span className="block text-xs text-muted-foreground mt-0.5 leading-snug">

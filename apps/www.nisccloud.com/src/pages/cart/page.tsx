@@ -139,7 +139,7 @@ function EmptyCart() {
   return (
     <div className="flex flex-col items-center justify-center pt-24 md:pt-28 pb-24 text-center px-4">
       <ShoppingCart className="w-12 h-12 text-muted-foreground/40 mb-4" />
-      <h1 className="text-xl font-bold text-foreground mb-2">Your cart is empty</h1>
+      <h1 className="type-h1 text-foreground mb-2">Your cart is empty</h1>
       <p className="text-muted-foreground mb-6 max-w-xs">
         Browse our services and select a plan to get started.
       </p>
@@ -960,7 +960,7 @@ export default function CartPage() {
         </div>
 
         {/* Page title */}
-        <h1 className="text-2xl font-bold text-foreground mb-6">
+        <h1 className="type-h1 text-foreground mb-6">
           {step === 1 ? "Your cart" : "Your details"}
         </h1>
 
