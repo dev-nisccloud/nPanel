@@ -170,7 +170,7 @@ export default function DashboardPreview() {
                 <current.icon size={12} />
                 {current.label.toUpperCase()}
               </div>
-              <h3 className="type-h3">{current.headline}</h3>
+              <h3 className="type-h2 text-balance">{current.headline}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">{current.desc}</p>
               <ul className="space-y-2.5">
                 {current.points.map((p) => (

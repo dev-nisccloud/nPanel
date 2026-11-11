@@ -107,7 +107,7 @@ export function EnquiryPanel({ title, body, points, serviceName, cta }: EnquiryP
       <div className="grid gap-8 p-7 md:grid-cols-[minmax(0,1fr)_auto] md:items-end md:p-9">
         <div>
           <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-primary">Custom pricing</p>
-          <h3 className="mt-2 type-h3">{title}</h3>
+          <h3 className="type-h2 mt-2 text-balance">{title}</h3>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/70 md:text-base">{body}</p>
           <ul className="mt-6 grid gap-2.5 text-sm sm:grid-cols-3">
             {points.map((point) => (
