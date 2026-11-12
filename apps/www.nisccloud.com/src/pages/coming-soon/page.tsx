@@ -31,7 +31,7 @@ export default function ComingSoonPage() {
           Coming soon
         </p>
 
-        <h1 className="mt-5 max-w-md text-[1.75rem] font-medium leading-snug tracking-tight sm:text-4xl sm:leading-[1.2]">
+        <h1 className="type-h1 mt-5 max-w-md">
           Transforming businesses to stand out and succeed.
         </h1>
 

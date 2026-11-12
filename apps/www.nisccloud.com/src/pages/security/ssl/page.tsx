@@ -1,4 +1,5 @@
 import Navbar from "@/pages/_components/Navbar.tsx";
+import { SSL_PLANS } from "@/lib/service-packages.ts";
 import Footer from "@/pages/_components/Footer.tsx";
 import SecurityHero from "../_components/SecurityHero.tsx";
 import SecurityMacbookSection from "../_components/SecurityMacbookSection.tsx";
@@ -8,7 +9,6 @@ import SecurityCTA from "../_components/SecurityCTA.tsx";
 import SecurityDashboardScreen from "../_components/SecurityDashboardScreen.tsx";
 import FaqBlock from "@/components/shadcn-space/blocks/faq-01/faq.tsx";
 import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
-import type { OrderPlan } from "@/pages/hosting/_components/OrderDialog.tsx";
 import {
   Lock,
   ShieldCheck,
@@ -28,6 +28,11 @@ const sslFaqs = [
     question: "What is the difference between DV, OV, and EV SSL?",
     answer:
       "DV (Domain Validation) proves you control the domain and issues fastest. OV (Organisation Validation) also verifies your business identity. EV (Extended Validation) is the strongest validation level for high-trust sites like e-commerce and finance. Most brochure sites start with DV; growing businesses often choose OV.",
+  },
+  {
+    question: "Which certificate authority issues your SSL certificates?",
+    answer:
+      "All SSL certificates sold by Nisc Cloud are issued by Sectigo. You choose the validation level and coverage; we handle the order, validation guidance and installation.",
   },
   {
     question: "Does SSL improve SEO?",
@@ -56,91 +61,47 @@ const sslFaqs = [
   },
 ];
 
-const sslPlans: OrderPlan[] = [
-  {
-    id: "ssl-dv",
-    name: "Domain Validation (DV)",
-    price: 1500,
-    period: "yr",
-    features: [
-      "Single domain protection",
-      "256-bit encryption",
-      "Issued in under 1 hour",
-      "Free installation support",
-      "Browser padlock & HTTPS",
-      "Google SEO support",
-      "KES 500,000 warranty",
-    ],
-  },
-  {
-    id: "ssl-ov",
-    name: "Organisation Validation (OV)",
-    price: 3500,
-    period: "yr",
-    features: [
-      "Everything in DV",
-      "Business identity verified",
-      "Company name in certificate details",
-      "Issued in 1–3 business days",
-      "KES 1,500,000 warranty",
-      "Wildcard option available",
-    ],
-  },
-  {
-    id: "ssl-ev",
-    name: "Extended Validation (EV)",
-    price: 8000,
-    period: "yr",
-    features: [
-      "Highest trust validation level",
-      "Ideal for e-commerce & fintech",
-      "Issued in 3–5 business days",
-      "KES 5,000,000 warranty",
-      "Dedicated validation support",
-      "Free installation & HTTPS hardening",
-    ],
-  },
-];
+const sslPlans = SSL_PLANS;
 
 const sslFeatures = [
   {
     icon: Lock,
-    title: "256-Bit Encryption",
+    title: "256-bit encryption",
     desc: "Industry-standard AES encryption protects passwords, payment details, and form data in transit between browsers and your server.",
     color: "text-emerald-500",
     bg: "bg-emerald-500/10",
   },
   {
     icon: ShieldCheck,
-    title: "Browser Trust Padlock",
+    title: "Browser trust padlock",
     desc: "Remove Not Secure warnings in Chrome, Firefox, Safari, and Edge. Show visitors the padlock that signals a safe connection.",
     color: "text-blue-500",
     bg: "bg-blue-500/10",
   },
   {
     icon: Globe,
-    title: "SEO Ranking Support",
+    title: "SEO ranking support",
     desc: "HTTPS is a confirmed Google ranking signal. Secure sites avoid warning-driven bounce rates that damage search performance.",
-    color: "text-violet-500",
-    bg: "bg-violet-500/10",
+    color: "text-brand-orange",
+    bg: "bg-brand-orange/10",
   },
   {
     icon: Award,
-    title: "Trusted Certificate Authorities",
-    desc: "Certificates issued by globally recognised CAs, compatible with virtually all browsers, mobile devices, and payment gateways.",
+    title: "Issued by Sectigo",
+    desc: "Every certificate we sell is issued by Sectigo, a globally recognised certificate authority trusted by major browsers and devices.",
     color: "text-orange-500",
     bg: "bg-orange-500/10",
   },
   {
     icon: Zap,
-    title: "Fast Issuance and Setup",
+    title: "Fast issuance and setup",
     desc: "DV certificates often issue in under an hour. Our team installs, enforces HTTPS, and clears mixed-content issues for you.",
     color: "text-cyan-500",
     bg: "bg-cyan-500/10",
   },
   {
     icon: CheckCircle,
-    title: "Wildcard and Multi-Domain Options",
+    title: "Wildcard and multi-domain options",
     desc: "Secure unlimited first-level subdomains with Wildcard, or cover several domains with one Multi-Domain (SAN) certificate.",
     color: "text-red-500",
     bg: "bg-red-500/10",
@@ -151,15 +112,16 @@ export default function SslCertificatePage() {
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       <Navbar />
+      <main id="main-content">
       <SecurityHero
         title={
           <>
             Get the HTTPS Padlock
-            <br />
+            {" "}<br />
             <span className="text-primary">Visitors Trust</span>
           </>
         }
-        description="SSL certificates encrypt customer data, remove Not Secure browser warnings, and support stronger Google rankings. Free installation on every plan so HTTPS works the first time."
+        description="Sectigo SSL certificates encrypt customer data, remove Not Secure browser warnings, and support stronger Google rankings. Free installation on every plan so HTTPS works the first time."
         imageSrc={niscWebsiteImage("website security.png")}
         imageAlt="SSL Certificate and HTTPS padlock for websites"
         plansId="ssl-certificate-plans"
@@ -168,7 +130,7 @@ export default function SslCertificatePage() {
         title={
           <>
             Encryption status,
-            <br />
+            {" "}<br />
             <span className="text-primary">always visible</span>
           </>
         }
@@ -180,11 +142,11 @@ export default function SslCertificatePage() {
         sectionId="ssl-certificate-plans"
         plans={sslPlans}
         serviceName="SSL Certificate"
-        title="Choose Your SSL Certificate"
-        subtitle="Prices are per year. Free installation included. Multi-year discounts available."
+        title="Choose your SSL certificate"
+        subtitle="Prices are per year, excluding VAT. Free installation included."
       />
       <SecurityFeatures
-        title="Everything You Need for Trusted HTTPS"
+        title="Everything you need for trusted HTTPS"
         description="From first issuance to renewal reminders, we help Kenyan businesses keep the padlock on and customer data encrypted."
         features={sslFeatures}
       />
@@ -193,12 +155,13 @@ export default function SslCertificatePage() {
         title="Everything you need to know about SSL certificates"
       />
       <SecurityCTA
-        title="Secure Your Website With a Trusted SSL Certificate"
+        title="Secure your website with a trusted SSL certificate"
         description="Encrypt traffic, earn the browser padlock, and protect checkout and login forms with DV, OV, or EV certificates installed by our team."
         ctaLabel="View SSL Plans"
         plansId="ssl-certificate-plans"
         footnote="Free installation on all plans. Expiry reminders included."
       />
+      </main>
       <Footer />
     </div>
   );

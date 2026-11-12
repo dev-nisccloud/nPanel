@@ -1,4 +1,3 @@
-import { Mail, Server, Zap } from "lucide-react";
 import {
   fetchEmailHostingPlansPublic,
   fetchSharedHostingPlansPublic,
@@ -9,10 +8,19 @@ import type { HostingPlansPricingConfig } from "./HostingPlansPricingSection.tsx
 export const SHARED_HOSTING_PRICING_CONFIG: HostingPlansPricingConfig = {
   sectionId: "plans",
   title: "Choose Your Hosting Plan",
+  description:
+    "Host business websites and email in one package on NVMe SSD storage, with security, backups and hosting tools managed in nPanel.",
+  everyPlanIncludes: [
+    "Email hosting",
+    "Free SSL",
+    "CDN",
+    "DDoS protection",
+    "Malware & antivirus scanning",
+    "Daily backups",
+    "SSH & command-line access",
+  ],
   serviceType: "web_hosting",
   fetchPlans: fetchSharedHostingPlansPublic,
-  planIcon: Server,
-  highlightBadge: "NVMe SSD",
   fallbackFeatures: [
     {
       label: "Websites",
@@ -27,7 +35,7 @@ export const SHARED_HOSTING_PRICING_CONFIG: HostingPlansPricingConfig = {
     {
       label: "Backups",
       value: "Daily automated backups",
-      description: "Automated daily backups with one-click restore from cPanel.",
+      description: "Automated daily backups with restore access through your managed hosting tools.",
     },
   ],
 };
@@ -35,10 +43,21 @@ export const SHARED_HOSTING_PRICING_CONFIG: HostingPlansPricingConfig = {
 export const WORDPRESS_HOSTING_PRICING_CONFIG: HostingPlansPricingConfig = {
   sectionId: "plans",
   title: "Choose Your WordPress Plan",
+  description:
+    "Managed WordPress hosting on NVMe storage with LiteSpeed cache, automatic WordPress updates, daily backups and security managed in nPanel.",
+  everyPlanIncludes: [
+    "Email hosting",
+    "Free SSL",
+    "Free CDN",
+    "DDoS protection",
+    "Daily backups",
+    "Malware scanning & removal",
+    "Automatic WordPress updates",
+    "LiteSpeed cache",
+    "WP-CLI, SSH & SFTP",
+  ],
   serviceType: "wordpress_hosting",
   fetchPlans: fetchWordPressHostingPlansPublic,
-  planIcon: Zap,
-  highlightBadge: "WP Optimised",
   fallbackFeatures: [
     {
       label: "WordPress Sites",
@@ -68,8 +87,19 @@ export const EMAIL_HOSTING_PRICING_CONFIG: HostingPlansPricingConfig = {
   title: "Choose Your Business Email Plan",
   serviceType: "email_hosting",
   fetchPlans: fetchEmailHostingPlansPublic,
-  planIcon: Mail,
-  highlightBadge: "DKIM Ready",
+  description:
+    "Business email on your own domain with AI writing help, spam and phishing filtering and daily backups. Pick a plan by how many mailboxes your team needs.",
+  everyPlanIncludes: [
+    "Email on your own domain",
+    "AI writing assistant",
+    "Spam, virus & phishing filtering",
+    "DKIM, SPF & DMARC set up for you",
+    "IMAP, POP & SMTP for Outlook and phones",
+    "Aliases & forwarding",
+    "Daily backups",
+    "Free migration",
+    "99.9% uptime target",
+  ],
   fallbackFeatures: [
     {
       label: "Mailboxes",
@@ -87,9 +117,9 @@ export const EMAIL_HOSTING_PRICING_CONFIG: HostingPlansPricingConfig = {
       description: "Authentication records to improve deliverability and reduce spoofing.",
     },
     {
-      label: "Webmail",
-      value: "Access anywhere",
-      description: "Use webmail or connect Outlook, Apple Mail, and mobile apps via IMAP/SMTP.",
+      label: "Email clients",
+      value: "Phone and desktop",
+      description: "Use the Nisc Mail client or connect Outlook, Apple Mail and mobile apps over IMAP/SMTP.",
     },
   ],
 };

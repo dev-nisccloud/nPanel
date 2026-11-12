@@ -14,6 +14,8 @@ import {
 export const storefrontCartQuoteRequestSchema = z
 	.object({
 		handoff: z.string().min(1).optional(),
+		currency: z.enum(["KES", "USD"]).default("KES"),
+		billingCountry: z.string().length(2).optional(),
 		main: storefrontCartMainLineSchema.partial().optional(),
 		transferAuthCode: storefrontCartQuoteInputSchema.shape.transferAuthCode,
 		upsellDomain: storefrontCartQuoteInputSchema.shape.upsellDomain,
@@ -67,6 +69,8 @@ export function resolveStorefrontCartQuoteInput(
 		}
 
 		return storefrontCartQuoteInputSchema.parse({
+			currency: input.currency,
+			billingCountry: input.billingCountry,
 			main: mergedMain,
 			transferAuthCode: input.transferAuthCode,
 			upsellDomain: input.upsellDomain,
@@ -76,6 +80,8 @@ export function resolveStorefrontCartQuoteInput(
 	}
 
 	return storefrontCartQuoteInputSchema.parse({
+		currency: input.currency,
+		billingCountry: input.billingCountry,
 		main: input.main,
 		transferAuthCode: input.transferAuthCode,
 		upsellDomain: input.upsellDomain,

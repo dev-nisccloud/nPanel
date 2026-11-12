@@ -78,12 +78,25 @@ export function agreedPriceIncVatFromExVat(
   return paymentTotalString(computeCeilVatTotals(n, vatRate).totalIncVat);
 }
 
-/** agreedPrice from an order line (ex-VAT subtotal preferred). */
+function explicitAgreedPrice(metadata: unknown): string | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  const raw = (metadata as Record<string, unknown>).actualPlanPrice;
+  const amount = typeof raw === "number" ? raw : Number.parseFloat(String(raw ?? ""));
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+  return paymentTotalString(amount);
+}
+
+/**
+ * agreedPrice from an order line.
+ * actualPlanPrice is the price chosen at checkout (catalog or an override) and is saved as-is.
+ * Otherwise the price is the line ex-VAT plus ceil VAT.
+ */
 export function agreedPriceIncVatFromOrderLine(item: {
   itemSubtotal?: string | number | null;
   itemPrice?: string | number | null;
+  metadata?: unknown;
 }, vatRate = 0.16): string {
-  return agreedPriceIncVatFromExVat(orderLineExVatAmount(item), vatRate);
+  return explicitAgreedPrice(item.metadata) ?? agreedPriceIncVatFromExVat(orderLineExVatAmount(item), vatRate);
 }
 
 /** Whole-number string for M-Pesa / payment inputs. */

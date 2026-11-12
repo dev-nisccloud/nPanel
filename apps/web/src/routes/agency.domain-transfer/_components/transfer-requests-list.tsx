@@ -176,8 +176,19 @@ export function TransferRequestsList({ variant = "customer" }: TransferRequestsL
 
   const utils = trpc.useUtils();
 
-  const { data: requests = [], isLoading, error, isFetching, refetch } =
+  const { data: requests = [], isLoading, error, isFetching, refetch, dataUpdatedAt } =
     trpc.domainTransfer.listTransferRequests.useQuery(undefined);
+  const hasActiveRequests = requests.some((request) =>
+    ["AWAITING_PAYMENT", "PENDING", "SUBMITTED_TO_PROVIDER", "OUTGOING_PENDING"].includes(request.status),
+  );
+
+  React.useEffect(() => {
+    if (!hasActiveRequests) return;
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") void refetch();
+    }, 30_000);
+    return () => window.clearInterval(interval);
+  }, [hasActiveRequests, refetch]);
 
   const { data: transferProduct } = trpc.clientSubscriptions.getTransferProductId.useQuery();
   const { data: domainsProductIdFallback } = trpc.clientSubscriptions.getDomainsProductId.useQuery(
@@ -251,7 +262,10 @@ export function TransferRequestsList({ variant = "customer" }: TransferRequestsL
   if (error) {
     return (
       <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-6 text-center text-sm text-destructive">
-        {error.message ?? "Failed to load transfer requests."}
+        <p>{error.message ?? "Failed to load transfer requests."}</p>
+        <Button type="button" size="sm" variant="outline" className="mt-3" onClick={() => void refetch()}>
+          Try again
+        </Button>
       </div>
     );
   }
@@ -272,7 +286,13 @@ export function TransferRequestsList({ variant = "customer" }: TransferRequestsL
 
   return (
     <div className="space-y-2">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs text-muted-foreground" role="status" aria-live="polite">
+          {dataUpdatedAt
+            ? `Last checked ${format(new Date(dataUpdatedAt), "MMM d, HH:mm:ss")}`
+            : "Transfer status not checked yet"}
+          {hasActiveRequests ? " · Active transfers refresh automatically" : ""}
+        </p>
         <Button
           type="button"
           variant="outline"
@@ -310,6 +330,13 @@ export function TransferRequestsList({ variant = "customer" }: TransferRequestsL
                 icon: null,
               };
               const hint = orderStatusHint(row.status, row.niscOrderStatus, direction);
+              const submittedAt = row.submittedToProviderAt
+                ? new Date(row.submittedToProviderAt).getTime()
+                : null;
+              const takingLongerThanUsual =
+                row.status === "SUBMITTED_TO_PROVIDER" &&
+                submittedAt != null &&
+                Date.now() - submittedAt > 7 * 24 * 60 * 60 * 1_000;
               const isResuming = resumingRequestId === row.id;
               const showCompletePayment = row.status === "AWAITING_PAYMENT";
               const isOutgoingProviderRow = direction === "outgoing";
@@ -328,6 +355,11 @@ export function TransferRequestsList({ variant = "customer" }: TransferRequestsL
                       </span>
                       {hint ? (
                         <span className="text-xs text-muted-foreground font-normal pl-6">{hint}</span>
+                      ) : null}
+                      {takingLongerThanUsual ? (
+                        <span className="text-xs font-medium text-amber-700 dark:text-amber-400 pl-6">
+                          Taking longer than usual. Refresh the status or contact support with the domain name.
+                        </span>
                       ) : null}
                     </span>
                   </TableCell>

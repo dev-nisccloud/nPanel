@@ -3,7 +3,8 @@ import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { trpcMutation, trpcQuery } from "@/lib/domain-search/api.ts";
+import { trpcQuery } from "@/lib/domain-search/api.ts";
+import { checkKenicDomains } from "@/lib/domain-search/kenic-check.ts";
 import { kenicItemToDomainSearchResult } from "@/lib/domain-search/to-domain-search-result.ts";
 import {
   normalizedItemToKenicCard,
@@ -12,12 +13,13 @@ import {
 } from "@/lib/domain-search/kenic-schema.ts";
 import { nameForOpenProvider } from "@/lib/domain-search/search-utils.ts";
 import { getCustomerRetailDisplayPrice } from "@/lib/domain-search/customer-display-price.ts";
-import { formatPrice } from "@/lib/domain-search/format-price.ts";
 import { formatDomainBundleLabel } from "@npanel/cart-store";
 import { usePricing, useBundleTotalKes } from "@/lib/domain-search/pricing-context.tsx";
 import type { DomainSearchResult } from "@/lib/domain-search/types.ts";
 import { TldLogo } from "./TldLogo.tsx";
 import { AddDomainToCartButtons } from "./AddDomainToCartButtons.tsx";
+import { useCurrency } from "@/components/providers/currency.tsx";
+import { convertKesForDisplay, formatCurrency } from "@/lib/currency.ts";
 
 const TLD_WHY_CHOOSE: Record<string, string> = {
   "co.ke": "Kenya's most trusted commercial extension, ideal for local businesses and brands.",
@@ -64,7 +66,13 @@ export function TopLevelSuggestedCards({
   onAddDomainBundle,
   onRemoveDomainBundle,
 }: TopLevelSuggestedCardsProps) {
-  const { getPricingInfo, calculatePricesBatch, hasDefaultSetting, isLoadingTldSettings } = usePricing();
+  const {
+    getPricingInfo,
+    calculatePricesBatch,
+    hasDefaultSetting,
+    isConversionAvailable,
+    isLoadingTldSettings,
+  } = usePricing();
   const retailPricingReady = !isLoadingTldSettings && hasDefaultSetting;
 
   const name = React.useMemo(() => searchQuery.trim().toLowerCase().replace(/\s+/g, ""), [searchQuery]);
@@ -97,15 +105,7 @@ export function TopLevelSuggestedCards({
     setKenicCoKe(null);
     setKenicKe(null);
     setKenicLoading(true);
-    trpcMutation<{ normalized?: Array<{ domain: string; available: boolean; reason?: string; currency?: string; createFee?: { amount: number; currency: string } }> }>(
-      "kenic.domainCheck.check",
-      {
-        domains: [`${name}.co.ke`, `${name}.ke`],
-        withFee: true,
-        currency: "KES",
-        periodYears: 1,
-      },
-    )
+    checkKenicDomains([`${name}.co.ke`, `${name}.ke`])
       .then((data) => {
         if (!isMountedRef.current) return;
         const normalized = data?.normalized;
@@ -219,23 +219,11 @@ export function TopLevelSuggestedCards({
 
   if (!name) return null;
 
-  const suggestedSectionReady = !kenicLoading && !openProviderLoading && openProviderSettled;
-  if (!suggestedSectionReady) {
-    return (
-      <>
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="bg-card border border-border rounded-lg p-4 md:p-5 min-h-[200px]">
-            <div className="flex justify-between items-center mb-2">
-              <Skeleton className="h-14 w-14 rounded-lg" />
-              <Skeleton className="h-5 w-16" />
-            </div>
-            <Skeleton className="h-4 w-full mb-2" />
-            <Skeleton className="h-4 w-32 mb-2" />
-            <Skeleton className="h-8 w-full mt-2" />
-          </div>
-        ))}
-      </>
-    );
+  // International results are usually ready long before the KeNIC registry answers, so they
+  // render first and placeholders hold the Kenyan slots until availability is confirmed.
+  const openReady = !openProviderLoading && openProviderSettled;
+  if (!openReady) {
+    return <>{[1, 2, 3, 4].map((i) => <SuggestedCardSkeleton key={i} />)}</>;
   }
 
   const showCoKe = exactMatchTld !== "co.ke" && kenicCoKe?.available === true;
@@ -243,6 +231,9 @@ export function TopLevelSuggestedCards({
   const showCom = exactMatchTld !== "com" && byDomain.get(`${name}.com`)?.status === "free";
 
   const cards: React.ReactNode[] = [];
+  if (kenicLoading) {
+    cards.push(<SuggestedCardSkeleton key="kenic-pending-1" />, <SuggestedCardSkeleton key="kenic-pending-2" />);
+  }
 
   if (showCoKe && kenicCoKe) {
     const currency = kenicCoKe.currency ?? "KES";
@@ -315,8 +306,13 @@ export function TopLevelSuggestedCards({
     const show = tld === "com" && showCom;
     if (!show || !r || r.status !== "free") continue;
     const { displayPrice, displayCurrency } = getCustomerRetailDisplayPrice(r);
+    const sourceCurrency = r.price?.reseller?.currency ?? "USD";
     const showPrice =
-      retailPricingReady && displayPrice != null && displayCurrency != null && !Number.isNaN(displayPrice);
+      retailPricingReady &&
+      (sourceCurrency === "KES" || isConversionAvailable) &&
+      displayPrice != null &&
+      displayCurrency != null &&
+      !Number.isNaN(displayPrice);
     cards.push(
       <SingleTldCard
         key={tld}
@@ -335,6 +331,20 @@ export function TopLevelSuggestedCards({
   }
 
   return <>{cards}</>;
+}
+
+function SuggestedCardSkeleton() {
+  return (
+    <div className="bg-card border border-border rounded-lg p-4 md:p-5 min-h-[200px]">
+      <div className="flex justify-between items-center mb-2">
+        <Skeleton className="h-14 w-14 rounded-lg" />
+        <Skeleton className="h-5 w-16" />
+      </div>
+      <Skeleton className="h-4 w-full mb-2" />
+      <Skeleton className="h-4 w-32 mb-2" />
+      <Skeleton className="h-8 w-full mt-2" />
+    </div>
+  );
 }
 
 function SingleTldCard({
@@ -360,8 +370,17 @@ function SingleTldCard({
   onAddToCart: (result: DomainSearchResult) => void;
   onRemoveFromCart: (domain: string) => void;
 }) {
+  const { currency: selectedCurrency, kesToCurrencyRate } = useCurrency();
   const priceReady =
-    available && displayPrice != null && !Number.isNaN(displayPrice) && Boolean(currency);
+    available &&
+    displayPrice != null &&
+    !Number.isNaN(displayPrice) &&
+    currency === "KES" &&
+    kesToCurrencyRate !== null;
+  const selectedDisplayPrice =
+    priceReady
+      ? convertKesForDisplay(displayPrice!, selectedCurrency, kesToCurrencyRate)
+      : null;
 
   return (
     <div className="bg-card border border-border rounded-lg p-4 md:p-5 hover:shadow-md transition-shadow flex flex-col relative min-h-[200px]">
@@ -382,8 +401,13 @@ function SingleTldCard({
       </div>
       {priceReady && (
         <div className="space-y-0.5 mb-2">
-          <div className="text-base font-bold text-foreground">{formatPrice(displayPrice!, currency!)}</div>
+          <div className="text-base font-bold text-foreground">
+            {formatCurrency(selectedDisplayPrice!, selectedCurrency)}
+          </div>
         </div>
+      )}
+      {available && displayPrice != null && !priceReady && (
+        <div className="text-xs text-muted-foreground mb-2">Price unavailable</div>
       )}
       {available && TLD_WHY_CHOOSE[tld] ? (
         <div>
@@ -437,6 +461,8 @@ function BundleCard({
   }) => void;
   onRemoveDomainBundle: (domainNames: string[]) => void;
 }) {
+  const { currency, kesToCurrencyRate } = useCurrency();
+  const { isConversionAvailable } = usePricing();
   const buildBundleDomainResults = React.useCallback((): DomainSearchResult[] => {
     const results: DomainSearchResult[] = [];
     for (const item of bundleInfo.items) {
@@ -476,7 +502,9 @@ function BundleCard({
     [bundleDomains],
   );
   const bundleReady =
-    bundleTotalKes != null && bundleDomains.length === bundleInfo.items.length;
+    bundleTotalKes != null &&
+    bundleDomains.length === bundleInfo.items.length &&
+    (bundleInfo.items.every((item) => item.currency === "KES") || isConversionAvailable);
 
   const handleBundleCart = () => {
     if (!bundleReady || bundleTotalKes == null) return;
@@ -525,7 +553,12 @@ function BundleCard({
         ) : null}
       </div>
       <div className="text-base font-bold text-foreground mb-2 line-clamp-2 break-words">
-        {bundleTotalKes != null ? formatPrice(bundleTotalKes, DISPLAY_CURRENCY) : "-"}
+        {bundleReady && bundleTotalKes != null && kesToCurrencyRate !== null
+          ? formatCurrency(
+              convertKesForDisplay(bundleTotalKes, currency, kesToCurrencyRate),
+              currency,
+            )
+          : "Price unavailable"}
       </div>
       {TLD_WHY_CHOOSE.bundle ? (
         <div>
@@ -544,7 +577,7 @@ function BundleCard({
           variant="default"
           onClick={handleBundleCart}
           className="text-xs h-8 px-3 cursor-pointer"
-          disabled={!bundleReady}
+          disabled={!bundleReady || kesToCurrencyRate === null}
         >
           Buy now
         </Button>

@@ -18,121 +18,123 @@ export default function DomainTransferPage() {
       badge="Domain Transfer"
       headline={
         <>
-          Move Your Domain Here.{" "}
-          <span className="text-primary">We Help You Through It.</span>
+          Move your domain here.{" "}
+          <span className="text-primary">We help you through it.</span>
         </>
       }
-      subtext="Bring your domain to one place with your hosting and email. Check if it can move, see the live transfer price, then finish checkout with your authorization code. Free setup help and 24/7 support if you get stuck."
+      subtext="Bring an eligible domain into the same account as your hosting and email. Check live support and pricing, then follow the registry-specific transfer steps with scoped help where needed."
       serviceType="hosting"
+      closingCard="brief"
       plans={[]}
       plansUnderHero
       customPlansSection={<TransferToolSection />}
       heroImage={niscWebsiteImage("domain transfer.png")}
       heroImageStandalone
       heroCta2="Check Your Domain"
-      heroTrustBadge={{ line1: "Free transfer help", line2: "1 year renewal included" }}
+      heroCta2Href="#pricing"
+      heroTrustBadge={{ line1: "Eligibility checked live", line2: "Registry terms shown before purchase" }}
       trustStats={[
-        { value: "5-7", label: "Days Typical Transfer" },
-        { value: "200+", label: "Extensions Supported" },
-        { value: "24/7", label: "Support Ready" },
-        { value: "Free", label: "Setup Help" },
+        { value: "Live", label: "Transfer Eligibility" },
+        { value: "Registry", label: "Completion Timing" },
+        { value: "Scoped", label: "Transfer Help" },
+        { value: "Clear", label: "Next Steps" },
       ]}
       features={[
         {
           icon: <ArrowLeftRight size={20} />,
-          title: "A Clear Transfer Path",
+          title: "A clear transfer path",
           desc: "Check your domain, see if it can move, then follow a few simple steps. No confusing registrar jargon.",
         },
         {
           icon: <Key size={20} />,
-          title: "Auth Code Made Simple",
+          title: "Auth code made simple",
           desc: "We explain what an authorization code is, where to find it at your current provider, and when to enter it.",
         },
         {
           icon: <Shield size={20} />,
-          title: "Safe Every Step of the Way",
+          title: "Safe every step of the way",
           desc: "Your domain stays protected during the move with lock checks and verification before the transfer starts.",
         },
         {
           icon: <RefreshCw size={20} />,
-          title: "Renewal Included",
-          desc: "A successful transfer adds one year to your registration, so your expiry date moves forward with the move.",
+          title: "Renewal terms by extension",
+          desc: "Some registry transfers extend the registration term while others do not. The live result and applicable registry rules determine the outcome.",
         },
         {
           icon: <Globe size={20} />,
-          title: "Local and Global Names",
-          desc: "Move .co.ke, .com, .org, and many other endings into one account you can manage in one place.",
+          title: "Local and global names",
+          desc: "Use the checker to confirm whether a Kenyan or international extension can currently move into your account.",
         },
         {
           icon: <Headphones size={20} />,
-          title: "Real Help When You Need It",
-          desc: "24/7 support for unlock steps, auth codes, and status updates if your current registrar is slow.",
+          title: "Real help when you need it",
+          desc: "Ask for guidance on eligible unlock steps, authorisation codes and status checks within the agreed support scope.",
         },
         {
           icon: <Clock size={20} />,
-          title: "Know What Happens Next",
-          desc: "We keep the process clear from check to completion so you always know the next step.",
+          title: "Know what happens next",
+          desc: "The required approvals and completion window vary by extension, registry and current registrar; we explain the applicable next step.",
         },
         {
           icon: <CheckCircle2 size={20} />,
-          title: "One Place After the Move",
+          title: "One place after the move",
           desc: "When the transfer finishes, manage DNS, renewals, hosting, and email from the same panel.",
         },
       ]}
       process={[
         {
           num: "01",
-          title: "Check Your Domain",
+          title: "Check your domain",
           desc: "Enter your domain above. We confirm if it can transfer and show the live transfer price before you pay.",
         },
         {
           num: "02",
-          title: "Unlock and Get Your Code",
+          title: "Unlock and get your code",
           desc: "Turn off transfer lock at your current provider and request your authorization (EPP) code.",
         },
         {
           num: "03",
-          title: "Pay and Start the Move",
+          title: "Pay and start the move",
           desc: "Add the transfer to cart, enter your auth code, and complete easy checkout. We submit the request for you.",
         },
         {
           num: "04",
-          title: "Approve and Finish",
-          desc: "Confirm the transfer email from your current registrar if they send one. When done, manage the domain here.",
+          title: "Approve and finish",
+          desc: "Complete any approval requested by the current registrar or registry. Timing and final status depend on those parties and the extension.",
         },
       ]}
       whySectionBadge="Why Transfer With Us"
-      whySectionHeadline="A Clearer Way to Move Your Domain"
+      whySectionHeadline="A clearer way to move your domain"
       whyPoints={[
         {
-          title: "See the Price When You Check",
+          title: "See the price when you check", visual: "pricing",
           desc: "Enter your domain to see eligibility and the live transfer price. No guesswork before you start.",
         },
         {
-          title: "We Guide the Unlock Steps",
+          title: "We guide the unlock steps", visual: "clarity",
           desc: "Transfer lock and auth codes confuse many people. We explain both in plain language.",
         },
         {
-          title: "Help If the Move Stalls",
-          desc: "If a transfer sits waiting, our team helps you chase updates so you are not left guessing.",
+          title: "Help if the move stalls", visual: "migration",
+          desc: "If a transfer waits on an approval or registrar action, we help identify the current status and the party that must act next.",
         },
         {
-          title: "One Extra Year Included",
-          desc: "When the transfer succeeds, you get one year of registration added to the domain.",
+          title: "Extension-specific renewal", visual: "ownership",
+          desc: "Any registration extension follows the registry policy shown for the transfer; an extra year is not universal across extensions.",
         },
         {
-          title: "Ready for Hosting and Email",
+          title: "Ready for hosting and email", visual: "integrate",
           desc: "After the move, point DNS to your hosting or set up business email without juggling another login.",
         },
         {
-          title: "One Team for What Comes Next",
+          title: "One team for what comes next", visual: "support",
           desc: "Keep domains, hosting, and growth work with one team instead of many separate vendors.",
         },
       ]}
       faqs={[
         {
           q: "How long does a domain transfer take?",
-          a: "Most transfers finish in about 5 to 7 days. The exact time depends on your current registrar and how quickly you approve any confirmation emails.",
+          a: "Timing varies by extension, registry, current registrar, lock status and required approval. The checker and transfer instructions provide the applicable expectation; some transfers may be faster or slower.",
         },
         {
           q: "What is an authorization or EPP code?",
@@ -148,7 +150,7 @@ export default function DomainTransferPage() {
         },
         {
           q: "Does the transfer price include renewal?",
-          a: "Yes. The transfer price includes one extra year of registration added when the transfer completes successfully.",
+          a: "It depends on the extension and registry policy. Review the live transfer result and checkout terms to see whether the transfer extends the registration period.",
         },
         {
           q: "Can I transfer a .co.ke domain?",
@@ -159,8 +161,8 @@ export default function DomainTransferPage() {
           a: "Ask your current provider for a transfer or EPP code. If you are unsure where to look, contact us and we will help you through it.",
         },
       ]}
-      ctaHeadline="Ready to Move Your Domain?"
-      ctaSubtext="Check eligibility in seconds. If you need help unlocking your domain or finding your authorization code, our team is here 24/7."
+      ctaHeadline="Ready to move your domain?"
+      ctaSubtext="Check current eligibility and price, then review the extension-specific steps, timing and renewal treatment before you start."
     />
   );
 }

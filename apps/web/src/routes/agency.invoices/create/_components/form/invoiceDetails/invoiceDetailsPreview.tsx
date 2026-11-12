@@ -6,7 +6,7 @@ import {
   buildTisReceiptTotals,
   formatTisMoney,
   tisCreditNoteBandLines,
-  tisTaxRateLabel,
+  tisTaxTypeWithRateLabel,
   type TisReceiptTotals,
 } from "@npanel/api/agency-invoice-pdf/tis-receipt-totals";
 
@@ -77,7 +77,7 @@ export const InvoiceDetailsPreview: React.FC<
         </div>
       </div>
       {items.map(({ itemDescription, amount, qty, billingCycle, etimsTaxTyCd }, index) => {
-        const taxRateLabel = tisTaxRateLabel(etimsTaxTyCd);
+        const taxRateLabel = tisTaxTypeWithRateLabel(etimsTaxTyCd);
         return (
         <div
           className={`grid grid-cols-2 items-start border-b ${
@@ -94,9 +94,9 @@ export const InvoiceDetailsPreview: React.FC<
                 Billing: {formatBillingCycle(billingCycle)}
               </p>
             )}
-            {taxRateLabel && (
+            {taxRateLabel && !(itemDescription ?? "").includes(taxRateLabel) && (
               <p className="text-[10px] text-gray-500 mt-1">
-                Tax rate: {taxRateLabel}
+                {taxRateLabel}
               </p>
             )}
           </div>

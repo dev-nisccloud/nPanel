@@ -1,49 +1,37 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
-import { Server, Cpu, HardDrive, Network, Shield, Zap, Globe, Terminal } from "lucide-react";
+import { Cpu, HardDrive, MapPin, Network, Server, Settings } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
-import {
-  HostingHeroIllustration,
-  dedicatedHeroConfig,
-} from "../_components/HostingHeroIllustration.tsx";
+import { CloudServersStory } from "@/components/artwork/npanel-stories";
+import { ChassisPowerArt } from "./_components/ChassisPowerArt.tsx";
 import { DedicatedPlansSection } from "./_components/DedicatedPlansSection.tsx";
-
-// ─── Showcase blocks ──────────────────────────────────────────────────────────
+import {
+  DedicatedComparison,
+  DedicatedExplained,
+  DedicatedGettingStarted,
+  DedicatedPlanFit,
+} from "./_components/dedicated-content.tsx";
 
 const showcaseBlocks: ShowcaseBlock[] = [
   {
-    tag: "Server Monitoring",
-    headline: "Full visibility into your bare metal. 24/7.",
-    body: "Monitor CPU, RAM, disk I/O, and network traffic in real time from your Grafana dashboard. Set custom alerts so you know about issues before your users do.",
-    bullets: [
-      "Real-time CPU, RAM, and disk usage monitoring",
-      "Custom alert thresholds via email, SMS, and WhatsApp",
-      "99.99% network uptime SLA with credits if we miss it",
-    ],
+    tag: "Your machine, in nPanel",
+    artwork: <CloudServersStory />,
+    caption: false,
+    headline: "A whole machine, in the same account as your domains.",
+    body: "Choose a physical server and a city. It then sits in nPanel with your domains, email and invoices.",
+    bullets: ["The CPU, memory and disks on the card are yours alone", "Bandwidth and port speed shown on the card", "Servers, domains and invoices in one account"],
     mockupRight: true,
     visual: "serverMonitor",
   },
   {
-    tag: "Instant Deployment",
-    headline: "Your dedicated server ready in hours",
-    body: "Choose your hardware configuration, OS, and options. Your bare metal server is provisioned and ready with full root access. No shared resources, ever.",
+    tag: "When a virtual server is not enough",
+    headline: "For workloads that need the hardware itself.",
+    body: "Use a dedicated server when you need a named processor, a large amount of memory, or disks that are not a virtual volume.",
     bullets: [
-      "Ubuntu, Debian, CentOS, AlmaLinux, Windows Server",
-      "Full IPMI and out-of-band management access",
-      "RAID configuration included, hardware-level redundancy",
+      "Databases that need a lot of memory and fast disks",
+      "Applications that must not share a processor",
+      "Builds with 1Gbps or 10Gbps ports, shown on the card",
     ],
     mockupRight: false,
-    visual: "serverProvision",
-  },
-  {
-    tag: "Popular Use Cases",
-    headline: "Maximum power for demanding workloads.",
-    body: "Teams choose dedicated servers for high-throughput databases, large-scale SaaS platforms, game servers, and ML workloads that need full hardware ownership.",
-    bullets: [
-      "High-traffic databases and data warehouses",
-      "Game servers and real-time streaming platforms",
-      "Machine learning and GPU compute workloads",
-    ],
-    mockupRight: true,
     visual: "bareMetal",
   },
 ];
@@ -52,89 +40,131 @@ export default function DedicatedServersHostingPage() {
   return (
     <ServicePageShell
       badge="Dedicated Servers"
-      headline={<>Bare Metal Power. <span className="text-primary">Zero Compromise.</span> Dedicated Servers for Serious Workloads.</>}
-      subtext="100% dedicated hardware with full root access, IPMI management, and enterprise-grade networking. Zero noisy neighbours, zero resource contention."
+      headline={
+        <>
+          A physical server <span className="text-primary">used only by you</span>
+        </>
+      }
+      subtext="Rent a whole machine: its processor, memory and disks are not shared. Pick a build and a city, then manage the operating system yourself."
       serviceType="hosting"
-      heroIllustration={<HostingHeroIllustration config={dedicatedHeroConfig} />}
+      heroIllustration={<ChassisPowerArt />}
       heroIllustrationBare
       showHeroOverlays={false}
-      heroTrustBadge={{ line1: "Intel Xeon and AMD EPYC", line2: "100% bare metal hardware" }}
       trustStats={[
-        { value: "100+", label: "Clients Served" },
-        { value: "99.99%", label: "Network Uptime SLA" },
-        { value: "24/7", label: "Support" },
-        { value: "IPMI", label: "Out-of-band Access" },
+        { value: "1:1", label: "Your own machine" },
+        { value: "Port", label: "Speed on each card" },
+        { value: "You", label: "Manage the OS" },
+        { value: "nPanel", label: "Servers and billing" },
       ]}
       features={[
         {
           icon: <Server size={20} />,
-          title: "100% Bare Metal Hardware",
-          desc: "No virtualisation layer. No shared resources. Your server is physically yours: every core, every byte of RAM, every bit of bandwidth.",
+          title: "A physical server for one customer",
+          desc: "The processor, memory and disks on the card are used by your server, not split with another customer.",
         },
         {
           icon: <Cpu size={20} />,
-          title: "Latest Intel Xeon and AMD EPYC",
-          desc: "Choose from Intel Xeon Silver/Gold or AMD EPYC processors. Up to 64 cores per server for compute-intensive workloads.",
+          title: "The processor is named",
+          desc: "Each machine shows its CPU model, cores and threads, so you can match it to your workload.",
         },
         {
           icon: <HardDrive size={20} />,
-          title: "Enterprise NVMe and SAS Storage",
-          desc: "RAID-10 NVMe SSDs or SAS drives with hardware RAID controllers. Up to 100+ TB raw storage available per server.",
+          title: "Disks listed on the card",
+          desc: "Storage can be SSD, NVMe, HDD, or a mix. The card shows the disks that machine actually has.",
         },
         {
           icon: <Network size={20} />,
-          title: "10 Gbps Dedicated Port",
-          desc: "Your own 10 Gbps port, not shared with other customers. Handle massive data transfers and high-concurrency applications with ease.",
+          title: "Bandwidth and port on the card",
+          desc: "Monthly transfer and port speed are listed on each machine. They are not the same on every server.",
         },
         {
-          icon: <Shield size={20} />,
-          title: "DDoS Protection Included",
-          desc: "Enterprise-grade DDoS mitigation scrubs traffic at the network edge before it reaches your server. Up to 10 Gbps of attack traffic absorbed.",
+          icon: <MapPin size={20} />,
+          title: "Choose the city",
+          desc: "The same build is sometimes in stock in more than one city. The price follows the city you pick.",
         },
         {
-          icon: <Zap size={20} />,
-          title: "IPMI Out-of-band Access",
-          desc: "Full IPMI/iDRAC/iLO access for power cycling, BIOS changes, and OS reloads without opening a support ticket.",
-        },
-        {
-          icon: <Globe size={20} />,
-          title: "Tier 3 Data Centres",
-          desc: "Servers in Tier 3 certified facilities with N+1 power, cooling, and network redundancy. Compliant with ISO 27001 and SOC 2.",
-        },
-        {
-          icon: <Terminal size={20} />,
-          title: "Full Root Access",
-          desc: "Complete control from day one. Install any OS, run any software, and configure hardware settings directly from the IPMI console.",
+          icon: <Settings size={20} />,
+          title: "You manage the operating system",
+          desc: "Install your own stack and keep it updated. The operating systems available are shown when you configure the machine.",
         },
       ]}
-      plansUnderHero={true}
+      plansUnderHero
       customPlansSection={<DedicatedPlansSection />}
       plans={[]}
       process={[
-        { num: "01", title: "Configure Your Server", desc: "Choose your CPU, RAM, storage, and OS. Select your RAID configuration and any extras you need." },
-        { num: "02", title: "Hardware Provisioning", desc: "We rack, configure, and test your server. You receive IPMI access and root credentials by email." },
-        { num: "03", title: "Deploy Your Stack", desc: "SSH in or use IPMI for full out-of-band access. Deploy Docker, Kubernetes, databases, or any custom workload." },
-        { num: "04", title: "Monitor and Scale", desc: "Track hardware metrics, network utilisation, and uptime from your management portal. Add more servers as you grow." },
+        { num: "01", title: "Filter by cores", desc: "Narrow the list, then read the CPU, memory, disks and port on the row." },
+        { num: "02", title: "Pick a city", desc: "Choose a city where that machine is in stock. The price updates with the city." },
+        { num: "03", title: "Choose an operating system", desc: "Pick from the operating systems shown for that machine during setup." },
+        { num: "04", title: "Sign in and install", desc: "The server appears in nPanel. Sign in and install the software you need." },
       ]}
       whyPoints={[
-        { title: "100% Dedicated, Never Shared", desc: "Your hardware is yours alone. No CPU steal, no noisy neighbours, no virtualisation overhead." },
-        { title: "IPMI Out-of-Band Management", desc: "Reboot, reinstall, or access the BIOS remotely at any time. Full hardware control without raising a support ticket." },
-        { title: "Hardware RAID Redundancy", desc: "RAID-10 configuration included on all storage to protect against drive failure with no data loss." },
-        { title: "Enterprise Networking", desc: "Redundant 10 Gbps uplinks, BGP routing, and Tier 1 carrier transit for strong throughput and availability." },
-        { title: "Compliant Infrastructure", desc: "Tier 3 data centres with ISO 27001 and SOC 2 compliance. Suitable for fintech, healthcare, and government workloads." },
-        { title: "Managed Support Available", desc: "Add our managed services option for OS maintenance, security patching, and 24/7 proactive monitoring by our team." },
+        { title: "Nothing shared on the machine", visual: "ownership", desc: "CPU, memory and disks belong to your server for as long as you rent it." },
+        { title: "Hardware you can read", visual: "code", desc: "Compare real processor names, disk layouts and port speeds instead of a single size name." },
+        { title: "More than a VDS can offer", visual: "growth", desc: "Move here when reserved virtual cores are no longer enough for the workload." },
+        { title: "One account for everything", visual: "integrate", desc: "The machine sits in nPanel with your domains, email and invoices." },
       ]}
+      whySectionHeadline="Why teams choose a Nisc Cloud dedicated server"
+      whySectionVariant="simple"
+      contentSlots={{
+        afterPricing: <DedicatedPlanFit />,
+        afterShowcase: <DedicatedComparison />,
+        afterProcess: <DedicatedGettingStarted />,
+        beforeFaq: <DedicatedExplained />,
+      }}
+      faqTitle="Dedicated server questions"
       faqs={[
-        { q: "How long does provisioning take?", a: "Standard dedicated server configurations are provisioned within 2 to 24 hours. Custom configurations may take up to 48 hours depending on hardware availability." },
-        { q: "Can I choose my operating system?", a: "Yes. We support Ubuntu, Debian, CentOS, AlmaLinux, Rocky Linux, and Windows Server. Custom ISO uploads are available on all dedicated plans." },
-        { q: "Do I get IPMI access?", a: "Yes. Every dedicated server includes full IPMI/iDRAC/iLO access for remote power management, BIOS configuration, and OS reloads." },
-        { q: "Is managed hosting available?", a: "Yes. Our managed dedicated server add-on includes OS updates, security hardening, 24/7 proactive monitoring, and monthly performance reviews." },
-        { q: "Can I run Kubernetes on a dedicated server?", a: "Yes. Bare metal Kubernetes delivers significantly better performance than virtualised environments. We can pre-configure K8s clusters on request." },
-        { q: "What DDoS protection is included?", a: "All dedicated servers include volumetric DDoS mitigation at the network level at no extra cost. Premium Layer 7 protection is available as an add-on." },
+        {
+          q: "What is a dedicated server?",
+          a: "A dedicated server is a physical computer in a data centre, rented by one customer. Its CPU, memory and disks are not shared with anyone else.",
+        },
+        {
+          q: "How is it different from a VDS?",
+          a: "A VDS is a virtual server with dedicated vCPU cores, still on shared hardware. A dedicated server is the physical machine itself, with the processor, memory and disks named on the card.",
+        },
+        {
+          q: "What is included with every dedicated server?",
+          a: "Every machine is a physical server used only by you, with the CPU, memory and disks shown on the card. Bandwidth and port speed are on the card too, because they differ between machines. You manage the operating system.",
+        },
+        {
+          q: "Is the server managed?",
+          a: "No. You look after the operating system, updates and the software you install. If you want hosting managed for you, choose Web Hosting or WordPress Hosting.",
+        },
+        {
+          q: "How do I choose a machine?",
+          a: "Start with cores and memory, then read the CPU model, the disks and the port speed. Two machines with the same core count can differ in all three, and in price.",
+        },
+        {
+          q: "Why do similar machines cost different amounts?",
+          a: "Price follows the processor model, the amount and type of disk, the port speed and the city. Compare the row, not just the core count.",
+        },
+        {
+          q: "Where are the servers located?",
+          a: "Each row lists the cities where that machine is in stock. Cities can be in the United States, Europe or Asia. Choose a city on the row before checkout.",
+        },
+        {
+          q: "Can I get the same machine in more than one city?",
+          a: "Sometimes. When a build is in stock in several cities, those cities are on the location list and the price follows the city you pick.",
+        },
+        {
+          q: "How much bandwidth do I get?",
+          a: "Bandwidth and the network port are listed on each machine. Many include 20TB on a 1Gbps or 10Gbps port, and some include a different amount, so read the row.",
+        },
+        {
+          q: "Which operating systems can I choose?",
+          a: "The operating systems available for that machine are shown when you configure it. You manage whichever system you choose.",
+        },
+        {
+          q: "Can I install my own software?",
+          a: "Yes. You manage the server, so you can install the software your workload needs, as long as it fits the machine and follows our Acceptable Use Policy.",
+        },
+        {
+          q: "Can I change machines later?",
+          a: "Contact us when you need a different processor, more memory or a different city, and we will match you to a machine that is in stock.",
+        },
       ]}
-      pricingNote="All prices in KES. Annual billing saves 15%. Custom hardware configurations available on request."
-      ctaHeadline="Get Dedicated Hardware That Never Compromises"
-      ctaSubtext="Stop sharing resources. Get enterprise-grade dedicated servers with 100% hardware ownership, 99.99% uptime focus, and 24/7 support."
+      pricingNote="Prices are shown in KES or USD based on your location, excluding 16% VAT. Prices can differ by city."
+      ctaHeadline="A whole machine, ready when you are"
+      ctaSubtext="Physical servers with the CPU, memory and disks on the card, managed in nPanel."
       showcaseBlocks={showcaseBlocks}
     />
   );

@@ -60,14 +60,14 @@ const CookieConsent = () => {
               <Button
                 type="button"
                 variant="outline"
-                className="h-8 cursor-pointer rounded-full px-5 text-sm font-medium"
+                className="min-h-11 cursor-pointer rounded-[10px] px-5 text-sm font-medium"
                 onClick={() => dismiss(false)}
               >
                 Reject all
               </Button>
               <Button
                 type="button"
-                className="h-8 cursor-pointer rounded-full px-5 text-sm font-medium transition-colors duration-200 hover:bg-primary/80"
+                className="min-h-11 cursor-pointer rounded-[10px] px-5 text-sm font-medium transition-colors duration-200 hover:bg-primary/80"
                 onClick={() => dismiss(true)}
               >
                 Accept

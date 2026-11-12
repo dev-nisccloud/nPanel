@@ -29,8 +29,8 @@ export const InvoiceHeaderPdf: React.FC<YourDetails & { documentTitle?: string }
       style={{
         display: "flex",
         flexDirection: "row",
-        paddingTop: 10,
-        paddingBottom: 10,
+        paddingTop: 4,
+        paddingBottom: 4,
         paddingLeft: 40,
         paddingRight: 40,
         justifyContent: "space-between",

@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { motion } from "motion/react";
 import { ArrowLeft, Clock, Calendar, ArrowRight, List } from "lucide-react";
 import Navbar from "@/pages/_components/Navbar.tsx";
 import Footer from "@/pages/_components/Footer.tsx";
+import { breadcrumbJsonLd, SITE_ORIGIN, usePageMeta } from "@/lib/seo.ts";
+import { NOT_FOUND_META } from "@/lib/route-meta.ts";
 import { posts, type Section } from "./posts-data.ts";
 
 function slugifyHeading(text: string) {
@@ -38,7 +40,7 @@ function renderSection(section: Section, i: number) {
         <h2
           key={i}
           id={id}
-          className="scroll-mt-28 text-xl font-bold text-foreground mt-8 mb-3"
+          className="type-h3 scroll-mt-28 text-foreground mt-8 mb-3"
         >
           {section.text}
         </h2>
@@ -169,13 +171,38 @@ function TableOfContents({
 
 export default function BlogPostPage() {
   const { slug } = useParams<{ slug: string }>();
-  const navigate = useNavigate();
   const post = posts.find((p) => p.slug === slug);
   const [activeId, setActiveId] = useState("");
 
   const headings = useMemo(
     () => (post ? getHeadings(post.content) : []),
     [post],
+  );
+
+  usePageMeta(
+    post
+      ? {
+          title: post.title,
+          description: post.excerpt,
+          canonicalPath: `/blog/${post.slug}`,
+          ogType: "article",
+          jsonLd: [
+            breadcrumbJsonLd([["Home", "/"], ["Blog", "/blog"], [post.title, `/blog/${post.slug}`]]),
+            {
+              "@type": "Article",
+              headline: post.title,
+              description: post.excerpt,
+              articleSection: post.category,
+              ...(Number.isNaN(Date.parse(post.date))
+                ? {}
+                : { datePublished: new Date(post.date).toISOString().slice(0, 10) }),
+              author: { "@type": "Person", name: post.author, jobTitle: post.authorRole },
+              publisher: { "@type": "Organization", name: "Nisc Cloud", url: SITE_ORIGIN },
+              mainEntityOfPage: `${SITE_ORIGIN}/blog/${post.slug}`,
+            },
+          ],
+        }
+      : NOT_FOUND_META,
   );
 
   useEffect(() => {
@@ -210,13 +237,10 @@ export default function BlogPostPage() {
       <div className="min-h-screen bg-background">
         <Navbar />
         <div className="flex flex-col items-center justify-center py-32 text-center">
-          <p className="text-xl font-bold mb-3">Article not found</p>
-          <button
-            onClick={() => navigate("/blog")}
-            className="text-primary text-sm underline cursor-pointer"
-          >
+          <h1 className="text-xl mb-3 font-normal">Article not found</h1>
+          <Link to="/blog" className="text-primary text-sm underline hover:opacity-80">
             Back to Blog
-          </button>
+          </Link>
         </div>
         <Footer />
       </div>
@@ -231,13 +255,13 @@ export default function BlogPostPage() {
     <div className="min-h-screen bg-background text-foreground">
       <Navbar />
 
-      <div className="max-w-6xl mx-auto px-4 md:px-8 pt-28 pb-16">
-        <button
-          onClick={() => navigate("/blog")}
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition mb-6 cursor-pointer"
+      <main id="main-content" className="max-w-6xl mx-auto px-4 md:px-8 pt-28 pb-16">
+        <Link
+          to="/blog"
+          className="group inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition mb-6"
         >
-          <ArrowLeft size={14} /> Back to Blog
-        </button>
+          <ArrowLeft size={14} className="transition-transform group-hover:-translate-x-0.5" /> Back to Blog
+        </Link>
 
         <div className="grid lg:grid-cols-[minmax(0,1fr)_240px] gap-10 xl:gap-14">
           {/* Main column */}
@@ -249,7 +273,7 @@ export default function BlogPostPage() {
               className="mb-8"
             >
               <p className="text-xs font-medium text-primary mb-3">{post.category}</p>
-              <h1 className="text-[36px] font-extrabold leading-[1.15] text-foreground mb-4 text-balance">
+              <h1 className="type-h1 text-foreground mb-4 text-balance">
                 {post.title}
               </h1>
               <p className="text-base text-muted-foreground mb-5 leading-relaxed">
@@ -291,6 +315,35 @@ export default function BlogPostPage() {
             <article>
               {post.content.map((section, i) => renderSection(section, i))}
             </article>
+
+            <section aria-labelledby="post-next-step" className="mt-12 rounded-2xl border border-primary/20 bg-primary/5 p-6 md:p-8">
+              <h2 id="post-next-step" className="type-h3 text-foreground mb-2">Want help putting this into practice?</h2>
+              <p className="text-sm text-muted-foreground leading-relaxed mb-5 max-w-xl">
+                Book a free strategy call and our Nairobi team will recommend a clear next step for your brand, website, hosting or marketing before you commit.
+              </p>
+              <Link
+                to="/contact"
+                className="group inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/20 transition hover:-translate-y-0.5 hover:brightness-110 motion-reduce:hover:translate-y-0"
+              >
+                Book a Free Strategy Call <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" aria-hidden />
+              </Link>
+            </section>
+
+            {related.length > 0 && (
+              <nav aria-label="Related articles" className="mt-10 lg:hidden">
+                <p className="text-xs font-semibold text-muted-foreground mb-3">More in {post.category}</p>
+                <ul className="grid gap-3 sm:grid-cols-2">
+                  {related.map((r) => (
+                    <li key={r.slug}>
+                      <Link to={`/blog/${r.slug}`} className="group block h-full rounded-xl border border-border p-4 transition hover:border-primary/40 hover:bg-primary/5">
+                        <span className="block text-sm font-medium text-foreground leading-snug group-hover:text-primary transition line-clamp-2">{r.title}</span>
+                        <span className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><Clock size={10} /> {r.readTime}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            )}
           </div>
 
           {/* Sticky side rail  sticks while scrolling the article */}
@@ -305,18 +358,14 @@ export default function BlogPostPage() {
                 <ul className="space-y-3">
                   {related.map((r) => (
                     <li key={r.slug}>
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/blog/${r.slug}`)}
-                        className="w-full text-left group cursor-pointer"
-                      >
+                      <Link to={`/blog/${r.slug}`} className="block w-full text-left group">
                         <p className="text-sm font-medium text-foreground leading-snug group-hover:text-primary transition line-clamp-2">
                           {r.title}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                           <Clock size={10} /> {r.readTime}
                         </p>
-                      </button>
+                      </Link>
                     </li>
                   ))}
                 </ul>
@@ -328,17 +377,16 @@ export default function BlogPostPage() {
               <p className="text-xs text-muted-foreground leading-relaxed mb-3">
                 Talk through hosting, branding, or growth with our team.
               </p>
-              <button
-                type="button"
-                onClick={() => navigate("/contact")}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:opacity-80 cursor-pointer"
+              <Link
+                to="/contact"
+                className="group inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:opacity-80"
               >
-                Book a call <ArrowRight size={12} />
-              </button>
+                Book a free strategy call <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
+              </Link>
             </div>
           </aside>
         </div>
-      </div>
+      </main>
 
       <Footer />
     </div>

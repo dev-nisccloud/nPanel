@@ -1,341 +1,458 @@
-import { useEffect, useState } from "react";
-import { motion } from "motion/react";
+import { GoalArtwork } from "./GoalArtwork.tsx";
+import { PillarIcon, type Pillar } from "./PillarIcon.tsx";
+import { useRef, useState } from "react";
+
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+
 import {
-  Paintbrush, Server, TrendingUp, Bot,
-  ShoppingCart, HardDrive, Mail, Cpu,
-  BarChart2, Megaphone, AtSign,
-  Sparkles, MessageSquare, Workflow, Zap,
-  ArrowRight, Target, Globe, PenTool,
-  MonitorSmartphone, ArrowLeftRight,
+  Server,
+  ShoppingCart,
+  HardDrive,
+  Mail,
+  Cpu,
+  BarChart2,
+  Megaphone,
+  AtSign,
+  Sparkles,
+  MessageSquare,
+  Workflow,
+  Zap,
+  ArrowRight,
+  Target,
+  Globe,
+  PenTool,
+  MonitorSmartphone,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+
 import { Button } from "@/components/ui/button.tsx";
+
 import { PointerHighlight } from "@/components/ui/pointer-highlight.tsx";
+
 import { cn } from "@/lib/utils.ts";
-import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
+
+import { trackEvent } from "@/lib/track.ts";
 
 const pointerHighlightProps = {
   rectangleClassName: "border-primary/50",
+
   pointerClassName: "text-primary",
 } as const;
 
 type Feature = {
   icon: React.ElementType;
+
   label: string;
+
   desc: string;
+
   href: string;
 };
 
 type Tab = {
-  icon: React.ElementType;
   label: string;
-  step: string;
+
+  kind: "hosting" | "marketing" | "ai" | "build";
+
+  featured?: boolean;
+
   stepLabel: string;
+
   badge: string;
+
   headline: string;
+
   highlight: string;
+
   subtext: string;
-  image: string;
+
   primaryCta: { label: string; href: string };
+
   features: Feature[];
 };
 
+const runTab: Tab = {
+  label: "Run My Business Online",
 
-const trustedClients = [
-  { name: "Amarom", logo: "/clients/amarom2.png" },
-  { name: "Medplus", logo: "/clients/medplus-logo.png" },
-  { name: "Epitome", logo: "/clients/epitome-logo.png" },
-];
+  kind: "hosting",
+
+  featured: true,
+
+  stepLabel: "Run",
+
+  badge: "RUN",
+
+  headline: "Run your business online",
+
+  highlight: "on one reliable setup.",
+
+  subtext:
+    "Choose domains, hosting, business email or cloud servers, then manage them through one connected account.",
+
+  primaryCta: { label: "Explore Cloud Products", href: "/hosting" },
+
+  features: [
+    {
+      icon: Globe,
+      label: "Domains",
+      desc: "Find your name and check live prices",
+      href: "/hosting/domains",
+    },
+    {
+      icon: Server,
+      label: "Hosting & WordPress",
+      desc: "Website hosting and managed WordPress",
+      href: "/hosting",
+    },
+    {
+      icon: Mail,
+      label: "Business Email",
+      desc: "Professional email on your own domain",
+      href: "/hosting/email",
+    },
+    {
+      icon: HardDrive,
+      label: "Cloud Servers & Migrations",
+      desc: "VPS, VDS, dedicated servers and planned moves",
+      href: "/hosting/vps",
+    },
+  ],
+};
+
+const buildTab: Tab = {
+  label: "Build My Brand or Website",
+
+  kind: "build",
+
+  stepLabel: "Build",
+
+  badge: "BUILD",
+
+  headline: "Build a brand and digital experience",
+
+  highlight: "customers remember.",
+
+  subtext:
+    "Create your identity, website, online store or software around the way your business works.",
+
+  primaryCta: { label: "Explore Build Solutions", href: "/services" },
+
+  features: [
+    {
+      icon: Target,
+      label: "Branding & Identity",
+      desc: "Positioning, identity and a practical brand system",
+      href: "/services/brand-identity",
+    },
+    {
+      icon: MonitorSmartphone,
+      label: "Website Design",
+      desc: "A clear digital home for your business",
+      href: "/services/website-design",
+    },
+    {
+      icon: ShoppingCart,
+      label: "Ecommerce Development",
+      desc: "Products, payments and customer journeys",
+      href: "/services/ecommerce",
+    },
+    {
+      icon: Cpu,
+      label: "Software & Applications",
+      desc: "Custom tools for customers and teams",
+      href: "/contact?service=custom&serviceName=Application%20Development",
+    },
+  ],
+};
 
 const tabs: Tab[] = [
+  buildTab,
+  runTab,
   {
-    icon: Paintbrush,
-    label: "Create My Brand",
-    step: "01",
-    stepLabel: "Create",
-    badge: "CREATE",
-    headline: "Your brand should open",
-    highlight: "more doors.",
+    label: "Grow My Customer Base",
+
+    kind: "marketing",
+
+    stepLabel: "Grow",
+
+    badge: "GROW",
+
+    headline: "Grow with clearer marketing",
+
+    highlight: "built around your goals.",
+
     subtext:
-      "We shape your look, message, and website so people understand you fast and trust you enough to buy.",
-    image: niscWebsiteImage("website_design.png"),
-    primaryCta: { label: "Start my brand project", href: "/contact" },
+      "Connect strategy, content, paid media, email and search around the customers you want to reach.",
+
+    primaryCta: { label: "Explore Growth Services", href: "/services/marketing" },
+
     features: [
-      { icon: Target, label: "Brand Strategy & Positioning", desc: "From KES 15,000", href: "/services/brand-identity" },
-      { icon: MonitorSmartphone, label: "Website Design", desc: "From KES 35,000", href: "/services/website-design" },
-      { icon: ShoppingCart, label: "E-commerce Design", desc: "From KES 45,000", href: "/services/ecommerce" },
+      {
+        icon: PenTool,
+        label: "Strategy, Social & Content",
+        desc: "A clear plan, content creation and video",
+        href: "/services/social-media",
+      },
+
+      {
+        icon: BarChart2,
+        label: "SEO / AEO / GEO",
+        desc: "Be found in search and AI answers",
+        href: "/services/seo",
+      },
+
+      {
+        icon: Megaphone,
+        label: "Paid Advertising",
+        desc: "Campaigns built around your audience",
+        href: "/services/paid-ads",
+      },
+
+      {
+        icon: AtSign,
+        label: "Email Marketing",
+        desc: "Keep customers engaged and follow up",
+        href: "/services/email-marketing",
+      },
     ],
   },
+
   {
-    icon: Server,
-    label: "Go Online",
-    step: "02",
-    stepLabel: "Host",
-    badge: "HOST",
-    headline: "Hosting that stays",
-    highlight: "fast and steady.",
+    label: "Automate My Business",
+
+    kind: "ai",
+
+    stepLabel: "Zepo AI",
+
+    badge: "ZEPO AI",
+
+    headline: "Automate routine work with",
+
+    highlight: "supported AI workflows.",
+
     subtext:
-      "Domain, hosting, email, and security in one place. Free migration help, 99.99% uptime, and support around the clock.",
-    image: niscWebsiteImage("Go online (1).png"),
-    primaryCta: { label: "Get online today", href: "/hosting/shared" },
+      "Use Zepo AI and supported integrations to assist with customer conversations, follow-ups and repetitive workflows while your team stays in control.",
+
+    primaryCta: { label: "Explore Automation", href: "/services/zepo-ai" },
+
     features: [
-      { icon: Server, label: "Website Hosting", desc: "From KES 350/mo", href: "/hosting/shared" },
-      { icon: Zap, label: "WordPress Hosting", desc: "From KES 500/mo", href: "/hosting/wordpress" },
-      { icon: Cpu, label: "VPS Hosting", desc: "From KES 2,000/mo", href: "/hosting/vps" },
-      { icon: HardDrive, label: "VDS Hosting", desc: "Dedicated virtual resources", href: "/hosting/vds" },
-      { icon: TrendingUp, label: "Dedicated Servers Hosting", desc: "Custom pricing", href: "/hosting/dedicated-servers" },
-      { icon: Mail, label: "Business Email Hosting", desc: "From KES 250/mo", href: "/hosting/email" },
-      { icon: Globe, label: "Domain Registration", desc: "Search to see live prices", href: "/hosting/domains" },
-      { icon: ArrowLeftRight, label: "Domain Transfer", desc: "Move your domain to us with help", href: "/domain-transfer" },
-    ],
-  },
-  {
-    icon: TrendingUp,
-    label: "Get More Customers",
-    step: "03",
-    stepLabel: "Market",
-    badge: "MARKET",
-    headline: "Marketing that brings",
-    highlight: "real buyers.",
-    subtext:
-      "We put your business in front of people who are already looking for what you sell, then help you turn visits into sales.",
-    image: niscWebsiteImage("marketing.png"),
-    primaryCta: { label: "Grow my customers", href: "/contact" },
-    features: [
-      { icon: PenTool, label: "Social Media Marketing", desc: "From KES 20,000/mo", href: "/services/social-media" },
-      { icon: BarChart2, label: "SEO / AEO / GEO", desc: "From KES 25,000/mo", href: "/services/seo" },
-      { icon: Megaphone, label: "Paid Advertising", desc: "11% of ad spend + KES 6,000/mo", href: "/services/paid-ads" },
-      { icon: AtSign, label: "Email Marketing", desc: "From KES 1,500/mo", href: "/services/email-marketing" },
-    ],
-  },
-  {
-    icon: Bot,
-    label: "Automate with AI",
-    step: "04",
-    stepLabel: "Zeepo AI",
-    badge: "ZEEPO AI",
-    headline: "Let smart tools handle",
-    highlight: "the busy work.",
-    subtext:
-      "Zeepo AI helps with replies, content, and follow-ups so your team can focus on people and sales.",
-    image: niscWebsiteImage("Automate with AI (2).png"),
-    primaryCta: { label: "Try Zeepo AI", href: "/services/zeepo-ai" },
-    features: [
-      { icon: Sparkles, label: "AI Content Writer", desc: "From KES 1,500/mo", href: "/services/zeepo-ai" },
-      { icon: Workflow, label: "Marketing Automation", desc: "From KES 1,500/mo", href: "/services/zeepo-ai" },
-      { icon: MessageSquare, label: "AI Chatbots", desc: "From KES 5,000/mo", href: "/services/zeepo-ai" },
-      { icon: Zap, label: "Lead Nurturing Flows", desc: "From KES 3,000/mo", href: "/services/zeepo-ai" },
+      {
+        icon: Sparkles,
+        label: "AI Content Writer",
+        desc: "Help drafting posts, emails and adverts",
+        href: "/services/zepo-ai",
+      },
+
+      {
+        icon: Workflow,
+        label: "Marketing Guidance",
+        desc: "Get campaign ideas, sales hooks and practical next steps",
+        href: "/services/zepo-ai",
+      },
+
+      {
+        icon: MessageSquare,
+        label: "AI Chatbots",
+        desc: "Answer common questions and hand over to your team",
+        href: "/services/zepo-ai",
+      },
+
+      {
+        icon: Zap,
+        label: "Renewal Reminders",
+        desc: "Keep track of relevant Nisc Cloud service renewals",
+        href: "/services/zepo-ai",
+      },
     ],
   },
 ];
 
-function TabVisual({ tabs, activeTab }: { tabs: Tab[]; activeTab: number }) {
-  const [loadedTabs, setLoadedTabs] = useState<Set<number>>(() => new Set([0]));
 
-  useEffect(() => {
-    setLoadedTabs((prev) => {
-      if (prev.has(activeTab)) return prev;
-      const next = new Set(prev);
-      next.add(activeTab);
-      return next;
-    });
-  }, [activeTab]);
-
-  useEffect(() => {
-    const preloadRemaining = () => {
-      tabs.forEach((t, i) => {
-        if (i === 0) return;
-        const img = new Image();
-        img.decoding = "async";
-        img.src = t.image;
-      });
-    };
-
-    if (typeof window.requestIdleCallback === "function") {
-      const id = window.requestIdleCallback(preloadRemaining, { timeout: 2500 });
-      return () => window.cancelIdleCallback(id);
-    }
-
-    const timeoutId = globalThis.setTimeout(preloadRemaining, 1500);
-    return () => globalThis.clearTimeout(timeoutId);
-  }, []);
-
-  return (
-    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[1.75rem] bg-muted/20">
-      {tabs.map((t, i) =>
-        loadedTabs.has(i) ? (
-          <img
-            key={t.badge}
-            src={t.image}
-            alt={t.label}
-            width={960}
-            height={720}
-            decoding="async"
-            loading={i === 0 ? "eager" : "lazy"}
-            fetchPriority={i === 0 ? "high" : "low"}
-            className={cn(
-              "absolute inset-0 h-full w-full object-contain object-center transition-opacity duration-300 ease-out",
-              i === activeTab ? "opacity-100" : "pointer-events-none opacity-0",
-            )}
-          />
-        ) : null,
-      )}
-    </div>
-  );
-}
+const TAB_PILLAR: Record<Tab["kind"], Pillar> = {
+  build: "build",
+  hosting: "run",
+  marketing: "grow",
+  ai: "ai",
+};
 
 export default function NeedSelector() {
   const navigate = useNavigate();
+  const reduceMotion = useReducedMotion();
   const [activeTab, setActiveTab] = useState(0);
+  const listRef = useRef<HTMLDivElement>(null);
   const tab = tabs[activeTab];
 
-  return (
-    <section id="needs" className="relative overflow-hidden bg-background pb-6 pt-6 md:pb-8 md:pt-8">
-      <div className="mx-auto max-w-7xl px-4 md:px-8">
+  const selectTab = (index: number, focus = false) => {
+    setActiveTab(index);
+    trackEvent("goal_select", { goal: tabs[index].label, goal_id: tabs[index].kind });
+    const el = document.getElementById(`goal-tab-${index}`);
+    if (focus) el?.focus({ preventScroll: true });
+    // Keep the selected option in view on the mobile rail without scrolling the page.
+    if (el && listRef.current && listRef.current.scrollWidth > listRef.current.clientWidth) {
+      const list = listRef.current;
+      const target = el.offsetLeft - (list.clientWidth - el.offsetWidth) / 2;
+      list.scrollTo({ left: Math.max(0, target), behavior: reduceMotion ? "auto" : "smooth" });
+    }
+  };
 
+  return (
+    <section id="needs" className="relative bg-background pb-6 pt-6 md:pb-8 md:pt-8">
+      <div className="mx-auto max-w-7xl px-4 md:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="mb-6 text-center md:mb-8"
+          className="mb-5 text-center md:mb-6"
         >
-          <p className="mb-2 text-sm font-medium text-muted-foreground">
-            Where do you start?
-          </p>
-          <h2 className="mx-auto max-w-2xl text-3xl font-bold tracking-tight text-foreground md:text-4xl">
-            What Do You Need{" "}
-            <PointerHighlight
-              {...pointerHighlightProps}
-              containerClassName="inline-block align-baseline"
-            >
-              <span className="text-primary">Today?</span>
+          <p className="type-label mb-2 text-sky-700 dark:text-primary">Start with your goal</p>
+          <h2 className="type-h2 mx-auto max-w-2xl text-foreground">
+            What do you need{" "}
+            <PointerHighlight {...pointerHighlightProps} containerClassName="inline-block align-baseline">
+              <span className="text-primary">today?</span>
             </PointerHighlight>
           </h2>
-          <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground md:text-base">
-            Pick your goal and we will show you the clear path to get there.
-          </p>
         </motion.div>
 
-        <div
-          className="mb-6 flex flex-wrap items-center justify-center gap-2 md:mb-8"
-          role="tablist"
-          aria-label="Choose your starting point"
-        >
-          {tabs.map((t, i) => {
-            const isActive = activeTab === i;
-            return (
-              <button
-                key={t.label}
-                role="tab"
-                aria-selected={isActive}
-                onClick={() => setActiveTab(i)}
-                className={cn(
-                  "cursor-pointer rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200",
-                  isActive
-                    ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                    : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-primary",
-                )}
-              >
-                {t.label}
-              </button>
-            );
-          })}
+        {/* Compact selector: 4-up on desktop, 2x2 on tablet, scroll-snap rail on mobile. */}
+        <div className="relative -mx-4 mb-6 px-4 md:mx-0 md:mb-8 md:px-0">
+          <div
+            ref={listRef}
+            role="tablist"
+            aria-label="Choose your starting point"
+            className="flex snap-x snap-mandatory gap-2.5 overflow-x-auto overscroll-x-contain scroll-px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0 lg:grid-cols-4"
+          >
+            {tabs.map((t, i) => {
+              const isActive = activeTab === i;
+              return (
+                <button
+                  key={t.label}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  id={`goal-tab-${i}`}
+                  aria-controls="goal-panel"
+                  tabIndex={isActive ? 0 : -1}
+                  onKeyDown={(event) => {
+                    const next =
+                      event.key === "ArrowRight" || event.key === "ArrowDown"
+                        ? (i + 1) % tabs.length
+                        : event.key === "ArrowLeft" || event.key === "ArrowUp"
+                          ? (i - 1 + tabs.length) % tabs.length
+                          : event.key === "Home"
+                            ? 0
+                            : event.key === "End"
+                              ? tabs.length - 1
+                              : null;
+                    if (next !== null) {
+                      event.preventDefault();
+                      selectTab(next, true);
+                    }
+                  }}
+                  onClick={() => selectTab(i)}
+                  className={cn(
+                    "group flex min-h-[64px] w-[76%] min-w-[76%] shrink-0 snap-center items-center gap-3 rounded-xl border px-3.5 py-2.5 text-left transition-[border-color,background-color,box-shadow] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 xs:w-[68%] xs:min-w-[68%] sm:w-auto sm:min-w-0",
+                    isActive
+                      ? "border-primary bg-primary/[0.07] shadow-[0_14px_30px_-26px_rgb(2_132_199_/_0.8)]"
+                      : "border-border bg-card hover:border-primary/45 hover:bg-primary/[0.03]",
+                  )}
+                >
+                  <PillarIcon pillar={TAB_PILLAR[t.kind]} active={isActive} />
+                  <span className="line-clamp-2 min-w-0 flex-1 text-sm font-bold leading-snug text-foreground">
+                    {t.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {/* Mobile affordances: edge fade + indicators. */}
+          <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-background to-transparent sm:hidden" />
+          <div className="mt-3 flex items-center justify-center gap-3 sm:hidden">
+            <div className="flex items-center gap-1.5" aria-hidden>
+              {tabs.map((t, i) => (
+                <span
+                  key={t.label}
+                  className={cn(
+                    "h-1.5 rounded-full transition-[width,background-color] duration-200",
+                    activeTab === i ? "w-5 bg-primary" : "w-1.5 bg-border",
+                  )}
+                />
+              ))}
+            </div>
+            <span className="text-[11px] text-muted-foreground">
+              {activeTab + 1} of {tabs.length} · swipe for more
+            </span>
+          </div>
         </div>
 
         <div
           role="tabpanel"
-          className="grid items-stretch gap-6 lg:grid-cols-2 lg:gap-10"
+          id="goal-panel"
+          aria-labelledby={`goal-tab-${activeTab}`}
+          className="grid items-center gap-6 lg:min-h-[440px] lg:grid-cols-2 lg:gap-10"
         >
-          <div className="order-1 flex flex-col gap-5 lg:order-1">
-            <div>
-              <p className="mb-2 text-sm font-medium text-primary">
-                {tab.step}  {tab.stepLabel}
-              </p>
-              <h3 className="text-2xl font-bold leading-snug tracking-tight text-foreground md:text-[1.75rem]">
-                {tab.headline}{" "}
-                <PointerHighlight
-                  key={`panel-highlight-${activeTab}`}
-                  {...pointerHighlightProps}
-                  containerClassName="inline-block align-baseline"
-                >
-                  <span className="text-primary">{tab.highlight}</span>
-                </PointerHighlight>
-              </h3>
-              <p className="mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground md:text-base">
-                {tab.subtext}
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-4">
-              <Button
-                onClick={() => navigate(tab.primaryCta.href)}
-                className="h-10 cursor-pointer gap-1.5 rounded-full px-5 text-sm font-semibold"
-              >
-                {tab.primaryCta.label}
-                <ArrowRight size={14} />
-              </Button>
-              <div className="hidden h-8 w-px shrink-0 bg-border sm:block" aria-hidden />
-              <div className="flex items-center gap-3">
-                <div className="flex -space-x-1">
-                  {trustedClients.map((client) => (
-                    <div
-                      key={client.name}
-                      className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-background bg-muted sm:h-12 sm:w-12"
-                      title={client.name}
-                    >
-                      <img
-                        src={client.logo}
-                        alt={client.name}
-                        loading="lazy"
-                        decoding="async"
-                        className="h-full w-full object-contain p-1.5"
-                      />
-                    </div>
-                  ))}
-                </div>
-                <span className="text-sm text-muted-foreground">
-                  Trusted by <strong className="font-semibold text-foreground">100+</strong> businesses
-                </span>
-              </div>
-            </div>
-
-            <div className="grid gap-2 sm:grid-cols-2">
-              {tab.features.map((f) => (
-                <button
-                  key={f.label}
-                  type="button"
-                  onClick={() => navigate(f.href)}
-                  className="group flex w-full items-start gap-2.5 rounded-xl border border-border/50 bg-muted/30 px-3.5 py-3 text-left transition-all hover:border-primary/30 hover:bg-muted/60"
-                >
-                  <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-background text-primary">
-                    <f.icon size={14} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-semibold text-foreground sm:text-sm">
-                      {f.label}
-                    </div>
-                    <div className="mt-0.5 text-[11px] text-muted-foreground sm:text-xs">{f.desc}</div>
-                  </div>
-                  <ArrowRight
-                    size={14}
-                    className="mt-1.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary"
-                  />
-                </button>
-              ))}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => navigate("/contact")}
-              className="w-fit cursor-pointer text-sm font-medium text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={`copy-${activeTab}`}
+              initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduceMotion ? { opacity: 1 } : { opacity: 0, y: -6 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              className="order-1 flex flex-col gap-5"
             >
-              Talk to us about your project
-            </button>
-          </div>
+              <div>
+                <p className="type-label mb-2 text-sky-700 dark:text-primary">{tab.stepLabel}</p>
+                <h3 className="type-h2 text-balance text-foreground">
+                  {tab.headline} {tab.highlight}
+                </h3>
+                <p className="mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground md:text-base">{tab.subtext}</p>
+              </div>
 
-          <div className="order-2 flex items-center lg:order-2">
-            <TabVisual tabs={tabs} activeTab={activeTab} />
+              <div>
+                <Button asChild className="cursor-pointer gap-1.5 px-5"><Link to={tab.primaryCta.href}>
+                  {tab.primaryCta.label}
+                  <ArrowRight size={14} />
+                </Link></Button>
+              </div>
+
+              <div className="grid gap-2 sm:grid-cols-2">
+                {tab.features.slice(0, 4).map((f) => (
+                  <button
+                    key={f.label}
+                    type="button"
+                    onClick={() => {
+                      trackEvent("goal_action_click", { goal_id: tab.kind, action: f.label, href: f.href });
+                      navigate(f.href);
+                    }}
+                    className="group flex w-full items-start gap-2.5 rounded-xl border border-border/60 bg-muted/30 px-3.5 py-3 text-left transition-colors hover:border-primary/40 hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  >
+                    <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-background text-primary">
+                      <f.icon size={14} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-semibold text-foreground sm:text-sm">{f.label}</div>
+                      <div className="mt-0.5 text-[11px] text-muted-foreground sm:text-xs">{f.desc}</div>
+                    </div>
+                    <ArrowRight size={14} className="mt-1.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+
+          <div className="order-2 flex items-center">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={`art-${activeTab}`}
+                initial={reduceMotion ? false : { opacity: 0, scale: 0.985 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={reduceMotion ? { opacity: 1 } : { opacity: 0, scale: 0.985 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+                className="w-full"
+              >
+                <GoalArtwork kind={tab.kind} />
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
       </div>

@@ -36,7 +36,7 @@ export default function TermsOfServicePage() {
       title="Terms of Service"
       subtitle="These Terms of Service govern your access to and use of all products, services, and platforms operated by Nisc Cloud Limited. Please read them carefully before using our services."
       effectiveDate="1 September 2025"
-      lastUpdated="1 July 2026"
+      lastUpdated="9 November 2026"
       toc={toc}
     >
       <p>
@@ -85,7 +85,7 @@ export default function TermsOfServicePage() {
           <strong>"Services"</strong> means all products and services offered by Nisc Cloud,
           including but not limited to cloud hosting, domain registration, business email hosting,
           SSL certificates, website design, brand identity services, digital marketing services, AI
-          automation services (Zeepo AI), and any other services listed on our Platform.
+          automation services (Zepo AI), and any other services listed on our Platform.
         </li>
         <li>
           <strong>"Subscription"</strong> means a recurring plan that grants access to specified
@@ -178,7 +178,7 @@ export default function TermsOfServicePage() {
 
       <h3>5.1 Cloud Hosting Services</h3>
       <ul>
-        <li><strong>Shared Web Hosting:</strong> Managed shared-server hosting optimised for speed and reliability.</li>
+        <li><strong>Web Hosting:</strong> Managed hosting for business websites, optimised for speed and reliability.</li>
         <li><strong>WordPress Hosting:</strong> Specialist hosting environment optimised for WordPress websites.</li>
         <li><strong>VPS Hosting:</strong> Virtual Private Server instances with dedicated resources and root access.</li>
         <li><strong>VDS Hosting:</strong> Virtual Dedicated Server resources for higher-traffic workloads.</li>
@@ -197,7 +197,7 @@ export default function TermsOfServicePage() {
       <ul>
         <li><strong>Brand Identity & Design:</strong> Logo design, brand guidelines, visual identity systems, and brand strategy.</li>
         <li><strong>Website Design & Development:</strong> Custom website design, landing pages, and e-commerce solutions.</li>
-        <li><strong>SEO / AEO / GEO:</strong> Search engine optimisation, answer engine optimisation, and geo-targeted ranking services.</li>
+        <li><strong>SEO / AEO / GEO:</strong> Search Engine Optimization, Answer Engine Optimization, and Generative Engine Optimization services. Local and map visibility are treated separately as local SEO services.</li>
         <li><strong>Paid Advertising:</strong> Campaign management on Google Ads, Meta Ads, TikTok Ads, and LinkedIn Ads.</li>
         <li><strong>Social Media Marketing:</strong> Content creation, scheduling, community management, and influencer campaigns.</li>
         <li><strong>Email Marketing:</strong> Sequence design, newsletter management, and marketing automation.</li>
@@ -206,7 +206,7 @@ export default function TermsOfServicePage() {
 
       <h3>5.4 AI & Automation Services</h3>
       <ul>
-        <li><strong>Zeepo AI Agent:</strong> AI-powered automation for business workflows, customer engagement, and lead management.</li>
+        <li><strong>Zepo AI Agent:</strong> AI-powered automation for business workflows, customer engagement, and lead management.</li>
         <li><strong>AI Image Generation:</strong> AI-assisted creative asset generation for marketing and branding.</li>
         <li><strong>Background Remover:</strong> Automated image background removal tool.</li>
       </ul>
@@ -219,7 +219,16 @@ export default function TermsOfServicePage() {
         these Terms.
       </p>
 
-      <h3>5.6 Service Modifications</h3>
+      <h3>5.6 Website Migration</h3>
+      <p>
+        When you move hosting to Nisc Cloud, we migrate your existing website, databases, and email
+        free of charge within the scope we agree with you before the move begins. Work outside that
+        agreed scope (for example, rebuilding a site, fixing pre-existing faults, or moving very large
+        or complex applications) is quoted separately, and we will only charge for it after you
+        approve the quote.
+      </p>
+
+      <h3>5.7 Service Modifications</h3>
       <p>
         We reserve the right to add, modify, suspend, or discontinue any Service at any time, with
         reasonable notice where possible. We will not be liable to you or any third party for any
@@ -353,10 +362,10 @@ export default function TermsOfServicePage() {
       <h2 id="refunds">10. Refund Policy</h2>
       <h3>10.1 Cloud Hosting Services</h3>
       <p>
-        We offer a <strong>7-day money-back guarantee</strong> on new shared hosting, WordPress
-        hosting, and business email hosting plans. If you are not satisfied, contact us within 7
-        days of the initial purchase and we will issue a full refund. This guarantee applies to
-        first-time purchases only and does not apply to renewals.
+        We offer a <strong>7-day money-back guarantee</strong> on new web hosting and WordPress
+        hosting plans. If you are not satisfied, contact us within 7 days of the initial purchase
+        and we will issue a full refund. This guarantee applies to first-time purchases only and
+        does not apply to renewals.
       </p>
       <h3>10.2 VPS, VDS & Dedicated Servers</h3>
       <p>
@@ -373,8 +382,9 @@ export default function TermsOfServicePage() {
       </p>
       <h3>10.4 SSL Certificates</h3>
       <p>
-        SSL certificates may be refunded within <strong>30 days</strong> of purchase if not yet
-        issued or installed. Once a certificate has been issued, it is non-refundable.
+        SSL certificates are <strong>non-refundable</strong> once issued or provisioned. If
+        provisioning fails through our error, we will offer a refund or re-provision the affected
+        Service.
       </p>
       <h3>10.5 Marketing & Design Services</h3>
       <p>
@@ -388,7 +398,19 @@ export default function TermsOfServicePage() {
         AI service credits and automation service packages are non-refundable once consumed. Unused
         credits at the time of account termination will not be refunded.
       </p>
-      <h3>10.7 Process</h3>
+      <h3>10.7 Business Email Services</h3>
+      <p>
+        Business email plans are non-refundable once the mailboxes or related account resources
+        have been provisioned. If provisioning fails through our error, we will offer a refund or
+        re-provision the affected Service.
+      </p>
+      <h3>10.8 Policy Violations</h3>
+      <p>
+        No refund, including under the money-back guarantee in Section 10.1, is due for Services
+        suspended or terminated because of a breach of the Acceptable Use Policy (Section 11) or
+        Prohibited Conduct (Section 12).
+      </p>
+      <h3>10.9 Process</h3>
       <p>
         Refund requests must be submitted in writing to{" "}
         <a href="mailto:support@nisccloud.com">support@nisccloud.com</a>. Approved refunds are
@@ -409,6 +431,9 @@ export default function TermsOfServicePage() {
         <li>Conduct or facilitate distributed denial-of-service (DDoS) attacks or any other form of cyberattack;</li>
         <li>Mine cryptocurrencies or engage in any activity that places excessive, unreasonable strain on shared infrastructure without prior written approval;</li>
         <li>Store or process content that infringes the intellectual property rights of any person;</li>
+        <li>Host, sell, or promote pornography or other sexually explicit adult content;</li>
+        <li>Run or promote scams, including Ponzi or pyramid schemes, fake investment or "get rich quick" offers, fake giveaways, and advance-fee fraud;</li>
+        <li>Impersonate a genuine business, brand, government body, or person, including look-alike websites, phishing pages, and counterfeit storefronts;</li>
         <li>Host content that constitutes child sexual abuse material (CSAM)  this is a zero-tolerance policy and will result in immediate termination and reporting to relevant authorities;</li>
         <li>Engage in any form of online fraud, identity theft, or financial crime;</li>
         <li>Circumvent or attempt to circumvent any security measure, firewall, or access control;</li>
@@ -419,6 +444,22 @@ export default function TermsOfServicePage() {
         We reserve the right to monitor usage patterns to detect violations of this policy and to
         take immediate corrective action, including content removal, service suspension, or account
         termination, without prior notice where the violation is serious.
+      </p>
+      <h3>11.1 Enforcement</h3>
+      <p>
+        We take the security of our infrastructure and of our other Clients seriously. If we
+        reasonably believe that an Account hosts or distributes content prohibited by this policy or
+        Section 12, we may, without prior notice:
+      </p>
+      <ul>
+        <li>Suspend or terminate the affected Services or the entire Account;</li>
+        <li>Remove or disable access to the content;</li>
+        <li>Preserve relevant records and report the matter to law enforcement, regulators, the domain registry, or affected rights holders;</li>
+        <li>Take legal action to protect Nisc Cloud, our infrastructure, and our Clients, and recover the costs we reasonably incur as a result.</li>
+      </ul>
+      <p>
+        Fees paid for Services that are suspended or terminated under this Section are
+        <strong> non-refundable</strong>, and any outstanding Fees remain payable.
       </p>
 
       {/* ─── 12. PROHIBITED ─────────────────────────────────────────────────── */}
@@ -560,7 +601,7 @@ export default function TermsOfServicePage() {
       <h2 id="sla">18. Service Availability & SLA</h2>
       <h3>18.1 Hosting Uptime Commitment</h3>
       <p>
-        For shared hosting, WordPress hosting, and business email hosting plans, we target a monthly
+        For web hosting, WordPress hosting, and business email hosting plans, we target a monthly
         uptime of <strong>99.9%</strong>, excluding scheduled maintenance windows and force majeure
         events. In the event of downtime attributable to us that falls below this commitment in a
         given calendar month, you may request a service credit equal to a proportionate amount of

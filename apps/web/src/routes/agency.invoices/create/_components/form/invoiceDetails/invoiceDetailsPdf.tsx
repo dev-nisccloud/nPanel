@@ -3,7 +3,7 @@ import { Text, View } from "@react-pdf/renderer";
 import { currencyList } from "@/lib/currency";
 import { pdfTypography, pdfUtils } from "@/lib/pdfStyles";
 import type { InvoiceItemDetails, Item } from "@/routes/agency.invoices/create/types";
-import { tisTaxRateLabel } from "@npanel/api/agency-invoice-pdf/tis-receipt-totals";
+import { tisTaxTypeWithRateLabel } from "@npanel/api/agency-invoice-pdf/tis-receipt-totals";
 
 export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
   note,
@@ -48,7 +48,7 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
         </View>
       </View>
       {items.map(({ itemDescription, amount, qty, billingCycle, etimsTaxTyCd }, index) => {
-        const taxRateLabel = tisTaxRateLabel(etimsTaxTyCd);
+        const taxRateLabel = tisTaxTypeWithRateLabel(etimsTaxTyCd);
         return (
           <View
             key={index}
@@ -68,9 +68,9 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
                   Billing: {formatBillingCycle(billingCycle)}
                 </Text>
               )}
-              {taxRateLabel && (
+              {taxRateLabel && !(itemDescription ?? "").includes(taxRateLabel) && (
                 <Text style={{ ...pdfTypography.itemDescription, fontSize: 9, color: "#666", marginTop: 4 }}>
-                  Tax rate: {taxRateLabel}
+                  {taxRateLabel}
                 </Text>
               )}
             </View>

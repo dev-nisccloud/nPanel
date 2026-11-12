@@ -29,6 +29,23 @@ export function tisTaxRateLabel(band: string | null | undefined): string | undef
 	return TIS_TAX_TABLE_SPEC.find((row) => row.band === key)?.rateLabel;
 }
 
+/** Invoice line label: tax type plus the band rate, e.g. `Tax B (16%)`. */
+export function tisTaxTypeWithRateLabel(band: string | null | undefined): string | undefined {
+	const key = (band ?? "").trim().toUpperCase();
+	if (!TIS_TAX_BANDS.has(key)) return undefined;
+	const spec = TIS_TAX_TABLE_SPEC.find((row) => row.band === key);
+	if (!spec) return undefined;
+	return `Tax ${key} (${spec.rateLabel})`;
+}
+
+/** Rewrite `Tax B` → `Tax B (16%)` when the rate is not already in brackets. */
+export function enrichInvoiceLineTaxTypeLabel(text: string | null | undefined): string {
+	if (!text) return text ?? "";
+	return text.replace(/\bTax\s+([A-E])\b(?!\s*\()/gi, (_m, band: string) => {
+		return tisTaxTypeWithRateLabel(band) ?? `Tax ${String(band).toUpperCase()}`;
+	});
+}
+
 export function etimsTaxBandFromLineMetadata(metadata: unknown): string | undefined {
 	if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return undefined;
 	const meta = metadata as Record<string, unknown>;

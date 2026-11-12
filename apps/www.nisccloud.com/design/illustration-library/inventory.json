@@ -1,0 +1,469 @@
+{
+  "exportedAt": "2026-11-07T13:02:55.159Z",
+  "artworks": [
+    {
+      "id": "hero-connected-ecosystem",
+      "title": "Hero 1 · Nisc Cloud ecosystem",
+      "category": "homepage",
+      "source": "flagship-art.tsx › EcosystemStory",
+      "kind": "editorial",
+      "mobile": true,
+      "width": 1504,
+      "height": 904,
+      "mobileWidth": 815,
+      "mobileHeight": 1130
+    },
+    {
+      "id": "hero-cloud-infrastructure",
+      "title": "Hero 2 · Cloud & infrastructure",
+      "category": "homepage",
+      "source": "flagship-art.tsx › CloudInfrastructureStory",
+      "kind": "conceptual",
+      "mobile": true,
+      "width": 1504,
+      "height": 904,
+      "mobileWidth": 815,
+      "mobileHeight": 1130
+    },
+    {
+      "id": "hero-agencies-developers",
+      "title": "Hero 3 · Agencies & developers",
+      "category": "homepage",
+      "source": "flagship-art.tsx › AgencyDeveloperStory",
+      "kind": "authentic-ui",
+      "mobile": true,
+      "width": 1504,
+      "height": 904,
+      "mobileWidth": 815,
+      "mobileHeight": 1130
+    },
+    {
+      "id": "goal-run-online",
+      "title": "Goal · Run my business online",
+      "category": "homepage",
+      "source": "npanel-art.tsx › RunOnlineArt",
+      "kind": "authentic-ui",
+      "mobile": false,
+      "width": 1264,
+      "height": 671
+    },
+    {
+      "id": "goal-brand-web",
+      "title": "Goal · Build my brand or website",
+      "category": "homepage",
+      "source": "flagship-art.tsx › BrandWebFlagshipArt",
+      "kind": "editorial",
+      "mobile": true,
+      "width": 1264,
+      "height": 900,
+      "mobileWidth": 815,
+      "mobileHeight": 990
+    },
+    {
+      "id": "cloud-hosting-stack",
+      "title": "Web hosting stack",
+      "category": "cloud",
+      "source": "flagship-art.tsx › HostingFlagshipArt",
+      "kind": "conceptual",
+      "mobile": true,
+      "width": 1264,
+      "height": 794,
+      "mobileWidth": 815,
+      "mobileHeight": 1626
+    },
+    {
+      "id": "cloud-hosting-support",
+      "title": "Hosting support",
+      "category": "cloud",
+      "source": "cloud-art.tsx › HostingSupportArt",
+      "kind": "conceptual",
+      "mobile": false,
+      "width": 1264,
+      "height": 891
+    },
+    {
+      "id": "cloud-domain-search",
+      "title": "Domain search",
+      "category": "cloud",
+      "source": "cloud-art.tsx › DomainSearchArt",
+      "kind": "authentic-ui",
+      "mobile": false,
+      "width": 1264,
+      "height": 992
+    },
+    {
+      "id": "cloud-hosting-dns",
+      "title": "DNS records",
+      "category": "cloud",
+      "source": "cloud-art.tsx › HostingDnsArt",
+      "kind": "authentic-ui",
+      "mobile": false,
+      "width": 1264,
+      "height": 923
+    },
+    {
+      "id": "cloud-wordpress",
+      "title": "WordPress hosting",
+      "category": "cloud",
+      "source": "cloud-art.tsx › WordPressArt",
+      "kind": "authentic-ui",
+      "mobile": false,
+      "width": 1264,
+      "height": 912
+    },
+    {
+      "id": "cloud-mailboxes",
+      "title": "Business email mailboxes",
+      "category": "cloud",
+      "source": "cloud-art.tsx › MailboxesArt",
+      "kind": "authentic-ui",
+      "mobile": false,
+      "width": 1264,
+      "height": 1007
+    },
+    {
+      "id": "cloud-server-vps",
+      "title": "VPS server",
+      "category": "cloud",
+      "source": "cloud-art.tsx › ServerArt kind=vps",
+      "kind": "conceptual",
+      "mobile": false,
+      "width": 1264,
+      "height": 865
+    },
+    {
+      "id": "cloud-server-vds",
+      "title": "VDS server",
+      "category": "cloud",
+      "source": "cloud-art.tsx › ServerArt kind=vds",
+      "kind": "conceptual",
+      "mobile": false,
+      "width": 1264,
+      "height": 865
+    },
+    {
+      "id": "cloud-server-dedicated",
+      "title": "Dedicated server",
+      "category": "cloud",
+      "source": "cloud-art.tsx › ServerArt kind=dedicated",
+      "kind": "conceptual",
+      "mobile": false,
+      "width": 1264,
+      "height": 1297
+    },
+    {
+      "id": "cloud-ssl",
+      "title": "SSL certificate",
+      "category": "cloud",
+      "source": "cloud-art.tsx › SslArt",
+      "kind": "authentic-ui",
+      "mobile": false,
+      "width": 1264,
+      "height": 865
+    },
+    {
+      "id": "cloud-migration",
+      "title": "Website migration",
+      "category": "cloud",
+      "source": "cloud-art.tsx › MigrationArt",
+      "kind": "conceptual",
+      "mobile": false,
+      "width": 1264,
+      "height": 1023
+    },
+    {
+      "id": "cloud-hosting-files",
+      "title": "Hosting file manager",
+      "category": "cloud",
+      "source": "more-art.tsx › HostingFilesArt",
+      "kind": "authentic-ui",
+      "mobile": false,
+      "width": 1264,
+      "height": 908
+    },
+    {
+      "id": "cloud-mail-dns",
+      "title": "Mail DNS authentication",
+      "category": "cloud",
+      "source": "more-art.tsx › MailDnsArt",
+      "kind": "authentic-ui",
+      "mobile": false,
+      "width": 1264,
+      "height": 833
+    },
+    {
+      "id": "cloud-webmail",
+      "title": "Webmail",
+      "category": "cloud",
+      "source": "more-art.tsx › WebmailArt",
+      "kind": "authentic-ui",
+      "mobile": false,
+      "width": 1264,
+      "height": 654
+    },
+    {
+      "id": "cloud-server-backups",
+      "title": "Server backups",
+      "category": "cloud",
+      "source": "more-art.tsx › ServerBackupsArt",
+      "kind": "authentic-ui",
+      "mobile": false,
+      "width": 1264,
+      "height": 833
+    },
+    {
+      "id": "cloud-domain-transfer",
+      "title": "Domain transfer",
+      "category": "cloud",
+      "source": "more-art.tsx › DomainTransferArt",
+      "kind": "authentic-ui",
+      "mobile": false,
+      "width": 1264,
+      "height": 849
+    },
+    {
+      "id": "cloud-nameservers",
+      "title": "Nameservers",
+      "category": "cloud",
+      "source": "more-art.tsx › NameserversArt",
+      "kind": "authentic-ui",
+      "mobile": false,
+      "width": 1264,
+      "height": 910
+    },
+    {
+      "id": "cloud-licence-quotation",
+      "title": "Licence quotation",
+      "category": "cloud",
+      "source": "more-art.tsx › QuotationArt",
+      "kind": "authentic-ui",
+      "mobile": false,
+      "width": 1264,
+      "height": 917
+    },
+    {
+      "id": "npanel-agency-client-management",
+      "title": "nPanel for agencies",
+      "category": "npanel",
+      "source": "flagship-art.tsx › AgencyFlagshipArt",
+      "kind": "authentic-ui",
+      "mobile": true,
+      "width": 1264,
+      "height": 967,
+      "mobileWidth": 815,
+      "mobileHeight": 1663
+    },
+    {
+      "id": "npanel-business-workspace",
+      "title": "nPanel for businesses",
+      "category": "npanel",
+      "source": "npanel-art.tsx › NpanelBusinessArt",
+      "kind": "authentic-ui",
+      "mobile": false,
+      "width": 1264,
+      "height": 930
+    },
+    {
+      "id": "npanel-developer-terminal",
+      "title": "nPanel for developers",
+      "category": "npanel",
+      "source": "npanel-art.tsx › NpanelDeveloperArt",
+      "kind": "authentic-ui",
+      "mobile": false,
+      "width": 1264,
+      "height": 998
+    },
+    {
+      "id": "npanel-operations",
+      "title": "nPanel operations",
+      "category": "npanel",
+      "source": "npanel-art.tsx › NpanelOperationsArt",
+      "kind": "authentic-ui",
+      "mobile": false,
+      "width": 1264,
+      "height": 946
+    },
+    {
+      "id": "growth-seo-search-performance",
+      "title": "SEO search performance",
+      "category": "growth",
+      "source": "flagship-art.tsx › SeoFlagshipArt",
+      "kind": "conceptual",
+      "mobile": true,
+      "width": 1264,
+      "height": 692,
+      "mobileWidth": 815,
+      "mobileHeight": 1453
+    },
+    {
+      "id": "growth-seo-analytics",
+      "title": "SEO analytics review",
+      "category": "growth",
+      "source": "more-art.tsx › SeoAnalyticsArt",
+      "kind": "conceptual",
+      "mobile": false,
+      "width": 1264,
+      "height": 1034
+    },
+    {
+      "id": "growth-email-campaign",
+      "title": "Email campaign report",
+      "category": "growth",
+      "source": "growth-art.tsx › EmailCampaignArt",
+      "kind": "authentic-ui",
+      "mobile": false,
+      "width": 1264,
+      "height": 901
+    },
+    {
+      "id": "growth-paid-ads",
+      "title": "Paid advertising",
+      "category": "growth",
+      "source": "growth-art.tsx › AdsArt",
+      "kind": "conceptual",
+      "mobile": false,
+      "width": 1264,
+      "height": 810
+    },
+    {
+      "id": "growth-social-ads",
+      "title": "Social advertising",
+      "category": "growth",
+      "source": "growth-art.tsx › AdsArt social",
+      "kind": "conceptual",
+      "mobile": false,
+      "width": 1264,
+      "height": 810
+    },
+    {
+      "id": "growth-social-calendar",
+      "title": "Social content calendar",
+      "category": "growth",
+      "source": "more-art.tsx › SocialCalendarArt",
+      "kind": "conceptual",
+      "mobile": false,
+      "width": 1264,
+      "height": 575
+    },
+    {
+      "id": "growth-content-plan",
+      "title": "Content plan",
+      "category": "growth",
+      "source": "more-art.tsx › ContentPlanArt",
+      "kind": "conceptual",
+      "mobile": false,
+      "width": 1264,
+      "height": 499
+    },
+    {
+      "id": "growth-ecommerce-store",
+      "title": "Ecommerce storefront",
+      "category": "growth",
+      "source": "growth-art.tsx › CommerceArt",
+      "kind": "editorial",
+      "mobile": false,
+      "width": 1264,
+      "height": 689
+    },
+    {
+      "id": "growth-store-orders",
+      "title": "Store orders",
+      "category": "growth",
+      "source": "more-art.tsx › StoreOrdersArt",
+      "kind": "conceptual",
+      "mobile": false,
+      "width": 1264,
+      "height": 644
+    },
+    {
+      "id": "growth-checkout",
+      "title": "Checkout experience",
+      "category": "growth",
+      "source": "more-art.tsx › CheckoutArt",
+      "kind": "conceptual",
+      "mobile": false,
+      "width": 1264,
+      "height": 607
+    },
+    {
+      "id": "growth-brand-kit",
+      "title": "Brand identity kit",
+      "category": "growth",
+      "source": "growth-art.tsx › BrandKitArt",
+      "kind": "editorial",
+      "mobile": false,
+      "width": 1264,
+      "height": 723
+    },
+    {
+      "id": "growth-creative-assets",
+      "title": "Creative assets",
+      "category": "growth",
+      "source": "growth-art.tsx › CreativeAssetsArt",
+      "kind": "editorial",
+      "mobile": false,
+      "width": 1264,
+      "height": 949
+    },
+    {
+      "id": "growth-creative-brief",
+      "title": "Creative brief",
+      "category": "growth",
+      "source": "more-art.tsx › CreativeBriefArt",
+      "kind": "conceptual",
+      "mobile": false,
+      "width": 1264,
+      "height": 917
+    },
+    {
+      "id": "growth-team-workspace",
+      "title": "Team workspace",
+      "category": "growth",
+      "source": "growth-art.tsx › TeamWorkspaceArt",
+      "kind": "conceptual",
+      "mobile": false,
+      "width": 1264,
+      "height": 736
+    },
+    {
+      "id": "security-email-gate",
+      "title": "Email security gate",
+      "category": "security",
+      "source": "security/_components/EmailSecurityArtwork.tsx › EmailGateArtwork",
+      "kind": "conceptual",
+      "mobile": false,
+      "width": 1288,
+      "height": 592
+    },
+    {
+      "id": "ai-zeepo-assistant",
+      "title": "Zeepo AI assistant",
+      "category": "ai",
+      "source": "growth-art.tsx › ZeepoArt",
+      "kind": "authentic-ui",
+      "mobile": false,
+      "width": 1264,
+      "height": 901
+    },
+    {
+      "id": "ai-zeepo-activity",
+      "title": "Zeepo AI activity",
+      "category": "ai",
+      "source": "more-art.tsx › ZeepoActivityArt",
+      "kind": "authentic-ui",
+      "mobile": false,
+      "width": 1264,
+      "height": 901
+    },
+    {
+      "id": "ai-email-builder",
+      "title": "AI Email Builder",
+      "category": "ai",
+      "source": "growth-art.tsx › AiEmailBuilderArt",
+      "kind": "authentic-ui",
+      "mobile": false,
+      "width": 1264,
+      "height": 876
+    }
+  ]
+}

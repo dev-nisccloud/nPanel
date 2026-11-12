@@ -1,13 +1,38 @@
 import { motion } from "motion/react";
-import { Unlock, CalendarCheck, CheckCircle2, Globe2, CreditCard, Code2, Receipt, BadgeCheck, RefreshCw } from "lucide-react";
+import {
+  Unlock,
+  CalendarCheck,
+  CheckCircle2,
+  Globe2,
+  CreditCard,
+  Code2,
+  Receipt,
+  BadgeCheck,
+  RefreshCw,
+} from "lucide-react";
 import BentoServiceCarousel from "./BentoServiceCarousel.tsx";
 import BentoOrbitingIcons from "./BentoOrbitingIcons.tsx";
 
 const PricingVisual = () => {
   const items = [
-    { label: "Brand Identity", price: "KES 25K", color: "text-blue-500", bg: "bg-blue-500/10" },
-    { label: "Website Hosting", price: "KES 500/mo", color: "text-teal-500", bg: "bg-teal-500/10" },
-    { label: "SEO Campaign", price: "KES 25K/mo", color: "text-violet-500", bg: "bg-violet-500/10" },
+    {
+      label: "Brand Identity",
+      price: "KES 25K",
+      color: "text-blue-500",
+      bg: "bg-blue-500/10",
+    },
+    {
+      label: "Website Hosting",
+      price: "KES 500/mo",
+      color: "text-teal-500",
+      bg: "bg-teal-500/10",
+    },
+    {
+      label: "SEO Campaign",
+      price: "KES 25K/mo",
+      color: "text-brand-orange",
+      bg: "bg-brand-orange/10",
+    },
   ];
   return (
     <div className="p-8 bg-muted rounded-t-xl flex-1 flex items-center justify-center">
@@ -25,13 +50,22 @@ const PricingVisual = () => {
           </motion.div>
         </div>
         <div className="text-center">
-          <div className="text-xl font-extrabold text-primary tracking-tight">Clear pricing</div>
-          <div className="text-xs text-muted-foreground font-medium mt-0.5">You see the price before you pay</div>
+          <div className="text-xl font-extrabold text-primary tracking-tight">
+            Clear pricing
+          </div>
+          <div className="text-xs text-muted-foreground font-medium mt-0.5">
+            You see the price before you pay
+          </div>
         </div>
         <div className="flex flex-col gap-2 w-full max-w-[180px]">
           {items.map(({ label, price, color, bg }) => (
-            <div key={label} className="flex items-center justify-between gap-2">
-              <span className={`text-[10px] font-medium px-2 py-1 rounded-full ${bg} ${color}`}>
+            <div
+              key={label}
+              className="flex items-center justify-between gap-2"
+            >
+              <span
+                className={`text-[10px] font-medium px-2 py-1 rounded-full ${bg} ${color}`}
+              >
                 {label}
               </span>
               <span className={`text-[10px] font-bold ${color}`}>{price}</span>
@@ -39,7 +73,7 @@ const PricingVisual = () => {
           ))}
           <div className="flex items-center gap-1.5 mt-1 text-[10px] text-muted-foreground">
             <RefreshCw className="w-3 h-3" />
-            Monthly billing · Cancel anytime
+            Billing and renewal terms shown before checkout
           </div>
         </div>
       </div>
@@ -56,8 +90,12 @@ const OwnershipVisual = () => (
         </div>
       </div>
       <div className="text-center">
-        <div className="text-xl font-extrabold text-amber-500 tracking-tight">You own it</div>
-        <div className="text-xs text-muted-foreground font-medium mt-0.5">Domain, code, and data stay yours</div>
+        <div className="text-xl font-extrabold text-amber-500 tracking-tight">
+          You own it
+        </div>
+        <div className="text-xs text-muted-foreground font-medium mt-0.5">
+          Domain, code, and data stay yours
+        </div>
       </div>
       <div className="flex flex-col gap-2 w-full max-w-[160px]">
         {[
@@ -81,19 +119,19 @@ const OwnershipVisual = () => (
 const ResultsVisual = () => {
   const milestones = [
     { day: "Day 1", label: "Strategy locked in" },
-    { day: "Day 7", label: "Brand delivered" },
-    { day: "Day 14", label: "Website live" },
-    { day: "Day 30", label: "Results or we work free" },
+    { day: "Day 7", label: "First milestone review" },
+    { day: "Day 14", label: "Delivery progress update" },
+    { day: "Day 30", label: "First progress review" },
   ];
   return (
     <div className="p-8 bg-muted rounded-t-xl flex-1 flex items-center justify-center">
       <div className="flex flex-col items-center gap-4 w-full">
         <div className="relative">
-          <div className="w-16 h-16 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shadow-sm">
-            <CalendarCheck className="w-8 h-8 text-violet-500" />
+          <div className="w-16 h-16 rounded-2xl bg-brand-orange/10 border border-brand-orange/20 flex items-center justify-center shadow-sm">
+            <CalendarCheck className="w-8 h-8 text-brand-orange" />
           </div>
           <motion.div
-            className="absolute -right-1.5 -top-1.5 w-5 h-5 bg-violet-500 rounded-full flex items-center justify-center"
+            className="absolute -right-1.5 -top-1.5 w-5 h-5 bg-brand-orange rounded-full flex items-center justify-center"
             animate={{ scale: [1, 1.2, 1] }}
             transition={{ duration: 2, repeat: Infinity }}
           >
@@ -101,8 +139,12 @@ const ResultsVisual = () => {
           </motion.div>
         </div>
         <div className="text-center">
-          <div className="text-xl font-extrabold text-violet-500 tracking-tight">30-day results</div>
-          <div className="text-xs text-muted-foreground font-medium mt-0.5">Progress you can measure</div>
+          <div className="text-xl font-extrabold text-brand-orange tracking-tight">
+            First-month milestones
+          </div>
+          <div className="text-xs text-muted-foreground font-medium mt-0.5">
+            Progress you can measure
+          </div>
         </div>
         <div className="flex flex-col gap-1.5 w-full max-w-[180px]">
           {milestones.map(({ day, label }, i) => (
@@ -114,9 +156,13 @@ const ResultsVisual = () => {
               transition={{ duration: 0.3, delay: i * 0.1 }}
               className="flex items-center gap-2"
             >
-              <span className="text-[9px] font-black font-mono text-violet-400 w-10 shrink-0">{day}</span>
-              <div className="flex-1 h-px bg-violet-200 dark:bg-violet-800" />
-              <span className="text-[9px] text-muted-foreground text-right leading-tight max-w-[100px]">{label}</span>
+              <span className="text-[9px] font-black font-mono text-brand-orange w-10 shrink-0">
+                {day}
+              </span>
+              <div className="flex-1 h-px bg-brand-orange/25" />
+              <span className="text-[9px] text-muted-foreground text-right leading-tight max-w-[100px]">
+                {label}
+              </span>
             </motion.div>
           ))}
         </div>
@@ -129,7 +175,6 @@ export default function BentoFeatures() {
   return (
     <section className="relative overflow-hidden bg-muted/30 py-12 md:py-16">
       <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 lg:px-8 xl:px-16">
-
         {/* Section header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -138,18 +183,17 @@ export default function BentoFeatures() {
           transition={{ duration: 0.5 }}
           className="mx-auto flex max-w-3xl flex-col items-center justify-center gap-3 text-center"
         >
-          <h2 className="text-balance text-3xl font-bold tracking-tight md:text-4xl">
+          <h2 className="type-h2 text-balance">
             Why Choose Us
           </h2>
           <p className="max-w-2xl text-base text-muted-foreground">
-            From brand and website to hosting, marketing, and smart tools.
-            One team that helps you get online, stay online, and grow.
+            From brand and website to hosting, marketing, and smart tools. One
+            team that helps you get online, stay online, and grow.
           </p>
         </motion.div>
 
         {/* Bento grid */}
         <div className="grid grid-cols-12 gap-5">
-
           {/* Cell 1  Animated service carousel (4 cols) */}
           <motion.div
             initial={{ opacity: 0, y: 24 }}
@@ -163,11 +207,12 @@ export default function BentoFeatures() {
                 <BentoServiceCarousel />
               </div>
               <div className="flex flex-col gap-1 p-8 border-t border-border">
-                <h3 className="text-xl font-semibold text-foreground">
+                <h3 className="type-h3 text-foreground">
                   One team for the full journey
                 </h3>
                 <p className="text-base font-normal text-muted-foreground">
-                  Design, hosting, marketing, and automation handled together so you are not chasing five vendors.
+                  Design, hosting, marketing, and automation handled together so
+                  you are not chasing five vendors.
                 </p>
               </div>
             </div>
@@ -186,11 +231,12 @@ export default function BentoFeatures() {
                 <BentoOrbitingIcons />
               </div>
               <div className="flex flex-col gap-1 p-8 border-t border-border">
-                <h3 className="text-xl font-semibold text-foreground">
+                <h3 className="type-h3 text-foreground">
                   Tools that work together
                 </h3>
                 <p className="text-base font-normal text-muted-foreground">
-                  Domains, hosting, email, security, SEO, and analytics connected so your site and marketing stay in sync.
+                  Domains, hosting, email, security, SEO, and analytics
+                  connected so your site and marketing stay in sync.
                 </p>
               </div>
             </div>
@@ -207,11 +253,12 @@ export default function BentoFeatures() {
             <div className="rounded-xl border border-border h-full flex flex-col">
               <PricingVisual />
               <div className="flex flex-col gap-1 p-8 border-t border-border">
-                <h3 className="text-xl font-semibold text-foreground">
+                <h3 className="type-h3 text-foreground">
                   Pricing you can understand
                 </h3>
                 <p className="text-base font-normal text-muted-foreground">
-                  Clear monthly packages. Paying is simple. Scale up or pause when your needs change.
+                  Compare defined packages or request a scoped quotation. See
+                  billing and renewal terms before you commit.
                 </p>
               </div>
             </div>
@@ -228,17 +275,18 @@ export default function BentoFeatures() {
             <div className="rounded-xl border border-border h-full flex flex-col">
               <OwnershipVisual />
               <div className="flex flex-col gap-1 p-8 border-t border-border">
-                <h3 className="text-xl font-semibold text-foreground">
+                <h3 className="type-h3 text-foreground">
                   You keep what we build
                 </h3>
                 <p className="text-base font-normal text-muted-foreground">
-                  Your domain, code, and data stay yours. Leave when you want without losing your assets.
+                  Your domain, code, and data stay yours. Leave when you want
+                  without losing your assets.
                 </p>
               </div>
             </div>
           </motion.div>
 
-          {/* Cell 5  30-day results (4 cols) */}
+          {/* Cell 5  First-month milestones (4 cols) */}
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -249,16 +297,17 @@ export default function BentoFeatures() {
             <div className="rounded-xl border border-border h-full flex flex-col">
               <ResultsVisual />
               <div className="flex flex-col gap-1 p-8 border-t border-border">
-                <h3 className="text-xl font-semibold text-foreground">
-                  Results in 30 days, guaranteed
+                <h3 className="type-h3 text-foreground">
+                  A clear first 30 days
                 </h3>
                 <p className="text-base font-normal text-muted-foreground">
-                  We set a clear first-month plan. If marketing progress is missing, we keep working at no extra charge until it shows.
+                  We set a clear first-month plan. For defined managed services,
+                  agree measurable milestones and review progress within 30
+                  days.
                 </p>
               </div>
             </div>
           </motion.div>
-
         </div>
       </div>
     </section>

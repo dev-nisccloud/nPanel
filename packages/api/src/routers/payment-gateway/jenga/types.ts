@@ -185,6 +185,7 @@ export type JengaPaymentMetadata = {
 	items?: unknown[];
 	currency?: string;
 	teamId?: string;
+	teamSlug?: string;
 	billedForUserId?: string;
 	skipInvoice?: boolean;
 	cart?: unknown;
@@ -192,6 +193,8 @@ export type JengaPaymentMetadata = {
 	productId?: string;
 	billingCycle?: string;
 	primaryDomain?: string;
+	quoteToken?: string;
+	quote?: Record<string, unknown>;
 	invoiceId?: string;
 	invoiceReturnPath?: string;
 };

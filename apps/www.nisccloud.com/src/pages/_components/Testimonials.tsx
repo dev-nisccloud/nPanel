@@ -22,7 +22,7 @@ const testimonials: Testimonial[] = [
     role: "Founder, AfriCommerce",
     text: "Hosting stayed steady and the marketing team understood our buyers. Support answered when we needed them, day or night.",
     initials: "JO",
-    accentClass: "bg-violet-500/20 text-violet-400",
+    accentClass: "bg-brand-orange/15 text-brand-orange",
   },
   {
     name: "Grace W.",
@@ -44,7 +44,7 @@ export default function Testimonials() {
           transition={{ duration: 0.5 }}
           className="text-center mb-10"
         >
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
+          <h2 className="type-h2 mb-3">
             What Our Clients Say
           </h2>
           <p className="text-muted-foreground text-base max-w-xl mx-auto">

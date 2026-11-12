@@ -1,28 +1,9 @@
-import { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import {
-  Globe,
-  Server,
-  Mail,
-  ShieldCheck,
-  TrendingUp,
-  Cpu,
-  Layers,
-  Zap,
-  Database,
-  HardDrive,
-  Building2,
-  Palette,
-  MonitorSmartphone,
-  ShoppingCart,
-  Users,
-  Megaphone,
-  Bot,
-  Search,
-  Send,
-  type LucideIcon,
-} from "lucide-react";
+import { useId } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
+import { ArrowRight, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
+import { trackEvent } from "@/lib/track.ts";
 import { SharedPricingSection } from "@/pages/hosting/shared/_components/SharedPricingSection.tsx";
 import { WordPressPricingSection } from "@/pages/hosting/wordpress/_components/WordPressPricingSection.tsx";
 import { VpsPlansSection } from "@/pages/hosting/vps/_components/VpsPlansSection.tsx";
@@ -33,299 +14,360 @@ import { EmailPricingSection } from "@/pages/hosting/email/_components/EmailPric
 import SecurityPlans from "@/pages/security/_components/SecurityPlans.tsx";
 import { SeoPricingSection } from "@/pages/services/seo/_components/SeoPricingSection.tsx";
 import { EmailMarketingPricingSection } from "@/pages/services/email-marketing/_components/EmailMarketingPricingSection.tsx";
+import { LicencePlansSection } from "@/pages/_components/LicencePlansSection.tsx";
+import { AgencyPlans } from "@/pages/hosting/agency/_components/AgencyPlans.tsx";
 import {
   BrandIdentityPricing,
   WebsiteDesignPricing,
   EcommercePricing,
   SocialMediaPricing,
   PaidAdsPricing,
-  ZeepoAiPricing,
-  CloudBundlesPricing,
+  ZepoAiPricing,
+  SslPlanSummary,
+  EnquiryPanel,
+  AgencyServicesPanel,
 } from "./MarketingPricingSections.tsx";
 
-type SubCategory = {
+type Product = {
   id: string;
   label: string;
-  icon: LucideIcon;
+  /** Sub-heading shown above the first item of a run inside a group. */
+  section?: string;
   description: string;
+  href: string;
   component: React.ComponentType;
 };
 
-type Category = {
-  id: string;
-  label: string;
-  icon: LucideIcon;
-  subCategories: SubCategory[];
-};
+type Group = { id: string; label: string; products: Product[] };
 
-const categories: Category[] = [
+const groups: Group[] = [
   {
-    id: "hosting",
-    label: "Cloud Hosting",
-    icon: Server,
-    subCategories: [
+    id: "cloud",
+    label: "Cloud Products",
+    products: [
       {
-        id: "shared",
+        id: "domains",
+        label: "Domains",
+        description: "Search .ke, .co.ke, .com and other extensions. Availability and first-year prices are checked live.",
+        href: "/hosting/domains",
+        component: DomainSearch,
+      },
+      {
+        id: "web-hosting",
         label: "Web Hosting",
-        icon: Layers,
-        description: "Fast shared hosting to get your website online with 99.99% uptime and 24/7 support.",
+        description: "Web hosting to get your website online, with a 99.9% uptime target.",
+        href: "/hosting/web-hosting",
         component: SharedPricingSection,
       },
       {
         id: "wordpress",
-        label: "WordPress",
-        icon: Zap,
-        description: "WordPress hosting set up for speed, security, and easy management.",
+        label: "WordPress Hosting",
+        description: "WordPress hosting set up for speed, security and easy management.",
+        href: "/hosting/wordpress",
         component: WordPressPricingSection,
+      },
+      {
+        id: "email",
+        label: "Business Email",
+        description: "Professional email on your own domain, managed from nPanel.",
+        href: "/hosting/email",
+        component: EmailPricingSection,
       },
       {
         id: "vps",
         label: "VPS",
-        icon: Database,
-        description: "Virtual private servers with dedicated vCPUs, guaranteed RAM, and full root access.",
+        description: "Virtual private servers with dedicated vCPUs, reserved RAM and full root access.",
+        href: "/hosting/vps",
         component: VpsPlansSection,
       },
       {
         id: "vds",
         label: "VDS",
-        icon: HardDrive,
-        description: "Virtual dedicated servers with strong performance and flexible virtualisation.",
+        description: "Virtual dedicated servers with dedicated resources and flexible virtualisation.",
+        href: "/hosting/vds",
         component: VdsPlansSection,
       },
       {
         id: "dedicated",
-        label: "Dedicated",
-        icon: Building2,
-        description: "Bare-metal dedicated servers with full resources and no noisy neighbours.",
+        label: "Dedicated Servers",
+        description: "Bare-metal servers with the full machine reserved for your workloads.",
+        href: "/hosting/dedicated-servers",
         component: DedicatedPlansSection,
       },
-    ],
-  },
-  {
-    id: "domains",
-    label: "Domains",
-    icon: Globe,
-    subCategories: [
       {
-        id: "domains",
-        label: "Domain Registration",
-        icon: Globe,
-        description: "Search availability across .co.ke, .com, and 200+ extensions.",
-        component: DomainSearch,
+        id: "ssl",
+        label: "SSL Certificates",
+        description: "Domain, organisation and extended validation certificates, with installation included.",
+        href: "/hosting/ssl",
+        component: SslPlanSummary,
       },
-    ],
-  },
-  {
-    id: "email",
-    label: "Email",
-    icon: Mail,
-    subCategories: [
       {
-        id: "email",
-        label: "Business Email",
-        icon: Mail,
-        description: "Professional yourname@yourdomain.com. Fast, secure, and ad-free.",
-        component: EmailPricingSection,
-      },
-    ],
-  },
-  {
-    id: "security",
-    label: "Security",
-    icon: ShieldCheck,
-    subCategories: [
-      {
-        id: "web-security",
-        label: "Web Security",
-        icon: ShieldCheck,
-        description: "Malware scanning, cleanup, firewall, and monitoring to help protect your site 24/7.",
+        id: "security",
+        label: "Website Security",
+        description: "Malware scanning, cleanup, firewall and monitoring for your website.",
+        href: "/security",
         component: SecurityPlans,
       },
     ],
   },
   {
-    id: "marketing",
-    label: "Marketing",
-    icon: TrendingUp,
-    subCategories: [
+    id: "productivity",
+    label: "Productivity",
+    products: [
+      {
+        id: "microsoft-365",
+        label: "Microsoft 365",
+        description: "Microsoft's published list prices per user, with a KES quote for your team.",
+        href: "/hosting/microsoft-365",
+        component: () => <LicencePlansSection kind="microsoft-365" />,
+      },
+      {
+        id: "google-workspace",
+        label: "Google Workspace",
+        description: "Google's published list prices per user, with a KES quote for your team.",
+        href: "/hosting/google-workspace",
+        component: () => <LicencePlansSection kind="google-workspace" />,
+      },
+      {
+        id: "hybrid-email",
+        label: "Enterprise Hybrid Email",
+        description: "Run Microsoft 365 or Google Workspace alongside Nisc Mail on one corporate domain.",
+        href: "/hosting/hybrid-email",
+        component: () => (
+          <EnquiryPanel
+            title="Priced from your licence mix"
+            body="We review which users need a full productivity suite and which need professional email only, then quote an annual arrangement with migration and mail routing included in the scope."
+            points={["Annual quotation in KES", "Licence mix reviewed with you", "Migration and routing planned before changes"]}
+            serviceName="Enterprise Hybrid Email"
+            cta="Get an annual quotation"
+          />
+        ),
+      },
+    ],
+  },
+  {
+    id: "solutions",
+    label: "Business Solutions",
+    products: [
+      {
+        id: "website-design",
+        label: "Website Development",
+        description: "Custom website design and development. Mobile-first and SEO-ready.",
+        href: "/services/website-design",
+        component: WebsiteDesignPricing,
+      },
+      {
+        id: "ecommerce",
+        label: "Ecommerce",
+        description: "Online stores with payments, inventory and order management.",
+        href: "/services/ecommerce",
+        component: EcommercePricing,
+      },
+      {
+        id: "custom-software",
+        label: "Custom Software",
+        description: "Business applications, portals and integrations built around the way you work.",
+        href: "/contact?serviceName=Custom%20Software",
+        component: () => (
+          <EnquiryPanel
+            title="Scoped and quoted per project"
+            body="Tell us what the software needs to do, who will use it and which systems it connects to. We confirm scope, timeline and a fixed quotation before work starts."
+            points={["Discovery call to define scope", "Fixed quotation before you commit", "Hosting on Nisc Cloud infrastructure"]}
+            serviceName="Custom Software"
+            cta="Request a proposal"
+          />
+        ),
+      },
       {
         id: "seo",
         label: "SEO / AEO",
-        icon: Search,
-        description: "Rank on Google and AI search with strategy, implementation, and monthly reporting.",
+        section: "Digital marketing",
+        description: "Get found on Google and AI search with strategy, implementation and monthly reporting.",
+        href: "/services/seo",
         component: SeoPricingSection,
       },
       {
         id: "email-marketing",
         label: "Email Marketing",
-        icon: Send,
-        description: "Email design, automation flows, and campaign analytics, managed for you.",
+        section: "Digital marketing",
+        description: "Email design, automation flows and campaign analytics, managed for you.",
+        href: "/services/email-marketing",
         component: EmailMarketingPricingSection,
       },
       {
         id: "social-media",
         label: "Social Media",
-        icon: Users,
-        description: "Social media management with content, scheduling, and community engagement.",
+        section: "Digital marketing",
+        description: "Social media management with content, scheduling and community engagement.",
+        href: "/services/social-media",
         component: SocialMediaPricing,
       },
       {
         id: "paid-ads",
         label: "Paid Advertising",
-        icon: Megaphone,
-        description: "Google, Meta, and TikTok campaigns managed for clear, measurable results.",
+        section: "Digital marketing",
+        description: "Google, Meta and TikTok campaigns, with ad spend billed directly by each platform.",
+        href: "/services/paid-ads",
         component: PaidAdsPricing,
       },
       {
         id: "brand-identity",
-        label: "Brand Identity",
-        icon: Palette,
-        description: "Logo design, brand guidelines, and visual identity systems.",
+        label: "Branding & Creative",
+        description: "Logo design, brand guidelines and visual identity systems.",
+        href: "/services/brand-identity",
         component: BrandIdentityPricing,
       },
       {
-        id: "website-design",
-        label: "Website Design",
-        icon: MonitorSmartphone,
-        description: "Custom website design and development. Mobile-first and SEO-ready.",
-        component: WebsiteDesignPricing,
-      },
-      {
-        id: "ecommerce",
-        label: "E-commerce",
-        icon: ShoppingCart,
-        description: "Online stores with payments, inventory, and order management.",
-        component: EcommercePricing,
-      },
-      {
-        id: "zeepo-ai",
+        id: "zepo-ai",
         label: "AI & Automation",
-        icon: Bot,
-        description: "AI chatbots, lead automation, email sequences, and CRM integrations.",
-        component: ZeepoAiPricing,
+        description: "Zepo AI chat assistants, lead capture and follow-up automation.",
+        href: "/services/zepo-ai",
+        component: ZepoAiPricing,
       },
     ],
   },
   {
-    id: "cloud",
-    label: "Cloud Plans",
-    icon: Cpu,
-    subCategories: [
+    id: "agencies",
+    label: "Agencies",
+    products: [
       {
-        id: "bundles",
-        label: "All-in-One Bundles",
-        icon: Cpu,
-        description: "Brand, hosting, and marketing bundled for businesses that want everything managed under one team.",
-        component: CloudBundlesPricing,
+        id: "agency-hosting",
+        label: "Agency Hosting",
+        description: "Hosting for the client websites you manage, proposed around your portfolio.",
+        href: "/hosting/agency",
+        component: AgencyPlans,
+      },
+      {
+        id: "agency-services",
+        label: "Agency Services",
+        description: "Products agencies most often resell or manage for their clients.",
+        href: "/hosting/agency",
+        component: AgencyServicesPanel,
       },
     ],
   },
 ];
 
+const allProducts = groups.flatMap((g) => g.products.map((p) => ({ ...p, group: g })));
+const DEFAULT_PRODUCT = "web-hosting";
+
 export default function PricingPlans() {
-  const [activeCategory, setActiveCategory] = useState("hosting");
-  const [activeSub, setActiveSub] = useState("shared");
+  const [params, setParams] = useSearchParams();
+  const reduceMotion = useReducedMotion();
+  const selectId = useId();
+  const requested = params.get("product");
+  const current = allProducts.find((p) => p.id === requested) ?? allProducts.find((p) => p.id === DEFAULT_PRODUCT)!;
+  const ActiveSection = current.component;
 
-  const currentCategory = categories.find((c) => c.id === activeCategory) ?? categories[0];
-
-  function handleCategoryChange(catId: string) {
-    setActiveCategory(catId);
-    const cat = categories.find((c) => c.id === catId);
-    if (cat) setActiveSub(cat.subCategories[0].id);
+  function choose(id: string) {
+    if (id === current.id) return;
+    const next = new URLSearchParams(params);
+    next.set("product", id);
+    setParams(next, { replace: true, preventScrollReset: true });
+    trackEvent("pricing_category_select", { product: id });
+    if (window.matchMedia("(max-width: 1023px)").matches) {
+      document.getElementById("pricing-panel")?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+    }
   }
 
-  const currentSub =
-    currentCategory.subCategories.find((s) => s.id === activeSub) ??
-    currentCategory.subCategories[0];
-
-  const ActiveSection = currentSub.component;
-
   return (
-    <section className="pb-24">
-      <div className="mx-auto max-w-7xl px-4 md:px-8">
-        {/* Top-level category tabs */}
-        <div
-          className="mb-0 flex gap-0 overflow-x-auto border-b border-border/60 scrollbar-thin"
-          role="tablist"
-          aria-label="Service categories"
-        >
-          {categories.map((cat) => {
-            const isActive = cat.id === activeCategory;
-            return (
-              <button
-                key={cat.id}
-                role="tab"
-                aria-selected={isActive}
-                onClick={() => handleCategoryChange(cat.id)}
-                className={cn(
-                  "relative flex shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap px-5 py-3.5 text-sm font-semibold transition-all",
-                  isActive ? "text-primary" : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <cat.icon size={15} />
-                {cat.label}
-                {isActive && (
-                  <motion.div
-                    layoutId="pricing-tab-indicator"
-                    className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-primary"
-                  />
-                )}
-              </button>
-            );
-          })}
+    <section className="pb-24" aria-label="Pricing by product">
+      <div className="mx-auto grid max-w-7xl gap-8 px-4 md:px-8 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10">
+        {/* Mobile and tablet: a native grouped select keeps every product one tap away without squeezing the cards. */}
+        <div className="lg:hidden">
+          <label htmlFor={selectId} className="mb-2 block font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+            Choose a product
+          </label>
+          <div className="relative">
+            <select
+              id={selectId}
+              value={current.id}
+              onChange={(event) => choose(event.target.value)}
+              className="h-12 w-full cursor-pointer appearance-none rounded-xl border border-border bg-card pl-4 pr-10 text-[15px] font-semibold text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              {groups.map((group) => (
+                <optgroup key={group.id} label={group.label}>
+                  {group.products.map((product) => (
+                    <option key={product.id} value={product.id}>
+                      {product.label}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            <ChevronDown aria-hidden className="pointer-events-none absolute right-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          </div>
         </div>
 
-        {/* Sub-category pills */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={`${activeCategory}-subs`}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            {currentCategory.subCategories.length > 1 && (
-              <div className="flex flex-wrap gap-2 border-b border-border/40 py-5">
-                {currentCategory.subCategories.map((sub) => {
-                  const isSubActive = sub.id === currentSub.id;
-                  return (
-                    <button
-                      key={sub.id}
-                      onClick={() => setActiveSub(sub.id)}
-                      className={cn(
-                        "flex cursor-pointer items-center gap-1.5 rounded-full border px-4 py-2 text-xs font-semibold transition-all",
-                        isSubActive
-                          ? "border-primary bg-primary text-primary-foreground shadow-sm shadow-primary/20"
-                          : "border-border/50 bg-muted/50 text-muted-foreground hover:border-primary/40 hover:text-foreground",
-                      )}
-                    >
-                      <sub.icon size={12} />
-                      {sub.label}
-                    </button>
-                  );
-                })}
+        <nav aria-label="Pricing categories" className="hidden lg:block">
+          <div className="sticky top-24 max-h-[calc(100dvh-7rem)] space-y-6 overflow-y-auto overscroll-contain rounded-2xl border border-border bg-card p-3 [scrollbar-width:thin]">
+            {groups.map((group) => (
+              <div key={group.id}>
+                <p className="px-3 pb-1.5 pt-1 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                  {group.label}
+                </p>
+                <ul className="space-y-0.5">
+                  {group.products.map((product, index) => {
+                    const active = product.id === current.id;
+                    const showSection = product.section && product.section !== group.products[index - 1]?.section;
+                    return (
+                      <li key={product.id}>
+                        {showSection && (
+                          <p className="px-3 pb-1 pt-2.5 text-[11px] font-semibold text-muted-foreground/80">{product.section}</p>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => choose(product.id)}
+                          aria-current={active ? "page" : undefined}
+                          className={cn(
+                            "relative flex w-full cursor-pointer items-center rounded-lg py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                            product.section ? "pl-5 pr-3" : "px-3",
+                            active
+                              ? "bg-primary/10 font-semibold text-foreground"
+                              : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                          )}
+                        >
+                          {active && <span aria-hidden className="absolute inset-y-1.5 left-0 w-[3px] rounded-full bg-primary" />}
+                          {product.label}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
-            )}
-          </motion.div>
-        </AnimatePresence>
+            ))}
+          </div>
+        </nav>
 
-        {/* Active pricing section from the respective service page */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeSub}
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.28 }}
-          >
-            <p className="max-w-3xl pt-8 text-base text-muted-foreground">{currentSub.description}</p>
-
-            <div className="pt-2">
-              <ActiveSection />
-            </div>
-
-          </motion.div>
-        </AnimatePresence>
+        <div id="pricing-panel" className="min-w-0 scroll-mt-24">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={current.id}
+              initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduceMotion ? { opacity: 1 } : { opacity: 0, y: -6 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+            >
+              <div className="flex flex-col gap-3 border-b border-border/60 pb-6 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-primary">{current.group.label}</p>
+                  <h2 className="type-h2 mt-1.5 text-foreground">{current.label}</h2>
+                  <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">{current.description}</p>
+                </div>
+                <Link
+                  to={current.href}
+                  className="group inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+                >
+                  {current.href.startsWith("/contact") ? "Talk to our team" : "Full product details"}
+                  <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
+                </Link>
+              </div>
+              <div className="pt-2">
+                <ActiveSection />
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </div>
     </section>
   );

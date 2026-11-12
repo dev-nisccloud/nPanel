@@ -1,4 +1,5 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
+import { ECOMMERCE_PLANS, SERVICE_PACKAGE_NOTES } from "@/lib/service-packages.ts";
 import { ShoppingCart, CreditCard, Package, Truck, BarChart2, Shield, Smartphone, Globe } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
 
@@ -6,23 +7,23 @@ const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "Easy Checkout",
     headline: "A store that makes buying simple",
-    body: "We build online stores that are clear on mobile, easy to browse, and fast to check out. Customers can find products, pay securely, and get order updates without confusion.",
+    body: "We organise product discovery, basket decisions, checkout, and confirmation as one clear mobile journey. Payment and delivery options are configured around the providers available for your business and project scope.",
     bullets: [
       "Mobile-first product browsing and checkout",
-      "Secure payments including cards and mobile money options",
-      "Clear order confirmation and delivery updates",
+      "Supported payment methods agreed before integration",
+      "Order confirmation and delivery messaging configured in scope",
     ],
     mockupRight: true,
     visual: "payment",
   },
   {
     tag: "Sales Analytics",
-    headline: "Your store's numbers, clear and live",
-    body: "Know your best sellers, busiest hours, and where customers drop off. Our analytics dashboard surfaces the insights you need to stock smarter and market better.",
+    headline: "See what customers buy and where they stop",
+    body: "Store reporting can bring orders, product performance, stock, and checkout behaviour into one operating view. Available metrics and refresh timing depend on the chosen platform, gateways, and tracking configuration.",
     bullets: [
-      "Real-time revenue, orders, and cart abandonment rates",
-      "Customer geography and repeat purchase tracking",
-      "Best-selling product rankings updated regularly",
+      "Order and product reporting from the store platform",
+      "Checkout events where consent and tracking allow",
+      "Exportable data for stock and marketing reviews",
     ],
     mockupRight: false,
     visual: "reporting",
@@ -33,121 +34,92 @@ export default function EcommercePage() {
   return (
     <ServicePageShell
       badge="E-commerce Store Development"
-      headline={<>Sell Online With<br /><span className="text-primary">A Store That Makes Buying Easy</span></>}
-      subtext="Launch a fully featured online store built for mobile shoppers. Clear product pages, simple checkout, secure payments, and order management that works while you sleep."
+      headline={<>Sell online with <br /><span className="text-primary">a store that makes buying easy</span></>}
+      subtext="Build a mobile-friendly store around your catalogue, checkout, payment providers, and delivery workflow. Your team gets a clear place to manage products and orders after handover."
       serviceType="marketing"
       checkoutServiceType="ecommerce"
       checkoutProductName="E-Commerce"
       heroImage="https://storage.nisccloud.com/npanel-uploads/nisc-website/e%20commerce%20store%20development.png"
       heroImageStandalone
       trustStats={[
-        { value: "100+", label: "Clients We Have Helped" },
-        { value: "24/7", label: "Support Available" },
-        { value: "Free", label: "Setup Help Included" },
-        { value: "99.99%", label: "Uptime Target" },
+        { value: "Scoped", label: "Payment Setup" },
+        { value: "Training", label: "Included at Handover" },
+        { value: "Mobile", label: "Checkout Designed First" },
+        { value: "Clear", label: "Order Operations" },
       ]}
       features={[
         {
           icon: <CreditCard size={20} />,
-          title: "Secure Payment Options",
-          desc: "Accept cards, bank transfer, and mobile money options so customers can pay the way they prefer, with funds settling to your account.",
+          title: "Payment gateway setup",
+          desc: "We configure the card, bank, or mobile-money methods supported by your selected gateway and account. Provider approval, fees, settlement, and availability remain subject to that provider.",
         },
         {
           icon: <Smartphone size={20} />,
-          title: "Mobile Shopping Experience",
+          title: "Mobile shopping experience",
           desc: "Fast checkout, thumb-friendly product browsing, and a clear path from product page to payment confirmation on any phone.",
         },
         {
           icon: <ShoppingCart size={20} />,
-          title: "Complete Store Management",
-          desc: "Add products, manage inventory, set prices and discounts, create categories, and manage orders from a simple dashboard. No technical skills needed.",
+          title: "Complete store management",
+          desc: "Manage products, categories, prices, discounts, and orders from the selected store platform, with handover training for the workflows included in your plan.",
         },
         {
           icon: <Package size={20} />,
-          title: "Inventory & Stock Control",
-          desc: "Real-time stock tracking, low-stock alerts, variant management (size, colour, weight), and bulk product import via CSV for large catalogues.",
+          title: "Inventory & stock control",
+          desc: "Track stock, variants, and low-stock thresholds using the capabilities of the chosen platform. Bulk import can be configured for compatible catalogue data.",
         },
         {
           icon: <Truck size={20} />,
-          title: "Delivery & Logistics Integration",
-          desc: "Connect with popular couriers and custom rates. Automated order confirmation and delivery tracking help customers stay informed.",
+          title: "Delivery & logistics integration",
+          desc: "Set delivery zones, rates, collection rules, or supported courier connections. Bespoke carrier APIs and tracking flows are assessed and quoted separately.",
         },
         {
           icon: <BarChart2 size={20} />,
-          title: "Sales Analytics Dashboard",
-          desc: "Real-time revenue reports, best-selling products, customer geography, cart abandonment rates, and conversion funnels to grow your store intelligently.",
+          title: "Sales analytics dashboard",
+          desc: "Review store orders, product performance, and configured checkout events. The exact metrics and refresh timing depend on platform and tracking support.",
         },
         {
           icon: <Shield size={20} />,
-          title: "PCI-Compliant Security",
-          desc: "SSL encryption, PCI-DSS compliant payment processing, fraud detection, secure customer data storage, and automatic security updates.",
+          title: "Secure payments",
+          desc: "Checkout uses HTTPS and supported payment-provider flows so card details are handled according to the selected gateway's implementation. Fraud tools and compliance scope vary by provider.",
         },
         {
           icon: <Globe size={20} />,
-          title: "SEO-Optimised Product Pages",
-          desc: "Every product page set up for search with schema markup, fast load speeds, and clear URLs that help people find your products.",
+          title: "SEO-optimised product pages",
+          desc: "Product templates can include clear URLs, metadata, and relevant product schema. Search visibility still depends on catalogue quality, competition, authority, and ongoing optimisation.",
         },
       ]}
-      plans={[
-        {
-          id: "ecom-launch",
-          name: "Launch Store",
-          price: 55000,
-          period: "once",
-          features: [
-            "Up to 50 products",
-            "Mobile money and card checkout setup",
-            "Card payment gateway",
-            "Order management dashboard",
-            "Mobile-responsive storefront",
-            "Delivered in 14 business days",
-          ],
-        },
-        {
-          id: "ecom-enterprise",
-          name: "Enterprise Store",
-          price: 220000,
-          period: "once",
-          features: [
-            "Unlimited products + variants",
-            "All payment methods included",
-            "Abandoned cart recovery emails",
-            "Multi-vendor marketplace option",
-            "ERP / accounting integration",
-            "30-day delivery + manager training",
-          ],
-        },
-      ]}
+      plans={ECOMMERCE_PLANS}
       addons={[
         { id: "ecom-mpesa-express", label: "Express Mobile Checkout Setup", price: 15000, period: "once" },
         { id: "ecom-maintenance", label: "Monthly Store Maintenance & Updates", price: 12000, period: "month" },
         { id: "ecom-productphotos", label: "Product Photography (30 SKUs)", price: 25000, period: "once" },
       ]}
       process={[
-        { num: "01", title: "Store Strategy", desc: "We review your products, competitors, and target customers to define the best store structure, payment flow, and delivery strategy for your business." },
-        { num: "02", title: "Design & Build", desc: "Custom storefront design, product catalogue setup, payment gateway integration, and full checkout flow development and testing." },
-        { num: "03", title: "Payments & Logistics", desc: "Payment setup, SMS notifications, and courier rate configuration specific to your delivery zones." },
-        { num: "04", title: "Launch & Train", desc: "We go live, submit to Google, and run a training session covering how to add products, manage orders, process refunds, and grow your store." },
+        { num: "01", title: "Store strategy", desc: "We review your catalogue, customer journey, operating team, target markets, and provider accounts to define the store structure and integration scope." },
+        { num: "02", title: "Design & build", desc: "We create the storefront, configure the agreed catalogue structure, and build the priority browse-to-checkout journeys." },
+        { num: "03", title: "Payments & delivery", desc: "Supported gateways, delivery rules, notifications, tax settings, and order states are configured and tested within the agreed scope." },
+        { num: "04", title: "Launch & train", desc: "After approval, we launch and train your team on products, orders, refunds, reporting, and the operational limits of each connected provider." },
       ]}
       whyPoints={[
-        { title: "Checkout Built for Real Shoppers", desc: "We design product pages and checkout flows that feel simple on mobile, so customers finish buying without friction.", visual: "mobile" },
-        { title: "Built for Local Shopping Habits", desc: "Customers compare prices, shop on mobile, and expect clear delivery info. Our stores are built around that behaviour.", visual: "localMarket" },
-        { title: "Inventory That Actually Works", desc: "Real-time stock updates help prevent overselling. Automated low-stock alerts mean you can restock before a busy sales day.", visual: "inventory" },
-        { title: "Your Store, Your Money", desc: "Payments settle to your business account. No middleman holding your revenue longer than the payment provider requires.", visual: "payment" },
-        { title: "Scales From Small to Large Catalogues", desc: "Our architecture handles small boutiques and large distributors. Your store can grow without needing a rebuild every 18 months.", visual: "growth" },
-        { title: "Training & Ongoing Support", desc: "We do not just hand over the keys. Full training, walkthroughs, and 24/7 support help you succeed long-term.", visual: "support" },
+        { title: "Operations shape the build", desc: "Catalogue ownership, fulfilment, returns, and reporting are discussed before platform choices are locked in.", visual: "mobile" },
+        { title: "Designed around your market", desc: "Currency, delivery expectations, product information, and payment preferences are scoped for the customers you plan to serve.", visual: "localMarket" },
+        { title: "Stock rules you can manage", desc: "Inventory behaviour is configured around variants, thresholds, and team workflows supported by your selected platform.", visual: "inventory" },
+        { title: "Provider terms stay visible", desc: "Gateway settlement, fees, verification, refunds, and disputes remain governed by your chosen provider rather than hidden behind a universal promise.", visual: "payment" },
+        { title: "Room for planned growth", desc: "We discuss catalogue size, campaigns, integrations, and expected traffic so the proposed architecture fits today's scope and likely next steps.", visual: "growth" },
+        { title: "Handover with boundaries", desc: "Training covers the agreed store workflows. Maintenance, new integrations, and ongoing assistance follow the selected plan or a separate scope.", visual: "support" },
       ]}
       faqs={[
-        { q: "How do payments work for my customers?", a: "At checkout, customers choose a payment method they prefer. Mobile money customers can approve payment on their phone. Card customers pay through a secure gateway. Confirmation is shown right away." },
-        { q: "How quickly are payments settled to my account?", a: "Mobile money business payments typically settle quickly to your account. Card payments usually settle within 1 to 3 business days depending on your chosen payment gateway." },
+        { q: "How do payments work for my customers?", a: "Customers see the methods enabled for your store and approved by your selected gateway. The exact card, bank, or mobile-money flow, confirmation timing, fees, and availability depend on that provider and your merchant account." },
+        { q: "How quickly are payments settled to my account?", a: "Settlement timing is set by your payment provider, merchant category, currency, and account status. We confirm the provider documentation during setup rather than promise a universal settlement window." },
         { q: "Can I manage the store myself after launch?", a: "Yes. We build on platforms with user-friendly dashboards. We provide full training covering product management, order processing, and reporting." },
-        { q: "What happens if I need to add more products later?", a: "All plans allow adding products after launch. We also provide a bulk import template so you can upload many products via CSV in minutes." },
-        { q: "Can the store handle flash sales and high traffic?", a: "Yes. We deploy on cloud infrastructure with auto-scaling, CDN, and caching. Your store stays fast and available even during busy promotional periods." },
-        { q: "Do you integrate with Jumia or other marketplaces?", a: "For Enterprise plans, we can build integrations with marketplace seller APIs so your inventory syncs across sales channels from one dashboard." },
+        { q: "What happens if I need to add more products later?", a: "You can add products after launch within the platform's limits. For large updates, we can prepare a compatible import template or quote catalogue assistance after reviewing your data." },
+        { q: "Can the store handle flash sales and high traffic?", a: "Capacity depends on the selected platform, hosting resources, catalogue, extensions, and expected peak. Tell us about planned promotions during discovery so we can recommend caching, infrastructure, and load testing appropriate to the risk." },
+        { q: "Do you integrate with Jumia or other marketplaces?", a: "Marketplace integration is assessed case by case. It requires a suitable seller account, an available and permitted API, compatible catalogue data, and a separately confirmed Enterprise scope." },
       ]}
-      ctaHeadline="Start Selling Online This Month"
-      ctaSubtext="A clear, mobile-friendly store helps customers buy with confidence. Free setup help is included, and we train your team before launch."
-      pricingNote="One-time development fee. Hosting and payment gateway fees billed separately."
+      ctaHeadline="Plan a store your team can operate"
+      ctaSubtext="Bring your catalogue, preferred payment providers, and delivery workflow. We will map the build, integration scope, and handover before implementation starts."
+      pricingNote={SERVICE_PACKAGE_NOTES.ECOMMERCE}
       showcaseBlocks={showcaseBlocks}
     />
   );

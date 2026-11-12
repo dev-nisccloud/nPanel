@@ -3,6 +3,8 @@ import { useSearchParams, Link } from "react-router-dom";
 import { ShoppingCart, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
+import { publicPlanName } from "@/lib/plan-catalog.ts";
+import { trackEvent } from "@/lib/track.ts";
 import Navbar from "@/pages/_components/Navbar.tsx";
 import { TransferEppCodeField } from "./_components/TransferEppCodeField.tsx";
 import { CartPageSkeleton } from "./_components/CartPageSkeleton.tsx";
@@ -28,7 +30,8 @@ import type { SelectedDomain } from "./_components/DomainUpsell.tsx";
 import type { HostingUpsellType, UpsellPlanInfo } from "./_components/HostingUpsell.tsx";
 import type { SelectedHostingPlan } from "./_components/OrderSummary.tsx";
 import type { CustomerInfo } from "./_components/CustomerInfoStep.tsx";
-import { computeHivelocitySummaryLines } from "@/lib/vps-plans-api.ts";
+import { computeHivelocitySummaryLines, formatOptionPriceKes } from "@/lib/vps-plans-api.ts";
+import { describeServerSelection } from "./_components/server-options.ts";
 import {
   checkStorefrontEmail,
   clearStorefrontCartDraft,
@@ -50,6 +53,8 @@ import {
 } from "@/lib/storefront-checkout-api.ts";
 import { useStorefrontCartQuote } from "@/lib/use-storefront-cart-quote.ts";
 import { serviceTypeToHivelocityProductType } from "@/lib/hivelocity-default-hostname.ts";
+import { useCurrency } from "@/components/providers/currency.tsx";
+import { formatCurrency } from "@/lib/currency.ts";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -135,7 +140,7 @@ function EmptyCart() {
   return (
     <div className="flex flex-col items-center justify-center pt-24 md:pt-28 pb-24 text-center px-4">
       <ShoppingCart className="w-12 h-12 text-muted-foreground/40 mb-4" />
-      <h2 className="text-xl font-bold text-foreground mb-2">Your cart is empty</h2>
+      <h1 className="type-h1 text-foreground mb-2">Your cart is empty</h1>
       <p className="text-muted-foreground mb-6 max-w-xs">
         Browse our services and select a plan to get started.
       </p>
@@ -155,6 +160,7 @@ function EmptyCart() {
 // ---------------------------------------------------------------------------
 
 export default function CartPage() {
+  const { currency: selectedCurrency } = useCurrency();
   const [searchParams, setSearchParams] = useSearchParams();
   const handoff = searchParams.get("h")?.trim() ?? "";
   const resumeFromQuery = searchParams.get("resume") === "1";
@@ -200,6 +206,12 @@ export default function CartPage() {
   });
   const resumeHandledRef = React.useRef(false);
   const [paymentOpen, setPaymentOpen] = React.useState(false);
+  const [paymentAttempt, setPaymentAttempt] = React.useState<{
+    totalAmount: number;
+    currency: "KES" | "USD";
+    cart: StorefrontCartQuoteRequest;
+    quoteToken: string;
+  } | null>(null);
   const [checkoutSession, setCheckoutSession] = React.useState<{
     storefrontToken: string;
     teamSlug: string;
@@ -258,7 +270,11 @@ export default function CartPage() {
   const cartQuoteRequest = React.useMemo((): StorefrontCartQuoteRequest | null => {
     if (!handoff) return null;
 
-    const request: StorefrontCartQuoteRequest = { handoff };
+    const request: StorefrontCartQuoteRequest = {
+      handoff,
+      currency: selectedCurrency,
+      billingCountry: checkoutSession?.jengaCustomer?.countryCode,
+    };
 
     // Only override handoff billing cycle after the user toggles it on the cart page.
     if (billingCycleUserSetRef.current && billingCycle) {
@@ -306,9 +322,19 @@ export default function CartPage() {
     hostingCycles,
     hivelocityConfig,
     transferAuthCode,
+    selectedCurrency,
+    checkoutSession?.jengaCustomer?.countryCode,
   ]);
 
-  const { quote, quoteError, quoteInitialLoading, quoteRefreshing } = useStorefrontCartQuote(cartQuoteRequest);
+  const {
+    quote,
+    quoteError,
+    quoteInitialLoading,
+    quoteRefreshing,
+    quoteExpiresIn,
+    quoteExpired,
+    retryQuote,
+  } = useStorefrontCartQuote(cartQuoteRequest);
 
   const serviceType = quote?.serviceType ?? "";
   const planId = quote?.planId ?? "";
@@ -449,7 +475,7 @@ export default function CartPage() {
   );
 
   const cartItem: CartItemData = {
-    planName,
+    planName: publicPlanName(planId, planName),
     productName,
     serviceType,
     monthlyPrice,
@@ -523,7 +549,7 @@ export default function CartPage() {
   const quoteSummaryLoading = quoteRefreshing;
 
   const canContinueStep1 = React.useMemo(() => {
-    if (quoteInitialLoading || !quote || quoteSummaryLoading) return false;
+    if (quoteInitialLoading || !quote || quoteSummaryLoading || quoteExpired) return false;
     if (quoteError) return false;
     if (isDomainTransfer && !transferAuthCode.trim()) return false;
     if (selectedDomain?.isTransfer && !transferAuthCode.trim()) return false;
@@ -543,6 +569,7 @@ export default function CartPage() {
     quote,
     quoteError,
     quoteSummaryLoading,
+    quoteExpired,
     isDomainTransfer,
     transferAuthCode,
     selectedDomain,
@@ -565,6 +592,7 @@ export default function CartPage() {
       }
       setCheckoutIdentity({ status: "loading" });
       setStep(2);
+      trackEvent("checkout_start", { service: serviceType || "unknown" });
       window.scrollTo({ top: 0, behavior: "smooth" });
       void fetchStorefrontCheckoutIdentity()
         .then(applySignedInIdentity)
@@ -593,6 +621,19 @@ export default function CartPage() {
     });
   }, [hivelocityConfig, hivelocityPricing]);
 
+  const serverComponents = React.useMemo(() => {
+    if (!isHivelocityPlan || !hivelocityConfig || !hivelocityPricing || hivelocityPricing.loading) return [];
+    const { osList, addonGroups, pricing, kesRate } = hivelocityPricing;
+    return describeServerSelection({
+      selectedOsId: hivelocityConfig.selectedOsId,
+      selectedOptionIds: hivelocityConfig.selectedOptionIds,
+      osList,
+      addonGroups,
+      osPrice: (usd) => formatOptionPriceKes(usd, pricing?.os ?? null, kesRate),
+      addonPrice: (usd) => formatOptionPriceKes(usd, pricing?.addons ?? null, kesRate),
+    });
+  }, [isHivelocityPlan, hivelocityConfig, hivelocityPricing]);
+
   const showQuoteErrorBanner = Boolean(
     quoteError &&
     !quoteSummaryLoading &&
@@ -600,6 +641,18 @@ export default function CartPage() {
   );
 
   const checkoutTotal = quote?.total ?? 0;
+
+  const capturePaymentAttempt = () => {
+    if (!quote || !cartQuoteRequest || quoteExpired || quoteRefreshing) {
+      throw new Error("Pricing changed before payment opened. Refresh the quote and try again.");
+    }
+    return {
+      totalAmount: quote.total,
+      currency: quote.currency,
+      cart: cartQuoteRequest,
+      quoteToken: quote.quoteToken,
+    };
+  };
 
   const resolvePrimaryDomain = (): string | undefined => {
     if (serviceType === "domain_registration" || serviceType === "domain_transfer") return planName;
@@ -611,10 +664,11 @@ export default function CartPage() {
   const handleSubmit = async (info: CustomerInfo) => {
     setIsSubmitting(true);
     try {
+      const attempt = capturePaymentAttempt();
       const exists = await checkStorefrontEmail(info.email);
       if (exists) {
         toast.error(
-          "An account with this email already exists. Sign in to nPanel to complete your purchase.",
+          "An account with this email already exists. Log in to nPanel to complete your purchase.",
         );
         return;
       }
@@ -644,6 +698,7 @@ export default function CartPage() {
           countryCode: "KE",
         },
       });
+      setPaymentAttempt(attempt);
       setPaymentOpen(true);
     } catch (err) {
       toast.error(
@@ -657,6 +712,7 @@ export default function CartPage() {
   const handleSignedInSubmit = async (teamId: string) => {
     setIsSubmitting(true);
     try {
+      const attempt = capturePaymentAttempt();
       const issued = await issueStorefrontCheckoutToken(teamId);
       const prefill =
         checkoutIdentity.status === "signed-in"
@@ -682,6 +738,7 @@ export default function CartPage() {
             }
           : undefined,
       });
+      setPaymentAttempt(attempt);
       setPaymentOpen(true);
     } catch (err) {
       toast.error(
@@ -764,10 +821,17 @@ export default function CartPage() {
       billingCycle: displayBillingCycle,
       primaryDomain: resolvePrimaryDomain(),
       cart: cartQuoteRequest ?? undefined,
+      quoteToken: quote?.quoteToken ?? "",
+      serverHostname: hivelocityConfig?.hostname.trim() || undefined,
     });
 
     clearStorefrontCartDraft();
     clearStorefrontCartResume();
+    trackEvent("checkout_success", {
+      service: serviceType || "unknown",
+      method: "mpesa",
+      billing_cycle: displayBillingCycle,
+    });
     toast.success(`Order ${order.orderNumber} confirmed! Redirecting to your dashboard…`);
     window.location.href = `${NPANEL_URL}/${order.teamSlug}/dashboard`;
   };
@@ -789,6 +853,7 @@ export default function CartPage() {
       storefrontToken: string;
       orderReference: string;
       cart?: StorefrontCartQuoteRequest;
+      quoteToken?: string;
     };
     try {
       stored = JSON.parse(raw) as typeof stored;
@@ -827,15 +892,23 @@ export default function CartPage() {
           billingCycle: displayBillingCycle,
           primaryDomain: resolvePrimaryDomain(),
           cart: stored.cart ?? cartQuoteRequest ?? undefined,
+          quoteToken: stored.quoteToken ?? quote?.quoteToken ?? "",
+          serverHostname: hivelocityConfig?.hostname.trim() || undefined,
         });
         sessionStorage.removeItem("storefront_jenga_checkout");
         clearStorefrontCartDraft();
         clearStorefrontCartResume();
+        trackEvent("checkout_success", {
+          service: serviceType || "unknown",
+          method: "card",
+          billing_cycle: displayBillingCycle,
+        });
         toast.success(`Order ${order.orderNumber} confirmed! Redirecting to your dashboard…`);
         window.location.href = `${NPANEL_URL}/${order.teamSlug}/dashboard`;
       },
     }).catch((err) => {
       setJengaResumePending(false);
+      trackEvent("checkout_failure", { method: "card", stage: "confirmation" });
       toast.error(err instanceof Error ? err.message : "Card payment confirmation failed.");
     });
   }, [
@@ -859,9 +932,16 @@ export default function CartPage() {
     return (
       <div className="min-h-screen bg-background text-foreground">
         <Navbar />
-        <main className="max-w-5xl mx-auto px-4 md:px-6 pt-24 md:pt-28 pb-8">
+        <main className="max-w-6xl mx-auto px-4 md:px-6 xl:px-8 pt-24 md:pt-28 pb-8">
           <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-            {quoteError}
+            <p>{quoteError}</p>
+            <button
+              type="button"
+              onClick={retryQuote}
+              className="mt-3 rounded-lg bg-destructive px-3 py-2 text-xs font-bold text-destructive-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Try pricing again
+            </button>
           </div>
           <Link
             to="/"
@@ -885,8 +965,8 @@ export default function CartPage() {
         <main
           className={
             showSkeleton
-              ? "max-w-5xl mx-auto px-4 md:px-6 pt-24 md:pt-28 pb-8 invisible absolute inset-x-0 top-0 opacity-0 pointer-events-none h-0 overflow-hidden"
-              : "max-w-5xl mx-auto px-4 md:px-6 pt-24 md:pt-28 pb-8 animate-in fade-in duration-300"
+              ? "max-w-6xl mx-auto px-4 md:px-6 xl:px-8 pt-24 md:pt-28 pb-8 invisible absolute inset-x-0 top-0 opacity-0 pointer-events-none h-0 overflow-hidden"
+              : "max-w-6xl mx-auto px-4 md:px-6 xl:px-8 pt-24 md:pt-28 pb-8 animate-in fade-in duration-300"
           }
           aria-hidden={showSkeleton}
         >
@@ -896,17 +976,24 @@ export default function CartPage() {
         </div>
 
         {/* Page title */}
-        <h1 className="text-2xl font-bold text-foreground mb-6">
+        <h1 className="type-h1 text-foreground mb-6">
           {step === 1 ? "Your cart" : "Your details"}
         </h1>
 
         {showQuoteErrorBanner && (
           <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-            {quoteError}
+            <p>{quoteError}</p>
+            <button
+              type="button"
+              onClick={retryQuote}
+              className="mt-3 rounded-lg border border-destructive/30 px-3 py-2 text-xs font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Retry current pricing
+            </button>
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px] gap-6 xl:gap-8 items-start">
           {/* ── Left column ── */}
           <div className="space-y-4">
             <AnimatePresence mode="wait">
@@ -970,6 +1057,7 @@ export default function CartPage() {
                       config={hivelocityConfig}
                       onChange={setHivelocityConfig}
                       onPricingContext={handleHivelocityPricingContext}
+                      planName={cartItem.planName}
                     />
                   )}
                 </motion.div>
@@ -1010,8 +1098,10 @@ export default function CartPage() {
               step={step}
               customerFormId={detailsFormId}
               hivelocityLines={isHivelocityPlan ? [] : hivelocitySummaryLines}
+              serverComponents={serverComponents}
               continueDisabled={
                 (step === 1 && !canContinueStep1) ||
+                quoteExpired ||
                 (step === 2 && checkoutIdentity.status === "loading")
               }
               authoritativeTotals={
@@ -1024,6 +1114,13 @@ export default function CartPage() {
                   : undefined
               }
               quoteSummaryLoading={quoteSummaryLoading}
+              currency={currency as "KES" | "USD"}
+              kesToDisplayRate={quote?.fxRate ?? 1}
+              quoteExpiresAt={quote?.quoteExpiresAt}
+              quoteExpiresIn={quoteExpiresIn}
+              quoteExpired={quoteExpired}
+              onRefreshQuote={retryQuote}
+              taxRate={quote?.taxRate}
             />
           </div>
         </div>
@@ -1036,7 +1133,7 @@ export default function CartPage() {
               <div className="h-5 w-28 bg-accent animate-pulse rounded mt-0.5" />
             ) : (
               <p className="text-base font-bold text-foreground">
-                KES {checkoutTotal.toLocaleString()}
+                {formatCurrency(checkoutTotal, currency as "KES" | "USD")}
               </p>
             )}
           </div>
@@ -1049,6 +1146,7 @@ export default function CartPage() {
               isSubmitting ||
               showSkeleton ||
               quoteSummaryLoading ||
+              quoteExpired ||
               (step === 1 && !canContinueStep1) ||
               (step === 2 && checkoutIdentity.status === "loading")
             }
@@ -1074,14 +1172,19 @@ export default function CartPage() {
         </main>
       )}
 
-      {checkoutSession && cartQuoteRequest && !showSkeleton && (
+      {checkoutSession && paymentAttempt && !showSkeleton && (
         <StorefrontPaymentDialog
           open={paymentOpen}
-          onOpenChange={setPaymentOpen}
+          onOpenChange={(open) => {
+            setPaymentOpen(open);
+            if (!open) setPaymentAttempt(null);
+          }}
           storefrontToken={checkoutSession.storefrontToken}
           defaultPhone={checkoutSession.phone}
-          totalAmount={checkoutTotal}
-          cart={cartQuoteRequest}
+          totalAmount={paymentAttempt.totalAmount}
+          currency={paymentAttempt.currency}
+          cart={paymentAttempt.cart}
+          quoteToken={paymentAttempt.quoteToken}
           customerPrefill={checkoutSession.jengaCustomer}
           onPaymentSuccess={handlePaymentSuccess}
         />
