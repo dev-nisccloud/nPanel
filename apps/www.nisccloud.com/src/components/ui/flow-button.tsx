@@ -33,8 +33,8 @@ export function FlowButton({
       className={cn(
         "group relative flex items-center overflow-hidden cursor-pointer font-semibold",
         "transition-all duration-[600ms] ease-[cubic-bezier(0.23,1,0.32,1)]",
-        "hover:rounded-xl active:scale-[0.97]",
-        size === "sm" ? "rounded-full px-8 py-2 text-sm" : "rounded-full px-10 py-2.5 text-[15px]",
+        "rounded-[10px] active:scale-[0.97]",
+        size === "sm" ? "min-h-11 px-8 py-2 text-sm" : "min-h-11 px-10 py-2.5 text-[15px]",
         isFilled
           ? "bg-primary text-primary-foreground border border-transparent hover:text-secondary-foreground"
           : "bg-transparent text-foreground border border-border/60 hover:border-transparent hover:text-primary-foreground",

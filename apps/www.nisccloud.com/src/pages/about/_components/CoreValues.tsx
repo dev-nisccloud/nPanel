@@ -63,7 +63,7 @@ export default function CoreValues() {
           transition={{ duration: 0.5 }}
           className="text-center mb-16"
         >
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">Core Values</h2>
+          <h2 className="type-h2 mb-4">Core values</h2>
           <p className="text-muted-foreground max-w-xl mx-auto">
             These are not words on a wall. They shape every decision, every
             plan, and every result we ship.
@@ -83,7 +83,7 @@ export default function CoreValues() {
               <div className={`${v.bg} w-12 h-12 rounded-xl flex items-center justify-center mb-4`}>
                 <v.icon className={`w-6 h-6 ${v.color}`} />
               </div>
-              <h3 className="font-bold text-lg mb-2">{v.title}</h3>
+              <h3 className="type-h3 mb-2">{v.title}</h3>
               <p className="text-sm text-muted-foreground">{v.description}</p>
             </motion.div>
           ))}

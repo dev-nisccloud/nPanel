@@ -11,12 +11,14 @@ export default function AboutPage() {
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       <Navbar />
+      <main id="main-content">
       <AboutHero />
       <OurStory />
       <AboutFeatureBlocks />
       <CoreValues />
       <TeamSection />
       <AboutCTA />
+      </main>
       <Footer />
     </div>
   );

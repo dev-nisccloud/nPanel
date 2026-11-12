@@ -1,129 +1,239 @@
+﻿import { ServiceExperience } from "@/pages/_components/ServiceExperience";
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
 import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
-import { Globe, Zap, Shield, Code2, RefreshCw, BarChart2, Lock, Headphones } from "lucide-react";
+import { Code2, Gauge, GitBranch, Lock, Mail, RefreshCw, Shield, ShoppingCart } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
 import { WordPressPricingSection } from "./_components/WordPressPricingSection.tsx";
+import { StagingToLiveArt } from "./_components/StagingToLiveArt.tsx";
+import { WordPressPerformanceArt } from "./_components/WordPressPerformanceArt.tsx";
+import {
+  WordPressComparison,
+  WordPressExplained,
+  WordPressMigration,
+  WordPressPlanFit,
+} from "./_components/wordpress-content.tsx";
 
 // ─── Showcase blocks ──────────────────────────────────────────────────────────
 
 const showcaseBlocks: ShowcaseBlock[] = [
   {
-    tag: "WordPress Performance",
-    headline: "Tuned for WordPress from day one.",
-    body: "Our stack is built for WordPress: PHP 8.3, MariaDB, OPcache, and LiteSpeed Cache pre-configured. Sites that used to feel slow load cleaner and faster on our platform.",
+    tag: "WordPress performance",
+    artwork: <WordPressPerformanceArt />,
+    caption: false,
+    headline: "Built to keep WordPress fast.",
+    body: "Every plan includes LiteSpeed cache, WordPress acceleration and a free CDN, so pages are served quickly without extra caching plugins. Business and Performance add object cache for busier sites and WooCommerce stores.",
     bullets: [
-      "LiteSpeed Cache pre-installed and configured automatically",
-      "PHP 8.3 with OPcache for faster WordPress execution",
-      "HTTP/2 multiplexing for parallel asset loading",
+      "LiteSpeed cache and WordPress acceleration on every plan",
+      "Free CDN for faster pages and images",
+      "Object cache on Business and Performance",
     ],
     mockupRight: true,
     visual: "wpPerf",
   },
   {
-    tag: "Staging and Safety",
-    headline: "Test everything. Break nothing.",
-    body: "One-click staging environments let you test plugin updates, redesigns, and new features on a full clone of your live site. Push to production only when you are confident. Available on Business and Agency plans.",
+    tag: "Staging",
+    id: "staging",
+    artwork: <StagingToLiveArt />,
+    caption: false,
+    headline: "Test changes before they go live.",
+    body: "Business and Performance include a staging environment: a private copy of your site where you can try plugin updates, redesigns and new features, then push them live once they work.",
     bullets: [
-      "One-click staging site creation, no technical setup required",
-      "Auto WordPress updates tested on staging before going live",
-      "30-day backup retention, restore any version in one click",
+      "A private copy of your site for testing",
+      "Push tested changes to the live site",
+      "Included on Business and Performance",
     ],
     mockupRight: false,
     visual: "wpStaging",
+  },
+  {
+    tag: "Updates and security",
+    artwork: <ServiceExperience mode="wordpress" />,
+    headline: "Updates, backups and security, handled.",
+    body: "Every plan includes automatic WordPress updates, daily backups, malware scanning and removal, and DDoS protection. Keep your themes and plugins from trusted sources and use strong, unique passwords for every administrator.",
+    bullets: [
+      "Automatic WordPress updates",
+      "Daily backups on every plan",
+      "Malware scanning and removal, plus DDoS protection",
+    ],
+    mockupRight: true,
+    visual: "security",
+  },
+  {
+    tag: "Developer tools",
+    artwork: <ServiceExperience mode="terminal" />,
+    headline: "Developer tools when you need them.",
+    body: "Manage WordPress from the command line with WP-CLI, connect over SSH or SFTP, choose PHP 8.3, 8.2, 8.1, 8.0 or 7.4 for your site, and deploy with Git on the Performance plan.",
+    bullets: [
+      "WP-CLI, SSH and SFTP on every plan",
+      "PHP 8.3, 8.2, 8.1, 8.0 and 7.4",
+      "Git integration on Performance",
+    ],
+    mockupRight: false,
+    visual: "code",
   },
 ];
 
 export default function WordPressHostingPage() {
   return (
     <ServicePageShell
-      badge="WordPress Hosting"
-      headline={<>WordPress Hosting That Is <span className="text-primary">Fast, Secure and Managed</span></>}
-      subtext="Purpose-built WordPress infrastructure with auto-updates, daily backups, and a staging environment. Focus on your business. We handle the technical complexity."
+      badge="Managed WordPress Hosting"
+      headline="Managed WordPress hosting that stays fast and up to date"
+      subtext="WordPress hosting with LiteSpeed cache, a free CDN, automatic updates, daily backups and malware removal, with your sites and email managed through nPanel."
       serviceType="hosting"
       plansUnderHero
       customPlansSection={<WordPressPricingSection />}
       heroImage={niscWebsiteImage("wordpress hosting.png")}
       heroImageStandalone
-      heroTrustBadge={{ line1: "PHP 8.3 and LiteSpeed Cache", line2: "Free migration and 24/7 support" }}
+      heroTrustBadge={{
+        line1: "LiteSpeed cache and free CDN",
+        line2: "Automatic WordPress updates",
+      }}
       trustStats={[
-        { value: "100+", label: "Clients Served" },
-        { value: "99.99%", label: "Uptime Target" },
-        { value: "Free", label: "Migration Included" },
-        { value: "24/7", label: "WordPress Support" },
+        { value: "Auto", label: "WordPress Updates" },
+        { value: "Daily", label: "Backups & Malware Scans" },
+        { value: "LiteSpeed", label: "Cache & Free CDN" },
+        { value: "Staging", label: "On Business & Performance" },
       ]}
       features={[
         {
-          icon: <Globe size={20} />,
-          title: "WordPress-Optimised Stack",
-          desc: "PHP 8.3, MariaDB 10.11, OPcache, and LiteSpeed. Every layer is tuned for WordPress so your site stays fast for visitors wherever they are.",
-        },
-        {
-          icon: <Zap size={20} />,
-          title: "Built-In WP Caching",
-          desc: "LiteSpeed Cache plugin pre-installed and configured. Static pages served directly from cache, reducing server load and page load times.",
-        },
-        {
-          icon: <Shield size={20} />,
-          title: "WordPress Firewall and Malware Scanning",
-          desc: "Dedicated WordPress WAF blocks common attacks like SQL injection, XSS, and brute-force login attempts before they reach your site.",
-        },
-        {
-          icon: <Code2 size={20} />,
-          title: "One-Click Staging Environment",
-          desc: "Test plugin updates, theme changes, and new features on a full copy of your live site. Push to production with a single click when you are satisfied.",
+          icon: <Gauge size={20} />,
+          title: "LiteSpeed Cache",
+          desc: "Server-level caching and WordPress acceleration on every plan, without extra caching plugins.",
         },
         {
           icon: <RefreshCw size={20} />,
-          title: "Automatic WordPress Updates",
-          desc: "Core WordPress updates are applied automatically during low-traffic hours. We test on your staging environment first, so updates never break your live site.",
+          title: "Automatic WordPress updates",
+          desc: "WordPress updates are applied automatically on every plan, so your site stays current.",
         },
         {
-          icon: <BarChart2 size={20} />,
-          title: "Performance Dashboard",
-          desc: "Monitor your WordPress site's speed, uptime, database health, and resource usage from one clean dashboard. Get alerted before problems affect visitors.",
+          icon: <Shield size={20} />,
+          title: "Malware scanning and removal",
+          desc: "Every plan scans for malware and removes it, alongside DDoS protection and daily backups.",
+        },
+        {
+          icon: <Code2 size={20} />,
+          title: "Staging environment",
+          desc: "Business and Performance include a staging copy for testing updates before they go live.",
+        },
+        {
+          icon: <ShoppingCart size={20} />,
+          title: "WooCommerce Ready",
+          desc: "Business and Performance are set up for WooCommerce, with object cache for busier stores.",
+        },
+        {
+          icon: <GitBranch size={20} />,
+          title: "WP-CLI, SSH and Git",
+          desc: "WP-CLI, SSH and SFTP on every plan, with Git integration on Performance.",
         },
         {
           icon: <Lock size={20} />,
-          title: "Free SSL and HTTP/2",
-          desc: "Free SSL certificate provisioned quickly. HTTP/2 multiplexing means multiple resources load in parallel, which helps WordPress sites with many assets.",
+          title: "Free SSL and CDN",
+          desc: "HTTPS with a free SSL certificate and a free CDN on every plan.",
         },
         {
-          icon: <Headphones size={20} />,
-          title: "WordPress Expert Support",
-          desc: "Our support team understands WordPress. We help with plugin conflicts, theme issues, and performance problems, not just basic server tickets.",
+          icon: <Mail size={20} />,
+          title: "Email included",
+          desc: "Every WordPress plan includes email accounts on your domain, managed in nPanel.",
         },
       ]}
       plans={[]}
-      addons={[
-        { id: "wp-addon-woocommerce", label: "WooCommerce Performance Pack", price: 500, period: "mo" },
-        { id: "wp-addon-backup-premium", label: "Premium Backups (6-month retention)", price: 350, period: "mo" },
-        { id: "wp-addon-cdn", label: "Global CDN (50+ edge locations)", price: 400, period: "mo" },
-      ]}
       process={[
-        { num: "01", title: "Pick Your Plan", desc: "Choose based on how many sites you need. WP Business suits most growing sites and includes staging and malware scanning." },
-        { num: "02", title: "WordPress Auto-Installed", desc: "A clean WordPress install is ready with your chosen domain, free SSL, and LiteSpeed Cache pre-configured." },
-        { num: "03", title: "We Migrate Your Existing Site", desc: "Already have a WordPress site? Our team migrates it for free: database, files, plugins, and all, with careful planning to limit downtime." },
-        { num: "04", title: "Optimise and Launch", desc: "We run a performance check, configure caching, and help you launch with a site that feels fast for your visitors." },
+        {
+          num: "01",
+          title: "Pick your plan",
+          desc: "Launch for one site, Business for staging and WooCommerce stores, Performance for busy or multiple sites.",
+        },
+        {
+          num: "02",
+          title: "Set Up WordPress",
+          desc: "Install WordPress on your plan with your domain and free SSL, then manage it from nPanel.",
+        },
+        {
+          num: "03",
+          title: "Move an existing site",
+          desc: "Share access to your current site. We move it free of charge and agree the switch-over time with you.",
+        },
+        {
+          num: "04",
+          title: "Launch and manage",
+          desc: "Updates, backups, staging and email stay in one nPanel account after launch.",
+        },
       ]}
       whyPoints={[
-        { title: "Managed So You Don't Have To", desc: "Updates, backups, security patches. We handle all of it automatically. You focus on content and customers, not server administration." },
-        { title: "WooCommerce Ready Out of the Box", desc: "Sell products online with WooCommerce on infrastructure tuned for e-commerce stores and busy checkouts." },
-        { title: "Fast for Your Visitors", desc: "Caching and a WordPress-tuned stack keep pages responsive for visitors wherever they are." },
-        { title: "Free Expert Migration", desc: "We migrate WordPress sites with care and no data loss. Your current site stays live while we move you over." },
-        { title: "Real WordPress Help on Support", desc: "When something breaks, you reach people who know WordPress. Problems get solved, not bounced around." },
-        { title: "Room to Grow With Traffic", desc: "Our WordPress plans are built to handle busy days, product launches, and traffic spikes without falling over." },
+        {
+          title: "Updates handled for you",
+          visual: "deploy",
+          desc: "Automatic WordPress updates on every plan keep your site current without manual work.",
+        },
+        {
+          title: "Security built in",
+          visual: "security",
+          desc: "Malware scanning and removal, DDoS protection and daily backups come with every plan.",
+        },
+        {
+          title: "Speed without extra plugins",
+          visual: "speed",
+          desc: "LiteSpeed cache, WordPress acceleration and a free CDN are part of every plan.",
+        },
+        {
+          title: "Free, planned migrations",
+          visual: "migration",
+          desc: "We move your site free of charge, after checking access, plugins, testing and switch-over with you.",
+        },
       ]}
+      whySectionHeadline="Why WordPress sites run on Nisc Cloud"
+      whySectionVariant="simple"
+      contentSlots={{
+        afterPricing: <WordPressPlanFit />,
+        afterShowcase: <WordPressComparison />,
+        afterProcess: <WordPressMigration />,
+        beforeFaq: <WordPressExplained />,
+      }}
+      faqTitle="WordPress hosting questions"
       faqs={[
-        { q: "Can you migrate my existing WordPress site?", a: "Yes, and it is free. Our migration team moves your site including plugins, themes, media, and database with minimal downtime. Most migrations complete within 24 hours." },
-        { q: "Will my WooCommerce store work?", a: "Yes. Our hosting works with WooCommerce. The WP Agency plan is tuned for e-commerce with stronger database caching for busier stores." },
-        { q: "What happens if a plugin update breaks my site?", a: "With staging environments (available on Business and Agency plans), updates are tested on a clone of your site first. If something breaks, nothing happens to your live site." },
-        { q: "Can I use my own custom WordPress theme?", a: "Yes. You have full access to your WordPress admin and can install any theme or plugin. We don't restrict what you can build." },
-        { q: "Is PHP version configurable?", a: "Yes. You can switch between PHP 7.4, 8.1, 8.2, and 8.3 from your control panel. We recommend PHP 8.3 for best WordPress performance." },
-        { q: "Do you offer a money-back guarantee?", a: "Yes. New accounts include a 30-day money-back guarantee. Contact support and we process your refund." },
+        {
+          q: "What is included with managed WordPress hosting?",
+          a: "Every plan includes automatic WordPress updates, daily backups, malware scanning and removal, DDoS protection, LiteSpeed cache, a free CDN, free SSL, email accounts, WP-CLI, SSH and SFTP. Business and Performance add staging, object cache and WooCommerce-ready setup.",
+        },
+        {
+          q: "Are WordPress updates automatic?",
+          a: "Yes. Automatic WordPress updates are included on every plan.",
+        },
+        {
+          q: "What happens if a plugin update breaks my site?",
+          a: "On Business and Performance, test updates on a staging copy before they reach your live site. Every plan also has daily backups, so a recent copy of your site is available if something goes wrong.",
+        },
+        {
+          q: "Will my WooCommerce store work?",
+          a: "Yes. Business and Performance plans are WooCommerce ready, with object cache for busier stores.",
+        },
+        {
+          q: "Can you migrate my existing WordPress site?",
+          a: "Yes, free of charge, within a scope agreed before the move. We review access, files, database, plugins, themes and switch-over needs first; timing depends on site size, compatibility and access. Existing faults or extra fixes are quoted before work begins.",
+        },
+        {
+          q: "Which PHP versions can I use?",
+          a: "PHP 8.3, 8.2, 8.1, 8.0 and 7.4. Check that your theme and plugins support the version you choose.",
+        },
+        {
+          q: "Do I get SSH and WP-CLI access?",
+          a: "Yes. WP-CLI, SSH and SFTP are included on every plan, and the Performance plan adds Git integration.",
+        },
+        {
+          q: "Is email included?",
+          a: "Yes. Every WordPress plan includes email accounts on your domain; the number of mailboxes depends on the plan.",
+        },
+        {
+          q: "Can I use my own custom WordPress theme?",
+          a: "Yes. You can install and manage your own themes and plugins, subject to technical compatibility, plan resources, licensing and the Acceptable Use Policy.",
+        },
+        {
+          q: "Do you offer a money-back guarantee?",
+          a: "Yes. New WordPress hosting accounts include a 7-day money-back guarantee, as set out in our Terms of Service.",
+        },
       ]}
-      pricingNote="All prices in KES. Annual billing saves 20%. Free migration included on all plans."
-      ctaHeadline="Get Managed WordPress Hosting That Just Works"
-      ctaSubtext="Stop fighting slow, unreliable hosting. Get a WordPress platform that is fast, secure, and backed by 24/7 support and free migration."
+      ctaHeadline="Run WordPress without the maintenance work"
+      ctaSubtext="Automatic updates, daily backups, LiteSpeed cache and malware removal on every plan, managed in nPanel."
       showcaseBlocks={showcaseBlocks}
     />
   );

@@ -4,6 +4,8 @@ import type { OrderPlan } from "@/pages/hosting/_components/OrderDialog.tsx";
 import { Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge.tsx";
 import { motion } from "motion/react";
+import { useCurrency } from "@/components/providers/currency.tsx";
+import { convertKesForDisplay, formatCurrency } from "@/lib/currency.ts";
 
 type ServiceAddon = {
   id: string;
@@ -11,8 +13,6 @@ type ServiceAddon = {
   price: number;
   period: string;
 };
-
-const MOCK_FEATURE_COUNT = 6;
 
 const PLAN_DESCRIPTIONS = [
   "Perfect for businesses getting started.",
@@ -28,20 +28,33 @@ const CUSTOM_QUOTE_FEATURES = [
   "Flexible billing & contract terms",
 ];
 
-function normalizeFeatures(features: string[]): string[] {
-  return features.slice(0, MOCK_FEATURE_COUNT);
+/** Replaces "Everything in <Plan>" with that plan's own list so every card states its full specification. */
+function expandFeatures(plan: OrderPlan, all: OrderPlan[], seen: Set<string> = new Set()): string[] {
+  seen.add(plan.id);
+  return plan.features.flatMap((feature) => {
+    const match = feature.match(/^Everything in (.+)$/i);
+    const ref = match?.[1].trim().toLowerCase();
+    const base = ref
+      ? all.find((p) => p.name.toLowerCase() === ref) ?? all.find((p) => p.name.toLowerCase().endsWith(` ${ref}`))
+      : undefined;
+    if (!base || seen.has(base.id)) return [feature];
+    return expandFeatures(base, all, seen);
+  });
 }
 
-function formatPlanPrice(plan: OrderPlan): { price: string; period: string } {
+function formatPlanPrice(
+  plan: OrderPlan,
+  displayPrice: (amount: number) => string,
+): { price: string; period: string } {
   const period =
     plan.period === "once"
-      ? "/once"
+      ? "one-time"
       : plan.period === "mo" || plan.period === "month"
         ? "/month"
         : `/${plan.period}`;
 
   return {
-    price: `KES ${plan.price.toLocaleString()}`,
+    price: displayPrice(plan.price),
     period,
   };
 }
@@ -71,16 +84,18 @@ function orderPlanToCardPlan(
   index: number,
   serviceName: string,
   totalPaidPlans: number,
+  allPlans: OrderPlan[],
+  displayPrice: (amount: number) => string,
 ) {
-  const { price, period } = formatPlanPrice(plan);
+  const { price, period } = formatPlanPrice(plan, displayPrice);
 
   return {
     name: plan.name,
     description: PLAN_DESCRIPTIONS[index] ?? PLAN_DESCRIPTIONS[1],
     price,
     period,
-    features: normalizeFeatures(plan.features),
-    cta: "Get Started",
+    features: [...new Set(expandFeatures(plan, allPlans))],
+    cta: `Choose ${plan.name}`,
     highlighted: totalPaidPlans > 1 && index === 1,
     onSelect: () => {
       window.location.href = buildContactPlanUrl({
@@ -96,7 +111,7 @@ function orderPlanToCardPlan(
 export function ServiceMockPricingSection({
   plans,
   serviceName,
-  title = "Simple, Transparent Pricing",
+  title = "Simple, transparent pricing",
   subtitle,
   pricingNote,
   addons = [],
@@ -108,10 +123,25 @@ export function ServiceMockPricingSection({
   pricingNote?: string;
   addons?: ServiceAddon[];
 }) {
+  const { currency, kesToCurrencyRate } = useCurrency();
+  const displayPrice = (amount: number) =>
+    kesToCurrencyRate == null
+      ? "Updating…"
+      : formatCurrency(
+          convertKesForDisplay(amount, currency, kesToCurrencyRate),
+          currency,
+        );
   const paidPlans = plans.filter((plan) => plan.price > 0 && plan.period !== "quote");
   const cardPlans = [
     ...paidPlans.map((plan, index) =>
-      orderPlanToCardPlan(plan, index, serviceName, paidPlans.length),
+      orderPlanToCardPlan(
+        plan,
+        index,
+        serviceName,
+        paidPlans.length,
+        plans,
+        displayPrice,
+      ),
     ),
     buildCustomQuotePlan(serviceName),
   ];
@@ -147,7 +177,7 @@ export function ServiceMockPricingSection({
                 >
                   <span className="font-medium">{addon.label}</span>
                   <Badge variant="secondary" className="font-semibold">
-                    KES {addon.price.toLocaleString()}/{addon.period}
+                    {displayPrice(addon.price)}/{addon.period}
                   </Badge>
                 </div>
               ))}

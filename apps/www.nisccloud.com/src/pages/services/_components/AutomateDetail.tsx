@@ -1,21 +1,23 @@
 import { motion } from "motion/react";
-import { Check, Bot, Workflow, MessageSquare, BarChart3 } from "lucide-react";
+import { ServiceFeatureGrid, type ServiceFeature } from "./ServiceFeatureGrid.tsx";
+import { Check, Bot, Workflow, BarChart3 } from "lucide-react";
 import { ShowcaseVisualCard } from "@/pages/_components/ServiceShowcaseSection.tsx";
+import { ZepoMascot } from "@/components/zepo-mascot.tsx";
 
-const features = [
-  { icon: Workflow, title: "CRM Workflows", desc: "HubSpot, Salesforce, GoHighLevel: we build automations that move leads through your funnel without manual chasing." },
-  { icon: MessageSquare, title: "AI Chatbots", desc: "Chatbots trained on your brand voice to qualify leads, answer questions, and book calls 24/7." },
-  { icon: Bot, title: "Email Sequences", desc: "Drip campaigns triggered by behaviour: sign-ups, cart abandonment, re-engagement, and upsells." },
-  { icon: BarChart3, title: "Reporting Dashboards", desc: "Clear dashboards showing traffic, conversations, conversions, and revenue in one place." },
+const features: ServiceFeature[] = [
+  { icon: Workflow, title: "Workflow Integrations", desc: "Map repetitive steps and confirm which supported systems, permissions and approvals are required before integration." },
+  { icon: ZepoMascot, title: "Zepo AI Chat", href: "/services/zepo-ai", desc: "Assistance for supported customer, marketing and Nisc Cloud service questions, with escalation when a person needs to take over." },
+  { icon: Bot, title: "Email Sequences", href: "/services/email-marketing", desc: "Plan approved follow-up for supported triggers, with consent, review and sending responsibilities clearly assigned." },
+  { icon: BarChart3, title: "Activity & Reporting", desc: "Review supported workflow activity, handoffs and outcomes without presenting inferred revenue as confirmed fact." },
 ];
 
 const included = [
-  "CRM setup & integration",
-  "Lead scoring automation",
-  "AI chatbot (trained on your brand)",
-  "Email drip sequences",
-  "Reporting dashboard",
-  "Monthly optimization calls",
+  "Workflow and system assessment",
+  "Supported integration scope",
+  "Approved business context for Zepo",
+  "Human review and escalation rules",
+  "Activity records where available",
+  "Ongoing scope agreed in the proposal",
 ];
 
 export default function AutomateDetail() {
@@ -30,7 +32,7 @@ export default function AutomateDetail() {
             transition={{ duration: 0.6 }}
             className="order-2 lg:order-1"
           >
-            <ShowcaseVisualCard visual="automation" headline="Working 24/7" />
+            <ShowcaseVisualCard visual="automation" headline="Automation with clear control" />
           </motion.div>
 
           <motion.div
@@ -40,12 +42,12 @@ export default function AutomateDetail() {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="order-1 lg:order-2"
           >
-            <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-5">
-              Your Business.<br />
-              <span className="text-primary">Working 24/7.</span>
+            <h2 className="type-h2 mb-5">
+              Automation Across <br />
+              <span className="text-primary">Build, Run and Grow.</span>
             </h2>
             <p className="text-muted-foreground text-lg leading-relaxed mb-8">
-              Good marketing systems keep working after office hours. We set up AI automations across your CRM, email, chat, and reporting so leads get a fast reply and your team stays focused.
+              Use automation where it removes repetitive work without hiding responsibility. We define the supported systems, approval points, data boundaries and human handoff before activation.
             </p>
             <ul className="grid grid-cols-2 gap-2">
               {included.map((item) => (
@@ -58,24 +60,7 @@ export default function AutomateDetail() {
           </motion.div>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {features.map((f, i) => (
-            <motion.div
-              key={f.title}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: i * 0.08 }}
-              className="bg-card border border-border/60 rounded-xl p-5 transition-all hover:border-primary/40"
-            >
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-3 bg-primary/10 text-primary">
-                <f.icon size={16} />
-              </div>
-              <h4 className="font-semibold text-sm mb-1">{f.title}</h4>
-              <p className="text-xs text-muted-foreground leading-relaxed">{f.desc}</p>
-            </motion.div>
-          ))}
-        </div>
+        <ServiceFeatureGrid features={features} />
       </div>
     </section>
   );

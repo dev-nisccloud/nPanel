@@ -1,26 +1,27 @@
 import { motion } from "motion/react";
+import { ServiceFeatureGrid, type ServiceFeature } from "./ServiceFeatureGrid.tsx";
 import { Check, Paintbrush, Layers, Type, Palette } from "lucide-react";
 import { ShowcaseVisualCard } from "@/pages/_components/ServiceShowcaseSection.tsx";
 
-const features = [
-  { icon: Palette, title: "Brand Identity", desc: "Logo, colour palette, typography system, and brand guidelines delivered as one clear package." },
-  { icon: Layers, title: "Web Design & Dev", desc: "Custom websites built for speed, mobile use, and search engines, with a focus on turning visitors into customers." },
+const features: ServiceFeature[] = [
+  { icon: Palette, title: "Brand Identity", href: "/services/brand-identity", desc: "Logo, colour palette, typography system, and brand guidelines delivered as one clear package." },
+  { icon: Layers, title: "Web Design & Dev", href: "/services/website-design", desc: "Custom websites built for speed, mobile use, and search engines, with a focus on turning visitors into customers." },
   { icon: Type, title: "Copywriting", desc: "Clear messaging and tone of voice for your pages, ads, and campaigns." },
   { icon: Paintbrush, title: "Creative Assets", desc: "Social graphics, banners, pitch decks, and marketing materials ready to use." },
 ];
 
 const included = [
-  "Logo + icon system (3 concepts)",
-  "Full colour & typography guide",
-  "Custom website (up to 10 pages)",
-  "Mobile-responsive design",
-  "Brand asset library",
-  "Strategy session included",
+  "Brand and positioning scope",
+  "Visual and verbal identity systems",
+  "Website or software experience design",
+  "Responsive implementation",
+  "Approved source assets and handover",
+  "Clear review and approval stages",
 ];
 
 export default function CreateDetail() {
   return (
-    <section id="create" className="py-24 bg-background">
+    <section id="build" className="py-24 bg-background">
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         <div className="grid lg:grid-cols-2 gap-16 items-center mb-16">
           <motion.div
@@ -29,12 +30,12 @@ export default function CreateDetail() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-5">
-              We Build Your<br />
-              <span className="text-primary">Brand from the Ground Up.</span>
+            <h2 className="type-h2 mb-5">
+              We build your <br />
+              <span className="text-primary">brand from the ground up.</span>
             </h2>
             <p className="text-muted-foreground text-lg leading-relaxed mb-8">
-              Before you launch, you need an identity that looks professional and feels consistent. We craft the visual and verbal pieces of your brand so you can grow with confidence.
+              Turn strategy into a brand, website or software experience people can understand and use. Scope, ownership and approval stages are agreed before delivery begins.
             </p>
             <ul className="grid grid-cols-2 gap-2">
               {included.map((item) => (
@@ -56,24 +57,7 @@ export default function CreateDetail() {
           </motion.div>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {features.map((f, i) => (
-            <motion.div
-              key={f.title}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: i * 0.08 }}
-              className="bg-card border border-border/60 rounded-xl p-5 hover:border-primary/30 transition-all"
-            >
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-3 bg-primary/10 text-primary">
-                <f.icon size={16} />
-              </div>
-              <h4 className="font-semibold text-sm mb-1">{f.title}</h4>
-              <p className="text-xs text-muted-foreground leading-relaxed">{f.desc}</p>
-            </motion.div>
-          ))}
-        </div>
+        <ServiceFeatureGrid features={features} />
       </div>
     </section>
   );

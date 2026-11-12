@@ -183,7 +183,7 @@ export function DomainSearchResults({
 
       {!compact && searchQuery && searchQuery.trim().length > 0 && (
         <section className="mb-8">
-          <h3 className="text-base font-semibold tracking-tight text-card-foreground mb-3">
+          <h3 className="type-h3 text-card-foreground mb-3">
             More categories
           </h3>
           <div className="bg-transparent rounded-lg py-3 px-1">

@@ -1,419 +1,402 @@
 import * as React from "react";
-import { Cpu, HardDrive, MemoryStick, Network, ChevronDown, MapPin } from "lucide-react";
-import { buildVpsCartParams, navigateToStorefrontCart } from "@/lib/storefront-cart-url.ts";
+import { ArrowRight, Cpu, HardDrive, MapPin, MemoryStick, Network } from "lucide-react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge.tsx";
-import { Button } from "@/components/ui/button.tsx";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip.tsx";
+import { buildVpsCartParams, navigateToStorefrontCart } from "@/lib/storefront-cart-url.ts";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.tsx";
-import { VpsPlanFilter, type VpsPlanFilter as VpsPlanFilterType, DEFAULT_VPS_FILTER, applyVpsPlanFilter } from "./VpsPlanFilter.tsx";
-
+import { useCurrency } from "@/components/providers/currency.tsx";
+import { convertKesForDisplay, formatCurrency } from "@/lib/currency.ts";
+import { cn } from "@/lib/utils.ts";
+import { EveryPlanIncludes } from "@/pages/hosting/_components/EveryPlanIncludes.tsx";
+import { ChipGroup, PlanFilterBar, SelectFilter } from "@/pages/hosting/_components/PlanFilterBar.tsx";
 import {
-  fetchVdsPlansPublic,
-  fetchVpsPricingSettings,
+  applyMarginWith,
   fetchExchangeRatesPublic,
   fetchFacilitiesPublic,
-  applyMarginWith,
-  type VpsPlan,
+  fetchVdsPlansPublic,
+  fetchVpsPricingSettings,
   type PricingSettings,
+  type VpsPlan,
 } from "@/lib/vps-plans-api.ts";
 
-function getCpuBrand(productName: string | null | undefined): "intel" | "amd" | null {
-  const name = (productName ?? "").toLowerCase();
-  if (name.includes("intel")) return "intel";
-  if (name.includes("amd")) return "amd";
-  return null;
-}
+/** Visible on every in-stock VDS: the CPU line is a dedicated vCPU, and bandwidth is 10TB on a 1Gbps port. */
+const EVERY_VDS_PLAN_INCLUDES = [
+  "Dedicated vCPU cores",
+  "Memory and storage shown on the card",
+  "10TB bandwidth on a 1Gbps port",
+  "You manage the operating system",
+];
 
-function stripHtmlToText(input?: string) {
+const TIERS = [
+  { name: "Starter", bestFor: "A single app or database that needs cores nobody else uses" },
+  { name: "Pro", bestFor: "Production apps and stores that need steady performance" },
+  { name: "Power", bestFor: "Heavier databases and several services on one server" },
+  { name: "Scale", bestFor: "Larger reserved servers" },
+  { name: "Ultra", bestFor: "The largest reserved virtual servers we offer" },
+];
+
+const MAX_PAGES = 10;
+
+type LocationOption = { plan: VpsPlan; name: string; monthlyKes: number | null };
+
+type SizeGroup = {
+  key: string;
+  tierIndex: number;
+  cores: string | null;
+  memory: string;
+  storage: string;
+  bandwidth: string;
+  locations: LocationOption[];
+};
+
+function stripHtmlToText(input?: string | null) {
   if (!input) return "";
-  return input
-    .replace(/<br\s*\/?>/gi, " ")
-    .replace(/<[^>]*>/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
+  return input.replace(/<br\s*\/?>/gi, " ").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
 }
 
-function getProcessorSummary(processorInfo: unknown) {
-  if (!processorInfo || typeof processorInfo !== "object" || Array.isArray(processorInfo)) return null;
-  const r = processorInfo as Record<string, unknown>;
-  const cores = typeof r.cores === "number" ? r.cores : null;
-  const threads = typeof r.threads === "number" ? r.threads : null;
-  const sockets = typeof r.sockets === "number" ? r.sockets : null;
-  const vcpus = typeof r.vcpus === "number" ? r.vcpus : null;
-  return { cores, threads, sockets, vcpus };
-}
-
-function getDriveDescription(plan: VpsPlan) {
-  const di = plan.product_drive_info;
-  if (di && typeof di === "object" && !Array.isArray(di)) {
-    const r = di as Record<string, unknown>;
-    const desc = typeof r.description === "string" ? r.description : "";
-    if (desc.trim().length > 0) return desc.trim();
+function coreCount(plan: VpsPlan): number | null {
+  const info = plan.processor_info;
+  if (info && typeof info === "object" && !Array.isArray(info)) {
+    const vcpus = (info as Record<string, unknown>).vcpus;
+    if (typeof vcpus === "number" && vcpus > 0) return vcpus;
   }
-  return plan.product_drive || " ";
+  const n = Number(stripHtmlToText(plan.product_cpu_cores).match(/\d+/)?.[0]);
+  return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-function formatMoney(amount: number | undefined | null, currency: string) {
-  if (typeof amount !== "number" || !Number.isFinite(amount)) return "N/A";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 0,
-  }).format(amount);
+function gbOf(text: string | null | undefined) {
+  const m = (text ?? "").match(/([\d.]+)\s*(TB|GB)/i);
+  if (!m) return null;
+  return m[2].toUpperCase() === "TB" ? Number(m[1]) * 1000 : Number(m[1]);
 }
 
-function VpsPlanCard({
-  plan,
-  pricingSettings,
-  usdToKesRate,
-  locationName,
+function storageText(plan: VpsPlan) {
+  const di = plan.product_drive_info;
+  let raw = plan.product_drive ?? "";
+  if (di && typeof di === "object" && !Array.isArray(di)) {
+    const desc = (di as Record<string, unknown>).description;
+    if (typeof desc === "string" && desc.trim()) raw = desc.trim();
+  }
+  return raw;
+}
+
+function bandwidthOf(plan: VpsPlan) {
+  const [transfer, port] = (plan.product_bandwidth ?? "").split("/").map((s) => s.trim().replace(/\s*port$/i, ""));
+  return port ? `${transfer} bandwidth · ${port} port` : transfer;
+}
+
+function groupBySize(
+  plans: VpsPlan[],
+  facilities: Map<string, string>,
+  margin: PricingSettings | null,
+  usdToKesRate: number | null,
+): SizeGroup[] {
+  const groups = new Map<string, Omit<SizeGroup, "tierIndex"> & { sort: number[] }>();
+  for (const plan of plans) {
+    if (plan.stock === "unavailable") continue;
+    const cores = coreCount(plan);
+    const memoryGb = gbOf(plan.product_memory);
+    const storageGb = gbOf(storageText(plan));
+    const dedicated = /dedicated/i.test(stripHtmlToText(plan.product_cpu));
+    const key = `${cores}|${memoryGb}|${storageGb}`;
+    const usd = applyMarginWith(margin?.base ?? null, plan.product_monthly_price ?? 0).final;
+    const option: LocationOption = {
+      plan,
+      name: facilities.get(plan.data_center) ?? plan.data_center,
+      monthlyKes: usdToKesRate !== null ? Math.ceil(usd * usdToKesRate) : null,
+    };
+    const existing = groups.get(key);
+    if (existing) {
+      const same = existing.locations.findIndex((l) => l.plan.data_center === plan.data_center);
+      if (same === -1) existing.locations.push(option);
+      else if ((option.monthlyKes ?? Infinity) < (existing.locations[same].monthlyKes ?? Infinity)) existing.locations[same] = option;
+      continue;
+    }
+    groups.set(key, {
+      key,
+      sort: [cores ?? 0, memoryGb ?? 0, storageGb ?? 0],
+      cores: cores
+        ? `${cores} ${dedicated ? "dedicated " : ""}vCPU ${cores === 1 ? "core" : "cores"}`
+        : dedicated
+          ? "Dedicated vCPU"
+          : null,
+      memory: memoryGb ? `${memoryGb} GB memory` : (plan.product_memory ?? ""),
+      storage: storageGb ? `${storageGb} GB storage` : storageText(plan),
+      bandwidth: bandwidthOf(plan),
+      locations: [option],
+    });
+  }
+  return [...groups.values()]
+    .map((g) => ({ ...g, locations: g.locations.sort((a, b) => (a.monthlyKes ?? 0) - (b.monthlyKes ?? 0)) }))
+    .sort((a, b) => a.sort[0] - b.sort[0] || a.sort[1] - b.sort[1] || a.sort[2] - b.sort[2])
+    .map(({ sort: _sort, ...g }, i) => ({ ...g, tierIndex: Math.min(i, TIERS.length - 1) }));
+}
+
+function SizeCard({
+  group,
+  recommended,
+  preferredCity,
+  currency,
+  kesToCurrencyRate,
 }: {
-  plan: VpsPlan;
-  pricingSettings: PricingSettings | null;
-  usdToKesRate: number | null;
-  locationName: string;
+  group: SizeGroup;
+  recommended: boolean;
+  preferredCity: string;
+  currency: "KES" | "USD";
+  kesToCurrencyRate: number | null;
 }) {
-  const isUnavailable = plan.stock === "unavailable";
-  
-  // Apply margin to USD base price
-  const baseMargin = pricingSettings?.base ?? null;
-  const monthlyUsdWithMargin = applyMarginWith(baseMargin, plan.product_monthly_price ?? 0).final;
-  
-  // Convert to KES
-  const monthlyKes = usdToKesRate !== null ? Math.ceil(monthlyUsdWithMargin * usdToKesRate) : null;
+  const [selected, setSelected] = React.useState(
+    (group.locations.find((l) => l.name === preferredCity) ?? group.locations[0])?.plan.data_center,
+  );
+  const location = group.locations.find((l) => l.plan.data_center === selected) ?? group.locations[0];
+  const tier = TIERS[group.tierIndex];
+  const price =
+    location.monthlyKes !== null && kesToCurrencyRate !== null
+      ? formatCurrency(convertKesForDisplay(location.monthlyKes, currency, kesToCurrencyRate), currency)
+      : null;
+  const specs = [
+    { icon: Cpu, text: group.cores },
+    { icon: MemoryStick, text: group.memory },
+    { icon: HardDrive, text: group.storage },
+    { icon: Network, text: group.bandwidth },
+  ].filter((s): s is { icon: typeof Cpu; text: string } => Boolean(s.text));
+  const selectId = `vds-location-${group.key}`;
 
-  const displayMonthly = monthlyKes ?? monthlyUsdWithMargin;
-  const displayCurrency = monthlyKes !== null ? "KES" : "USD";
+  const order = async () => {
+    try {
+      await navigateToStorefrontCart(
+        buildVpsCartParams({
+          productId: location.plan.product_id,
+          planName: `VDS ${tier.name}`,
+          productName: "VDS Hosting",
+          currency: location.monthlyKes !== null ? "KES" : "USD",
+          serviceType: "vds",
+          locationName: location.plan.data_center,
+        }),
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not open checkout.");
+    }
+  };
 
   return (
-    <Card className="group transition-all hover:shadow-md hover:border-primary/50 h-full flex flex-col">
-      <CardHeader className="pb-3">
-        {/* Top row: Logo and Badges */}
-        <div className="flex items-start justify-between gap-3 mb-1">
-          <div className="shrink-0 h-12 w-12 flex items-center justify-center">
-            {(() => {
-              const brand = getCpuBrand(plan.product_name);
-              if (!brand) return null;
-              return (
-                <img
-                  src={brand === "intel" ? "/intel.svg" : "/amd.svg"}
-                  alt={brand === "intel" ? "Intel" : "AMD"}
-                  className="max-h-8 max-w-[2rem] object-contain"
-                />
-              );
-            })()}
-          </div>
-          <div className="flex flex-col items-end gap-2">
-            {plan.product_new && <Badge variant="secondary">New</Badge>}
-            <div className="flex items-center gap-2">
-              <Badge variant={isUnavailable ? "destructive" : "default"} className="uppercase text-[10px]">
-                {isUnavailable ? "Out of Stock" : "Available"}
-              </Badge>
-            </div>
-          </div>
-        </div>
-
-        {/* Title row */}
-        <CardTitle className="text-base font-semibold line-clamp-2" title={plan.product_name}>
-          {plan.product_name}
-        </CardTitle>
-
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Available locations</p>
-            </div>
-            <div className="flex items-center gap-1.5 mt-1">
-              <MapPin className="h-4 w-4 text-primary shrink-0" />
-              <p className="text-sm font-semibold line-clamp-1">{locationName || "Multiple Locations"}</p>
-            </div>
-          </div>
-
-          {plan.product_on_sale && (
-            <Badge variant="outline" className="border-primary text-primary">
-              On sale
-            </Badge>
+    <li
+      className={cn(
+        "relative flex flex-col rounded-3xl border bg-card p-6",
+        recommended ? "border-primary shadow-[0_30px_60px_-40px_rgb(2_132_199_/_0.7)] ring-2 ring-primary/25" : "border-border",
+      )}
+    >
+      {recommended ? (
+        <span className="absolute -top-3 left-6 rounded-full bg-primary px-3 py-1 text-xs font-bold text-[#02070a]">Recommended</span>
+      ) : null}
+      <h3 className="type-h3">VDS {tier.name}</h3>
+      <p className="mt-1 min-h-[3rem] text-[15px] leading-relaxed text-muted-foreground">{tier.bestFor}</p>
+      <p className="mt-4 flex items-baseline gap-1">
+        <span className="text-3xl font-semibold tracking-tight text-foreground">{price ?? "—"}</span>
+        {price ? <span className="text-base text-muted-foreground">/month</span> : null}
+      </p>
+      <p className="mt-1 text-sm text-muted-foreground">{price ? "Billed monthly · excl. 16% VAT" : "Price unavailable right now"}</p>
+      <ul className="mt-5 space-y-3 border-t border-border pt-5">
+        {specs.map(({ icon: Icon, text }) => (
+          <li key={text} className="flex items-center gap-3 text-base text-foreground">
+            <Icon className="size-5 shrink-0 text-sky-700 dark:text-primary" aria-hidden />
+            {text}
+          </li>
+        ))}
+      </ul>
+      <div className="mt-auto pt-6">
+        <label htmlFor={selectId} className="type-label flex items-center gap-1.5 text-foreground">
+          <MapPin className="size-4 text-sky-700 dark:text-primary" aria-hidden /> Server location
+        </label>
+        <select
+          id={selectId}
+          value={selected}
+          onChange={(e) => setSelected(e.target.value)}
+          className="mt-2 h-11 w-full cursor-pointer rounded-xl border border-border bg-background px-3 text-base text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          {group.locations.map(({ plan, name }) => (
+            <option key={plan.data_center} value={plan.data_center}>
+              {name}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={order}
+          className={cn(
+            "mt-4 inline-flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl text-base font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+            recommended ? "bg-primary text-[#02070a] hover:brightness-110" : "border border-border bg-background text-foreground hover:border-primary/50",
           )}
-        </div>
-      </CardHeader>
-
-      <CardContent className="pt-0 flex-1 flex flex-col gap-4">
-        <div className="grid grid-cols-1 gap-3">
-          {/* Product info */}
-          <div className="rounded-lg border bg-muted/20 p-3">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Product info</p>
-            <div className="flex flex-col gap-3 text-sm">
-              <div className="flex items-start gap-2">
-                <Network className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Bandwidth</p>
-                  <p className="font-semibold line-clamp-2 text-primary">{plan.product_bandwidth || " "}</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2">
-                <Cpu className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">CPU</p>
-                  <p className="font-semibold line-clamp-2 text-primary">{plan.product_cpu || " "}</p>
-                  {stripHtmlToText(plan.product_cpu_cores) ? (
-                    <p className="text-xs text-muted-foreground mt-0.5">{stripHtmlToText(plan.product_cpu_cores)}</p>
-                  ) : null}
-                </div>
-              </div>
-
-              {(() => {
-                const info = getProcessorSummary(plan.processor_info);
-                if (!info?.vcpus) return null;
-                return (
-                  <div className="flex items-start gap-2">
-                    <Cpu className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-xs font-medium text-muted-foreground tracking-wide">
-                        <span className="lowercase">v</span>CPU's
-                      </p>
-                      <p className="font-semibold line-clamp-2 text-primary">{info.vcpus}</p>
-                    </div>
-                  </div>
-                );
-              })()}
-
-              <div className="flex items-start gap-2">
-                <MemoryStick className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Memory</p>
-                  <p className="font-semibold line-clamp-2 text-primary">{plan.product_memory || " "}</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2">
-                <HardDrive className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Drives</p>
-                  <p className="font-semibold line-clamp-2 text-primary">{getDriveDescription(plan)}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-auto rounded-lg border bg-muted/20 p-3">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Price</p>
-          <div className="mt-1 flex flex-col gap-0.5">
-            <p className="text-xl font-bold leading-tight text-primary">
-              {formatMoney(displayMonthly, displayCurrency)}
-              <span className="align-super text-xs font-semibold text-muted-foreground ml-1">/mo</span>
-            </p>
-          </div>
-        </div>
-
-        <div className="flex justify-center gap-2 pt-1">
-          <Button
-            className="w-full bg-primary text-primary-foreground"
-            disabled={isUnavailable}
-            onClick={async () => {
-              try {
-                await navigateToStorefrontCart(
-                  buildVpsCartParams({
-                    productId: plan.product_id,
-                    planName: plan.product_name,
-                    productName: "VDS Hosting",
-                    currency: displayCurrency,
-                    serviceType: "vds",
-                    locationName: plan.data_center,
-                  }),
-                );
-              } catch (err) {
-                toast.error(err instanceof Error ? err.message : "Could not open checkout.");
-              }
-            }}
-          >
-            Get Started
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+        >
+          Choose VDS {tier.name}
+          <ArrowRight className="size-4" aria-hidden />
+        </button>
+      </div>
+    </li>
   );
 }
 
-function VpsPlanSkeleton() {
+function SizeSkeleton() {
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="pb-3">
-        <div className="flex justify-between mb-2">
-          <Skeleton className="h-10 w-10 rounded-full" />
-          <Skeleton className="h-6 w-16" />
-        </div>
-        <Skeleton className="h-6 w-3/4 mb-2" />
-        <Skeleton className="h-4 w-1/2" />
-      </CardHeader>
-      <CardContent className="flex-1 flex flex-col gap-4">
-        <Skeleton className="h-48 w-full rounded-lg" />
-        <Skeleton className="h-20 w-full rounded-lg mt-auto" />
-        <Skeleton className="h-10 w-full" />
-      </CardContent>
-    </Card>
+    <li className="rounded-3xl border border-border bg-card p-7">
+      <Skeleton className="h-6 w-1/2" />
+      <Skeleton className="mt-3 h-4 w-3/4" />
+      <Skeleton className="mt-6 h-10 w-1/2" />
+      <Skeleton className="mt-6 h-32 w-full" />
+      <Skeleton className="mt-6 h-12 w-full" />
+    </li>
   );
 }
 
 export function VdsPlansSection() {
+  const { currency, kesToCurrencyRate } = useCurrency();
   const [plans, setPlans] = React.useState<VpsPlan[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [loadingMore, setLoadingMore] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  
   const [pricingSettings, setPricingSettings] = React.useState<PricingSettings | null>(null);
   const [usdToKesRate, setUsdToKesRate] = React.useState<number | null>(null);
   const [facilities, setFacilities] = React.useState<Map<string, string>>(new Map());
-  
-  const [filter, setFilter] = React.useState<VpsPlanFilterType>(DEFAULT_VPS_FILTER);
-  
-  const [cursor, setCursor] = React.useState<number | null>(0);
-  const limit = 6;
 
   React.useEffect(() => {
     let active = true;
-
-    async function init() {
+    async function loadAll() {
       try {
-        const [plansRes, settings, rate, facRes] = await Promise.all([
-          fetchVdsPlansPublic(0, limit),
-          fetchVpsPricingSettings(),
-          fetchExchangeRatesPublic(),
-          fetchFacilitiesPublic(),
-        ]);
-        
-        if (active) {
-          setPlans(plansRes.plans);
-          setCursor(plansRes.nextCursor);
-          setPricingSettings(settings);
-          setUsdToKesRate(rate);
-
-          const facMap = new Map<string, string>();
-          facRes.forEach(f => facMap.set(f.code, f.title));
-          setFacilities(facMap);
+        const [settings, rate, facRes] = await Promise.all([fetchVpsPricingSettings("VDS"), fetchExchangeRatesPublic(), fetchFacilitiesPublic()]);
+        const all: VpsPlan[] = [];
+        let cursor: number | null = 0;
+        for (let page = 0; cursor !== null && page < MAX_PAGES; page++) {
+          const res = await fetchVdsPlansPublic(cursor, 100);
+          all.push(...res.plans);
+          cursor = res.nextCursor;
         }
-      } catch (err: any) {
-        if (active) setError(err.message || "Failed to load plans");
+        if (!active) return;
+        setPlans(all);
+        setPricingSettings(settings);
+        setUsdToKesRate(rate);
+        setFacilities(new Map(facRes.map((f) => [f.code, f.title])));
+      } catch (err: unknown) {
+        if (active) setError(err instanceof Error ? err.message : "Failed to load plans");
       } finally {
         if (active) setLoading(false);
       }
     }
-
-    init();
-    return () => { active = false; };
+    loadAll();
+    return () => {
+      active = false;
+    };
   }, []);
 
-  const loadMore = async () => {
-    if (cursor === null || loadingMore) return;
-    setLoadingMore(true);
-    try {
-      const [res, facRes] = await Promise.all([
-        fetchVdsPlansPublic(cursor, limit),
-        facilities.size === 0 ? fetchFacilitiesPublic() : Promise.resolve([])
-      ]);
-      
-      setPlans((prev) => [...prev, ...res.plans]);
-      setCursor(res.nextCursor);
-
-      if (facRes.length > 0) {
-        const facMap = new Map(facilities);
-        facRes.forEach(f => facMap.set(f.code, f.title));
-        setFacilities(facMap);
-      }
-    } catch (err: any) {
-      setError(err.message || "Failed to load more plans");
-    } finally {
-      setLoadingMore(false);
-    }
-  };
-
-  const displayCurrency = usdToKesRate !== null ? "KES" : "USD";
-
-  const displayPrices = React.useMemo(() => {
-    const map = new Map<number, number>();
-    for (const p of plans) {
-      const baseMargin = pricingSettings?.base ?? null;
-      const monthlyUsdWithMargin = applyMarginWith(baseMargin, p.product_monthly_price ?? 0).final;
-      const monthlyKes = usdToKesRate !== null ? Math.ceil(monthlyUsdWithMargin * usdToKesRate) : null;
-      map.set(p.product_id, monthlyKes ?? monthlyUsdWithMargin);
-    }
-    return map;
-  }, [plans, pricingSettings, usdToKesRate]);
-
-  const filteredPlans = React.useMemo(
-    () => applyVpsPlanFilter(plans, filter, displayPrices),
-    [plans, filter, displayPrices]
+  const groups = React.useMemo(
+    () => groupBySize(plans, facilities, pricingSettings, usdToKesRate),
+    [plans, facilities, pricingSettings, usdToKesRate],
   );
+  const recommendedKey = (groups.find((g) => Number(g.key.split("|")[0]) >= 4) ?? groups[0])?.key;
+
+  const [city, setCity] = React.useState("all");
+  const [cores, setCores] = React.useState("all");
+  const [sort, setSort] = React.useState("size");
+  const cities = [...new Set(groups.flatMap((g) => g.locations.map((l) => l.name)))].sort((a, b) => a.localeCompare(b));
+  const coreCounts = [...new Set(groups.map((g) => Number(g.key.split("|")[0])).filter((n) => n > 0))].sort((a, b) => a - b);
+  const priceIn = (g: SizeGroup) => (city === "all" ? g.locations : g.locations.filter((l) => l.name === city))[0]?.monthlyKes ?? 0;
+  const shown = groups
+    .filter((g) => city === "all" || g.locations.some((l) => l.name === city))
+    .filter((g) => cores === "all" || g.key.split("|")[0] === cores)
+    .sort((a, b) => (sort === "price-asc" ? priceIn(a) - priceIn(b) : sort === "price-desc" ? priceIn(b) - priceIn(a) : 0));
+  const activeCount = (city !== "all" ? 1 : 0) + (cores !== "all" ? 1 : 0);
 
   return (
-    <section className="py-20 bg-muted/10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold tracking-tight mb-4">Choose Your VDS Plan</h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            High-performance virtual dedicated servers with guaranteed, isolated resources.
+    <section id="plans" className="scroll-mt-24 bg-muted/10 py-14 md:py-16">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto mb-12 max-w-2xl text-center">
+          <h2 className="type-h2">Choose your VDS</h2>
+          <p className="mt-4 text-base text-muted-foreground">
+            Every size uses dedicated vCPU cores and includes 10TB of bandwidth on a 1Gbps port. Pick the cores and memory
+            you need, then choose a server location.
           </p>
         </div>
 
-        {error && (
-          <Alert variant="destructive" className="mb-8 max-w-2xl mx-auto">
+        {error ? (
+          <Alert variant="destructive" className="mx-auto mb-8 max-w-2xl">
             <AlertDescription>{error}</AlertDescription>
           </Alert>
-        )}
+        ) : null}
 
-        {!loading && plans.length > 0 && (
-          <div className="mb-8">
-            <VpsPlanFilter
-              plans={plans}
-              filter={filter}
-              onFilterChange={setFilter}
-              displayCurrency={displayCurrency}
-              displayPrices={displayPrices}
-              totalCount={plans.length}
-              filteredCount={filteredPlans.length}
-            />
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {loading ? (
-            Array.from({ length: 6 }).map((_, i) => <VpsPlanSkeleton key={i} />)
-          ) : filteredPlans.length === 0 ? (
-            <div className="col-span-full flex flex-col items-center justify-center py-12 border border-dashed rounded-lg bg-card/50">
-              <p className="text-muted-foreground mb-4">No plans match your current filters.</p>
-              <Button variant="outline" onClick={() => setFilter(DEFAULT_VPS_FILTER)}>Clear Filters</Button>
-            </div>
-          ) : (
-            filteredPlans.map((plan) => (
-              <VpsPlanCard 
-                key={plan.product_id} 
-                plan={plan} 
-                pricingSettings={pricingSettings}
-                usdToKesRate={usdToKesRate}
-                locationName={facilities.get(plan.data_center) ?? plan.data_center}
-              />
-            ))
-          )}
-        </div>
-
-        {!loading && cursor !== null && (
-          <div className="mt-12 flex justify-center">
-            <Button 
-              variant="outline" 
-              size="lg" 
-              onClick={loadMore} 
-              disabled={loadingMore}
-              className="px-8"
+        {!loading && groups.length > 1 ? (
+          <div className="mx-auto max-w-5xl">
+            <PlanFilterBar
+              resultText={`Showing ${shown.length} of ${groups.length} sizes`}
+              activeCount={activeCount}
+              onClear={() => {
+                setCity("all");
+                setCores("all");
+              }}
+              sort={
+                <SelectFilter
+                  label="Sort sizes"
+                  hideLabel
+                  value={sort}
+                  options={[
+                    { value: "size", label: "Smallest first" },
+                    { value: "price-asc", label: "Lowest price first" },
+                    { value: "price-desc", label: "Highest price first" },
+                  ]}
+                  onChange={setSort}
+                />
+              }
             >
-              {loadingMore ? "Loading..." : "Load More Plans"}
-              {!loadingMore && <ChevronDown className="ml-2 h-4 w-4" />}
-            </Button>
+              {cities.length > 1 ? (
+                <ChipGroup
+                  label="Location"
+                  value={city}
+                  options={[{ value: "all", label: "All" }, ...cities.map((c) => ({ value: c, label: c }))]}
+                  onChange={setCity}
+                />
+              ) : null}
+              {coreCounts.length > 1 ? (
+                <ChipGroup
+                  label="Dedicated vCPU cores"
+                  value={cores}
+                  options={[{ value: "all", label: "Any" }, ...coreCounts.map((n) => ({ value: String(n), label: String(n) }))]}
+                  onChange={setCores}
+                />
+              ) : null}
+            </PlanFilterBar>
           </div>
-        )}
+        ) : null}
+
+        <ul className={cn("mx-auto grid gap-6 pt-3", shown.length >= 4 ? "md:grid-cols-2 xl:grid-cols-4" : shown.length === 3 || loading ? "md:grid-cols-3" : "max-w-4xl md:grid-cols-2")}>
+          {loading
+            ? Array.from({ length: 3 }).map((_, i) => <SizeSkeleton key={i} />)
+            : shown.map((group) => (
+                <SizeCard
+                  key={`${group.key}|${city}`}
+                  group={group}
+                  recommended={group.key === recommendedKey}
+                  preferredCity={city}
+                  currency={currency}
+                  kesToCurrencyRate={kesToCurrencyRate}
+                />
+              ))}
+        </ul>
+
+        {!loading && groups.length > 0 && shown.length === 0 ? (
+          <p className="mt-6 text-center text-base text-muted-foreground">No size matches these filters.</p>
+        ) : null}
+
+        {!loading && groups.length === 0 && !error ? (
+          <p className="mt-6 text-center text-base text-muted-foreground">
+            No VDS sizes are available right now.{" "}
+            <a className="font-semibold text-sky-700 underline dark:text-primary" href="/contact?serviceName=VDS%20Hosting">
+              Ask our team
+            </a>{" "}
+            about the next available server.
+          </p>
+        ) : null}
+
+        <EveryPlanIncludes items={EVERY_VDS_PLAN_INCLUDES} />
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          Available locations are listed on each card, and prices can differ by location. Prices are shown in KES or USD based on your location, excluding 16% VAT.
+        </p>
       </div>
     </section>
   );

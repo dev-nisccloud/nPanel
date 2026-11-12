@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   Accordion,
@@ -47,19 +47,19 @@ function FaqAccordion({ faqs }: { faqs: FaqBlockItem[] }) {
           key={faq.question}
           value={`item-${index}`}
           className={cn(
-            "group/item overflow-hidden rounded-xl border border-border bg-card transition-colors data-[state=open]:bg-accent",
+            "group/item overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-primary/30 data-[state=open]:bg-accent [&_[data-slot=accordion-content][data-state=closed]]:hidden",
             "animate-in fade-in slide-in-from-bottom-8 duration-700 fill-mode-both",
             delayClasses[index] ?? "delay-500",
           )}
         >
-          <AccordionTrigger className="flex w-full cursor-pointer items-start justify-between gap-3 px-4 py-4 text-left text-base font-medium hover:no-underline md:text-[17px] [&>svg:last-child]:hidden">
+          <AccordionTrigger className="flex w-full cursor-pointer items-start justify-between gap-3 px-4 py-4 text-left text-lg font-normal hover:no-underline md:text-xl [&>svg:last-child]:hidden">
             <span className="min-w-0 flex-1 pr-2">{faq.question}</span>
             <PlusIcon
               aria-hidden
               className="pointer-events-none h-5 w-5 shrink-0 transition-transform duration-200 group-data-[state=open]/item:rotate-45"
             />
           </AccordionTrigger>
-          <AccordionContent className="px-4 pb-4 pt-0 text-sm leading-relaxed text-muted-foreground">
+          <AccordionContent forceMount className="max-w-[75ch] px-4 pb-5 pt-0 text-base leading-relaxed text-muted-foreground">
             {faq.answer}
           </AccordionContent>
         </AccordionItem>
@@ -96,7 +96,7 @@ export default function Faq({
               {badge}
             </Badge>
           ) : null}
-          <h2 className="max-w-2xl text-center text-3xl font-bold tracking-tight md:text-4xl">
+          <h2 className="type-h2 max-w-2xl text-center">
             {title}
           </h2>
         </div>

@@ -12,10 +12,10 @@ export default function AboutHero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="text-[36px] font-extrabold leading-[1.15] mb-6 text-balance"
+          className="type-h1 mb-6 text-balance"
         >
-          We Help Businesses{" "}
-          <span className="text-primary">Get Online and Grow</span>
+          Build. Run. Grow.{" "}
+          <span className="text-primary">With one technology partner.</span>
         </motion.h1>
 
         <motion.p
@@ -24,8 +24,10 @@ export default function AboutHero() {
           transition={{ duration: 0.6, delay: 0.15 }}
           className="text-lg text-muted-foreground text-balance max-w-2xl mx-auto"
         >
-          We help businesses of every size get online, stay online, and grow
-          with clear hosting and marketing under one team.
+          Nisc Cloud brings cloud infrastructure, software and digital growth
+          together for businesses, agencies and developers. nPanel connects
+          the services you use, while automation supports work across each
+          pillar.
         </motion.p>
       </div>
     </section>

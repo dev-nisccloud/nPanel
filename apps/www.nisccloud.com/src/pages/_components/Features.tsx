@@ -43,15 +43,15 @@ const features = [
   },
   {
     description:
-      "Your websites and apps run on reliable hosting with a 99.99% uptime target and fast load times for your visitors.",
+      "Your websites and apps run on reliable hosting with a 99.9% uptime target and fast load times for your visitors.",
     icon: Server,
-    title: "Lightning Fast Hosting",
+    title: "Lightning fast hosting",
   },
   {
     description:
       "We protect your data and your customers with automated SSL certificates, daily backups, and robust firewalls.",
     icon: Shield,
-    title: "Bank-Grade Security",
+    title: "Security Built In",
   },
   {
     description:
@@ -61,9 +61,9 @@ const features = [
   },
   {
     description:
-      "Got a question at 3 AM? Our dedicated technical team is always online to help you resolve issues instantly.",
+      "Raise a ticket through nPanel at any time. Email, chat and phone support are available during working hours.",
     icon: Headset,
-    title: "24/7 Expert Support",
+    title: "Expert Support",
   },
 ];
 
@@ -82,7 +82,7 @@ export default function Features() {
           <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 text-xs text-primary font-mono mb-4 tracking-wide">
             CLEARING THE PATH
           </div>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3 text-balance">
+          <h2 className="type-h2 mb-3 text-balance">
             Removing the roadblocks to your success
           </h2>
           <p className="text-muted-foreground text-base max-w-2xl mx-auto">
@@ -158,7 +158,7 @@ export default function Features() {
                 </div>
 
                 <div className="flex flex-col gap-2 pt-6">
-                  <h3 className="font-bold text-xl tracking-tight">
+                  <h3 className="type-h3">
                     {feature.title}
                   </h3>
                   <p className="leading-relaxed text-muted-foreground text-sm">

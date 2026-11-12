@@ -3,7 +3,6 @@ import { and, eq } from "@npanel/db";
 import { db } from "@npanel/db";
 import { paymentTransaction } from "@npanel/db/schema";
 import {
-	applyJengaCallbackUpdate,
 	applyJengaIpnUpdate,
 	getJengaReturnRedirect,
 	parseJengaMetadata,
@@ -61,13 +60,6 @@ export async function handleJengaCallback(c: Context) {
 		const query = parsed.data;
 		const orderReference = query.orderReference?.trim() || "unknown";
 
-		const idempotencyKey = `${orderReference}:${query.status || "unknown"}:${query.transactionId || "none"}`;
-		const claimed = await claimWebhookEvent("jenga_callback", idempotencyKey);
-
-		if (claimed) {
-			await applyJengaCallbackUpdate(query);
-		}
-
 		const transaction = await db.query.paymentTransaction.findFirst({
 			where: and(
 				eq(paymentTransaction.checkoutRequestId, orderReference),
@@ -76,9 +68,10 @@ export async function handleJengaCallback(c: Context) {
 		});
 
 		const metadata = parseJengaMetadata(transaction?.metadata);
-		const status =
-			transaction?.status ||
-			(query.status === "paid" ? "SUCCESS" : "FAILED");
+		// The browser redirect is not an authenticated settlement notification.
+		// It may only return the customer to the storefront; only the verified IPN
+		// is allowed to move a payment into a terminal state.
+		const status = transaction?.status || "PENDING";
 
 		return c.redirect(
 			getJengaReturnRedirect({
@@ -133,6 +126,9 @@ export async function handleJengaIpn(c: Context) {
 		const idempotencyKey = `${orderReference}:${payload.transaction.status}:${payload.transaction.reference}`;
 		const claimed = await claimWebhookEvent("jenga_ipn", idempotencyKey);
 		if (!claimed) {
+			// Re-run idempotent completion so a previous crash after settlement
+			// cannot leave a paid checkout without an order.
+			await applyJengaIpnUpdate(payload);
 			return c.json({ received: true, duplicate: true }, 200);
 		}
 
@@ -189,6 +185,6 @@ export async function handleJengaIpn(c: Context) {
 		return c.json({ received: true }, 200);
 	} catch (error) {
 		console.error("[Webhook][Jenga] IPN unexpected error:", error);
-		return c.json({ received: true, error: "Processing failed" }, 200);
+		return c.json({ received: false, error: "Processing failed" }, 503);
 	}
 }

@@ -24,7 +24,8 @@ import {
 	isHivelocityOrderItem,
 } from "./hivelocity-billing-utils";
 import { buildInvoiceKraInsertFields } from "./invoice-kra-db-fields";
-import { NISC_ORDER_VAT_PERCENTAGE, computeNiscOrderTotalsWithTax } from "./nisc-order-tax";
+import { NISC_ORDER_VAT_PERCENTAGE } from "./nisc-order-tax";
+import { computeTaxTotals } from "./tax-policy";
 import {
 	buildDomainBundleInvoiceLineDescription,
 	buildDomainBundleInvoiceLineName,
@@ -94,18 +95,35 @@ export async function createInvoiceForNiscOrder(
 	const issueDate = now;
 
 	const subtotalNum = order.orderItems.reduce((sum, i) => sum + parseFloat(i.itemSubtotal || "0"), 0);
-	const { subtotal: subtotalRounded, tax: taxAmount, total: totalNum } =
-		computeNiscOrderTotalsWithTax(subtotalNum);
-	const subtotal = subtotalRounded.toFixed(2);
-	const tax = taxAmount.toFixed(2);
-	const total = totalNum.toFixed(2);
 	const currency = order.currency || "KES";
 
 	const [orderPayment] = await db
-		.select({ paymentTransactionId: niscOrder.paymentTransactionId })
+		.select({
+			paymentTransactionId: niscOrder.paymentTransactionId,
+			sourceSubtotal: niscOrder.sourceSubtotal,
+			sourceTotal: niscOrder.sourceTotal,
+			sourceCurrency: niscOrder.sourceCurrency,
+			fxRate: niscOrder.fxRate,
+			fxProvider: niscOrder.fxProvider,
+			fxTimestamp: niscOrder.fxTimestamp,
+			billingCountry: niscOrder.billingCountry,
+			ipCountry: niscOrder.ipCountry,
+			paymentCountry: niscOrder.paymentCountry,
+			taxPolicyId: niscOrder.taxPolicyId,
+			taxRate: niscOrder.taxRate,
+			taxEvidence: niscOrder.taxEvidence,
+		})
 		.from(niscOrder)
 		.where(eq(niscOrder.id, order.id))
 		.limit(1);
+	const effectiveTaxRate = Number(
+		orderPayment?.taxRate ?? TAX_PERCENTAGE / 100,
+	);
+	const taxTotals = computeTaxTotals(subtotalNum, effectiveTaxRate, currency);
+	const subtotal = taxTotals.subtotal.toFixed(2);
+	const tax = taxTotals.taxAmount.toFixed(2);
+	const totalNum = taxTotals.total;
+	const total = totalNum.toFixed(2);
 	const paymentTxId = orderPayment?.paymentTransactionId?.trim() || null;
 	let paymentRow: typeof paymentTransaction.$inferSelect | null = null;
 	if (paymentTxId) {
@@ -172,8 +190,25 @@ export async function createInvoiceForNiscOrder(
 		amount: total,
 		subtotal,
 		tax,
-		taxPercentage: TAX_PERCENTAGE,
+		taxPercentage: Number(orderPayment?.taxRate ?? TAX_PERCENTAGE / 100) * 100,
 		currency,
+		sourceSubtotal: orderPayment?.sourceSubtotal ?? subtotal,
+		sourceAmount: orderPayment?.sourceTotal ?? total,
+		sourceCurrency: orderPayment?.sourceCurrency ?? currency,
+		fxRate: orderPayment?.fxRate ?? "1",
+		fxProvider: orderPayment?.fxProvider ?? "IDENTITY",
+		fxTimestamp: orderPayment?.fxTimestamp ?? issueDate,
+		kesFiscalAmount:
+			orderPayment?.sourceCurrency === "KES"
+				? (orderPayment.sourceTotal ?? total)
+				: currency === "KES"
+					? total
+					: null,
+		billingCountry: orderPayment?.billingCountry,
+		ipCountry: orderPayment?.ipCountry,
+		paymentCountry: orderPayment?.paymentCountry,
+		taxPolicyId: orderPayment?.taxPolicyId,
+		taxEvidence: orderPayment?.taxEvidence,
 		issueDate,
 		dueDate,
 		paidAt: fullyPaid ? now : null,

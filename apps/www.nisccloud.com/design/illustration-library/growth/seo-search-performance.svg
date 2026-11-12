@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">SEO search performance workflow</title>
+  <desc id="desc">A search result, technical review checklist and a visibility trend communicate SEO work using a fictional business.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f8fcff"/><stop offset="1" stop-color="#edf8fd"/></linearGradient>
+    <linearGradient id="trend" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#38b6ff" stop-opacity=".35"/><stop offset="1" stop-color="#38b6ff" stop-opacity="0"/></linearGradient>
+    <filter id="s" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dy="16" stdDeviation="20" flood-color="#071727" flood-opacity=".11"/></filter>
+  </defs>
+  <rect width="1200" height="720" rx="44" fill="url(#bg)"/>
+  <g filter="url(#s)" font-family="DM Sans,Arial,sans-serif">
+    <rect x="90" y="92" width="648" height="536" rx="32" fill="#fff" stroke="#d8e9f1"/>
+    <rect x="126" y="128" width="576" height="62" rx="18" fill="#f2f7fa"/>
+    <circle cx="158" cy="159" r="12" fill="none" stroke="#159ce8" stroke-width="3"/>
+    <path d="M167 168l11 11" stroke="#159ce8" stroke-width="3" stroke-linecap="round"/>
+    <text x="194" y="166" fill="#263b47" font-size="18">industrial equipment supplier nairobi</text>
+    <g transform="translate(126 228)">
+      <text y="0" fill="#159ce8" font-size="14">savanna-industries.example</text>
+      <text y="34" fill="#0d1b2a" font-size="25" font-weight="700">Industrial systems built for East Africa</text>
+      <text y="64" fill="#526774" font-size="15">Clear product information, technical documentation and a direct enquiry journey.</text>
+      <rect y="92" width="230" height="7" rx="3.5" fill="#38b6ff"/>
+      <rect y="112" width="440" height="7" rx="3.5" fill="#dde9ee"/>
+    </g>
+    <g transform="translate(126 400)">
+      <rect width="276" height="190" rx="20" fill="#f8fbfc" stroke="#e0ebef"/>
+      <text x="22" y="36" fill="#0d1b2a" font-size="16" font-weight="700">Technical review</text>
+      <g font-size="13" fill="#526774">
+        <text x="48" y="76">Page titles and metadata</text>
+        <text x="48" y="112">Core Web Vitals</text>
+        <text x="48" y="148">Structured data</text>
+      </g>
+      <g fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="30" cy="72" r="8" fill="#38b6ff" stroke="#38b6ff"/><path d="M26 72l3 3 5-6" stroke="#fff"/>
+        <circle cx="30" cy="108" r="8" fill="#38b6ff" stroke="#38b6ff"/><path d="M26 108l3 3 5-6" stroke="#fff"/>
+        <circle cx="30" cy="144" r="8" stroke="#fc734d"/><path d="M30 140v5M30 148v.5" stroke="#fc734d"/>
+      </g>
+      <rect x="22" y="166" width="140" height="6" rx="3" fill="#38b6ff"/>
+      <rect x="162" y="166" width="90" height="6" rx="3" fill="#dde9ee"/>
+    </g>
+    <g transform="translate(426 400)">
+      <rect width="276" height="190" rx="20" fill="#071727"/>
+      <text x="22" y="36" fill="#fff" font-size="16" font-weight="700">Search visibility</text>
+      <text x="22" y="58" fill="#fff" fill-opacity=".6" font-size="12">Tracked keywords " last 90 days</text>
+      <path d="M22 160C60 150 86 142 112 128s52-36 78-44 46 2 64-18" fill="none" stroke="#38b6ff" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M22 160C60 150 86 142 112 128s52-36 78-44 46 2 64-18V170H22z" fill="url(#trend)"/>
+      <circle cx="254" cy="66" r="6" fill="#fc734d"/>
+    </g>
+  </g>
+  <g filter="url(#s)" font-family="DM Sans,Arial,sans-serif">
+    <rect x="786" y="150" width="324" height="124" rx="26" fill="#fff" stroke="#d8e9f1"/>
+    <rect x="812" y="176" width="56" height="56" rx="16" fill="#38b6ff" opacity=".13"/>
+    <circle cx="840" cy="204" r="11" fill="none" stroke="#159ce8" stroke-width="3"/>
+    <path d="M848 212l9 9" stroke="#159ce8" stroke-width="3" stroke-linecap="round"/>
+    <text x="886" y="200" fill="#0d1b2a" font-size="19" font-weight="700">Keyword plan</text>
+    <text x="886" y="226" fill="#526774" font-size="14">Intent mapped to service pages</text>
+    <rect x="786" y="300" width="324" height="124" rx="26" fill="#fff" stroke="#d8e9f1"/>
+    <rect x="812" y="326" width="56" height="56" rx="16" fill="#38b6ff" opacity=".13"/>
+    <path d="M826 368l9-13 8 7 13-20" fill="none" stroke="#159ce8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="886" y="350" fill="#0d1b2a" font-size="19" font-weight="700">Content programme</text>
+    <text x="886" y="376" fill="#526774" font-size="14">Pages, articles and updates</text>
+    <rect x="786" y="450" width="324" height="124" rx="26" fill="#fff" stroke="#fc734d" stroke-opacity=".5"/>
+    <rect x="812" y="476" width="56" height="56" rx="16" fill="#fc734d" opacity=".13"/>
+    <path d="M828 504h24M840 492v24" stroke="#fc734d" stroke-width="3" stroke-linecap="round"/>
+    <text x="886" y="500" fill="#0d1b2a" font-size="19" font-weight="700">Monthly reporting</text>
+    <text x="886" y="526" fill="#526774" font-size="14">Agreed goals, reviewed together</text>
+  </g>
+</svg>

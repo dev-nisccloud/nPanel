@@ -73,11 +73,11 @@ const Feature = ({
                     {badge}
                   </Badge>
                 ) : null}
-                <h2 className="text-3xl font-semibold text-foreground md:text-4xl">{title}</h2>
+                <h2 className="type-h2 text-foreground">{title}</h2>
                 <p className="text-lg font-normal text-muted-foreground">{description}</p>
               </div>
               {ctaLabel && ctaHref ? (
-                <Button asChild className="h-auto cursor-pointer rounded-full px-5 py-2.5 shadow-xs">
+                <Button asChild className="min-h-11 cursor-pointer rounded-[10px] px-5 py-2.5 shadow-xs">
                   <a href={ctaHref}>{ctaLabel}</a>
                 </Button>
               ) : null}
@@ -106,7 +106,7 @@ const Feature = ({
                         />
                       </AvatarFallback>
                     </Avatar>
-                    <h3 className="text-xl font-medium sm:text-2xl">
+                    <h3 className="type-h3">
                       &ldquo;{testimonial.quote}&rdquo;
                     </h3>
                   </CardContent>
@@ -136,7 +136,7 @@ const Feature = ({
                         <value.icon className="h-6 w-6 text-muted-foreground" strokeWidth={1.5} />
                         {value.title ? (
                           <>
-                            <h3 className="text-base font-semibold text-foreground">
+                            <h3 className="type-h3 text-foreground">
                               {value.title}
                             </h3>
                             <p className="text-sm font-normal leading-relaxed text-muted-foreground">
