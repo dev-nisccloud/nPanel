@@ -8,7 +8,13 @@
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { PERMANENT_REDIRECTS, PUBLIC_ROUTES, routeHtmlFile } from "../src/lib/public-routes.ts";
+import {
+  DYNAMIC_PUBLIC_ROUTES,
+  PERMANENT_REDIRECTS,
+  PUBLIC_ROUTES,
+  routeHtmlFile,
+  SPA_SHELL_FILE,
+} from "../src/lib/public-routes.ts";
 import { SECURITY_HEADERS } from "../src/lib/security-headers.ts";
 
 export const API_REWRITE = {
@@ -27,7 +33,11 @@ export function buildVercelConfig() {
       destination,
       permanent: true,
     })),
-    rewrites: [API_REWRITE, ...PUBLIC_ROUTES.map((source) => ({ source, destination: routeHtmlFile(source) }))],
+    rewrites: [
+      API_REWRITE,
+      ...PUBLIC_ROUTES.map((source) => ({ source, destination: routeHtmlFile(source) })),
+      ...DYNAMIC_PUBLIC_ROUTES.map(({ source }) => ({ source, destination: SPA_SHELL_FILE })),
+    ],
   };
 }
 

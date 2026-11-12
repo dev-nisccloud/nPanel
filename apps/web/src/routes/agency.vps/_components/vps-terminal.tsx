@@ -237,7 +237,7 @@ export function VpsTerminal({ deviceData }: VpsTerminalProps) {
 
     const term = new Terminal({
       cursorBlink: true,
-      fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+      fontFamily: '"DM Sans Variable", "DM Sans", ui-sans-serif, system-ui, sans-serif',
       fontSize: 14,
       theme: {
         background: "#000000",

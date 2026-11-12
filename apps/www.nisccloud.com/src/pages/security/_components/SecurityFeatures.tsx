@@ -29,8 +29,8 @@ const defaultFeatures: SecurityFeatureItem[] = [
     icon: ScanLine,
     title: "Daily malware scanning",
     desc: "Your site is scanned up to 4 times daily. If malware is detected, you get instant alerts and our experts remove it fast.",
-    color: "text-blue-500",
-    bg: "bg-blue-500/10",
+    color: "text-[#38b6ff]",
+    bg: "bg-[#38b6ff]/10",
   },
   {
     icon: Activity,
@@ -50,8 +50,8 @@ const defaultFeatures: SecurityFeatureItem[] = [
     icon: Database,
     title: "Secure daily backups",
     desc: "Encrypted off-site backups stored daily. If anything goes wrong, restore your site to a clean state in minutes.",
-    color: "text-cyan-500",
-    bg: "bg-cyan-500/10",
+    color: "text-[#38b6ff]",
+    bg: "bg-[#38b6ff]/10",
   },
 ];
 

@@ -1,6 +1,8 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
 import { ECOMMERCE_PLANS, SERVICE_PACKAGE_NOTES } from "@/lib/service-packages.ts";
-import { ShoppingCart, CreditCard, Package, Truck, BarChart2, Shield, Smartphone, Globe } from "lucide-react";
+import { ShoppingCart, CreditCard, Package, Truck, BarChart2, Shield, Smartphone, Globe, Search, MousePointerClick } from "lucide-react";
+import { Highlight, StepSpotlight } from "@/components/signature/index.ts";
+import { MobileFlowArt } from "@/components/artwork/build-art.tsx";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
 
 const showcaseBlocks: ShowcaseBlock[] = [
@@ -101,6 +103,25 @@ export default function EcommercePage() {
         { num: "03", title: "Payments & delivery", desc: "Supported gateways, delivery rules, notifications, tax settings, and order states are configured and tested within the agreed scope." },
         { num: "04", title: "Launch & train", desc: "After approval, we launch and train your team on products, orders, refunds, reporting, and the operational limits of each connected provider." },
       ]}
+      contentSlots={{
+        afterShowcase: (
+          <StepSpotlight
+            id="mobile-journey"
+            eyebrow="The mobile journey"
+            title={<>A store built for the <Highlight>phone in their hand</Highlight></>}
+            intro="Most shoppers will meet your store on a phone. We design the full path from first tap to confirmed order for a small screen, then scale it up for desktop."
+            steps={[
+              { icon: Search, title: "Browse", text: "Thumb-friendly categories, search and product cards that load the essentials first." },
+              { icon: MousePointerClick, title: "Choose", text: "Product pages with clear photos, options and one obvious next step." },
+              { icon: CreditCard, title: "Pay", text: "The card, bank or mobile-money methods supported by your selected gateway." },
+              { icon: Package, title: "Track", text: "Order confirmation and notifications, configured within the agreed scope." },
+            ]}
+            framed={false}
+            art={<MobileFlowArt />}
+            artLabel="Illustration of a shopper moving from browsing to a confirmed order on a phone"
+          />
+        ),
+      }}
       whyPoints={[
         { title: "Operations shape the build", desc: "Catalogue ownership, fulfilment, returns, and reporting are discussed before platform choices are locked in.", visual: "mobile" },
         { title: "Designed around your market", desc: "Currency, delivery expectations, product information, and payment preferences are scoped for the customers you plan to serve.", visual: "localMarket" },

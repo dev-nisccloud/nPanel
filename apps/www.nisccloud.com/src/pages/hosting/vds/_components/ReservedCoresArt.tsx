@@ -48,7 +48,7 @@ export function ReservedCoresArt() {
               <span className={cn("text-base", on ? "text-foreground" : "text-muted-foreground")}>{label}</span>
               <span
                 className={cn(
-                  "flex items-center gap-1.5 text-sm text-sky-700 transition-opacity duration-500 dark:text-primary",
+                  "flex items-center gap-1.5 text-sm text-primary transition-opacity duration-500 dark:text-primary",
                   on ? "opacity-100" : "opacity-0",
                 )}
               >

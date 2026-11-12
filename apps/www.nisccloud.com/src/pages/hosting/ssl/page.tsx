@@ -40,7 +40,7 @@ function SslIllustration() {
             </div>
             <div className="text-green-600 dark:text-green-400 space-y-0.5">
               <div>Issued to: Your Business Ltd</div>
-              <div>Valid until: 15 May 2026</div>
+              <div>Valid for 1 year</div>
               <div>Encryption: TLS 1.3 / 256-bit AES</div>
             </div>
           </div>

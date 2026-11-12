@@ -63,12 +63,12 @@ export function TldLogo({ tld, variant, className, size = DEFAULT_LOGO_SIZE }: T
 
   return (
     <div
-      className={`flex-shrink-0 rounded-lg flex items-center justify-center shadow-inner bg-gradient-to-b from-blue-200 via-blue-100 to-blue-50 dark:from-blue-900/50 dark:via-blue-800/40 dark:to-blue-900/30 ${className ?? ""}`}
+      className={`flex-shrink-0 rounded-lg flex items-center justify-center shadow-inner bg-gradient-to-b from-[#38b6ff]/20 via-[#38b6ff]/10 to-[#38b6ff]/5 dark:from-[#38b6ff]/50 dark:via-[#38b6ff]/40 dark:to-[#38b6ff]/30 ${className ?? ""}`}
       style={{ width: size, height: size }}
       title={normalized}
       aria-hidden
     >
-      <span className="text-blue-900 dark:text-blue-100 font-bold text-sm drop-shadow-sm">{label}</span>
+      <span className="text-[#38b6ff] dark:text-[#38b6ff] font-bold text-sm drop-shadow-sm">{label}</span>
     </div>
   );
 }

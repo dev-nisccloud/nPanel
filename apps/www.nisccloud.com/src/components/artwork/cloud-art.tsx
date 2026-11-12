@@ -274,7 +274,7 @@ export function DomainSearchArt() {
           after={
             <>
           <div className="flex items-center gap-2">
-            <span className="flex size-8 items-center justify-center rounded-xl bg-linear-to-br from-sky-400 to-sky-600 text-white shadow-sm">
+            <span className="flex size-8 items-center justify-center rounded-xl bg-linear-to-br from-[#38b6ff] to-[#38b6ff] text-white shadow-sm">
               <ShoppingCart className="size-4" />
             </span>
             <div className="min-w-0">
@@ -466,7 +466,7 @@ export function MailboxesArt() {
           <div className="space-y-1.5">
             {boxes.map(([user, role, used]) => (
               <div key={user} className="grid grid-cols-[22px_1fr_70px] items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-2">
-                <span className="flex size-[22px] items-center justify-center rounded-full bg-primary/15 text-[9px] font-bold uppercase text-sky-700 dark:text-sky-300">{user[0]}</span>
+                <span className="flex size-[22px] items-center justify-center rounded-full bg-primary/15 text-[9px] font-bold uppercase text-primary dark:text-[#38b6ff]">{user[0]}</span>
                 <span className="min-w-0">
                   <span className="block truncate text-[10px] font-semibold text-foreground">{user}@{DOMAIN}</span>
                   <span className="block text-[8px] text-muted-foreground">{role}</span>
@@ -544,7 +544,7 @@ export function ServerArt({ kind = "vps", variant = 0 }: { kind?: ServerKind; va
         <div className="sm:pb-12 sm:pl-14">
           <div className="overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 shadow-[0_30px_60px_-30px_rgb(2_6_23_/_0.7)]">
             <div className="flex items-center gap-2 border-b border-white/10 px-3 py-2">
-              <Terminal className="size-3.5 text-sky-400" />
+              <Terminal className="size-3.5 text-[#38b6ff]" />
               <span className="text-[10px] font-semibold text-slate-200">Terminal</span>
               <span className="ml-auto font-mono text-[9px] text-slate-500">{c.host}</span>
             </div>
@@ -556,7 +556,7 @@ Filesystem  Size  Used Avail Use%
 /dev/vda1    80G   21G   59G  27%
 deploy@${c.host}:~$ sudo systemctl status nginx
 `}<span className="text-emerald-400">● nginx.service  active (running)</span>{`
-deploy@${c.host}:~$ `}<span className="inline-block h-3 w-1.5 translate-y-0.5 bg-sky-400" />
+deploy@${c.host}:~$ `}<span className="inline-block h-3 w-1.5 translate-y-0.5 bg-[#38b6ff]" />
             </pre>
           </div>
         </div>

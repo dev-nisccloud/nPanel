@@ -23,6 +23,10 @@ interface CountrySelectProps {
   placeholder?: string;
   className?: string;
   invalid?: boolean;
+  id?: string;
+  "aria-required"?: boolean;
+  "aria-invalid"?: boolean;
+  "aria-describedby"?: string;
 }
 
 /** Resolve stored profile values (name or ISO alpha-2) to the catalog country name. */
@@ -45,6 +49,10 @@ export function CountrySelect({
   placeholder = "Select country…",
   className,
   invalid,
+  id,
+  "aria-required": ariaRequired,
+  "aria-invalid": ariaInvalid,
+  "aria-describedby": ariaDescribedBy,
 }: CountrySelectProps) {
   const [open, setOpen] = React.useState(false);
   const resolved = resolveCountryName(value);
@@ -55,10 +63,13 @@ export function CountrySelect({
       <PopoverTrigger asChild>
         <Button
           type="button"
+          id={id}
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          aria-invalid={invalid || undefined}
+          aria-required={ariaRequired}
+          aria-invalid={ariaInvalid || invalid || undefined}
+          aria-describedby={ariaDescribedBy}
           className={cn(
             "h-11 w-full justify-between rounded-xl text-sm font-normal",
             !selectedCountry && "text-muted-foreground",

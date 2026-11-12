@@ -33,7 +33,7 @@ export const posts: Post[] = [
     readTime: "6 min read",
     date: "Apr 28, 2025",
     featured: true,
-    gradient: "from-blue-500/20 via-primary/10 to-transparent",
+    gradient: "from-[#38b6ff]/20 via-primary/10 to-transparent",
     author: "Amara Oduya",
     authorRole: "Head of Brand Strategy, Nisc Cloud",
     content: [
@@ -326,7 +326,7 @@ export const posts: Post[] = [
       "Not all hosting is equal. We help you pick the right tier - from web hosting at KES 350/mo to managed VPS - without overpaying for resources you'll never use.",
     readTime: "5 min read",
     date: "Apr 5, 2025",
-    gradient: "from-cyan-500/20 via-primary/10 to-transparent",
+    gradient: "from-[#38b6ff]/20 via-primary/10 to-transparent",
     author: "Dennis Ochieng",
     authorRole: "Infrastructure Lead, Nisc Cloud",
     content: [
@@ -583,11 +583,11 @@ export const posts: Post[] = [
 ];
 
 export const categoryColors: Record<string, string> = {
-  "Brand Strategy": "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+  "Brand Strategy": "bg-[#38b6ff]/10 text-[#38b6ff] dark:bg-[#38b6ff]/40 dark:text-[#38b6ff]",
   "SEO / AEO / GEO": "bg-brand-orange/10 text-brand-orange",
   "E-commerce": "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
   "AI Automation": "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
-  "Cloud Hosting": "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300",
+  "Cloud Hosting": "bg-[#38b6ff]/10 text-[#38b6ff] dark:bg-[#38b6ff]/40 dark:text-[#38b6ff]",
   "Paid Advertising": "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300",
   "Social Media": "bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300",
   "Email Marketing": "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",

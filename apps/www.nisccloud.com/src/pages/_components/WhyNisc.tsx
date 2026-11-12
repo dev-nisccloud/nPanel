@@ -71,7 +71,7 @@ export default function WhyNisc() {
 
         <div className="mt-4 flex flex-col divide-y divide-border rounded-3xl border border-border bg-card md:flex-row md:divide-x md:divide-y-0">
           <p className="flex flex-1 items-start gap-3 p-5 text-sm leading-relaxed">
-            <Unlock className="mt-0.5 size-5 shrink-0 text-sky-700 dark:text-primary" aria-hidden />
+            <Unlock className="mt-0.5 size-5 shrink-0 text-primary dark:text-primary" aria-hidden />
             <span>
               <span className="font-semibold">Your domain, code and data remain yours.</span>{" "}
               <span className="text-muted-foreground">
@@ -81,7 +81,7 @@ export default function WhyNisc() {
             </span>
           </p>
           <p className="flex flex-1 items-start gap-3 p-5 text-sm leading-relaxed">
-            <CalendarCheck className="mt-0.5 size-5 shrink-0 text-sky-700 dark:text-primary" aria-hidden />
+            <CalendarCheck className="mt-0.5 size-5 shrink-0 text-primary dark:text-primary" aria-hidden />
             <span>
               <span className="font-semibold">Milestones agreed up front.</span>{" "}
               <span className="text-muted-foreground">
@@ -92,7 +92,7 @@ export default function WhyNisc() {
           </p>
           <Link
             to="/work"
-            className="group flex items-center gap-2 p-5 text-sm font-semibold text-sky-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary dark:text-primary md:shrink-0"
+            className="group flex items-center gap-2 p-5 text-sm font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary dark:text-primary md:shrink-0"
           >
             See work we have delivered
             <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden />

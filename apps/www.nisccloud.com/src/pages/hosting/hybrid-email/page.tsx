@@ -8,7 +8,7 @@ export default function HybridEmailPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navbar />
-      <main>
+      <main id="main-content">
         <section className="mx-auto grid max-w-7xl gap-10 px-4 pb-16 pt-32 md:px-8 lg:grid-cols-2 lg:items-center">
           <div>
             <span className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-1 text-sm font-medium">

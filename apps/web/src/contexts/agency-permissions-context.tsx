@@ -40,20 +40,30 @@ export function AgencyPermissionsProvider({ children }: { children: ReactNode })
 
   const can = useCallback(
     (key: string, access: AgencyPermissionGrantedAccess = "read") => {
+      if (key.startsWith("hr.")) {
+        if (isSuperAdmin) return true;
+        if (isLoading) return false;
+        return agencyAccessSatisfies(permissions[key], access);
+      }
       if (unrestricted) return true;
       if (isLoading) return false;
       return agencyAccessSatisfies(permissions[key], access);
     },
-    [isLoading, permissions, unrestricted],
+    [isLoading, isSuperAdmin, permissions, unrestricted],
   );
 
   const canModule = useCallback(
     (module: string, access: AgencyPermissionGrantedAccess = "read") => {
+      if (module === "hr") {
+        if (isSuperAdmin) return true;
+        if (isLoading) return false;
+        return agencyModuleAccessSatisfies(permissions, module, access);
+      }
       if (unrestricted) return true;
       if (isLoading) return false;
       return agencyModuleAccessSatisfies(permissions, module, access);
     },
-    [isLoading, permissions, unrestricted],
+    [isLoading, isSuperAdmin, permissions, unrestricted],
   );
 
   const value = useMemo<AgencyPermissionsValue>(
@@ -88,9 +98,11 @@ export function useOptionalAgencyPermissions(): AgencyPermissionsValue | null {
 export function AgencyPermissionRouteGuard({ children }: { children: ReactNode }) {
   const ctx = useAgencyPermissions();
   const { pathname } = useLocation();
-  if (ctx.unrestricted) return children;
-
   const rule = matchAgencyRoutePermission(pathname);
+  const explicitHr =
+    (rule.type === "key" && rule.key.startsWith("hr.")) ||
+    (rule.type === "module" && rule.module === "hr");
+  if (ctx.unrestricted && !explicitHr) return children;
 
   if (rule.type === "allow") return children;
 

@@ -15,7 +15,7 @@ const testimonials: Testimonial[] = [
     role: "CEO, TechStart Kenya",
     text: "We went from almost no online presence to a steady flow of leads. Having design, hosting, and marketing under one team meant fewer meetings and clearer results.",
     initials: "SM",
-    accentClass: "bg-blue-500/20 text-blue-400",
+    accentClass: "bg-[#38b6ff]/20 text-[#38b6ff]",
   },
   {
     name: "James O.",

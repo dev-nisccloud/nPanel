@@ -11,6 +11,7 @@ export {
 	deleteObject,
 	listObjects,
 	putObjectBuffer,
+	getObjectBuffer,
 	sanitizeFileName,
 	type ListedObject,
 } from "./client";

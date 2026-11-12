@@ -24,16 +24,16 @@ import { ZepoMascot } from "@/components/zepo-mascot.tsx";
 export type ArtTone = "sky" | "violet" | "emerald" | "amber" | "slate" | "rose";
 
 const toneBackdrop: Record<ArtTone, string> = {
-  sky: "from-sky-200/70 via-sky-100/40 to-blue-100/30 dark:from-sky-500/20 dark:via-sky-500/5 dark:to-blue-500/10",
+  sky: "from-[#38b6ff]/70 via-[#38b6ff]/40 to-[#38b6ff]/30 dark:from-[#38b6ff]/20 dark:via-[#38b6ff]/5 dark:to-[#38b6ff]/10",
   violet:
-    "from-sky-200/70 via-cyan-100/35 to-slate-100/30 dark:from-sky-500/20 dark:via-cyan-500/5 dark:to-slate-500/10",
+    "from-[#38b6ff]/70 via-[#38b6ff]/35 to-slate-100/30 dark:from-[#38b6ff]/20 dark:via-[#38b6ff]/5 dark:to-slate-500/10",
   emerald:
-    "from-emerald-200/60 via-teal-100/40 to-sky-100/30 dark:from-emerald-500/20 dark:via-teal-500/5 dark:to-sky-500/10",
+    "from-emerald-200/60 via-teal-100/40 to-[#38b6ff]/30 dark:from-emerald-500/20 dark:via-teal-500/5 dark:to-[#38b6ff]/10",
   amber:
     "from-amber-200/60 via-orange-100/40 to-rose-100/30 dark:from-amber-500/20 dark:via-orange-500/5 dark:to-rose-500/10",
   slate:
-    "from-slate-300/60 via-slate-100/40 to-sky-100/40 dark:from-slate-500/25 dark:via-slate-500/5 dark:to-sky-500/10",
-  rose: "from-orange-100/70 via-sky-100/35 to-slate-100/30 dark:from-orange-500/15 dark:via-sky-500/5 dark:to-slate-500/10",
+    "from-slate-300/60 via-slate-100/40 to-[#38b6ff]/40 dark:from-slate-500/25 dark:via-slate-500/5 dark:to-[#38b6ff]/10",
+  rose: "from-orange-100/70 via-[#38b6ff]/35 to-slate-100/30 dark:from-orange-500/15 dark:via-[#38b6ff]/5 dark:to-slate-500/10",
 };
 
 const CURSOR_TARGETS = "[data-art-target]";
@@ -416,10 +416,10 @@ export function Float({
 
 const pillTones = {
   green: "bg-emerald-500/12 text-emerald-700 ring-emerald-500/25 dark:text-emerald-300",
-  sky: "bg-sky-500/12 text-sky-700 ring-sky-500/25 dark:text-sky-300",
+  sky: "bg-[#38b6ff]/12 text-primary ring-[#38b6ff]/25 dark:text-[#38b6ff]",
   amber: "bg-amber-500/15 text-amber-700 ring-amber-500/25 dark:text-amber-300",
   rose: "bg-rose-500/12 text-rose-700 ring-rose-500/25 dark:text-rose-300",
-  violet: "bg-primary/12 text-sky-700 ring-primary/25 dark:text-sky-300",
+  violet: "bg-primary/12 text-primary ring-primary/25 dark:text-[#38b6ff]",
   slate: "bg-slate-500/10 text-slate-600 ring-slate-500/20 dark:text-slate-300",
 } as const;
 
@@ -506,7 +506,7 @@ export function Meter({
     green: "bg-emerald-500",
     amber: "bg-amber-500",
     // Legacy alias: usage meters stay within the sky family so orange keeps its emphasis role.
-    violet: "bg-sky-600 dark:bg-sky-400",
+    violet: "bg-[#38b6ff] dark:bg-[#38b6ff]",
   }[tone];
   return (
     <div>

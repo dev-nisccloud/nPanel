@@ -112,6 +112,18 @@
       "destination": "/about/index.html"
     },
     {
+      "source": "/careers",
+      "destination": "/careers/index.html"
+    },
+    {
+      "source": "/compare",
+      "destination": "/compare/index.html"
+    },
+    {
+      "source": "/status",
+      "destination": "/status/index.html"
+    },
+    {
       "source": "/platform",
       "destination": "/platform/index.html"
     },
@@ -269,6 +281,10 @@
     },
     {
       "source": "/blog/shared-vs-vps-hosting-kenya",
+      "destination": "/spa.html"
+    },
+    {
+      "source": "/careers/:slug",
       "destination": "/spa.html"
     }
   ]

@@ -155,6 +155,21 @@ export const ROUTE_META: Record<string, PageMeta> = {
     title: "Cookie Policy",
     description: "Which cookies nisccloud.com uses, why, and how to manage your preferences.",
   },
+  "/careers": {
+    title: "Careers",
+    description: "Open roles at Nisc Cloud. Apply with your CV, location, LinkedIn profile and salary range.",
+    jsonLd: breadcrumbJsonLd([["Home", "/"], ["Careers", "/careers"]]),
+  },
+  "/compare": {
+    title: "Compare hosting and email",
+    description: "Links to the hosting and email comparisons already published on the product pages.",
+    jsonLd: breadcrumbJsonLd([["Home", "/"], ["Compare", "/compare"]]),
+  },
+  "/status": {
+    title: "Status",
+    description: "Nisc Cloud does not publish a live status board. Contact the team if a service you use is unavailable.",
+    jsonLd: breadcrumbJsonLd([["Home", "/"], ["Status", "/status"]]),
+  },
 };
 
 export const NOT_FOUND_META: PageMeta = {

@@ -113,25 +113,75 @@ function validate(info: CustomerInfo): FieldErrors {
 // Field wrapper
 // ---------------------------------------------------------------------------
 
+const FIELD_CONTROLS = new Set<unknown>([Input, SelectTrigger, CountrySelect]);
+
+function isFieldControl(type: unknown) {
+  return type === "input" || type === "select" || type === "textarea" || FIELD_CONTROLS.has(type);
+}
+
+/** Put the label id on the first real control, including controls wrapped for an icon. */
+function labelFieldControl(node: React.ReactNode, props: Record<string, unknown>): React.ReactNode {
+  let labelled = false;
+  const walk = (child: React.ReactNode): React.ReactNode => {
+    if (labelled || !React.isValidElement(child)) return child;
+    if (isFieldControl(child.type)) {
+      labelled = true;
+      return React.cloneElement(child as React.ReactElement<Record<string, unknown>>, props);
+    }
+    const nested = (child.props as { children?: React.ReactNode }).children;
+    if (nested == null) return child;
+    return React.cloneElement(
+      child as React.ReactElement<{ children?: React.ReactNode }>,
+      {},
+      React.Children.map(nested, walk),
+    );
+  };
+  return walk(node);
+}
+
 function Field({
   label,
   required,
   error,
+  hint,
   children,
 }: {
   label: string;
   required?: boolean;
   error?: string;
+  hint?: string;
   children: React.ReactNode;
 }) {
+  const id = React.useId();
+  const errorId = `${id}-error`;
+  const hintId = `${id}-hint`;
+  const describedBy = [hint ? hintId : null, error ? errorId : null].filter(Boolean).join(" ") || undefined;
   return (
     <div className="space-y-1.5">
-      <Label className="text-sm font-medium text-foreground">
+      <Label htmlFor={id} className="text-sm font-medium text-foreground">
         {label}
-        {required && <span className="text-destructive ml-0.5">*</span>}
+        {required && (
+          <span className="text-destructive ml-0.5" aria-hidden="true">
+            *
+          </span>
+        )}
       </Label>
-      {children}
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {labelFieldControl(children, {
+        id,
+        "aria-required": required || undefined,
+        "aria-invalid": error ? true : undefined,
+        "aria-describedby": describedBy,
+      })}
+      {hint && (
+        <p id={hintId} className="text-xs text-muted-foreground">
+          {hint}
+        </p>
+      )}
+      {error && (
+        <p id={errorId} className="text-xs text-destructive">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -150,7 +200,7 @@ function StepHeader({
       <button
         type="button"
         onClick={onBack}
-        className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         aria-label="Back to cart"
       >
         <ArrowLeft className="w-4 h-4" />
@@ -531,7 +581,7 @@ export function CustomerInfoStep({
       <a
         href={signInHref}
         onClick={() => onBeforeSignIn?.()}
-        className="flex items-center justify-between gap-3 p-4 rounded-xl border-2 border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/60 transition-all mb-6 group"
+        className="group mb-6 flex items-center justify-between gap-3 rounded-xl border-2 border-primary/30 bg-primary/5 p-4 transition-all hover:border-primary/60 hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-primary/10 shrink-0">
@@ -608,7 +658,12 @@ export function CustomerInfoStep({
         </Field>
 
         {/* Company name */}
-        <Field label="Company / business name" required error={errors.companyName}>
+        <Field
+          label="Company / business name"
+          required
+          error={errors.companyName}
+          hint="Used as your workspace name in nPanel. Can be changed later."
+        >
           <div className="relative">
             <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <Input
@@ -620,9 +675,6 @@ export function CustomerInfoStep({
               autoComplete="organization"
             />
           </div>
-          <p className="text-xs text-muted-foreground">
-            Used as your workspace name in nPanel. Can be changed later.
-          </p>
         </Field>
 
         <Separator />
@@ -642,9 +694,10 @@ export function CustomerInfoStep({
             />
             <button
               type="button"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               onClick={() => setShowPassword((v) => !v)}
-              tabIndex={-1}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-pressed={showPassword}
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -666,9 +719,10 @@ export function CustomerInfoStep({
             />
             <button
               type="button"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               onClick={() => setShowConfirm((v) => !v)}
-              tabIndex={-1}
+              aria-label={showConfirm ? "Hide password confirmation" : "Show password confirmation"}
+              aria-pressed={showConfirm}
             >
               {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -683,6 +737,8 @@ export function CustomerInfoStep({
               checked={info.agreedToTerms === true}
               onCheckedChange={(checked) => set("agreedToTerms", checked === true)}
               aria-required="true"
+              aria-invalid={errors.agreedToTerms ? true : undefined}
+              aria-describedby={errors.agreedToTerms ? "terms-error" : undefined}
               className="mt-0.5"
             />
             <label htmlFor="terms" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
@@ -698,7 +754,7 @@ export function CustomerInfoStep({
             </label>
           </div>
           {errors.agreedToTerms && (
-            <p className="text-xs text-destructive ml-6">{errors.agreedToTerms}</p>
+            <p id="terms-error" className="text-xs text-destructive ml-6">{errors.agreedToTerms}</p>
           )}
         </div>
       </form>

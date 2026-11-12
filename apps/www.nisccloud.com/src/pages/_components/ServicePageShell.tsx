@@ -280,7 +280,7 @@ function ProcessSection({ steps }: { steps: ProcessStep[] }) {
               key={step.num}
               className="border-b border-border py-7 last:border-b-0 md:px-6 md:[&:nth-last-child(-n+2)]:border-b-0 lg:border-b-0 lg:border-r lg:first:pl-0 lg:last:border-r-0 lg:last:pr-0"
             >
-              <span className="text-base font-bold text-sky-700 dark:text-primary">
+              <span className="text-base font-bold text-primary dark:text-primary">
                 {step.num}
               </span>
               <h3 className="type-h3 mt-5">{step.title}</h3>

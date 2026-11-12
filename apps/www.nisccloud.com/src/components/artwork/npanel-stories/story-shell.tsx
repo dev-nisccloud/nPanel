@@ -18,9 +18,9 @@ const surfaces = {
   light:
     "border-slate-200/80 bg-[radial-gradient(circle_at_12%_10%,rgba(56,182,255,.20),transparent_32%),linear-gradient(145deg,#f8fbff,#eaf5fb)] dark:border-white/10 dark:bg-[radial-gradient(circle_at_12%_10%,rgba(56,182,255,.18),transparent_32%),linear-gradient(145deg,#101c25,#071119)]",
   sky:
-    "border-sky-200/80 bg-[radial-gradient(circle_at_85%_15%,rgba(255,255,255,.72),transparent_28%),linear-gradient(145deg,#dff4ff,#b9e6fa)] dark:border-sky-500/20 dark:bg-[radial-gradient(circle_at_85%_15%,rgba(56,182,255,.14),transparent_28%),linear-gradient(145deg,#102b3c,#08151e)]",
+    "border-[#38b6ff]/80 bg-[radial-gradient(circle_at_85%_15%,rgba(255,255,255,.72),transparent_28%),linear-gradient(145deg,#dff4ff,#b9e6fa)] dark:border-[#38b6ff]/20 dark:bg-[radial-gradient(circle_at_85%_15%,rgba(56,182,255,.14),transparent_28%),linear-gradient(145deg,#102b3c,#08151e)]",
   midnight:
-    "border-sky-900/40 bg-[radial-gradient(circle_at_80%_8%,rgba(56,182,255,.22),transparent_30%),linear-gradient(145deg,#102433,#041019)]",
+    "border-[#38b6ff]/40 bg-[radial-gradient(circle_at_80%_8%,rgba(56,182,255,.22),transparent_30%),linear-gradient(145deg,#102433,#041019)]",
 };
 
 export function StoryShell({

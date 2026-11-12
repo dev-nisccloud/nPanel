@@ -57,6 +57,13 @@ export function SearchDialog() {
   const navigate = useNavigate();
   const { can, canModule, isLoading, unrestricted } = useAgencyPermissions();
   const visibleItems = searchItems.filter((item) => {
+    const hrItem = item.permissionKey?.startsWith("hr.") || item.permissionModule === "hr";
+    if (hrItem) {
+      if (isLoading && !unrestricted) return false;
+      if (item.permissionKey) return can(item.permissionKey);
+      if (item.permissionModule) return canModule(item.permissionModule);
+      return false;
+    }
     if (unrestricted) return true;
     if (isLoading) return false;
     if (item.permissionKey) return can(item.permissionKey);

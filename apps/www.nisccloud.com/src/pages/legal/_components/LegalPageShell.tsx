@@ -125,6 +125,7 @@ export function LegalPageShell({
 
           {/* Prose content */}
           <main
+            id="main-content"
             className="min-w-0 prose prose-gray dark:prose-invert max-w-none
               prose-headings:scroll-mt-28
               prose-h2:text-xl prose-h2:font-bold prose-h2:border-b prose-h2:border-border prose-h2:pb-2 prose-h2:mt-12 prose-h2:mb-4

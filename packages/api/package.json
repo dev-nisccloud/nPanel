@@ -34,6 +34,7 @@
     "archiver": "^7.0.1",
     "basic-ftp": "^5.2.0",
     "bcryptjs": "^2.4.3",
+    "country-state-city": "^3.2.1",
     "date-fns": "^4.1.0",
     "dotenv": "catalog:",
     "drizzle-orm": "catalog:",

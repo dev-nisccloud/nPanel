@@ -433,12 +433,12 @@ function SlideBarChart({ labels, values, colors, unit, fg, muted, accent }: {
       <BarChart data={data} margin={{ top: 16, right: 8, bottom: 18, left: 8 }} barCategoryGap="28%">
         <XAxis
           dataKey="name"
-          tick={{ fontSize: 9, fill: muted, fontFamily: "Inter,system-ui" }}
+          tick={{ fontSize: 9, fill: muted, fontFamily: '"DM Sans Variable", "DM Sans", sans-serif' }}
           axisLine={{ stroke: `${muted}44` }}
           tickLine={false}
         />
         <Bar dataKey="value" radius={[4, 4, 0, 0]}
-          label={{ position: "top", fontSize: 9, fill: fg, fontFamily: "Inter,system-ui",
+          label={{ position: "top", fontSize: 9, fill: fg, fontFamily: '"DM Sans Variable", "DM Sans", sans-serif',
                    formatter: (v: number) => `${v}${unit ?? ""}` }}>
           {data.map((_, i) => (
             <Cell key={i} fill={colors?.[i] ?? CHART_PALETTE[i % CHART_PALETTE.length] ?? accent} />
@@ -505,7 +505,7 @@ function PresentationSlideView({ slide, theme }: { slide: SlideData; theme: Pres
   const base: React.CSSProperties = {
     width: "100%", aspectRatio: "16/9", backgroundColor: bg,
     position: "relative", overflow: "hidden", display: "flex",
-    flexDirection: "row", fontFamily: "'Inter','Segoe UI',system-ui,sans-serif",
+    flexDirection: "row", fontFamily: '"DM Sans Variable", "DM Sans", ui-sans-serif, system-ui, sans-serif',
   };
 
   const fullBleed: React.CSSProperties = {
@@ -600,7 +600,7 @@ function PresentationSlideView({ slide, theme }: { slide: SlideData; theme: Pres
         {hasBgImage && <><div style={fullBleed} /><div style={overlay(0.6)} /></>}
         {!hasBgImage && <div style={{ position: "absolute", inset: 0, background: `linear-gradient(160deg, ${bg} 60%, ${accent}18 100%)` }} />}
         <div style={{ ...pad, flex: 1, alignItems: "center", justifyContent: "center", textAlign: "center" }}>
-          <div style={{ fontSize: "clamp(4rem, 10vw, 7rem)", fontWeight: 900, color: accent, lineHeight: 0.6, marginBottom: "2%", opacity: 0.6, fontFamily: "Georgia,serif" }}>"</div>
+          <div style={{ fontSize: "clamp(4rem, 10vw, 7rem)", fontWeight: 900, color: accent, lineHeight: 0.6, marginBottom: "2%", opacity: 0.6, fontFamily: '"DM Sans Variable", "DM Sans", sans-serif' }}>"</div>
           <p style={{ fontSize: "clamp(0.9rem, 2.4vw, 1.4rem)", fontStyle: "italic", color: fg, lineHeight: 1.6, marginBottom: "5%", maxWidth: "78%" }}>
             <InlineMarkdown text={slide.body ?? slide.title ?? ""} />
           </p>

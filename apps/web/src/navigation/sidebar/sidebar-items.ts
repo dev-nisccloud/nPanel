@@ -517,4 +517,20 @@ export const agencysidebarItems: NavGroup[] = [
       },
     ],
   },
+  {
+    id: 7,
+    label: "Human resource",
+    items: [
+      {
+        title: "Human resource",
+        url: "/agency/hr/roles",
+        icon: (props: any) => React.createElement(Icons.User, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        permissionModule: "hr",
+        subItems: [
+          { title: "Open roles", url: "/agency/hr/roles", permissionKey: "hr.openings" },
+          { title: "Applications", url: "/agency/hr/applications", permissionKey: "hr.applications" },
+        ],
+      },
+    ],
+  },
 ];

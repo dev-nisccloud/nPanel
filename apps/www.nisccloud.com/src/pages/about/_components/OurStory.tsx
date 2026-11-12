@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { ShowcaseVisualCard } from "@/pages/_components/ServiceShowcaseSection.tsx";
+import { JourneyArt } from "@/components/artwork/about-art.tsx";
 
 const milestones = [
   {
@@ -39,11 +39,7 @@ export default function OurStory() {
           transition={{ duration: 0.7 }}
           className="relative"
         >
-          <ShowcaseVisualCard visual="uptime" headline="Hosting, web and growth together" />
-          <div className="absolute -bottom-5 -right-4 sm:-right-6 bg-primary text-primary-foreground rounded-xl px-5 py-3.5 shadow-xl">
-            <p className="text-2xl font-bold leading-none">One team</p>
-            <p className="text-xs opacity-80 mt-1">Hosting, web and growth together</p>
-          </div>
+          <JourneyArt />
         </motion.div>
 
         <div>
@@ -55,7 +51,7 @@ export default function OurStory() {
             className="mb-10"
           >
             <h2 className="type-h2 mb-4">
-              Built to Grow with Our Customers
+              Built to grow with our customers
             </h2>
             <p className="text-muted-foreground leading-relaxed max-w-lg">
               Since 2019, Nisc Cloud has grown from reliable infrastructure into

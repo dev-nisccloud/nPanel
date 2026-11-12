@@ -66,7 +66,7 @@ export function StatusLine({
   tone?: "sky" | "green" | "amber";
 }) {
   const toneClass = {
-    sky: "bg-sky-500",
+    sky: "bg-[#38b6ff]",
     green: "bg-emerald-500",
     amber: "bg-amber-500",
   }[tone];

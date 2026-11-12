@@ -293,7 +293,7 @@ function MachineRow({
         <h3 className="type-h3 max-w-3xl text-balance">{machine.cpu}</h3>
         <div className="flex flex-wrap gap-2">
           {location.onSale ? (
-            <span className="rounded-full bg-primary/15 px-3 py-1 text-sm font-semibold text-sky-800 dark:text-primary">On sale</span>
+            <span className="rounded-full bg-primary/15 px-3 py-1 text-sm font-semibold text-primary dark:text-primary">On sale</span>
           ) : null}
           {machine.locations.length >= 3 ? (
             <span className="rounded-full border border-border px-3 py-1 text-sm text-muted-foreground">
@@ -305,7 +305,7 @@ function MachineRow({
       <ul className="mt-4 grid gap-2 sm:grid-cols-2">
         {specs.map(({ icon: Icon, text }) => (
           <li key={text} className="flex min-w-0 items-start gap-2 text-base text-foreground">
-            <Icon className="mt-0.5 size-5 shrink-0 text-sky-700 dark:text-primary" aria-hidden />
+            <Icon className="mt-0.5 size-5 shrink-0 text-primary dark:text-primary" aria-hidden />
             <span className="min-w-0 break-words">{text}</span>
           </li>
         ))}
@@ -313,7 +313,7 @@ function MachineRow({
       <div className="mt-5 grid gap-4 border-t border-border pt-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
         <div className="min-w-0">
           <label htmlFor={selectId} className="type-label flex items-center gap-1.5 text-foreground">
-            <MapPin className="size-4 text-sky-700 dark:text-primary" aria-hidden /> Server location
+            <MapPin className="size-4 text-primary dark:text-primary" aria-hidden /> Server location
           </label>
           <select
             id={selectId}
@@ -573,12 +573,12 @@ export function DedicatedPlansSection() {
                 <button
                   type="button"
                   onClick={() => set({ ...DEFAULT_FILTERS, sort: filters.sort })}
-                  className="cursor-pointer font-semibold text-sky-700 underline dark:text-primary"
+                  className="cursor-pointer font-semibold text-primary underline dark:text-primary"
                 >
                   Clear filters
                 </button>
               ) : (
-                <a className="font-semibold text-sky-700 underline dark:text-primary" href="/contact?serviceName=Dedicated%20Servers">
+                <a className="font-semibold text-primary underline dark:text-primary" href="/contact?serviceName=Dedicated%20Servers">
                   Ask our team about the next machine
                 </a>
               )}
@@ -600,7 +600,7 @@ export function DedicatedPlansSection() {
           {truncated ? (
             <p className="mt-4 text-center text-sm text-muted-foreground">
               This list is the first batch of machines in stock. If you need a build you do not see,{" "}
-              <a className="font-semibold text-sky-700 underline dark:text-primary" href="/contact?serviceName=Dedicated%20Servers">
+              <a className="font-semibold text-primary underline dark:text-primary" href="/contact?serviceName=Dedicated%20Servers">
                 ask our team
               </a>
               .

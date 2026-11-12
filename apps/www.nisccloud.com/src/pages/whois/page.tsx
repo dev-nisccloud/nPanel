@@ -6,7 +6,7 @@ export default function WhoisPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navbar />
-      <main className="pt-16">
+      <main id="main-content" className="pt-16">
         <WhoisChecker />
       </main>
       <Footer />

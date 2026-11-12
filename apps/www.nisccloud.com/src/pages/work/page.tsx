@@ -8,7 +8,7 @@ export default function WorkPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navbar />
-      <main>
+      <main id="main-content">
         <WorkHero />
         <ClientsAndCapabilities />
         <WorkCTA />

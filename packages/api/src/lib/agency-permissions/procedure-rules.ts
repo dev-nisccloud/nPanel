@@ -230,6 +230,11 @@ const NAMESPACE_RULES: Record<string, (rest: string) => AgencyRequirement> = {
 	niscServiceOrders: () => key("products.orders"),
 	cronWorkflowRun: () => key("operations.cronjobs"),
 	manageUsers: () => key("agency_admin.users"),
+	careers: (rest) => {
+		const sub = rest.split(".")[0] ?? "";
+		if (sub === "applications" || sub === "applicationFile") return key("hr.applications");
+		return key("hr.openings");
+	},
 	apiKeys: () => key("agency_admin.api_keys"),
 	agencyRbac: () => key("agency_admin.roles"),
 	agencyDashboard: () => key("dashboard.view"),

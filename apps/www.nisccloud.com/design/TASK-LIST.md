@@ -197,15 +197,16 @@ Every product and service page should follow the Web Hosting pattern when it is 
 
 | ID | Task | Pri | Who | Status |
 | --- | --- | --- | --- | --- |
-| CNT-01 | Apply the content standard to each remaining product and service page as it is reviewed | P1 | Dev | In progress — Web Hosting and WordPress Hosting done |
+| CNT-01 | Apply the content standard to each remaining product and service page as it is reviewed | P1 | Dev | In progress — checked 11 Nov 2026. Done: Web Hosting, WordPress Hosting, Business Email, VPS, VDS, Dedicated Servers (all four slots, answer-first). Still the short guide or no long-form slots: Website Design, SEO, E-commerce, Brand Identity, Paid Ads, Social Media, Email Marketing, Zepo AI, Domains, SSL, Domain Transfer, Agency Hosting, Microsoft 365, Google Workspace, Transfer Hosting, Hybrid Email, and the security service pages |
 
 ### 3.8 Design, UX and accessibility
 
 | ID | Task | Pri | Who | Status |
 | --- | --- | --- | --- | --- |
-| UX-01 | Add a "Skip to main content" link | P1 | Dev | Not started |
-| UX-02 | Fix the homepage closing button: sky-blue text on white is about 2.1:1 contrast (`HomeClosing.tsx`) | P1 | Dev | Not started |
-| UX-03 | Raise small `text-white/45` text on the closing CTA to at least 4.5:1 (`closing-cta.tsx`) | P1 | Dev | Not started |
+| UX-01 | Add a "Skip to main content" link | P1 | Dev | Done 11 Nov 2026 — hidden until keyboard focus |
+| UX-02 | Fix the homepage closing button: sky-blue text on white is about 2.1:1 contrast (`HomeClosing.tsx`) | P1 | Dev | Done 11 Nov 2026 — “Discuss your project” icon darkened; sky card text already passed |
+| UX-03 | Raise small `text-white/45` text on the closing CTA to at least 4.5:1 (`closing-cta.tsx`) | P1 | Dev | Done 11 Nov 2026 — dark-banner text raised to white/90 |
+| UX-11 | Manual keyboard and screen-reader pass; Lighthouse and real-user Core Web Vitals | P1 | Dev | Partial 11 Nov 2026 — home, Web Hosting, cart and contact checked; clear label and focus fixes made. Lighthouse a11y 100 / 95 / 96 / 95 on the dev server. Remaining contrast is brand sky on white |
 | UX-04 | Make "Create account" a link, not a button | P2 | Dev | Not started |
 | UX-05 | Replace the rainbow colours on About "Core values" with brand colours | P2 | Dev | Not started |
 | UX-06 | Use the existing type scale (`.type-h1` etc.) instead of hard-coded sizes; reserve Space Mono for real technical data; drop uppercase mono labels | P2 | Dev | Not started |
@@ -213,7 +214,6 @@ Every product and service page should follow the Web Hosting pattern when it is 
 | UX-08 | Reduce remaining continuous animations (Build/Run/Grow spins and pings, CSS loops, closing CTA glow/orbit) | P2 | Dev | Partial — shared section entrances removed |
 | UX-09 | Three standard section gaps and three corner radii | P2 | Dev | Not started |
 | UX-10 | Add a visually hidden H1 on `/cart` | P2 | Dev | Not started |
-| UX-11 | Manual keyboard and screen-reader pass; Lighthouse and real-user Core Web Vitals | P1 | Dev | Not started |
 | UX-12 | Hub artwork for `/hosting` and a newer illustration for `/hosting/domains` | P2 | Dev | Not started |
 | UX-13 | Self-host or replace Unsplash images on About | P2 | Dev | Not started |
 
@@ -283,7 +283,7 @@ Nothing below is deployed. "Done" means the code is committed and passed type ch
 
 ### Not started
 
-Hybrid email calculator (FEA-01) · server-side transfer pricing (PAY-01) · backend security P0/P1 fixes (SEC-B1…B8) · abuse and malware scanning · penetration test · status page · renewal prices for all domains · catalogue clean-up · skip link and contrast fixes · bundle splitting · Lighthouse and screen-reader pass.
+Hybrid email calculator (FEA-01) · server-side transfer pricing (PAY-01) · backend security P0/P1 fixes (SEC-B1…B8) · abuse and malware scanning · penetration test · status page · renewal prices for all domains · catalogue clean-up · remaining content-standard pages (CNT-01) · bundle splitting.
 
 ---
 
@@ -293,6 +293,9 @@ Move rows here when done, with the date and commit.
 
 | Date | ID | What | Commit |
 | --- | --- | --- | --- |
+| 11 Nov 2026 | CNT-01 | Content standard confirmed on Web Hosting, WordPress, Business Email, VPS, VDS and Dedicated. Business Email was already done; the earlier “WordPress only” note was stale | Working tree, not committed |
+| 11 Nov 2026 | UX-01, UX-02, UX-03 | Skip link, homepage closing contrast, dark closing-banner text | Working tree, not committed |
+| 11 Nov 2026 | UX-11 | Keyboard and label pass on home, Web Hosting, cart and contact. Lighthouse recorded; scores not chased | Working tree, not committed |
 | 10 Nov 2026 | — | Location-based currency, KES fallback, selector removed | `0a31be52` |
 | 10 Nov 2026 | — | Account currency preference, migration 0074, payment snapshot, Build/Run/Grow pages, claims batch | `bddb7190` |
 

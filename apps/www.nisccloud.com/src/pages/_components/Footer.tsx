@@ -1,11 +1,13 @@
 ﻿import { ArrowUpRight, Mail, MapPin, Phone } from "lucide-react";
 import { Link } from "react-router-dom";
+import { openCookieSettings } from "@/lib/cookie-settings.ts";
 import AccreditationStrip from "./AccreditationStrip.tsx";
 
-type FooterLinkItem = {
-  label: string;
-  href: string;
-};
+const DOCS_URL = import.meta.env.VITE_DOCS_URL || "https://docs.nisccloud.com";
+
+type FooterLinkItem =
+  | { label: string; href: string; external?: boolean }
+  | { label: string; action: "cookie-settings" };
 
 type FooterSection = {
   title: string;
@@ -23,7 +25,8 @@ const footerSections: FooterSection[] = [
       { label: "Business Email", href: "/hosting/email" },
       { label: "Enterprise Hybrid Email · New", href: "/hosting/hybrid-email" },
       { label: "SSL Certificates", href: "/hosting/ssl" },
-      { label: "Website Security", href: "/security" },
+      { label: "WHOIS Checker", href: "/whois" },
+      { label: "Domain Transfer", href: "/domain-transfer" },
     ],
   },
   {
@@ -42,14 +45,37 @@ const footerSections: FooterSection[] = [
   {
     title: "Company",
     links: [
-      { label: "About Us", href: "/about" },
-      { label: "Our Work", href: "/work" },
+      { label: "About", href: "/about" },
+      { label: "Careers", href: "/careers" },
+      { label: "Contact", href: "/contact" },
+    ],
+  },
+  {
+    title: "Explore",
+    links: [
       { label: "Pricing", href: "/pricing" },
       { label: "Blog", href: "/blog" },
-      { label: "Help Centre", href: "/help" },
-      { label: "WHOIS Checker", href: "/whois" },
-      { label: "Domain Transfer", href: "/domain-transfer" },
-      { label: "Contact", href: "/contact" },
+      { label: "Customers", href: "/work" },
+      { label: "Compare", href: "/compare" },
+      { label: "Help centre", href: "/help" },
+      { label: "Status", href: "/status" },
+      { label: "Solutions", href: "/services" },
+    ],
+  },
+  {
+    title: "Developers",
+    links: [
+      { label: "Docs", href: DOCS_URL, external: true },
+    ],
+  },
+  {
+    title: "Legal",
+    links: [
+      { label: "Terms & conditions", href: "/terms" },
+      { label: "Privacy policy", href: "/privacy" },
+      { label: "Cookies", href: "/cookies" },
+      { label: "Cookie settings", action: "cookie-settings" },
+      { label: "Security", href: "/security" },
     ],
   },
 ];
@@ -119,11 +145,39 @@ const contactTiles = [
   { icon: MapPin, label: "Visit", value: "Nairobi, Kenya" },
 ] as const;
 
-const legalLinks = [
-  ["Privacy Policy", "/privacy"],
-  ["Terms of Service", "/terms"],
-  ["Cookie Policy", "/cookies"],
-] as const;
+const linkClass =
+  "group inline-flex cursor-pointer items-center gap-1 rounded-sm text-left text-sm text-slate-400 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange";
+
+function FooterLinkRow({ link }: { link: FooterLinkItem }) {
+  const arrow = (
+    <ArrowUpRight
+      aria-hidden
+      className="size-3.5 -translate-x-1 opacity-0 transition-[transform,opacity,color] group-hover:translate-x-0 group-hover:text-brand-orange group-hover:opacity-100"
+    />
+  );
+  if ("action" in link) {
+    return (
+      <button type="button" className={linkClass} onClick={openCookieSettings}>
+        {link.label}
+        {arrow}
+      </button>
+    );
+  }
+  if (link.external) {
+    return (
+      <a href={link.href} className={linkClass} target="_blank" rel="noopener noreferrer">
+        {link.label}
+        {arrow}
+      </a>
+    );
+  }
+  return (
+    <Link to={link.href} className={linkClass}>
+      {link.label}
+      {arrow}
+    </Link>
+  );
+}
 
 export default function Footer() {
   return (
@@ -152,6 +206,21 @@ export default function Footer() {
               Technology, infrastructure and growth for{" "}
               <span className="text-primary">modern businesses.</span>
             </p>
+            <p className="type-label mb-4 mt-8 text-white">Follow us</p>
+            <div className="flex items-center gap-2.5">
+              {socialLinks.map((social) => (
+                <a
+                  key={social.label}
+                  href={social.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={social.label}
+                  className="inline-flex size-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-300 transition-[color,background-color,border-color,transform] hover:-translate-y-0.5 hover:border-primary/50 hover:bg-primary/15 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange"
+                >
+                  {social.icon}
+                </a>
+              ))}
+            </div>
           </div>
           <ul className="grid gap-3 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,0.9fr)]">
             {contactTiles.map(({ icon: Icon, label, value, ...rest }) => {
@@ -185,44 +254,14 @@ export default function Footer() {
         </div>
 
         {/* Link columns */}
-        <div className="grid grid-cols-2 gap-8 py-10 md:grid-cols-3 lg:grid-cols-[1.2fr_1fr_1fr_1fr]">
-          <div className="col-span-2 md:col-span-3 lg:col-span-1">
-            <h4 className="type-label mb-4 text-white">Follow us</h4>
-            <p className="mb-4 max-w-xs text-sm leading-relaxed text-slate-400">
-              Follow Nisc Cloud for product updates and news.
-            </p>
-            <div className="flex items-center gap-2.5">
-              {socialLinks.map((social) => (
-                <a
-                  key={social.label}
-                  href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={social.label}
-                  className="inline-flex size-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-300 transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:bg-primary/15 hover:text-primary"
-                >
-                  {social.icon}
-                </a>
-              ))}
-            </div>
-          </div>
-
+        <div className="grid grid-cols-2 gap-x-6 gap-y-10 py-10 sm:grid-cols-3 xl:grid-cols-6">
           {footerSections.map((section) => (
             <div key={section.title}>
-              <h4 className="type-label mb-4 text-white">{section.title}</h4>
+              <p className="type-label mb-4 text-white">{section.title}</p>
               <ul className="space-y-2.5">
                 {section.links.map((link) => (
                   <li key={link.label}>
-                    <Link
-                      to={link.href}
-                      className="group inline-flex cursor-pointer items-center gap-1 text-left text-sm text-slate-400 transition-colors hover:text-white"
-                    >
-                      {link.label}
-                      <ArrowUpRight
-                        aria-hidden
-                        className="size-3.5 -translate-x-1 opacity-0 transition-all group-hover:translate-x-0 group-hover:text-brand-orange group-hover:opacity-100"
-                      />
-                    </Link>
+                    <FooterLinkRow link={link} />
                   </li>
                 ))}
               </ul>
@@ -237,19 +276,6 @@ export default function Footer() {
         <div className="mx-auto flex max-w-7xl flex-col gap-1.5 px-4 py-4 text-sm text-slate-400 md:px-8">
           <div className="flex flex-col items-center justify-between gap-2 md:flex-row">
             <span>© {new Date().getFullYear()} Nisc Cloud Limited. All rights reserved.</span>
-            <div className="flex flex-wrap items-center gap-3 text-xs font-semibold">
-              {legalLinks.map(([label, href], i) => (
-                <span key={href} className="flex items-center gap-3">
-                  {i > 0 ? <span aria-hidden className="text-brand-orange">·</span> : null}
-                  <Link
-                    to={href}
-                    className="cursor-pointer rounded-sm text-slate-300 transition-colors hover:text-brand-orange focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange"
-                  >
-                    {label}
-                  </Link>
-                </span>
-              ))}
-            </div>
           </div>
           <p className="text-center text-xs text-slate-500 md:text-left">
             Registered Data Controller · ODPC Reg. No. 160-3417-5D07 · Kenya Data Protection Act, 2019
