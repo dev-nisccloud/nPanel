@@ -2,7 +2,7 @@ import type { ComponentType, ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
 
-export type HonestItem = { icon: LucideIcon; title: string; text: string; Art?: ComponentType };
+export type HonestItem = { icon?: LucideIcon; title: string; text: string; Art?: ComponentType };
 
 /**
  * "Where we might not suit you": honest cards that set expectations before someone commits.
@@ -39,7 +39,7 @@ export function HonestCards({
               ) : null}
               <div className="p-7 pt-6">
                 <h3 className="flex items-center gap-2.5 text-xl font-semibold">
-                  <item.icon className="size-5 text-[#38b6ff]" aria-hidden />
+                  {item.icon ? <item.icon className="size-5 text-[#38b6ff]" aria-hidden /> : null}
                   {item.title}
                 </h3>
                 <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{item.text}</p>

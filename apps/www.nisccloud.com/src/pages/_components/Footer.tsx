@@ -16,17 +16,27 @@ type FooterSection = {
 
 const footerSections: FooterSection[] = [
   {
-    title: "Cloud",
+    title: "Hosting",
     links: [
-      { label: "Domain Registration", href: "/hosting/domains" },
       { label: "Web Hosting", href: "/hosting/web-hosting" },
       { label: "WordPress Hosting", href: "/hosting/wordpress" },
+      { label: "Agency Hosting", href: "/hosting/agency" },
       { label: "VPS Servers", href: "/hosting/vps" },
+      { label: "Dedicated Servers", href: "/hosting/dedicated-servers" },
+      { label: "SSL Certificates", href: "/hosting/ssl" },
+      { label: "Migrate to Nisc Cloud", href: "/hosting/transfer" },
+    ],
+  },
+  {
+    title: "Domains & Email",
+    links: [
+      { label: "Domain Registration", href: "/hosting/domains" },
+      { label: "Domain Transfer", href: "/domain-transfer" },
+      { label: "WHOIS Checker", href: "/whois" },
       { label: "Business Email", href: "/hosting/email" },
       { label: "Enterprise Hybrid Email · New", href: "/hosting/hybrid-email" },
-      { label: "SSL Certificates", href: "/hosting/ssl" },
-      { label: "WHOIS Checker", href: "/whois" },
-      { label: "Domain Transfer", href: "/domain-transfer" },
+      { label: "Microsoft 365", href: "/hosting/microsoft-365" },
+      { label: "Google Workspace", href: "/hosting/google-workspace" },
     ],
   },
   {
@@ -46,34 +56,33 @@ const footerSections: FooterSection[] = [
     title: "Company",
     links: [
       { label: "About", href: "/about" },
+      { label: "Customers", href: "/work" },
+      { label: "nPanel platform", href: "/platform" },
       { label: "Careers", href: "/careers" },
+      { label: "Blog", href: "/blog" },
       { label: "Contact", href: "/contact" },
     ],
   },
   {
-    title: "Explore",
+    title: "Resources",
     links: [
       { label: "Pricing", href: "/pricing" },
-      { label: "Blog", href: "/blog" },
-      { label: "Customers", href: "/work" },
+      { label: "All services", href: "/services" },
       { label: "Compare", href: "/compare" },
       { label: "Help centre", href: "/help" },
-      { label: "Status", href: "/status" },
-      { label: "Solutions", href: "/services" },
-    ],
-  },
-  {
-    title: "Developers",
-    links: [
       { label: "Docs", href: DOCS_URL, external: true },
+      { label: "Status", href: "/status" },
     ],
   },
   {
     title: "Legal",
     links: [
-      { label: "Terms & conditions", href: "/terms" },
-      { label: "Privacy policy", href: "/privacy" },
-      { label: "Cookies", href: "/cookies" },
+      { label: "Terms of Service", href: "/terms" },
+      { label: "Service Level Agreement", href: "/sla" },
+      { label: "Acceptable Use Policy", href: "/acceptable-use" },
+      { label: "Data Processing Addendum", href: "/dpa" },
+      { label: "Privacy Policy", href: "/privacy" },
+      { label: "Cookie Policy", href: "/cookies" },
       { label: "Cookie settings", action: "cookie-settings" },
       { label: "Security", href: "/security" },
     ],
@@ -142,7 +151,7 @@ const socialLinks = [
 const contactTiles = [
   { icon: Mail, label: "Email sales", value: "sales@nisccloud.com", href: "mailto:sales@nisccloud.com" },
   { icon: Phone, label: "Call us", value: "+254 748 777 666", href: "tel:+254748777666" },
-  { icon: MapPin, label: "Visit", value: "Nairobi, Kenya" },
+  { icon: MapPin, label: "Visit", value: "Ngong Road, Nairobi" },
 ] as const;
 
 const linkClass =
@@ -273,13 +282,16 @@ export default function Footer() {
       </div>
 
       <div className="relative border-t border-white/10 bg-black/40 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl flex-col gap-1.5 px-4 py-4 text-sm text-slate-400 md:px-8">
-          <div className="flex flex-col items-center justify-between gap-2 md:flex-row">
-            <span>© {new Date().getFullYear()} Nisc Cloud Limited. All rights reserved.</span>
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-5 text-sm text-slate-400 md:px-8">
+          <div className="space-y-1.5 text-center lg:text-left">
+            <p>© {new Date().getFullYear()} Nisc Cloud Limited. All rights reserved.</p>
+            <address className="text-xs not-italic leading-relaxed text-slate-500">
+              NISC CLOUD LIMITED · Company Reg. No. PVT-ZQUX33PK · Applewood, Office 805, Ngong Road, Nairobi, Kenya
+            </address>
+            <p className="text-xs text-slate-500">
+              Registered Data Controller · ODPC Reg. No. 160-3417-5D07 · Kenya Data Protection Act, 2019
+            </p>
           </div>
-          <p className="text-center text-xs text-slate-500 md:text-left">
-            Registered Data Controller · ODPC Reg. No. 160-3417-5D07 · Kenya Data Protection Act, 2019
-          </p>
         </div>
       </div>
     </footer>

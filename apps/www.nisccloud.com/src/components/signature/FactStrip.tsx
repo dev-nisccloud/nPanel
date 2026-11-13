@@ -34,12 +34,12 @@ export function FactStrip({
           className={cn(
             "mt-12 grid gap-px overflow-hidden rounded-[28px] border",
             dark ? "border-white/10 bg-white/10" : "border-border bg-border",
-            facts.length === 4 ? "sm:grid-cols-2 lg:grid-cols-4" : "md:grid-cols-3",
+            facts.length === 4 ? "grid-cols-2 lg:grid-cols-4" : "md:grid-cols-3",
           )}
         >
           {facts.map((fact) => (
-            <li key={fact.value} className={cn("flex flex-col px-6 py-9 text-center md:px-8", dark ? "bg-[#07131b]" : "bg-card")}>
-              <p className="text-4xl font-semibold tracking-tight text-[#38b6ff] md:text-5xl">{fact.value}</p>
+            <li key={fact.value} className={cn("flex flex-col px-4 py-7 text-center sm:px-6 sm:py-9 md:px-8", dark ? "bg-[#07131b]" : "bg-card")}>
+              <p className="text-3xl font-semibold tracking-tight text-[#38b6ff] sm:text-4xl md:text-5xl">{fact.value}</p>
               <p className={cn("mx-auto mt-3 max-w-xs text-sm leading-relaxed", dark ? "text-white/70" : "text-muted-foreground")}>{fact.label}</p>
               {fact.Art ? (
                 <div className="mt-auto">

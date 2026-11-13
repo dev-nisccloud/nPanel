@@ -78,6 +78,8 @@ export type Addon = {
 
 export type ServicePageShellProps = {
   badge: string;
+  /** Overrides the document title and breadcrumb label. The on-page badge stays short. */
+  seoTitle?: string;
   headline: React.ReactNode;
   subtext: string;
   serviceType: "hosting" | "marketing";
@@ -127,6 +129,8 @@ export type ServicePageShellProps = {
   whySectionBadge?: string;
   /** Strategy-led buyer guidance, used by consultation services. */
   strategySections?: StrategySection[];
+  /** Replaces the standard closing banner, for pages with their own closing card. */
+  closing?: React.ReactNode;
 };
 
 // ─── Features Grid ────────────────────────────────────────────────────────────
@@ -617,9 +621,11 @@ export default function ServicePageShell({
   closingCard,
   whySectionBadge: _whySectionBadge,
   strategySections,
+  closing,
+  seoTitle,
 }: ServicePageShellProps) {
   const { pathname } = useLocation();
-  const pageName = badge.replace(" · New", "");
+  const pageName = (seoTitle ?? badge).replace(" · New", "");
   const parent = useMemo<[string, string]>(
     () =>
       _serviceType === "hosting"
@@ -831,6 +837,7 @@ export default function ServicePageShell({
           />
         ) : null}
 
+        {closing ?? (
         <ClosingCta
           headline={ctaHeadline}
           subtext={ctaSubtext}
@@ -864,6 +871,7 @@ export default function ServicePageShell({
                   }
           }
         />
+        )}
       </main>
       <Footer />
     </div>

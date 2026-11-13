@@ -88,6 +88,9 @@ import FloatingActionButton from "./components/FloatingActionButton.tsx";
 const TermsOfServicePage = lazy(() => import("./pages/legal/terms/page.tsx"));
 const PrivacyPolicyPage = lazy(() => import("./pages/legal/privacy/page.tsx"));
 const CookiePolicyPage = lazy(() => import("./pages/legal/cookies/page.tsx"));
+const ServiceLevelAgreementPage = lazy(() => import("./pages/legal/sla/page.tsx"));
+const AcceptableUsePolicyPage = lazy(() => import("./pages/legal/acceptable-use/page.tsx"));
+const DataProcessingAddendumPage = lazy(() => import("./pages/legal/dpa/page.tsx"));
 
 // Development-only artwork contact sheet (export source for design/illustration-library).
 const ArtworkLibraryPage = import.meta.env.DEV
@@ -222,6 +225,9 @@ export function AppRoutes() {
           <Route path="/terms" element={<TermsOfServicePage />} />
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
           <Route path="/cookies" element={<CookiePolicyPage />} />
+          <Route path="/sla" element={<ServiceLevelAgreementPage />} />
+          <Route path="/acceptable-use" element={<AcceptableUsePolicyPage />} />
+          <Route path="/dpa" element={<DataProcessingAddendumPage />} />
 
           {ArtworkLibraryPage && (
             <Route path="/__artwork-library" element={<ArtworkLibraryPage />} />

@@ -240,6 +240,18 @@
       "destination": "/cookies/index.html"
     },
     {
+      "source": "/sla",
+      "destination": "/sla/index.html"
+    },
+    {
+      "source": "/acceptable-use",
+      "destination": "/acceptable-use/index.html"
+    },
+    {
+      "source": "/dpa",
+      "destination": "/dpa/index.html"
+    },
+    {
       "source": "/blog/why-every-kenyan-sme-needs-a-digital-identity",
       "destination": "/blog/why-every-kenyan-sme-needs-a-digital-identity/index.html"
     },

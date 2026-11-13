@@ -52,6 +52,9 @@ export const STATIC_PUBLIC_ROUTES = [
   "/terms",
   "/privacy",
   "/cookies",
+  "/sla",
+  "/acceptable-use",
+  "/dpa",
 ] as const;
 
 /** Retired URLs and their replacements, served as permanent (301/308) redirects by every host. */
