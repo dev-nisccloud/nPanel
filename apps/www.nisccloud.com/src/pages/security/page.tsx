@@ -59,8 +59,8 @@ const securityFeatures: SecurityFeatureItem[] = [
     icon: ScanLine,
     title: "Scheduled malware scanning",
     desc: "Scan cadence, alerting, and any included cleanup scope are confirmed for your selected plan and website configuration.",
-    color: "text-blue-500",
-    bg: "bg-blue-500/10",
+    color: "text-[#38b6ff]",
+    bg: "bg-[#38b6ff]/10",
   },
   {
     icon: Activity,
@@ -80,8 +80,8 @@ const securityFeatures: SecurityFeatureItem[] = [
     icon: Database,
     title: "Plan-defined backups",
     desc: "Where backups are included, capacity, schedule, retention, storage location, and restore options are confirmed before activation.",
-    color: "text-cyan-500",
-    bg: "bg-cyan-500/10",
+    color: "text-[#38b6ff]",
+    bg: "bg-[#38b6ff]/10",
   },
 ];
 

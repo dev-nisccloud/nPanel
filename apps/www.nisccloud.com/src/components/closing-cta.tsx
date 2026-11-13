@@ -81,11 +81,11 @@ function CtaAnchor({ link, className, children }: { link: CtaLink; className: st
 function HowItWorks({ steps }: { steps: string[] }) {
   return (
     <div className="rounded-3xl bg-white p-6 text-[#02070a] shadow-[0_30px_60px_-35px_rgb(2_7_10_/_0.55)] sm:p-7 dark:bg-slate-950 dark:text-white dark:ring-1 dark:ring-white/10">
-      <p className="type-label text-sky-700 dark:text-primary">How it works</p>
+      <p className="type-label text-primary dark:text-primary">How it works</p>
       <ol className="mt-5 space-y-4">
         {steps.map((step, i) => (
           <li key={step} className="flex items-center gap-4">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-primary/30 bg-primary/[0.06] text-base font-bold text-sky-700 dark:text-primary">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-primary/30 bg-primary/[0.06] text-base font-bold text-primary dark:text-primary">
               {i + 1}
             </span>
             <span className="text-base font-semibold leading-snug md:text-lg">{step}</span>
@@ -162,7 +162,7 @@ export function ClosingCta({
 
   const copy = (
     <div className={cn(layout === "centered" && "mx-auto max-w-3xl text-center")}>
-      <p className={cn("type-label flex items-center gap-2", layout === "centered" && "justify-center", dark ? "text-white/80" : "text-[#02070a]/75")}>
+        <p className={cn("type-label flex items-center gap-2", layout === "centered" && "justify-center", dark ? "text-white/90" : "text-[#02070a]/75")}>
         <span className={cn("size-2 rounded-full", theme.dot)} aria-hidden />
         {eyebrow ?? preset?.eyebrow ?? "Ready when you are"}
       </p>
@@ -172,7 +172,7 @@ export function ClosingCta({
       >
         {headline}
       </h2>
-      <p className={cn("mt-4 max-w-[60ch] text-base leading-relaxed md:text-lg", layout === "centered" && "mx-auto", dark ? "text-white/80" : "text-[#02070a]/80")}>
+      <p className={cn("mt-4 max-w-[60ch] text-base leading-relaxed md:text-lg", layout === "centered" && "mx-auto", dark ? "text-white/90" : "text-[#02070a]/80")}>
         {subtext}
       </p>
 
@@ -213,7 +213,7 @@ export function ClosingCta({
           ))}
         </ul>
       ) : null}
-      {note ? <p className={cn("mt-4 text-sm leading-relaxed", dark ? "text-white/70" : "text-[#02070a]/75")}>{note}</p> : null}
+      {note ? <p className={cn("mt-4 text-sm leading-relaxed", dark ? "text-white/90" : "text-[#02070a]/75")}>{note}</p> : null}
     </div>
   );
 

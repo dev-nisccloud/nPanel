@@ -21,6 +21,7 @@ export type AgencyPermissionModuleId =
 	| "gen_ai"
 	| "clients"
 	| "crm"
+	| "hr"
 	| "billing"
 	| "payments"
 	| "etims"
@@ -57,6 +58,7 @@ const MODULE_LABELS: Record<AgencyPermissionModuleId, string> = {
 	gen_ai: "Gen AI",
 	clients: "Clients",
 	crm: "CRM",
+	hr: "Human resource",
 	billing: "Billing",
 	payments: "Payment gateway",
 	etims: "KRA eTIMS",
@@ -212,6 +214,9 @@ export const AGENCY_PERMISSION_CATALOG: readonly AgencyPermissionEntry[] = [
 	entry("products", "orders", "Service orders", "View or manage service orders"),
 
 	entry("operations", "cronjobs", "Workflow jobs", "View or manage scheduled jobs"),
+
+	entry("hr", "openings", "Open roles", "View or publish career roles"),
+	entry("hr", "applications", "Applications", "View job applications and download CVs"),
 
 	entry("agency_admin", "users", "Users", "View or manage agency users"),
 	entry("agency_admin", "roles", "Roles", "View or manage agency roles and permissions"),

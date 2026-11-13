@@ -134,6 +134,7 @@ import { whoisRouter } from "./whois";
 import { niscPaymentGatewayRouter } from "./nisc-payment-gateway";
 import { customerOAuthRouter } from "./customer-oauth";
 import { crmRouter } from "./crm";
+import { careersRouter } from "./careers";
 
 
 export const appRouter = router({
@@ -338,6 +339,7 @@ export const appRouter = router({
 	zeepoAiSupport: zeepoAiSupportRouter,
 	// Public landing-page storefront checkout (isolated from dashboard routers)
 	storefront: storefrontRouter,
+	careers: careersRouter,
 	// MinIO / S3-compatible object storage (presigned uploads)
 	objectStorage: objectStorageRouter,
 	// WHOIS / RDAP domain lookup (public  no auth required)

@@ -138,7 +138,7 @@ function StepIndicator({ current }: { current: 1 | 2 }) {
 
 function EmptyCart() {
   return (
-    <div className="flex flex-col items-center justify-center pt-24 md:pt-28 pb-24 text-center px-4">
+    <main id="main-content" className="flex flex-col items-center justify-center pt-24 md:pt-28 pb-24 text-center px-4">
       <ShoppingCart className="w-12 h-12 text-muted-foreground/40 mb-4" />
       <h1 className="type-h1 text-foreground mb-2">Your cart is empty</h1>
       <p className="text-muted-foreground mb-6 max-w-xs">
@@ -146,12 +146,12 @@ function EmptyCart() {
       </p>
       <Link
         to="/"
-        className="inline-flex items-center gap-2 text-primary hover:text-primary/80 font-medium text-sm"
+        className="inline-flex items-center gap-2 rounded-md text-sm font-medium text-[#38b6ff] hover:text-[#38b6ff]/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38b6ff] focus-visible:ring-offset-2 dark:text-[#38b6ff]"
       >
         <ArrowLeft className="w-4 h-4" />
         Back to home
       </Link>
-    </div>
+    </main>
   );
 }
 
@@ -932,7 +932,7 @@ export default function CartPage() {
     return (
       <div className="min-h-screen bg-background text-foreground">
         <Navbar />
-        <main className="max-w-6xl mx-auto px-4 md:px-6 xl:px-8 pt-24 md:pt-28 pb-8">
+        <main id="main-content" className="max-w-6xl mx-auto px-4 md:px-6 xl:px-8 pt-24 md:pt-28 pb-8">
           <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
             <p>{quoteError}</p>
             <button
@@ -963,6 +963,7 @@ export default function CartPage() {
 
       {canMountContent && (
         <main
+          id="main-content"
           className={
             showSkeleton
               ? "max-w-6xl mx-auto px-4 md:px-6 xl:px-8 pt-24 md:pt-28 pb-8 invisible absolute inset-x-0 top-0 opacity-0 pointer-events-none h-0 overflow-hidden"

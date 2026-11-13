@@ -112,6 +112,18 @@
       "destination": "/about/index.html"
     },
     {
+      "source": "/careers",
+      "destination": "/careers/index.html"
+    },
+    {
+      "source": "/compare",
+      "destination": "/compare/index.html"
+    },
+    {
+      "source": "/status",
+      "destination": "/status/index.html"
+    },
+    {
       "source": "/platform",
       "destination": "/platform/index.html"
     },
@@ -228,6 +240,18 @@
       "destination": "/cookies/index.html"
     },
     {
+      "source": "/sla",
+      "destination": "/sla/index.html"
+    },
+    {
+      "source": "/acceptable-use",
+      "destination": "/acceptable-use/index.html"
+    },
+    {
+      "source": "/dpa",
+      "destination": "/dpa/index.html"
+    },
+    {
       "source": "/blog/why-every-kenyan-sme-needs-a-digital-identity",
       "destination": "/blog/why-every-kenyan-sme-needs-a-digital-identity/index.html"
     },
@@ -269,6 +293,10 @@
     },
     {
       "source": "/blog/shared-vs-vps-hosting-kenya",
+      "destination": "/spa.html"
+    },
+    {
+      "source": "/careers/:slug",
       "destination": "/spa.html"
     }
   ]

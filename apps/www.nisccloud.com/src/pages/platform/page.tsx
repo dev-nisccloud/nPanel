@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import {
   ArrowRight,
   ArrowUpRight,
+  Building2,
   Check,
   Cloud,
   Code2,
@@ -10,12 +11,14 @@ import {
   Megaphone,
   PanelsTopLeft,
   ShieldCheck,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { NpanelAgencyArt, NpanelBusinessArt, NpanelDeveloperArt } from "@/components/artwork/npanel-art.tsx";
 import { ZeepoArt } from "@/components/artwork/growth-art.tsx";
 import { PlatformStories } from "@/components/artwork/npanel-stories/platform-stories.tsx";
 import { ClosingCta } from "@/components/closing-cta.tsx";
+import { Highlight } from "@/components/signature/index.ts";
 import Navbar from "@/pages/_components/Navbar.tsx";
 import Footer from "@/pages/_components/Footer.tsx";
 
@@ -41,6 +44,7 @@ const PERSONAS = [
     body: "See every service, invoice and renewal for your business without chasing emails.",
     href: "/hosting",
     cta: "Hosting for businesses",
+    icon: Building2,
     Art: () => <NpanelBusinessArt compact />,
   },
   {
@@ -48,6 +52,7 @@ const PERSONAS = [
     body: "Keep each client in its own organisation while you manage them from one agency account.",
     href: "/hosting/agency",
     cta: "Agency hosting",
+    icon: Users,
     Art: NpanelAgencyArt,
   },
   {
@@ -55,6 +60,7 @@ const PERSONAS = [
     body: "Servers, domains and DNS alongside the billing and support for each project.",
     href: "/hosting/vps",
     cta: "Servers for developers",
+    icon: Code2,
     Art: () => <NpanelDeveloperArt compact />,
   },
 ];
@@ -128,7 +134,7 @@ export default function PlatformPage() {
           />
           <div className="relative mx-auto grid max-w-7xl gap-12 px-4 pb-20 pt-32 sm:px-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,.65fr)] lg:items-end lg:px-8 lg:pb-28 lg:pt-44">
             <div>
-              <p className="text-sm font-semibold text-primary">The Nisc Cloud platform</p>
+              <p className="text-sm font-semibold text-[#38b6ff] dark:text-[#38b6ff]">The Nisc Cloud platform</p>
               <h1 className="type-h1 mt-4 max-w-4xl">
                 One account for the digital business you are building.
               </h1>
@@ -161,7 +167,7 @@ export default function PlatformPage() {
             </div>
 
             <aside className="border-l border-border pl-6 sm:pl-8" aria-label="How the platform connects">
-              <p className="text-sm font-semibold text-primary">One connected journey</p>
+              <p className="text-sm font-semibold text-[#38b6ff] dark:text-[#38b6ff]">One connected journey</p>
               <ol className="mt-5 space-y-5">
                 {[
                   ["Choose", "Find the Nisc Cloud service that fits your next step."],
@@ -185,7 +191,7 @@ export default function PlatformPage() {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="grid gap-10 lg:grid-cols-[minmax(280px,.68fr)_minmax(0,1.4fr)] lg:items-end">
               <div>
-                <p className="text-sm font-semibold text-primary">nPanel</p>
+                <p className="text-sm font-semibold text-[#38b6ff] dark:text-[#38b6ff]">nPanel</p>
                 <h2 className="type-h2 mt-2">
                   The working view of your Nisc Cloud account.
                 </h2>
@@ -223,32 +229,37 @@ export default function PlatformPage() {
           </div>
         </section>
 
-        <section className="border-y border-border bg-muted/25 py-20 lg:py-28" aria-labelledby="audiences-heading">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="max-w-3xl">
-              <p className="text-sm font-semibold text-primary">Choose your path</p>
-              <h2 id="audiences-heading" className="type-h2 mt-2">
-                Built around the way you operate.
-              </h2>
-              <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-                Start with the route closest to your work. Each path leads to relevant products while nPanel
-                keeps supported services and account activity together.
-              </p>
-            </div>
-            <div className="mt-12 grid gap-6 lg:grid-cols-3">
-              {PERSONAS.map(({ title, body, href, cta, Art }) => (
-                <article key={title} className="relative grid min-w-0 grid-rows-[auto_auto_1fr_auto] overflow-hidden rounded-2xl border border-border bg-card focus-within:ring-2 focus-within:ring-primary lg:row-span-4 lg:grid-rows-subgrid">
-                  <div className="pointer-events-none h-[430px] min-w-0 overflow-hidden border-b border-border/60 [&>*]:h-full" aria-hidden>
+        <section className="border-y border-border bg-background px-4 py-20 md:px-8 md:py-28" aria-labelledby="audiences-heading">
+          <div className="mx-auto max-w-6xl">
+            <p className="type-label text-[#38b6ff]">Choose your path</p>
+            <h2 id="audiences-heading" className="type-h2 mt-3 max-w-2xl">
+              Built around the <Highlight>way you operate</Highlight>
+            </h2>
+            <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">
+              Start with the route closest to your work. Each path leads to relevant products while nPanel keeps supported services and account activity together.
+            </p>
+            <ul className="mt-12 grid gap-5 md:grid-cols-3">
+              {PERSONAS.map(({ title, body, href, cta, icon: Icon, Art }) => (
+                <li key={title} className="relative overflow-hidden rounded-[24px] border border-border bg-card focus-within:ring-2 focus-within:ring-[#38b6ff]">
+                  <div className="border-b border-border bg-[#38b6ff]/5 p-3" aria-hidden>
                     <Art />
                   </div>
-                  <h3 className="type-h3 min-w-0 px-6 pt-6">{title}</h3>
-                  <p className="min-w-0 px-6 pt-2 text-sm leading-relaxed text-muted-foreground">{body}</p>
-                  <Link to={href} className="mx-6 mb-6 mt-5 inline-flex min-w-0 items-center gap-1.5 self-start text-sm font-semibold text-primary after:absolute after:inset-0 focus-visible:outline-none">
-                    {cta} <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </article>
+                  <div className="p-7">
+                    <h3 className="flex items-center gap-2.5 text-xl font-semibold">
+                      <Icon className="size-5 text-[#38b6ff]" aria-hidden />
+                      {title}
+                    </h3>
+                    <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{body}</p>
+                    <Link
+                      to={href}
+                      className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-[#38b6ff] after:absolute after:inset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38b6ff] focus-visible:ring-offset-2"
+                    >
+                      {cta} <ArrowRight className="size-4" aria-hidden />
+                    </Link>
+                  </div>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         </section>
 
@@ -256,7 +267,7 @@ export default function PlatformPage() {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="grid gap-8 border-b border-border pb-10 lg:grid-cols-[1fr_.7fr] lg:items-end">
               <div>
-                <p className="text-sm font-semibold text-primary">Connected services</p>
+                <p className="text-sm font-semibold text-[#38b6ff] dark:text-[#38b6ff]">Connected services</p>
                 <h2 id="products-heading" className="type-h2 mt-2 max-w-3xl">
                   Build, run and grow without stitching together the journey yourself.
                 </h2>

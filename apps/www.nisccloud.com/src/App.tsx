@@ -13,6 +13,10 @@ const ServicesPage = lazy(() => import("./pages/services/page.tsx"));
 const ContactPage = lazy(() => import("./pages/contact/page.tsx"));
 const PricingPage = lazy(() => import("./pages/pricing/page.tsx"));
 const AboutPage = lazy(() => import("./pages/about/page.tsx"));
+const CareersPage = lazy(() => import("./pages/careers/page.tsx"));
+const CareerJobPage = lazy(() => import("./pages/careers/job-page.tsx"));
+const ComparePage = lazy(() => import("./pages/compare/page.tsx"));
+const StatusPage = lazy(() => import("./pages/status/page.tsx"));
 const PlatformPage = lazy(() => import("./pages/platform/page.tsx"));
 const WorkPage = lazy(() => import("./pages/work/page.tsx"));
 const BlogPage = lazy(() => import("./pages/blog/page.tsx"));
@@ -84,10 +88,16 @@ import FloatingActionButton from "./components/FloatingActionButton.tsx";
 const TermsOfServicePage = lazy(() => import("./pages/legal/terms/page.tsx"));
 const PrivacyPolicyPage = lazy(() => import("./pages/legal/privacy/page.tsx"));
 const CookiePolicyPage = lazy(() => import("./pages/legal/cookies/page.tsx"));
+const ServiceLevelAgreementPage = lazy(() => import("./pages/legal/sla/page.tsx"));
+const AcceptableUsePolicyPage = lazy(() => import("./pages/legal/acceptable-use/page.tsx"));
+const DataProcessingAddendumPage = lazy(() => import("./pages/legal/dpa/page.tsx"));
 
 // Development-only artwork contact sheet (export source for design/illustration-library).
 const ArtworkLibraryPage = import.meta.env.DEV
   ? lazy(() => import("./pages/dev/ArtworkLibraryPage.tsx"))
+  : null;
+const SectionPreviewPage = import.meta.env.DEV
+  ? lazy(() => import("./pages/dev/SectionPreviewPage.tsx"))
   : null;
 
 /**
@@ -135,6 +145,10 @@ export function AppRoutes() {
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/careers" element={<CareersPage />} />
+          <Route path="/careers/:slug" element={<CareerJobPage />} />
+          <Route path="/compare" element={<ComparePage />} />
+          <Route path="/status" element={<StatusPage />} />
           <Route path="/platform" element={<PlatformPage />} />
           <Route path="/work" element={<WorkPage />} />
           {/* Hosting routes */}
@@ -211,9 +225,15 @@ export function AppRoutes() {
           <Route path="/terms" element={<TermsOfServicePage />} />
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
           <Route path="/cookies" element={<CookiePolicyPage />} />
+          <Route path="/sla" element={<ServiceLevelAgreementPage />} />
+          <Route path="/acceptable-use" element={<AcceptableUsePolicyPage />} />
+          <Route path="/dpa" element={<DataProcessingAddendumPage />} />
 
           {ArtworkLibraryPage && (
             <Route path="/__artwork-library" element={<ArtworkLibraryPage />} />
+          )}
+          {SectionPreviewPage && (
+            <Route path="/__section-preview" element={<SectionPreviewPage />} />
           )}
 
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

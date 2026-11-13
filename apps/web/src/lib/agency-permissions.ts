@@ -102,6 +102,8 @@ const PREFIX_RULES: Array<{ prefix: string; rule: AgencyRoutePermission }> = [
   { prefix: "/agency/crm/contacts", rule: { type: "key", key: "crm.contacts" } },
   { prefix: "/agency/crm/deals", rule: { type: "key", key: "crm.deals" } },
   { prefix: "/agency/crm", rule: { type: "module", module: "crm" } },
+  { prefix: "/agency/hr/applications", rule: { type: "key", key: "hr.applications" } },
+  { prefix: "/agency/hr", rule: { type: "module", module: "hr" } },
   { prefix: "/agency/manage-users", rule: { type: "key", key: "agency_admin.users" } },
   { prefix: "/agency/api-keys", rule: { type: "key", key: "agency_admin.api_keys" } },
   { prefix: "/agency/cronjobs", rule: { type: "key", key: "operations.cronjobs" } },

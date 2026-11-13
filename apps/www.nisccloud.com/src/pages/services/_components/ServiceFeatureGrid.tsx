@@ -11,7 +11,7 @@ export type ServiceFeature = {
 };
 
 const CARD =
-  "group relative flex h-full flex-col rounded-xl border border-border/60 bg-card p-5 transition-all";
+  "group relative flex h-full flex-col rounded-xl border border-border/60 bg-card p-5 transition-[border-color,box-shadow,transform]";
 
 function CardBody({ f }: { f: ServiceFeature }) {
   return (

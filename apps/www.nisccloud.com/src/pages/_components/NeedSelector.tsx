@@ -305,11 +305,11 @@ export default function NeedSelector() {
           transition={{ duration: 0.5 }}
           className="mb-5 text-center md:mb-6"
         >
-          <p className="type-label mb-2 text-sky-700 dark:text-primary">Start with your goal</p>
+          <p className="type-label mb-2 text-[#38b6ff] dark:text-[#38b6ff]">Start with your goal</p>
           <h2 className="type-h2 mx-auto max-w-2xl text-foreground">
             What do you need{" "}
             <PointerHighlight {...pointerHighlightProps} containerClassName="inline-block align-baseline">
-              <span className="text-primary">today?</span>
+              <span className="text-[#38b6ff] dark:text-[#38b6ff]">today?</span>
             </PointerHighlight>
           </h2>
         </motion.div>
@@ -401,7 +401,7 @@ export default function NeedSelector() {
               className="order-1 flex flex-col gap-5"
             >
               <div>
-                <p className="type-label mb-2 text-sky-700 dark:text-primary">{tab.stepLabel}</p>
+                <p className="type-label mb-2 text-[#38b6ff] dark:text-[#38b6ff]">{tab.stepLabel}</p>
                 <h3 className="type-h2 text-balance text-foreground">
                   {tab.headline} {tab.highlight}
                 </h3>

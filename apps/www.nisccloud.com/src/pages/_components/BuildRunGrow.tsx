@@ -24,7 +24,7 @@ const pillars: {
     title: "Keep your digital business running.",
     items: "Domains · Hosting · Email · VPS & servers",
     cta: { label: "Explore Cloud Products", href: "/hosting" },
-    tagClass: "text-sky-700 dark:text-primary",
+    tagClass: "text-primary dark:text-primary",
   },
   {
     pillar: "grow",
@@ -50,7 +50,7 @@ export default function BuildRunGrow() {
     <section id="build-run-grow" aria-labelledby="brg-heading" className="py-12 md:py-16">
       <div className="mx-auto max-w-7xl px-4 md:px-8">
         <div className="mb-8 max-w-2xl">
-          <p className="type-label mb-2 text-sky-700 dark:text-primary">Build. Run. Grow.</p>
+          <p className="type-label mb-2 text-primary dark:text-primary">Build. Run. Grow.</p>
           <h2 id="brg-heading" className="type-h2 text-balance">
             One partner for every stage of your digital business.
           </h2>
@@ -65,7 +65,7 @@ export default function BuildRunGrow() {
               <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">{items}</p>
               <Link
                 to={cta.href}
-                className="mt-5 inline-flex items-center gap-1.5 self-start text-sm font-semibold text-sky-700 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:text-primary"
+                className="mt-5 inline-flex items-center gap-1.5 self-start text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:text-primary"
               >
                 {cta.label}
                 <ArrowRight className="size-4" aria-hidden />

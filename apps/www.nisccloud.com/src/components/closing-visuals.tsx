@@ -50,7 +50,7 @@ export function StorefrontReceipt({ product, domain, cta }: { product: string; d
   return (
     <div ref={ref} className={SHELL}>
       <div className="flex items-center justify-between border-b border-dashed border-border pb-3">
-        <p className="type-label text-sky-700 dark:text-primary">Order summary</p>
+        <p className="type-label text-primary dark:text-primary">Order summary</p>
         <span className="size-9" aria-hidden />
       </div>
       <dl className="mt-3 space-y-3">
@@ -84,7 +84,7 @@ export function CampaignTimeline({ steps }: { steps: string[] }) {
   const { ref, step } = useSequence(steps.length);
   return (
     <div ref={ref} className={SHELL}>
-      <p className="type-label text-sky-700 dark:text-primary">How the work runs</p>
+      <p className="type-label text-primary dark:text-primary">How the work runs</p>
       <ol className="mt-5">
         {steps.map((label, i) => {
           const on = i < step;
@@ -95,7 +95,7 @@ export function CampaignTimeline({ steps }: { steps: string[] }) {
                 <span
                   className={cn(
                     "flex size-7 items-center justify-center rounded-full border-2 text-xs font-bold transition-colors duration-500",
-                    on ? "border-primary bg-primary text-[#02070a]" : "border-primary/30 text-sky-700 dark:text-primary",
+                    on ? "border-primary bg-primary text-[#02070a]" : "border-primary/30 text-primary dark:text-primary",
                   )}
                 >
                   {on ? <Check className="size-3.5" strokeWidth={3} aria-hidden /> : i + 1}
@@ -124,7 +124,7 @@ export function ServerRack() {
   return (
     <div ref={ref} className={cn(SHELL, "bg-[#02070a] text-white dark:bg-[#02070a] dark:ring-white/10")}>
       <div className="flex items-center justify-between">
-        <p className="type-label text-sky-300">Platform status</p>
+        <p className="type-label text-[#38b6ff]">Platform status</p>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-semibold text-emerald-300">
           <span className="size-1.5 rounded-full bg-emerald-400" aria-hidden />
           {step >= 6 ? "All services ready" : "Checking…"}
@@ -140,7 +140,7 @@ export function ServerRack() {
                   key={dot}
                   className={cn(
                     "size-1.5 rounded-full transition-colors duration-300",
-                    i < step ? (dot === 0 ? "bg-emerald-400" : "bg-sky-400/60") : "bg-white/15",
+                    i < step ? (dot === 0 ? "bg-emerald-400" : "bg-[#38b6ff]/60") : "bg-white/15",
                   )}
                 />
               ))}
@@ -203,7 +203,7 @@ export function BriefCard({ fields }: { fields: string[] }) {
   const { ref, step } = useSequence(fields.length + 1);
   return (
     <div ref={ref} className={SHELL}>
-      <p className="type-label text-sky-700 dark:text-primary">Project brief</p>
+      <p className="type-label text-primary dark:text-primary">Project brief</p>
       <ul className="mt-4 space-y-2.5">
         {fields.map((field, i) => (
           <li key={field} className="flex items-center gap-2.5">
@@ -236,7 +236,7 @@ export function PathChooser({ primary, secondary }: { primary: string; secondary
   const { ref, step } = useSequence(2, 700);
   return (
     <div ref={ref} className={SHELL}>
-      <p className="type-label text-sky-700 dark:text-primary">Two ways to start</p>
+      <p className="type-label text-primary dark:text-primary">Two ways to start</p>
       <div className="mt-4 space-y-2.5">
         {[primary, secondary].map((label, i) => (
           <div
@@ -287,7 +287,7 @@ export function ShieldScan({ checks }: { checks: string[] }) {
           <ShieldCheck className={cn("relative size-9 transition-colors duration-500", done ? "text-primary" : "text-muted-foreground")} />
         </span>
         <div className="min-w-0">
-          <p className="type-label text-sky-700 dark:text-primary">Security check</p>
+          <p className="type-label text-primary dark:text-primary">Security check</p>
           <p className="mt-1 text-base font-semibold">{done ? "Protected" : "Scanning…"}</p>
           <p className="text-sm text-muted-foreground">SSL, firewall, backups</p>
         </div>
@@ -384,7 +384,7 @@ export function DomainTicker({ names }: { names: string[] }) {
   return (
     <div ref={ref} className={SHELL}>
       <div className="flex items-center gap-2 rounded-xl border border-border px-3 py-2.5">
-        <Globe className="size-4 text-sky-600" aria-hidden />
+        <Globe className="size-4 text-primary" aria-hidden />
         <span className="text-[15px] font-medium text-muted-foreground">Find your name</span>
       </div>
       <ul className="mt-3 space-y-2">
@@ -411,7 +411,7 @@ export function StagingSwitch() {
   const [live, setLive] = useState(false);
   return (
     <div className={SHELL}>
-      <p className="type-label text-indigo-700 dark:text-indigo-300">Staging to live</p>
+      <p className="type-label text-[#38b6ff] dark:text-[#38b6ff]">Staging to live</p>
       <div className="mt-4 grid grid-cols-2 gap-2 text-center">
         {["Staging", "Live site"].map((label, i) => {
           const on = i === (live ? 1 : 0);
@@ -420,7 +420,7 @@ export function StagingSwitch() {
               key={label}
               className={cn(
                 "rounded-xl border px-3 py-4 transition-all duration-500",
-                on ? "border-indigo-500 bg-indigo-500/10" : "border-border opacity-60",
+                on ? "border-[#38b6ff] bg-[#38b6ff]/10" : "border-border opacity-60",
               )}
             >
               <p className="text-[15px] font-semibold">{label}</p>
@@ -434,10 +434,10 @@ export function StagingSwitch() {
         role="switch"
         aria-checked={live}
         onClick={() => setLive((v) => !v)}
-        className="mt-4 flex w-full cursor-pointer items-center justify-between rounded-xl bg-muted/60 px-3 py-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+        className="mt-4 flex w-full cursor-pointer items-center justify-between rounded-xl bg-muted/60 px-3 py-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38b6ff]"
       >
         <span className="text-sm font-semibold">{live ? "Changes are live" : "Push changes live"}</span>
-        <span className={cn("relative h-6 w-11 rounded-full transition-colors", live ? "bg-indigo-600" : "bg-slate-300 dark:bg-slate-700")}>
+        <span className={cn("relative h-6 w-11 rounded-full transition-colors", live ? "bg-[#38b6ff]" : "bg-slate-300 dark:bg-slate-700")}>
           <span className={cn("absolute top-0.5 size-5 rounded-full bg-white shadow transition-all", live ? "left-[22px]" : "left-0.5")} />
         </span>
       </button>

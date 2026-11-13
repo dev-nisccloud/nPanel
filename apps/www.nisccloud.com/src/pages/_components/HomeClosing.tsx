@@ -82,7 +82,7 @@ export default function HomeClosing() {
 
           <div id="proposal" className="scroll-mt-24">
             <div className="mb-4 flex items-start gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-[#38b6ff] dark:text-[#38b6ff]">
                 <Building2 className="size-5" aria-hidden />
               </span>
               <div>

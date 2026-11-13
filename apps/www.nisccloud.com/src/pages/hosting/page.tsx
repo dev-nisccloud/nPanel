@@ -65,7 +65,7 @@ function ProductFinder({
                 <li key={key}>
                   <Link
                     to={PRODUCTS[key].href}
-                    className="inline-flex items-center gap-1 text-sm font-semibold text-sky-700 underline-offset-4 hover:underline dark:text-primary"
+                    className="inline-flex items-center gap-1 text-sm font-semibold text-primary underline-offset-4 hover:underline dark:text-primary"
                   >
                     {PRODUCTS[key].title}
                     <ArrowRight className="size-3.5" aria-hidden />
@@ -76,7 +76,7 @@ function ProductFinder({
                 <li>
                   <Link
                     to={choice.extra.href}
-                    className="inline-flex items-center gap-1 text-sm font-semibold text-sky-700 underline-offset-4 hover:underline dark:text-primary"
+                    className="inline-flex items-center gap-1 text-sm font-semibold text-primary underline-offset-4 hover:underline dark:text-primary"
                   >
                     {choice.extra.label}
                     <ArrowRight className="size-3.5" aria-hidden />
@@ -106,7 +106,7 @@ function ProductCard({ productKey, recommended }: { productKey: ProductKey; reco
         recommended ? "border-primary ring-2 ring-primary/30" : "border-border hover:border-primary/50",
       )}
     >
-      <span className="mb-4 flex size-11 items-center justify-center rounded-xl bg-primary/10 text-sky-700 dark:text-primary">
+      <span className="mb-4 flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary dark:text-primary">
         <Icon size={22} strokeWidth={1.9} aria-hidden />
       </span>
       <h3 className="type-h3 flex flex-wrap items-center gap-2">
@@ -118,12 +118,12 @@ function ProductCard({ productKey, recommended }: { productKey: ProductKey; reco
         ) : null}
       </h3>
       {recommended ? (
-        <span className="absolute right-4 top-4 rounded-full bg-primary/15 px-2.5 py-1 text-xs font-semibold text-sky-800 dark:text-primary">
+        <span className="absolute right-4 top-4 rounded-full bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary dark:text-primary">
           In your stack
         </span>
       ) : null}
       <p className="mb-4 mt-1 text-sm text-muted-foreground">{product.desc}</p>
-      <span className="mt-auto inline-flex items-center gap-1 text-sm font-semibold text-sky-700 transition-[gap] group-hover:gap-2 dark:text-primary">
+      <span className="mt-auto inline-flex items-center gap-1 text-sm font-semibold text-primary transition-[gap] group-hover:gap-2 dark:text-primary">
         {ACTION_LABEL[product.action]}
         <ArrowRight size={14} aria-hidden />
       </span>
@@ -142,7 +142,7 @@ export default function HostingPage() {
         <section aria-labelledby="hosting-heading" className="px-4 pb-14 pt-28 md:px-8 md:pt-32">
           <div className="mx-auto grid max-w-7xl items-start gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-14">
             <div>
-              <p className="type-label mb-3 text-sky-700 dark:text-primary">Cloud products</p>
+              <p className="type-label mb-3 text-primary dark:text-primary">Cloud products</p>
               <h1 id="hosting-heading" className="type-h1 text-balance">
                 Everything your website needs to go live and stay fast
               </h1>

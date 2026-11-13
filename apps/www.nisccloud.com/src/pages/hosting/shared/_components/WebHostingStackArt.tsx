@@ -4,11 +4,11 @@ import { Code2, Layers, LayoutTemplate, Puzzle, Server, Terminal } from "lucide-
 import type { LucideIcon } from "lucide-react";
 
 const STACKS: { label: string; icon: LucideIcon; tone: string }[] = [
-  { label: "WordPress", icon: LayoutTemplate, tone: "bg-primary/15 text-sky-800 dark:text-primary" },
+  { label: "WordPress", icon: LayoutTemplate, tone: "bg-primary/15 text-primary dark:text-primary" },
   { label: "Custom websites", icon: Code2, tone: "bg-brand-orange/15 text-[#b9411f] dark:text-brand-orange" },
-  { label: "PHP", icon: Server, tone: "bg-primary/15 text-sky-800 dark:text-primary" },
+  { label: "PHP", icon: Server, tone: "bg-primary/15 text-primary dark:text-primary" },
   { label: "Laravel", icon: Layers, tone: "bg-brand-orange/15 text-[#b9411f] dark:text-brand-orange" },
-  { label: "Joomla", icon: Puzzle, tone: "bg-primary/15 text-sky-800 dark:text-primary" },
+  { label: "Joomla", icon: Puzzle, tone: "bg-primary/15 text-primary dark:text-primary" },
   { label: "Node.js", icon: Code2, tone: "bg-brand-orange/15 text-[#b9411f] dark:text-brand-orange" },
 ];
 
@@ -68,7 +68,7 @@ export function WebHostingStackArt() {
     <div
       role="img"
       aria-label="Illustration: WordPress, custom websites, PHP, Laravel, Joomla and Node.js on web hosting, with an SSH terminal session"
-      className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-sky-50 via-white to-orange-50/60 p-5 sm:p-6 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900"
+      className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-[#38b6ff]/5 via-white to-orange-50/60 p-5 sm:p-6 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900"
     >
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgb(56_182_255_/_0.16)_1px,transparent_0)] [background-size:18px_18px]" />
 

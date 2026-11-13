@@ -55,14 +55,14 @@ const LAYERS = [
     status: "Current",
     hint: "Off-site copy",
     bars: [70, 70, 70, 70, 70, 70, 100],
-    color: "#06b6d4",
+    color: "#38b6ff",
   },
 ] as const;
 
 const TONE = {
   danger: { dot: "#ef4444", text: "text-red-600" },
   ok: { dot: "#10b981", text: "text-emerald-600" },
-  info: { dot: "var(--primary)", text: "text-sky-600" },
+  info: { dot: "var(--primary)", text: "text-primary" },
 };
 
 /* ── helpers ──────────────────────────────────────────── */
@@ -345,7 +345,7 @@ export default function SecurityDashboardScreen({
                   {isScan && (
                     <div className="absolute inset-x-0 bottom-0 h-0.5 overflow-hidden bg-slate-100">
                       <motion.div
-                        className="h-full bg-gradient-to-r from-primary to-cyan-400"
+                        className="h-full bg-gradient-to-r from-primary to-[#38b6ff]"
                         style={{ width: `${scanProgress}%` }}
                       />
                     </div>

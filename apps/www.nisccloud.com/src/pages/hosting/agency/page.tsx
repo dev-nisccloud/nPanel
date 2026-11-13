@@ -2,6 +2,9 @@ import { AgencyPlans } from "./_components/AgencyPlans.tsx";
 import ServicePageShell from "@/pages/_components/ServicePageShell";
 import { GoalArtwork } from "@/pages/_components/GoalArtwork";
 import { NpanelAgencyArt, NpanelOperationsArt } from "@/components/artwork/npanel-art.tsx";
+import { AgencyDeveloperStory } from "@/components/artwork/flagship-art.tsx";
+import { Highlight, StepSpotlight } from "@/components/signature/index.ts";
+import { ArrowLeftRight, KeyRound, Terminal } from "lucide-react";
 export default function AgencyHostingPage() {
   return (
     <ServicePageShell
@@ -45,6 +48,23 @@ export default function AgencyHostingPage() {
           visualRight: true,
         },
       ]}
+      contentSlots={{
+        afterShowcase: (
+          <StepSpotlight
+            id="client-portfolio"
+            eyebrow="For agencies and developers"
+            title={<>Every client in view, <Highlight>technical control</Highlight> when you need it</>}
+            intro="Your portfolio sits in nPanel, organised by client. Account managers see what each client has, and developers get the tools to work on the servers behind it."
+            steps={[
+              { icon: ArrowLeftRight, title: "Switch between clients", text: "Move from one client organisation to the next and see their services in one place." },
+              { icon: KeyRound, title: "Agree who has access", text: "Client access and ownership are discussed and set up as part of your proposal." },
+              { icon: Terminal, title: "Work on the server", text: "Where your plan includes servers, developers can manage them from a browser terminal in nPanel." },
+            ]}
+            art={<AgencyDeveloperStory />}
+            artLabel="Illustration of switching between client organisations and using a server terminal in nPanel"
+          />
+        ),
+      }}
       faqs={[
         {
           q: "What is agency hosting?",

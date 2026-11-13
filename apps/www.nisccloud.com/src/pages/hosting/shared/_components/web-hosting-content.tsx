@@ -182,7 +182,7 @@ export function WebHostingExplained() {
             <Prose
               className="mt-4"
               paragraphs={[
-                "You can pay monthly or for one, two or three years at the same monthly rate. New web hosting accounts include a 7-day money-back guarantee, and hosting is run to a 99.9% monthly uptime target, as set out in our Terms of Service.",
+                "You can pay monthly or for one, two or three years at the same monthly rate. New web hosting accounts include a 7-day money-back guarantee, and hosting carries a 99.9% monthly uptime commitment, as set out in our Service Level Agreement.",
                 "Need a .co.ke or .ke domain? Nisc Cloud is a KeNIC-accredited registrar, so you can register your domain and host your website in the same account.",
               ]}
             />
@@ -190,6 +190,7 @@ export function WebHostingExplained() {
               className="mt-5"
               links={[
                 { label: "Search for a domain", href: "/hosting/domains" },
+                { label: "Service Level Agreement", href: "/sla" },
                 { label: "Terms of Service", href: "/terms" },
               ]}
             />
@@ -205,7 +206,7 @@ export function WebHostingExplained() {
               { term: "Malware scanning", desc: "Checks for infected or malicious files in your hosting account." },
               { term: "SSL certificate", desc: "Encryption that enables HTTPS, so data sent between visitors and your site is protected." },
               { term: "SSH", desc: "Secure Shell: an encrypted way to connect to your hosting from a terminal and run commands." },
-              { term: "Uptime target", desc: "The share of time a service aims to be available. Nisc Cloud runs hosting to a 99.9% monthly target." },
+              { term: "Uptime commitment", desc: "The share of time a service is committed to be available. Nisc Cloud commits to 99.9% monthly uptime for web hosting, with a service credit if it falls below." },
               { term: "Bandwidth", desc: "The amount of data your website can send to visitors each month." },
             ]}
           />
