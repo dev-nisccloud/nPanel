@@ -12,6 +12,9 @@ import {
   BarChart2,
 } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
+import { Highlight, StepSpotlight } from "@/components/signature/index.ts";
+import { CodePipelineArt } from "@/components/artwork/build-art.tsx";
+import { FlaskConical, Rocket } from "lucide-react";
 
 const showcaseBlocks: ShowcaseBlock[] = [
   {
@@ -171,6 +174,26 @@ export default function WebsiteDesignPage() {
           desc: "After approval, we deploy to the agreed environment, complete launch checks, and show your team how to manage the parts included in the handover.",
         },
       ]}
+      contentSlots={{
+        afterShowcase: (
+          <StepSpotlight
+            id="build-and-test"
+            tone="dark"
+            artSide="left"
+            eyebrow="Under the hood"
+            title={<>Built properly, <Highlight>tested before launch</Highlight></>}
+            intro="Behind every page is code that has to work on the day it goes live. We build the approved design, connect the integrations in scope and check the journeys that matter before anything is published."
+            steps={[
+              { icon: Code2, title: "Build", text: "We build the approved pages and connect the integrations agreed in your proposal." },
+              { icon: FlaskConical, title: "Test", text: "Representative journeys are tested across mobile, tablet and desktop." },
+              { icon: Rocket, title: "Launch", text: "After your approval we publish the site and walk you through the handover." },
+            ]}
+            framed={false}
+            art={<CodePipelineArt />}
+            artLabel="Illustration of code being written, tested and deployed"
+          />
+        ),
+      }}
       whyPoints={[
         {
           title: "Decisions before decoration",

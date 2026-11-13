@@ -348,11 +348,11 @@ export default function Navbar() {
   const { resolvedTheme, setTheme } = useTheme();
   const [atTop, setAtTop] = useState(true);
   const [inHero, setInHero] = useState(true);
-  const isHome = location.pathname === "/";
-  const overHero = isHome && inHero && !open && !activeDropdown;
+  const hasDarkHero = location.pathname === "/" || location.pathname === "/careers";
+  const overHero = hasDarkHero && inHero && !open && !activeDropdown;
 
   useEffect(() => {
-    if (!isHome) return;
+    if (!hasDarkHero) return;
     const update = () => {
       setAtTop(window.scrollY < 24);
       const hero = document.getElementById("hero");
@@ -361,7 +361,7 @@ export default function Navbar() {
     update();
     window.addEventListener("scroll", update, { passive: true });
     return () => window.removeEventListener("scroll", update);
-  }, [isHome]);
+  }, [hasDarkHero]);
 
   useEffect(() => {
     setOpen(false);
@@ -427,6 +427,8 @@ export default function Navbar() {
     setActiveDropdown(null);
   };
 
+  const navFocus = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
+
   return (
     <nav
       aria-label="Main navigation"
@@ -445,7 +447,7 @@ export default function Navbar() {
         <Link
           to="/"
           aria-label="Nisc Cloud home"
-          className="flex items-center gap-2.5 shrink-0 rounded-lg transition-opacity hover:opacity-85"
+          className={`flex items-center gap-2.5 shrink-0 rounded-lg transition-opacity hover:opacity-85 ${navFocus}`}
           onClick={handleLogoClick}
         >
           <img
@@ -479,7 +481,7 @@ export default function Navbar() {
                       cancelClose();
                       openDropdown(item.href);
                     }}
-                    className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer font-normal ${
+                    className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer font-normal ${navFocus} ${
                       activeDropdown === item.href
                         ? "text-primary bg-primary/5"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -501,7 +503,7 @@ export default function Navbar() {
                       cancelClose();
                       setActiveDropdown(null);
                     }}
-                    className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm transition-colors font-normal ${
+                    className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm transition-colors font-normal ${navFocus} ${
                       isCurrentPage && !item.external
                         ? "text-foreground"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -565,7 +567,8 @@ export default function Navbar() {
           <button
             aria-label={open ? "Close menu" : "Open menu"}
             aria-expanded={open}
-            className="cursor-pointer text-foreground xl:hidden"
+            type="button"
+            className={`cursor-pointer rounded-lg p-2 text-foreground xl:hidden ${navFocus}`}
             onClick={() => {
               setOpen(!open);
               setActiveDropdown(null);
@@ -609,7 +612,8 @@ export default function Navbar() {
                           setOpen(false);
                         }
                       }}
-                      className="w-full flex items-center justify-between px-3 py-3 rounded-xl text-sm font-semibold text-foreground hover:bg-muted/50 transition-colors cursor-pointer"
+                      type="button"
+                      className={`w-full flex items-center justify-between px-3 py-3 rounded-xl text-sm font-semibold text-foreground hover:bg-muted/50 transition-colors cursor-pointer ${navFocus}`}
                     >
                       {item.label}
                       {hasChildren && (
@@ -643,7 +647,7 @@ export default function Navbar() {
                                           mobileFamily === index ? null : index,
                                         )
                                       }
-                                      className="flex w-full items-center gap-3 p-4 text-left text-sm font-semibold"
+                                      className={`flex w-full items-center gap-3 p-4 text-left text-sm font-semibold ${navFocus}`}
                                     >
                                       <FamilyIcon
                                         size={21}
@@ -677,7 +681,7 @@ export default function Navbar() {
                                               key={service.label}
                                               to={service.href}
                                               onClick={() => setOpen(false)}
-                                              className="flex w-full items-center gap-3 rounded-lg px-2 py-3 text-left text-sm hover:bg-muted"
+                                              className={`flex w-full items-center gap-3 rounded-lg px-2 py-3 text-left text-sm hover:bg-muted ${navFocus}`}
                                             >
                                               <Icon
                                                 size={17}
@@ -700,7 +704,7 @@ export default function Navbar() {
                                         <Link
                                           to={family.href}
                                           onClick={() => setOpen(false)}
-                                          className="mt-2 block w-full border-t border-border px-2 py-4 text-left text-sm font-semibold text-primary hover:opacity-80"
+                                          className={`mt-2 block w-full border-t border-border px-2 py-4 text-left text-sm font-semibold text-primary hover:opacity-80 ${navFocus}`}
                                         >
                                           View all {family.label}
                                         </Link>
@@ -714,7 +718,7 @@ export default function Navbar() {
                                   key={child.href + child.label}
                                   to={child.href}
                                   onClick={() => setOpen(false)}
-                                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm hover:text-foreground hover:bg-muted/50 transition-colors text-left"
+                                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm hover:text-foreground hover:bg-muted/50 transition-colors text-left ${navFocus}`}
                                 >
                                   <span className="text-primary shrink-0">
                                     {child.icon}

@@ -204,8 +204,8 @@ function getServiceMeta(serviceType: string) {
   return (
     SERVICE_META[serviceType] ?? {
       icon: <Zap className="w-6 h-6" />,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50",
+      color: "text-[#38b6ff]",
+      bgColor: "bg-[#38b6ff]/5",
       includedItems: ["Professional service", "Dedicated account manager", "Regular progress updates"],
     }
   );

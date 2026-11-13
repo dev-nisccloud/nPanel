@@ -92,7 +92,7 @@ export default function NpanelShowcase() {
     >
       <div className="mx-auto max-w-7xl px-4 md:px-8">
         <div className="mx-auto mb-8 max-w-2xl text-center md:mb-10">
-          <p className="type-label mb-2 text-sky-700 dark:text-primary">Meet nPanel</p>
+          <p className="type-label mb-2 text-[#38b6ff] dark:text-[#38b6ff]">Meet nPanel</p>
           <h2
             id="npanel-heading"
             className="type-h2 text-balance"

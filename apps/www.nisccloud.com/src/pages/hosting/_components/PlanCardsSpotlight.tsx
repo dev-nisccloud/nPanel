@@ -277,7 +277,7 @@ function SpotlightCard({
               type="button"
               aria-expanded={showAllSpecs}
               onClick={onToggleSpecs}
-              className="mt-4 inline-flex items-center gap-1 self-start text-sm font-semibold text-sky-700 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:text-primary"
+              className="mt-4 inline-flex items-center gap-1 self-start text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:text-primary"
             >
               {showAllSpecs ? "Show fewer features" : `See all features (${hiddenCount} more)`}
               <ChevronDown

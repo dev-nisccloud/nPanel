@@ -18,8 +18,8 @@ const PricingVisual = () => {
     {
       label: "Brand Identity",
       price: "KES 25K",
-      color: "text-blue-500",
-      bg: "bg-blue-500/10",
+      color: "text-[#38b6ff]",
+      bg: "bg-[#38b6ff]/10",
     },
     {
       label: "Website Hosting",

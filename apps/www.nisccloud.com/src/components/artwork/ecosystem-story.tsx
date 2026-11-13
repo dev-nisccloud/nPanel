@@ -28,13 +28,13 @@ type Service = {
 
 /** Fictional illustration data only; nothing here is a live availability or account state. */
 const SERVICES: Service[] = [
-  { icon: Globe, label: "Domains", detail: ".ke · .com", event: "savannabakery.co.ke registered", tile: "from-sky-400 to-sky-600", side: "left", y: 92 },
+  { icon: Globe, label: "Domains", detail: ".ke · .com", event: "savannabakery.co.ke registered", tile: "from-[#38b6ff] to-[#38b6ff]", side: "left", y: 92 },
   { icon: Server, label: "Hosting", detail: "Web · WordPress", event: "Hosting plan active", tile: "from-slate-700 to-slate-950", side: "left", y: 162 },
-  { icon: Mail, label: "Email", detail: "On your domain", event: "Mailbox amina@ created", tile: "from-cyan-400 to-sky-600", side: "left", y: 232 },
+  { icon: Mail, label: "Email", detail: "On your domain", event: "Mailbox amina@ created", tile: "from-[#38b6ff] to-[#38b6ff]", side: "left", y: 232 },
   { icon: ShieldCheck, label: "Security", detail: "SSL · backups", event: "SSL certificate issued", tile: "from-emerald-400 to-emerald-600", side: "left", y: 302 },
   { icon: LayoutTemplate, label: "Websites", detail: "Design · build", event: "New website published", tile: "from-orange-400 to-brand-orange", side: "right", y: 92 },
   { icon: Megaphone, label: "Marketing", detail: "SEO · ads", event: "Campaign launched", tile: "from-rose-400 to-brand-orange", side: "right", y: 162 },
-  { icon: ZepoMascot, label: "Zepo AI", detail: "AI assistant", event: "Zepo AI answered an enquiry", tile: "from-violet-500 to-sky-500", side: "right", y: 232 },
+  { icon: ZepoMascot, label: "Zepo AI", detail: "AI assistant", event: "Zepo AI answered an enquiry", tile: "from-violet-500 to-[#38b6ff]", side: "right", y: 232 },
   { icon: Receipt, label: "Billing", detail: "One account", event: "Invoice paid · receipt sent", tile: "from-slate-800 to-brand-orange", side: "right", y: 302 },
 ];
 
@@ -192,7 +192,7 @@ export function EcosystemStory() {
         <div className="absolute inset-[6%] flex flex-col items-center justify-center rounded-[28%] bg-[radial-gradient(circle_at_30%_20%,#123247,#02070A_70%)] text-white shadow-[0_26px_50px_-20px_rgb(2_60_100/0.8)] ring-1 ring-white/15">
           <img src="/nisciconoriginal.png" alt="" width={44} height={28} className="w-[34%]" />
           <span className="mt-1 text-[10px] font-black tracking-tight sm:text-[12px]">Nisc Cloud</span>
-          <span className="mt-0.5 rounded-full bg-white/10 px-1.5 py-px text-[6.5px] font-semibold text-sky-300 sm:text-[7.5px]">nPanel</span>
+          <span className="mt-0.5 rounded-full bg-white/10 px-1.5 py-px text-[6.5px] font-semibold text-[#38b6ff] sm:text-[7.5px]">nPanel</span>
         </div>
       </div>
 

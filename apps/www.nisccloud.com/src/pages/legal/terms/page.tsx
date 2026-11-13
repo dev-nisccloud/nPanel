@@ -1,5 +1,7 @@
 import { LegalPageShell, type TocItem } from "../_components/LegalPageShell.tsx";
+import { relatedLegalDocuments } from "../_components/legal-documents.ts";
 import { Link } from "react-router-dom";
+import { ACCEPTABLE_USE_RULES, ENFORCEMENT_ACTIONS, PROHIBITED_CONDUCT } from "../_components/acceptable-use-rules.ts";
 
 const toc: TocItem[] = [
   { id: "definitions", label: "1. Definitions" },
@@ -36,8 +38,9 @@ export default function TermsOfServicePage() {
       title="Terms of Service"
       subtitle="These Terms of Service govern your access to and use of all products, services, and platforms operated by Nisc Cloud Limited. Please read them carefully before using our services."
       effectiveDate="1 September 2025"
-      lastUpdated="9 November 2026"
+      lastUpdated="13 November 2026"
       toc={toc}
+      related={relatedLegalDocuments("/terms")}
     >
       <p>
         Welcome to Nisc Cloud Limited (<strong>"Nisc Cloud"</strong>, <strong>"we"</strong>,{" "}
@@ -55,9 +58,11 @@ export default function TermsOfServicePage() {
       <ul>
         <li>
           <strong>"Agreement"</strong> means these Terms of Service together with our{" "}
-          <Link to="/privacy">Privacy Policy</Link>, <Link to="/cookies">Cookie Policy</Link>, and
-          any order forms, service schedules, or statements of work entered into between you and
-          Nisc Cloud.
+          <Link to="/sla">Service Level Agreement</Link>,{" "}
+          <Link to="/acceptable-use">Acceptable Use Policy</Link>,{" "}
+          <Link to="/dpa">Data Processing Addendum</Link>, <Link to="/privacy">Privacy Policy</Link>,{" "}
+          <Link to="/cookies">Cookie Policy</Link>, and any order forms, service schedules, or
+          statements of work entered into between you and Nisc Cloud.
         </li>
         <li>
           <strong>"Account"</strong> means the registered profile you create to access the Platform
@@ -421,24 +426,15 @@ export default function TermsOfServicePage() {
       {/* ─── 11. ACCEPTABLE USE ─────────────────────────────────────────────── */}
       <h2 id="acceptable-use">11. Acceptable Use Policy</h2>
       <p>
-        You may only use our Services for lawful purposes and in accordance with these Terms. You
-        agree that you will not use the Platform or Services to:
+        You may only use our Services for lawful purposes and in accordance with these Terms. This
+        policy is also published as a standalone{" "}
+        <Link to="/acceptable-use">Acceptable Use Policy</Link> with the same rules. You agree that
+        you will not use the Platform or Services to:
       </p>
       <ul>
-        <li>Host, transmit, or distribute any content that is illegal under Kenyan law or the laws of your jurisdiction;</li>
-        <li>Send unsolicited bulk email (spam), phishing emails, or any other unsolicited commercial communications;</li>
-        <li>Host, distribute, or link to malware, viruses, ransomware, spyware, or any other malicious code;</li>
-        <li>Conduct or facilitate distributed denial-of-service (DDoS) attacks or any other form of cyberattack;</li>
-        <li>Mine cryptocurrencies or engage in any activity that places excessive, unreasonable strain on shared infrastructure without prior written approval;</li>
-        <li>Store or process content that infringes the intellectual property rights of any person;</li>
-        <li>Host, sell, or promote pornography or other sexually explicit adult content;</li>
-        <li>Run or promote scams, including Ponzi or pyramid schemes, fake investment or "get rich quick" offers, fake giveaways, and advance-fee fraud;</li>
-        <li>Impersonate a genuine business, brand, government body, or person, including look-alike websites, phishing pages, and counterfeit storefronts;</li>
-        <li>Host content that constitutes child sexual abuse material (CSAM)  this is a zero-tolerance policy and will result in immediate termination and reporting to relevant authorities;</li>
-        <li>Engage in any form of online fraud, identity theft, or financial crime;</li>
-        <li>Circumvent or attempt to circumvent any security measure, firewall, or access control;</li>
-        <li>Reverse engineer, decompile, or disassemble any part of the Platform; or</li>
-        <li>Use the Platform to compete directly with Nisc Cloud by reselling our infrastructure as your own unlicensed product.</li>
+        {ACCEPTABLE_USE_RULES.map((rule) => (
+          <li key={rule}>{rule}</li>
+        ))}
       </ul>
       <p>
         We reserve the right to monitor usage patterns to detect violations of this policy and to
@@ -452,10 +448,9 @@ export default function TermsOfServicePage() {
         Section 12, we may, without prior notice:
       </p>
       <ul>
-        <li>Suspend or terminate the affected Services or the entire Account;</li>
-        <li>Remove or disable access to the content;</li>
-        <li>Preserve relevant records and report the matter to law enforcement, regulators, the domain registry, or affected rights holders;</li>
-        <li>Take legal action to protect Nisc Cloud, our infrastructure, and our Clients, and recover the costs we reasonably incur as a result.</li>
+        {ENFORCEMENT_ACTIONS.map((action) => (
+          <li key={action}>{action}</li>
+        ))}
       </ul>
       <p>
         Fees paid for Services that are suspended or terminated under this Section are
@@ -466,13 +461,11 @@ export default function TermsOfServicePage() {
       <h2 id="prohibited">12. Prohibited Conduct</h2>
       <p>In addition to the Acceptable Use Policy above, you must not:</p>
       <ul>
-        <li><strong>Impersonate</strong> Nisc Cloud, our employees, partners, or any other person or entity;</li>
-        <li><strong>Scrape</strong> or systematically extract data from the Platform without our prior written consent;</li>
-        <li><strong>Create multiple Accounts</strong> to circumvent service limits, suspensions, or bans;</li>
-        <li><strong>Interfere</strong> with the proper functioning of the Platform or any other user's use of the Services;</li>
-        <li><strong>Resell</strong> or sublicense Services without an express written reseller agreement with Nisc Cloud;</li>
-        <li><strong>Use automated tools</strong> (bots, crawlers, scrapers) to access the Platform in a manner that exceeds normal human interaction rates without prior written consent;</li>
-        <li><strong>Violate</strong> any applicable law, including the Kenya Information and Communications Act, the Computer Misuse and Cybercrimes Act 2018, the Data Protection Act 2019, or any applicable anti-money laundering regulation.</li>
+        {PROHIBITED_CONDUCT.map((item) => (
+          <li key={item.term}>
+            <strong>{item.term}</strong> {item.text}
+          </li>
+        ))}
       </ul>
 
       {/* ─── 13. INTELLECTUAL PROPERTY ──────────────────────────────────────── */}
@@ -574,8 +567,9 @@ export default function TermsOfServicePage() {
         Where you use our Services to store or process the personal data of your own customers or
         end users, you act as the Data Controller for such data and Nisc Cloud acts as a Data
         Processor. You are responsible for ensuring your use of the Services complies with
-        applicable data protection laws in respect of data you control. You may request a Data
-        Processing Agreement (DPA) from us at{" "}
+        applicable data protection laws in respect of data you control. Our{" "}
+        <Link to="/dpa">Data Processing Addendum</Link> applies to that processing and forms part of
+        this Agreement. A signed copy is available on request from{" "}
         <a href="mailto:privacy@nisccloud.com">privacy@nisccloud.com</a>.
       </p>
 
@@ -599,13 +593,15 @@ export default function TermsOfServicePage() {
 
       {/* ─── 18. SLA ────────────────────────────────────────────────────────── */}
       <h2 id="sla">18. Service Availability & SLA</h2>
-      <h3>18.1 Hosting Uptime Commitment</h3>
+      <h3>18.1 Uptime Commitment</h3>
       <p>
-        For web hosting, WordPress hosting, and business email hosting plans, we target a monthly
-        uptime of <strong>99.9%</strong>, excluding scheduled maintenance windows and force majeure
-        events. In the event of downtime attributable to us that falls below this commitment in a
-        given calendar month, you may request a service credit equal to a proportionate amount of
-        your monthly fee, up to a maximum of one month's subscription fee.
+        For website hosting, email hosting, cloud server hosting, domain hosting, and completed
+        migrations, we commit to a monthly uptime of <strong>99.9%</strong>, excluding scheduled
+        maintenance and the other exclusions set out in our{" "}
+        <Link to="/sla">Service Level Agreement</Link> (<strong>"SLA"</strong>), which forms part of
+        this Agreement. The SLA sets out how uptime is measured, support response times, and the
+        service credits available if we fall below this commitment. Service credits in any month
+        are capped at one month's subscription fee for the affected Service.
       </p>
       <h3>18.2 Scheduled Maintenance</h3>
       <p>
@@ -621,10 +617,11 @@ export default function TermsOfServicePage() {
         acts of God, natural disasters, internet infrastructure failures, power outages, government
         orders, pandemics, or acts of terrorism.
       </p>
-      <h3>18.4 Marketing & Creative Services</h3>
+      <h3>18.4 Services Without an Uptime Commitment</h3>
       <p>
-        No uptime or availability SLA applies to marketing, design, or AI services. Timelines for
-        deliverables are governed by individual service agreements.
+        No uptime or availability SLA applies to marketing and branding, website and application
+        design and development, security, or AI services. Timelines for deliverables are governed by
+        individual service agreements.
       </p>
 
       {/* ─── 19. LIMITATION OF LIABILITY ────────────────────────────────────── */}
@@ -775,7 +772,8 @@ export default function TermsOfServicePage() {
       <h3>25.1 Entire Agreement</h3>
       <p>
         This Agreement, together with any applicable service-specific terms, order forms, and our
-        Privacy Policy and Cookie Policy, constitutes the entire agreement between you and Nisc
+        Service Level Agreement, Acceptable Use Policy, Data Processing Addendum, Privacy Policy and
+        Cookie Policy, constitutes the entire agreement between you and Nisc
         Cloud with respect to its subject matter and supersedes all prior oral or written
         understandings, representations, or agreements.
       </p>

@@ -262,7 +262,7 @@ export function CreativeAssetsArt() {
 
 function ZeepoAvatar({ className = "size-7" }: { className?: string }) {
   return (
-    <span className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-sky-100 to-blue-100 shadow ring-1 ring-primary/15 dark:from-sky-950 dark:to-blue-950 ${className}`}>
+    <span className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-[#38b6ff]/10 to-[#38b6ff]/10 shadow ring-1 ring-primary/15 dark:from-[#38b6ff]/20 dark:to-[#38b6ff]/20 ${className}`}>
       <ZepoMascot className="size-[115%] object-contain" />
     </span>
   );
@@ -358,9 +358,9 @@ export function SeoArt() {
 }
 
 const channelDots: Record<string, string> = {
-  "Meta Ads": "bg-blue-600",
+  "Meta Ads": "bg-[#38b6ff]",
   "Google Ads": "bg-amber-500",
-  "LinkedIn Ads": "bg-sky-700",
+  "LinkedIn Ads": "bg-primary",
 };
 
 /** Media buying: campaigns organised by channel. */

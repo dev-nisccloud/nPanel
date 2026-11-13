@@ -256,28 +256,34 @@ export default function ContactForm() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="name">
-                Full name <span className="text-destructive">*</span>
+                Full name <span className="text-destructive" aria-hidden="true">*</span>
               </Label>
               <Input
                 id="name"
                 placeholder="Jane Wanjiku"
+                aria-required="true"
+                aria-invalid={errors.name ? true : undefined}
+                aria-describedby={errors.name ? "name-error" : undefined}
                 {...register("name")}
                 className={errors.name ? "border-destructive" : ""}
               />
-              {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
+              {errors.name && <p id="name-error" className="text-xs text-destructive">{errors.name.message}</p>}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="email">
-                {isCorporate ? "Business email" : "Email"} <span className="text-destructive">*</span>
+                {isCorporate ? "Business email" : "Email"} <span className="text-destructive" aria-hidden="true">*</span>
               </Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="you@company.com"
+                aria-required="true"
+                aria-invalid={errors.email ? true : undefined}
+                aria-describedby={errors.email ? "email-error" : undefined}
                 {...register("email")}
                 className={errors.email ? "border-destructive" : ""}
               />
-              {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+              {errors.email && <p id="email-error" className="text-xs text-destructive">{errors.email.message}</p>}
             </div>
           </div>
 
@@ -291,13 +297,19 @@ export default function ContactForm() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="service">
-                Service <span className="text-destructive">*</span>
+                Service <span className="text-destructive" aria-hidden="true">*</span>
               </Label>
               <Select
                 value={serviceValue ?? ""}
                 onValueChange={(v) => setValue("service", v, { shouldValidate: true })}
               >
-                <SelectTrigger id="service" className={errors.service ? "border-destructive" : ""}>
+                <SelectTrigger
+                  id="service"
+                  aria-required="true"
+                  aria-invalid={errors.service ? true : undefined}
+                  aria-describedby={errors.service ? "service-error" : undefined}
+                  className={errors.service ? "border-destructive" : ""}
+                >
                   <SelectValue placeholder="Select a service..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -309,7 +321,7 @@ export default function ContactForm() {
                 </SelectContent>
               </Select>
               {errors.service && (
-                <p className="text-xs text-destructive">{errors.service.message}</p>
+                <p id="service-error" className="text-xs text-destructive">{errors.service.message}</p>
               )}
             </div>
             <div className="space-y-1.5">
@@ -345,9 +357,9 @@ export default function ContactForm() {
                   <Input id="environment" placeholder="e.g. Microsoft 365, another host" {...register("environment")} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Migration needed?</Label>
+                  <Label htmlFor="migration">Migration needed?</Label>
                   <Select value={migrationValue ?? ""} onValueChange={(v) => setValue("migration", v)}>
-                    <SelectTrigger>
+                    <SelectTrigger id="migration">
                       <SelectValue placeholder="Select..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -360,9 +372,9 @@ export default function ContactForm() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Preferred start</Label>
+                  <Label htmlFor="start-date">Preferred start</Label>
                   <Select value={startValue ?? ""} onValueChange={(v) => setValue("startDate", v)}>
-                    <SelectTrigger>
+                    <SelectTrigger id="start-date">
                       <SelectValue placeholder="Select..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -380,10 +392,13 @@ export default function ContactForm() {
 
           <div className="space-y-1.5">
             <Label htmlFor="message">
-              {isCorporate ? "Your requirements" : "How can we help?"} <span className="text-destructive">*</span>
+              {isCorporate ? "Your requirements" : "How can we help?"} <span className="text-destructive" aria-hidden="true">*</span>
             </Label>
             <Textarea
               id="message"
+              aria-required="true"
+              aria-invalid={errors.message ? true : undefined}
+              aria-describedby={errors.message ? "message-error" : undefined}
               placeholder={
                 isCorporate
                   ? "What you need, the outcome you are after, and any compliance or security requirements..."
@@ -394,7 +409,7 @@ export default function ContactForm() {
               className={errors.message ? "border-destructive" : ""}
             />
             {errors.message && (
-              <p className="text-xs text-destructive">{errors.message.message}</p>
+              <p id="message-error" className="text-xs text-destructive">{errors.message.message}</p>
             )}
           </div>
 
@@ -428,7 +443,7 @@ export default function ContactForm() {
       <div className="flex flex-col gap-3 rounded-xl border border-border/50 bg-muted/20 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5">
         {nextSteps.map((s, i) => (
           <div key={s.step} className="flex items-center gap-2.5">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-[#38b6ff] dark:text-[#38b6ff]">
               {s.step}
             </span>
             <span className="text-sm text-muted-foreground">{s.label}</span>

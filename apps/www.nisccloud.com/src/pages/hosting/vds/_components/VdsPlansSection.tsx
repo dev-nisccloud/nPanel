@@ -199,14 +199,14 @@ function SizeCard({
       <ul className="mt-5 space-y-3 border-t border-border pt-5">
         {specs.map(({ icon: Icon, text }) => (
           <li key={text} className="flex items-center gap-3 text-base text-foreground">
-            <Icon className="size-5 shrink-0 text-sky-700 dark:text-primary" aria-hidden />
+            <Icon className="size-5 shrink-0 text-primary dark:text-primary" aria-hidden />
             {text}
           </li>
         ))}
       </ul>
       <div className="mt-auto pt-6">
         <label htmlFor={selectId} className="type-label flex items-center gap-1.5 text-foreground">
-          <MapPin className="size-4 text-sky-700 dark:text-primary" aria-hidden /> Server location
+          <MapPin className="size-4 text-primary dark:text-primary" aria-hidden /> Server location
         </label>
         <select
           id={selectId}
@@ -386,7 +386,7 @@ export function VdsPlansSection() {
         {!loading && groups.length === 0 && !error ? (
           <p className="mt-6 text-center text-base text-muted-foreground">
             No VDS sizes are available right now.{" "}
-            <a className="font-semibold text-sky-700 underline dark:text-primary" href="/contact?serviceName=VDS%20Hosting">
+            <a className="font-semibold text-primary underline dark:text-primary" href="/contact?serviceName=VDS%20Hosting">
               Ask our team
             </a>{" "}
             about the next available server.

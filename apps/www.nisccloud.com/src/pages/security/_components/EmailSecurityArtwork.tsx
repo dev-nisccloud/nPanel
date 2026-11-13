@@ -87,7 +87,7 @@ export function EmailGateArtwork() {
     <figure
       role="img"
       aria-label="Four incoming emails pass through a filter gate that checks SPF, DKIM and DMARC. One legitimate invoice is delivered; a phishing message, a malware attachment and spam are held or blocked."
-      className="relative mx-auto w-full max-w-[600px] overflow-hidden rounded-[28px] bg-gradient-to-br from-sky-200/70 via-sky-100/40 to-slate-100/30 p-4 sm:p-6 dark:from-sky-500/20 dark:via-sky-500/5 dark:to-slate-500/10"
+      className="relative mx-auto w-full max-w-[600px] overflow-hidden rounded-[28px] bg-gradient-to-br from-[#38b6ff]/70 via-[#38b6ff]/40 to-slate-100/30 p-4 sm:p-6 dark:from-[#38b6ff]/20 dark:via-[#38b6ff]/5 dark:to-slate-500/10"
     >
       <div
         aria-hidden

@@ -7,10 +7,10 @@ import type { FinderChoice, StackLayer } from "./cloud-catalog.ts";
 const LAYER_STYLE: Record<StackLayer, { icon: LucideIcon; tile: string }> = {
   domain: { icon: Globe, tile: "bg-primary text-[#02070a]" },
   ssl: { icon: ShieldCheck, tile: "bg-emerald-500 text-white" },
-  hosting: { icon: Server, tile: "bg-[#02070a] text-sky-300 dark:bg-slate-800" },
-  server: { icon: ServerCog, tile: "bg-[#02070a] text-sky-300 dark:bg-slate-800" },
+  hosting: { icon: Server, tile: "bg-[#02070a] text-[#38b6ff] dark:bg-slate-800" },
+  server: { icon: ServerCog, tile: "bg-[#02070a] text-[#38b6ff] dark:bg-slate-800" },
   email: { icon: Mail, tile: "bg-brand-orange text-white" },
-  move: { icon: ArrowRightLeft, tile: "bg-sky-700 text-white" },
+  move: { icon: ArrowRightLeft, tile: "bg-primary text-white" },
 };
 
 const BLUEPRINT: { layer: StackLayer; label: string }[] = [
@@ -34,7 +34,7 @@ export function StackIllustration({ choice }: { choice: FinderChoice | null }) {
           ? `Illustration of the services for ${choice.label.toLowerCase()}: ${layers.map((l) => l.label).join(", ")}, managed in nPanel`
           : "Illustration of a service stack: domain, SSL, hosting, servers and email, managed in nPanel"
       }
-      className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-sky-50 via-white to-orange-50/60 p-5 shadow-[0_30px_60px_-45px_rgb(2_7_10_/_0.45)] sm:p-7 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900"
+      className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-[#38b6ff]/5 via-white to-orange-50/60 p-5 shadow-[0_30px_60px_-45px_rgb(2_7_10_/_0.45)] sm:p-7 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900"
     >
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgb(56_182_255_/_0.18)_1px,transparent_0)] [background-size:18px_18px]" />
 
@@ -43,7 +43,7 @@ export function StackIllustration({ choice }: { choice: FinderChoice | null }) {
         <span
           className={cn(
             "rounded-full px-2.5 py-1 text-xs font-semibold transition-colors",
-            built ? "bg-primary/15 text-sky-800 dark:text-primary" : "bg-muted text-muted-foreground",
+            built ? "bg-primary/15 text-primary dark:text-primary" : "bg-muted text-muted-foreground",
           )}
         >
           {built ? `${layers.length} services` : "Pick an option"}
@@ -81,7 +81,7 @@ export function StackIllustration({ choice }: { choice: FinderChoice | null }) {
                   <span
                     className={cn(
                       "flex size-9 shrink-0 items-center justify-center rounded-xl",
-                      built ? tile : "border border-dashed border-primary/40 text-sky-700 dark:text-primary",
+                      built ? tile : "border border-dashed border-primary/40 text-primary dark:text-primary",
                     )}
                   >
                     <Icon size={18} strokeWidth={1.9} />

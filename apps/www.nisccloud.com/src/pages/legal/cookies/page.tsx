@@ -1,4 +1,5 @@
 import { LegalPageShell, type TocItem } from "../_components/LegalPageShell.tsx";
+import { relatedLegalDocuments } from "../_components/legal-documents.ts";
 import { Link } from "react-router-dom";
 
 const toc: TocItem[] = [
@@ -22,6 +23,7 @@ export default function CookiePolicyPage() {
       effectiveDate="1 September 2025"
       lastUpdated="1 July 2026"
       toc={toc}
+      related={relatedLegalDocuments("/cookies")}
     >
       <p>
         When you visit <strong>nisccloud.com</strong> or use <strong>nPanel</strong>{" "}

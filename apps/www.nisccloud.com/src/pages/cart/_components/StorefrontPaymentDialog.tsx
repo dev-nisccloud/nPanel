@@ -468,28 +468,24 @@ export function StorefrontPaymentDialog({
                 className="mt-0.5"
               />
               <label htmlFor="order-terms" className="cursor-pointer text-sm leading-relaxed text-foreground">
-                I have read and agree to Nisc Cloud&apos;s{" "}
+                By placing your order, you agree to Nisc Cloud&apos;s{" "}
                 <a href="/terms" target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline underline-offset-2 hover:no-underline">
                   Terms of Service
-                </a>
-                , including the applicable{" "}
-                <a href="/terms#billing" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:no-underline">
-                  renewal
-                </a>
-                ,{" "}
-                <a href="/terms#cancellation" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:no-underline">
-                  cancellation
                 </a>{" "}
-                and{" "}
-                <a href="/terms#acceptable-use" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:no-underline">
-                  acceptable-use
-                </a>{" "}
-                terms.
+                and applicable{" "}
+                <a href="/sla" target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline underline-offset-2 hover:no-underline">
+                  Service Level Agreement
+                </a>
+                , and acknowledge our{" "}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline underline-offset-2 hover:no-underline">
+                  Privacy Policy
+                </a>
+                .
               </label>
             </div>
             {termsError && (
               <p id="order-terms-error" role="alert" className="mt-2 pl-7 text-xs text-destructive">
-                Tick the box to confirm you accept the Terms of Service before paying.
+                Tick the box to confirm you accept the Terms of Service and Service Level Agreement before paying.
               </p>
             )}
           </div>

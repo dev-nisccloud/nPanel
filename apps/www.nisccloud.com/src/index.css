@@ -109,7 +109,7 @@
   --muted: #eef5f7;
   --muted-foreground: #64748b;
   --accent: #daedf5;
-  --accent-foreground: #1e4976;
+  --accent-foreground: #38b6ff;
   --destructive: oklch(0.577 0.245 27.325);
   --border: rgb(0 0 0 / 9%);
   --input: rgb(0 0 0 / 7%);
@@ -920,4 +920,34 @@
 .nav-bar.glass-surface:not(:is(.dark *)) {
   background: #ffffff;
   backdrop-filter: none;
+}
+
+/* First Tab stop. Parked above the viewport until keyboard focus. */
+.skip-to-main {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 80;
+  padding: 0.7rem 1rem;
+  border-radius: 0.75rem;
+  background: #02070a;
+  color: #ffffff;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  text-decoration: none;
+  transform: translateY(-150%);
+}
+.skip-to-main:focus,
+.skip-to-main:focus-visible,
+.skip-to-main.is-shown {
+  transform: translateY(0);
+  outline: 2px solid #38b6ff;
+  outline-offset: 3px;
+}
+#main-content {
+  scroll-margin-top: 5rem;
+}
+#main-content:focus {
+  outline: none;
 }

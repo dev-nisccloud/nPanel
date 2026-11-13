@@ -20,6 +20,9 @@ export const STATIC_PUBLIC_ROUTES = [
   "/contact",
   "/pricing",
   "/about",
+  "/careers",
+  "/compare",
+  "/status",
   "/platform",
   "/work",
   "/blog",
@@ -49,6 +52,9 @@ export const STATIC_PUBLIC_ROUTES = [
   "/terms",
   "/privacy",
   "/cookies",
+  "/sla",
+  "/acceptable-use",
+  "/dpa",
 ] as const;
 
 /** Retired URLs and their replacements, served as permanent (301/308) redirects by every host. */
@@ -72,9 +78,16 @@ export const PRERENDER_ROUTES: readonly string[] = PUBLIC_ROUTES.filter((r) => !
 /** Unrendered SPA shell, written by scripts/prerender.ts before dist/index.html becomes the prerendered homepage. */
 export const SPA_SHELL_FILE = "/spa.html";
 
+/** Routes whose content comes from the API at runtime. They are served by the SPA shell. */
+export const DYNAMIC_PUBLIC_ROUTES = [{ source: "/careers/:slug", pattern: /^\/careers\/[a-z0-9-]{1,120}$/ }] as const;
+
+function isDynamicRoute(route: string): boolean {
+  return DYNAMIC_PUBLIC_ROUTES.some((item) => item.pattern.test(route));
+}
+
 /** File served for a public route, relative to dist (e.g. `/hosting/vps/index.html`). */
 export function routeHtmlFile(route: string): string {
-  if (NOT_PRERENDERED.has(route)) return SPA_SHELL_FILE;
+  if (NOT_PRERENDERED.has(route) || isDynamicRoute(route)) return SPA_SHELL_FILE;
   if (route === "/") return "/index.html";
   return `${route}/index.html`;
 }
@@ -82,5 +95,6 @@ export function routeHtmlFile(route: string): string {
 const PUBLIC_ROUTE_SET = new Set(PUBLIC_ROUTES);
 
 export function isPublicRoute(pathname: string): boolean {
-  return PUBLIC_ROUTE_SET.has(pathname.replace(/\/+$/, "") || "/");
+  const route = pathname.replace(/\/+$/, "") || "/";
+  return PUBLIC_ROUTE_SET.has(route) || isDynamicRoute(route);
 }

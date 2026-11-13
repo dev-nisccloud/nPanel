@@ -18,7 +18,7 @@ export function TldPricingCards() {
         >
           <span className="sr-only">.{tld}</span>
           <span aria-hidden className="text-base font-bold tracking-tight text-foreground">
-            <span className={local ? "text-[#b9411f] dark:text-brand-orange" : "text-sky-700 dark:text-primary"}>.</span>
+            <span className={local ? "text-[#b9411f] dark:text-brand-orange" : "text-primary dark:text-primary"}>.</span>
             {tld}
           </span>
           <span className="mt-0.5 text-[11px] leading-tight text-muted-foreground">{note}</span>

@@ -17,8 +17,8 @@ import { ArtReveal, ArtStage, ArtSwap, Float, NpanelWindow, Panel, Pill, Ring, U
 
 function Initials({ text, tone = "sky" }: { text: string; tone?: "sky" | "violet" | "emerald" | "amber" }) {
   const cls = {
-    sky: "bg-sky-500/15 text-sky-700 dark:text-sky-300",
-    violet: "bg-primary/15 text-sky-700 dark:text-sky-300",
+    sky: "bg-[#38b6ff]/15 text-primary dark:text-[#38b6ff]",
+    violet: "bg-primary/15 text-primary dark:text-[#38b6ff]",
     emerald: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
     amber: "bg-amber-500/20 text-amber-700 dark:text-amber-300",
   }[tone];
@@ -73,7 +73,7 @@ export function NpanelBusinessArt({ compact = false }: { compact?: boolean } = {
           </div>
           <div className="mt-2.5 rounded-xl border border-primary/25 bg-gradient-to-r from-primary/10 to-transparent p-3">
             <div className="flex items-center gap-2">
-              <span className="flex size-7 items-center justify-center overflow-hidden rounded-full bg-sky-100 ring-1 ring-primary/15 dark:bg-sky-950"><ZepoMascot className="size-[115%]" /></span>
+              <span className="flex size-7 items-center justify-center overflow-hidden rounded-full bg-[#38b6ff]/10 ring-1 ring-primary/15 dark:bg-[#38b6ff]/20"><ZepoMascot className="size-[115%]" /></span>
               <p className="text-[10px] text-foreground">Ask Zepo about domains, hosting, invoices or your account.</p>
             </div>
             <div className="mt-2 flex flex-wrap gap-1.5">
@@ -148,7 +148,7 @@ export function NpanelDeveloperArt({ compact = false }: { compact?: boolean } = 
       </div>
       <Float className="border-slate-700 bg-slate-950 p-0 sm:bottom-0 sm:left-10 sm:right-0">
         <div className="flex items-center gap-2 border-b border-white/10 px-3 py-1.5">
-          <Terminal className="size-3 text-sky-400" />
+          <Terminal className="size-3 text-[#38b6ff]" />
           <span className="text-[9px] font-semibold text-slate-200">SSH terminal · web-01</span>
         </div>
         <pre className="npanel-ssh overflow-hidden px-3 py-2 font-mono text-[9.5px] leading-relaxed text-slate-300">
@@ -157,7 +157,7 @@ export function NpanelDeveloperArt({ compact = false }: { compact?: boolean } = 
           <span className="ssh-command block whitespace-nowrap">deploy@web-01:~$ systemctl status nginx</span>
           <span className="ssh-result block text-emerald-400">● nginx.service active (running)</span>
           <span className="ssh-prompt block whitespace-nowrap">
-            deploy@web-01:~$ <span className="ssh-cursor inline-block h-2.5 w-1.5 translate-y-0.5 bg-sky-400" />
+            deploy@web-01:~$ <span className="ssh-cursor inline-block h-2.5 w-1.5 translate-y-0.5 bg-[#38b6ff]" />
           </span>
         </pre>
       </Float>
@@ -186,7 +186,7 @@ export function NpanelOperationsArt() {
             <Panel title="Needs attention">
               {attention.map(([t, tone]) => (
                 <p key={t} className="flex items-center gap-2 border-t border-border/60 py-1.5 text-[10px] first:border-0">
-                  <span className={`size-1.5 rounded-full ${tone === "rose" ? "bg-rose-500" : tone === "amber" ? "bg-amber-500" : "bg-sky-500"}`} />
+                  <span className={`size-1.5 rounded-full ${tone === "rose" ? "bg-rose-500" : tone === "amber" ? "bg-amber-500" : "bg-[#38b6ff]"}`} />
                   <span className="flex-1 text-foreground">{t}</span>
                   <span className="text-[9px] text-primary">Review</span>
                 </p>

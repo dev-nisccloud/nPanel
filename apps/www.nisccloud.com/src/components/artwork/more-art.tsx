@@ -449,7 +449,7 @@ export function ZeepoActivityArt() {
           <div className="space-y-1.5">
             {items.map(([Icon, t]) => (
               <div key={t} className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
-                <span className="flex size-6 items-center justify-center rounded-lg bg-primary/12"><Icon className="size-3.5 text-sky-700 dark:text-sky-300" /></span>
+                <span className="flex size-6 items-center justify-center rounded-lg bg-primary/12"><Icon className="size-3.5 text-primary dark:text-[#38b6ff]" /></span>
                 <span className="flex-1 text-[10px] font-medium text-foreground">{t}</span>
                 <CheckCircle2 className="size-3.5 text-emerald-500" />
               </div>
@@ -496,7 +496,7 @@ export function SocialCalendarArt() {
     ["Mon", null],
     ["Tue", ["Behind the bakery", "bg-primary"]],
     ["Wed", null],
-    ["Thu", ["Weekend menu", "bg-blue-600"]],
+    ["Thu", ["Weekend menu", "bg-[#38b6ff]"]],
     ["Fri", ["Pre-order reminder", "bg-rose-500"]],
   ] as const;
   return (
