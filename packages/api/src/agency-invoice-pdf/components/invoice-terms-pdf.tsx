@@ -39,8 +39,8 @@ export const InvoiceTermsPdf: React.FC<InvoiceTerms> = ({
   return (
   <View
     style={{
-      paddingTop: 8,
-      paddingBottom: 8,
+      paddingTop: 4,
+      paddingBottom: 4,
     }}
   >
     <View

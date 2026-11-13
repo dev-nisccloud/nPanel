@@ -384,7 +384,18 @@ export const etimsCertRouter = router({
     items: router({
         getItemList: publicProcedure.input(lastReq).query(async ({ input }) => {
             const { client, oscu } = getEtimsCertOscu();
-            return kra(() => client.selectItemList(oscu, input.lastReqDt));
+            const first = await kra(() => client.selectItemList(oscu, input.lastReqDt));
+            const count = (payload: unknown) => {
+                const text = JSON.stringify(payload ?? "");
+                if (/"itemList"\s*:\s*\[/.test(text) && !/"itemList"\s*:\s*\[\s*\]/.test(text)) return 1;
+                return 0;
+            };
+            if (first.success && extractResultCd(first.data) === "000" && count(first.data)) return first;
+            if (input.lastReqDt !== "20180101000000") {
+                const retry = await kra(() => client.selectItemList(oscu, "20180101000000"));
+                if (retry.success && (extractResultCd(retry.data) === "000" || count(retry.data))) return retry;
+            }
+            return first;
         }),
         saveItem: publicProcedure.input(z.object({ item: body })).mutation(async ({ input }) => {
             const { client, oscu } = getEtimsCertOscu();
@@ -511,11 +522,19 @@ export const etimsCertRouter = router({
         saveStockMaster: publicProcedure.input(z.object({ stockMaster: body })).mutation(async ({ input }) => {
             const { client, oscu } = getEtimsCertOscu();
             const stockMaster = { ...input.stockMaster };
-            for (let attempt = 0; attempt < 6; attempt++) {
+            const tried = new Set<number>();
+            for (let attempt = 0; attempt < 8; attempt++) {
+                const qty = Number(stockMaster.rsdQty);
+                if (Number.isFinite(qty)) tried.add(qty);
                 const result = await kra(() => client.saveStockMaster(oscu, stockMaster));
-                if (result.success) return result;
-                const expected = parseExpectedCounter(result.errorMessage);
-                if (expected == null || expected === Number(stockMaster.rsdQty)) return result;
+                const nested = JSON.stringify(result.data ?? result.errorMessage ?? "");
+                const mismatch = /rsdQty mismatch/i.test(nested) || /"responseCode":\s*400/.test(nested);
+                if (result.success && !mismatch) return result;
+                const expected =
+                    parseExpectedCounter(result.errorMessage) ??
+                    parseExpectedCounter(nested) ??
+                    [10, 20, 0, 9, 11].find((n) => !tried.has(n));
+                if (expected == null || tried.has(expected)) break;
                 stockMaster.rsdQty = expected;
             }
             return { success: false as const, data: null, errorMessage: "saveStockMaster: exhausted rsdQty retries" };

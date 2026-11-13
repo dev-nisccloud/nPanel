@@ -11,7 +11,7 @@ import { registerAgencyInvoicePdfFonts } from "./register-fonts";
 async function getQrCodeDataUrl(qrCodeValue: string): Promise<string | undefined> {
 	try {
 		const QRCodeUtil = await import("qrcode");
-		return await QRCodeUtil.toDataURL(qrCodeValue, { width: 120, margin: 1 });
+		return await QRCodeUtil.toDataURL(qrCodeValue, { width: 96, margin: 1 });
 	} catch {
 		return undefined;
 	}

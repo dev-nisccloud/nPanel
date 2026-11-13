@@ -1631,11 +1631,49 @@ export const openProviderDomainsRouter = router({
       }
 
       const data = response.data;
+      const rawDomain = data.domain;
+      let extension = "";
+      if (rawDomain && typeof rawDomain === "object") {
+        extension = String((rawDomain as { extension?: string }).extension ?? "")
+          .replace(/^\./, "")
+          .toLowerCase();
+      }
+      const support = {
+        owner: true,
+        admin: true,
+        tech: true,
+        billing: true,
+      };
+      let tradeAvailable: boolean | null = null;
+      if (extension) {
+        try {
+          const tldResponse = await client.getTlds({
+            extensions: [extension],
+            status: "ACT",
+            with_price: false,
+            with_restrictions: true,
+          });
+          const tld = tldResponse.data?.results?.find(
+            (item) => (item?.name ?? "").replace(/^\./, "").toLowerCase() === extension,
+          );
+          const flag = (value: boolean | undefined, fallback: boolean) =>
+            typeof value === "boolean" ? value : fallback;
+          support.owner = flag(tld?.owner_handle_supported, true);
+          support.admin = flag(tld?.admin_handle_supported, true);
+          support.tech = flag(tld?.tech_handle_supported, true);
+          support.billing = flag(tld?.billing_handle_supported, true);
+          tradeAvailable = typeof tld?.trade_available === "boolean" ? tld.trade_available : null;
+        } catch {
+          tradeAvailable = null;
+        }
+      }
       return {
         owner: String(data.owner_handle ?? ""),
         admin: String(data.admin_handle ?? ""),
         tech: String(data.tech_handle ?? ""),
         billing: String(data.billing_handle ?? ""),
+        support,
+        tradeAvailable,
       };
     }),
 

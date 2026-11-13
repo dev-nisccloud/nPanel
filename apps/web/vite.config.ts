@@ -96,8 +96,13 @@ export default defineConfig(async (config) => {
     sentryConfig,
     server: {
       // Allow ngrok host (useful when testing auth/cookies over public URLs).
-      // Codespace and ngrok hosts change; allow the host the browser actually uses.
-      allowedHosts: true,
+      allowedHosts: [
+        "localhost",
+        "127.0.0.1",
+        "a26b-197-232-51-43.ngrok-free.app",
+        "npanel-web.vercel.app",
+        "npanel-server.vercel.app"
+      ],
       // Reflect Origin for non-/api Vite responses; /api preflight handled above.
       cors: {
         origin: true,

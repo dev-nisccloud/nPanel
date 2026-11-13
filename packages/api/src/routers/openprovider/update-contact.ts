@@ -99,12 +99,12 @@ function handleOpError(error: unknown): never {
 
 function ownerChangeNeedsTrade(message: string): boolean {
 	const m = message.toLowerCase();
+	if (m.includes("321") || m.includes("cannot be traded")) return false;
 	return (
 		m.includes("trade") ||
 		m.includes("modify_owner") ||
 		m.includes("owner change") ||
-		m.includes("not allowed to change owner") ||
-		m.includes("321")
+		m.includes("not allowed to change owner")
 	);
 }
 
@@ -284,6 +284,12 @@ async function assignHandles(
 	};
 
 	if (modifyOwnerAllowed === false) {
+		if (tradeAvailable === false) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "This extension does not allow an owner change.",
+			});
+		}
 		return await tryTrade();
 	}
 
@@ -376,9 +382,10 @@ export const updateContactProcedure = protectedProcedure
 
 			for (const role of requested) {
 				if (!support[role]) {
+					const label = role === "tech" ? "technical" : role;
 					throw new TRPCError({
 						code: "BAD_REQUEST",
-						message: "This extension does not support that contact handler.",
+						message: `This extension does not use a ${label} contact.`,
 					});
 				}
 			}

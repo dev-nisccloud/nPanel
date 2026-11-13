@@ -12,15 +12,15 @@ type EtimsFiscalFooterPdfProps = {
 	positioned?: boolean;
 };
 
-const muted = { fontSize: 7, color: "#374151", lineHeight: 1.35 } as const;
+const muted = { fontSize: 6.5, color: "#374151", lineHeight: 1.25 } as const;
 const label = { ...muted, fontWeight: "bold" as const };
 const heading = {
-	fontSize: 8,
+	fontSize: 7,
 	fontWeight: "bold" as const,
 	color: "#111827",
 	textTransform: "uppercase" as const,
-	marginBottom: 4,
-	letterSpacing: 0.4,
+	marginBottom: 2,
+	letterSpacing: 0.3,
 };
 
 function display(value: string | null | undefined): string {
@@ -66,18 +66,18 @@ export const EtimsFiscalFooterPdf: React.FC<EtimsFiscalFooterPdfProps> = ({
 							borderTopWidth: 1,
 							borderTopStyle: "solid",
 							borderTopColor: "#111827",
-							paddingTop: 8,
+							paddingTop: 4,
 						}
 					: {
 							borderTopWidth: 1,
 							borderTopStyle: "solid",
 							borderTopColor: "#111827",
-							paddingTop: 8,
+							paddingTop: 4,
 						}
 			}
 		>
 			<View style={{ flexDirection: "row", alignItems: "flex-start" }}>
-				<View style={{ flex: 1, paddingRight: qrCodeDataUrl ? 12 : 0 }}>
+				<View style={{ flex: 1, paddingRight: 8 }}>
 					<Text style={heading}>SCU Information</Text>
 					<Row k="Date" v={scuDateTime} />
 					<Row k="Control Unit Number" v={fields.sdcId} />
@@ -85,30 +85,17 @@ export const EtimsFiscalFooterPdf: React.FC<EtimsFiscalFooterPdfProps> = ({
 					<Row k="Internal Data" v={internal} />
 					<Row k="Receipt Signature" v={signature} />
 				</View>
+				<View style={{ flex: 1, paddingRight: qrCodeDataUrl ? 8 : 0 }}>
+					<Text style={heading}>TIS Information</Text>
+					<Row k="Receipt Number" v={fields.tisReceiptNumber} />
+					<Row k="Date" v={fields.tisDate} />
+					<Row k="Time" v={fields.tisTime} />
+				</View>
 				{qrCodeDataUrl ? (
-					<View style={{ width: 72, alignItems: "center" }}>
-						<Image src={qrCodeDataUrl} style={{ width: 64, height: 64 }} />
+					<View style={{ width: 58, alignItems: "center" }}>
+						<Image src={qrCodeDataUrl} style={{ width: 52, height: 52 }} />
 					</View>
 				) : null}
-			</View>
-
-			<View
-				style={{
-					marginTop: 8,
-					borderTopWidth: 1,
-					borderTopStyle: "dashed",
-					borderTopColor: "#d1d5db",
-					paddingTop: 6,
-				}}
-			>
-				<Text style={heading}>TIS Information</Text>
-				<Row k="Receipt Number" v={fields.tisReceiptNumber} />
-				<Text style={muted}>
-					<Text style={label}>Date: </Text>
-					<Text>{display(fields.tisDate)}    </Text>
-					<Text style={label}>Time: </Text>
-					<Text>{display(fields.tisTime)}</Text>
-				</Text>
 			</View>
 		</View>
 	);

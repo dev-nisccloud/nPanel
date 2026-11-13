@@ -98,6 +98,13 @@ const ROLE_HINT: Record<ContactRole, string> = {
   billing: "Receives renewal and billing notices.",
 };
 
+const ROLE_UNUSED: Record<ContactRole, string> = {
+  owner: "This extension does not use an owner contact.",
+  admin: "This extension does not use an admin contact.",
+  tech: "This extension does not use a technical contact.",
+  billing: "This extension does not use a billing contact.",
+};
+
 const ROLES: ContactRole[] = ["owner", "admin", "tech", "billing"];
 
 function formatPhone(
@@ -363,6 +370,7 @@ function ContactFields({
 function HandlerForm({
   title,
   hint,
+  note,
   initial,
   nameLocked,
   isKenic,
@@ -373,6 +381,7 @@ function HandlerForm({
 }: {
   title: string;
   hint?: string;
+  note?: string;
   initial: ContactFormValues;
   nameLocked: boolean;
   isKenic: boolean;
@@ -391,6 +400,7 @@ function HandlerForm({
       <div className="space-y-1">
         <h3 className="text-sm font-semibold">{title}</h3>
         {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
+        {note ? <p className="text-xs text-muted-foreground">{note}</p> : null}
       </div>
       <Form {...form}>
         <form
@@ -699,6 +709,16 @@ export function DomainContactEditDialog({
               {ROLES.map((role) => {
                 const hasHandle = !!handles[role];
                 const applyAll = mode === "all";
+                const blocked = !isKenic && liveHandles?.support?.[role] === false && !hasHandle;
+                if (blocked) {
+                  return (
+                    <section key={`${role}-unused`} className="space-y-1 border-t border-border pt-6">
+                      <h3 className="text-sm font-semibold">{ROLE_LABEL[role]}</h3>
+                      <p className="text-xs text-muted-foreground">{ROLE_HINT[role]}</p>
+                      <p className="text-xs text-muted-foreground">{ROLE_UNUSED[role]}</p>
+                    </section>
+                  );
+                }
                 if (applyAll && role !== "owner") {
                   const summary = initialFor(role);
                   const name = [summary.firstName, summary.lastName].filter(Boolean).join(" ") || "—";
@@ -734,13 +754,20 @@ export function DomainContactEditDialog({
                   !!handles[role] &&
                   ROLES.some((other) => other !== role && handles[other] && handles[other] === handles[role]);
                 const createsNew = intent === "replace" || !hasHandle || shared;
+                const nameLocked = !isKenic && intent === "update" && (applyAll || !createsNew);
+                const nameNote = nameLocked
+                  ? allowReplace
+                    ? "Name and organization can be changed by replacing this handler."
+                    : "Name and organization cannot be changed on this contact."
+                  : undefined;
                 return (
                   <HandlerForm
                     key={`${role}-${intent}-${handles[role]}-${applyAll ? "all" : "each"}`}
                     title={ROLE_LABEL[role]}
                     hint={ROLE_HINT[role]}
+                    note={nameNote}
                     initial={initialFor(role)}
-                    nameLocked={!isKenic && intent === "update" && (applyAll || !createsNew)}
+                    nameLocked={nameLocked}
                     isKenic={isKenic}
                     submitLabel={
                       applyAll
