@@ -59,4 +59,5 @@ temp
 Get-AWSSESCampaignData.ps1
 
 /POSTHOG_*.md
+apps/server/data/
 

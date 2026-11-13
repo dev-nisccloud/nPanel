@@ -1,4 +1,4 @@
-import { HostingSupportArt, MailboxesArt } from "@/components/artwork/cloud-art.tsx";
+import { HostingSupportArt, MailboxesArt, MigrationArt, ServerArt, WordPressArt } from "@/components/artwork/cloud-art.tsx";
 import { WebHostingStackArt } from "./_components/WebHostingStackArt.tsx";
 import {
   WebHostingComparison,
@@ -9,6 +9,10 @@ import {
 import { HostingStory } from "@/components/artwork/npanel-stories";
 import { HostingPerformanceArtwork } from "@/pages/_components/HostingReviewArtwork.tsx";
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
+import { FactStrip } from "@/components/signature/FactStrip.tsx";
+import { HonestCards } from "@/components/signature/HonestCards.tsx";
+import { GlassCta } from "@/components/signature/GlassCta.tsx";
+import { HostingFlagshipArt } from "@/components/artwork/flagship-art.tsx";
 import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
 import { SharedPricingSection } from "./_components/SharedPricingSection.tsx";
@@ -90,6 +94,67 @@ const showcaseBlocks: ShowcaseBlock[] = [
   },
 ];
 
+/** Kenya facts buyers compare on, placed after the product comparison. Every value is confirmed. */
+function WebHostingFacts() {
+  return (
+    <FactStrip
+      id="hosting-facts"
+      eyebrow="What you can count on"
+      title="The facts behind your hosting"
+      facts={[
+        { value: "99.9%", label: "Monthly uptime commitment, with a 5% service credit if we fall below it." },
+        { value: "M-Pesa", label: "Pay by M-Pesa or card, in KES or USD based on your location." },
+        { value: "KeNIC", label: "KeNIC-accredited registrar for .ke and .co.ke domains, hosted in the same account." },
+        { value: "7 days", label: "Money-back guarantee on new web hosting accounts." },
+      ]}
+    />
+  );
+}
+
+/** Replaces the repeated "why us" points with an honest fit check before the FAQ. */
+function WebHostingFit() {
+  return (
+    <HonestCards
+      id="right-fit"
+      eyebrow="Is this the right hosting?"
+      title="Where web hosting might not suit you"
+      intro="Web hosting covers most business websites. These are the cases where another Nisc Cloud product is a better fit."
+      items={[
+        {
+          Art: WordPressArt,
+          title: "You want WordPress handled for you",
+          text: "Managed WordPress hosting adds updates, a WordPress firewall and backups handled by plan. Web hosting includes a one-click installer, and you look after the updates.",
+        },
+        {
+          Art: () => <ServerArt kind="vps" />,
+          title: "Your site needs its own server",
+          text: "A VPS gives more resources and root access for applications and high-traffic sites. Web hosting shares its environment and suits standard business websites.",
+        },
+        {
+          Art: MigrationArt,
+          title: "Your setup is unusual",
+          text: "Custom applications, several databases or strict change windows need a migration scope agreed first. Tell us about the site and we will say what is included before you commit.",
+        },
+      ]}
+    />
+  );
+}
+
+/** Glass closing card in place of the standard banner. */
+function WebHostingClose() {
+  return (
+    <GlassCta
+      eyebrow="Your site, live this week"
+      title="Get reliable web hosting today"
+      body="Website and email hosting in one package, with a CDN, DDoS protection, malware scanning and daily backups, all managed in nPanel. Pay by M-Pesa or card."
+      action={{ label: "Choose a plan", to: "#plans" }}
+      secondary={{ label: "Talk to sales", to: "/contact?serviceName=Web%20Hosting" }}
+      art={<HostingFlagshipArt />}
+      artLabel="A Nisc Cloud hosting dashboard"
+    />
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SharedHostingPage() {
@@ -136,31 +201,21 @@ export default function SharedHostingPage() {
           desc: "Use the included hosting tools or agree a migration scope with our team before moving an existing website.",
         },
       ]}
-      whyPoints={[
-        {
-          title: "Know what you are buying", visual: "speed",
-          desc: "Every plan lists its capacity, billing term and included features before you reach checkout.",
-        },
-        {
-          title: "Choose for the Workload", visual: "uptime",
-          desc: "Web hosting suits standard business websites. We can discuss WordPress-specific or server options when the workload needs a different environment.",
-        },
-        {
-          title: "Migration has a scope", visual: "migration",
-          desc: "We review the website, database, email and DNS requirements before confirming what migration assistance is included.",
-        },
-        {
-          title: "Manage the service in nPanel", visual: "integrate",
-          desc: "Hosting, related domains, invoices and support remain connected to the same Nisc Cloud account.",
-        },
-      ]}
-      whySectionHeadline="Why businesses host with Nisc Cloud"
-      whySectionVariant="simple"
       contentSlots={{
         afterPricing: <WebHostingPlanFit />,
-        afterShowcase: <WebHostingComparison />,
+        afterShowcase: (
+          <>
+            <WebHostingComparison />
+            <WebHostingFacts />
+          </>
+        ),
         afterProcess: <WebHostingMigration />,
-        beforeFaq: <WebHostingExplained />,
+        beforeFaq: (
+          <>
+            <WebHostingFit />
+            <WebHostingExplained />
+          </>
+        ),
       }}
       faqTitle="Web hosting questions"
       faqs={[
@@ -200,10 +255,21 @@ export default function SharedHostingPage() {
           q: "Do you offer a money-back guarantee?",
           a: "Yes. New web hosting accounts include a 7-day money-back guarantee, as set out in our Terms of Service. Contact our team within 7 days and we process your full refund.",
         },
+        {
+          q: "How much does web hosting cost in Kenya?",
+          a: "Plans start at KSh 149 a month for Launch, KSh 249 for Grow and KSh 799 for Accelerate, excluding VAT. You can pay monthly or for one, two or three years at the same monthly rate, by M-Pesa or card, and prices are shown in KES or USD based on your location.",
+        },
+        {
+          q: "Where is my website hosted?",
+          a: "Nisc Cloud hosts client data in data centres in Kenya, America and Europe, with a CDN delivering your pages from closer to each visitor. Availability, backups and support response times are set out in our Service Level Agreement.",
+        },
+        {
+          q: "What uptime do you commit to?",
+          a: "A 99.9% monthly uptime commitment for web hosting, which allows about 43 minutes of downtime in a 30-day month. Scheduled maintenance is excluded, and if uptime falls below 99.9% you can claim a 5% service credit, as set out in our Service Level Agreement.",
+        },
       ]}
       pricingNote="Prices are shown in KES or USD based on your location. Easy checkout. 7-day money-back guarantee on new accounts."
-      ctaHeadline="Get reliable web hosting today"
-      ctaSubtext="Website and email hosting in one package, with CDN, DDoS protection, malware scanning, daily backups and everything managed in nPanel."
+      closing={<WebHostingClose />}
       showcaseBlocks={showcaseBlocks}
     />
   );

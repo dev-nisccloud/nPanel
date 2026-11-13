@@ -48,7 +48,7 @@ export function StagingToLiveArt() {
       ref={ref}
       role="img"
       aria-label="Illustration: plugin updates are tested on a staging copy of a WordPress site, then pushed to the live site"
-      className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-sky-50 via-white to-orange-50/60 p-5 sm:p-6 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900"
+      className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-[#38b6ff]/5 via-white to-orange-50/60 p-5 sm:p-6 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900"
     >
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgb(56_182_255_/_0.16)_1px,transparent_0)] [background-size:18px_18px]" />
 
@@ -92,7 +92,7 @@ export function StagingToLiveArt() {
           </span>
         </div>
 
-        <SiteFrame label="Live site" icon={Globe} tone="bg-primary/15 text-sky-800 dark:text-primary">
+        <SiteFrame label="Live site" icon={Globe} tone="bg-primary/15 text-primary dark:text-primary">
           <div className="space-y-2" aria-hidden>
             <div className="h-10 rounded-lg bg-gradient-to-r from-primary/30 to-primary/10" />
             <div className="h-2 w-3/4 rounded bg-muted" />

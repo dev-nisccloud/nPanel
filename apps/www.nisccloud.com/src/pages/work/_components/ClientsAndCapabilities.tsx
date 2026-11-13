@@ -2,7 +2,8 @@ import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, FileCheck2 } from "lucide-react";
 import { CLIENT_LOGOS } from "@/lib/clients.ts";
-import { BrandWebFlagshipArt, HostingFlagshipArt, SeoFlagshipArt } from "@/components/artwork/flagship-art.tsx";
+import { HostingFlagshipArt, SeoFlagshipArt } from "@/components/artwork/flagship-art.tsx";
+import { BrandSystemArt } from "@/components/artwork/build-art.tsx";
 import { ZeepoArt } from "@/components/artwork/growth-art.tsx";
 
 type Capability = {
@@ -21,7 +22,7 @@ const CAPABILITIES: Capability[] = [
     deliverables: ["Logo and brand kit", "Business websites", "Online stores"],
     href: "/services/website-design",
     linkLabel: "Brand and web design",
-    art: () => <BrandWebFlagshipArt />,
+    art: () => <BrandSystemArt />,
   },
   {
     title: "Run",

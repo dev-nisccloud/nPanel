@@ -12,6 +12,7 @@ export declare function putObjectBuffer(params: {
     key: string;
     publicUrl: string;
 }>;
+export declare function getObjectBuffer(key: string): Promise<Buffer>;
 export declare function createPresignedUploadUrl(params: {
     key: string;
     contentType: string;

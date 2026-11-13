@@ -54,7 +54,7 @@ export function BusinessEmailHeroArt() {
       ref={ref}
       role="img"
       aria-label="Illustration: a new email from you@yourbusiness.co.ke with spam filtering, sender verification and daily backups"
-      className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-sky-50 via-white to-amber-50/70 p-5 sm:p-7 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900"
+      className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-[#38b6ff]/5 via-white to-amber-50/70 p-5 sm:p-7 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900"
     >
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgb(56_182_255_/_0.16)_1px,transparent_0)] [background-size:18px_18px]" />
 
@@ -62,7 +62,7 @@ export function BusinessEmailHeroArt() {
         <div className="flex items-center gap-2 border-b border-border px-4 py-3">
           <Mail className="size-4 text-primary" aria-hidden />
           <span className="text-sm font-semibold text-foreground">New message</span>
-          <span className="ml-auto rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-sky-800 dark:text-primary">Nisc Mail</span>
+          <span className="ml-auto rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary dark:text-primary">Nisc Mail</span>
         </div>
         <dl className="space-y-3 px-4 py-4 text-[15px]">
           <div className="flex gap-3">
@@ -78,7 +78,7 @@ export function BusinessEmailHeroArt() {
           </div>
         </dl>
         <div className="mx-4 mb-4 rounded-xl border border-dashed border-primary/40 bg-primary/[0.05] p-3">
-          <p className="flex items-center gap-1.5 text-xs font-semibold text-sky-800 dark:text-primary">
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-primary dark:text-primary">
             <Sparkles className="size-3.5" aria-hidden /> AI draft, ready for your review
           </p>
           <div className={cn("mt-2 space-y-1.5 transition-opacity duration-700", done ? "opacity-100" : "opacity-30")} aria-hidden>

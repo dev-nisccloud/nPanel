@@ -117,13 +117,13 @@ export function OsPicker({
               <BrandLogo name={family.name} />
               <span className="min-w-0">
                 <span className="block text-base font-medium leading-snug text-foreground">{family.name}</span>
-                <span className={cn("block text-sm", price === "Included" ? "text-muted-foreground" : "text-sky-700 dark:text-primary")}>
+                <span className={cn("block text-sm", price === "Included" ? "text-muted-foreground" : "text-primary dark:text-primary")}>
                   {price}
                 </span>
               </span>
             </button>
             {selected ? (
-              <Check className="absolute right-3 top-3 hidden size-4 text-sky-700 min-[420px]:block dark:text-primary" aria-hidden />
+              <Check className="absolute right-3 top-3 hidden size-4 text-primary min-[420px]:block dark:text-primary" aria-hidden />
             ) : null}
             {family.versions.length > 1 ? (
               <select
@@ -197,7 +197,7 @@ export function PanelPicker({
           <span className="block text-base font-medium text-foreground">No control panel</span>
           <span className="block text-sm text-muted-foreground">Manage the server over SSH</span>
         </span>
-        {!anySelected ? <Check className="absolute right-3 top-3 size-4 text-sky-700 dark:text-primary" aria-hidden /> : null}
+        {!anySelected ? <Check className="absolute right-3 top-3 size-4 text-primary dark:text-primary" aria-hidden /> : null}
       </button>
 
       {products.map((product) => {
@@ -226,10 +226,10 @@ export function PanelPicker({
               <BrandLogo name={product.name} />
               <span className="min-w-0">
                 <span className="block text-base font-medium text-foreground">{product.name}</span>
-                <span className="block text-sm text-sky-700 dark:text-primary">{price}</span>
+                <span className="block text-sm text-primary dark:text-primary">{price}</span>
               </span>
             </button>
-            {active ? <Check className="absolute right-3 top-3 size-4 text-sky-700 dark:text-primary" aria-hidden /> : null}
+            {active ? <Check className="absolute right-3 top-3 size-4 text-primary dark:text-primary" aria-hidden /> : null}
             {product.tiers.length > 1 ? (
               <select
                 aria-label={`${product.name} accounts`}
@@ -258,7 +258,7 @@ export function PanelPicker({
                   <button
                     type="button"
                     onClick={() => onSwitchOs(target.os, target.optionId)}
-                    className="mt-2 inline-flex cursor-pointer items-center gap-1.5 rounded-lg font-semibold text-sky-700 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:text-primary"
+                    className="mt-2 inline-flex cursor-pointer items-center gap-1.5 rounded-lg font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:text-primary"
                   >
                     Use {target.label} with {product.name}
                   </button>
@@ -329,7 +329,7 @@ export function AppPicker({
               {disabled ? (
                 <span className="block text-sm text-muted-foreground">Not with this OS</span>
               ) : price !== "Included" ? (
-                <span className="block text-sm text-sky-700 dark:text-primary">+{price}</span>
+                <span className="block text-sm text-primary dark:text-primary">+{price}</span>
               ) : null}
             </span>
           </button>
@@ -382,7 +382,7 @@ export function UpgradePicker({
   return (
     <div className="flex flex-col gap-3 border-t border-border pt-4 first:border-t-0 first:pt-0 sm:flex-row sm:items-start sm:gap-4">
       <div className="flex min-w-0 items-center gap-3 sm:w-48 sm:shrink-0 sm:pt-1.5">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-sky-700 dark:text-primary" aria-hidden>
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary dark:text-primary" aria-hidden>
           <Icon className="size-5" />
         </span>
         <span className="text-base font-medium text-foreground">{label}</span>
@@ -424,7 +424,7 @@ export function UpgradePicker({
                 )}
               >
                 <span className="block font-medium">{cleanOptionName(option.name)}</span>
-                <span className="block text-sky-700 dark:text-primary">{extraPrice(priceLabel(option.monthlyPriceUsd))}</span>
+                <span className="block text-primary dark:text-primary">{extraPrice(priceLabel(option.monthlyPriceUsd))}</span>
               </button>
             );
           })}

@@ -11,8 +11,8 @@ import type { VisualTheme } from "@/components/shadcn-space/blocks/built-differe
 import {
   HostingFlagshipArt,
   SeoFlagshipArt,
-  BrandWebFlagshipArt,
 } from "@/components/artwork/flagship-art.tsx";
+import { CodePipelineArt, MobileFlowArt } from "@/components/artwork/build-art.tsx";
 import {
   HostingSupportArt,
   MigrationArt,
@@ -59,8 +59,8 @@ const THEME_ARTWORK: Partial<Record<VisualTheme, () => ReactNode>> = {
   automation: () => <ZeepoActivityArt />,
   bot: () => <ZeepoArt />,
   payment: () => <CheckoutArt />,
-  mobile: () => <BrandWebFlagshipArt />,
-  code: () => <BrandWebFlagshipArt />,
+  mobile: () => <MobileFlowArt />,
+  code: () => <CodePipelineArt />,
 };
 
 export type ShowcaseVisualKind = "concept-illustration" | "npanel-product-view";

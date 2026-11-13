@@ -1,11 +1,13 @@
 ﻿import { ArrowUpRight, Mail, MapPin, Phone } from "lucide-react";
 import { Link } from "react-router-dom";
+import { openCookieSettings } from "@/lib/cookie-settings.ts";
 import AccreditationStrip from "./AccreditationStrip.tsx";
 
-type FooterLinkItem = {
-  label: string;
-  href: string;
-};
+const DOCS_URL = import.meta.env.VITE_DOCS_URL || "https://docs.nisccloud.com";
+
+type FooterLinkItem =
+  | { label: string; href: string; external?: boolean }
+  | { label: string; action: "cookie-settings" };
 
 type FooterSection = {
   title: string;
@@ -14,16 +16,27 @@ type FooterSection = {
 
 const footerSections: FooterSection[] = [
   {
-    title: "Cloud",
+    title: "Hosting",
     links: [
-      { label: "Domain Registration", href: "/hosting/domains" },
       { label: "Web Hosting", href: "/hosting/web-hosting" },
       { label: "WordPress Hosting", href: "/hosting/wordpress" },
+      { label: "Agency Hosting", href: "/hosting/agency" },
       { label: "VPS Servers", href: "/hosting/vps" },
+      { label: "Dedicated Servers", href: "/hosting/dedicated-servers" },
+      { label: "SSL Certificates", href: "/hosting/ssl" },
+      { label: "Migrate to Nisc Cloud", href: "/hosting/transfer" },
+    ],
+  },
+  {
+    title: "Domains & Email",
+    links: [
+      { label: "Domain Registration", href: "/hosting/domains" },
+      { label: "Domain Transfer", href: "/domain-transfer" },
+      { label: "WHOIS Checker", href: "/whois" },
       { label: "Business Email", href: "/hosting/email" },
       { label: "Enterprise Hybrid Email · New", href: "/hosting/hybrid-email" },
-      { label: "SSL Certificates", href: "/hosting/ssl" },
-      { label: "Website Security", href: "/security" },
+      { label: "Microsoft 365", href: "/hosting/microsoft-365" },
+      { label: "Google Workspace", href: "/hosting/google-workspace" },
     ],
   },
   {
@@ -42,14 +55,36 @@ const footerSections: FooterSection[] = [
   {
     title: "Company",
     links: [
-      { label: "About Us", href: "/about" },
-      { label: "Our Work", href: "/work" },
-      { label: "Pricing", href: "/pricing" },
+      { label: "About", href: "/about" },
+      { label: "Customers", href: "/work" },
+      { label: "nPanel platform", href: "/platform" },
+      { label: "Careers", href: "/careers" },
       { label: "Blog", href: "/blog" },
-      { label: "Help Centre", href: "/help" },
-      { label: "WHOIS Checker", href: "/whois" },
-      { label: "Domain Transfer", href: "/domain-transfer" },
       { label: "Contact", href: "/contact" },
+    ],
+  },
+  {
+    title: "Resources",
+    links: [
+      { label: "Pricing", href: "/pricing" },
+      { label: "All services", href: "/services" },
+      { label: "Compare", href: "/compare" },
+      { label: "Help centre", href: "/help" },
+      { label: "Docs", href: DOCS_URL, external: true },
+      { label: "Status", href: "/status" },
+    ],
+  },
+  {
+    title: "Legal",
+    links: [
+      { label: "Terms of Service", href: "/terms" },
+      { label: "Service Level Agreement", href: "/sla" },
+      { label: "Acceptable Use Policy", href: "/acceptable-use" },
+      { label: "Data Processing Addendum", href: "/dpa" },
+      { label: "Privacy Policy", href: "/privacy" },
+      { label: "Cookie Policy", href: "/cookies" },
+      { label: "Cookie settings", action: "cookie-settings" },
+      { label: "Security", href: "/security" },
     ],
   },
 ];
@@ -116,14 +151,42 @@ const socialLinks = [
 const contactTiles = [
   { icon: Mail, label: "Email sales", value: "sales@nisccloud.com", href: "mailto:sales@nisccloud.com" },
   { icon: Phone, label: "Call us", value: "+254 748 777 666", href: "tel:+254748777666" },
-  { icon: MapPin, label: "Visit", value: "Nairobi, Kenya" },
+  { icon: MapPin, label: "Visit", value: "Ngong Road, Nairobi" },
 ] as const;
 
-const legalLinks = [
-  ["Privacy Policy", "/privacy"],
-  ["Terms of Service", "/terms"],
-  ["Cookie Policy", "/cookies"],
-] as const;
+const linkClass =
+  "group inline-flex cursor-pointer items-center gap-1 rounded-sm text-left text-sm text-slate-400 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange";
+
+function FooterLinkRow({ link }: { link: FooterLinkItem }) {
+  const arrow = (
+    <ArrowUpRight
+      aria-hidden
+      className="size-3.5 -translate-x-1 opacity-0 transition-[transform,opacity,color] group-hover:translate-x-0 group-hover:text-brand-orange group-hover:opacity-100"
+    />
+  );
+  if ("action" in link) {
+    return (
+      <button type="button" className={linkClass} onClick={openCookieSettings}>
+        {link.label}
+        {arrow}
+      </button>
+    );
+  }
+  if (link.external) {
+    return (
+      <a href={link.href} className={linkClass} target="_blank" rel="noopener noreferrer">
+        {link.label}
+        {arrow}
+      </a>
+    );
+  }
+  return (
+    <Link to={link.href} className={linkClass}>
+      {link.label}
+      {arrow}
+    </Link>
+  );
+}
 
 export default function Footer() {
   return (
@@ -152,6 +215,21 @@ export default function Footer() {
               Technology, infrastructure and growth for{" "}
               <span className="text-primary">modern businesses.</span>
             </p>
+            <p className="type-label mb-4 mt-8 text-white">Follow us</p>
+            <div className="flex items-center gap-2.5">
+              {socialLinks.map((social) => (
+                <a
+                  key={social.label}
+                  href={social.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={social.label}
+                  className="inline-flex size-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-300 transition-[color,background-color,border-color,transform] hover:-translate-y-0.5 hover:border-primary/50 hover:bg-primary/15 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange"
+                >
+                  {social.icon}
+                </a>
+              ))}
+            </div>
           </div>
           <ul className="grid gap-3 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,0.9fr)]">
             {contactTiles.map(({ icon: Icon, label, value, ...rest }) => {
@@ -185,44 +263,14 @@ export default function Footer() {
         </div>
 
         {/* Link columns */}
-        <div className="grid grid-cols-2 gap-8 py-10 md:grid-cols-3 lg:grid-cols-[1.2fr_1fr_1fr_1fr]">
-          <div className="col-span-2 md:col-span-3 lg:col-span-1">
-            <h4 className="type-label mb-4 text-white">Follow us</h4>
-            <p className="mb-4 max-w-xs text-sm leading-relaxed text-slate-400">
-              Follow Nisc Cloud for product updates and news.
-            </p>
-            <div className="flex items-center gap-2.5">
-              {socialLinks.map((social) => (
-                <a
-                  key={social.label}
-                  href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={social.label}
-                  className="inline-flex size-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-300 transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:bg-primary/15 hover:text-primary"
-                >
-                  {social.icon}
-                </a>
-              ))}
-            </div>
-          </div>
-
+        <div className="grid grid-cols-2 gap-x-6 gap-y-10 py-10 sm:grid-cols-3 xl:grid-cols-6">
           {footerSections.map((section) => (
             <div key={section.title}>
-              <h4 className="type-label mb-4 text-white">{section.title}</h4>
+              <p className="type-label mb-4 text-white">{section.title}</p>
               <ul className="space-y-2.5">
                 {section.links.map((link) => (
                   <li key={link.label}>
-                    <Link
-                      to={link.href}
-                      className="group inline-flex cursor-pointer items-center gap-1 text-left text-sm text-slate-400 transition-colors hover:text-white"
-                    >
-                      {link.label}
-                      <ArrowUpRight
-                        aria-hidden
-                        className="size-3.5 -translate-x-1 opacity-0 transition-all group-hover:translate-x-0 group-hover:text-brand-orange group-hover:opacity-100"
-                      />
-                    </Link>
+                    <FooterLinkRow link={link} />
                   </li>
                 ))}
               </ul>
@@ -233,36 +281,17 @@ export default function Footer() {
         <AccreditationStrip />
       </div>
 
-      {/* Oversized wordmark */}
-      <p
-        aria-hidden
-        className="pointer-events-none mx-auto -mb-[0.22em] max-w-7xl select-none px-4 text-center text-[17vw] font-black leading-none tracking-tighter text-transparent md:px-8 lg:text-[12rem]"
-        style={{ WebkitTextStroke: "1px rgb(56 182 255 / 0.18)", backgroundImage: "linear-gradient(to bottom, rgb(56 182 255 / 0.10), transparent 75%)", WebkitBackgroundClip: "text", backgroundClip: "text" }}
-      >
-        Nisc Cloud
-      </p>
-
       <div className="relative border-t border-white/10 bg-black/40 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl flex-col gap-1.5 px-4 py-4 text-sm text-slate-400 md:px-8">
-          <div className="flex flex-col items-center justify-between gap-2 md:flex-row">
-            <span>© {new Date().getFullYear()} Nisc Cloud Limited. All rights reserved.</span>
-            <div className="flex flex-wrap items-center gap-3 text-xs font-semibold">
-              {legalLinks.map(([label, href], i) => (
-                <span key={href} className="flex items-center gap-3">
-                  {i > 0 ? <span aria-hidden className="text-brand-orange">·</span> : null}
-                  <Link
-                    to={href}
-                    className="cursor-pointer rounded-sm text-slate-300 transition-colors hover:text-brand-orange focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange"
-                  >
-                    {label}
-                  </Link>
-                </span>
-              ))}
-            </div>
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-5 text-sm text-slate-400 md:px-8">
+          <div className="space-y-1.5 text-center lg:text-left">
+            <p>© {new Date().getFullYear()} Nisc Cloud Limited. All rights reserved.</p>
+            <address className="text-xs not-italic leading-relaxed text-slate-500">
+              NISC CLOUD LIMITED · Company Reg. No. PVT-ZQUX33PK · Applewood, Office 805, Ngong Road, Nairobi, Kenya
+            </address>
+            <p className="text-xs text-slate-500">
+              Registered Data Controller · ODPC Reg. No. 160-3417-5D07 · Kenya Data Protection Act, 2019
+            </p>
           </div>
-          <p className="text-center text-xs text-slate-500 md:text-left">
-            Registered Data Controller · ODPC Reg. No. 160-3417-5D07 · Kenya Data Protection Act, 2019
-          </p>
         </div>
       </div>
     </footer>

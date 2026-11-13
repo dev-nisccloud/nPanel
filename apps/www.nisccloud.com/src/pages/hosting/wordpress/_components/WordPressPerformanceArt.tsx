@@ -49,13 +49,13 @@ export function WordPressPerformanceArt() {
       ref={ref}
       role="img"
       aria-label="Illustration: a WordPress page served through the free CDN and LiteSpeed cache with a short render time"
-      className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-sky-50 via-white to-orange-50/60 p-5 sm:p-6 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900"
+      className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-[#38b6ff]/5 via-white to-orange-50/60 p-5 sm:p-6 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900"
     >
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgb(56_182_255_/_0.16)_1px,transparent_0)] [background-size:18px_18px]" />
 
       <div className="relative flex items-start justify-between gap-4">
         <div>
-          <p className="type-label text-sky-800 dark:text-primary">Page render time</p>
+          <p className="type-label text-primary dark:text-primary">Page render time</p>
           <p className="mt-1 flex items-baseline gap-1 tabular-nums">
             <span className="text-4xl font-extrabold tracking-tight text-foreground transition-none">
               {ms}

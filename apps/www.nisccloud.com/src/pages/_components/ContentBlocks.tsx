@@ -31,7 +31,7 @@ export function ContentBand({
       className={cn("scroll-mt-24 py-16 md:py-20", tone === "muted" && "border-y border-border/60 bg-muted/30", className)}
     >
       <div className="mx-auto max-w-7xl px-4 md:px-8">
-        {label ? <p className="type-label mb-3 text-sky-700 dark:text-primary">{label}</p> : null}
+        {label ? <p className="type-label mb-3 text-primary dark:text-primary">{label}</p> : null}
         <h2 id={`${id}-heading`} className="type-h2 max-w-3xl text-balance">
           {title}
         </h2>
@@ -63,7 +63,7 @@ export function RelatedLinks({ links, className }: { links: { label: string; hre
         <li key={l.href}>
           <Link
             to={l.href}
-            className="inline-flex items-center gap-1 text-base font-semibold text-sky-700 underline-offset-4 hover:underline dark:text-primary"
+            className="inline-flex items-center gap-1 text-base font-semibold text-primary underline-offset-4 hover:underline dark:text-primary"
           >
             {l.label}
             <ArrowRight className="size-4" aria-hidden />
@@ -239,7 +239,7 @@ export function ComparisonTable({
                   {c.href ? (
                     <Link
                       to={c.href}
-                      className="inline-flex items-center gap-1 text-[15px] font-semibold text-sky-700 underline-offset-4 hover:underline dark:text-primary"
+                      className="inline-flex items-center gap-1 text-[15px] font-semibold text-primary underline-offset-4 hover:underline dark:text-primary"
                     >
                       {i === highlight ? "See plans" : `Explore ${c.title}`}
                       <ArrowRight className="size-4" aria-hidden />

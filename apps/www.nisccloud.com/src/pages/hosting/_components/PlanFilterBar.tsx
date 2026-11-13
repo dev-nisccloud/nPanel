@@ -35,7 +35,7 @@ export function PlanFilterBar({
           Filters{activeCount ? ` (${activeCount})` : ""}
         </button>
         <p className="hidden items-center gap-2 text-base font-medium text-foreground md:flex">
-          <SlidersHorizontal className="size-4 text-sky-700 dark:text-primary" aria-hidden />
+          <SlidersHorizontal className="size-4 text-primary dark:text-primary" aria-hidden />
           Filter
         </p>
         <div className="flex flex-wrap items-center gap-3">
@@ -46,7 +46,7 @@ export function PlanFilterBar({
             <button
               type="button"
               onClick={onClear}
-              className="cursor-pointer rounded-lg text-sm font-semibold text-sky-700 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:text-primary"
+              className="cursor-pointer rounded-lg text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:text-primary"
             >
               Clear filters
             </button>

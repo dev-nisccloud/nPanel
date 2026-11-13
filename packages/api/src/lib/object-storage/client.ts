@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import {
 	DeleteObjectCommand,
+	GetObjectCommand,
 	ListObjectsV2Command,
 	PutObjectCommand,
 	S3Client,
@@ -65,6 +66,19 @@ export async function putObjectBuffer(params: {
 		}),
 	);
 	return { key: params.key, publicUrl: getPublicObjectUrl(params.key) };
+}
+
+export async function getObjectBuffer(key: string): Promise<Buffer> {
+	const { client, config } = getClient();
+	const response = await client.send(
+		new GetObjectCommand({
+			Bucket: config.bucket,
+			Key: key,
+		}),
+	);
+	const bytes = await response.Body?.transformToByteArray();
+	if (!bytes) throw new Error("Stored file was empty");
+	return Buffer.from(bytes);
 }
 
 export async function createPresignedUploadUrl(params: {

@@ -38,7 +38,7 @@ export function MailRecordsArt() {
     >
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="type-label text-sky-800 dark:text-primary">Domain email records</p>
+          <p className="type-label text-primary dark:text-primary">Domain email records</p>
           <p className="mt-1 text-base font-semibold text-foreground">yourbusiness.co.ke</p>
         </div>
         <span

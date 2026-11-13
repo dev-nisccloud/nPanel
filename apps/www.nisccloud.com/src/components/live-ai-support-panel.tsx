@@ -173,7 +173,7 @@ export function LiveAiSupportPanel({
         ) : (
           <div className="space-y-3">
             <div className="flex min-w-0 gap-2">
-              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-sky-100 ring-1 ring-primary/15 dark:bg-sky-950">
+              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#38b6ff]/10 ring-1 ring-primary/15 dark:bg-[#38b6ff]/20">
                 <ZepoMascot className="size-[115%]" />
               </div>
               <div className="min-w-0 max-w-[min(85%,calc(100%-2.5rem))] overflow-hidden break-words [overflow-wrap:anywhere] rounded-2xl rounded-tl-md bg-muted/60 px-3 py-2 text-sm leading-relaxed">

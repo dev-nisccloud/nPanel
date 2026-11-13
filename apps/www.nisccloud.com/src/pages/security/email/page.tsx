@@ -108,8 +108,8 @@ const emailFeatures = [
     icon: ScanLine,
     title: "Malware attachment scanning",
     desc: "Inspect supported attachment types for known trojans, malicious macros, and ransomware indicators. Suspected files can be blocked or isolated for review.",
-    color: "text-blue-500",
-    bg: "bg-blue-500/10",
+    color: "text-[#38b6ff]",
+    bg: "bg-[#38b6ff]/10",
   },
   {
     icon: Lock,
@@ -129,8 +129,8 @@ const emailFeatures = [
     icon: ShieldCheck,
     title: "Business email compromise alerts",
     desc: "Flag unusual CEO/finance impersonation patterns and sudden rule changes that often signal account takeover attempts.",
-    color: "text-cyan-500",
-    bg: "bg-cyan-500/10",
+    color: "text-[#38b6ff]",
+    bg: "bg-[#38b6ff]/10",
   },
 ];
 

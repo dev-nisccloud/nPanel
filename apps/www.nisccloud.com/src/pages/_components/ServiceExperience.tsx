@@ -37,7 +37,7 @@ import {
   WebmailArt,
   ZeepoActivityArt,
 } from "@/components/artwork/more-art.tsx";
-import { BrandWebFlagshipArt } from "@/components/artwork/flagship-art.tsx";
+import { ResponsiveSiteArt } from "@/components/artwork/build-art.tsx";
 
 export type ExperienceMode =
   | "terminal"
@@ -110,7 +110,7 @@ function compositions(mode: ExperienceMode, path: string): ReactNode[] {
     case "domain":
       return [<DomainSearchArt key="s" />, <DomainTransferArt key="t" />, <NameserversArt key="n" />];
     case "web":
-      return [<BrandWebFlagshipArt key="w" />, <CreativeBriefArt key="r" />, <CommerceArt key="c" />];
+      return [<ResponsiveSiteArt key="w" />, <CreativeBriefArt key="r" />, <CommerceArt key="c" />];
   }
 }
 

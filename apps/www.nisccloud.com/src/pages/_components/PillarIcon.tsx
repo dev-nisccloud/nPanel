@@ -17,13 +17,13 @@ const TONES: Record<Pillar, { idle: string; active: string; accent: string }> = 
     accent: "bg-primary",
   },
   run: {
-    idle: "bg-primary/10 text-sky-700 dark:text-primary",
+    idle: "bg-primary/10 text-primary dark:text-primary",
     active: "bg-primary text-[#02070a]",
     accent: "bg-brand-orange",
   },
   grow: {
     idle: "bg-slate-950/[0.06] text-slate-800 dark:bg-white/10 dark:text-slate-100",
-    active: "bg-slate-950 text-sky-300 ring-1 ring-white/15",
+    active: "bg-slate-950 text-[#38b6ff] ring-1 ring-white/15",
     accent: "bg-brand-orange",
   },
   ai: {

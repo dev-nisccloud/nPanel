@@ -155,6 +155,36 @@ export const ROUTE_META: Record<string, PageMeta> = {
     title: "Cookie Policy",
     description: "Which cookies nisccloud.com uses, why, and how to manage your preferences.",
   },
+  "/sla": {
+    title: "Service Level Agreement (SLA)",
+    description: "Nisc Cloud's 99.9% monthly uptime commitment, 24/7 critical support, 60-day daily backups and service credits for hosting, email, servers and domains in Kenya.",
+    jsonLd: breadcrumbJsonLd([["Home", "/"], ["Service Level Agreement", "/sla"]]),
+  },
+  "/acceptable-use": {
+    title: "Acceptable Use Policy",
+    description: "What you can and cannot host, send or run on Nisc Cloud hosting, email, servers and domains, and how we enforce it.",
+    jsonLd: breadcrumbJsonLd([["Home", "/"], ["Acceptable Use Policy", "/acceptable-use"]]),
+  },
+  "/dpa": {
+    title: "Data Processing Addendum",
+    description: "How Nisc Cloud processes your customers' personal data as a data processor under the Kenya Data Protection Act, 2019.",
+    jsonLd: breadcrumbJsonLd([["Home", "/"], ["Data Processing Addendum", "/dpa"]]),
+  },
+  "/careers": {
+    title: "Careers",
+    description: "Open roles at Nisc Cloud. Apply with your CV, location, LinkedIn profile and salary range.",
+    jsonLd: breadcrumbJsonLd([["Home", "/"], ["Careers", "/careers"]]),
+  },
+  "/compare": {
+    title: "Compare hosting and email",
+    description: "Links to the hosting and email comparisons already published on the product pages.",
+    jsonLd: breadcrumbJsonLd([["Home", "/"], ["Compare", "/compare"]]),
+  },
+  "/status": {
+    title: "Status",
+    description: "Nisc Cloud does not publish a live status board. Contact the team if a service you use is unavailable.",
+    jsonLd: breadcrumbJsonLd([["Home", "/"], ["Status", "/status"]]),
+  },
 };
 
 export const NOT_FOUND_META: PageMeta = {

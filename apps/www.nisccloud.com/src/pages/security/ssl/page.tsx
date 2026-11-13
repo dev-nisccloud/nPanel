@@ -75,8 +75,8 @@ const sslFeatures = [
     icon: ShieldCheck,
     title: "Browser trust padlock",
     desc: "Remove Not Secure warnings in Chrome, Firefox, Safari, and Edge. Show visitors the padlock that signals a safe connection.",
-    color: "text-blue-500",
-    bg: "bg-blue-500/10",
+    color: "text-[#38b6ff]",
+    bg: "bg-[#38b6ff]/10",
   },
   {
     icon: Globe,
@@ -96,8 +96,8 @@ const sslFeatures = [
     icon: Zap,
     title: "Fast issuance and setup",
     desc: "DV certificates often issue in under an hour. Our team installs, enforces HTTPS, and clears mixed-content issues for you.",
-    color: "text-cyan-500",
-    bg: "bg-cyan-500/10",
+    color: "text-[#38b6ff]",
+    bg: "bg-[#38b6ff]/10",
   },
   {
     icon: CheckCircle,

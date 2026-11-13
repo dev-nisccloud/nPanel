@@ -11,7 +11,7 @@ export function EveryPlanIncludes({ items }: { items: string[] }) {
             key={item}
             className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/[0.06] px-3 py-1.5 text-sm font-medium text-foreground"
           >
-            <Check className="size-3.5 text-sky-700 dark:text-primary" strokeWidth={3} aria-hidden />
+            <Check className="size-3.5 text-primary dark:text-primary" strokeWidth={3} aria-hidden />
             {item}
           </li>
         ))}

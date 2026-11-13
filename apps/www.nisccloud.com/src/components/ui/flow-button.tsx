@@ -29,11 +29,13 @@ export function FlowButton({
 
   return (
     <button
+      type="button"
       onClick={onClick}
       className={cn(
         "group relative flex items-center overflow-hidden cursor-pointer font-semibold",
-        "transition-all duration-[600ms] ease-[cubic-bezier(0.23,1,0.32,1)]",
+        "transition-[color,background-color,border-color,box-shadow,transform] duration-[600ms] ease-[cubic-bezier(0.23,1,0.32,1)]",
         "rounded-[10px] active:scale-[0.97]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
         size === "sm" ? "min-h-11 px-8 py-2 text-sm" : "min-h-11 px-10 py-2.5 text-[15px]",
         isFilled
           ? "bg-primary text-primary-foreground border border-transparent hover:text-secondary-foreground"
@@ -46,14 +48,14 @@ export function FlowButton({
         <Icon
           className="absolute w-4 h-4 left-[-25%] z-[9] stroke-current
             group-hover:left-5
-            transition-all duration-[800ms] ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+            transition-[left] duration-[800ms] ease-[cubic-bezier(0.34,1.56,0.64,1)]"
         />
       )}
 
       {/* Text */}
       <span
         className={cn(
-          "relative z-[1] transition-all duration-[800ms] ease-out",
+          "relative z-[1] transition-transform duration-[800ms] ease-out",
           showIcon
             ? "-translate-x-2 group-hover:translate-x-4"
             : "translate-x-0",
@@ -68,7 +70,7 @@ export function FlowButton({
           "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
           "w-4 h-4 rounded-full opacity-0",
           "group-hover:w-[280px] group-hover:h-[280px] group-hover:opacity-100",
-          "transition-all duration-[800ms] ease-[cubic-bezier(0.19,1,0.22,1)]",
+          "transition-[width,height,opacity] duration-[800ms] ease-[cubic-bezier(0.19,1,0.22,1)]",
           isFilled ? "bg-secondary" : "bg-primary",
         )}
       />
@@ -78,7 +80,7 @@ export function FlowButton({
         <Icon
           className="absolute w-4 h-4 right-5 z-[9] stroke-current
             group-hover:right-[-25%]
-            transition-all duration-[800ms] ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+            transition-[right] duration-[800ms] ease-[cubic-bezier(0.34,1.56,0.64,1)]"
         />
       )}
     </button>

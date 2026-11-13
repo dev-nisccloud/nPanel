@@ -12,6 +12,7 @@ import { createRouteHandler } from "uploadthing/server";
 import { ourFileRouter } from "./api/uploadthing";
 import { createBunWebSocket } from "hono/bun";
 import { handleVpsSshUpgrade } from "./api/ws/vps-ssh";
+import { handleCareerApply, handleCareerCvDownload } from "./api/careers";
 
 import { registerAuthCustomRoutes } from "./auth-custom-routes";
 import { handleImageGenerator } from "./api/workers/image-generator";
@@ -254,6 +255,8 @@ export function createApp(options: CreateAppOptions = {}) {
     app.post("/api/hosting/ftp/extract", handleHostingFtpExtract);
     app.get("/api/kenic/test-connection", handleTestKenicConnection);
     app.get("/api/my-ip", handleMyIp);
+    app.post("/api/careers/apply", handleCareerApply);
+    app.get("/api/careers/applications/:id/cv", handleCareerCvDownload);
 
     app.post("/api/ai/image-generator", apiKeyAuth, handleExternalImageGeneration);
 

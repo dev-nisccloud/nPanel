@@ -656,17 +656,17 @@ export function CloudInfrastructureStory() {
   return (
     <div className="relative h-full min-h-[280px] overflow-hidden rounded-[28px] bg-slate-950 p-5 text-white sm:min-h-[390px] sm:p-7">
       <div aria-hidden className="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(56,182,255,.16)_1px,transparent_1px),linear-gradient(90deg,rgba(56,182,255,.16)_1px,transparent_1px)] [background-size:32px_32px]" />
-      <p className="relative text-[9px] font-bold uppercase tracking-[0.2em] text-sky-400">Cloud &amp; infrastructure</p>
+      <p className="relative text-[9px] font-bold uppercase tracking-[0.2em] text-[#38b6ff]">Cloud &amp; infrastructure</p>
 
       <div className="relative mt-5 flex items-center justify-between gap-3">
         <div className="w-[31%] rounded-2xl border border-white/10 bg-white/[0.06] p-3">
-          <Globe className="size-5 text-sky-400" />
+          <Globe className="size-5 text-[#38b6ff]" />
           <p className="mt-3 text-[11px] font-bold">{DOMAIN}</p>
           <p className="mt-1 text-[8px] text-slate-400">One address for your business</p>
         </div>
-        <div className="relative flex size-20 shrink-0 items-center justify-center rounded-full border border-sky-400/35 bg-sky-400/10 sm:size-28">
-          <span className="absolute inset-2 rounded-full border border-dashed border-sky-400/45" />
-          <ShieldCheck className="size-7 text-sky-400" />
+        <div className="relative flex size-20 shrink-0 items-center justify-center rounded-full border border-[#38b6ff]/35 bg-[#38b6ff]/10 sm:size-28">
+          <span className="absolute inset-2 rounded-full border border-dashed border-[#38b6ff]/45" />
+          <ShieldCheck className="size-7 text-[#38b6ff]" />
           <span className="absolute -bottom-2 rounded-full bg-brand-orange px-2 py-1 text-[8px] font-black text-orange-950">
             Secure delivery
           </span>
@@ -674,7 +674,7 @@ export function CloudInfrastructureStory() {
         <div className="w-[31%] space-y-2">
           {outputs.map(({ icon: Icon, label }) => (
             <div key={label} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] p-2">
-              <Icon className="size-3.5 text-sky-400" />
+              <Icon className="size-3.5 text-[#38b6ff]" />
               <span className="text-[9px] font-semibold">{label}</span>
             </div>
           ))}
@@ -690,7 +690,7 @@ export function CloudInfrastructureStory() {
           const I = Icon as typeof Server;
           return (
             <div key={title as string} className="rounded-xl border border-white/10 bg-white/[0.05] p-2.5">
-              <I className="size-3.5 text-sky-400" />
+              <I className="size-3.5 text-[#38b6ff]" />
               <p className="mt-2 text-[9px] font-bold">{title as string}</p>
               <p className="mt-0.5 text-[7.5px] text-slate-400">{detail as string}</p>
             </div>
@@ -741,7 +741,7 @@ export function AgencyDeveloperStory() {
 
         <div className="overflow-hidden rounded-2xl bg-slate-950">
           <div className="flex items-center gap-1.5 border-b border-white/10 px-3 py-2">
-            <Terminal className="size-3 text-sky-400" />
+            <Terminal className="size-3 text-[#38b6ff]" />
             <span className="text-[8px] font-bold text-slate-200">web-01 · terminal</span>
           </div>
           <pre className="whitespace-pre-wrap p-3 font-mono text-[8px] leading-relaxed text-slate-300">
