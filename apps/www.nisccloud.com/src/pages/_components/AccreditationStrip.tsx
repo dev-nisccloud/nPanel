@@ -43,11 +43,3 @@ export function AccreditationBadges({ className }: { className?: string }) {
     </ul>
   );
 }
-
-export default function AccreditationStrip() {
-  return (
-    <section aria-label="Licences and accreditation" className="border-t border-border py-6">
-      <AccreditationBadges className="justify-center md:justify-start" />
-    </section>
-  );
-}

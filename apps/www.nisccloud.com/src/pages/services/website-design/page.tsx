@@ -1,5 +1,6 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
-import { WEBSITE_DESIGN_PLANS, SERVICE_PACKAGE_NOTES } from "@/lib/service-packages.ts";
+import ProjectEnquiryFlow from "@/components/ProjectEnquiryFlow.tsx";
+import { WEBSITE_OFFER } from "@/lib/project-packages.ts";
 import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
 import {
   Monitor,
@@ -15,6 +16,12 @@ import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.t
 import { Highlight, StepSpotlight } from "@/components/signature/index.ts";
 import { CodePipelineArt } from "@/components/artwork/build-art.tsx";
 import { FlaskConical, Rocket } from "lucide-react";
+import {
+  WebsiteDesignComparison,
+  WebsiteDesignExplained,
+  WebsiteDesignPlanFit,
+  WebsiteDesignStart,
+} from "./_components/website-design-content.tsx";
 
 const showcaseBlocks: ShowcaseBlock[] = [
   {
@@ -131,27 +138,8 @@ export default function WebsiteDesignPage() {
           desc: "Agreed analytics and advertising tags can be configured so your team can inspect traffic and enquiry events, subject to consent and platform settings.",
         },
       ]}
-      plans={WEBSITE_DESIGN_PLANS}
-      addons={[
-        {
-          id: "web-copywriting",
-          label: "Professional Website Copywriting",
-          price: 20000,
-          period: "once",
-        },
-        {
-          id: "web-maintenance",
-          label: "Monthly Website Maintenance",
-          price: 8000,
-          period: "month",
-        },
-        {
-          id: "web-speedaudit",
-          label: "Website Speed & Security Audit",
-          price: 12000,
-          period: "once",
-        },
-      ]}
+      plans={[]}
+      customPlansSection={<ProjectEnquiryFlow offer={WEBSITE_OFFER} />}
       process={[
         {
           num: "01",
@@ -176,6 +164,7 @@ export default function WebsiteDesignPage() {
       ]}
       contentSlots={{
         afterShowcase: (
+          <>
           <StepSpotlight
             id="build-and-test"
             tone="dark"
@@ -192,7 +181,12 @@ export default function WebsiteDesignPage() {
             art={<CodePipelineArt />}
             artLabel="Illustration of code being written, tested and deployed"
           />
+          <WebsiteDesignComparison />
+          </>
         ),
+        afterProcess: <WebsiteDesignStart />,
+        afterPricing: <WebsiteDesignPlanFit />,
+        beforeFaq: <WebsiteDesignExplained />,
       }}
       whyPoints={[
         {
@@ -229,11 +223,11 @@ export default function WebsiteDesignPage() {
       faqs={[
         {
           q: "How long does it take to build a website?",
-          a: "Typical planning estimates are about 10 days for an Essential site, 14 days for Professional, and 21 days for Enterprise. Your proposal confirms the estimate after scope review; content, feedback, integrations, and changes can affect it.",
+          a: "A Small Business site is often planned at about 10 days, and a Corporate project at about 21 days. Growth is confirmed in the proposal. Content, feedback, integrations and changes can affect the schedule.",
         },
         {
           q: "Do I need to provide the content?",
-          a: "You provide the basic information about your business. We offer professional copywriting as an add-on (KES 20,000) if you want us to write clear web copy that helps visitors take action.",
+          a: "You provide the basic information about your business. Professional copywriting is an optional add-on, quoted in the proposal, if you want us to write the pages.",
         },
         {
           q: "Will my website help me get found on Google?",
@@ -254,7 +248,6 @@ export default function WebsiteDesignPage() {
       ]}
       ctaHeadline="Let's build a website that works harder"
       ctaSubtext="Plan a website around the questions your customers ask, the actions you want them to take, and a scope your team can review before work begins."
-      pricingNote={SERVICE_PACKAGE_NOTES.WEBSITE_DESIGN}
       showcaseBlocks={showcaseBlocks}
     />
   );

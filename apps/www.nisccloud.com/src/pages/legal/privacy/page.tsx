@@ -1,4 +1,5 @@
 import { LegalPageShell, type TocItem } from "../_components/LegalPageShell.tsx";
+import { LegalGlance, type GlanceFact } from "../_components/LegalGlance.tsx";
 import { relatedLegalDocuments } from "../_components/legal-documents.ts";
 import { Link } from "react-router-dom";
 
@@ -22,13 +23,22 @@ const toc: TocItem[] = [
   { id: "contact", label: "17. Contact & DPO" },
 ];
 
+
+const glance: GlanceFact[] = [
+  { value: "Never", label: "Sold to third parties", detail: "We share data only to run our services or where the law requires." },
+  { value: "72 h", label: "Breach notice to the ODPC", detail: "For breaches that put your rights and freedoms at risk." },
+  { value: "30 days", label: "To resolve rights requests", detail: "Access, correction, deletion and the other rights in Section 10." },
+  { value: "5 days", label: "Target reply to privacy enquiries", detail: "Working days, from privacy@nisccloud.com." },
+];
+
 export default function PrivacyPolicyPage() {
   return (
     <LegalPageShell
+      summary={<LegalGlance title="How we treat your personal data" facts={glance} />}
       title="Privacy Policy"
       subtitle="This Privacy Policy explains how Nisc Cloud Limited collects, uses, stores, and protects your personal data in accordance with the Kenya Data Protection Act, 2019 (No. 24 of 2019) and our registration obligations as a Data Controller with the Office of the Data Protection Commissioner (ODPC)."
-      effectiveDate="1 September 2025"
-      lastUpdated="1 July 2026"
+      effectiveDate="1 October 2026"
+      lastUpdated="1 October 2026"
       toc={toc}
       related={relatedLegalDocuments("/privacy")}
     >
@@ -49,7 +59,7 @@ export default function PrivacyPolicyPage() {
         <li><strong>Company:</strong> Nisc Cloud Limited</li>
         <li><strong>Country of Incorporation:</strong> Kenya</li>
         <li><strong>Registered Address:</strong> Nairobi, Kenya</li>
-        <li><strong>General Email:</strong> <a href="mailto:support@nisccloud.com">support@nisccloud.com</a></li>
+        <li><strong>Complaints and legal matters:</strong> <a href="mailto:compliance@nisccloud.com">compliance@nisccloud.com</a></li>
         <li><strong>Privacy / DPO Email:</strong> <a href="mailto:privacy@nisccloud.com">privacy@nisccloud.com</a></li>
         <li>
           <strong>ODPC Registration:</strong> Nisc Cloud Limited is registered with the Office of
@@ -620,7 +630,7 @@ export default function PrivacyPolicyPage() {
       </p>
       <ul>
         <li><strong>Privacy / DPO Email:</strong> <a href="mailto:privacy@nisccloud.com">privacy@nisccloud.com</a></li>
-        <li><strong>General Email:</strong> <a href="mailto:support@nisccloud.com">support@nisccloud.com</a></li>
+        <li><strong>Complaints and legal matters:</strong> <a href="mailto:compliance@nisccloud.com">compliance@nisccloud.com</a></li>
         <li><strong>Company:</strong> Nisc Cloud Limited, Nairobi, Kenya</li>
         <li><strong>ODPC Registration No.:</strong> 160-3417-5D07</li>
       </ul>

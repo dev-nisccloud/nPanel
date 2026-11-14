@@ -1,99 +1,7 @@
 import type { OrderPlan } from "@/pages/hosting/_components/OrderDialog.tsx";
 
-// Single source for fixed-price service packages, shared by each service page and /pricing.
-
-export const BRAND_IDENTITY_PLANS: OrderPlan[] = [
-  {
-    id: "brand-starter",
-    name: "Starter",
-    price: 25000,
-    period: "once",
-    features: [
-      "Custom logo design (3 concepts)",
-      "Logo files in all formats (PNG, SVG, PDF)",
-      "Colour palette + typography system",
-      "Mini brand guide (5 pages)",
-      "Business card design included",
-      "Delivery schedule confirmed before work begins",
-    ],
-  },
-  {
-    id: "brand-enterprise",
-    name: "Enterprise",
-    price: 120000,
-    period: "once",
-    features: [
-      "Everything in Starter",
-      "Full brand guidelines PDF (20+ pages)",
-      "Competitor brand audit report",
-      "Brand positioning strategy",
-      "Social media profile kit",
-      "30-day post-delivery support",
-    ],
-  },
-];
-
-export const WEBSITE_DESIGN_PLANS: OrderPlan[] = [
-  {
-    id: "web-essential",
-    name: "Essential",
-    price: 35000,
-    period: "once",
-    features: [
-      "Up to 5 custom pages",
-      "Mobile-responsive design",
-      "Contact form + WhatsApp button",
-      "On-page SEO + Google Analytics",
-      "SSL certificate included",
-      "Delivery schedule confirmed in your proposal",
-    ],
-  },
-  {
-    id: "web-enterprise",
-    name: "Enterprise",
-    price: 150000,
-    period: "once",
-    features: [
-      "Custom pages scoped to your project",
-      "Custom UI/UX design in Figma",
-      "CMS + multi-language support",
-      "Full SEO audit + schema markup",
-      "6-month priority support",
-      "Delivery schedule confirmed in your proposal",
-    ],
-  },
-];
-
-export const ECOMMERCE_PLANS: OrderPlan[] = [
-  {
-    id: "ecom-launch",
-    name: "Launch Store",
-    price: 55000,
-    period: "once",
-    features: [
-      "Up to 50 products",
-      "Mobile money and card checkout setup",
-      "Card payment gateway",
-      "Order management dashboard",
-      "Mobile-responsive storefront",
-      "Delivery schedule confirmed in your proposal",
-    ],
-  },
-  {
-    id: "ecom-enterprise",
-    name: "Enterprise Store",
-    price: 220000,
-    period: "once",
-    features: [
-      "Full catalogue setup with product variants",
-      "All payment methods included",
-      "Abandoned cart recovery emails",
-      "Multi-vendor marketplace option",
-      "ERP / accounting integration",
-      "Delivery schedule and manager training confirmed in your proposal",
-    ],
-  },
-];
+// Fixed-price plans for services sold from a catalogue.
+// Website design, e-commerce, brand identity and custom software are quoted in project-packages.ts.
 
 export const SOCIAL_MEDIA_PLANS: OrderPlan[] = [
   {
@@ -248,9 +156,9 @@ export const SSL_PLANS: OrderPlan[] = [
 ];
 
 export const SERVICE_PACKAGE_NOTES = {
-  BRAND_IDENTITY: "Approved deliverables transfer after agreed invoices are paid, subject to the proposal and third-party licence terms.",
-  WEBSITE_DESIGN: "Fixed project price. No hourly billing. No hidden costs.",
-  ECOMMERCE: "One-time development fee. Hosting and payment gateway fees billed separately.",
+  BRAND_IDENTITY: "Quoted in a proposal. Paid 50% to start and 50% at launch. Approved deliverables transfer after the invoices are paid, subject to the proposal and third-party licence terms.",
+  WEBSITE_DESIGN: "Quoted in a proposal. Paid 50% to start and 50% at launch. No hourly billing.",
+  ECOMMERCE: "Quoted in a proposal. Paid 50% to start and 50% at launch. Hosting and payment gateway fees are separate.",
   SOCIAL_MEDIA: "Monthly retainer. Content approval included. Cancel with 30-day notice.",
   PAID_ADS: "Management fee billed monthly. Ad spend billed directly by Google/Meta/TikTok.",
   ZEPO_AI: "Monthly subscription. No setup fee on 3-month commitment.",

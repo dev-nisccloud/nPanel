@@ -4,7 +4,7 @@ import { LegalGlance, type GlanceFact } from "../_components/LegalGlance.tsx";
 import { relatedLegalDocuments } from "../_components/legal-documents.ts";
 
 export const SLA_VERSION = "1.0";
-export const SLA_EFFECTIVE_DATE = "13 November 2026";
+export const SLA_EFFECTIVE_DATE = "1 October 2026";
 
 const toc: TocItem[] = [
   { id: "parties", label: "1. Parties and purpose" },
@@ -261,7 +261,7 @@ export default function ServiceLevelAgreementPage() {
         <li>
           Claims must be submitted within <strong>30 days</strong> after the end of the affected
           month, by support ticket or to{" "}
-          <a href="mailto:support@nisccloud.com">support@nisccloud.com</a>, stating the affected
+          <a href="mailto:compliance@nisccloud.com">compliance@nisccloud.com</a>, stating the affected
           service and the dates and times of the downtime.
         </li>
         <li>
@@ -308,40 +308,16 @@ export default function ServiceLevelAgreementPage() {
         on request, subject to applicable service terms.
       </p>
       <h3>9.2 Escalation</h3>
-      <p>If an issue is not progressing as expected, the Client can escalate it:</p>
-      <div className="not-prose my-6 overflow-x-auto rounded-2xl border border-border">
-        <table className="w-full min-w-[480px] text-left text-sm">
-          <caption className="sr-only">Escalation levels</caption>
-          <thead className="bg-muted/60 text-foreground">
-            <tr>
-              <th scope="col" className="px-4 py-3 font-semibold">Level</th>
-              <th scope="col" className="px-4 py-3 font-semibold">Handled by</th>
-              <th scope="col" className="px-4 py-3 font-semibold">Contact</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border text-muted-foreground print:text-black">
-            <tr>
-              <th scope="row" className="px-4 py-3 font-semibold text-foreground">Level 1</th>
-              <td className="px-4 py-3">Support team</td>
-              <td className="px-4 py-3">
-                <a className="text-primary hover:underline" href="mailto:support@nisccloud.com">support@nisccloud.com</a>
-              </td>
-            </tr>
-            <tr>
-              <th scope="row" className="px-4 py-3 font-semibold text-foreground">Level 2</th>
-              <td className="px-4 py-3">Head of Delivery Operations</td>
-              <td className="px-4 py-3">
-                <a className="text-primary hover:underline" href="mailto:escalations@nisccloud.com">escalations@nisccloud.com</a>
-              </td>
-            </tr>
-            <tr>
-              <th scope="row" className="px-4 py-3 font-semibold text-foreground">Level 3</th>
-              <td className="px-4 py-3">Senior management</td>
-              <td className="px-4 py-3">Escalated internally from Level 2</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <p>
+        If an issue is not progressing as expected, reply to the support ticket or email{" "}
+        <a href="mailto:support@nisccloud.com">support@nisccloud.com</a> and ask for it to be
+        escalated. Escalation is then handled internally by the Provider, and the Client is kept
+        informed through the same ticket.
+      </p>
+      <p>
+        Complaints about how an issue was handled can be sent to{" "}
+        <a href="mailto:compliance@nisccloud.com">compliance@nisccloud.com</a>.
+      </p>
       <h3>9.3 Review</h3>
       <p>
         The Provider reviews this SLA regularly and may offer review meetings to clients on
@@ -381,7 +357,7 @@ export default function ServiceLevelAgreementPage() {
         required. Send questions about this SLA, or credit claims, to:
       </p>
       <ul>
-        <li><strong>Email:</strong> <a href="mailto:support@nisccloud.com">support@nisccloud.com</a></li>
+        <li><strong>Email:</strong> <a href="mailto:compliance@nisccloud.com">compliance@nisccloud.com</a></li>
         <li><strong>Company:</strong> NISC CLOUD LIMITED, registration number PVT-ZQUX33PK</li>
         <li><strong>Address:</strong> Applewood, Office 805, Ngong Road, Nairobi, Kenya</li>
       </ul>

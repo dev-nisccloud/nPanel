@@ -147,7 +147,7 @@ export default function SslCertificatePage() {
       />
       <SecurityFeatures
         title="Everything you need for trusted HTTPS"
-        description="From first issuance to renewal reminders, we help Kenyan businesses keep the padlock on and customer data encrypted."
+        description="From first issuance to renewal reminders, we help businesses keep the padlock on and customer data encrypted."
         features={sslFeatures}
       />
       <FaqBlock
