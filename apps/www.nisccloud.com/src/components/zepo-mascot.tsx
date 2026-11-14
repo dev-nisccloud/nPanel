@@ -15,7 +15,7 @@ export function ZepoMascot({
 }: ZepoMascotProps) {
   return (
     <img
-      src="/brand/zepo-mascot.png"
+      src="/brand/zepo-mascot.webp"
       alt={alt}
       width={typeof size === "number" ? size : undefined}
       height={typeof size === "number" ? size : undefined}

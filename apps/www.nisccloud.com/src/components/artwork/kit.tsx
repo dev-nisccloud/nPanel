@@ -328,7 +328,7 @@ export function NpanelWindow({
       </div>
       <div className="flex">
         <nav className="hidden w-11 shrink-0 flex-col items-center gap-1.5 border-r border-border/70 bg-background/60 py-3 sm:flex">
-          <img src="/nisciconoriginal.png" alt="" className="mb-2 w-6" width={24} height={15} />
+          <img loading="lazy" decoding="async" src="/nisciconoriginal.png" alt="" className="mb-2 w-6" width={24} height={15} />
           {railKeys(active).map((key) => {
             const Icon = navIcons[key];
             return (

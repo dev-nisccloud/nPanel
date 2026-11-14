@@ -190,7 +190,7 @@ export function EcosystemStory() {
           <span className="absolute bottom-[14%] left-[6%] size-1.5 rounded-full bg-primary shadow-[0_0_8px_var(--primary)]" />
         </span>
         <div className="absolute inset-[6%] flex flex-col items-center justify-center rounded-[28%] bg-[radial-gradient(circle_at_30%_20%,#123247,#02070A_70%)] text-white shadow-[0_26px_50px_-20px_rgb(2_60_100/0.8)] ring-1 ring-white/15">
-          <img src="/nisciconoriginal.png" alt="" width={44} height={28} className="w-[34%]" />
+          <img loading="lazy" decoding="async" src="/nisciconoriginal.png" alt="" width={44} height={28} className="w-[34%]" />
           <span className="mt-1 text-[10px] font-black tracking-tight sm:text-[12px]">Nisc Cloud</span>
           <span className="mt-0.5 rounded-full bg-white/10 px-1.5 py-px text-[6.5px] font-semibold text-[#38b6ff] sm:text-[7.5px]">nPanel</span>
         </div>

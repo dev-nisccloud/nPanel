@@ -75,7 +75,7 @@ function applyBody(html: string, rendered: string): string {
   if (!rendered.trim()) return html;
   return html
     .replace(/\s*<noscript>[\s\S]*?<\/noscript>/, "")
-    .replace('<div id="root"></div>', `<div id="root">${rendered}</div>`);
+    .replace(/<div id="root">[\s\S]*?<!--\/root-->/, () => `<div id="root">${rendered}</div><!--/root-->`);
 }
 
 async function main() {
