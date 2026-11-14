@@ -27,7 +27,7 @@ export default function AboutHero() {
           </motion.h1>
           <motion.p {...rise(0.15)} className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
             Nisc Cloud brings cloud infrastructure, software and digital growth together for businesses, agencies and developers. nPanel connects
-            the services you use, and one team in Nairobi stays accountable for all of it.
+            the services you use, and one accountable team stands behind all of it.
           </motion.p>
           <motion.div {...rise(0.25)} className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link

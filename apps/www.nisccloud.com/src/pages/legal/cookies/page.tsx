@@ -1,4 +1,6 @@
+import { CookieSettingsButton } from "../_components/CookieSettingsButton.tsx";
 import { LegalPageShell, type TocItem } from "../_components/LegalPageShell.tsx";
+import { LegalGlance, type GlanceFact } from "../_components/LegalGlance.tsx";
 import { relatedLegalDocuments } from "../_components/legal-documents.ts";
 import { Link } from "react-router-dom";
 
@@ -15,13 +17,22 @@ const toc: TocItem[] = [
   { id: "contact", label: "10. Contact Us" },
 ];
 
+
+const glance: GlanceFact[] = [
+  { value: "4", label: "Cookie categories", detail: "Strictly necessary, functional, analytics and marketing." },
+  { value: "Opt-in", label: "Analytics and marketing", detail: "These only run once you have given consent." },
+  { value: "12 months", label: "Your choice is remembered", detail: "Stored in the cookie_consent cookie." },
+  { value: "Any time", label: "Change your settings", detail: "With the Manage cookie settings button in Section 7.1." },
+];
+
 export default function CookiePolicyPage() {
   return (
     <LegalPageShell
+      summary={<LegalGlance title="How cookies work on our site" facts={glance} />}
       title="Cookie Policy"
       subtitle="This Cookie Policy explains what cookies are, how Nisc Cloud Limited uses them on our website and nPanel platform, and the choices you have regarding their use."
-      effectiveDate="1 September 2025"
-      lastUpdated="1 July 2026"
+      effectiveDate="1 October 2026"
+      lastUpdated="1 October 2026"
       toc={toc}
       related={relatedLegalDocuments("/cookies")}
     >
@@ -355,7 +366,8 @@ export default function CookiePolicyPage() {
       <p>
         Your consent preferences are recorded in the <code>cookie_consent</code> cookie and
         respected for <strong>12 months</strong>. You can update your preferences at any time
-        using the "Cookie Settings" link in the footer of our website.
+        using the <strong>Manage cookie settings</strong> button in Section 7.1 of this policy or on
+        our <Link to="/legal">Legal centre</Link> page.
       </p>
       <p>
         Under the Kenya Data Protection Act, 2019, consent must be freely given, specific,
@@ -372,10 +384,11 @@ export default function CookiePolicyPage() {
 
       <h3>7.1 Our Cookie Preference Centre</h3>
       <p>
-        Click <strong>"Cookie Settings"</strong> in the footer of our website at any time to
-        update your cookie preferences. Changes take effect immediately and your new preferences
-        are saved for 12 months.
+        Use the <strong>Manage cookie settings</strong> button below, also available on our{" "}
+        <Link to="/legal">Legal centre</Link> page, at any time to update your cookie preferences.
+        Changes take effect immediately and your new preferences are saved for 12 months.
       </p>
+      <CookieSettingsButton className="not-prose my-2" />
 
       <h3>7.2 Browser Settings</h3>
       <p>
@@ -485,7 +498,7 @@ export default function CookiePolicyPage() {
       </p>
       <ul>
         <li><strong>Privacy / Cookies Email:</strong> <a href="mailto:privacy@nisccloud.com">privacy@nisccloud.com</a></li>
-        <li><strong>General Email:</strong> <a href="mailto:support@nisccloud.com">support@nisccloud.com</a></li>
+        <li><strong>Complaints and legal matters:</strong> <a href="mailto:compliance@nisccloud.com">compliance@nisccloud.com</a></li>
         <li><strong>Company:</strong> Nisc Cloud Limited, Nairobi, Kenya</li>
         <li><strong>ODPC Registration No.:</strong> 160-3417-5D07</li>
       </ul>

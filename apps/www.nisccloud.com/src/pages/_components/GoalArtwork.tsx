@@ -1,15 +1,10 @@
-import { RunOnlineArt } from "@/components/artwork/npanel-art.tsx";
-import {
-  SeoFlagshipArt,
-} from "@/components/artwork/flagship-art.tsx";
-import { IdeaToOrderArt } from "@/components/artwork/build-art.tsx";
-import { ZeepoArt } from "@/components/artwork/growth-art.tsx";
+import { BuildGoalArt, GrowGoalArt, RunGoalArt, ZepoGoalArt } from "@/components/artwork/goal-art.tsx";
 
 type GoalKind = "hosting" | "marketing" | "ai" | "build";
 
 export function GoalArtwork({ kind }: { kind: GoalKind }) {
-  if (kind === "hosting") return <RunOnlineArt />;
-  if (kind === "build") return <IdeaToOrderArt />;
-  if (kind === "marketing") return <SeoFlagshipArt />;
-  return <ZeepoArt />;
+  if (kind === "hosting") return <RunGoalArt />;
+  if (kind === "build") return <BuildGoalArt />;
+  if (kind === "marketing") return <GrowGoalArt />;
+  return <ZepoGoalArt />;
 }

@@ -89,7 +89,7 @@ export default function CareersPage() {
 
             {!error && openings && openings.length === 0 ? (
               <div className="mt-12 grid items-center gap-6 rounded-[28px] border border-border bg-card p-8 md:grid-cols-[12rem_1fr]">
-                <img src="/artwork/support-original.png" alt="" className="mx-auto h-36 w-auto" />
+                <img loading="lazy" decoding="async" src="/artwork/support-original.png" alt="" className="mx-auto h-36 w-auto" />
                 <div>
                   <h3 className="text-xl font-semibold">No roles are open right now</h3>
                   <p className="mt-2 text-sm leading-relaxed text-muted-foreground">

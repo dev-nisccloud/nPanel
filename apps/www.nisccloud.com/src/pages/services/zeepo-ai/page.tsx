@@ -40,7 +40,7 @@ export default function AiAutomationPage() {
       serviceType="marketing"
       checkoutServiceType="ai_automation"
       checkoutProductName="Zepo AI"
-      heroImage="/brand/zepo-mascot.png"
+      heroImage="/brand/zepo-mascot.webp"
       heroImageStandalone
       trustStats={[
         { value: "24/7", label: "Chat Availability" },

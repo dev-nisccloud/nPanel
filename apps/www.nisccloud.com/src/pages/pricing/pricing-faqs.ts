@@ -30,7 +30,7 @@ export const PRICING_FAQS = [
   },
   {
     question: "Do you work with businesses outside Kenya?",
-    answer: "Yes. We are based in Nairobi, Kenya and can work digitally with businesses elsewhere. Ticket requests can be raised through nPanel at any time; email, chat and phone support are available during working hours.",
+    answer: "Yes. Prices are shown in KES or USD depending on location, payment is by M-Pesa or card, and ticket requests can be raised through nPanel at any time. Email, chat and phone support are available during working hours.",
   },
   {
     question: "Can you migrate my existing site?",

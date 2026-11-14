@@ -11,7 +11,7 @@ export const ROUTE_META: Record<string, PageMeta> = {
   "/services": {
     title: "Business Solutions: Brand, Web, Marketing and AI",
     description:
-      "Brand identity, websites, ecommerce, SEO, paid advertising, social media, email marketing and Zepo AI automation from one team in Nairobi, Kenya.",
+      "Brand identity, websites, ecommerce, custom software, SEO, paid advertising, social media, email marketing and Zepo AI from one accountable team.",
     jsonLd: breadcrumbJsonLd([["Home", "/"], ["Business Solutions", "/services"]]),
   },
   "/contact": {
@@ -51,7 +51,7 @@ export const ROUTE_META: Record<string, PageMeta> = {
   "/about": {
     title: "About Nisc Cloud",
     description:
-      "Nisc Cloud is a Nairobi-based team bringing cloud hosting, websites, marketing and automation together for businesses, developers and agencies.",
+      "Since 2019, Nisc Cloud has brought cloud infrastructure, nPanel, Zepo AI and digital growth together for businesses, developers and agencies.",
     jsonLd: [
       breadcrumbJsonLd([["Home", "/"], ["About", "/about"]]),
       { "@type": "AboutPage", name: "About Nisc Cloud", url: "https://nisccloud.com/about" },
@@ -146,29 +146,37 @@ export const ROUTE_META: Record<string, PageMeta> = {
   "/terms": {
     title: "Terms of Service",
     description: "The terms that govern Nisc Cloud hosting, domains, email, digital services and nPanel, including refunds and service availability.",
+    jsonLd: breadcrumbJsonLd([["Home", "/"], ["Legal centre", "/legal"], ["Terms of Service", "/terms"]]),
+  },
+  "/legal": {
+    title: "Legal Centre",
+    description: "Nisc Cloud's Terms of Service, Service Level Agreement, Acceptable Use Policy, Data Processing Addendum, Privacy Policy and Cookie Policy in one place, with who to contact.",
+    jsonLd: breadcrumbJsonLd([["Home", "/"], ["Legal centre", "/legal"]]),
   },
   "/privacy": {
     title: "Privacy Policy",
     description: "How Nisc Cloud collects, uses and protects personal data under the Kenya Data Protection Act, 2019.",
+    jsonLd: breadcrumbJsonLd([["Home", "/"], ["Legal centre", "/legal"], ["Privacy Policy", "/privacy"]]),
   },
   "/cookies": {
     title: "Cookie Policy",
     description: "Which cookies nisccloud.com uses, why, and how to manage your preferences.",
+    jsonLd: breadcrumbJsonLd([["Home", "/"], ["Legal centre", "/legal"], ["Cookie Policy", "/cookies"]]),
   },
   "/sla": {
     title: "Service Level Agreement (SLA)",
     description: "Nisc Cloud's 99.9% monthly uptime commitment, 24/7 critical support, 60-day daily backups and service credits for hosting, email, servers and domains in Kenya.",
-    jsonLd: breadcrumbJsonLd([["Home", "/"], ["Service Level Agreement", "/sla"]]),
+    jsonLd: breadcrumbJsonLd([["Home", "/"], ["Legal centre", "/legal"], ["Service Level Agreement", "/sla"]]),
   },
   "/acceptable-use": {
     title: "Acceptable Use Policy",
     description: "What you can and cannot host, send or run on Nisc Cloud hosting, email, servers and domains, and how we enforce it.",
-    jsonLd: breadcrumbJsonLd([["Home", "/"], ["Acceptable Use Policy", "/acceptable-use"]]),
+    jsonLd: breadcrumbJsonLd([["Home", "/"], ["Legal centre", "/legal"], ["Acceptable Use Policy", "/acceptable-use"]]),
   },
   "/dpa": {
     title: "Data Processing Addendum",
     description: "How Nisc Cloud processes your customers' personal data as a data processor under the Kenya Data Protection Act, 2019.",
-    jsonLd: breadcrumbJsonLd([["Home", "/"], ["Data Processing Addendum", "/dpa"]]),
+    jsonLd: breadcrumbJsonLd([["Home", "/"], ["Legal centre", "/legal"], ["Data Processing Addendum", "/dpa"]]),
   },
   "/careers": {
     title: "Careers",

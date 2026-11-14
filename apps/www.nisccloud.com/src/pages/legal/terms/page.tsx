@@ -1,4 +1,5 @@
 import { LegalPageShell, type TocItem } from "../_components/LegalPageShell.tsx";
+import { LegalGlance, type GlanceFact } from "../_components/LegalGlance.tsx";
 import { relatedLegalDocuments } from "../_components/legal-documents.ts";
 import { Link } from "react-router-dom";
 import { ACCEPTABLE_USE_RULES, ENFORCEMENT_ACTIONS, PROHIBITED_CONDUCT } from "../_components/acceptable-use-rules.ts";
@@ -32,13 +33,22 @@ const toc: TocItem[] = [
   { id: "contact", label: "26. Contact Us" },
 ];
 
+
+const glance: GlanceFact[] = [
+  { value: "7 days", label: "Money-back guarantee", detail: "On new web hosting and WordPress hosting plans." },
+  { value: "30 days", label: "Notice before price rises", detail: "For existing subscriptions, so you can cancel first." },
+  { value: "30 days", label: "To export your data", detail: "After your account closes, before data is deleted." },
+  { value: "99.9%", label: "Uptime commitment", detail: "For hosting, email, servers and domains, under our SLA." },
+];
+
 export default function TermsOfServicePage() {
   return (
     <LegalPageShell
+      summary={<LegalGlance title="The key points of our Terms" facts={glance} />}
       title="Terms of Service"
       subtitle="These Terms of Service govern your access to and use of all products, services, and platforms operated by Nisc Cloud Limited. Please read them carefully before using our services."
-      effectiveDate="1 September 2025"
-      lastUpdated="13 November 2026"
+      effectiveDate="1 October 2026"
+      lastUpdated="1 October 2026"
       toc={toc}
       related={relatedLegalDocuments("/terms")}
     >
@@ -157,7 +167,7 @@ export default function TermsOfServicePage() {
         <li>Choose a strong, unique password and update it regularly;</li>
         <li>Enable two-factor authentication where available;</li>
         <li>Not share your credentials with any third party;</li>
-        <li>Notify us immediately at <a href="mailto:support@nisccloud.com">support@nisccloud.com</a> upon discovering any unauthorised access or suspected breach of your Account.</li>
+        <li>Notify us immediately at <a href="mailto:abuse@nisccloud.com">abuse@nisccloud.com</a> upon discovering any unauthorised access or suspected breach of your Account.</li>
       </ul>
       <p>
         You are fully liable for all activity occurring under your Account, whether or not
@@ -307,7 +317,7 @@ export default function TermsOfServicePage() {
       <h3>7.4 Disputes on Charges</h3>
       <p>
         If you believe a charge is incorrect, you must notify us in writing at{" "}
-        <a href="mailto:support@nisccloud.com">support@nisccloud.com</a> within{" "}
+        <a href="mailto:compliance@nisccloud.com">compliance@nisccloud.com</a> within{" "}
         <strong>30 days</strong> of the charge date. We will investigate and, where the charge was
         erroneous, issue a credit or refund at our discretion.
       </p>
@@ -418,7 +428,7 @@ export default function TermsOfServicePage() {
       <h3>10.9 Process</h3>
       <p>
         Refund requests must be submitted in writing to{" "}
-        <a href="mailto:support@nisccloud.com">support@nisccloud.com</a>. Approved refunds are
+        <a href="mailto:compliance@nisccloud.com">compliance@nisccloud.com</a>. Approved refunds are
         processed within <strong>7–14 Working Days</strong> via the original payment method.
         M-Pesa refunds are subject to Safaricom's processing timelines.
       </p>
@@ -531,7 +541,7 @@ export default function TermsOfServicePage() {
         We reserve the right to remove or disable access to any User Content that we reasonably
         believe violates these Terms, applicable law, or third-party rights, with or without
         notice. If you believe your Content has been removed in error, contact us at{" "}
-        <a href="mailto:support@nisccloud.com">support@nisccloud.com</a>.
+        <a href="mailto:compliance@nisccloud.com">compliance@nisccloud.com</a>.
       </p>
 
       {/* ─── 15. THIRD-PARTY SERVICES ───────────────────────────────────────── */}
@@ -703,7 +713,7 @@ export default function TermsOfServicePage() {
       <h3>22.1 Informal Resolution</h3>
       <p>
         Before initiating any formal dispute proceeding, you must contact us at{" "}
-        <a href="mailto:support@nisccloud.com">support@nisccloud.com</a> and allow us{" "}
+        <a href="mailto:compliance@nisccloud.com">compliance@nisccloud.com</a> and allow us{" "}
         <strong>30 days</strong> to attempt to resolve the dispute informally. This is a condition
         precedent to any formal proceedings.
       </p>
@@ -764,7 +774,7 @@ export default function TermsOfServicePage() {
       </p>
       <p>
         Previous versions of these Terms are archived and available upon written request to{" "}
-        <a href="mailto:support@nisccloud.com">support@nisccloud.com</a>.
+        <a href="mailto:compliance@nisccloud.com">compliance@nisccloud.com</a>.
       </p>
 
       {/* ─── 25. GENERAL ────────────────────────────────────────────────────── */}
@@ -800,7 +810,7 @@ export default function TermsOfServicePage() {
       <p>
         Notices from Nisc Cloud to you will be sent to the email address associated with your
         Account. Notices from you to Nisc Cloud must be sent to{" "}
-        <a href="mailto:support@nisccloud.com">support@nisccloud.com</a>. Notices are effective upon
+        <a href="mailto:compliance@nisccloud.com">compliance@nisccloud.com</a>. Notices are effective upon
         confirmed receipt.
       </p>
       <h3>25.6 Language</h3>
@@ -821,7 +831,7 @@ export default function TermsOfServicePage() {
         contact us:
       </p>
       <ul>
-        <li><strong>Email:</strong> <a href="mailto:support@nisccloud.com">support@nisccloud.com</a></li>
+        <li><strong>Email:</strong> <a href="mailto:compliance@nisccloud.com">compliance@nisccloud.com</a></li>
         <li><strong>Legal & Privacy enquiries:</strong> <a href="mailto:privacy@nisccloud.com">privacy@nisccloud.com</a></li>
         <li><strong>Address:</strong> Nisc Cloud Limited, Nairobi, Kenya</li>
         <li><strong>ODPC Registration:</strong> No. 160-3417-5D07</li>

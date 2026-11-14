@@ -1,8 +1,8 @@
 # Nisc Cloud
 
-> Everything your business needs to operate and grow online.
+> Build. Run. Grow. One accountable technology partner.
 
-Nisc Cloud brings domains, cloud hosting, business email, websites, software, marketing and AI-powered workflows together in one account. For businesses, agencies and developers. Based in Nairobi, Kenya.
+Nisc Cloud is a cloud infrastructure and cloud hosting provider that brings cloud infrastructure, software and digital growth together in one connected operation for businesses, agencies and developers. Through nPanel, customers build their website, run domains, hosting, business email and servers, and grow with marketing and Zepo AI, all from one account. Unlike all-in-one website and marketing platforms that run on someone else's cloud, Nisc Cloud operates the hosting and servers underneath, so one team supports everything from the website to the infrastructure. Since 2019.
 
 ## Build. Run. Grow.
 
@@ -25,6 +25,7 @@ Nisc Cloud brings domains, cloud hosting, business email, websites, software, ma
 - Clear plans; prices shown exclude 16% VAT
 - Critical issues are supported 24/7 by ticket or Zepo AI. Other requests are handled Monday to Friday, 08:00–17:00 East Africa Time
 - Pay with M-Pesa or card
+- KRA eTIMS-compliant invoices
 - Free strategy call before you commit to marketing work
 
 ## Common Questions
@@ -33,9 +34,10 @@ Nisc Cloud brings domains, cloud hosting, business email, websites, software, ma
 - **What content is not allowed?** Illegal content, malware, spam, pornography, scams such as Ponzi or get-rich-quick schemes, and sites impersonating genuine businesses. Accounts that break these rules can be suspended without refund (see the Terms of Service).
 - **Can I buy without talking to sales?** Yes. Domains, hosting, business email, servers and SSL certificates can be bought online with prices shown before checkout. Websites, software, marketing and larger infrastructure projects start with a conversation.
 - **Who is Nisc Cloud for?** Businesses that want their digital services in one place, developers who need hosting and server control, and agencies that manage services for several clients.
-- **Do you work with businesses outside Kenya?** Yes. The team is based in Nairobi and works digitally; support requests can be raised through nPanel, email or WhatsApp.
-- **How long does a website take?** Essential websites (up to 5 pages) take about 10 days, Professional sites about 14 days and Enterprise projects about 21 days, provided content and feedback arrive promptly.
-- **Is there a long contract?** Monthly services are month to month with 30 days notice to cancel. One-off projects are paid by milestone.
+- **Do you work with businesses outside Kenya?** Yes. Prices are shown in KES or USD depending on location, payment is by M-Pesa or card, and support runs through nPanel, email and WhatsApp.
+- **How long does a website take?** A Small Business site (up to 5 pages) is often planned at about 10 days, and a Corporate project at about 21 days. Growth is confirmed in the proposal. Content and feedback affect the schedule.
+- **How are websites, stores, brand work and custom software priced?** They are quoted in a proposal. There is no public price list and no hourly billing. You pay 50% to start and 50% at launch. SEO, social media, paid ads and email marketing keep their published plans.
+- **Is there a long contract?** Monthly services are month to month with 30 days notice to cancel. One-off projects are paid 50% to start and 50% at launch.
 
 ## Pricing
 
@@ -47,7 +49,7 @@ Current prices, billing cycles and renewal prices are on https://nisccloud.com/p
 - [Platform](https://nisccloud.com/platform): nPanel and Zepo AI
 - [Services](https://nisccloud.com/services): Full service catalogue
 - [Pricing](https://nisccloud.com/pricing): Plans and package pricing by product
-- [Our Work](https://nisccloud.com/work): Clients and capabilities
+- [Our Work](https://nisccloud.com/work): Eight live sites we designed, seven of them hosted on Nisc Cloud, plus the wider client list
 - [About](https://nisccloud.com/about): Company story and team
 - [Contact](https://nisccloud.com/contact): Get in touch or book a free strategy call
 - [Blog](https://nisccloud.com/blog): Guides on hosting, marketing and AI
@@ -59,6 +61,7 @@ Current prices, billing cycles and renewal prices are on https://nisccloud.com/p
 - [Brand Identity](https://nisccloud.com/services/brand-identity): Logos, visual systems and brand guidelines
 - [Website Design](https://nisccloud.com/services/website-design): Custom websites, mobile-first and SEO-ready
 - [Ecommerce](https://nisccloud.com/services/ecommerce): Online stores with payments and inventory
+- [Custom software](https://nisccloud.com/services/software): Web applications, mobile applications and internal tools, quoted in a proposal
 - [SEO / AEO / GEO](https://nisccloud.com/services/seo): Visibility on Google, AI search and Maps
 - [Paid Ads](https://nisccloud.com/services/paid-ads): Google, Meta and TikTok campaigns
 - [Social Media](https://nisccloud.com/services/social-media): Strategy, content and community management
@@ -105,6 +108,7 @@ Current prices, billing cycles and renewal prices are on https://nisccloud.com/p
 
 ## Legal
 
+- [Legal Centre](https://nisccloud.com/legal): all legal documents in one place. Contacts: technical support support@nisccloud.com; complaints, billing disputes and legal notices compliance@nisccloud.com; spam, phishing, malware and account abuse abuse@nisccloud.com; privacy and data requests privacy@nisccloud.com.
 - [Terms of Service](https://nisccloud.com/terms)
 - [Service Level Agreement](https://nisccloud.com/sla): 99.9% monthly uptime commitment for hosting, email, cloud servers and domains; 24/7 support for critical issues; daily backups kept 60 days; 5% service credit below 99.9%.
 - [Acceptable Use Policy](https://nisccloud.com/acceptable-use)

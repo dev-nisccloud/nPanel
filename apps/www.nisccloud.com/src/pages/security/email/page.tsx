@@ -172,7 +172,7 @@ export default function EmailSecurityPage() {
       />
       <SecurityFeatures
         title="Inbox protection for real attack paths"
-        description="Layered email security designed for Kenyan businesses that rely on email for invoices, approvals, and customer support."
+        description="Layered email security for businesses that rely on email for invoices, approvals, and customer support."
         features={emailFeatures}
       />
       <FaqBlock

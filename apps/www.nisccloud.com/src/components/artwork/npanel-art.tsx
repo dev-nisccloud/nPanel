@@ -245,7 +245,7 @@ export function RunOnlineArt() {
         </div>
         <div className="mt-3 flex items-center justify-between gap-2 rounded-2xl border border-primary/30 bg-primary/10 px-3 py-2">
           <span className="flex items-center gap-2 text-[11px] font-semibold text-foreground">
-            <img src="/nisciconoriginal.png" alt="" width={20} height={13} className="w-5" /> Managed in nPanel
+            <img loading="lazy" decoding="async" src="/nisciconoriginal.png" alt="" width={20} height={13} className="w-5" /> Managed in nPanel
           </span>
           <span className="text-[9px] text-muted-foreground">Billing and renewals in one account</span>
         </div>

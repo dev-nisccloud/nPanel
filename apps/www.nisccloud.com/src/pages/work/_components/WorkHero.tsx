@@ -18,7 +18,7 @@ export default function WorkHero() {
           transition={{ duration: 0.45, delay: 0.08 }}
           className="text-base text-muted-foreground max-w-2xl leading-relaxed"
         >
-          Brands, websites, hosting and marketing for growing Kenyan businesses, delivered and supported by one team.
+          Brands, websites, hosting and marketing for manufacturers, travel brands and professional firms, designed, hosted and supported by one team.
         </motion.p>
       </div>
     </section>

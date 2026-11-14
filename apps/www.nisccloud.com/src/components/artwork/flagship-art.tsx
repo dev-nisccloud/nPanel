@@ -40,7 +40,7 @@ function BrandMark({ className }: { className?: string }) {
         className,
       )}
     >
-      <img src="/nisciconoriginal.png" alt="" width={20} height={13} className="w-5" />
+      <img loading="lazy" decoding="async" src="/nisciconoriginal.png" alt="" width={20} height={13} className="w-5" />
       <span className="text-[9px] font-bold text-foreground">nPanel</span>
     </span>
   );
@@ -204,7 +204,7 @@ export function AgencyFlagshipArt() {
 
       <div className="grid min-h-[340px] sm:grid-cols-[50px_1fr]">
         <aside className="hidden border-r border-border bg-muted/25 py-3 sm:flex sm:flex-col sm:items-center sm:gap-2">
-          <img src="/nisciconoriginal.png" alt="" width={24} height={15} className="mb-2 w-6" />
+          <img loading="lazy" decoding="async" src="/nisciconoriginal.png" alt="" width={24} height={15} className="mb-2 w-6" />
           {[Users, Globe, Server, Mail, CreditCardIcon].map((Icon, index) => (
             <span
               key={index}

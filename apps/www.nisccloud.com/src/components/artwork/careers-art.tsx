@@ -125,35 +125,169 @@ function Tick({ done, children }: { done: boolean; children: ReactNode }) {
 
 /* ------------------------------------------------------------------ Careers hero */
 
-type HeroPhoto = { src: string; srcSet: string; alt: string; position: string };
-
 const FAN_SLOTS = [
   { x: -78, y: 34, rotate: -6, z: 1 },
   { x: 0, y: 0, rotate: 0, z: 3 },
   { x: 78, y: 34, rotate: 6, z: 1 },
 ];
 
-/** Three photos, left to right; the middle one sits in front. Deliberately still. */
-export function CareersHeroCollage({ photos }: { photos: HeroPhoto[] }) {
+function SceneTag({ children }: { children: ReactNode }) {
   return (
-    <div className="relative mx-auto h-[250px] max-w-6xl sm:h-[320px] md:h-[400px]">
-      <ul className="absolute inset-0">
-        {photos.slice(0, FAN_SLOTS.length).map((photo, index) => {
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#02070A] px-2.5 py-1 text-[10px] font-semibold text-white">
+      <span className="size-1.5 rounded-full bg-[#38b6ff]" />
+      {children}
+    </span>
+  );
+}
+
+function SceneLines({ widths }: { widths: string[] }) {
+  return (
+    <div className="grid gap-1.5">
+      {widths.map((w, i) => (
+        <span key={i} className={cn("h-1.5 rounded-full", i === 0 ? "bg-slate-300" : "bg-slate-200")} style={{ width: w }} />
+      ))}
+    </div>
+  );
+}
+
+function BuildScene() {
+  return (
+    <div className="flex h-full flex-col gap-2.5 p-3 sm:gap-3 sm:p-4">
+      <div className="flex items-center justify-between">
+        <SceneTag>Build</SceneTag>
+        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[9px] font-semibold text-emerald-700">
+          <span className="size-1.5 rounded-full bg-emerald-500" />
+          Live
+        </span>
+      </div>
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <div className="flex items-center gap-1.5 border-b border-slate-200 bg-slate-50 px-2.5 py-1.5">
+          {["bg-[#fc734d]", "bg-amber-400", "bg-emerald-400"].map((c) => (
+            <span key={c} className={cn("size-1.5 rounded-full", c)} />
+          ))}
+          <span className="ml-1.5 truncate rounded-full bg-white px-2 py-0.5 text-[9px] text-slate-500 ring-1 ring-slate-200">acaciatraders.co.ke</span>
+        </div>
+        <div className="grid gap-2.5 p-2.5">
+          <div className="h-14 rounded-lg bg-gradient-to-br from-[#38b6ff] via-[#7cd0ff] to-[#fc734d]/70 sm:h-16" />
+          <SceneLines widths={["70%", "45%"]} />
+          <div className="grid grid-cols-3 gap-1.5">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="rounded-md border border-slate-200 p-1">
+                <div className={cn("h-6 rounded", i === 1 ? "bg-[#38b6ff]/25" : "bg-slate-100")} />
+                <span className="mt-1 block h-1 w-3/4 rounded-full bg-slate-200" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RunScene() {
+  return (
+    <div className="flex h-full flex-col gap-2.5 p-3 sm:gap-3 sm:p-4">
+      <div className="flex items-center justify-between">
+        <SceneTag>Run</SceneTag>
+        <img src="/nisciconoriginal.png" alt="" width={24} height={15} className="w-6" />
+      </div>
+      <div className="rounded-xl border border-slate-200 bg-white p-2.5">
+        <p className="text-[10px] font-semibold text-[#02070A]">Servers</p>
+        <ul className="mt-2 grid gap-1.5">
+          {["web-01", "mail-01", "db-01"].map((name, i) => (
+            <li key={name} className="flex items-center gap-2 rounded-lg bg-slate-50 px-2 py-1.5">
+              <span className="size-1.5 rounded-full bg-emerald-500" />
+              <span className="whitespace-nowrap font-mono text-[9px] text-slate-600">{name}</span>
+              <span className="ml-auto hidden items-end gap-0.5 sm:flex" aria-hidden>
+                {[3, 5, 4, 6, 5, 7].map((h, j) => (
+                  <span key={j} className="w-1 rounded-sm bg-[#38b6ff]/60" style={{ height: `${h + ((i + j) % 3)}px` }} />
+                ))}
+              </span>
+              <span className="ml-auto text-[9px] font-semibold text-emerald-700 sm:ml-0">Healthy</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="rounded-xl border border-slate-200 bg-white p-2.5">
+        <div className="flex items-center gap-2">
+          <span className="grid size-6 place-items-center rounded-full bg-[#02070A] text-[9px] font-bold text-white">WK</span>
+          <div className="min-w-0">
+            <p className="truncate text-[10px] font-semibold text-[#02070A]">Ticket resolved</p>
+            <p className="truncate text-[9px] text-slate-500">Email restored for Baobab Media</p>
+          </div>
+          <Check className="ml-auto size-3.5 shrink-0 text-emerald-600" strokeWidth={3} />
+        </div>
+      </div>
+      <div className="flex items-center justify-between rounded-xl bg-[#38b6ff]/10 px-2.5 py-2 ring-1 ring-[#38b6ff]/25">
+        <span className="text-[10px] font-semibold text-[#02070A]">Nightly backup</span>
+        <span className="text-[9px] font-semibold text-[#0b6aa3]">Completed</span>
+      </div>
+    </div>
+  );
+}
+
+function GrowScene() {
+  const bars = [28, 36, 34, 48, 58, 72];
+  return (
+    <div className="flex h-full flex-col gap-2.5 p-3 sm:gap-3 sm:p-4">
+      <SceneTag>Grow</SceneTag>
+      <div className="rounded-xl border border-slate-200 bg-white p-2.5">
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] font-semibold text-[#02070A]">Enquiries</p>
+          <span className="rounded-full bg-[#fc734d]/15 px-2 py-0.5 text-[9px] font-semibold text-[#b8431f]">Campaign live</span>
+        </div>
+        <div className="mt-3 flex h-20 items-end gap-1.5 border-b border-slate-200 pb-1 sm:h-24">
+          {bars.map((h, i) => (
+            <span
+              key={i}
+              className={cn("flex-1 rounded-t-md", i === bars.length - 1 ? "bg-[#38b6ff]" : "bg-[#38b6ff]/30")}
+              style={{ height: `${h}%` }}
+            />
+          ))}
+        </div>
+        <ul className="mt-2.5 grid gap-1.5">
+          {[
+            ["Search", "w-4/5", "bg-[#38b6ff]"],
+            ["Social", "w-3/5", "bg-[#fc734d]"],
+            ["Email", "w-2/5", "bg-[#02070A]"],
+          ].map(([label, width, color]) => (
+            <li key={label} className="flex items-center gap-2">
+              <span className="w-9 text-[9px] text-slate-500">{label}</span>
+              <span className="h-1.5 flex-1 rounded-full bg-slate-100">
+                <span className={cn("block h-full rounded-full", width, color)} />
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="flex items-center gap-2 rounded-xl bg-slate-50 px-2.5 py-2 ring-1 ring-slate-200">
+        <Target className="size-3.5 text-[#38b6ff]" />
+        <span className="text-[10px] font-semibold text-[#02070A]">Keep what works</span>
+      </div>
+    </div>
+  );
+}
+
+const HERO_SCENES = [BuildScene, RunScene, GrowScene];
+
+/** Three illustrated scenes of the work, left to right; the middle one sits in front. Deliberately still. */
+export function CareersHeroScenes() {
+  return (
+    <div
+      role="img"
+      aria-label="Illustrations of the three kinds of work at Nisc Cloud: launching a website, keeping servers healthy, and growing a customer's enquiries"
+      className="relative mx-auto h-[250px] max-w-6xl sm:h-[320px] md:h-[400px]"
+    >
+      <ul className="absolute inset-0" aria-hidden>
+        {HERO_SCENES.map((Scene, index) => {
           const slot = FAN_SLOTS[index];
           return (
             <li
-              key={photo.src}
+              key={index}
               style={{ zIndex: slot.z, transform: `translateX(calc(-50% + ${slot.x}%)) translateY(${slot.y}px) rotate(${slot.rotate}deg)` }}
-              className="absolute -bottom-10 left-1/2 w-[46%] overflow-hidden rounded-[22px] border border-white/15 bg-[#07131b] shadow-[0_30px_60px_-20px_rgb(0_0_0_/_0.7)] sm:w-[34%] md:w-[30%]"
+              className="absolute -bottom-10 left-1/2 aspect-[3/4] w-[46%] overflow-hidden rounded-[22px] border border-white/20 bg-gradient-to-b from-white to-[#eef8ff] shadow-[0_30px_60px_-20px_rgb(0_0_0_/_0.7)] sm:w-[34%] md:w-[30%]"
             >
-              <img
-                src={photo.src}
-                srcSet={photo.srcSet}
-                sizes="(min-width: 768px) 360px, 46vw"
-                alt={photo.alt}
-                fetchPriority={index === 1 ? "high" : undefined}
-                className={cn("aspect-[3/4] w-full object-cover", photo.position)}
-              />
+              <Scene />
             </li>
           );
         })}
@@ -188,18 +322,6 @@ export function CareersHeroCollage({ photos }: { photos: HeroPhoto[] }) {
         </Card>
       </div>
 
-      <div className="absolute right-10 top-24 z-10 hidden w-56 xl:block xl:right-24" aria-hidden>
-        <Card className="text-left">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-[11px] font-semibold text-foreground">Your first launch</p>
-            <Pill>Live</Pill>
-          </div>
-          <p className="mt-1 text-[10px] text-muted-foreground">acaciatraders.co.ke</p>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
-            <div className="h-full w-full rounded-full bg-[#38b6ff]" />
-          </div>
-        </Card>
-      </div>
     </div>
   );
 }

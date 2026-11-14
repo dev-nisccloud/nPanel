@@ -55,6 +55,7 @@ const WebsiteDesignPage = lazy(
   () => import("./pages/services/website-design/page.tsx"),
 );
 const EcommercePage = lazy(() => import("./pages/services/ecommerce/page.tsx"));
+const SoftwarePage = lazy(() => import("./pages/services/software/page.tsx"));
 const SeoPage = lazy(() => import("./pages/services/seo/page.tsx"));
 const PaidAdsPage = lazy(() => import("./pages/services/paid-ads/page.tsx"));
 const SocialMediaPage = lazy(
@@ -83,11 +84,13 @@ const DomainTransferPage = lazy(
 );
 import ScrollToTop from "./components/ScrollToTop.tsx";
 import FloatingActionButton from "./components/FloatingActionButton.tsx";
+import PageLoader, { InitialPageReady } from "./components/PageLoader.tsx";
 
 // Legal pages
 const TermsOfServicePage = lazy(() => import("./pages/legal/terms/page.tsx"));
 const PrivacyPolicyPage = lazy(() => import("./pages/legal/privacy/page.tsx"));
 const CookiePolicyPage = lazy(() => import("./pages/legal/cookies/page.tsx"));
+const LegalCentrePage = lazy(() => import("./pages/legal/page.tsx"));
 const ServiceLevelAgreementPage = lazy(() => import("./pages/legal/sla/page.tsx"));
 const AcceptableUsePolicyPage = lazy(() => import("./pages/legal/acceptable-use/page.tsx"));
 const DataProcessingAddendumPage = lazy(() => import("./pages/legal/dpa/page.tsx"));
@@ -127,17 +130,7 @@ export function AppRoutes() {
     <>
       <RouteMeta />
       <ScrollToTop />
-      <Suspense
-        fallback={
-          <div
-            role="status"
-            aria-live="polite"
-            className="min-h-screen bg-background px-8 py-28 text-foreground"
-          >
-            Loading page...
-          </div>
-        }
-      >
+      <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/services" element={<ServicesPage />} />
@@ -180,6 +173,7 @@ export function AppRoutes() {
             element={<WebsiteDesignPage />}
           />
           <Route path="/services/ecommerce" element={<EcommercePage />} />
+          <Route path="/services/software" element={<SoftwarePage />} />
           <Route path="/services/seo" element={<SeoPage />} />
           <Route path="/services/paid-ads" element={<PaidAdsPage />} />
           <Route path="/services/social-media" element={<SocialMediaPage />} />
@@ -222,6 +216,7 @@ export function AppRoutes() {
           <Route path="/cart" element={<CartPage />} />
 
           {/* Legal pages */}
+          <Route path="/legal" element={<LegalCentrePage />} />
           <Route path="/terms" element={<TermsOfServicePage />} />
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
           <Route path="/cookies" element={<CookiePolicyPage />} />
@@ -239,6 +234,7 @@ export function AppRoutes() {
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <InitialPageReady />
       </Suspense>
       {!hideFab && <FloatingActionButton />}
     </>

@@ -51,7 +51,7 @@ export function AboutHeroVisual({ photo }: { photo: { src: string; srcSet: strin
         transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
         className="overflow-hidden rounded-[28px] border border-border shadow-[0_40px_80px_-40px_rgb(14_87_118_/_0.6)]"
       >
-        <img
+        <img loading="lazy" decoding="async"
           src={photo.src}
           srcSet={photo.srcSet}
           sizes="(min-width: 1024px) 50vw, 100vw"
