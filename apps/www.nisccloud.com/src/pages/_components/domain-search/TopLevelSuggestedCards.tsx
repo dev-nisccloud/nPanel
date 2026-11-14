@@ -528,7 +528,7 @@ function BundleCard({
       </Badge>
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex items-center justify-center rounded-lg bg-muted p-2 size-10">
-          <img src="/nisciconoriginal.png" alt="Bundle" width={24} height={24} className="object-contain" />
+          <img loading="lazy" decoding="async" src="/nisciconoriginal.png" alt="Bundle" width={24} height={24} className="object-contain" />
         </div>
       </div>
       <div

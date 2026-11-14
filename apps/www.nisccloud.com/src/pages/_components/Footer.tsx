@@ -1,22 +1,23 @@
-﻿import { ArrowUpRight, Mail, MapPin, Phone } from "lucide-react";
+﻿import { ArrowUp, ArrowUpRight, ChevronDown, Mail, Phone } from "lucide-react";
 import { Link } from "react-router-dom";
-import { openCookieSettings } from "@/lib/cookie-settings.ts";
-import AccreditationStrip from "./AccreditationStrip.tsx";
+import { cn } from "@/lib/utils.ts";
+import { FooterCredentials } from "./HeroCredentials.tsx";
 
 const DOCS_URL = import.meta.env.VITE_DOCS_URL || "https://docs.nisccloud.com";
 
-type FooterLinkItem =
-  | { label: string; href: string; external?: boolean }
-  | { label: string; action: "cookie-settings" };
+type FooterLinkItem = { label: string; href: string; external?: boolean };
 
 type FooterSection = {
   title: string;
+  /** Hub page for the column, when one exists. */
+  href?: string;
   links: FooterLinkItem[];
 };
 
 const footerSections: FooterSection[] = [
   {
     title: "Hosting",
+    href: "/hosting",
     links: [
       { label: "Web Hosting", href: "/hosting/web-hosting" },
       { label: "WordPress Hosting", href: "/hosting/wordpress" },
@@ -24,7 +25,7 @@ const footerSections: FooterSection[] = [
       { label: "VPS Servers", href: "/hosting/vps" },
       { label: "Dedicated Servers", href: "/hosting/dedicated-servers" },
       { label: "SSL Certificates", href: "/hosting/ssl" },
-      { label: "Migrate to Nisc Cloud", href: "/hosting/transfer" },
+      { label: "Migration", href: "/hosting/transfer" },
     ],
   },
   {
@@ -34,17 +35,19 @@ const footerSections: FooterSection[] = [
       { label: "Domain Transfer", href: "/domain-transfer" },
       { label: "WHOIS Checker", href: "/whois" },
       { label: "Business Email", href: "/hosting/email" },
-      { label: "Enterprise Hybrid Email · New", href: "/hosting/hybrid-email" },
+      { label: "Hybrid Email", href: "/hosting/hybrid-email" },
       { label: "Microsoft 365", href: "/hosting/microsoft-365" },
       { label: "Google Workspace", href: "/hosting/google-workspace" },
     ],
   },
   {
     title: "Services",
+    href: "/services",
     links: [
       { label: "Brand Identity", href: "/services/brand-identity" },
       { label: "Website Design", href: "/services/website-design" },
       { label: "E-commerce Websites", href: "/services/ecommerce" },
+      { label: "Custom software", href: "/services/software" },
       { label: "SEO & Content", href: "/services/seo" },
       { label: "Paid Advertising", href: "/services/paid-ads" },
       { label: "Social Media", href: "/services/social-media" },
@@ -54,6 +57,7 @@ const footerSections: FooterSection[] = [
   },
   {
     title: "Company",
+    href: "/about",
     links: [
       { label: "About", href: "/about" },
       { label: "Customers", href: "/work" },
@@ -76,15 +80,14 @@ const footerSections: FooterSection[] = [
   },
   {
     title: "Legal",
+    href: "/legal",
     links: [
       { label: "Terms of Service", href: "/terms" },
-      { label: "Service Level Agreement", href: "/sla" },
-      { label: "Acceptable Use Policy", href: "/acceptable-use" },
-      { label: "Data Processing Addendum", href: "/dpa" },
+      { label: "SLA", href: "/sla" },
+      { label: "Acceptable Use", href: "/acceptable-use" },
+      { label: "Data Processing (DPA)", href: "/dpa" },
       { label: "Privacy Policy", href: "/privacy" },
       { label: "Cookie Policy", href: "/cookies" },
-      { label: "Cookie settings", action: "cookie-settings" },
-      { label: "Security", href: "/security" },
     ],
   },
 ];
@@ -148,40 +151,32 @@ const socialLinks = [
   },
 ] as const;
 
-const contactTiles = [
-  { icon: Mail, label: "Email sales", value: "sales@nisccloud.com", href: "mailto:sales@nisccloud.com" },
-  { icon: Phone, label: "Call us", value: "+254 748 777 666", href: "tel:+254748777666" },
-  { icon: MapPin, label: "Visit", value: "Ngong Road, Nairobi" },
+const contactLinks = [
+  { icon: Mail, value: "sales@nisccloud.com", href: "mailto:sales@nisccloud.com" },
+  { icon: Phone, value: "+254 748 777 666", href: "tel:+254748777666" },
 ] as const;
 
 const linkClass =
   "group inline-flex cursor-pointer items-center gap-1 rounded-sm text-left text-sm text-slate-400 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange";
 
-function FooterLinkRow({ link }: { link: FooterLinkItem }) {
+function FooterLinkRow({ link, className }: { link: FooterLinkItem; className?: string }) {
+  const classes = cn(linkClass, className);
   const arrow = (
     <ArrowUpRight
       aria-hidden
       className="size-3.5 -translate-x-1 opacity-0 transition-[transform,opacity,color] group-hover:translate-x-0 group-hover:text-brand-orange group-hover:opacity-100"
     />
   );
-  if ("action" in link) {
-    return (
-      <button type="button" className={linkClass} onClick={openCookieSettings}>
-        {link.label}
-        {arrow}
-      </button>
-    );
-  }
   if (link.external) {
     return (
-      <a href={link.href} className={linkClass} target="_blank" rel="noopener noreferrer">
+      <a href={link.href} className={classes} target="_blank" rel="noopener noreferrer">
         {link.label}
         {arrow}
       </a>
     );
   }
   return (
-    <Link to={link.href} className={linkClass}>
+    <Link to={link.href} className={classes}>
       {link.label}
       {arrow}
     </Link>
@@ -204,19 +199,24 @@ export default function Footer() {
         }}
       />
 
-      <div className="mx-auto max-w-7xl px-4 pt-14 md:px-8 md:pt-16">
-        {/* Brand statement + contact tiles */}
-        <div className="grid gap-8 border-b border-white/10 pb-10 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] xl:items-end">
-          <div>
-            <Link to="/" className="mb-5 flex w-fit items-center rounded-lg transition-opacity hover:opacity-85" aria-label="Nisc Cloud home">
-              <img src="/nisccloud-logo.svg" alt="Nisc Cloud" className="h-11 w-auto object-contain" />
-            </Link>
-            <p className="type-h3 max-w-md text-white">
-              Technology, infrastructure and growth for{" "}
-              <span className="text-primary">modern businesses.</span>
-            </p>
-            <p className="type-label mb-4 mt-8 text-white">Follow us</p>
-            <div className="flex items-center gap-2.5">
+      <div className="mx-auto max-w-7xl px-4 pt-12 md:px-8">
+        <div className="flex flex-col gap-6 border-b border-white/10 pb-8 lg:flex-row lg:items-center lg:justify-between">
+          <Link to="/" className="flex w-fit items-center rounded-lg transition-opacity hover:opacity-85" aria-label="Nisc Cloud home">
+            <img loading="lazy" decoding="async" src="/nisccloud-logo.svg" alt="Nisc Cloud" className="h-9 w-auto object-contain" />
+          </Link>
+
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+            {contactLinks.map(({ icon: Icon, value, href }) => (
+              <a
+                key={value}
+                href={href}
+                className="inline-flex min-h-11 items-center gap-2 rounded-sm text-sm font-semibold text-white transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange"
+              >
+                <Icon size={16} className="text-primary" aria-hidden />
+                {value}
+              </a>
+            ))}
+            <div className="flex items-center gap-1.5">
               {socialLinks.map((social) => (
                 <a
                   key={social.label}
@@ -224,50 +224,58 @@ export default function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={social.label}
-                  className="inline-flex size-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-300 transition-[color,background-color,border-color,transform] hover:-translate-y-0.5 hover:border-primary/50 hover:bg-primary/15 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange"
+                  className="inline-flex size-11 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-white/[0.06] hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange"
                 >
                   {social.icon}
                 </a>
               ))}
             </div>
           </div>
-          <ul className="grid gap-3 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,0.9fr)]">
-            {contactTiles.map(({ icon: Icon, label, value, ...rest }) => {
-              const href = "href" in rest ? rest.href : undefined;
-              const inner = (
-                <>
-                  <span className="flex size-9 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/25 transition-colors group-hover:bg-brand-orange/15 group-hover:text-brand-orange group-hover:ring-brand-orange/30">
-                    <Icon size={16} />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-xs font-medium text-slate-400">{label}</span>
-                    <span className="block text-sm font-semibold text-white [overflow-wrap:anywhere]">{value}</span>
-                  </span>
-                </>
-              );
-              const tile =
-                "group flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3.5 backdrop-blur transition-colors";
-              return (
-                <li key={label}>
-                  {href ? (
-                    <a href={href} className={`${tile} hover:border-brand-orange/40 hover:bg-white/[0.07]`}>
-                      {inner}
-                    </a>
-                  ) : (
-                    <div className={tile}>{inner}</div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
         </div>
 
-        {/* Link columns */}
-        <div className="grid grid-cols-2 gap-x-6 gap-y-10 py-10 sm:grid-cols-3 xl:grid-cols-6">
+        <nav aria-label="Footer" className="py-4 lg:grid lg:grid-cols-6 lg:gap-x-6 lg:py-10">
           {footerSections.map((section) => (
-            <div key={section.title}>
-              <p className="type-label mb-4 text-white">{section.title}</p>
-              <ul className="space-y-2.5">
+            <details key={section.title} className="group/section border-b border-white/10 lg:hidden">
+              <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between text-white [&::-webkit-details-marker]:hidden">
+                <span className="type-label">{section.title}</span>
+                <ChevronDown
+                  aria-hidden
+                  className="size-4 text-slate-400 transition-transform group-open/section:rotate-180 motion-reduce:transition-none"
+                />
+              </summary>
+              <ul className="grid grid-cols-2 gap-x-4 gap-y-1 pb-4">
+                {section.href && !section.links.some((link) => link.href === section.href) ? (
+                  <li>
+                    <Link to={section.href} className={cn(linkClass, "min-h-11")}>
+                      Overview
+                    </Link>
+                  </li>
+                ) : null}
+                {section.links.map((link) => (
+                  <li key={link.label}>
+                    <FooterLinkRow link={link} className="min-h-11" />
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ))}
+          {footerSections.map((section) => (
+            <div key={section.title} className="hidden lg:block">
+              {section.href ? (
+                <Link
+                  to={section.href}
+                  className="group mb-3 flex h-6 w-fit items-center gap-1 rounded-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange"
+                >
+                  <span className="type-label">{section.title}</span>
+                  <ArrowUpRight
+                    aria-hidden
+                    className="size-3.5 text-primary transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 motion-reduce:transition-none"
+                  />
+                </Link>
+              ) : (
+                <p className="type-label mb-3 flex h-6 items-center text-white">{section.title}</p>
+              )}
+              <ul className="space-y-2">
                 {section.links.map((link) => (
                   <li key={link.label}>
                     <FooterLinkRow link={link} />
@@ -276,22 +284,31 @@ export default function Footer() {
               </ul>
             </div>
           ))}
-        </div>
-
-        <AccreditationStrip />
+        </nav>
       </div>
 
-      <div className="relative border-t border-white/10 bg-black/40 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-5 text-sm text-slate-400 md:px-8">
-          <div className="space-y-1.5 text-center lg:text-left">
-            <p>© {new Date().getFullYear()} Nisc Cloud Limited. All rights reserved.</p>
-            <address className="text-xs not-italic leading-relaxed text-slate-500">
-              NISC CLOUD LIMITED · Company Reg. No. PVT-ZQUX33PK · Applewood, Office 805, Ngong Road, Nairobi, Kenya
-            </address>
-            <p className="text-xs text-slate-500">
-              Registered Data Controller · ODPC Reg. No. 160-3417-5D07 · Kenya Data Protection Act, 2019
-            </p>
-          </div>
+      <div className="relative border-t border-white/10 bg-black/40">
+        <div className="mx-auto flex max-w-7xl flex-col items-center gap-4 px-4 py-5 text-sm text-slate-400 md:px-8 xl:flex-row xl:justify-between xl:gap-6 xl:py-4">
+          <FooterCredentials className="shrink-0 xl:order-2" />
+          <p className="min-w-0 text-center leading-relaxed xl:order-1 xl:text-left">
+            © {new Date().getFullYear()} Nisc Cloud Limited. All rights reserved.
+            <span className="block text-xs text-slate-500">
+              Technology, Cloud infrastructure and Digital growth for businesses.
+            </span>
+          </p>
+          <button
+            type="button"
+            onClick={() =>
+              window.scrollTo({
+                top: 0,
+                behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+              })
+            }
+            className="group inline-flex min-h-11 shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap rounded-full px-3 text-sm xl:order-3 font-semibold text-white transition-colors hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange"
+          >
+            Back to top
+            <ArrowUp size={15} className="transition-transform group-hover:-translate-y-0.5 motion-reduce:transition-none" aria-hidden />
+          </button>
         </div>
       </div>
     </footer>

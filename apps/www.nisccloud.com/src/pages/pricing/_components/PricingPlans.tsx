@@ -20,6 +20,7 @@ import {
   BrandIdentityPricing,
   WebsiteDesignPricing,
   EcommercePricing,
+  SoftwarePricing,
   SocialMediaPricing,
   PaidAdsPricing,
   ZepoAiPricing,
@@ -167,16 +168,8 @@ const groups: Group[] = [
         id: "custom-software",
         label: "Custom Software",
         description: "Business applications, portals and integrations built around the way you work.",
-        href: "/contact?serviceName=Custom%20Software",
-        component: () => (
-          <EnquiryPanel
-            title="Scoped and quoted per project"
-            body="Tell us what the software needs to do, who will use it and which systems it connects to. We confirm scope, timeline and a fixed quotation before work starts."
-            points={["Discovery call to define scope", "Fixed quotation before you commit", "Hosting on Nisc Cloud infrastructure"]}
-            serviceName="Custom Software"
-            cta="Request a proposal"
-          />
-        ),
+        href: "/services/software",
+        component: SoftwarePricing,
       },
       {
         id: "seo",

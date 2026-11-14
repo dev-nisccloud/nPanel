@@ -209,8 +209,8 @@ export const posts: Post[] = [
       {
         type: "stat-row",
         stats: [
-          { value: "87%", label: "Of Kenyan online shoppers prefer M-Pesa payments" },
-          { value: "KES 850B", label: "Annual M-Pesa transaction value in Kenya" },
+          { value: "65.7%", label: "Of Kenyan online shoppers prefer mobile money, such as M-Pesa" },
+          { value: "KES 38.3T", label: "Annual M-Pesa transaction value in Kenya" },
           { value: "3.2x", label: "Higher conversion with STK push vs manual till payment" },
         ],
       },
@@ -392,16 +392,16 @@ export const posts: Post[] = [
     category: "Paid Advertising",
     title: "Google Ads vs Meta Ads in Kenya: Where Should Your Marketing Budget Go?",
     excerpt:
-      "We ran over KES 50 million in ad spend across both platforms. Here's what actually converts for different industries in the Kenyan market.",
+      "We have managed over KES 100 million (over USD 750,000) in client ad spend, including over KES 50 million (over USD 380,000), for a dozen Kenyan enterprises and medium-sized businesses. Here's what actually converts.",
     readTime: "9 min read",
     date: "Mar 30, 2025",
     gradient: "from-rose-500/20 via-primary/10 to-transparent",
-    author: "Amara Oduya",
+    author: "Christine",
     authorRole: "Head of Paid Media, Nisc Cloud",
     content: [
       {
         type: "intro",
-        text: "The Google vs Meta debate is one of the most common questions we get from new clients. After managing over KES 50 million in combined ad spend across dozens of Kenyan businesses, we have enough data to give you a definitive answer - for most industries.",
+        text: "The Google vs Meta debate is one of the most common questions we get from new clients. We have managed over KES 100 million (over USD 750,000) in client ad spend, including over KES 50 million (over USD 380,000), for a dozen Kenyan enterprises and medium-sized businesses in Kenya, so we have enough data to give you a definitive answer - for most industries.",
       },
       { type: "h2", text: "The Core Difference: Intent vs Interruption" },
       {

@@ -253,7 +253,7 @@ export default function SecurityDashboardScreen({
       {/* top bar */}
       <header className="relative z-10 flex h-7 shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/80 px-3 backdrop-blur-sm">
         <div className="flex items-center gap-2">
-          <img
+          <img loading="lazy" decoding="async"
             src="/nisccloud-logo.svg"
             alt="Nisc Cloud"
             className="h-4 w-auto object-contain object-left"

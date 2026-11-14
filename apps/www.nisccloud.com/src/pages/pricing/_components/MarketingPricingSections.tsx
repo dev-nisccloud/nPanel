@@ -3,15 +3,13 @@ import { ArrowRight, Check } from "lucide-react";
 import { ServiceMockPricingSection } from "@/components/shadcn-space/blocks/pricing-01/service-mock-pricing.tsx";
 import type { OrderPlan } from "@/pages/hosting/_components/OrderDialog.tsx";
 import {
-  BRAND_IDENTITY_PLANS,
-  ECOMMERCE_PLANS,
   PAID_ADS_PLANS,
   SERVICE_PACKAGE_NOTES,
   SOCIAL_MEDIA_PLANS,
   SSL_PLANS,
-  WEBSITE_DESIGN_PLANS,
   ZEPO_AI_PLANS,
 } from "@/lib/service-packages.ts";
+import { BRAND_OFFER, ECOMMERCE_OFFER, SOFTWARE_OFFER, WEBSITE_OFFER, type ProjectOffer } from "@/lib/project-packages.ts";
 import { useCurrency } from "@/components/providers/currency.tsx";
 import { convertKesForDisplay, formatCurrency } from "@/lib/currency.ts";
 
@@ -25,16 +23,54 @@ function MockPricing({ serviceName, note, plans }: MockPricingProps) {
   return <ServiceMockPricingSection plans={plans} serviceName={serviceName} subtitle={note} pricingNote={note} />;
 }
 
+function QuotedOfferSummary({ offer, href }: { offer: ProjectOffer; href: string }) {
+  return (
+    <div className="pt-8">
+      <div className="grid gap-4 md:grid-cols-3">
+        {offer.packages.map((item) => (
+          <article key={item.id} className="flex flex-col rounded-2xl border border-border bg-card p-6">
+            <h3 className="type-h3 text-foreground">{item.name}</h3>
+            <p className="mt-2 text-sm font-semibold text-primary">Quoted in the proposal</p>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{item.summary}</p>
+            <ul className="mt-5 flex-1 space-y-2.5 text-sm text-muted-foreground">
+              {item.includes.map((line) => (
+                <li key={line} className="flex gap-2">
+                  <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+                  <span>{line}</span>
+                </li>
+              ))}
+            </ul>
+          </article>
+        ))}
+      </div>
+      <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">{offer.intro}</p>
+        <Link
+          to={href}
+          className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-[10px] bg-primary px-6 font-semibold text-primary-foreground hover:opacity-90"
+        >
+          Start an enquiry
+          <ArrowRight className="size-4" aria-hidden />
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export function BrandIdentityPricing() {
-  return <MockPricing serviceName="Brand Identity & Logo Design" note={SERVICE_PACKAGE_NOTES.BRAND_IDENTITY} plans={BRAND_IDENTITY_PLANS} />;
+  return <QuotedOfferSummary offer={BRAND_OFFER} href="/services/brand-identity#plans" />;
 }
 
 export function WebsiteDesignPricing() {
-  return <MockPricing serviceName="Website Design & Development" note={SERVICE_PACKAGE_NOTES.WEBSITE_DESIGN} plans={WEBSITE_DESIGN_PLANS} />;
+  return <QuotedOfferSummary offer={WEBSITE_OFFER} href="/services/website-design#plans" />;
 }
 
 export function EcommercePricing() {
-  return <MockPricing serviceName="E-commerce Store Development" note={SERVICE_PACKAGE_NOTES.ECOMMERCE} plans={ECOMMERCE_PLANS} />;
+  return <QuotedOfferSummary offer={ECOMMERCE_OFFER} href="/services/ecommerce#plans" />;
+}
+
+export function SoftwarePricing() {
+  return <QuotedOfferSummary offer={SOFTWARE_OFFER} href="/services/software#plans" />;
 }
 
 export function SocialMediaPricing() {

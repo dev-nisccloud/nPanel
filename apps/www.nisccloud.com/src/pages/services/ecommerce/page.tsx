@@ -1,9 +1,16 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
-import { ECOMMERCE_PLANS, SERVICE_PACKAGE_NOTES } from "@/lib/service-packages.ts";
+import ProjectEnquiryFlow from "@/components/ProjectEnquiryFlow.tsx";
+import { ECOMMERCE_OFFER } from "@/lib/project-packages.ts";
 import { ShoppingCart, CreditCard, Package, Truck, BarChart2, Shield, Smartphone, Globe, Search, MousePointerClick } from "lucide-react";
 import { Highlight, StepSpotlight } from "@/components/signature/index.ts";
 import { MobileFlowArt } from "@/components/artwork/build-art.tsx";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
+import {
+  EcommerceComparison,
+  EcommerceExplained,
+  EcommercePlanFit,
+  EcommerceStart,
+} from "./_components/ecommerce-content.tsx";
 
 const showcaseBlocks: ShowcaseBlock[] = [
   {
@@ -91,12 +98,8 @@ export default function EcommercePage() {
           desc: "Product templates can include clear URLs, metadata, and relevant product schema. Search visibility still depends on catalogue quality, competition, authority, and ongoing optimisation.",
         },
       ]}
-      plans={ECOMMERCE_PLANS}
-      addons={[
-        { id: "ecom-mpesa-express", label: "Express Mobile Checkout Setup", price: 15000, period: "once" },
-        { id: "ecom-maintenance", label: "Monthly Store Maintenance & Updates", price: 12000, period: "month" },
-        { id: "ecom-productphotos", label: "Product Photography (30 SKUs)", price: 25000, period: "once" },
-      ]}
+      plans={[]}
+      customPlansSection={<ProjectEnquiryFlow offer={ECOMMERCE_OFFER} />}
       process={[
         { num: "01", title: "Store strategy", desc: "We review your catalogue, customer journey, operating team, target markets, and provider accounts to define the store structure and integration scope." },
         { num: "02", title: "Design & build", desc: "We create the storefront, configure the agreed catalogue structure, and build the priority browse-to-checkout journeys." },
@@ -105,6 +108,7 @@ export default function EcommercePage() {
       ]}
       contentSlots={{
         afterShowcase: (
+          <>
           <StepSpotlight
             id="mobile-journey"
             eyebrow="The mobile journey"
@@ -120,7 +124,12 @@ export default function EcommercePage() {
             art={<MobileFlowArt />}
             artLabel="Illustration of a shopper moving from browsing to a confirmed order on a phone"
           />
+          <EcommerceComparison />
+          </>
         ),
+        afterProcess: <EcommerceStart />,
+        afterPricing: <EcommercePlanFit />,
+        beforeFaq: <EcommerceExplained />,
       }}
       whyPoints={[
         { title: "Operations shape the build", desc: "Catalogue ownership, fulfilment, returns, and reporting are discussed before platform choices are locked in.", visual: "mobile" },
@@ -136,11 +145,10 @@ export default function EcommercePage() {
         { q: "Can I manage the store myself after launch?", a: "Yes. We build on platforms with user-friendly dashboards. We provide full training covering product management, order processing, and reporting." },
         { q: "What happens if I need to add more products later?", a: "You can add products after launch within the platform's limits. For large updates, we can prepare a compatible import template or quote catalogue assistance after reviewing your data." },
         { q: "Can the store handle flash sales and high traffic?", a: "Capacity depends on the selected platform, hosting resources, catalogue, extensions, and expected peak. Tell us about planned promotions during discovery so we can recommend caching, infrastructure, and load testing appropriate to the risk." },
-        { q: "Do you integrate with Jumia or other marketplaces?", a: "Marketplace integration is assessed case by case. It requires a suitable seller account, an available and permitted API, compatible catalogue data, and a separately confirmed Enterprise scope." },
+        { q: "Do you integrate with Jumia or other marketplaces?", a: "Marketplace integration is assessed case by case. It requires a suitable seller account, an available and permitted API, compatible catalogue data, and a Corporate scope that names the integration." },
       ]}
       ctaHeadline="Plan a store your team can operate"
       ctaSubtext="Bring your catalogue, preferred payment providers, and delivery workflow. We will map the build, integration scope, and handover before implementation starts."
-      pricingNote={SERVICE_PACKAGE_NOTES.ECOMMERCE}
       showcaseBlocks={showcaseBlocks}
     />
   );

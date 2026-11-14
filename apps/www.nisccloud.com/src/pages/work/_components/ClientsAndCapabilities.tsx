@@ -139,8 +139,8 @@ export default function ClientsAndCapabilities() {
         <div className="max-w-7xl mx-auto flex items-start gap-3 rounded-xl border border-dashed border-border bg-muted/30 p-5">
           <FileCheck2 className="h-5 w-5 shrink-0 text-primary mt-0.5" aria-hidden />
           <p className="text-sm text-muted-foreground">
-            <span className="font-semibold text-foreground">Detailed case studies are on the way.</span>{" "}
-            We publish project details and results only after each client has reviewed and approved them. Ask us for references relevant to your project.
+            <span className="font-semibold text-foreground">Results stay with the client until they approve them.</span>{" "}
+            The sites above are live. We do not publish traffic, revenue or quotes until that client has reviewed them. Ask us for a reference that matches your project.
           </p>
         </div>
       </section>

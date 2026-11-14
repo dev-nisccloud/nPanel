@@ -30,8 +30,8 @@ export default function DataProcessingAddendumPage() {
     <LegalPageShell
       title="Data Processing Addendum"
       subtitle="How Nisc Cloud processes personal data on your behalf when you use our hosting, email, servers and other services, under the Kenya Data Protection Act, 2019."
-      effectiveDate="13 November 2026"
-      lastUpdated="13 November 2026"
+      effectiveDate="1 October 2026"
+      lastUpdated="1 October 2026"
       version="1.0"
       toc={toc}
       summary={<LegalGlance title="How we handle your customers' data" facts={glance} />}

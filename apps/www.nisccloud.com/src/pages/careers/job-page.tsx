@@ -140,7 +140,7 @@ export default function CareerJobPage() {
           <p className="mx-auto max-w-3xl px-4 py-24 text-center text-muted-foreground md:px-8">Loading role…</p>
         ) : role === null ? (
           <div className="mx-auto grid max-w-3xl justify-items-center px-4 py-24 text-center md:px-8">
-            <img src="/artwork/support-original.png" alt="" className="h-36 w-auto" />
+            <img loading="lazy" decoding="async" src="/artwork/support-original.png" alt="" className="h-36 w-auto" />
             <h1 className="type-h2 mt-6">This role is no longer open</h1>
             <p className="mt-4 max-w-lg text-muted-foreground">
               It may have been filled or closed. The roles we are hiring for now are on the careers page.
