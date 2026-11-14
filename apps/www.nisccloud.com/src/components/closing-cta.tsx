@@ -233,7 +233,7 @@ export function ClosingCta({
         )}
       >
         <div aria-hidden className={cn("pointer-events-none absolute inset-0", theme.pattern)} />
-        <img
+        <img loading="lazy" decoding="async"
           src="/nisciconoriginal.png"
           alt=""
           aria-hidden

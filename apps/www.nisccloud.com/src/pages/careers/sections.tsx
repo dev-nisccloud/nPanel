@@ -5,7 +5,7 @@ import { BentoSection, BentoTile, FactStrip, GlassCta, Highlight, HonestCards, T
 import { ProjectJourneyArt } from "@/components/artwork/build-art.tsx";
 import { HostingFlagshipArt, SeoFlagshipArt } from "@/components/artwork/flagship-art.tsx";
 import {
-  CareersHeroCollage,
+  CareersHeroScenes,
   FactCustomersArt,
   FactTeamArt,
   FactYearArt,
@@ -26,19 +26,6 @@ const focusRing =
 const lightFocus = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38b6ff] focus-visible:ring-offset-2";
 const label = "type-label text-[#38b6ff] dark:text-[#38b6ff]";
 
-/** Nisc Cloud office photos used in the hero fan. Swap a path here to replace it everywhere. */
-const office = (name: string, alt: string, position: string) => ({
-  src: `/careers/${name}-1280.webp`,
-  srcSet: `/careers/${name}-640.webp 640w, /careers/${name}-1280.webp 1280w`,
-  alt,
-  position,
-});
-
-const HERO_PHOTOS = [
-  office("office-workstations", "The team floor at Nisc Cloud, with the Your business. Online. Secure. Growing. wall", "object-[22%_center]"),
-  office("office-team", "The Nisc Cloud team at work in the Nairobi office", "object-[42%_center]"),
-  office("office-reception", "Reception at the Nisc Cloud office in Nairobi", "object-[28%_center]"),
-];
 export const SECTION_LINKS = [
   { id: "why-nisc", label: "Why Nisc Cloud" },
   { id: "the-work", label: "The work" },
@@ -92,7 +79,7 @@ export function CareersHero({ openCount }: { openCount: number | null }) {
       </div>
 
       <div className="mt-12 md:mt-14">
-        <CareersHeroCollage photos={HERO_PHOTOS} />
+        <CareersHeroScenes />
       </div>
     </section>
   );

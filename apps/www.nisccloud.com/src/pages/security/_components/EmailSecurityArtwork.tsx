@@ -241,7 +241,7 @@ export function EmailSecurityScreen() {
 
       <header className="relative z-10 flex h-7 shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/80 px-3 backdrop-blur-sm">
         <div className="flex items-center gap-2">
-          <img src="/nisccloud-logo.svg" alt="" className="h-4 w-auto object-contain object-left" />
+          <img loading="lazy" decoding="async" src="/nisccloud-logo.svg" alt="" className="h-4 w-auto object-contain object-left" />
           <span className="h-2.5 w-px bg-slate-200" />
           <span className="text-[8px] font-medium text-slate-500">Email Security</span>
           <span className="text-[8px] text-slate-400">yourbusiness.co.ke</span>

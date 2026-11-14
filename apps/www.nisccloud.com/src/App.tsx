@@ -84,6 +84,7 @@ const DomainTransferPage = lazy(
 );
 import ScrollToTop from "./components/ScrollToTop.tsx";
 import FloatingActionButton from "./components/FloatingActionButton.tsx";
+import PageLoader, { InitialPageReady } from "./components/PageLoader.tsx";
 
 // Legal pages
 const TermsOfServicePage = lazy(() => import("./pages/legal/terms/page.tsx"));
@@ -129,17 +130,7 @@ export function AppRoutes() {
     <>
       <RouteMeta />
       <ScrollToTop />
-      <Suspense
-        fallback={
-          <div
-            role="status"
-            aria-live="polite"
-            className="min-h-screen bg-background px-8 py-28 text-foreground"
-          >
-            Loading page...
-          </div>
-        }
-      >
+      <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/services" element={<ServicesPage />} />
@@ -243,6 +234,7 @@ export function AppRoutes() {
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <InitialPageReady />
       </Suspense>
       {!hideFab && <FloatingActionButton />}
     </>

@@ -202,7 +202,7 @@ export default function Footer() {
       <div className="mx-auto max-w-7xl px-4 pt-12 md:px-8">
         <div className="flex flex-col gap-6 border-b border-white/10 pb-8 lg:flex-row lg:items-center lg:justify-between">
           <Link to="/" className="flex w-fit items-center rounded-lg transition-opacity hover:opacity-85" aria-label="Nisc Cloud home">
-            <img src="/nisccloud-logo.svg" alt="Nisc Cloud" className="h-9 w-auto object-contain" />
+            <img loading="lazy" decoding="async" src="/nisccloud-logo.svg" alt="Nisc Cloud" className="h-9 w-auto object-contain" />
           </Link>
 
           <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
@@ -288,14 +288,14 @@ export default function Footer() {
       </div>
 
       <div className="relative border-t border-white/10 bg-black/40">
-        <div className="mx-auto flex max-w-7xl flex-col items-center gap-3 px-4 py-4 text-sm text-slate-400 md:px-8 lg:flex-row lg:justify-between">
-          <p className="text-center lg:text-left">
+        <div className="mx-auto flex max-w-7xl flex-col items-center gap-4 px-4 py-5 text-sm text-slate-400 md:px-8 xl:flex-row xl:justify-between xl:gap-6 xl:py-4">
+          <FooterCredentials className="shrink-0 xl:order-2" />
+          <p className="min-w-0 text-center leading-relaxed xl:order-1 xl:text-left">
             © {new Date().getFullYear()} Nisc Cloud Limited. All rights reserved.
-            <span className="mt-1 block text-slate-500 lg:ml-3 lg:mt-0 lg:inline">
+            <span className="block text-xs text-slate-500">
               Technology, Cloud infrastructure and Digital growth for businesses.
             </span>
           </p>
-          <FooterCredentials />
           <button
             type="button"
             onClick={() =>
@@ -304,7 +304,7 @@ export default function Footer() {
                 behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
               })
             }
-            className="group inline-flex min-h-11 shrink-0 cursor-pointer items-center gap-2 rounded-full px-3 text-sm font-semibold text-white transition-colors hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange"
+            className="group inline-flex min-h-11 shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap rounded-full px-3 text-sm xl:order-3 font-semibold text-white transition-colors hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange"
           >
             Back to top
             <ArrowUp size={15} className="transition-transform group-hover:-translate-y-0.5 motion-reduce:transition-none" aria-hidden />

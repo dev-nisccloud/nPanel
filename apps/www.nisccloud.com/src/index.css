@@ -401,6 +401,44 @@
   50% { opacity: 1; transform: translateY(-2px); }
 }
 
+.ga-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes ga-flow {
+  to {
+    stroke-dashoffset: -420;
+  }
+}
+@keyframes ga-blink {
+  50% {
+    opacity: 0.35;
+  }
+}
+@keyframes ga-pulse {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+@keyframes ga-draw {
+  0% {
+    stroke-dashoffset: 1;
+  }
+  30%,
+  80% {
+    stroke-dashoffset: 0;
+  }
+  95%,
+  100% {
+    stroke-dashoffset: -1;
+  }
+}
+
 @keyframes art-float {
   0%,
   100% {
@@ -515,6 +553,15 @@
   .art-live .art-drift + .art-drift { animation-delay: -2.7s; }
   .art-live .art-rail-on { animation: art-rail 2.8s ease-in-out infinite; }
   .art-live .art-ping { animation: art-signal 1.8s ease-in-out infinite; }
+  .art-live .ga-float { animation: art-float 6s ease-in-out infinite; }
+  .art-live .ga-float-late { animation: art-float 7s ease-in-out -2.5s infinite; }
+  .art-live .ga-flow { animation: ga-flow 30s linear infinite; }
+  .art-live .ga-blink { animation: ga-blink 2.4s ease-in-out infinite; }
+  .art-live .ga-pulse { animation: ga-pulse 2.4s ease-out infinite; }
+  .art-live .ga-draw { stroke-dasharray: 1; animation: ga-draw 7s ease-in-out infinite; }
+  .art-live .ga-typing circle { animation: art-typing 1.2s ease-in-out infinite; }
+  .art-live .ga-typing circle:nth-of-type(2) { animation-delay: 0.15s; }
+  .art-live .ga-typing circle:nth-of-type(3) { animation-delay: 0.3s; }
   .art-live .art-caret::after {
     content: "";
     display: inline-block;
@@ -950,4 +997,73 @@
 }
 #main-content:focus {
   outline: none;
+}
+
+/* Page loader: a thin line at the top, shared by the static splash in index.html and the route
+   fallback. It stays invisible for 300ms so fast loads never show it. */
+.app-loader {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 100;
+  height: 3px;
+  overflow: hidden;
+  pointer-events: none;
+  background: rgb(56 182 255 / 0.1);
+  opacity: 0;
+  animation: app-loader-in 150ms ease-out 300ms forwards;
+}
+.app-loader__bar {
+  width: 40%;
+  height: 100%;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(90deg, rgb(56 182 255 / 0), var(--primary) 70%, #a5e1ff);
+  box-shadow: 0 0 8px rgb(56 182 255 / 0.6);
+  animation: app-loader-slide 0.7s cubic-bezier(0.3, 0, 0.2, 1) infinite;
+}
+@media (max-width: 639px) {
+  .app-loader__bar {
+    width: 60%;
+    animation-name: app-loader-slide-narrow;
+  }
+}
+@keyframes app-loader-slide-narrow {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(170%);
+  }
+}
+.app-loader .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+@keyframes app-loader-in {
+  to {
+    opacity: 1;
+  }
+}
+@keyframes app-loader-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(260%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-loader {
+    animation-duration: 1ms;
+  }
+  .app-loader__bar {
+    width: 100%;
+    animation: none;
+    background: var(--primary);
+    box-shadow: none;
+    opacity: 0.6;
+  }
 }
