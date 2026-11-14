@@ -118,7 +118,7 @@ export default function Services() {
             Every service. One team.
           </h2>
           <p className="text-muted-foreground text-base max-w-xl mx-auto">
-            All the tools your Kenyan business needs to grow - packaged as one integrated ecosystem.
+            Every tool your business needs to grow, packaged as one integrated ecosystem.
           </p>
         </motion.div>
 

@@ -11,6 +11,7 @@ const SERVICES: Record<string, string> = {
   automate: "Marketing Automation",
   full: "Full Growth Stack",
   custom: "Custom / Not sure yet",
+  software: "Custom software",
 };
 
 const BUDGETS: Record<string, { label: string; amount: string | null }> = {
@@ -19,6 +20,10 @@ const BUDGETS: Record<string, { label: string; amount: string | null }> = {
   "150k-500k": { label: "KES 150,000 – 500,000", amount: "325000.00" },
   "500k-plus": { label: "KES 500,000+", amount: "500000.00" },
   "not-sure": { label: "Not sure yet", amount: null },
+  "under-400-usd": { label: "Under USD 400", amount: "25000.00" },
+  "400-1200-usd": { label: "USD 400 – 1,200", amount: "100000.00" },
+  "1200-4000-usd": { label: "USD 1,200 – 4,000", amount: "325000.00" },
+  "4000-plus-usd": { label: "USD 4,000+", amount: "500000.00" },
 };
 
 const COMPANY_SUFFIX =

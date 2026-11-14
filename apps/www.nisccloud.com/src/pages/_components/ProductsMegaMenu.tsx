@@ -207,14 +207,14 @@ export const productFamilies = [
       {
         label: "Web Applications",
         desc: "Discuss your custom application.",
-        href: "/contact?service=web-application",
+        href: "/services/software",
         icon: Code2,
       },
 
       {
         label: "Mobile Applications",
         desc: "Bring your service closer to customers.",
-        href: "/contact?service=mobile-application",
+        href: "/services/software",
         icon: Smartphone,
       },
 

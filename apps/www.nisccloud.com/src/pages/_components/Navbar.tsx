@@ -181,6 +181,12 @@ const navItems: NavItem[] = [
         href: "/services/ecommerce",
         icon: <ShoppingCart size={16} />,
       },
+      {
+        label: "Custom software",
+        desc: "Web apps, mobile apps and internal tools",
+        href: "/services/software",
+        icon: <Code2 size={16} />,
+      },
     ],
   },
   {

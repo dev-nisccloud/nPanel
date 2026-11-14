@@ -19,8 +19,8 @@ export default function AcceptableUsePolicyPage() {
     <LegalPageShell
       title="Acceptable Use Policy"
       subtitle="What you can and cannot host, send or run on Nisc Cloud hosting, email, servers, domains and nPanel."
-      effectiveDate="13 November 2026"
-      lastUpdated="13 November 2026"
+      effectiveDate="1 October 2026"
+      lastUpdated="1 October 2026"
       version="1.0"
       toc={toc}
       related={relatedLegalDocuments("/acceptable-use")}
@@ -93,7 +93,7 @@ export default function AcceptableUsePolicyPage() {
       <h2 id="report">6. Reporting abuse</h2>
       <p>
         To report spam, phishing, malware, a scam or other abuse involving a service hosted by Nisc
-        Cloud, email <a href="mailto:support@nisccloud.com">support@nisccloud.com</a>. Include the
+        Cloud, email <a href="mailto:abuse@nisccloud.com">abuse@nisccloud.com</a>. Include the
         website address, email headers or other details that help us find the content. Report child
         sexual abuse material to the relevant authorities as well as to us.
       </p>
@@ -108,7 +108,7 @@ export default function AcceptableUsePolicyPage() {
       {/* ─── 8. CONTACT ─────────────────────────────────────────────────────── */}
       <h2 id="contact">8. Contact</h2>
       <ul>
-        <li><strong>Email:</strong> <a href="mailto:support@nisccloud.com">support@nisccloud.com</a></li>
+        <li><strong>Email:</strong> <a href="mailto:compliance@nisccloud.com">compliance@nisccloud.com</a></li>
         <li><strong>Company:</strong> NISC CLOUD LIMITED, registration number PVT-ZQUX33PK</li>
         <li><strong>Address:</strong> Applewood, Office 805, Ngong Road, Nairobi, Kenya</li>
       </ul>

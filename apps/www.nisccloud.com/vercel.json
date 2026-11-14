@@ -80,6 +80,10 @@
       "destination": "/services/ecommerce/index.html"
     },
     {
+      "source": "/services/software",
+      "destination": "/services/software/index.html"
+    },
+    {
       "source": "/services/seo",
       "destination": "/services/seo/index.html"
     },
@@ -238,6 +242,10 @@
     {
       "source": "/cookies",
       "destination": "/cookies/index.html"
+    },
+    {
+      "source": "/legal",
+      "destination": "/legal/index.html"
     },
     {
       "source": "/sla",

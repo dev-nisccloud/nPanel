@@ -6,7 +6,7 @@ import { ShowcaseVisualCard } from "@/pages/_components/ServiceShowcaseSection.t
 const features: ServiceFeature[] = [
   { icon: Palette, title: "Brand Identity", href: "/services/brand-identity", desc: "Logo, colour palette, typography system, and brand guidelines delivered as one clear package." },
   { icon: Layers, title: "Web Design & Dev", href: "/services/website-design", desc: "Custom websites built for speed, mobile use, and search engines, with a focus on turning visitors into customers." },
-  { icon: Type, title: "Copywriting", desc: "Clear messaging and tone of voice for your pages, ads, and campaigns." },
+  { icon: Type, title: "Custom software", href: "/services/software", desc: "Web applications, mobile applications and internal tools, scoped and quoted before build." },
   { icon: Paintbrush, title: "Creative Assets", desc: "Social graphics, banners, pitch decks, and marketing materials ready to use." },
 ];
 

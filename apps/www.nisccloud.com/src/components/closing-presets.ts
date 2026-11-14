@@ -174,7 +174,7 @@ export const CLOSING_THEMES = {
     primaryButton: "bg-[#02070a] text-white hover:bg-[#02070a]/85",
     secondaryButton: LIGHT_SECONDARY,
     pattern: DOTS,
-    layout: "centered",
+    layout: "split",
   },
   aurora: {
     surface: "bg-[linear-gradient(120deg,#38b6ff_0%,#38b6ff_45%,#a855f7_80%,#ec4899_100%)]",
