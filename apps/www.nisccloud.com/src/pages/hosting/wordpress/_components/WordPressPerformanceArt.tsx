@@ -92,7 +92,7 @@ export function WordPressPerformanceArt() {
               <span
                 className={cn(
                   "flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-300",
-                  active ? "bg-primary text-[#02070a]" : "bg-muted text-muted-foreground",
+                  active ? "bg-primary text-white" : "bg-muted text-muted-foreground",
                 )}
               >
                 <Icon className="size-4" />

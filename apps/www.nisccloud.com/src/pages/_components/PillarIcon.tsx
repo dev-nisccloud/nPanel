@@ -18,7 +18,7 @@ const TONES: Record<Pillar, { idle: string; active: string; accent: string }> = 
   },
   run: {
     idle: "bg-primary/10 text-primary dark:text-primary",
-    active: "bg-primary text-[#02070a]",
+    active: "bg-primary text-white",
     accent: "bg-brand-orange",
   },
   grow: {
