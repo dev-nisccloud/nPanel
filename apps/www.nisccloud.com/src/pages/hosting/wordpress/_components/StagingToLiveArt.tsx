@@ -84,7 +84,7 @@ export function StagingToLiveArt() {
           <span
             className={cn(
               "flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold transition-all duration-500",
-              pushed ? "bg-primary text-[#02070a]" : "bg-muted text-muted-foreground",
+              pushed ? "bg-primary text-white" : "bg-muted text-muted-foreground",
             )}
           >
             Push to live

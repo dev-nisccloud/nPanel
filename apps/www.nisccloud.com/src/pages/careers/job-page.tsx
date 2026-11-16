@@ -331,10 +331,10 @@ export default function CareerJobPage() {
           }`}
           aria-hidden={!showBar}
         >
-          <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 rounded-[20px] bg-[#38b6ff] px-5 py-3 text-[#02070A] shadow-2xl">
+          <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 rounded-[20px] bg-[#38b6ff] px-5 py-3 text-white shadow-2xl">
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold">{role.title}</p>
-              <p className="truncate text-xs text-[#02070A]/75">{role.salaryRange ?? `${role.location} · ${role.employmentType}`}</p>
+              <p className="truncate text-xs text-white/75">{role.salaryRange ?? `${role.location} · ${role.employmentType}`}</p>
             </div>
             <a
               href="#apply"

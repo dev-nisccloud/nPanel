@@ -57,10 +57,10 @@ const toneStyles: Record<Tone, { card: string; icon: string; muted: string; acce
     accent: "text-[#38b6ff]",
   },
   blue: {
-    card: "bg-[#38b6ff] text-[#02070A] border-transparent",
-    icon: "bg-[#02070A]/10 text-[#02070A]",
-    muted: "text-[#02070A]/75",
-    accent: "text-[#02070A]",
+    card: "bg-[#38b6ff] text-white border-transparent",
+    icon: "bg-white/20 text-white",
+    muted: "text-white/75",
+    accent: "text-white",
   },
   card: {
     card: "bg-card text-foreground border-border",
@@ -95,7 +95,7 @@ function DocumentStack() {
           </div>
         </div>
       ))}
-      <div className="absolute bottom-0 right-0 z-20 rounded-2xl bg-[#38b6ff] px-4 py-3 text-[#02070A] shadow-lg">
+      <div className="absolute bottom-0 right-0 z-20 rounded-2xl bg-[#38b6ff] px-4 py-3 text-white shadow-lg">
         <p className="text-xs font-semibold">Effective</p>
         <p className="text-lg font-bold leading-tight">{EFFECTIVE_DATE}</p>
       </div>
@@ -127,7 +127,7 @@ export default function LegalCentrePage() {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
                 to="/terms"
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#38b6ff] px-6 text-base font-bold text-[#02070A] shadow-lg transition-colors hover:bg-[#1aa3e6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38b6ff] focus-visible:ring-offset-2"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#38b6ff] px-6 text-base font-bold text-white shadow-lg transition-colors hover:bg-[#1aa3e6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38b6ff] focus-visible:ring-offset-2"
               >
                 Read the Terms of Service
               </Link>

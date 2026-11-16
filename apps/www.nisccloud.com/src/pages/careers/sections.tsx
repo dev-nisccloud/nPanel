@@ -55,7 +55,7 @@ export function CareersHero({ openCount }: { openCount: number | null }) {
               </li>
             ))}
             <li>
-              <a href="#open-roles" className={`inline-flex min-h-10 items-center whitespace-nowrap rounded-full bg-[#38b6ff] px-4 text-sm font-semibold text-[#02070A] hover:bg-[#38b6ff]/85 ${focusRing}`}>
+              <a href="#open-roles" className={`inline-flex min-h-10 items-center whitespace-nowrap rounded-full bg-[#38b6ff] px-4 text-sm font-semibold text-white hover:bg-[#38b6ff]/85 ${focusRing}`}>
                 Find my role
               </a>
             </li>
@@ -370,7 +370,7 @@ function SetupVisual() {
           transition={{ delay: 0.3 + index * 0.25 }}
           className="flex items-center gap-2.5 text-sm font-medium"
         >
-          <span className="grid size-5 place-items-center rounded-full bg-[#38b6ff] text-[#02070A]">
+          <span className="grid size-5 place-items-center rounded-full bg-[#38b6ff] text-white">
             <Check className="size-3" strokeWidth={3} />
           </span>
           {item}

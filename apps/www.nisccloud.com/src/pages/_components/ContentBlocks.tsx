@@ -79,7 +79,7 @@ export function StepList({ steps, className }: { steps: string[]; className?: st
     <ol className={cn("space-y-4", className)}>
       {steps.map((step, i) => (
         <li key={step} className="flex gap-4">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-base font-bold text-[#02070a]">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-base font-bold text-white">
             {i + 1}
           </span>
           <span className="pt-1.5 text-base leading-relaxed text-foreground md:text-[17px]">{step}</span>
@@ -162,7 +162,7 @@ export function PlanFitGrid({
         <div className="flex shrink-0 flex-wrap gap-3">
           <a
             href="#plans"
-            className="inline-flex h-11 items-center gap-2 rounded-xl bg-primary px-5 text-base font-bold text-[#02070a] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            className="inline-flex h-11 items-center gap-2 rounded-xl bg-primary px-5 text-base font-bold text-white transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
             Compare plans
             <ArrowRight className="size-4" aria-hidden />
@@ -208,7 +208,7 @@ export function ComparisonTable({
                 className={cn("p-5 align-bottom text-lg font-bold", i === highlight && "bg-primary/10")}
               >
                 {i === highlight ? (
-                  <span className="mb-2 block w-fit rounded-full bg-primary px-2.5 py-0.5 text-xs font-bold text-[#02070a]">You're here</span>
+                  <span className="mb-2 block w-fit rounded-full bg-primary px-2.5 py-0.5 text-xs font-bold text-white">You're here</span>
                 ) : null}
                 {c.title}
               </th>

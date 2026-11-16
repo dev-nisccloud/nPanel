@@ -39,7 +39,7 @@ function StrategyCallArt() {
             const done = step > i;
             return (
               <li key={item} className="flex items-center gap-2.5 text-sm">
-                <span className={`grid size-5 place-items-center rounded-full transition-colors duration-300 ${done ? "bg-[#38b6ff] text-[#02070A]" : "border border-[#02070A]/15 dark:border-border"}`}>
+                <span className={`grid size-5 place-items-center rounded-full transition-colors duration-300 ${done ? "bg-[#38b6ff] text-white" : "border border-[#02070A]/15 dark:border-border"}`}>
                   {done ? <Check className="size-3" strokeWidth={3} /> : null}
                 </span>
                 {item}
@@ -55,7 +55,7 @@ function StrategyCallArt() {
               <span
                 key={slot}
                 className={`rounded-xl border px-2 py-2 text-center text-xs font-semibold transition-colors duration-300 ${
-                  chosen ? "border-[#38b6ff] bg-[#38b6ff] text-[#02070A]" : "border-[#02070A]/10 dark:border-border"
+                  chosen ? "border-[#38b6ff] bg-[#38b6ff] text-white" : "border-[#02070A]/10 dark:border-border"
                 }`}
               >
                 {slot}

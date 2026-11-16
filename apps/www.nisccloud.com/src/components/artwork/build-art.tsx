@@ -78,7 +78,7 @@ function Avatar({ text, tone = "sky" }: { text: string; tone?: "sky" | "orange" 
     <span
       className={cn(
         "grid size-7 shrink-0 place-items-center rounded-full text-[8px] font-bold ring-2 ring-card",
-        tone === "sky" && "bg-[#38b6ff] text-[#02070A]",
+        tone === "sky" && "bg-[#38b6ff] text-white",
         tone === "orange" && "bg-[#fc734d] text-white",
         tone === "dark" && "bg-[#02070A] text-white dark:bg-white dark:text-[#02070A]",
       )}
@@ -169,7 +169,7 @@ export function BlueprintSiteArt() {
       <Stage tone={wire ? "night" : "sky"} label="Illustration: a website page turns from a blueprint wireframe into a finished design and goes live">
         <div className="mb-3 flex justify-center gap-1 rounded-full bg-card/80 p-1 shadow-sm backdrop-blur">
           {MODES.map((m, i) => (
-            <span key={m} className={cn("rounded-full px-3 py-1 text-[10px] font-semibold transition-colors", i === step ? "bg-[#38b6ff] text-[#02070A]" : "text-muted-foreground")}>
+            <span key={m} className={cn("rounded-full px-3 py-1 text-[10px] font-semibold transition-colors", i === step ? "bg-[#38b6ff] text-white" : "text-muted-foreground")}>
               {m}
             </span>
           ))}
@@ -280,7 +280,7 @@ export function IdeaToOrderArt() {
               {["House blend", "Single origin"].map((p, i) => (
                 <div key={p} className="flex items-center justify-between rounded-lg bg-muted/70 px-2 py-1.5">
                   <span className="text-[9px] font-medium text-foreground">{p}</span>
-                  <span className={cn("rounded-md px-1.5 py-0.5 text-[8px] font-semibold transition-colors", step >= 2 && i === 0 ? "bg-[#38b6ff] text-[#02070A]" : "bg-card text-muted-foreground")}>
+                  <span className={cn("rounded-md px-1.5 py-0.5 text-[8px] font-semibold transition-colors", step >= 2 && i === 0 ? "bg-[#38b6ff] text-white" : "bg-card text-muted-foreground")}>
                     {step >= 2 && i === 0 ? "Added" : "Add"}
                   </span>
                 </div>
@@ -327,7 +327,7 @@ export function MobileFlowArt() {
           <div className="hidden w-28 space-y-2 sm:block">
             {["Browse", "Choose", "Pay", "Track"].map((t, i) => (
               <div key={t} className={cn("flex items-center gap-2 rounded-xl px-2.5 py-2 text-[10px] font-semibold transition-colors", i === step ? "bg-card text-foreground shadow-md" : "text-muted-foreground")}>
-                <span className={cn("grid size-5 place-items-center rounded-full text-[9px]", i <= step ? "bg-[#38b6ff] text-[#02070A]" : "bg-muted")}>{i + 1}</span>
+                <span className={cn("grid size-5 place-items-center rounded-full text-[9px]", i <= step ? "bg-[#38b6ff] text-white" : "bg-muted")}>{i + 1}</span>
                 {t}
               </div>
             ))}
@@ -366,7 +366,7 @@ export function MobileFlowArt() {
                         <Star key={i} className="size-2.5 fill-current" />
                       ))}
                     </div>
-                    <span className="mt-3 block rounded-lg bg-[#38b6ff] py-1.5 text-center text-[9px] font-bold text-[#02070A]">Add to bag</span>
+                    <span className="mt-3 block rounded-lg bg-[#38b6ff] py-1.5 text-center text-[9px] font-bold text-white">Add to bag</span>
                   </>
                 ) : null}
                 {screen === "checkout" ? (
@@ -460,7 +460,7 @@ export function CodePipelineArt() {
                         className={cn(
                           "grid size-5 place-items-center rounded-full text-[9px] transition-colors",
                           state === "done" && "bg-emerald-500 text-white",
-                          state === "run" && "bg-[#38b6ff] text-[#02070A]",
+                          state === "run" && "bg-[#38b6ff] text-white",
                           state === "wait" && "bg-white/10 text-white/40",
                         )}
                       >
@@ -527,7 +527,7 @@ export function ResponsiveSiteArt() {
         <div className="mb-3 flex items-center justify-between">
           <div className="flex gap-1 rounded-full bg-card/80 p-1 shadow-sm">
             {DEVICES.map((d, i) => (
-              <span key={d.id} className={cn("grid size-7 place-items-center rounded-full transition-colors", i === step ? "bg-[#38b6ff] text-[#02070A]" : "text-muted-foreground")}>
+              <span key={d.id} className={cn("grid size-7 place-items-center rounded-full transition-colors", i === step ? "bg-[#38b6ff] text-white" : "text-muted-foreground")}>
                 <d.icon className="size-3.5" />
               </span>
             ))}

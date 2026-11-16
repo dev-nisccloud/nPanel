@@ -99,7 +99,7 @@ export default function TeamSection() {
               : null}
 
             <div className="absolute left-1/2 top-1/2 grid -translate-x-1/2 -translate-y-1/2 justify-items-center gap-2 rounded-[24px] border border-[#38b6ff] bg-card px-6 py-5 text-center shadow-[0_0_0_10px_rgb(56_182_255_/_0.08)]">
-              <span className="grid size-11 place-items-center rounded-2xl bg-[#38b6ff] text-[#02070A]">
+              <span className="grid size-11 place-items-center rounded-2xl bg-[#38b6ff] text-white">
                 <Building2 className="size-5" aria-hidden />
               </span>
               <span className="text-sm font-semibold">Your business</span>
@@ -115,7 +115,7 @@ export default function TeamSection() {
                 onMouseEnter={() => setActive(i)}
                 style={{ left: `${item.x}%`, top: `${item.y}%` }}
                 className={`absolute flex w-40 -translate-x-1/2 -translate-y-1/2 items-center gap-2 rounded-2xl border px-3 py-2.5 text-left text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38b6ff] focus-visible:ring-offset-2 ${
-                  i === active ? "border-[#38b6ff] bg-[#38b6ff] text-[#02070A] shadow-lg" : "border-border bg-card text-foreground hover:border-[#38b6ff]"
+                  i === active ? "border-[#38b6ff] bg-[#38b6ff] text-white shadow-lg" : "border-border bg-card text-foreground hover:border-[#38b6ff]"
                 }`}
               >
                 <item.icon className="size-4 shrink-0" aria-hidden />
@@ -132,7 +132,7 @@ export default function TeamSection() {
                   aria-pressed={i === active}
                   onClick={() => setActive(i)}
                   className={`flex min-h-12 w-full items-center gap-3 rounded-2xl border px-4 text-left text-sm font-semibold ${
-                    i === active ? "border-[#38b6ff] bg-[#38b6ff] text-[#02070A]" : "border-border bg-card"
+                    i === active ? "border-[#38b6ff] bg-[#38b6ff] text-white" : "border-border bg-card"
                   }`}
                 >
                   <item.icon className="size-4 shrink-0" aria-hidden />
