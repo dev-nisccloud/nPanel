@@ -1,5 +1,5 @@
 import { Navigate } from "react-router";
 
 export default function DealDetailRoute() {
-  return <Navigate to="/agency/crm/deals" replace />;
+  return <Navigate to="/hq/crm/deals" replace />;
 }

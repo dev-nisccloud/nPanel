@@ -107,7 +107,7 @@ export default function CardPaymentReturnPage() {
 				if (typeof returnPath === "string" && returnPath.startsWith("/")) {
 					setInvoiceReturnPath(returnPath);
 				} else {
-					setInvoiceReturnPath(`/agency/invoices/${invoiceId}`);
+					setInvoiceReturnPath(`/hq/invoices/${invoiceId}`);
 				}
 				applyInvoicePayment.mutate({ checkoutRequestId: orderReference });
 				return;

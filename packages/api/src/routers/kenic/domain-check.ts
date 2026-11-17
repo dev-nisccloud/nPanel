@@ -1,3 +1,4 @@
+import type { TLSSocket } from "node:tls";
 import { XMLParser } from "fast-xml-parser";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
@@ -156,6 +157,355 @@ function getEppResult(
 	return { code, msg, extValue };
 }
 
+type KenicCheckInput = {
+	domains: string[];
+	withFee: boolean;
+	currency?: string;
+	periodYears: number;
+	phase?: string;
+	subphase?: string;
+	includeRestoreFee: boolean;
+};
+
+type KenicConfig = ReturnType<typeof getKenicEppConfig>;
+
+// Availability barely changes within a minute; repeat searches (homepage, domains page, cart) reuse the answer.
+const CHECK_CACHE_TTL_MS = 60_000;
+const CHECK_CACHE_MAX_ENTRIES = 500;
+const checkResultCache = new Map<string, { value: KenicCheckResult; expiresAt: number }>();
+const inFlightChecks = new Map<string, Promise<KenicCheckResult>>();
+
+function checkCacheKey(input: KenicCheckInput): string {
+	return JSON.stringify([
+		[...input.domains].map((d) => d.trim().toLowerCase()).sort(),
+		input.withFee,
+		input.currency ?? null,
+		input.periodYears,
+		input.phase ?? null,
+		input.subphase ?? null,
+		input.includeRestoreFee,
+	]);
+}
+
+function rememberCheckResult(key: string, value: KenicCheckResult) {
+	if (checkResultCache.size >= CHECK_CACHE_MAX_ENTRIES) {
+		const now = Date.now();
+		for (const [k, entry] of checkResultCache) {
+			if (entry.expiresAt <= now) checkResultCache.delete(k);
+		}
+		if (checkResultCache.size >= CHECK_CACHE_MAX_ENTRIES) {
+			const oldest = checkResultCache.keys().next().value;
+			if (oldest !== undefined) checkResultCache.delete(oldest);
+		}
+	}
+	checkResultCache.set(key, { value, expiresAt: Date.now() + CHECK_CACHE_TTL_MS });
+}
+
+/**
+ * One logged-in EPP session kept open between searches so bursts skip the TLS handshake and login.
+ * Closed with a logout after a few idle minutes; any failure drops it and falls back to a fresh connection.
+ */
+const WARM_SESSION_IDLE_MS = 4 * 60_000;
+let warmSession: { socket: TLSSocket; idleTimer: ReturnType<typeof setTimeout> } | null = null;
+
+function ignoreParkedSocketError() {
+	// Registry closed the idle connection; the close listener clears the session.
+}
+
+const socketsWithCloseListener = new WeakSet<TLSSocket>();
+
+function parkWarmSession(socket: TLSSocket) {
+	closeWarmSession();
+	socket.setTimeout(0);
+	socket.on("error", ignoreParkedSocketError);
+	if (!socketsWithCloseListener.has(socket)) {
+		socketsWithCloseListener.add(socket);
+		socket.once("close", () => {
+			if (warmSession?.socket === socket) {
+				clearTimeout(warmSession.idleTimer);
+				warmSession = null;
+			}
+		});
+	}
+	const idleTimer = setTimeout(() => {
+		if (warmSession?.socket !== socket) return;
+		warmSession = null;
+		void withKenicDomainCheckLock(async () => {
+			try {
+				sendFrame(socket, buildLogoutXml());
+			} catch {
+				// already closed
+			}
+			socket.destroy();
+		});
+	}, WARM_SESSION_IDLE_MS);
+	idleTimer.unref?.();
+	warmSession = { socket, idleTimer };
+}
+
+function takeWarmSession(timeoutMs: number): TLSSocket | null {
+	const session = warmSession;
+	warmSession = null;
+	if (!session) return null;
+	clearTimeout(session.idleTimer);
+	const { socket } = session;
+	if (socket.destroyed || !socket.writable) {
+		socket.destroy();
+		return null;
+	}
+	socket.removeListener("error", ignoreParkedSocketError);
+	socket.setTimeout(timeoutMs);
+	return socket;
+}
+
+function closeWarmSession() {
+	const session = warmSession;
+	warmSession = null;
+	if (!session) return;
+	clearTimeout(session.idleTimer);
+	session.socket.destroy();
+}
+
+type KenicCheckResult = {
+	loginSuccess: boolean;
+	loginResultCode?: string;
+	loginResultMsg?: string;
+	loginResultExtValue?: EppResultExtValue;
+	raw: string;
+	parsed: Record<string, unknown> | null;
+	normalized?: DomainCheckNormalized | null;
+	parseError?: string;
+	checkResultCode: string | null;
+	checkResultMsg: string | null;
+	checkResultExtValue?: EppResultExtValue;
+	batched?: boolean;
+	batchCount?: number;
+};
+
+/** Runs domain:check commands on a logged-in socket. `keepSession` is false when the session must be closed. */
+async function checkOnSession(
+	socket: TLSSocket,
+	input: KenicCheckInput,
+	config: KenicConfig,
+): Promise<{ value: KenicCheckResult; keepSession: boolean }> {
+	const feeOptions = {
+		currency: input.currency,
+		periodYears: input.periodYears,
+		phase: input.phase,
+		subphase: input.subphase,
+		includeRestoreFee: input.includeRestoreFee,
+	};
+
+	const chunks: string[][] = [];
+	for (let i = 0; i < input.domains.length; i += MAX_DOMAINS_PER_EPP_CHECK) {
+		chunks.push(input.domains.slice(i, i + MAX_DOMAINS_PER_EPP_CHECK));
+	}
+
+	const allRaws: string[] = [];
+	const allParsed: Record<string, unknown>[] = [];
+	let lastCode = "1000";
+	let lastMsg = "Command completed successfully";
+
+	for (const chunk of chunks) {
+		const checkXml = input.withFee
+			? buildDomainCheckWithFeeXml(chunk, feeOptions)
+			: buildDomainCheckXml(chunk);
+		sendFrame(socket, checkXml);
+		const checkResponseBuffer = await readFrame(socket);
+		socket.setTimeout(config.timeoutMs ?? 30_000);
+		const checkResponseXml = checkResponseBuffer.toString("utf8");
+		allRaws.push(checkResponseXml);
+
+		let chunkParsed: Record<string, unknown>;
+		try {
+			chunkParsed = parser.parse(checkResponseXml) as Record<string, unknown>;
+		} catch (parseError) {
+			return {
+				keepSession: false,
+				value: {
+					loginSuccess: true,
+					raw: checkResponseXml,
+					parsed: null,
+					parseError: parseError instanceof Error ? parseError.message : String(parseError),
+					checkResultCode: null,
+					checkResultMsg: null,
+				},
+			};
+		}
+
+		const chunkResult = getEppResult(chunkParsed);
+		lastCode = chunkResult.code;
+		lastMsg = chunkResult.msg;
+		if (chunkResult.code !== "1000") {
+			return {
+				keepSession: false,
+				value: {
+					loginSuccess: true,
+					raw: checkResponseXml,
+					parsed: chunkParsed,
+					normalized: null,
+					checkResultCode: chunkResult.code,
+					checkResultMsg: chunkResult.msg,
+					...(chunkResult.extValue && { checkResultExtValue: chunkResult.extValue }),
+				},
+			};
+		}
+		allParsed.push(chunkParsed);
+	}
+
+	const parsed = (allParsed.length === 1 ? allParsed[0] : mergeCheckResponses(allParsed)) ?? null;
+	const raw = allRaws.join("\n\n");
+
+	let normalized: DomainCheckNormalized | null = null;
+	if (input.withFee && parsed) {
+		try {
+			normalized = normalizeDomainCheckResponse(parsed);
+		} catch {
+			normalized = [];
+		}
+	}
+
+	return {
+		keepSession: true,
+		value: {
+			loginSuccess: true,
+			raw,
+			parsed,
+			normalized,
+			checkResultCode: lastCode,
+			checkResultMsg: lastMsg,
+			...(chunks.length > 1 && { batched: true, batchCount: chunks.length }),
+		},
+	};
+}
+
+async function logoutAndClose(socket: TLSSocket) {
+	try {
+		sendFrame(socket, buildLogoutXml());
+		await readFrame(socket);
+	} catch {
+		// closing anyway
+	} finally {
+		socket.destroy();
+	}
+}
+
+async function runKenicDomainCheck(input: KenicCheckInput): Promise<KenicCheckResult> {
+	const config = getKenicEppConfig(true);
+	const timeoutMs = config.timeoutMs ?? 30_000;
+
+	const warm = takeWarmSession(timeoutMs);
+	if (warm) {
+		try {
+			const { value, keepSession } = await checkOnSession(warm, input, config);
+			if (keepSession) parkWarmSession(warm);
+			else await logoutAndClose(warm);
+			return value;
+		} catch (error) {
+			warm.destroy();
+			console.warn("[KENIC EPP domainCheck] warm session failed, reconnecting", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
+	}
+
+	const requestedRetries = Number.isNaN(Number(process.env.KENIC_EPP_MAX_RETRIES))
+		? DEFAULT_MAX_RETRIES
+		: Number(process.env.KENIC_EPP_MAX_RETRIES ?? DEFAULT_MAX_RETRIES);
+	// Gentler, fewer retries: clamp between 1 and 2 (default 2).
+	const maxRetries = Math.min(Math.max(1, requestedRetries), 2);
+	let lastError: unknown = null;
+
+	for (let attempt = 0; attempt < maxRetries; attempt++) {
+		let socket: TLSSocket | undefined;
+		let parked = false;
+		try {
+			socket = await createConnection(config);
+
+			await readFrame(socket);
+			socket.setTimeout(timeoutMs);
+
+			sendFrame(socket, buildLoginXml(config.username, config.password));
+			const loginResponseBuffer = await readFrame(socket);
+			socket.setTimeout(timeoutMs);
+			const loginResponseXml = loginResponseBuffer.toString("utf8");
+			const loginParsed = parser.parse(loginResponseXml) as Record<string, unknown>;
+			const loginResult = getEppResult(loginParsed);
+			if (loginResult.code !== "1000") {
+				return {
+					loginSuccess: false,
+					loginResultCode: loginResult.code,
+					loginResultMsg: loginResult.msg,
+					...(loginResult.extValue && { loginResultExtValue: loginResult.extValue }),
+					raw: loginResponseXml,
+					parsed: null,
+					checkResultCode: null,
+					checkResultMsg: null,
+				};
+			}
+
+			const { value, keepSession } = await checkOnSession(socket, input, config);
+			if (keepSession) {
+				parkWarmSession(socket);
+				parked = true;
+			} else {
+				sendFrame(socket, buildLogoutXml());
+				await readFrame(socket);
+			}
+			return value;
+		} catch (error) {
+			lastError = error;
+			console.error("[KENIC EPP domainCheck] attempt failed", {
+				attempt: attempt + 1,
+				maxRetries,
+				domainCount: input.domains.length,
+				withFee: input.withFee,
+				error: error instanceof Error ? error.message : String(error),
+			});
+			if (error instanceof TRPCError) throw error;
+			const message = error instanceof Error ? error.message : String(error);
+			if (message.includes("KENIC_EPP_USERNAME") || message.includes("KENIC_EPP_PASSWORD")) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "KENIC_EPP_USERNAME and KENIC_EPP_PASSWORD must be set for domain check",
+				});
+			}
+			const retryable = isRetryableEppError(error);
+			const isLastAttempt = attempt === maxRetries - 1;
+			if (!retryable || isLastAttempt) {
+				const isTimeout = message.toLowerCase().includes("timeout");
+				const isRefused =
+					message.toLowerCase().includes("econnrefused") ||
+					message.toLowerCase().includes("connection refused");
+				const isTlsError =
+					message.toLowerCase().includes("certificate") ||
+					message.toLowerCase().includes("tls") ||
+					message.toLowerCase().includes("ssl");
+				throw new TRPCError({
+					code:
+						isTimeout
+							? "TIMEOUT"
+							: isRefused || isTlsError
+								? "SERVICE_UNAVAILABLE"
+								: "INTERNAL_SERVER_ERROR",
+					message: `EPP domain check failed${isLastAttempt && retryable ? ` after ${maxRetries} attempts` : ""}: ${message}`,
+					cause: error,
+				});
+			}
+			// Gentler backoff: fixed small delay between retries (e.g. 700ms)
+			await new Promise((r) => setTimeout(r, 700));
+		} finally {
+			if (!parked) socket?.destroy();
+		}
+	}
+
+	throw new TRPCError({
+		code: "INTERNAL_SERVER_ERROR",
+		message: "EPP domain check failed after retries",
+		cause: lastError,
+	});
+}
+
 /**
  * KENIC EPP domain check router.
  * Connects, login, sends domain:check, returns raw and parsed response for type discovery.
@@ -185,8 +535,7 @@ export const kenicDomainCheckRouter = router({
 				includeRestoreFee: z.boolean().optional().default(false),
 			})
 		)
-		.mutation(async ({ input }) =>
-			withKenicDomainCheckLock(async () => {
+		.mutation(async ({ input }) => {
 			const validation = validateKenicDomains(input.domains);
 			if (!validation.valid) {
 				const invalidDomains = "invalidDomains" in validation ? validation.invalidDomains : [];
@@ -197,181 +546,23 @@ export const kenicDomainCheckRouter = router({
 				});
 			}
 
-			const requestedRetries = Number.isNaN(Number(process.env.KENIC_EPP_MAX_RETRIES))
-				? DEFAULT_MAX_RETRIES
-				: Number(process.env.KENIC_EPP_MAX_RETRIES ?? DEFAULT_MAX_RETRIES);
-			// Gentler, fewer retries: clamp between 1 and 2 (default 2).
-			const maxRetries = Math.min(Math.max(1, requestedRetries), 2);
-			let lastError: unknown = null;
+			const key = checkCacheKey(input);
+			const cached = checkResultCache.get(key);
+			if (cached && cached.expiresAt > Date.now()) return cached.value;
+			const pending = inFlightChecks.get(key);
+			if (pending) return pending;
 
-			for (let attempt = 0; attempt < maxRetries; attempt++) {
-				let socket;
-				try {
-					const config = getKenicEppConfig(true);
-					socket = await createConnection(config);
-
-					await readFrame(socket);
-					socket.setTimeout(config.timeoutMs ?? 30_000);
-
-					sendFrame(socket, buildLoginXml(config.username, config.password));
-					const loginResponseBuffer = await readFrame(socket);
-					socket.setTimeout(config.timeoutMs ?? 30_000);
-				const loginResponseXml = loginResponseBuffer.toString("utf8");
-				const loginParsed = parser.parse(loginResponseXml) as Record<string, unknown>;
-				const loginResult = getEppResult(loginParsed);
-				if (loginResult.code !== "1000") {
-					return {
-						loginSuccess: false,
-						loginResultCode: loginResult.code,
-						loginResultMsg: loginResult.msg,
-						...(loginResult.extValue && { loginResultExtValue: loginResult.extValue }),
-						raw: loginResponseXml,
-						parsed: null,
-						checkResultCode: null,
-						checkResultMsg: null,
-					};
+			const run = withKenicDomainCheckLock(() => runKenicDomainCheck(input)).then((value) => {
+				if (value.loginSuccess && value.checkResultCode === "1000") {
+					rememberCheckResult(key, value);
 				}
-
-				const feeOptions = {
-					currency: input.currency,
-					periodYears: input.periodYears,
-					phase: input.phase,
-					subphase: input.subphase,
-					includeRestoreFee: input.includeRestoreFee,
-				};
-
-				const maxPerCheck = MAX_DOMAINS_PER_EPP_CHECK;
-				const chunks: string[][] = [];
-				for (let i = 0; i < input.domains.length; i += maxPerCheck) {
-					chunks.push(input.domains.slice(i, i + maxPerCheck));
-				}
-
-				const allRaws: string[] = [];
-				const allParsed: Record<string, unknown>[] = [];
-				let lastCode = "1000";
-				let lastMsg = "Command completed successfully";
-
-				for (const chunk of chunks) {
-					const checkXml = input.withFee
-						? buildDomainCheckWithFeeXml(chunk, feeOptions)
-						: buildDomainCheckXml(chunk);
-					sendFrame(socket, checkXml);
-					const checkResponseBuffer = await readFrame(socket);
-					socket.setTimeout(config.timeoutMs ?? 30_000);
-					const checkResponseXml = checkResponseBuffer.toString("utf8");
-					allRaws.push(checkResponseXml);
-
-					let chunkParsed: Record<string, unknown>;
-					try {
-						chunkParsed = parser.parse(checkResponseXml) as Record<string, unknown>;
-					} catch (parseError) {
-						sendFrame(socket, buildLogoutXml());
-						await readFrame(socket);
-						return {
-							loginSuccess: true,
-							raw: checkResponseXml,
-							parsed: null,
-							parseError: parseError instanceof Error ? parseError.message : String(parseError),
-							checkResultCode: null,
-							checkResultMsg: null,
-						};
-					}
-
-					const chunkResult = getEppResult(chunkParsed);
-					lastCode = chunkResult.code;
-					lastMsg = chunkResult.msg;
-					if (chunkResult.code !== "1000") {
-						sendFrame(socket, buildLogoutXml());
-						await readFrame(socket);
-						return {
-							loginSuccess: true,
-							raw: checkResponseXml,
-							parsed: chunkParsed,
-							normalized: null,
-							checkResultCode: chunkResult.code,
-							checkResultMsg: chunkResult.msg,
-							...(chunkResult.extValue && { checkResultExtValue: chunkResult.extValue }),
-						};
-					}
-					allParsed.push(chunkParsed);
-				}
-
-				const parsed =
-					allParsed.length === 1 ? allParsed[0] : mergeCheckResponses(allParsed);
-				const raw = allRaws.length === 1 ? allRaws[0] : allRaws.join("\n\n");
-
-				let normalized: DomainCheckNormalized | null = null;
-				if (input.withFee && parsed) {
-					try {
-						normalized = normalizeDomainCheckResponse(parsed);
-					} catch {
-						normalized = [];
-					}
-				}
-
-				sendFrame(socket, buildLogoutXml());
-					await readFrame(socket);
-
-					return {
-						loginSuccess: true,
-						raw,
-						parsed,
-						normalized,
-						checkResultCode: lastCode,
-						checkResultMsg: lastMsg,
-						...(chunks.length > 1 && { batched: true, batchCount: chunks.length }),
-					};
-				} catch (error) {
-					lastError = error;
-					console.error("[KENIC EPP domainCheck] attempt failed", {
-						attempt: attempt + 1,
-						maxRetries,
-						domainCount: input.domains.length,
-						withFee: input.withFee,
-						error: error instanceof Error ? error.message : String(error),
-					});
-					if (error instanceof TRPCError) throw error;
-					const message = error instanceof Error ? error.message : String(error);
-					if (message.includes("KENIC_EPP_USERNAME") || message.includes("KENIC_EPP_PASSWORD")) {
-						throw new TRPCError({
-							code: "BAD_REQUEST",
-							message: "KENIC_EPP_USERNAME and KENIC_EPP_PASSWORD must be set for domain check",
-						});
-					}
-					const retryable = isRetryableEppError(error);
-					const isLastAttempt = attempt === maxRetries - 1;
-					if (!retryable || isLastAttempt) {
-						const isTimeout = message.toLowerCase().includes("timeout");
-						const isRefused =
-							message.toLowerCase().includes("econnrefused") ||
-							message.toLowerCase().includes("connection refused");
-						const isTlsError =
-							message.toLowerCase().includes("certificate") ||
-							message.toLowerCase().includes("tls") ||
-							message.toLowerCase().includes("ssl");
-						throw new TRPCError({
-							code:
-								isTimeout
-									? "TIMEOUT"
-									: isRefused || isTlsError
-										? "SERVICE_UNAVAILABLE"
-										: "INTERNAL_SERVER_ERROR",
-							message: `EPP domain check failed${isLastAttempt && retryable ? ` after ${maxRetries} attempts` : ""}: ${message}`,
-							cause: error,
-						});
-					}
-					// Gentler backoff: fixed small delay between retries (e.g. 700ms)
-					await new Promise((r) => setTimeout(r, 700));
-				} finally {
-					socket?.destroy();
-				}
-			}
-
-			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message: "EPP domain check failed after retries",
-				cause: lastError,
+				return value;
 			});
-			})
-		),
+			inFlightChecks.set(key, run);
+			try {
+				return await run;
+			} finally {
+				inFlightChecks.delete(key);
+			}
+		}),
 });

@@ -67,7 +67,7 @@ export default function OrganizationSubscriptionsPage() {
 					<div className="flex flex-col items-center justify-center py-12 text-center">
 						<p className="mb-2 text-lg font-semibold">Organization not found</p>
 						<p className="mb-4 text-sm text-muted-foreground">This organization link is invalid.</p>
-						<Button onClick={() => navigate("/agency/subscriptions")} variant="outline">
+						<Button onClick={() => navigate("/hq/subscriptions")} variant="outline">
 							<ArrowLeft className="mr-2 h-4 w-4" />
 							Back to organizations
 						</Button>
@@ -85,7 +85,7 @@ export default function OrganizationSubscriptionsPage() {
 						variant="ghost"
 						size="sm"
 						className="-ml-2 w-fit text-muted-foreground"
-						onClick={() => navigate("/agency/subscriptions")}
+						onClick={() => navigate("/hq/subscriptions")}
 					>
 						<ArrowLeft className="mr-2 h-4 w-4" />
 						All organizations

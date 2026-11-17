@@ -16,7 +16,7 @@ export function requireAgencyReportAccess(role: ActorRole): void {
   if (!isAgencyUserRole(role)) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "NISC reports are only available to agency users.",
+      message: "NISC reports are only available to Nisc HQ staff.",
     });
   }
 }

@@ -17,13 +17,28 @@ export const SERVICE_BILLING_CYCLES: ReadonlyArray<{
   { value: "TRIENNIALLY", label: "3 years" },
 ];
 
-const MULTI_TERM_SERVICES = new Set(["web_hosting", "wordpress_hosting", "email_hosting"]);
-const MONTHLY_ONLY_SERVICES = new Set(["seo_reports", "email_marketing"]);
+const MULTI_TERM_SERVICES = new Set([
+  "web_hosting",
+  "wordpress_hosting",
+  "email_hosting",
+  "email_marketing",
+]);
+const MONTHLY_ONLY_SERVICES = new Set(["seo_reports", "social_media"]);
+
+/** Bought once and never renewed; the cart sends MONTHLY because the quote API has no one-time term. */
+export const ZEPO_CREDITS_SERVICE_TYPE = "zeepo_ai";
+const ONE_TIME_SERVICES = new Set([ZEPO_CREDITS_SERVICE_TYPE]);
+
+export function isOneTimeService(serviceType: string): boolean {
+  return ONE_TIME_SERVICES.has(serviceType);
+}
 
 /** Terms offered for a service; servers keep 1 and 2 years until 3-year quotes are verified. */
 export function billingCyclesFor(serviceType: string): ReadonlyArray<{ value: BillingCycle; label: string }> {
   if (MULTI_TERM_SERVICES.has(serviceType)) return SERVICE_BILLING_CYCLES;
-  if (MONTHLY_ONLY_SERVICES.has(serviceType)) return SERVICE_BILLING_CYCLES.slice(0, 1);
+  if (MONTHLY_ONLY_SERVICES.has(serviceType) || ONE_TIME_SERVICES.has(serviceType)) {
+    return SERVICE_BILLING_CYCLES.slice(0, 1);
+  }
   return SERVICE_BILLING_CYCLES.slice(0, 3);
 }
 

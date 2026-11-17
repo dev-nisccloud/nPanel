@@ -15,16 +15,16 @@ export default function SocialMediaAdsIndex() {
   }
 
   if (unrestricted || canModule("social")) {
-    return <Navigate to="/agency/social-media-ads/facebook" replace />;
+    return <Navigate to="/hq/social-media-ads/facebook" replace />;
   }
 
   if (canModule("social_instagram")) {
-    return <Navigate to="/agency/social-media-ads/instagram" replace />;
+    return <Navigate to="/hq/social-media-ads/instagram" replace />;
   }
 
   if (canModule("social_linkedin")) {
-    return <Navigate to="/agency/social-media-ads/linkedin" replace />;
+    return <Navigate to="/hq/social-media-ads/linkedin" replace />;
   }
 
-  return <Navigate to="/agency/social-media-ads/google" replace />;
+  return <Navigate to="/hq/social-media-ads/google" replace />;
 }

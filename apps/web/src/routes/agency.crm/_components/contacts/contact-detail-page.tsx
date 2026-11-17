@@ -57,7 +57,7 @@ export function ContactDetailPage({ contactId }: { contactId: string }) {
       <CrmDetailMissing
         title="Contact not found"
         description="This contact does not exist or has been deleted."
-        backTo="/agency/crm/contacts"
+        backTo="/hq/crm/contacts"
         backLabel="Back to contacts"
       />
     );
@@ -71,7 +71,7 @@ export function ContactDetailPage({ contactId }: { contactId: string }) {
   return (
     <CrmDetailFrame>
       <CrmDetailHeader
-        backTo="/agency/crm/contacts"
+        backTo="/hq/crm/contacts"
         title={contactName}
         description={description}
         actions={
@@ -357,7 +357,7 @@ export function ContactDetailPage({ contactId }: { contactId: string }) {
         contact={contact}
         onSuccess={() => {
           setDeleteOpen(false);
-          navigate("/agency/crm/contacts");
+          navigate("/hq/crm/contacts");
         }}
       />
     </CrmDetailFrame>

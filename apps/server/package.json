@@ -15,6 +15,7 @@
     "seed:creatives-design": "bun run src/scripts/seed-creatives-design-product.ts",
     "seed:seo-reports": "bun run src/scripts/seed-seo-reports-product.ts",
     "seed:media-buying": "bun run src/scripts/seed-media-buying-product.ts",
+    "seed:social-media": "bun run src/scripts/seed-social-media-product.ts",
     "seed:web-hosting": "bun run src/scripts/seed-web-hosting-product.ts",
     "seed:email-hosting": "bun run src/scripts/seed-email-hosting-product.ts",
     "seed:wordpress-hosting": "bun run src/scripts/seed-wordpress-hosting-product.ts",

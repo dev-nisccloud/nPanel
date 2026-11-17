@@ -25,7 +25,7 @@ type Verdict = "delivered" | "phishing" | "malware" | "spam";
 
 const incoming: { from: string; subject: string; verdict: Verdict; reason: string }[] = [
   {
-    from: "accounts@acacia-traders.co.ke",
+    from: "accounts@acacia-traders.com",
     subject: "Invoice INV-2041 for October",
     verdict: "delivered",
     reason: "SPF and DKIM pass",
@@ -153,7 +153,7 @@ export function EmailGateArtwork() {
           <div className="rounded-xl border border-emerald-500/30 bg-card p-3 shadow-sm">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-[11px] font-semibold text-foreground">Inbox</span>
-              <span className="font-mono text-[9px] text-muted-foreground">hello@yourbusiness.co.ke</span>
+              <span className="font-mono text-[9px] text-muted-foreground">hello@yourbusiness.com</span>
             </div>
             {incoming
               .filter((m) => m.verdict === "delivered")
@@ -244,7 +244,7 @@ export function EmailSecurityScreen() {
           <img loading="lazy" decoding="async" src="/nisccloud-logo.svg" alt="" className="h-4 w-auto object-contain object-left" />
           <span className="h-2.5 w-px bg-slate-200" />
           <span className="text-[8px] font-medium text-slate-500">Email Security</span>
-          <span className="text-[8px] text-slate-400">yourbusiness.co.ke</span>
+          <span className="text-[8px] text-slate-400">yourbusiness.com</span>
         </div>
         <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-0.5 ring-1 ring-emerald-100">
           <span className="size-1.5 rounded-full bg-emerald-500" />

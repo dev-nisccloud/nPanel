@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Label } from "@/components/ui/label.tsx";
 import { cn } from "@/lib/utils.ts";
+import { ENTERPRISE_BUTTON, ENTERPRISE_TIER_NAME } from "@/components/enterprise-tier.tsx";
 import type { ProjectOffer } from "@/lib/project-packages.ts";
 
 const STEPS = ["Package", "Project", "Budget", "Your details"] as const;
@@ -285,43 +286,53 @@ export default function ProjectEnquiryFlow({ offer }: { offer: ProjectOffer }) {
               <ul className="grid gap-5 md:grid-cols-3">
                 {offer.packages.map((item, index) => {
                   const active = item.id === packageId;
+                  const enterprise = item.name === ENTERPRISE_TIER_NAME;
                   return (
                     <li key={item.id}>
                       <article
                         className={cn(
-                          "relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card shadow-sm transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-lg motion-reduce:transition-none motion-reduce:hover:translate-y-0",
-                          active ? "border-primary ring-2 ring-primary/25" : "border-border hover:border-primary/40",
+                          "relative flex h-full flex-col overflow-hidden rounded-2xl border shadow-sm transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-lg motion-reduce:transition-none motion-reduce:hover:translate-y-0",
+                          enterprise
+                            ? "border-brand-orange/45 bg-brand-midnight text-white shadow-brand-orange/10 ring-1 ring-brand-orange/20"
+                            : "bg-card",
+                          !enterprise && (active ? "border-primary ring-2 ring-primary/25" : "border-border hover:border-primary/40"),
+                          enterprise && active && "ring-2 ring-brand-orange",
                         )}
                       >
-                        <div className="border-b border-border bg-linear-to-b from-primary/[0.09] to-primary/[0.02] px-6 pb-5 pt-6">
+                        <div className={cn("border-b px-6 pb-5 pt-6", enterprise ? "border-white/15" : "border-border bg-linear-to-b from-primary/[0.09] to-primary/[0.02]")}>
                           <div className="flex items-center justify-between gap-3">
-                            <p className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                            <p className={cn("flex items-center gap-2 text-xs font-medium", enterprise ? "text-white/70" : "text-muted-foreground")}>
                               <span className="flex gap-1" aria-hidden>
                                 {SCOPE_LABELS.map((label, bar) => (
                                   <span
                                     key={label}
-                                    className={cn("h-1.5 w-5 rounded-full", bar <= index ? "bg-primary" : "bg-primary/15")}
+                                    className={cn(
+                                      "h-1.5 w-5 rounded-full",
+                                      bar <= index
+                                        ? enterprise ? "bg-brand-orange" : "bg-primary"
+                                        : enterprise ? "bg-white/20" : "bg-primary/15",
+                                    )}
                                   />
                                 ))}
                               </span>
                               {SCOPE_LABELS[index] ?? SCOPE_LABELS[SCOPE_LABELS.length - 1]}
                             </p>
                             {active ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground">
+                              <span className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold", enterprise ? "bg-brand-orange text-brand-midnight" : "bg-primary text-primary-foreground")}>
                                 <Check className="size-3.5" aria-hidden />
                                 Selected
                               </span>
                             ) : null}
                           </div>
                           <h4 className="type-h3 mt-4">{item.name}</h4>
-                          <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{item.summary}</p>
+                          <p className={cn("mt-1.5 text-sm leading-relaxed", enterprise ? "text-white/70" : "text-muted-foreground")}>{item.summary}</p>
                         </div>
                         <div className="flex flex-1 flex-col px-6 pb-6 pt-5">
-                          <p className="type-label text-muted-foreground">Includes</p>
+                          <p className={cn("type-label", enterprise ? "text-brand-orange" : "text-muted-foreground")}>Includes</p>
                           <ul className="mt-3 flex-1 space-y-3">
                             {item.includes.map((line) => (
                               <li key={line} className="flex items-start gap-2.5 text-sm leading-snug">
-                                <span className="mt-px flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary">
+                                <span className={cn("mt-px flex size-5 shrink-0 items-center justify-center rounded-full", enterprise ? "bg-brand-orange/20 text-brand-orange" : "bg-primary/12 text-primary")}>
                                   <Check className="size-3" strokeWidth={3} aria-hidden />
                                 </span>
                                 {line}
@@ -330,9 +341,9 @@ export default function ProjectEnquiryFlow({ offer }: { offer: ProjectOffer }) {
                           </ul>
                           <Button
                             type="button"
-                            variant={active ? "default" : "outline"}
+                            variant={active || enterprise ? "default" : "outline"}
                             onClick={() => choosePackage(item.id)}
-                            className="mt-6 h-11 w-full gap-2 rounded-[10px] font-semibold"
+                            className={cn("mt-6 h-11 w-full gap-2 rounded-[10px] font-semibold", enterprise && ENTERPRISE_BUTTON)}
                           >
                             {active ? `Continue with ${item.name}` : `Choose ${item.name}`}
                             <ArrowRight className="size-4" aria-hidden />

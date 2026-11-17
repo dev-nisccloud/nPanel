@@ -223,7 +223,7 @@ export default function WebsiteDesignPage() {
       faqs={[
         {
           q: "How long does it take to build a website?",
-          a: "A Small Business site is often planned at about 10 days, and a Corporate project at about 21 days. Growth is confirmed in the proposal. Content, feedback, integrations and changes can affect the schedule.",
+          a: "A Small Business site is often planned at about 10 days, and a Enterprise project at about 21 days. Growth is confirmed in the proposal. Content, feedback, integrations and changes can affect the schedule.",
         },
         {
           q: "Do I need to provide the content?",

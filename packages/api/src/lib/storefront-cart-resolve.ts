@@ -20,6 +20,7 @@ export const storefrontCartQuoteRequestSchema = z
 		transferAuthCode: storefrontCartQuoteInputSchema.shape.transferAuthCode,
 		upsellDomain: storefrontCartQuoteInputSchema.shape.upsellDomain,
 		upsellHosting: storefrontCartQuoteInputSchema.shape.upsellHosting,
+		upsellOutreach: storefrontCartQuoteInputSchema.shape.upsellOutreach,
 		hivelocity: storefrontCartQuoteInputSchema.shape.hivelocity,
 	})
 	.superRefine((data, ctx) => {
@@ -75,6 +76,7 @@ export function resolveStorefrontCartQuoteInput(
 			transferAuthCode: input.transferAuthCode,
 			upsellDomain: input.upsellDomain,
 			upsellHosting: input.upsellHosting,
+			upsellOutreach: input.upsellOutreach,
 			hivelocity: input.hivelocity,
 		});
 	}
@@ -86,6 +88,7 @@ export function resolveStorefrontCartQuoteInput(
 		transferAuthCode: input.transferAuthCode,
 		upsellDomain: input.upsellDomain,
 		upsellHosting: input.upsellHosting,
+		upsellOutreach: input.upsellOutreach,
 		hivelocity: input.hivelocity,
 	});
 }

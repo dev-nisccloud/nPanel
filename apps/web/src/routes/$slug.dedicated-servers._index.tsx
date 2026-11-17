@@ -26,7 +26,7 @@ import { captureEvent } from "@/lib/posthog";
 export default function DedicatedServersPage() {
 	const params = useParams();
 	const slug = typeof params.slug === "string" ? params.slug : "";
-	const resourceBasePath = slug ? `/${slug}` : "/agency";
+	const resourceBasePath = slug ? `/${slug}` : "/hq";
 
 	const limit = 24;
 

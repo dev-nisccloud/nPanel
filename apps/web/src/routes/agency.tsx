@@ -1,8 +1,18 @@
 import AgencyLayout from "./agency/_components/agency-layout";
-import { Outlet, isRouteErrorResponse } from "react-router";
+import { Outlet, isRouteErrorResponse, redirect } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
+
+/** Old /agency links keep working. The address staff see is /hq. */
+export function clientLoader({ request }: { request: Request }) {
+  const url = new URL(request.url);
+  if (url.pathname === "/agency" || url.pathname.startsWith("/agency/")) {
+    const next = `/hq${url.pathname.slice("/agency".length)}` || "/hq";
+    throw redirect(`${next}${url.search}${url.hash}`);
+  }
+  return null;
+}
 
 export default function AgencyRouteLayout() {
   return (
@@ -13,12 +23,12 @@ export default function AgencyRouteLayout() {
 }
 
 export function ErrorBoundary({ error }: { error: any }) {
-  let message = "An error occurred in the Agency Dashboard";
+  let message = "An error occurred in Nisc HQ";
   let details = "Please try again or contact support if the problem persists.";
 
   if (isRouteErrorResponse(error)) {
     if (error.status === 404) {
-      details = "The page you are looking for does not exist in the Agency section.";
+      details = "The page you are looking for does not exist in Nisc HQ.";
     } else {
       details = error.statusText || details;
     }

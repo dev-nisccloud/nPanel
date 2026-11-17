@@ -108,12 +108,12 @@ export function ZeepoAiTokenWallet({ className }: Props) {
 								"hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
 								styles.pill,
 							)}
-							aria-label={`${displayTokens} Zeepo AI tokens`}
+							aria-label={`${displayTokens} Zepo AI credits`}
 						>
 							<Coins className={cn("size-3.5 shrink-0", styles.icon)} strokeWidth={2} />
 							<span className="tabular-nums">
 								{displayTokens}
-								<span className="font-medium opacity-80"> tokens</span>
+								<span className="font-medium opacity-80"> credits</span>
 							</span>
 							<ChevronDown className="size-3 shrink-0 opacity-60" />
 						</button>
@@ -240,7 +240,7 @@ export function ZeepoAiFreeCreditsNudge({
 				className,
 			)}
 		>
-			<p className="font-medium">Unlock {welcomeTokenGrant} free Zeepo AI tokens</p>
+			<p className="font-medium">Unlock {welcomeTokenGrant} free Zepo AI credits</p>
 			<p className="mt-1 text-muted-foreground leading-relaxed">
 				Your balance is 0 because this team doesn’t have an active service yet. Get hosting (or
 				another subscription) with us and we’ll credit {welcomeTokenGrant} free tokens to try Zeepo

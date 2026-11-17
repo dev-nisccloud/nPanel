@@ -58,7 +58,7 @@ export const ProjectsSection = () => {
     }
     
     setLoadingProjectId(projectId);
-    navigate(`/agency/zeepo-canvas/editor/${projectId}`);
+    navigate(`/hq/zeepo-canvas/editor/${projectId}`);
   };
 
   const onCopy = (id: string) => {

@@ -79,12 +79,12 @@ export function ZeepoTokenWallet({ className }: ZeepoTokenWalletProps) {
 						styles.pill,
 						className,
 					)}
-					aria-label={`${displayTokens} Zeepo tokens available. Open menu to purchase more.`}
+					aria-label={`${displayTokens} Zeepo credits available. Open menu to buy more.`}
 				>
 					<Coins className={cn("size-3.5 shrink-0", styles.icon)} strokeWidth={2} />
 					<span className="tabular-nums">
 						{displayTokens}
-						<span className="font-medium opacity-80"> tokens</span>
+						<span className="font-medium opacity-80"> credits</span>
 					</span>
 					<ChevronDown className="size-3 shrink-0 opacity-60" />
 				</button>
@@ -133,7 +133,7 @@ function ZeepoTokenWalletMenuContent({
 				onSelect={onPurchase}
 			>
 				<Plus className="size-4 text-amber-600 dark:text-amber-400" />
-				Purchase more tokens
+				Buy more credits
 			</DropdownMenuItem>
 		</DropdownMenuContent>
 	);

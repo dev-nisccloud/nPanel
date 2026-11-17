@@ -192,7 +192,7 @@ export default function SubscriptionsIndexPage() {
 						error={(error as Error) ?? null}
 						onRetry={() => refetch()}
 						onOpenGroup={(group) =>
-							navigate(`/agency/subscriptions/organizations/${group.routeId}`)
+							navigate(`/hq/subscriptions/organizations/${group.routeId}`)
 						}
 						toolbarActions={
 							<Button

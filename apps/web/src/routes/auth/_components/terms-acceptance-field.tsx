@@ -37,7 +37,7 @@ export function TermsAcceptanceField<T extends FieldValues>({
             href="https://nisccloud.com/terms"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-primary font-medium hover:underline"
+            className="font-medium text-foreground underline underline-offset-4"
             onClick={(e) => e.stopPropagation()}
           >
             Terms and Conditions

@@ -99,8 +99,10 @@ export type ServicePageShellProps = {
   /** Render hero illustration without gradient frame or padding (e.g. terminal-only heroes). */
   heroIllustrationBare?: boolean;
   heroCta2?: string;
-  /** Optional destination for the secondary hero CTA. */
+  /** Optional destination for the secondary hero CTA. A `#id` scrolls to that section. */
   heroCta2Href?: string;
+  /** Replaces the default primary CTA label; the action still scrolls to the plans. */
+  primaryCtaLabel?: string;
   heroTrustBadge?: { line1: string; line2: string };
   /** Floating badges over the hero image (trust badge + client count). Default true. */
   showHeroOverlays?: boolean;
@@ -265,7 +267,7 @@ function StrategyGuide({ sections }: { sections: StrategySection[] }) {
 
 function ProcessSection({ steps }: { steps: ProcessStep[] }) {
   return (
-    <section className="py-16 md:py-24">
+    <section id="how-it-works" className="scroll-mt-20 py-16 md:py-24">
       <div className="mx-auto max-w-7xl px-4 md:px-8">
         <div className="mb-12 max-w-2xl">
           <p className="mb-3 text-sm font-semibold text-primary">
@@ -623,6 +625,7 @@ export default function ServicePageShell({
   strategySections,
   closing,
   seoTitle,
+  primaryCtaLabel: primaryCtaLabelOverride,
 }: ServicePageShellProps) {
   const { pathname } = useLocation();
   const pageName = (seoTitle ?? badge).replace(" · New", "");
@@ -724,6 +727,15 @@ export default function ServicePageShell({
       ? "Compare Cloud Products"
       : "Explore Business Solutions");
   const handleSecondaryCta = useCallback(() => {
+    if (heroCta2Href?.startsWith("#")) {
+      const reduceMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      document
+        .getElementById(heroCta2Href.slice(1))
+        ?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth" });
+      return;
+    }
     if (heroCta2Href) {
       window.location.assign(heroCta2Href);
       return;
@@ -740,11 +752,12 @@ export default function ServicePageShell({
     window.location.assign(parent[1]);
   }, [heroCta2, heroCta2Href, parent]);
   const primaryCtaLabel =
-    plans.length === 0 && !customPlansSection
+    primaryCtaLabelOverride ??
+    (plans.length === 0 && !customPlansSection
       ? "Book a Free Strategy Call"
       : _serviceType === "hosting"
         ? "See Plans and Prices"
-        : "See Plans";
+        : "See Plans");
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">

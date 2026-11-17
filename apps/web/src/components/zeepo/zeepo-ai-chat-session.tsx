@@ -489,7 +489,7 @@ export function ZeepoAiChatSessionPage() {
         !canAffordTurn
       ) {
         setBuyOpen(true);
-        toast.error("Insufficient tokens. Purchase more tokens to continue.");
+        toast.error("Not enough credits. Buy more credits to continue.");
         return;
       }
       streamingLockRef.current = true;

@@ -778,7 +778,7 @@ export const zeepoAgentChatRouter = router({
 							) {
 								resultPayload = {
 									error:
-										"Insufficient tokens to start media generation. Purchase more tokens to continue.",
+										"Not enough credits to start media generation. Buy more credits to continue.",
 								};
 							} else {
 							const requires = safeCapsArray(parsedArgs.data.requires);

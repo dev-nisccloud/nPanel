@@ -153,11 +153,11 @@ function QuotationRowActions({ quotation, onRefetch }: QuotationRowActionsProps)
 								</Button>
 							</DropdownMenuTrigger>
 							<DropdownMenuContent align="end" className="w-48">
-								<DropdownMenuItem onClick={() => navigate(`/agency/quotations/${quotation.id}`)} disabled={busy}>
+								<DropdownMenuItem onClick={() => navigate(`/hq/quotations/${quotation.id}`)} disabled={busy}>
 									<Eye className="mr-2 h-4 w-4" />
 									View Quotation
 								</DropdownMenuItem>
-								<DropdownMenuItem onClick={() => navigate(`/agency/quotations/${quotation.id}/edit`)} disabled={busy}>
+								<DropdownMenuItem onClick={() => navigate(`/hq/quotations/${quotation.id}/edit`)} disabled={busy}>
 									<Pencil className="mr-2 h-4 w-4" />
 									Edit Quotation
 								</DropdownMenuItem>
@@ -248,7 +248,7 @@ export function QuotationsTable({ quotations, onRefetch }: QuotationsTableProps)
 						<TableRow key={q.id}>
 							<TableCell
 								className="pl-6 cursor-pointer font-medium"
-								onClick={() => navigate(`/agency/quotations/${q.id}`)}
+								onClick={() => navigate(`/hq/quotations/${q.id}`)}
 							>
 								<div className="flex items-center gap-2">
 									<FileText className="h-4 w-4 text-muted-foreground" />

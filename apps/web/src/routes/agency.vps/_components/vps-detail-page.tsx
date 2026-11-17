@@ -85,8 +85,8 @@ function VpsDetailSkeleton() {
 
 export function VpsDetailPage({
   deviceId,
-  vpsListPath = "/agency/vps",
-  subscriptionsPathPrefix = "/agency/subscriptions",
+  vpsListPath = "/hq/vps",
+  subscriptionsPathPrefix = "/hq/subscriptions",
   teamHivelocityAccess = null,
 }: VpsDetailPageProps) {
   const id = parseInt(deviceId, 10);

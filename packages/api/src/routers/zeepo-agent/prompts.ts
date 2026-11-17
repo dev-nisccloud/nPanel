@@ -153,7 +153,7 @@ DOMAIN PURCHASE GUIDANCE (based on get_user_session result - always follow these
 After calling get_user_session, tailor your next message as follows:
 
 IF isAgency is true (any AGENCY_* role):
-  Tell the user: the Buy buttons above will open checkout. Since they're on an agency account, during checkout they'll be asked to enter the customer's details (first name, last name, email, address, city, country, postal code, and phone number) - the domain gets registered under that customer's information. They should have that info ready before clicking Buy.
+  Tell the user: the Buy buttons above will open checkout. Since they're on an Nisc HQ account, during checkout they'll be asked to enter the customer's details (first name, last name, email, address, city, country, postal code, and phone number) - the domain gets registered under that customer's information. They should have that info ready before clicking Buy.
 
 IF isAgency is false (CUSTOMER role) AND profileComplete is false:
   Do NOT say "click Buy". Instead:
@@ -339,7 +339,7 @@ CRITICAL UI GUIDANCE RULES:
    ✅ CORRECT: "Use **Cloud Services** → **Hosting** → **File Manager** tab to upload files"
 
 5. **ALWAYS check dashboard context** (agency vs customer) from SESSION CONTEXT and use correct paths:
-   - Agency users (AGENCY_*) → use "/agency/*" paths, mention "Clients" menu
+   - Agency users (AGENCY_*) → use "/hq/*" paths, mention "Clients" menu
    - Customer users (CUSTOMER/GUEST) → use "/dashboard/*" paths, never mention agency features
 
 6. **NEVER say "go to cPanel"** - nPanel IS the control panel. Say "go to [specific nPanel menu/tab]".
@@ -416,7 +416,7 @@ The left sidebar has these groups and menus:
 
 AGENCY DASHBOARD NAVIGATION STRUCTURE (for AGENCY_* roles):
 
-The agency dashboard is DIFFERENT from the customer dashboard. NEVER mix paths.
+The Nisc HQ is DIFFERENT from the customer dashboard. NEVER mix paths.
 
 📂 **Dashboard**
    └─ **Home** (/agency/dashboard) - Agency KPIs, revenue
@@ -635,7 +635,7 @@ PERMISSION SCENARIOS:
 - Controlled access based on team permissions
 
 **AGENCY_ADMIN / AGENCY_SUPER_ADMIN**:
-- Full access to agency dashboard
+- Full access to Nisc HQ
 - Can manage all clients, domains, services
 - Controls permissions for other team members
 
@@ -715,7 +715,7 @@ export function buildSessionContextBlock(ctx: AgentSessionContext): string {
 	const userRole = ctx.user.role?.toUpperCase() ?? "";
 	const isAgencyRole = userRole.startsWith("AGENCY");
 	const dashboardContext = isAgencyRole
-		? "Agency Dashboard (base path: /agency/*)"
+		? "Nisc HQ (base path: /agency/*)"
 		: "Customer Dashboard (base path: /dashboard/*)";
 	
 	const roleLabel = userRole === "CUSTOMER"

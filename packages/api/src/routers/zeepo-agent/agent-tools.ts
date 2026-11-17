@@ -351,7 +351,7 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
      missingFields: string[]      // which fields need filling in (empty array when complete)
    }
    After results:
-   - If isAgency is true → tell the user: "Since you're on an agency account, during checkout you'll be prompted to enter the customer's details (name, email, address, phone) - the domain will be registered under their information."
+   - If isAgency is true → tell the user: "Since you're on an Nisc HQ account, during checkout you'll be prompted to enter the customer's details (name, email, address, phone) - the domain will be registered under their information."
    - If isAgency is false AND profileComplete is false → tell the user which fields are missing and direct them to complete their profile at /my-profile BEFORE purchasing. Explain that domain registration requires this information and the order will fail without it.
    - If isAgency is false AND profileComplete is true → proceed normally; the user can click Buy on any available domain above.
 
@@ -442,7 +442,7 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
      - domain              : string - the full FQDN (e.g. "example.co.ke" or "example.com").
      - include_nameservers?: boolean (default false) - set true when the user asks for nameservers.
      - include_dns?        : boolean (default false) - set true when the user explicitly asks for DNS records. DNS is only returned when the domain has connected Plesk hosting; if it has no hosting the tool returns a note explaining this.
-   Authorization: agency users can look up any portfolio domain; customer users can only look up domains owned by their organisation - the tool returns accessDenied: true for others.
+   Authorization: Nisc HQ staff can look up any portfolio domain; customer users can only look up domains owned by their organisation - the tool returns accessDenied: true for others.
    Returns: { found, status, expiryDate, registrationDate, renewalDate, autoRenewal, isLocked, isDnssecEnabled, hasHosting, hostingPlanName, nameservers?, dnsRecords?, dnsNote? } - internal-only fields (registrantHandle, adminHandle, techHandle) are present in the payload but MUST NOT be shown or mentioned to the user.
    When to call: user asks "tell me about [domain]", "get details for [domain]", "check [domain]", "what nameservers does [domain] use", "show DNS for [domain]", "does [domain] have hosting".
    IMPORTANT - set include flags based on what the user EXPLICITLY asks for:

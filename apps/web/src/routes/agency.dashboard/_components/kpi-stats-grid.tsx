@@ -63,7 +63,7 @@ export function KpiStatsGrid({ metrics }: { metrics: AgencyDashboardMetrics }) {
 	return (
 		<section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
 			<StatCard
-				href="/agency/domains-portfolio"
+				href="/hq/domains-portfolio"
 				icon={Icons.Site}
 				label="Domains"
 				value={metrics.domains.total}
@@ -72,7 +72,7 @@ export function KpiStatsGrid({ metrics }: { metrics: AgencyDashboardMetrics }) {
 				iconClassName="bg-blue-50 text-blue-600 dark:bg-blue-950"
 			/>
 			<StatCard
-				href="/agency/hosting"
+				href="/hq/hosting"
 				icon={Icons.Hosting}
 				label="Hosting"
 				value={metrics.hosting.total}
@@ -81,7 +81,7 @@ export function KpiStatsGrid({ metrics }: { metrics: AgencyDashboardMetrics }) {
 				iconClassName="bg-emerald-50 text-emerald-600 dark:bg-emerald-950"
 			/>
 			<StatCard
-				href="/agency/invoices"
+				href="/hq/invoices"
 				icon={Icons.Invoices}
 				label="Invoices"
 				value={metrics.invoices.total}
@@ -90,7 +90,7 @@ export function KpiStatsGrid({ metrics }: { metrics: AgencyDashboardMetrics }) {
 				iconClassName="bg-violet-50 text-violet-600 dark:bg-violet-950"
 			/>
 			<StatCard
-				href="/agency/nisc-service-orders"
+				href="/hq/nisc-service-orders"
 				icon={Icons.Subscriptions}
 				label="Orders"
 				value={metrics.orders.total}
@@ -99,7 +99,7 @@ export function KpiStatsGrid({ metrics }: { metrics: AgencyDashboardMetrics }) {
 				iconClassName="bg-amber-50 text-amber-600 dark:bg-amber-950"
 			/>
 			<StatCard
-				href="/agency/support"
+				href="/hq/support"
 				icon={Icons.Help}
 				label="Tickets"
 				value={metrics.tickets.total}

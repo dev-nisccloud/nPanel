@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
+import { ENTERPRISE_CARD, ENTERPRISE_MUTED, ENTERPRISE_TIER_NAME } from "@/components/enterprise-tier.tsx";
 
 /**
  * Answer-first content blocks for product and service pages. Each band opens with a short, quotable
@@ -104,13 +105,16 @@ export function Glossary({ items, className }: { items: { term: string; desc: st
 
 export type PlanFit = { name: string; level: number; bestFor: string; chooseIf: string; recommended?: boolean };
 
-function PlanFitMeter({ level, max }: { level: number; max: number }) {
+function PlanFitMeter({ level, max, onDark }: { level: number; max: number; onDark?: boolean }) {
   return (
     <span aria-hidden className="flex items-end gap-1">
       {Array.from({ length: max }, (_, i) => i + 1).map((bar) => (
         <span
           key={bar}
-          className={cn("w-2 rounded-sm", bar <= level ? "bg-primary" : "bg-primary/15")}
+          className={cn(
+            "w-2 rounded-sm",
+            bar <= level ? (onDark ? "bg-brand-orange" : "bg-primary") : onDark ? "bg-white/20" : "bg-primary/15",
+          )}
           style={{ height: `${8 + bar * 5}px` }}
         />
       ))}
@@ -132,21 +136,23 @@ export function PlanFitGrid({
   return (
     <>
       <ul className={cn("mt-10 grid gap-4 sm:grid-cols-2", plans.length === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3")}>
-        {plans.map((plan) => (
+        {plans.map((plan) => {
+          const enterprise = plan.name === ENTERPRISE_TIER_NAME;
+          return (
           <li
             key={plan.name}
             className={cn(
-              "flex flex-col rounded-3xl border bg-card p-6",
-              plan.recommended ? "border-primary ring-2 ring-primary/25" : "border-border",
+              enterprise ? cn(ENTERPRISE_CARD, "rounded-3xl") : "flex flex-col rounded-3xl border bg-card p-6",
+              !enterprise && (plan.recommended ? "border-primary ring-2 ring-primary/25" : "border-border"),
             )}
           >
             <div className="flex items-center justify-between">
               <h3 className="type-h3">{plan.name}</h3>
-              <PlanFitMeter level={plan.level} max={max} />
+              <PlanFitMeter level={plan.level} max={max} onDark={enterprise} />
             </div>
-            <p className="mt-3 text-base font-semibold text-foreground">{plan.bestFor}</p>
-            <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
-              <span className="font-medium text-foreground">Choose it if </span>
+            <p className={cn("mt-3 text-base font-semibold", enterprise ? "text-white" : "text-foreground")}>{plan.bestFor}</p>
+            <p className={cn("mt-2 text-[15px] leading-relaxed", enterprise ? ENTERPRISE_MUTED : "text-muted-foreground")}>
+              <span className={cn("font-medium", enterprise ? "text-white" : "text-foreground")}>Choose it if </span>
               {plan.chooseIf.charAt(0).toLowerCase() + plan.chooseIf.slice(1)}
             </p>
             {plan.recommended ? (
@@ -155,7 +161,8 @@ export function PlanFitGrid({
               </span>
             ) : null}
           </li>
-        ))}
+          );
+        })}
       </ul>
       <div className="mt-8 flex flex-col gap-4 rounded-3xl border border-dashed border-primary/40 bg-primary/[0.05] p-6 md:flex-row md:items-center md:justify-between">
         <p className="max-w-[65ch] text-base leading-relaxed text-foreground">{note}</p>

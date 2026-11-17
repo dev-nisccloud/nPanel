@@ -28,7 +28,7 @@ export default function AgencyCronJobsIndexPage() {
     onSuccess: async (data) => {
       captureEvent("workflow_run_started", { workflow_type: String(data?.jobKey ?? "") });
       await utils.cronWorkflowRun.list.invalidate();
-      navigate(`/agency/cronjobs/runs/${data.id}`);
+      navigate(`/hq/cronjobs/runs/${data.id}`);
     },
   });
 
@@ -103,7 +103,7 @@ export default function AgencyCronJobsIndexPage() {
             <WorkflowRunsTable
               data={filtered}
               searchQuery={searchQuery}
-              onRowClick={(id) => navigate(`/agency/cronjobs/runs/${id}`)}
+              onRowClick={(id) => navigate(`/hq/cronjobs/runs/${id}`)}
             />
           )}
         </div>

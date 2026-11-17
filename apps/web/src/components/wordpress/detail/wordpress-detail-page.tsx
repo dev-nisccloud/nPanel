@@ -130,7 +130,7 @@ export function WordPressDetailPage({
   const [activeTab, setActiveTab] = React.useState("overview");
   const { can } = useCanTeamPermission();
   const { pathname } = useLocation();
-  const teamSlug = pathname.startsWith("/agency/") ? null : pathname.split("/")[1];
+  const teamSlug = pathname.startsWith("/hq/") ? null : pathname.split("/")[1];
   const visibleTabs = TABS.filter((tab) => can(tab.permissionKey));
   React.useEffect(() => {
     if (!visibleTabs.some((tab) => tab.value === activeTab) && visibleTabs[0]) {

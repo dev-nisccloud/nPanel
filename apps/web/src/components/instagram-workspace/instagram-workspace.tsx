@@ -15,7 +15,7 @@ import { useIsAgencyRole } from "@/lib/agency-role";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 
-const RETURN_PATH = "/agency/social-media-ads/instagram";
+const RETURN_PATH = "/hq/social-media-ads/instagram";
 
 const cachedList = {
   staleTime: Number.POSITIVE_INFINITY,

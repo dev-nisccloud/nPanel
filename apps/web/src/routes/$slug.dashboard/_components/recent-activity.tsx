@@ -169,7 +169,7 @@ function RecentSubscriptions({ teamSlug }: { teamSlug: string }) {
 							<span className="font-medium">{sub.planName}</span>
 							<span className="text-muted-foreground">
 								{isZeepoTokenProduct(sub.productId)
-									? ` · Remaining tokens ${formatRemainingTokenCount(sub.remainingTokens)}`
+									? ` · Remaining credits ${formatRemainingTokenCount(sub.remainingTokens)}`
 									: ` · ${sub.planType}${sub.nextRenewalDate ? ` · Expires ${formatInvoiceDate(sub.nextRenewalDate)}` : ""}`}
 							</span>
 						</span>

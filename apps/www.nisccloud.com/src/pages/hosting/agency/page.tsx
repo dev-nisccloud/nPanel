@@ -1,6 +1,12 @@
 import { AgencyPlans } from "./_components/AgencyPlans.tsx";
+import {
+  AgencyComparison,
+  AgencyExplained,
+  AgencyPlanFit,
+  AgencyStart,
+} from "./_components/agency-content.tsx";
 import ServicePageShell from "@/pages/_components/ServicePageShell";
-import { GoalArtwork } from "@/pages/_components/GoalArtwork";
+import { RunGoalArt } from "@/components/artwork/goal-art.tsx";
 import { NpanelAgencyArt, NpanelOperationsArt } from "@/components/artwork/npanel-art.tsx";
 import { AgencyDeveloperStory } from "@/components/artwork/flagship-art.tsx";
 import { Highlight, StepSpotlight } from "@/components/signature/index.ts";
@@ -44,12 +50,16 @@ export default function AgencyHostingPage() {
             "Review renewal pricing and upgrade options",
           ],
           visual: "wpStaging",
-          artwork: <GoalArtwork kind="build" />,
+          artwork: <RunGoalArt />,
           visualRight: true,
         },
       ]}
       contentSlots={{
+        afterPricing: <AgencyPlanFit />,
+        afterProcess: <AgencyStart />,
+        beforeFaq: <AgencyExplained />,
         afterShowcase: (
+          <>
           <StepSpotlight
             id="client-portfolio"
             eyebrow="For agencies and developers"
@@ -63,6 +73,8 @@ export default function AgencyHostingPage() {
             art={<AgencyDeveloperStory />}
             artLabel="Illustration of switching between client organisations and using a server terminal in nPanel"
           />
+          <AgencyComparison />
+          </>
         ),
       }}
       faqs={[

@@ -160,7 +160,7 @@ export function CompaniesDataTable({
                       <Building2 className="h-4 w-4 text-muted-foreground" />
                       <div>
                         <Link
-                          to={`/agency/crm/companies/${company.id}`}
+                          to={`/hq/crm/companies/${company.id}`}
                           className="font-semibold text-foreground hover:underline"
                         >
                           {company.name}
@@ -210,7 +210,7 @@ export function CompaniesDataTable({
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem asChild>
-                          <Link to={`/agency/crm/companies/${company.id}`}>
+                          <Link to={`/hq/crm/companies/${company.id}`}>
                             <Eye className="mr-2 h-4 w-4" />
                             View Details
                           </Link>

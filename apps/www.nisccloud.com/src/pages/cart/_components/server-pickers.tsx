@@ -68,7 +68,7 @@ export function ConfigSection({
           <h2 id={id} className="type-h3 text-foreground">
             {title}
           </h2>
-          {description ? <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">{description}</p> : null}
+          {description ? <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{description}</p> : null}
         </div>
       </div>
       <div className="mt-5">{children}</div>

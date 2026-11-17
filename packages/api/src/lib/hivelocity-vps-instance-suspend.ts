@@ -112,7 +112,7 @@ export async function suspendHivelocityVpsInstance(params: {
 	if (!isAgencyUserRole(params.role)) {
 		throw new TRPCError({
 			code: "FORBIDDEN",
-			message: "Only agency staff can suspend VPS instances",
+			message: "Only Nisc HQ staff can suspend VPS instances",
 		});
 	}
 
@@ -201,7 +201,7 @@ export async function reactivateHivelocityVpsInstance(params: {
 	if (!isAgencyUserRole(params.role)) {
 		throw new TRPCError({
 			code: "FORBIDDEN",
-			message: "Only agency staff can reactivate VPS instances",
+			message: "Only Nisc HQ staff can reactivate VPS instances",
 		});
 	}
 

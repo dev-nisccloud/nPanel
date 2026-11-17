@@ -22,7 +22,7 @@ export function useInvoiceEtimsFiscalPreview(): EtimsFiscalFields {
 	const { data: etimsConfig } = trpc.etims.auth.getConfiguration.useQuery(undefined, {
 		retry: false,
 		throwOnError: false,
-		enabled: typeof window === "undefined" ? false : window.location.pathname.startsWith("/agency"),
+		enabled: typeof window === "undefined" ? false : window.location.pathname.startsWith("/hq"),
 	});
 	const cfg = (etimsConfig as { config?: { kraPin?: string; branchId?: string; isSandbox?: boolean; sdcId?: string | null } } | undefined)
 		?.config;

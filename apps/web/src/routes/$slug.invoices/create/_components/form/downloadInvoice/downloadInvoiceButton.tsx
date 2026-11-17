@@ -131,7 +131,7 @@ export const DownloadInvoiceButton = () => {
       // Redirect to invoices list after a short delay (customer: /{slug}/invoices, agency: /agency/invoices)
       const pathname = typeof window !== "undefined" ? window.location.pathname : "";
       const slug = pathname.split("/")[1];
-      const invoicesPath = slug && slug !== "agency" ? `/${slug}/invoices` : "/agency/invoices";
+      const invoicesPath = slug && slug !== "agency" ? `/${slug}/invoices` : "/hq/invoices";
       setTimeout(() => {
         navigate(invoicesPath);
       }, 1500);

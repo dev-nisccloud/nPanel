@@ -700,7 +700,7 @@ export const userProfileRouter = router({
       if (!isAgencyUserRole(actor.role)) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "Only agency users can list customers for registrant selection.",
+          message: "Only Nisc HQ staff can list customers for registrant selection.",
         });
       }
 
@@ -768,7 +768,7 @@ export const userProfileRouter = router({
       if (!isAgencyUserRole(actor.role)) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "Only agency users can list a customer's organizations.",
+          message: "Only Nisc HQ staff can list a customer's organizations.",
         });
       }
 

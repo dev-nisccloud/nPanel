@@ -278,7 +278,7 @@ export default function NiscPaymentGatewayPage() {
                       <TableRow key={merchant.id}>
                         <TableCell>
                           <Link
-                            to={`/agency/nisc-payment-gateway/${merchant.id}`}
+                            to={`/hq/nisc-payment-gateway/${merchant.id}`}
                             className="hover:underline"
                           >
                             <div className="text-sm font-medium">{merchant.merchantName}</div>
@@ -303,12 +303,12 @@ export default function NiscPaymentGatewayPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem asChild>
-                                <Link to={`/agency/nisc-payment-gateway/${merchant.id}`} className="text-sm">
+                                <Link to={`/hq/nisc-payment-gateway/${merchant.id}`} className="text-sm">
                                   View details
                                 </Link>
                               </DropdownMenuItem>
                               <DropdownMenuItem asChild>
-                                <Link to={`/agency/nisc-payment-gateway/${merchant.id}/api-keys`} className="text-sm">
+                                <Link to={`/hq/nisc-payment-gateway/${merchant.id}/api-keys`} className="text-sm">
                                   Manage API keys
                                 </Link>
                               </DropdownMenuItem>

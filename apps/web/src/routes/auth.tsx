@@ -2,29 +2,48 @@ import { Outlet, isRouteErrorResponse } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
-import { APP_CONFIG } from "@/config/app-config";
 import { AuthRightPanelCarousel } from "@/routes/auth/_components/auth-right-panel-carousel";
 
 export default function Layout() {
   return (
     <main>
-      <div className="grid h-dvh justify-center p-2 lg:grid-cols-2">
-        <div className="relative order-2 hidden h-full overflow-hidden rounded-3xl lg:flex">
-          <AuthRightPanelCarousel />
-        </div>
-        <div className="relative order-1 flex h-full flex-col">
-          <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-4 pb-16 pt-6">
-            <div className="flex w-full flex-col items-center gap-6">
+      <div className="grid min-h-dvh bg-background lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.92fr)]">
+        <div className="relative order-1 flex min-h-dvh flex-col px-6 py-6 sm:px-12">
+          <div className="mx-auto flex w-full max-w-[420px] flex-1 flex-col">
+            <div className="flex flex-1 flex-col justify-center gap-8">
               <img
                 src="/nisclogooriginal.png"
-                alt={`${APP_CONFIG.name} Logo`}
-                width={180}
-                height={60}
-                className="h-15 w-auto max-w-full shrink-0"
+                alt="Nisc Cloud"
+                width={148}
+                height={40}
+                className="h-8 w-auto max-w-full self-start"
               />
               <Outlet />
             </div>
+            <p className="pt-8 text-left text-xs text-muted-foreground">
+            © {new Date().getFullYear()} Nisc Cloud Limited. All rights reserved.{" "}
+            <a
+              href="https://nisccloud.com/privacy"
+              target="_blank"
+              rel="noreferrer"
+              className="underline underline-offset-2 hover:text-foreground"
+            >
+              Privacy Policy
+            </a>
+            {" and "}
+            <a
+              href="https://nisccloud.com/terms"
+              target="_blank"
+              rel="noreferrer"
+              className="underline underline-offset-2 hover:text-foreground"
+            >
+              Terms of Service
+            </a>
+            </p>
           </div>
+        </div>
+        <div className="relative order-2 hidden min-h-dvh p-3 lg:block">
+          <AuthRightPanelCarousel />
         </div>
       </div>
     </main>

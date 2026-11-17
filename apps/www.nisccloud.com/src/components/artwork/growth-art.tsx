@@ -23,7 +23,7 @@ import { ArtFlash, ArtReveal, ArtStage, ArtSwap, Float, Meter, NpanelWindow, Pan
 import { SeoFlagshipArt } from "./flagship-art.tsx";
 
 const BRAND = "Savanna Bakery";
-const DOMAIN = "savannabakery.co.ke";
+const DOMAIN = "savannabakery.com";
 
 /** Small fictional marketing email used by the email and builder artwork. */
 function EmailPreview({ compact = false }: { compact?: boolean }) {
@@ -314,7 +314,7 @@ export function ZeepoArt({ variant = 0 }: { variant?: number }) {
       <div className="sm:pb-10 sm:pr-10">
         <NpanelWindow path="zepo-ai" active="zeepo" title="Zepo AI" subtitle="New chat" bodyClassName="space-y-2.5">
           <div className="ml-auto w-fit max-w-[80%] rounded-2xl rounded-br-md bg-primary px-3 py-2 text-[10px] text-primary-foreground">
-            Is savannacakes.co.ke available?
+            Is savannacakes.com available?
           </div>
           <div className="flex gap-2">
             <ZeepoAvatar />
@@ -322,7 +322,7 @@ export function ZeepoArt({ variant = 0 }: { variant?: number }) {
               <p className="text-[10px] leading-snug text-foreground">Good news. That name looks available. You can register it and connect hosting and email.</p>
               <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
                 <Globe className="size-3.5 text-primary" />
-                <span className="flex-1 truncate text-[10px] font-semibold text-foreground">savannacakes.co.ke</span>
+                <span className="flex-1 truncate text-[10px] font-semibold text-foreground">savannacakes.com</span>
                 <Pill>Available</Pill>
                 <UiButton action="register"><ArtSwap on="register" before="Register" after={<><Check className="size-3" /> In cart</>} /></UiButton>
               </div>

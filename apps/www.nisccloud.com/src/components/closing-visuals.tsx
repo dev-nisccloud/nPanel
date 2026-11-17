@@ -305,7 +305,7 @@ export function ShieldScan({ checks }: { checks: string[] }) {
 }
 
 /** Business email: a branded address types into a new-message window. */
-export function InboxCard({ address = "you@yourbusiness.co.ke" }: { address?: string }) {
+export function InboxCard({ address = "you@yourbusiness.com" }: { address?: string }) {
   const { ref, step } = useSequence(1, 0, 300);
   const reduceMotion = useReducedMotion() ?? false;
   const [typed, setTyped] = useState(0);

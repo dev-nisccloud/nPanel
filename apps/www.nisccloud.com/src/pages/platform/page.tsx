@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import {
   ArrowRight,
   ArrowUpRight,
+  Workflow,
   Building2,
   Check,
   Cloud,
@@ -17,6 +18,7 @@ import { Button } from "@/components/ui/button.tsx";
 import { NpanelAgencyArt, NpanelBusinessArt, NpanelDeveloperArt } from "@/components/artwork/npanel-art.tsx";
 import { ZeepoArt } from "@/components/artwork/growth-art.tsx";
 import { PlatformStories } from "@/components/artwork/npanel-stories/platform-stories.tsx";
+import { MailMcpStory } from "@/components/artwork/npanel-stories/ai-stories.tsx";
 import { ClosingCta } from "@/components/closing-cta.tsx";
 import { Highlight } from "@/components/signature/index.ts";
 import Navbar from "@/pages/_components/Navbar.tsx";
@@ -26,16 +28,30 @@ const NPANEL_URL = import.meta.env.VITE_NPANEL_APP_URL ?? "https://npanel.nisccl
 const ZEPO_PATH = "/services/zepo-ai";
 
 const NPANEL_POINTS = [
-  "Eligible domains, hosting, email and servers in one account",
-  "Invoices, renewals and payment history in one place",
-  "Support tickets linked to the service they are about",
-  "The hosting tools included with your plan, one click away",
+  "Domains, hosting, business email and cloud servers in one account",
+  "Search results and email campaigns beside the services behind them",
+  "Zepo AI working across your account and your inbox",
+  "Invoices, renewals and support tickets linked to each service",
+];
+
+const REPLACES = [
+  ["cPanel for your hosting", "Hosting, files, DNS and backups"],
+  ["A separate marketing dashboard", "Search results and email campaigns"],
+  ["Another login for email", "Mailboxes and your inbox"],
+  ["A different tool for AI", "Zepo and your own AI through MCP"],
+] as const;
+
+const MCP_POINTS = [
+  "Works with ChatGPT, Claude and other assistants that support MCP",
+  "Read, search, draft, reply to and send email",
+  "Set up and manage the connection yourself in nPanel",
+  "Rotate the access token or remove the connection at any time",
 ];
 
 const ZEPO_POINTS = [
-  "Support for customer conversations",
-  "Help with follow-ups and repetitive workflows",
-  "Available in selected services, confirmed for yours before you start",
+  "Knows your business from the day you create your account",
+  "Reads, summarises and drafts your email inside nPanel",
+  "300 free credits when you have an active service",
 ];
 
 const PERSONAS = [
@@ -99,10 +115,22 @@ const PLATFORM_PATHS = [
     accent: "text-foreground",
     surface: "bg-foreground/[0.04]",
     links: [
-      { label: "SEO", href: "/services/seo" },
+      { label: "SEO & AI Search", href: "/services/seo-ai-search" },
       { label: "Paid advertising", href: "/services/paid-ads" },
       { label: "Social media", href: "/services/social-media" },
-      { label: "Email marketing", href: "/services/email-marketing" },
+      { label: "Nisc Outreach", href: "/services/email-marketing" },
+    ],
+  },
+  {
+    title: "Automate",
+    description: "Hand everyday work to AI that already knows your account.",
+    icon: Workflow,
+    accent: "text-primary",
+    surface: "bg-primary/[0.08]",
+    links: [
+      { label: "Zepo AI", href: "/services/zepo-ai" },
+      { label: "Nisc Outreach", href: "/services/email-marketing" },
+      { label: "AI website builder (coming soon)", href: "/services/ai-website-builder" },
     ],
   },
 ] as const;
@@ -134,13 +162,14 @@ export default function PlatformPage() {
           />
           <div className="relative mx-auto grid max-w-7xl gap-12 px-4 pb-20 pt-32 sm:px-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,.65fr)] lg:items-end lg:px-8 lg:pb-28 lg:pt-44">
             <div>
-              <p className="text-sm font-semibold text-[#38b6ff] dark:text-[#38b6ff]">The Nisc Cloud platform</p>
+              <p className="text-sm font-semibold text-[#38b6ff] dark:text-[#38b6ff]">nPanel, built in-house by Nisc Cloud</p>
               <h1 className="type-h1 mt-4 max-w-4xl">
-                One account for the digital business you are building.
+                One panel for your business, your cloud and your AI.
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl">
-                nPanel connects eligible domains, hosting, email, billing and support. From there, Nisc Cloud
-                brings together the services you use to build, run and grow online.
+                We built nPanel ourselves so business owners can stop jumping between cPanel, marketing
+                dashboards and separate apps. Manage your business, cloud infrastructure, domains, email,
+                digital services and AI agents in one place.
               </p>
               <div className="mt-9 flex flex-wrap items-center gap-3">
                 <Button asChild size="lg" className="gap-2">
@@ -166,23 +195,19 @@ export default function PlatformPage() {
               </div>
             </div>
 
-            <aside className="border-l border-border pl-6 sm:pl-8" aria-label="How the platform connects">
-              <p className="text-sm font-semibold text-[#38b6ff] dark:text-[#38b6ff]">One connected journey</p>
-              <ol className="mt-5 space-y-5">
-                {[
-                  ["Choose", "Find the Nisc Cloud service that fits your next step."],
-                  ["Manage", "Use nPanel for supported services, billing and help."],
-                  ["Extend", "Add Build, Run and Grow services as your needs change."],
-                ].map(([title, body], index) => (
-                  <li key={title} className="grid grid-cols-[2rem_1fr] gap-3">
-                    <span className="font-mono text-sm text-muted-foreground">0{index + 1}</span>
-                    <span>
-                      <span className="block font-semibold">{title}</span>
-                      <span className="mt-1 block text-sm leading-relaxed text-muted-foreground">{body}</span>
+            <aside className="rounded-[24px] border border-border bg-card p-6 sm:p-7" aria-labelledby="replaces-heading">
+              <p id="replaces-heading" className="text-sm font-semibold text-[#38b6ff] dark:text-[#38b6ff]">What nPanel replaces</p>
+              <ul className="mt-5 divide-y divide-border">
+                {REPLACES.map(([before, now]) => (
+                  <li key={before} className="py-3.5 first:pt-0 last:pb-0">
+                    <span className="block text-sm text-muted-foreground line-through decoration-muted-foreground/50">{before}</span>
+                    <span className="mt-1 flex items-center gap-2 text-[15px] font-semibold">
+                      <Check className="size-4 shrink-0 text-primary" strokeWidth={3} aria-hidden />
+                      {now}, in nPanel
                     </span>
                   </li>
                 ))}
-              </ol>
+              </ul>
             </aside>
           </div>
         </section>
@@ -193,12 +218,12 @@ export default function PlatformPage() {
               <div>
                 <p className="text-sm font-semibold text-[#38b6ff] dark:text-[#38b6ff]">nPanel</p>
                 <h2 className="type-h2 mt-2">
-                  The working view of your Nisc Cloud account.
+                  Built in-house, so everything works together.
                 </h2>
               </div>
               <p className="max-w-2xl text-lg leading-relaxed text-muted-foreground lg:justify-self-end">
-                Supported services and orders appear in nPanel after activation, giving you a clear view of
-                what you have, available renewal details and where to get help.
+                nPanel is not a stack of other companies' tools stitched together. Your services, marketing,
+                email and AI share one login and one view, and each service appears as soon as it is active.
               </p>
             </div>
 
@@ -226,6 +251,23 @@ export default function PlatformPage() {
                 Open nPanel <ArrowUpRight className="h-4 w-4" />
               </a>
             </Button>
+          </div>
+        </section>
+
+        <section id="email-mcp" className="scroll-mt-24 border-t border-border bg-background py-20 lg:py-28" aria-labelledby="mcp-heading">
+          <div className="mx-auto grid max-w-7xl gap-12 px-4 sm:px-6 lg:grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)] lg:items-center lg:px-8">
+            <div>
+              <p className="text-sm font-semibold text-[#38b6ff] dark:text-[#38b6ff]">Email MCP, for businesses and developers</p>
+              <h2 id="mcp-heading" className="type-h2 mt-2">Use your own AI with your Nisc Cloud email.</h2>
+              <p className="mt-4 max-w-xl text-lg leading-relaxed text-muted-foreground">
+                Connect any mailbox hosted by Nisc Cloud to the AI assistant you already use. Create the
+                connection in nPanel, add it to ChatGPT or Claude, and ask it to handle your email.
+              </p>
+              <Points items={MCP_POINTS} />
+            </div>
+            <div className="min-w-0">
+              <MailMcpStory />
+            </div>
           </div>
         </section>
 
@@ -303,10 +345,10 @@ export default function PlatformPage() {
             <div id="zepo-ai" className="mt-6 grid scroll-mt-24 border-y border-border bg-muted/20 lg:grid-cols-[minmax(0,1fr)_minmax(340px,.85fr)]">
               <div className="p-7 sm:p-10 lg:p-12">
                 <p className="text-sm font-semibold text-brand-orange">Zepo AI</p>
-                <h2 className="type-h2 mt-2">AI help built into the way you work.</h2>
+                <h2 className="type-h2 mt-2">An assistant that already knows your account.</h2>
                 <p className="mt-4 max-w-xl text-lg leading-relaxed text-muted-foreground">
-                  Zepo AI supports customer conversations, follow-ups and repetitive workflows in the services
-                  where it is available.
+                  Zepo lives inside nPanel. It answers questions about your services, helps with your inbox and
+                  takes on research and writing. You pay for what it does in credits.
                 </p>
                 <Points items={ZEPO_POINTS} />
                 <Button asChild size="lg" variant="outline" className="mt-8 gap-2">

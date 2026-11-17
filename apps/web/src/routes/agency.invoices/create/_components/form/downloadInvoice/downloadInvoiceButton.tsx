@@ -135,7 +135,7 @@ export const DownloadInvoiceButton = () => {
       });
       // Redirect to invoices list after a short delay
       setTimeout(() => {
-        navigate("/agency/invoices");
+        navigate("/hq/invoices");
       }, 1500);
     },
     onError: (error) => {

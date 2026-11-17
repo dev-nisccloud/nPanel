@@ -15,5 +15,5 @@ export function quotationCustomerGroupPath(
 	customerEmail: string | null | undefined,
 ): string {
 	const key = quotationCustomerGroupKey(customerName, customerEmail);
-	return `/agency/quotations/customers/${encodeURIComponent(key)}`;
+	return `/hq/quotations/customers/${encodeURIComponent(key)}`;
 }

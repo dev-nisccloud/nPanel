@@ -23,7 +23,7 @@ const PLAN_FIT: PlanFit[] = [
     chooseIf: "you need product variants, delivery rules and handover training, with the catalogue size agreed in the proposal.",
   },
   {
-    name: "Corporate",
+    name: "Enterprise",
     level: 3,
     bestFor: "A larger operation",
     chooseIf: "you need a full catalogue, abandoned-cart emails, or a marketplace or accounting integration named in the proposal.",
@@ -36,7 +36,7 @@ export function EcommercePlanFit() {
       id="which-store-plan"
       label="Choosing a package"
       title="Which store package fits?"
-      answer="Small Business covers a first store of up to 50 products. Growth adds variants and delivery rules your team runs. Corporate is for a full catalogue and the integrations named in the proposal."
+      answer="Small Business covers a first store of up to 50 products. Growth adds variants and delivery rules your team runs. Enterprise is for a full catalogue and the integrations named in the proposal."
     >
       <PlanFitGrid
         plans={PLAN_FIT}

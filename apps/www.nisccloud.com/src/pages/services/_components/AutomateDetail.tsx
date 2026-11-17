@@ -1,14 +1,14 @@
 import { motion } from "motion/react";
 import { ServiceFeatureGrid, type ServiceFeature } from "./ServiceFeatureGrid.tsx";
-import { Check, Bot, Workflow, BarChart3 } from "lucide-react";
+import { Check, LayoutTemplate, Plug, Send } from "lucide-react";
 import { ShowcaseVisualCard } from "@/pages/_components/ServiceShowcaseSection.tsx";
 import { ZepoMascot } from "@/components/zepo-mascot.tsx";
 
 const features: ServiceFeature[] = [
-  { icon: Workflow, title: "Workflow Integrations", desc: "Map repetitive steps and confirm which supported systems, permissions and approvals are required before integration." },
-  { icon: ZepoMascot, title: "Zepo AI Chat", href: "/services/zepo-ai", desc: "Assistance for supported customer, marketing and Nisc Cloud service questions, with escalation when a person needs to take over." },
-  { icon: Bot, title: "Email Sequences", href: "/services/email-marketing", desc: "Plan approved follow-up for supported triggers, with consent, review and sending responsibilities clearly assigned." },
-  { icon: BarChart3, title: "Activity & Reporting", desc: "Review supported workflow activity, handoffs and outcomes without presenting inferred revenue as confirmed fact." },
+  { icon: ZepoMascot, title: "Zepo AI", href: "/services/zepo-ai", desc: "Your assistant inside nPanel. It answers from your account, reads and drafts your email, and takes on research and writing." },
+  { icon: Send, title: "Nisc Outreach", href: "/services/email-marketing", desc: "AI email marketing. Describe a campaign and the AI designs it from your brand, then track opens and clicks." },
+  { icon: Plug, title: "Email MCP", href: "/platform#email-mcp", desc: "Connect your Nisc Cloud mailbox to ChatGPT, Claude or another MCP assistant to read, draft, reply and send." },
+  { icon: LayoutTemplate, title: "AI Website Builder (coming soon)", href: "/services/ai-website-builder", desc: "Describe your business and get a website with your brand, published on Nisc Cloud hosting from nPanel." },
 ];
 
 const included = [

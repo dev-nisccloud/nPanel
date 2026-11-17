@@ -1,5 +1,5 @@
 import * as React from "react";
-import { CreditCard, Loader2 } from "lucide-react";
+import { Check, CreditCard, Loader2, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { trackEvent } from "@/lib/track.ts";
 import {
@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog.tsx";
 import { Button } from "@/components/ui/button.tsx";
+import { cn } from "@/lib/utils.ts";
 import { Checkbox } from "@/components/ui/checkbox.tsx";
 import { MpesaPaymentFields } from "./MpesaPaymentFields.tsx";
 import { JengaCardPaymentFields } from "./JengaCardPaymentFields.tsx";
@@ -439,11 +440,30 @@ export function StorefrontPaymentDialog({
       }}
     >
       <DialogContent className="sm:max-w-lg gap-0 p-0 overflow-hidden max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
-          <DialogTitle>Complete payment</DialogTitle>
-          <DialogDescription>
+        <DialogHeader className="px-6 pt-6 pb-5 border-b border-border text-left">
+          <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Step 3 of 3 · Last step</p>
+          <div
+            className="mt-2 h-1 overflow-hidden rounded-full bg-muted"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={94}
+            aria-label="Checkout completion"
+          >
+            <div className="h-full w-[94%] rounded-full bg-emerald-500" />
+          </div>
+          <DialogTitle className="mt-1">Complete payment</DialogTitle>
+          <DialogDescription className="sr-only">
             Pay {formatMoney(totalAmount, currency)} to finish your order.
           </DialogDescription>
+          <div className="mt-3 flex items-end justify-between gap-3 rounded-xl bg-muted/50 px-4 py-3">
+            <span className="text-sm text-muted-foreground">Total to pay</span>
+            <span className="text-2xl font-bold tabular-nums text-foreground">{formatMoney(totalAmount, currency)}</span>
+          </div>
+          <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Lock className="size-3" aria-hidden />
+            Includes VAT. Your order is created as soon as the payment is confirmed.
+          </p>
         </DialogHeader>
 
         <div className="px-6 py-5">
@@ -510,16 +530,49 @@ export function StorefrontPaymentDialog({
             >
               <PaymentMethodContent>
                 {isWaiting && paymentMethod === "mpesa" ? (
-                  <div className="py-8 flex flex-col items-center text-center">
-                    <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-                    <p className="text-sm font-medium text-foreground">
-                      {phase === "creating"
-                        ? "Payment confirmed. Creating your order…"
-                        : "Waiting for payment confirmation…"}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-2 max-w-xs">
-                      Enter your M-Pesa PIN on your phone when prompted. Wrong PIN or
-                      cancellation will show here immediately.
+                  <div className="py-4" role="status" aria-live="polite">
+                    <ol className="space-y-3">
+                      {[
+                        { label: "Payment request sent to your phone", state: "done" as const },
+                        {
+                          label: "Enter your M-Pesa PIN",
+                          state: phase === "creating" ? ("done" as const) : ("active" as const),
+                        },
+                        {
+                          label: "Order created in nPanel",
+                          state: phase === "creating" ? ("active" as const) : ("todo" as const),
+                        },
+                      ].map((item) => (
+                        <li key={item.label} className="flex items-center gap-3">
+                          <span
+                            className={cn(
+                              "flex size-7 shrink-0 items-center justify-center rounded-full border",
+                              item.state === "done" && "border-transparent bg-primary text-primary-foreground",
+                              item.state === "active" && "border-primary text-primary",
+                              item.state === "todo" && "border-border text-muted-foreground",
+                            )}
+                          >
+                            {item.state === "done" ? (
+                              <Check className="size-4" strokeWidth={3} aria-hidden />
+                            ) : item.state === "active" ? (
+                              <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden />
+                            ) : (
+                              <span className="size-1.5 rounded-full bg-current" aria-hidden />
+                            )}
+                          </span>
+                          <span
+                            className={cn(
+                              "text-sm",
+                              item.state === "todo" ? "text-muted-foreground" : "font-medium text-foreground",
+                            )}
+                          >
+                            {item.label}
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                    <p className="mt-4 text-xs text-muted-foreground">
+                      Keep this window open. A wrong PIN or a cancelled prompt shows here straight away.
                     </p>
                   </div>
                 ) : (
@@ -535,8 +588,8 @@ export function StorefrontPaymentDialog({
                       accountRefHelperText={`Reference (${accountReference.length}/12)`}
                     />
                     <div className="flex justify-end pt-1">
-                      <MpesaPayButton onClick={handlePay} className="min-w-[140px]">
-                        Pay with M-Pesa
+                      <MpesaPayButton onClick={handlePay} className="min-h-11 w-full sm:w-auto sm:min-w-[180px]">
+                        Pay {formatMoney(totalAmount, currency)} with M-Pesa
                       </MpesaPayButton>
                     </div>
                   </div>
@@ -573,8 +626,8 @@ export function StorefrontPaymentDialog({
                       disabled={isWaiting}
                     />
                     <div className="flex justify-end pt-1">
-                      <Button onClick={() => void handleCardPay()} className="min-w-[140px]">
-                        Pay with Card
+                      <Button onClick={() => void handleCardPay()} className="min-h-11 w-full sm:w-auto sm:min-w-[180px]">
+                        Pay {formatMoney(totalAmount, currency)} by card
                       </Button>
                     </div>
                   </div>

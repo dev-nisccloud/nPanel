@@ -501,7 +501,7 @@ export const agencyRbacRouter = router({
 				throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
 			}
 			if (!["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"].includes(userRes.role)) {
-				throw new TRPCError({ code: "FORBIDDEN", message: "This user is not an agency user" });
+				throw new TRPCError({ code: "FORBIDDEN", message: "This user is not an Nisc HQ staff" });
 			}
 
 			if (input.roleId !== null) {

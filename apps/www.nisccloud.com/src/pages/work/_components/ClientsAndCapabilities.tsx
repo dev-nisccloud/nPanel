@@ -36,7 +36,7 @@ const CAPABILITIES: Capability[] = [
     title: "Grow",
     description: "Search, social and paid campaigns that bring in enquiries, with clear reporting.",
     deliverables: ["SEO and content", "Social media management", "Paid advertising"],
-    href: "/services/seo",
+    href: "/services/seo-ai-search",
     linkLabel: "Marketing services",
     art: () => <SeoFlagshipArt />,
   },

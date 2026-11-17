@@ -152,7 +152,7 @@ function assertAgencyDashboardAccess(role: string | null | undefined) {
   if (!isAgencyUserRole(role)) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only agency users can view this dashboard data.",
+      message: "Only Nisc HQ staff can view this dashboard data.",
     });
   }
 }

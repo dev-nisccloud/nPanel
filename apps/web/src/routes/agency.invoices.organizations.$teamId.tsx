@@ -164,7 +164,7 @@ export default function TeamInvoicesPage() {
 						title="Organization not found"
 						description="This organization link is invalid."
 						action={
-							<Button onClick={() => navigate("/agency/invoices")} variant="outline">
+							<Button onClick={() => navigate("/hq/invoices")} variant="outline">
 								<ArrowLeft className="mr-2 h-4 w-4" />
 								Back to organizations
 							</Button>
@@ -217,7 +217,7 @@ export default function TeamInvoicesPage() {
 						variant="ghost"
 						size="sm"
 						className="w-fit -ml-2 text-muted-foreground"
-						onClick={() => navigate("/agency/invoices")}
+						onClick={() => navigate("/hq/invoices")}
 					>
 						<ArrowLeft className="mr-2 h-4 w-4" />
 						All organizations
@@ -274,7 +274,7 @@ export default function TeamInvoicesPage() {
 									/>
 								</Button>
 								{activeTab === "invoices" ? (
-									<Button onClick={() => navigate("/agency/invoices/create")}>
+									<Button onClick={() => navigate("/hq/invoices/create")}>
 										<Plus className="mr-2 h-4 w-4" />
 										Create Invoice
 									</Button>
@@ -289,7 +289,7 @@ export default function TeamInvoicesPage() {
 								title="No invoices for this organization"
 								description="Create an invoice billed to this organization to see it here."
 								action={
-									<Button onClick={() => navigate("/agency/invoices/create")}>
+									<Button onClick={() => navigate("/hq/invoices/create")}>
 										<Plus className="mr-2 h-4 w-4" />
 										Create Invoice
 									</Button>
@@ -331,7 +331,7 @@ export default function TeamInvoicesPage() {
 						) : (
 							<CreditNotesTable
 								creditNotes={filteredCreditNotes}
-								detailPathPrefix="/agency/invoices/credit-notes"
+								detailPathPrefix="/hq/invoices/credit-notes"
 								onRefetch={refetchCreditNotes}
 							/>
 						)}

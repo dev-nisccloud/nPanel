@@ -32,6 +32,7 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --color-brand-orange: #fc734d;
+  --color-brand-midnight: #02070a;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -999,40 +1000,42 @@
   outline: none;
 }
 
-/* Page loader: a thin line at the top, shared by the static splash in index.html and the route
-   fallback. It stays invisible for 300ms so fast loads never show it. */
+/* One 2px bar, outside #root. It trickles while the page loads and finishes when the page commits.
+   Fast loads fade in after 120ms, so a page that is already ready never shows it. */
 .app-loader {
   position: fixed;
   inset: 0 0 auto;
   z-index: 100;
-  height: 3px;
-  overflow: hidden;
+  height: 2px;
   pointer-events: none;
-  background: rgb(56 182 255 / 0.1);
   opacity: 0;
-  animation: app-loader-in 150ms ease-out 300ms forwards;
+}
+.app-loader.is-running {
+  animation: app-loader-in 160ms ease-out 120ms forwards;
 }
 .app-loader__bar {
-  width: 40%;
+  width: 92%;
   height: 100%;
-  border-radius: 0 3px 3px 0;
-  background: linear-gradient(90deg, rgb(56 182 255 / 0), var(--primary) 70%, #a5e1ff);
-  box-shadow: 0 0 8px rgb(56 182 255 / 0.6);
-  animation: app-loader-slide 0.7s cubic-bezier(0.3, 0, 0.2, 1) infinite;
+  transform-origin: left center;
+  transform: scaleX(0.12);
+  background: linear-gradient(90deg, var(--primary), color-mix(in srgb, var(--primary) 80%, transparent), var(--primary));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--primary) 35%, transparent);
 }
-@media (max-width: 639px) {
-  .app-loader__bar {
-    width: 60%;
-    animation-name: app-loader-slide-narrow;
-  }
+.app-loader.is-running .app-loader__bar {
+  animation: app-loader-trickle 8s linear forwards;
 }
-@keyframes app-loader-slide-narrow {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(170%);
-  }
+.app-loader.is-done {
+  opacity: 1;
+  animation: none;
+}
+.app-loader.is-done .app-loader__bar {
+  animation: none;
+  transform: scaleX(1);
+  transition: transform 160ms ease-out;
+}
+.app-loader.is-leaving {
+  opacity: 0;
+  transition: opacity 180ms ease-out;
 }
 .app-loader .sr-only {
   position: absolute;
@@ -1047,23 +1050,34 @@
     opacity: 1;
   }
 }
-@keyframes app-loader-slide {
-  from {
-    transform: translateX(-100%);
+@keyframes app-loader-trickle {
+  0% {
+    transform: scaleX(0.163);
   }
-  to {
-    transform: translateX(260%);
+  25% {
+    transform: scaleX(0.696);
+  }
+  50% {
+    transform: scaleX(0.891);
+  }
+  75% {
+    transform: scaleX(0.967);
+  }
+  100% {
+    transform: scaleX(1);
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .app-loader {
-    animation-duration: 1ms;
-  }
-  .app-loader__bar {
-    width: 100%;
+  .app-loader,
+  .app-loader.is-running,
+  .app-loader.is-running .app-loader__bar,
+  .app-loader.is-done .app-loader__bar,
+  .app-loader.is-leaving {
     animation: none;
-    background: var(--primary);
-    box-shadow: none;
-    opacity: 0.6;
+    transition: none;
+  }
+  .app-loader.is-running .app-loader__bar,
+  .app-loader.is-done .app-loader__bar {
+    transform: scaleX(1);
   }
 }

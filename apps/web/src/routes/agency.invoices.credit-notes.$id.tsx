@@ -10,7 +10,7 @@ export default function AgencyCreditNoteDetailPage() {
 	return (
 		<CreditNoteDetailView
 			creditNoteId={creditNoteId}
-			backHref="/agency/invoices?tab=credit-notes"
+			backHref="/hq/invoices?tab=credit-notes"
 			backLabel="Back to credit notes"
 			showKraRetry
 		/>

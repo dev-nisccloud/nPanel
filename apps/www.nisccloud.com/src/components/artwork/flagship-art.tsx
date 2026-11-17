@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils.ts";
 import { ArtCursor, ArtFlash, ArtReveal, ArtSwap, Pill, UiButton } from "./kit.tsx";
 import { useArtLive } from "./use-art-live.ts";
 
-const DOMAIN = "savannabakery.co.ke";
+const DOMAIN = "savannabakery.com";
 
 function BrandMark({ className }: { className?: string }) {
   return (

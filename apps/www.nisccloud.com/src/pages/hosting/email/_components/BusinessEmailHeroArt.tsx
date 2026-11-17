@@ -3,7 +3,7 @@ import { useInView, useReducedMotion } from "motion/react";
 import { Archive, BadgeCheck, Mail, Send, ShieldCheck, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
 
-const ADDRESS = "you@yourbusiness.co.ke";
+const ADDRESS = "you@yourbusiness.com";
 const CHECKS = [
   { label: "Spam and phishing filtered", icon: ShieldCheck },
   { label: "Sender verified (DKIM, SPF, DMARC)", icon: BadgeCheck },
@@ -53,7 +53,7 @@ export function BusinessEmailHeroArt() {
     <div
       ref={ref}
       role="img"
-      aria-label="Illustration: a new email from you@yourbusiness.co.ke with spam filtering, sender verification and daily backups"
+      aria-label="Illustration: a new email from you@yourbusiness.com with spam filtering, sender verification and daily backups"
       className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-[#38b6ff]/5 via-white to-amber-50/70 p-5 sm:p-7 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900"
     >
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgb(56_182_255_/_0.16)_1px,transparent_0)] [background-size:18px_18px]" />

@@ -72,7 +72,7 @@ function PlanCard({
 
 			<p className="text-sm leading-relaxed text-muted-foreground line-clamp-3">
 				{plan.description ??
-					(isTopUp ? "Add tokens instantly to your balance." : "Monthly token allowance.")}
+					(isTopUp ? "Add credits instantly to your balance." : "Monthly credit allowance.")}
 			</p>
 
 			<div className="flex items-end justify-between gap-2">
@@ -116,13 +116,13 @@ export function ZeepoOutOfTokensDialog({
 	const tokenCount = balance?.tokens != null ? Math.floor(balance.tokens) : null;
 
 	const title =
-		reason === "no_subscription" ? "Subscribe to use Zeepo" : "You're out of tokens";
+		reason === "no_subscription" ? "Subscribe to use Zeepo" : "You're out of credits";
 	const description =
 		reason === "no_subscription"
 			? "Choose a plan to unlock Zeepo AI Agent - chat, media generation, documents, and more."
 			: hasSubscription
 				? "Top up your balance to keep creating with Zeepo."
-				: "Purchase a plan or token pack to continue using Zeepo AI Agent.";
+				: "Buy a plan or credit pack to continue using Zeepo AI Agent.";
 
 	const handlePurchaseMore = () => setStep("plans");
 
@@ -164,7 +164,7 @@ export function ZeepoOutOfTokensDialog({
 									{tokenCount != null && reason !== "no_subscription" && (
 										<div className="mt-4 inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-sm font-medium text-amber-800 dark:text-amber-300">
 											<Zap className="size-3.5" />
-											<span className="tabular-nums">{tokenCount.toLocaleString()} tokens remaining</span>
+											<span className="tabular-nums">{tokenCount.toLocaleString()} credits remaining</span>
 										</div>
 									)}
 								</div>
@@ -172,7 +172,7 @@ export function ZeepoOutOfTokensDialog({
 
 							<DialogFooter className="flex-col gap-2 border-t bg-muted/20 px-6 py-4 sm:flex-col">
 								<Button type="button" className="w-full" onClick={handlePurchaseMore}>
-									{hasSubscription ? "Purchase more tokens" : "View plans"}
+									{hasSubscription ? "Buy more credits" : "View plans"}
 								</Button>
 								<Button
 									type="button"
@@ -202,8 +202,8 @@ export function ZeepoOutOfTokensDialog({
 								<div className="min-w-0 flex-1 py-0.5">
 									<DialogDescription className="text-sm text-foreground">
 										{planFilter === "top_up" || hasSubscription
-											? "One-time packs. Tokens are added to your balance immediately."
-											: "Monthly plans include tokens each cycle, or buy a one-time top-up."}
+											? "One-time packs. Credits are added to your balance immediately."
+											: "Monthly plans include credits each cycle, or buy a one-time credit pack."}
 									</DialogDescription>
 								</div>
 							</div>

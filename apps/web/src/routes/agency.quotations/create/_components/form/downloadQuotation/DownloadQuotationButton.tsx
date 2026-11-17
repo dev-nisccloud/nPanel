@@ -37,7 +37,7 @@ export const DownloadQuotationButton = () => {
 			toast.success("Quotation created successfully", {
 				description: "You can view and download it from the quotations list.",
 			});
-			setTimeout(() => navigate("/agency/quotations"), 1500);
+			setTimeout(() => navigate("/hq/quotations"), 1500);
 		},
 		onError: (error) => {
 			setStatus("not-submitted");

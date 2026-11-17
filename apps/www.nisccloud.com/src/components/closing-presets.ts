@@ -262,7 +262,7 @@ export const CLOSING_PRESETS: Record<string, ClosingPreset> = {
     eyebrow: "Mix mailboxes, pay for what you use",
     points: ["Mix mailbox types on one domain", "Managed from nPanel"],
     secondary: { label: "Talk to our team", href: "/contact?serviceName=Hybrid%20Email" },
-    card: { variant: "inbox", items: ["accounts@yourbusiness.co.ke"] },
+    card: { variant: "inbox", items: ["accounts@yourbusiness.com"] },
   },
   "/hosting/microsoft-365": {
     theme: "azure",
@@ -319,7 +319,7 @@ export const CLOSING_PRESETS: Record<string, ClosingPreset> = {
     eyebrow: "Claim your name before someone else does",
     points: [".co.ke, .com and more", "Manage DNS in nPanel"],
     primaryLabel: "Search domains",
-    card: { variant: "domains", items: ["yourbusiness.co.ke", "yourbusiness.com", "yourbusiness.org"] },
+    card: { variant: "domains", items: ["yourbusiness.com", "yourbusiness.com", "yourbusiness.org"] },
   },
   "/domain-transfer": {
     theme: "mint",
@@ -341,7 +341,7 @@ export const CLOSING_PRESETS: Record<string, ClosingPreset> = {
     eyebrow: "Built for agencies and freelancers",
     points: ["Every client site in one panel", "Plans for growing client lists"],
     primaryLabel: "Book an agency call",
-    card: { variant: "sites", items: ["client-one.co.ke", "client-two.com", "shop-three.co.ke", "studio-four.com"] },
+    card: { variant: "sites", items: ["client-one.com", "client-two.com", "shop-three.com", "studio-four.com"] },
   },
   "/hosting/transfer": {
     theme: "amber",
@@ -374,12 +374,12 @@ export const CLOSING_PRESETS: Record<string, ClosingPreset> = {
     secondary: { label: "See our work", href: "/work" },
     card: { variant: "brand" },
   },
-  "/services/seo": {
+  "/services/seo-ai-search": {
     theme: "lime",
     eyebrow: "Get found by the right people",
-    points: ["Monthly rank tracking", "Clear reporting"],
-    primaryLabel: "Get a growth plan",
-    card: { variant: "timeline", items: ["Site and keyword audit", "Fixes and content plan", "Monthly progress report", "Next priorities agreed"] },
+    points: ["No minimum term", "Monthly reporting"],
+    primaryLabel: "Find my plan",
+    card: { variant: "timeline", items: ["Baseline set", "Priorities agreed", "First work completed", "Progress reviewed"] },
   },
   "/services/paid-ads": {
     theme: "rose",
@@ -400,7 +400,7 @@ export const CLOSING_PRESETS: Record<string, ClosingPreset> = {
     eyebrow: "Turn subscribers into customers",
     points: ["Campaigns and automations", "Open and click reporting"],
     primaryLabel: "Plan my emails",
-    card: { variant: "inbox", items: ["news@yourbusiness.co.ke"] },
+    card: { variant: "inbox", items: ["news@yourbusiness.com"] },
   },
   "/services/zepo-ai": {
     theme: "aurora",

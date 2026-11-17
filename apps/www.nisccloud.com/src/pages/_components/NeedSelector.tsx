@@ -13,10 +13,10 @@ import {
   BarChart2,
   Megaphone,
   AtSign,
-  Sparkles,
   MessageSquare,
-  Workflow,
-  Zap,
+  Send,
+  Plug,
+  LayoutTemplate,
   ArrowRight,
   Target,
   Globe,
@@ -120,7 +120,7 @@ const runTab: Tab = {
 };
 
 const buildTab: Tab = {
-  label: "Build My Brand or Website",
+  label: "Build My Brand",
 
   kind: "build",
 
@@ -184,7 +184,7 @@ const tabs: Tab[] = [
     subtext:
       "Connect strategy, content, paid media, email and search around the customers you want to reach.",
 
-    primaryCta: { label: "Explore Growth Services", href: "/services/marketing" },
+    primaryCta: { label: "Explore Growth Services", href: "/services" },
 
     features: [
       {
@@ -196,9 +196,9 @@ const tabs: Tab[] = [
 
       {
         icon: BarChart2,
-        label: "SEO / AEO / GEO",
-        desc: "Be found in search and AI answers",
-        href: "/services/seo",
+        label: "SEO & AI Search",
+        desc: "Be found on Google, Maps and AI answers",
+        href: "/services/seo-ai-search",
       },
 
       {
@@ -226,42 +226,42 @@ const tabs: Tab[] = [
 
     badge: "ZEPO AI",
 
-    headline: "Automate routine work with",
+    headline: "Hand the busywork to",
 
-    highlight: "supported AI workflows.",
+    highlight: "AI that knows your business.",
 
     subtext:
-      "Use Zepo AI and supported integrations to assist with customer conversations, follow-ups and repetitive workflows while your team stays in control.",
+      "Zepo answers from your account and helps with your inbox, Nisc Outreach designs your email campaigns, and the email MCP connects your mailbox to your own AI.",
 
-    primaryCta: { label: "Explore Automation", href: "/services/zepo-ai" },
+    primaryCta: { label: "Explore Zepo AI", href: "/services/zepo-ai" },
 
     features: [
       {
-        icon: Sparkles,
-        label: "AI Content Writer",
-        desc: "Help drafting posts, emails and adverts",
-        href: "/services/zepo-ai",
-      },
-
-      {
-        icon: Workflow,
-        label: "Marketing Guidance",
-        desc: "Get campaign ideas, sales hooks and practical next steps",
-        href: "/services/zepo-ai",
-      },
-
-      {
         icon: MessageSquare,
-        label: "AI Chatbots",
-        desc: "Answer common questions and hand over to your team",
+        label: "Zepo AI",
+        desc: "Your assistant inside nPanel, from account to inbox",
         href: "/services/zepo-ai",
       },
 
       {
-        icon: Zap,
-        label: "Renewal Reminders",
-        desc: "Keep track of relevant Nisc Cloud service renewals",
-        href: "/services/zepo-ai",
+        icon: Send,
+        label: "Nisc Outreach",
+        desc: "AI email marketing that designs from your brand",
+        href: "/services/email-marketing",
+      },
+
+      {
+        icon: Plug,
+        label: "Email MCP",
+        desc: "Use ChatGPT or Claude with your Nisc Cloud email",
+        href: "/platform#email-mcp",
+      },
+
+      {
+        icon: LayoutTemplate,
+        label: "AI Website Builder",
+        desc: "Coming soon: describe your business, get a website",
+        href: "/services/ai-website-builder",
       },
     ],
   },

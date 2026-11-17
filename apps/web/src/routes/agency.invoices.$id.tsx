@@ -583,7 +583,7 @@ export default function InvoiceViewPage() {
 							{isFetching ? <Spinner className="mr-2 h-4 w-4" /> : null}
 							Try again
 						</Button>
-						<Button onClick={() => navigate("/agency/invoices")} variant="outline">
+						<Button onClick={() => navigate("/hq/invoices")} variant="outline">
 							<ArrowLeft className="mr-2 h-4 w-4" />
 							Back to Invoices
 						</Button>
@@ -601,7 +601,7 @@ export default function InvoiceViewPage() {
 					<p className="text-xs text-muted-foreground mb-4">
 						The invoice you're looking for doesn't exist.
 					</p>
-					<Button onClick={() => navigate("/agency/invoices")} variant="outline">
+					<Button onClick={() => navigate("/hq/invoices")} variant="outline">
 						<ArrowLeft className="mr-2 h-4 w-4" />
 						Back to Invoices
 					</Button>
@@ -611,8 +611,8 @@ export default function InvoiceViewPage() {
 	}
 
 	const invoicesBackPath = invoice.teamId
-		? `/agency/invoices/organizations/${invoice.teamId}`
-		: "/agency/invoices";
+		? `/hq/invoices/organizations/${invoice.teamId}`
+		: "/hq/invoices";
 
 	const previewData = transformInvoiceToPreviewData(invoice);
 	const pdfMeta = buildInvoicePdfDetails(invoice);
@@ -828,7 +828,7 @@ export default function InvoiceViewPage() {
 						<Button
 							variant="outline"
 							onClick={() =>
-								navigate(`/agency/invoices/credit-notes/${existingCreditNoteId}`)
+								navigate(`/hq/invoices/credit-notes/${existingCreditNoteId}`)
 							}
 						>
 							<FileText className="mr-2 h-4 w-4" />
@@ -911,7 +911,7 @@ export default function InvoiceViewPage() {
 				currency={invoice.currency ?? "KES"}
 				teamId={invoice.teamId}
 				customerUserId={invoice.customerId}
-				invoiceReturnPath={`/agency/invoices/${invoice.id}`}
+				invoiceReturnPath={`/hq/invoices/${invoice.id}`}
 				showManual
 			/>
 
@@ -1112,7 +1112,7 @@ export default function InvoiceViewPage() {
 				currency={invoice.currency}
 				customerName={invoice.customerName}
 				onSuccess={(creditNoteId) =>
-					navigate(`/agency/invoices/credit-notes/${creditNoteId}`)
+					navigate(`/hq/invoices/credit-notes/${creditNoteId}`)
 				}
 			/>
 

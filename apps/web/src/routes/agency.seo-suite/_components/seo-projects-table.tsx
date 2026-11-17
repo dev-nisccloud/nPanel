@@ -138,11 +138,11 @@ export function SeoProjectsTable() {
                 <TableRow
                   key={project.id}
                   className="cursor-pointer transition-colors hover:bg-muted/50"
-                  onClick={() => navigate(`/agency/seo-suite/${project.id}`)}
+                  onClick={() => navigate(`/hq/seo-suite/${project.id}`)}
                 >
                   <TableCell className="pl-6">
                     <Link
-                      to={`/agency/seo-suite/${project.id}`}
+                      to={`/hq/seo-suite/${project.id}`}
                       className="font-medium text-primary hover:underline"
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -169,7 +169,7 @@ export function SeoProjectsTable() {
       <CreateProjectSheet
         open={createOpen}
         onOpenChange={setCreateOpen}
-        onSuccess={(id) => navigate(`/agency/seo-suite/${id}`)}
+        onSuccess={(id) => navigate(`/hq/seo-suite/${id}`)}
       />
     </div>
   );

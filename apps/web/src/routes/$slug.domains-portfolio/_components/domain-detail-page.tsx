@@ -37,7 +37,7 @@ interface DomainDetailPageProps {
   domainId: string;
 }
 
-const isAgencyRoute = (pathname: string) => pathname.startsWith("/agency/");
+const isAgencyRoute = (pathname: string) => pathname.startsWith("/hq/");
 
 function isKenicPrimaryDomain(domainName: string | null | undefined): boolean {
   if (!domainName) return false;
@@ -274,8 +274,8 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
     }
   };
 
-  const portfolioHref = isAgency ? "/agency/domains-portfolio" : `/${teamSlug}/domains-portfolio`;
-  const domainsHref = isAgency ? "/agency/domains" : `/${teamSlug}/domains`;
+  const portfolioHref = isAgency ? "/hq/domains-portfolio" : `/${teamSlug}/domains-portfolio`;
+  const domainsHref = isAgency ? "/hq/domains" : `/${teamSlug}/domains`;
 
   // Customer view: OpenProvider (via openProviderId) or KENIC (from subscription + optional EPP info)
   if (!isAgency) {
@@ -582,7 +582,7 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
         domainName={domain.domain}
         teamId={!isAgency ? subscriptionById?.teamId ?? null : null}
         buyDomainHref={
-          isAgency ? "/agency/domains" : teamSlug ? `/${teamSlug}/domains` : undefined
+          isAgency ? "/hq/domains" : teamSlug ? `/${teamSlug}/domains` : undefined
         }
       />
       <HostingPlanDialog
@@ -592,7 +592,7 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
         domainName={domain.domain}
         teamId={!isAgency ? subscriptionById?.teamId ?? null : null}
         buyDomainHref={
-          isAgency ? "/agency/domains" : teamSlug ? `/${teamSlug}/domains` : undefined
+          isAgency ? "/hq/domains" : teamSlug ? `/${teamSlug}/domains` : undefined
         }
       />
       <CreateSubscriptionFromDomainDialog
@@ -660,7 +660,7 @@ function ConnectedServicesSection({
             </div>
             <Button
               size="sm"
-              onClick={() => navigate(isAgency ? `/agency/hosting/${subscriptionId}` : `/${teamSlug}/hosting/${subscriptionId}`)}
+              onClick={() => navigate(isAgency ? `/hq/hosting/${subscriptionId}` : `/${teamSlug}/hosting/${subscriptionId}`)}
             >
               Manage site
             </Button>

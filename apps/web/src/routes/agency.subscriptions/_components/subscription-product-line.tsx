@@ -111,6 +111,10 @@ export function SubscriptionProductLine({
 
 	const applyPlanPrice = React.useCallback(
 		(plan: CatalogPlanOption, cycle: string) => {
+			if (plan.agreedPrice) {
+				form.setValue(lineField(index, "linePrice"), "");
+				return;
+			}
 			const price = catalogSubscriptionPrice(plan, cycle);
 			if (price > 0) form.setValue(lineField(index, "linePrice"), String(price));
 		},
@@ -222,7 +226,7 @@ export function SubscriptionProductLine({
 								<FormControl>
 									<Input placeholder="e.g. Website design" {...field} value={field.value ?? ""} disabled={isBusy} />
 								</FormControl>
-								<FormDescription>How this service appears on the subscription.</FormDescription>
+								<FormDescription>How this service appears on the subscription. Charged once; it does not renew.</FormDescription>
 								<FormMessage />
 							</FormItem>
 						)}
@@ -289,6 +293,8 @@ export function SubscriptionProductLine({
 														{plan.name} {(plan.tokenGrant ?? 0).toLocaleString()} tokens (
 														{plan.zeepoPlanType === "top_up" ? "top-up" : "subscription"})
 													</>
+												) : plan.agreedPrice ? (
+													<>{plan.name}, agreed price</>
 												) : (
 													<>
 														{plan.name} {plan.displayCurrency}{" "}
@@ -379,7 +385,11 @@ export function SubscriptionProductLine({
 								/>
 							</FormControl>
 							<FormDescription>
-								{selectedPlan ? "Price for this cycle, before tax." : "Select a plan to price this product."}
+								{!selectedPlan
+									? "Select a plan to price this product."
+									: selectedPlan.agreedPrice
+										? "Enter the price agreed with the client for this cycle, before tax. Each renewal charges this price."
+										: "Price for this cycle, before tax. Each renewal charges this price."}
 							</FormDescription>
 							<FormMessage />
 						</FormItem>

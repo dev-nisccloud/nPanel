@@ -85,7 +85,7 @@ export const posts: Post[] = [
         type: "callout",
         icon: "💡",
         title: "The Minimum Viable Brand",
-        text: "You don't need a KES 500,000 rebrand to start. At a minimum: a clean logo, one primary colour, a professional email (you@yourcompany.co.ke), and a one-page website. That's enough to build trust and start growing.",
+        text: "You don't need a KES 500,000 rebrand to start. At a minimum: a clean logo, one primary colour, a professional email (you@yourcompany.com), and a one-page website. That's enough to build trust and start growing.",
       },
       { type: "h2", text: "Where to Start: The Nisc Cloud Framework" },
       {
