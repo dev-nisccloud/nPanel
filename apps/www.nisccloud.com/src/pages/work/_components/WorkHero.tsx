@@ -18,7 +18,7 @@ export default function WorkHero() {
           transition={{ duration: 0.45, delay: 0.08 }}
           className="text-base text-muted-foreground max-w-2xl leading-relaxed"
         >
-          Brands, websites, hosting and marketing for manufacturers, travel brands and professional firms, designed, hosted and supported by one team.
+          Websites, brand identity, video and campaign creative, with hosting and marketing from the same team.
         </motion.p>
       </div>
     </section>

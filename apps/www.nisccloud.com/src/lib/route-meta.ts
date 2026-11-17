@@ -60,7 +60,7 @@ export const ROUTE_META: Record<string, PageMeta> = {
   "/work": {
     title: "Our Work: Clients and What We Deliver",
     description:
-      "Businesses Nisc Cloud works with and the brand, web, hosting, marketing and automation services we deliver for them.",
+      "Websites, brand identity, video and campaign creative for Cruises by Holiday Bazaar, Trelan Engineering, Ashut Engineers and Luxewrap.",
     jsonLd: breadcrumbJsonLd([["Home", "/"], ["Work", "/work"]]),
   },
   "/blog": {
