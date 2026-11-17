@@ -2,6 +2,7 @@
  * Response headers for every page and asset, shared by vercel.json (generated) and server.ts.
  * Card payments leave the site through a form POST to the payment provider, so form-action
  * must allow https: destinations. vercel.live is only used by Vercel preview toolbars.
+ * instagram.com is the reel player on Our Work.
  */
 const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
@@ -10,7 +11,7 @@ const CONTENT_SECURITY_POLICY = [
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
   "connect-src 'self' https://npanel.nisccloud.com https://vercel.live",
-  "frame-src https://vercel.live",
+  "frame-src https://vercel.live https://www.instagram.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "object-src 'none'",
