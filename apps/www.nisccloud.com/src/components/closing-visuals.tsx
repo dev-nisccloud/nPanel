@@ -95,7 +95,7 @@ export function CampaignTimeline({ steps }: { steps: string[] }) {
                 <span
                   className={cn(
                     "flex size-7 items-center justify-center rounded-full border-2 text-xs font-bold transition-colors duration-500",
-                    on ? "border-primary bg-primary text-[#02070a]" : "border-primary/30 text-primary dark:text-primary",
+                    on ? "border-primary bg-primary text-white" : "border-primary/30 text-primary dark:text-primary",
                   )}
                 >
                   {on ? <Check className="size-3.5" strokeWidth={3} aria-hidden /> : i + 1}
@@ -210,7 +210,7 @@ export function BriefCard({ fields }: { fields: string[] }) {
             <span
               className={cn(
                 "flex size-5 shrink-0 items-center justify-center rounded-full transition-colors duration-300",
-                i < step ? "bg-primary text-[#02070a]" : "border border-border text-transparent",
+                i < step ? "bg-primary text-white" : "border border-border text-transparent",
               )}
             >
               <Check className="size-3" strokeWidth={3} aria-hidden />

@@ -27,7 +27,7 @@ const JUMP = [
 
 function Band({ tone, children }: { tone: "current" | "proposed"; children: ReactNode }) {
   return (
-    <p className={`px-4 py-3 text-sm font-semibold md:px-8 ${tone === "current" ? "bg-[#02070A] text-white" : "bg-[#38b6ff] text-[#02070A]"}`}>
+    <p className={`px-4 py-3 text-sm font-semibold md:px-8 ${tone === "current" ? "bg-[#02070A] text-white" : "bg-[#38b6ff] text-white"}`}>
       {children}
     </p>
   );
@@ -150,11 +150,11 @@ const BUY = [
 
 function ProposedHomeClose() {
   return (
-    <section className="relative overflow-hidden bg-[#38b6ff] px-4 py-20 text-[#02070A] md:px-8 md:py-28">
+    <section className="relative overflow-hidden bg-[#38b6ff] px-4 py-20 text-white md:px-8 md:py-28">
       <div className="pointer-events-none absolute bottom-0 right-0 h-0 w-0 border-b-[420px] border-l-[420px] border-b-[#1aa3e6] border-l-transparent" aria-hidden />
       <div className="relative mx-auto max-w-7xl">
         <h3 className="max-w-3xl text-5xl font-semibold leading-[1.02] tracking-tight md:text-6xl">Two ways to get started.</h3>
-        <p className="mt-5 max-w-xl text-lg leading-relaxed text-[#02070A]/80">
+        <p className="mt-5 max-w-xl text-lg leading-relaxed text-white/85">
           Buy cloud products online in minutes, or tell us what your business needs and we will prepare a proposal.
         </p>
         <div className="mt-10 grid items-start gap-5 lg:grid-cols-[0.8fr_1.2fr]">
@@ -172,7 +172,7 @@ function ProposedHomeClose() {
                 </li>
               ))}
             </ul>
-            <Link to="/hosting" className="mt-6 inline-flex min-h-12 items-center rounded-[12px] bg-[#38b6ff] px-5 text-sm font-semibold text-[#02070A]">
+            <Link to="/hosting" className="mt-6 inline-flex min-h-12 items-center rounded-[12px] bg-[#38b6ff] px-5 text-sm font-semibold text-white">
               Explore cloud products
             </Link>
           </div>

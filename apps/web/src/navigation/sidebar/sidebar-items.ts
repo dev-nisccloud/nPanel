@@ -255,6 +255,13 @@ export const agencysidebarItems: NavGroup[] = [
         ],
       },
       {
+        title: "Cloud Storage",
+        url: "/agency/cloud-storage",
+        icon: (props: any) => React.createElement(Icons.CLOUD_STORAGE, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        permissionKey: "storage.browse",
+        isNew: true,
+      },
+      {
         title: "WordPress",
         url: "/hq/wordpress",
         icon: (props: any) => React.createElement(Icons.Wordpress, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),

@@ -457,7 +457,7 @@ export function BrandWebFlagshipArt() {
           <div className="relative grid grid-cols-[26px_1fr]">
             <div className="flex flex-col items-center gap-1.5 border-r border-white/10 py-2.5">
               {[PenTool, Type, Palette, Shapes].map((Icon, i) => (
-                <span key={i} className={cn("flex size-5 items-center justify-center rounded-md", i === 0 ? "bg-primary text-[#02070A]" : "text-slate-400")}>
+                <span key={i} className={cn("flex size-5 items-center justify-center rounded-md", i === 0 ? "bg-primary text-white" : "text-slate-400")}>
                   <Icon className="size-3" />
                 </span>
               ))}

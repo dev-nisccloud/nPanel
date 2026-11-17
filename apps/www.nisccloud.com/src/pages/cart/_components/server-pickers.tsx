@@ -18,6 +18,13 @@ import type { HivelocityAddonDisabledDetails } from "@/lib/hivelocity-option-com
 import type { HivelocityAddonOption, HivelocityOsOption } from "@/lib/vps-plans-api.ts";
 import { cn } from "@/lib/utils.ts";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.tsx";
+import {
   cleanOptionName,
   defaultChoice,
   groupLabel,
@@ -58,7 +65,7 @@ export function ConfigSection({
         <span
           className={cn(
             "flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-bold transition-colors",
-            done ? "bg-primary text-[#02070a]" : "border border-border bg-background text-foreground",
+            done ? "bg-primary text-white" : "border border-border bg-background text-foreground",
           )}
           aria-hidden
         >
@@ -126,23 +133,29 @@ export function OsPicker({
               <Check className="absolute right-3 top-3 hidden size-4 text-primary min-[420px]:block dark:text-primary" aria-hidden />
             ) : null}
             {family.versions.length > 1 ? (
-              <select
-                aria-label={`${family.name} version`}
-                value={shownId}
-                onChange={(e) => {
-                  const id = Number(e.target.value);
+              <Select
+                value={String(shownId)}
+                onValueChange={(value) => {
+                  const id = Number(value);
                   setShown((s) => ({ ...s, [family.key]: id }));
                   const next = family.versions.find((v) => v.os.id === id);
                   if (next) onSelect(next.os);
                 }}
-                className="h-9 w-28 shrink-0 cursor-pointer rounded-lg border border-border bg-card px-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-[420px]:mt-3 min-[420px]:w-full"
               >
-                {family.versions.map((v) => (
-                  <option key={v.os.id} value={v.os.id}>
-                    {v.label}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger
+                  aria-label={`${family.name} version`}
+                  className="h-11 w-28 shrink-0 rounded-lg border-border bg-card px-2 text-sm font-normal shadow-none min-[420px]:mt-3 min-[420px]:w-full"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent align="start" className="rounded-xl">
+                  {family.versions.map((v) => (
+                    <SelectItem key={v.os.id} value={String(v.os.id)} className="min-h-11 rounded-lg">
+                      {v.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             ) : (
               <p className="flex h-9 w-28 shrink-0 items-center rounded-lg bg-muted/40 px-2 text-sm text-muted-foreground min-[420px]:mt-3 min-[420px]:w-full">
                 {version.label}
@@ -231,23 +244,34 @@ export function PanelPicker({
             </button>
             {active ? <Check className="absolute right-3 top-3 size-4 text-primary dark:text-primary" aria-hidden /> : null}
             {product.tiers.length > 1 ? (
-              <select
-                aria-label={`${product.name} accounts`}
-                value={tierIndex}
-                onChange={(e) => {
-                  const next = Number(e.target.value);
+              <Select
+                value={String(tierIndex)}
+                onValueChange={(value) => {
+                  const next = Number(value);
                   setShownTier((s) => ({ ...s, [product.name]: next }));
                   const nextOption = compatibleTiers[next];
                   if (active && nextOption) onSelect(nextOption.id);
                 }}
-                className="mt-3 h-9 w-full cursor-pointer rounded-lg border border-border bg-card px-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
-                {product.tiers.map((t, i) => (
-                  <option key={t.label} value={i} disabled={available && !compatibleTiers[i]}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger
+                  aria-label={`${product.name} accounts`}
+                  className="mt-3 h-11 w-full rounded-lg border-border bg-card px-2 text-sm font-normal shadow-none"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent align="start" className="rounded-xl">
+                  {product.tiers.map((t, i) => (
+                    <SelectItem
+                      key={t.label}
+                      value={String(i)}
+                      disabled={available && !compatibleTiers[i]}
+                      className="min-h-11 rounded-lg"
+                    >
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             ) : (
               <p className="mt-3 text-sm text-muted-foreground">{tier.label}</p>
             )}
@@ -434,19 +458,32 @@ export function UpgradePicker({
           <label htmlFor={selectId} className="sr-only">
             {label}
           </label>
-          <select
-            id={selectId}
-            value={selected?.id ?? ""}
-            onChange={(e) => onSelect(group, e.target.value ? Number(e.target.value) : null)}
-            className="h-11 w-full cursor-pointer rounded-xl border border-border bg-background px-3 text-base text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          <Select
+            value={selected ? String(selected.id) : "none"}
+            onValueChange={(value) => onSelect(group, value === "none" ? null : Number(value))}
           >
-            <option value="">{base ? `${base.label} (included)` : "None"}</option>
-            {choices.map((option) => (
-              <option key={option.id} value={option.id} disabled={Boolean(disabledFor(option)) && selected?.id !== option.id}>
-                {cleanOptionName(option.name)} · {extraPrice(priceLabel(option.monthlyPriceUsd))}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger
+              id={selectId}
+              className="h-11 w-full rounded-xl border-border bg-background px-3 text-base font-normal shadow-none"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent align="start" className="rounded-xl">
+              <SelectItem value="none" className="min-h-11 rounded-lg">
+                {base ? `${base.label} (included)` : "None"}
+              </SelectItem>
+              {choices.map((option) => (
+                <SelectItem
+                  key={option.id}
+                  value={String(option.id)}
+                  disabled={Boolean(disabledFor(option)) && selected?.id !== option.id}
+                  className="min-h-11 rounded-lg"
+                >
+                  {cleanOptionName(option.name)} · {extraPrice(priceLabel(option.monthlyPriceUsd))}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       )}
     </div>

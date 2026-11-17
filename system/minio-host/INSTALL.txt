@@ -1,0 +1,585 @@
+nPanel MinIO on the Plesk hosting server
+========================================
+
+Follow this on the hosting server over SSH. Do not clone the git repo.
+Do not log in to GitHub. The two container images are pulled from Docker Hub.
+
+You will end up with:
+
+  S3 API (public, HTTPS, Plesk certificate)
+      https://storage.nisccloud.com  ->  127.0.0.1:9000
+
+  MinIO console (this server only, not on the internet)
+      http://127.0.0.1:9001
+
+  Files stored on the empty disk
+      /mnt/storage/minio
+
+  Caps so sites and mail keep the rest of the machine
+      1 CPU, 1 GB RAM
+
+Replace storage.nisccloud.com if you use a different hostname.
+That name must be the same in DNS, in Plesk, and in the .env file.
+
+
+0. Before you start
+-------------------
+
+You need:
+
+  - root SSH on the Plesk server
+  - an empty disk that is NOT the disk holding /, /var, or /boot
+  - a DNS A record you can point at this server's public IP
+  - ports 80 and 443 already open (they are, because this server hosts sites)
+
+Open two terminals if you can. One is SSH on the server. The other is
+your PC, only for the console tunnel at the end.
+
+On the server:
+
+  whoami
+
+You must see: root
+If you see another user, run:  sudo -i
+
+
+1. See the disks. Do not format anything yet
+---------------------------------------------
+
+  lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINT,MODEL
+
+Read the table before you type any mkfs command.
+
+  - The disk that has / or /var or /boot mounted is the system disk.
+    Do not partition it. Do not run mkfs on it. That is the hosting disk.
+  - If the table shows only one disk, stop. There is no separate empty
+    disk. Do not continue with section 2.
+  - A separate disk with an empty FSTYPE column has no filesystem yet.
+    Section 2A is for that disk.
+  - A separate disk that already shows ext4 or xfs, and whose MOUNTPOINT
+    column is empty, already has a filesystem. Skip 2A. Use section 2B.
+    Do not format it again.
+
+Examples of a separate disk name: /dev/sdb, /dev/vdb, /dev/nvme1n1.
+The partition you create will be /dev/sdb1, /dev/vdb1, or /dev/nvme1n1p1.
+Write the name down. The rest of this document calls the whole disk DISK
+and the partition PART. You will type the real names.
+
+
+2A. First-time format (only if FSTYPE is blank)
+------------------------------------------------
+
+This erases DISK. Example below uses /dev/sdb. Change both lines if yours
+is different. Read them twice.
+
+  DISK=/dev/sdb
+  PART=/dev/sdb1
+
+  lsblk "$DISK"
+
+Confirm that disk is the empty one and that nothing is mounted on it.
+Then:
+
+  parted -s "$DISK" mklabel gpt
+  parted -s "$DISK" mkpart primary ext4 0% 100%
+  sleep 2
+  mkfs.ext4 -L npanel-storage "$PART"
+
+Go to section 3.
+
+
+2B. Disk already has a filesystem
+---------------------------------
+
+Do not run parted. Do not run mkfs.
+
+  PART=/dev/sdb1
+
+Change PART to the partition lsblk showed (the one with ext4 or xfs).
+Go to section 3.
+
+
+3. Mount the disk, and keep the server bootable if the disk is missing
+-----------------------------------------------------------------------
+
+  mkdir -p /mnt/storage
+  mount "$PART" /mnt/storage
+  df -h /mnt/storage
+
+df must show /mnt/storage with the size of the empty disk, not the
+small system disk.
+
+Get the UUID:
+
+  blkid "$PART"
+
+Copy the UUID= value, without quotes. Then open fstab:
+
+  nano /etc/fstab
+
+Add one line at the bottom. Paste your UUID. Use ext4 if you just
+formatted it. If section 2B showed xfs, write xfs instead of ext4.
+
+  UUID=paste-the-uuid-here /mnt/storage ext4 defaults,noatime,nofail 0 2
+
+nofail matters. If this disk is absent at boot, Plesk still starts.
+Save: Ctrl+O, Enter. Exit: Ctrl+X.
+
+Check the line and remount from fstab:
+
+  findmnt --verify
+  umount /mnt/storage
+  mount -a
+  findmnt /mnt/storage
+
+findmnt must print /mnt/storage. If it does not, fix the fstab line
+before you go on. Do not reboot until findmnt /mnt/storage works.
+
+
+4. Install Docker from Docker's script (no GitHub login)
+--------------------------------------------------------
+
+Check whether it is already installed:
+
+  docker --version
+  docker compose version
+
+If both print a version, skip to section 5.
+
+Install curl if the next command says it is missing.
+
+  cat /etc/os-release
+
+Debian or Ubuntu:
+
+  apt-get update
+  apt-get install -y ca-certificates curl
+
+AlmaLinux, CloudLinux, Rocky, CentOS, RHEL:
+
+  dnf install -y ca-certificates curl
+
+Then, on any of those systems:
+
+  curl -fsSL https://get.docker.com -o /root/get-docker.sh
+  sh /root/get-docker.sh
+  systemctl enable --now docker
+  docker --version
+  docker compose version
+
+Both version commands must print a version. Compose must be the
+"docker compose" plugin, with a space. The old "docker-compose" binary
+is not what the next steps use.
+
+Docker Hub is registry-1.docker.io. The server must be allowed to make
+outbound HTTPS calls. No GitHub account is involved.
+
+
+5. Create the MinIO directory and the two files
+------------------------------------------------
+
+  mkdir -p /opt/npanel-minio
+  cd /opt/npanel-minio
+
+5.1  docker-compose.yml
+
+  nano /opt/npanel-minio/docker-compose.yml
+
+Delete any sample text nano inserted. Paste this whole file.
+
+----------------------------------------------------------------------
+services:
+
+  minio:
+    image: minio/minio:latest
+    container_name: nPanel-Host-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_SITE_NAME: ${MINIO_SITE_NAME:-npanel-storage}
+      MINIO_SERVER_URL: ${MINIO_SERVER_URL}
+      MINIO_PROMETHEUS_AUTH_TYPE: "public"
+    volumes:
+      - ${MINIO_DATA_DIR:-/mnt/storage/minio}:/data:Z
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    cpus: ${MINIO_CPU_LIMIT:-1.0}
+    mem_limit: ${MINIO_MEMORY_LIMIT:-1g}
+    pids_limit: 512
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: nPanel-Host-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_DEFAULT_BUCKET: ${MINIO_DEFAULT_BUCKET:-npanel-uploads}
+    entrypoint: >
+      /bin/sh -c "
+        mc alias set local http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD;
+        mc mb --ignore-existing local/$$MINIO_DEFAULT_BUCKET;
+        mc anonymous set download local/$$MINIO_DEFAULT_BUCKET;
+        echo 'Bucket $$MINIO_DEFAULT_BUCKET ready';
+      "
+    restart: "no"
+----------------------------------------------------------------------
+
+Save and exit.
+
+The ":Z" on the volume line is for SELinux (AlmaLinux, CloudLinux, RHEL).
+On Debian and Ubuntu it is harmless.
+
+5.2  A password
+
+  openssl rand -hex 32
+
+Copy that one line. It is the MinIO root password. Store it in your
+password manager. It will not be shown again by these commands.
+
+5.3  .env
+
+  nano /opt/npanel-minio/.env
+
+Paste this, then replace the password with the line openssl printed.
+No quotes. No spaces around the = sign.
+
+----------------------------------------------------------------------
+MINIO_ROOT_USER=minioadmin
+MINIO_ROOT_PASSWORD=paste-the-openssl-line-here
+MINIO_SITE_NAME=npanel-storage
+MINIO_DEFAULT_BUCKET=npanel-uploads
+MINIO_SERVER_URL=https://storage.nisccloud.com
+MINIO_DATA_DIR=/mnt/storage/minio
+MINIO_CPU_LIMIT=1.0
+MINIO_MEMORY_LIMIT=1g
+----------------------------------------------------------------------
+
+If the public name is not storage.nisccloud.com, change MINIO_SERVER_URL
+and use that same name in DNS and in Plesk. MinIO builds presigned
+upload and download URLs from MINIO_SERVER_URL.
+
+Save and exit.
+
+  chmod 600 /opt/npanel-minio/.env
+
+
+6. Create the data directory on the empty disk
+-----------------------------------------------
+
+  mkdir -p /mnt/storage/minio
+  chown 1000:1000 /mnt/storage/minio
+  chmod 750 /mnt/storage/minio
+  df -h /mnt/storage/minio
+
+The filesystem column must be the large disk, mounted on /mnt/storage.
+If it shows the system disk, stop. The mount from section 3 is wrong.
+
+
+7. Start MinIO
+--------------
+
+  cd /opt/npanel-minio
+  docker compose pull
+  docker compose up -d
+
+pull downloads two images from Docker Hub:
+
+  minio/minio:latest     the storage server
+  minio/mc:latest        a one-shot client that creates the bucket
+
+Watch the result:
+
+  docker compose ps
+
+nPanel-Host-minio should become healthy within about a minute.
+nPanel-Host-minio-init should become "Exited (0)". Exited is success.
+That container creates the bucket and stops.
+
+If minio stays unhealthy:
+
+  docker logs nPanel-Host-minio --tail 80
+  docker logs nPanel-Host-minio-init --tail 80
+
+Then run the checks in section 12.
+
+
+8. Prove the local API and the bucket
+--------------------------------------
+
+  curl -fsS http://127.0.0.1:9000/minio/health/live && echo OK
+
+You want: OK
+
+  docker logs nPanel-Host-minio-init --tail 20
+
+You want a line: Bucket npanel-uploads ready
+
+Confirm the files landed on the empty disk, not the system disk:
+
+  du -sh /mnt/storage/minio
+  df -h / /mnt/storage
+
+/ should barely have moved. /mnt/storage is where MinIO writes.
+
+Confirm the cap:
+
+  docker stats --no-stream nPanel-Host-minio
+
+The memory limit column must show 1 GiB.
+
+
+9. Point DNS at this server
+---------------------------
+
+On the server:
+
+  curl -4 -fsS https://ifconfig.me ; echo
+
+That prints this machine's public IPv4 address.
+
+At the DNS host for the domain (Plesk DNS, or Cloudflare, or the
+registrar), set:
+
+  storage.nisccloud.com    A    that-IPv4-address
+
+If that name already points at the other MinIO VM, change the A record
+to this server, or pick a new hostname and put that hostname in
+MINIO_SERVER_URL, then recreate the container (section 11).
+
+Wait until this matches:
+
+  dig +short storage.nisccloud.com
+
+or, if dig is not installed:
+
+  getent hosts storage.nisccloud.com
+
+The address must be this server. Let's Encrypt will fail if it is not.
+
+
+10. Publish it through Plesk
+----------------------------
+
+Plesk already owns ports 80 and 443. Do not start another nginx.
+Do not open ports 9000 or 9001 in the firewall. MinIO is on localhost.
+Plesk is the only public door.
+
+In the Plesk panel, as the server administrator:
+
+  1. Websites & Domains → Add Domain.
+  2. Registered domain name: storage.nisccloud.com
+     (or the hostname you put in MINIO_SERVER_URL).
+  3. Hosting type: Website hosting. Leave the document root as Plesk
+     suggests. Nothing you upload there is used. Nginx will proxy
+     every request to MinIO.
+  4. If Plesk asks about DNS and this server is authoritative for the
+     domain, let it create the A record. If DNS is external, you already
+     created the A record in section 9.
+  5. Open the new domain. Go to Hosting & DNS → Apache & nginx Settings.
+     On older Plesk this link is "Apache & nginx Settings" on the domain.
+  6. Uncheck "Proxy mode". Click Apply or OK.
+     This step is required. If proxy mode stays on, the next paste
+     fails with: duplicate location "/"
+  7. Open PHP for this domain (the PHP item on the domain card, or
+     PHP Settings). Uncheck "PHP support". Apply.
+  8. Go back to Apache & nginx Settings. In "Additional nginx directives"
+     paste only the block below. Do not paste the explanation around it.
+
+----------------------------------------------------------------------
+client_max_body_size 1G;
+proxy_ignore_client_abort on;
+
+location / {
+    proxy_pass http://127.0.0.1:9000;
+
+    proxy_set_header Host              $http_host;
+    proxy_set_header X-Real-IP         $remote_addr;
+    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+    proxy_http_version 1.1;
+    proxy_set_header   Connection "";
+
+    proxy_connect_timeout 300s;
+    proxy_send_timeout    300s;
+    proxy_read_timeout    300s;
+
+    proxy_buffering         off;
+    proxy_request_buffering off;
+}
+----------------------------------------------------------------------
+
+  9. Click OK. If Plesk says the nginx configuration is invalid, proxy
+     mode is still on. Turn it off, apply, then paste the block again.
+  10. On the domain, SSL/TLS Certificates → Install a free basic
+      certificate from Let's Encrypt. Include the hostname only.
+      Enable "Redirect from HTTP to HTTPS".
+  11. Confirm the certificate is selected for the domain.
+
+From the server:
+
+  curl -fsSI https://storage.nisccloud.com/minio/health/live
+
+You want HTTP/2 200, or HTTP/1.1 200. A certificate error means the
+Let's Encrypt step did not apply to this hostname. A connection refused
+or a Plesk default page means the nginx block is not active.
+
+
+11. Values for the nPanel app
+-----------------------------
+
+On the app server, not on this Plesk box, set:
+
+  S3_ENDPOINT=https://storage.nisccloud.com
+  S3_ACCESS_KEY=minioadmin
+  S3_SECRET_KEY=the-password-from-openssl
+  S3_BUCKET=npanel-uploads
+  S3_REGION=us-east-1
+
+S3_ENDPOINT must be exactly MINIO_SERVER_URL, including https://, with
+no trailing slash and no port.
+
+The bucket npanel-uploads is public-read, same as the existing
+system/docker-compose.yml stack. Anyone who knows an object URL can
+download it. That is what the current app expects for uploads.
+
+
+12. When something fails
+------------------------
+
+Container is created then exits, logs say "drive is not writable" or
+permission denied:
+
+  chown 1000:1000 /mnt/storage/minio
+  cd /opt/npanel-minio && docker compose up -d
+
+SELinux (getenforce prints Enforcing) still blocks the mount. The
+compose file already uses :Z. If it still fails:
+
+  chcon -Rt container_file_t /mnt/storage/minio
+  docker compose up -d
+
+Healthcheck never passes and the minio log is fine, but logs say
+curl is missing inside the container:
+
+  docker exec nPanel-Host-minio curl -fsS http://127.0.0.1:9000/minio/health/live
+
+If that says curl: not found, the image has no curl and minio-init will
+wait forever. Replace the healthcheck in docker-compose.yml with:
+
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/127.0.0.1/9000'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+Then:
+
+  cd /opt/npanel-minio && docker compose up -d
+
+minio-init exited with an error about an existing alias or connection
+refused: wait until the minio container is healthy, then run it again:
+
+  cd /opt/npanel-minio
+  docker compose up -d minio-init
+  docker logs nPanel-Host-minio-init --tail 30
+
+Plesk: "duplicate location /"
+
+  Proxy mode is still enabled. Disable it, apply, paste the nginx
+  block again.
+
+Plesk: Let's Encrypt fails
+
+  dig +short storage.nisccloud.com
+  must be this server's IP. Port 80 must reach Plesk, not another
+  proxy in front of the server. Fix DNS, wait a few minutes, retry
+  the certificate in the panel.
+
+You changed .env after the first start (password or MINIO_SERVER_URL):
+
+  cd /opt/npanel-minio
+  docker compose up -d --force-recreate
+
+Changing the password does not move existing files. The app must use
+the new password.
+
+
+13. Day-to-day commands
+-----------------------
+
+All of these are run from /opt/npanel-minio.
+
+  docker compose ps
+  docker compose logs -f minio
+  docker stats --no-stream nPanel-Host-minio
+  docker compose restart minio
+  docker compose pull && docker compose up -d
+
+Stop MinIO without deleting files:
+
+  docker compose stop
+
+Start it again:
+
+  docker compose start
+
+Files survive stop, reboot, and container recreate. They live in
+/mnt/storage/minio. They are deleted only if you delete that directory
+or format the disk.
+
+After a reboot, check:
+
+  findmnt /mnt/storage
+  docker compose ps
+
+restart: unless-stopped brings the container back after a reboot
+once Docker itself is enabled (section 4 did that).
+
+
+14. Console, from your PC
+-------------------------
+
+Do not open port 9001 in the firewall.
+
+On your PC:
+
+  ssh -L 9001:127.0.0.1:9001 root@THIS_SERVER_IP
+
+Leave that SSH session open. In a browser on your PC open:
+
+  http://localhost:9001
+
+User: minioadmin
+Password: the openssl line you stored
+
+This tunnel is the admin UI. Customers and the app use
+https://storage.nisccloud.com, not port 9001.
+
+
+15. What this does not change
+-----------------------------
+
+  - Plesk sites, mail, and databases keep using the system disk.
+  - Ports 80 and 443 stay with Plesk.
+  - Nothing is cloned from GitHub.
+  - The other nPanel system stack (Postgres, PgBouncer, its own MinIO
+    VM) is a different machine. This document does not start that stack.

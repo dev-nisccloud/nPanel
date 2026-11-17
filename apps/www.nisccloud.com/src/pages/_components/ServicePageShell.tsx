@@ -1,5 +1,5 @@
 import ServiceDecisionGuide from "./ServiceDecisionGuide";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import {
   breadcrumbJsonLd,
@@ -212,11 +212,101 @@ function FeaturesGrid({ features }: { features: Feature[] }) {
   );
 }
 
+function StrategyCardBody({ section }: { section: StrategySection }) {
+  return (
+    <>
+      <p className="text-sm font-semibold leading-snug text-primary">
+        {section.eyebrow}
+      </p>
+      <h3 className="type-h3 mt-3">{section.title}</h3>
+      <p className="mt-3 max-w-2xl leading-relaxed text-muted-foreground">
+        {section.desc}
+      </p>
+      <ul className="mt-5 grid gap-3 sm:grid-cols-2">
+        {section.items.map((item) => (
+          <li
+            key={item}
+            className="flex items-start gap-3 text-sm leading-relaxed"
+          >
+            <Check
+              className="mt-0.5 size-4 shrink-0 text-primary"
+              aria-hidden="true"
+            />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+function StrategyStack({ sections }: { sections: StrategySection[] }) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+
+    const update = () => {
+      const frame = frameRef.current;
+      const stickyTop = 96;
+      const distance = track.offsetHeight - (frame?.offsetHeight ?? 0);
+      const traveled = stickyTop - track.getBoundingClientRect().top;
+      const progress =
+        distance <= 0 ? 0 : Math.min(1, Math.max(0, traveled / distance));
+      const next = Math.min(
+        sections.length - 1,
+        Math.round(progress * (sections.length - 1)),
+      );
+      setActive((current) => (current === next ? current : next));
+    };
+
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [sections.length]);
+
+  return (
+    <div ref={trackRef} className="relative">
+      <div ref={frameRef} className="sticky top-24">
+        <div className="grid overflow-hidden rounded-[28px] border border-border bg-background">
+          {sections.map((section, index) => (
+            <article
+              key={section.title}
+              aria-hidden={index !== active}
+              className="col-start-1 row-start-1 rounded-[inherit] bg-background p-6 motion-reduce:!transition-none md:p-8"
+              style={{
+                opacity: index === active ? 1 : 0,
+                zIndex: index === active ? 1 : 0,
+                transition: index === active
+                  ? "opacity 1400ms cubic-bezier(0.45, 0, 0.55, 1)"
+                  : "opacity 0ms linear 1400ms",
+              }}
+            >
+              <StrategyCardBody section={section} />
+            </article>
+          ))}
+        </div>
+      </div>
+      <div
+        aria-hidden="true"
+        style={{ height: `calc(${Math.max(sections.length - 1, 0)} * 32vh)` }}
+      />
+    </div>
+  );
+}
+
 function StrategyGuide({ sections }: { sections: StrategySection[] }) {
   return (
-    <section className="border-y border-border/60 bg-muted/20 py-16 md:py-24">
-      <div className="mx-auto grid max-w-7xl gap-12 px-4 md:px-8 lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)] lg:gap-20">
-        <div className="max-w-xl lg:sticky lg:top-28 lg:self-start">
+    <section className="border-y border-border/60 bg-background py-16 md:py-24">
+      <div className="mx-auto grid max-w-7xl items-start gap-12 px-4 md:px-8 lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)] lg:gap-20">
+        <div className="max-w-xl lg:sticky lg:top-24 lg:self-start motion-reduce:lg:static">
           <h2 className="type-h2">
             Know what needs to change before changing how you look.
           </h2>
@@ -226,39 +316,20 @@ function StrategyGuide({ sections }: { sections: StrategySection[] }) {
             problem through a new logo.
           </p>
         </div>
-        <div className="border-t border-border">
-          {sections.map((section) => (
-            <article
-              key={section.title}
-              className="grid gap-4 border-b border-border py-7 md:grid-cols-[9rem_1fr] md:gap-8 md:py-9"
-            >
-              <p className="text-sm font-semibold leading-snug text-primary">
-                {section.eyebrow}
-              </p>
-              <div>
-                <h3 className="type-h3">
-                  {section.title}
-                </h3>
-                <p className="mt-3 max-w-2xl leading-relaxed text-muted-foreground">
-                  {section.desc}
-                </p>
-                <ul className="mt-5 grid gap-3 sm:grid-cols-2">
-                  {section.items.map((item) => (
-                    <li
-                      key={item}
-                      className="flex items-start gap-3 text-sm leading-relaxed"
-                    >
-                      <Check
-                        className="mt-0.5 size-4 shrink-0 text-primary"
-                        aria-hidden="true"
-                      />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </article>
-          ))}
+        <div>
+          <div className="grid gap-4 lg:hidden motion-reduce:lg:grid">
+            {sections.map((section) => (
+              <article
+                key={section.title}
+                className="rounded-[28px] border border-border bg-background p-6 md:p-8"
+              >
+                <StrategyCardBody section={section} />
+              </article>
+            ))}
+          </div>
+          <div className="hidden lg:block motion-reduce:lg:hidden">
+            <StrategyStack sections={sections} />
+          </div>
         </div>
       </div>
     </section>
@@ -368,7 +439,7 @@ function PricingSection({
                 )}
               >
                 {popular && (
-                  <div className="bg-primary text-[#02070A] text-xs font-bold text-center py-2.5 tracking-widest flex items-center justify-center gap-1.5">
+                  <div className="bg-primary text-white text-xs font-bold text-center py-2.5 tracking-widest flex items-center justify-center gap-1.5">
                     <Star size={10} className="fill-current" />
                     MOST POPULAR
                     <Star size={10} className="fill-current" />
@@ -760,7 +831,7 @@ export default function ServicePageShell({
         : "See Plans");
 
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
+    <div className="min-h-screen overflow-x-clip bg-background text-foreground">
       <Navbar />
       <main id="main-content">
         <ServiceHero

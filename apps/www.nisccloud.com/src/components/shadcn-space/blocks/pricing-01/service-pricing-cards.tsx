@@ -29,7 +29,7 @@ function PlanButton({ plan, className }: { plan: ServicePricingCardPlan; classNa
       className={cn(
         "w-full cursor-pointer gap-2 font-bold",
         plan.highlighted
-          ? "bg-primary text-[#02070a] shadow-lg shadow-primary/30 hover:brightness-110"
+          ? "bg-primary text-white shadow-lg shadow-primary/30 hover:brightness-110"
           : "border-primary/40 text-primary hover:bg-primary/5",
         className,
       )}
@@ -52,7 +52,7 @@ function PlanCard({ plan }: { plan: ServicePricingCardPlan }) {
       )}
     >
       {highlighted ? (
-        <span className="absolute -top-3 left-6 z-10 whitespace-nowrap rounded-full bg-primary px-3 py-1 text-xs font-bold text-[#02070a]">
+        <span className="absolute -top-3 left-6 z-10 whitespace-nowrap rounded-full bg-primary px-3 py-1 text-xs font-bold text-white">
           Recommended
         </span>
       ) : null}

@@ -249,7 +249,7 @@ export function JourneyArt() {
                 className={cn(
                   "grid size-9 place-items-center rounded-full border-2 transition-all duration-500",
                   i === step
-                    ? "border-[#38b6ff] bg-[#38b6ff] text-[#02070A] shadow-[0_0_0_5px_rgb(56_182_255_/_0.2)]"
+                    ? "border-[#38b6ff] bg-[#38b6ff] text-white shadow-[0_0_0_5px_rgb(56_182_255_/_0.2)]"
                     : i < step
                       ? "border-[#38b6ff] bg-card text-[#38b6ff]"
                       : "border-border bg-card text-muted-foreground",
@@ -323,7 +323,7 @@ export function ValueVignette({ index, active }: { index: number; active: boolea
               initial={false}
               animate={play ? { opacity: [0, 1], y: [6, 0] } : { opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.3 }}
-              className="ml-auto w-fit rounded-xl rounded-br-sm bg-[#38b6ff] px-2.5 py-1.5 text-[10px] text-[#02070A]"
+              className="ml-auto w-fit rounded-xl rounded-br-sm bg-[#38b6ff] px-2.5 py-1.5 text-[10px] text-white"
             >
               On it now.
             </motion.p>
@@ -367,7 +367,7 @@ export function ValueVignette({ index, active }: { index: number; active: boolea
                 />
               </span>
             ))}
-            <span className="grid size-12 place-items-center rounded-full bg-[#38b6ff] text-[#02070A]">
+            <span className="grid size-12 place-items-center rounded-full bg-[#38b6ff] text-white">
               <Lightbulb className="size-6" />
             </span>
           </div>

@@ -29,6 +29,8 @@ import {
 } from "../../lib/zeepo-ai-free-token-grant";
 import {
 	ZEEPO_AI_MIN_TOKENS_TO_START,
+	ZEEPO_AI_PLAN_IDS,
+	ZEEPO_AI_PRODUCT_ID,
 	ZEEPO_AI_WELCOME_TOKEN_GRANT,
 } from "../../lib/zeepo-ai-billing";
 

@@ -41,6 +41,7 @@ const PREFIX_RULES: Array<{ prefix: string; rule: AgencyRoutePermission }> = [
   { prefix: "/hq/vps", rule: { type: "key", key: "servers.vps.list" } },
   { prefix: "/hq/vds", rule: { type: "key", key: "servers.vds.list" } },
   { prefix: "/hq/backup-restore", rule: { type: "key", key: "backup.list" } },
+  { prefix: "/hq/cloud-storage", rule: { type: "key", key: "storage.browse" } },
   { prefix: "/hq/social-media-ads/linkedin", rule: { type: "module", module: "social_linkedin" } },
   { prefix: "/hq/social-media-ads/instagram", rule: { type: "module", module: "social_instagram" } },
   { prefix: "/hq/social-media-ads/google", rule: { type: "module", module: "social_google" } },

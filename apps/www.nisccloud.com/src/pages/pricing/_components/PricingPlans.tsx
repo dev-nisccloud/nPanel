@@ -1,7 +1,16 @@
 import { useId } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
-import { ArrowRight, ChevronDown } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.tsx";
 import { cn } from "@/lib/utils.ts";
 import { trackEvent } from "@/lib/track.ts";
 import { SharedPricingSection } from "@/pages/hosting/shared/_components/SharedPricingSection.tsx";
@@ -266,34 +275,39 @@ export default function PricingPlans() {
   return (
     <section className="pb-24" aria-label="Pricing by product">
       <div className="mx-auto grid max-w-7xl gap-8 px-4 md:px-8 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10">
-        {/* Mobile and tablet: a native grouped select keeps every product one tap away without squeezing the cards. */}
         <div className="lg:hidden">
           <label htmlFor={selectId} className="mb-2 block font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
             Choose a product
           </label>
-          <div className="relative">
-            <select
+          <Select value={current.id} onValueChange={choose}>
+            <SelectTrigger
               id={selectId}
-              value={current.id}
-              onChange={(event) => choose(event.target.value)}
-              className="h-12 w-full cursor-pointer appearance-none rounded-xl border border-border bg-card pl-4 pr-10 text-[15px] font-semibold text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="h-12 w-full rounded-xl border-border bg-card px-4 text-[15px] font-semibold shadow-sm"
             >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent align="start" className="rounded-xl">
               {groups.map((group) => (
-                <optgroup key={group.id} label={group.label}>
+                <SelectGroup key={group.id}>
+                  <SelectLabel className="font-mono text-[10px] font-bold uppercase tracking-[0.2em]">
+                    {group.label}
+                  </SelectLabel>
                   {group.products.map((product) => (
-                    <option key={product.id} value={product.id}>
+                    <SelectItem key={product.id} value={product.id} className="min-h-11 rounded-lg">
                       {product.label}
-                    </option>
+                    </SelectItem>
                   ))}
-                </optgroup>
+                </SelectGroup>
               ))}
-            </select>
-            <ChevronDown aria-hidden className="pointer-events-none absolute right-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          </div>
+            </SelectContent>
+          </Select>
         </div>
 
-        <nav aria-label="Pricing categories" className="hidden lg:block">
-          <div className="sticky top-24 max-h-[calc(100dvh-7rem)] space-y-6 overflow-y-auto overscroll-contain rounded-2xl border border-border bg-card p-3 [scrollbar-width:thin]">
+        <nav
+          aria-label="Pricing categories"
+          className="hidden lg:sticky lg:top-20 lg:z-20 lg:block lg:max-h-[calc(100dvh-6rem)] lg:w-full lg:self-start lg:overflow-hidden lg:rounded-2xl lg:border lg:border-border lg:bg-card lg:py-3 lg:pl-2.5 lg:pr-4"
+        >
+          <div className="pricing-category-nav max-h-[calc(100dvh-6rem-1.5rem)] space-y-6 overflow-y-auto overscroll-contain py-0.5 pl-1 pr-3">
             {groups.map((group) => (
               <div key={group.id}>
                 <p className="px-3 pb-1.5 pt-1 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">

@@ -104,7 +104,7 @@
   --popover: #ffffff;
   --popover-foreground: #02070a;
   --primary: #38b6ff;
-  --primary-foreground: #02070a;
+  --primary-foreground: #ffffff;
   --secondary: #eef5f7;
   --secondary-foreground: #1e293b;
   --muted: #eef5f7;
@@ -140,7 +140,7 @@
   --popover: #0f1e2e;
   --popover-foreground: #e2eaf2;
   --primary: #38b6ff;
-  --primary-foreground: #0d1b2a;
+  --primary-foreground: #ffffff;
   --secondary: #1a2e3f;
   --secondary-foreground: #c8dce9;
   --muted: #1a2e3f;
@@ -159,7 +159,7 @@
   --sidebar: #0f1e2e;
   --sidebar-foreground: #e2eaf2;
   --sidebar-primary: #38b6ff;
-  --sidebar-primary-foreground: #0d1b2a;
+  --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #1a2e3f;
   --sidebar-accent-foreground: #c8dce9;
   --sidebar-border: rgb(255 255 255 / 10%);
@@ -191,6 +191,33 @@
 
   *::-webkit-scrollbar-thumb:hover {
     border-width: 2px;
+  }
+
+  /* Pricing category list: keep the thumb off the labels and the card edge. */
+  .pricing-category-nav {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--primary) 55%, transparent) transparent;
+  }
+
+  .pricing-category-nav::-webkit-scrollbar {
+    width: 14px;
+  }
+
+  .pricing-category-nav::-webkit-scrollbar-track {
+    background: transparent;
+    margin-block: 16px;
+  }
+
+  .pricing-category-nav::-webkit-scrollbar-thumb {
+    background-color: color-mix(in oklab, var(--primary) 70%, white);
+    border: 4px solid transparent;
+    border-radius: 999px;
+    background-clip: content-box;
+  }
+
+  .pricing-category-nav::-webkit-scrollbar-thumb:hover {
+    border-width: 3px;
+    background-color: var(--primary);
   }
 
   body {

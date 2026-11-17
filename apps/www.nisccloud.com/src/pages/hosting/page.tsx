@@ -45,7 +45,7 @@ function ProductFinder({
               className={cn(
                 "inline-flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                 active
-                  ? "border-[#02070a] bg-[#02070a] text-white dark:border-primary dark:bg-primary dark:text-[#02070a]"
+                  ? "border-[#02070a] bg-[#02070a] text-white dark:border-primary dark:bg-primary dark:text-white"
                   : "border-border bg-card text-foreground hover:border-primary/60",
               )}
             >
