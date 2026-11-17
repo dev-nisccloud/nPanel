@@ -7,6 +7,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert.tsx";
 import { useCurrency } from "@/components/providers/currency.tsx";
 import { convertKesForDisplay, formatCurrency } from "@/lib/currency.ts";
 import { EveryPlanIncludes } from "@/pages/hosting/_components/EveryPlanIncludes.tsx";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.tsx";
 import { ChipGroup, PlanFilterBar, SelectFilter } from "@/pages/hosting/_components/PlanFilterBar.tsx";
 import {
   applyMarginWith,
@@ -315,18 +322,21 @@ function MachineRow({
           <label htmlFor={selectId} className="type-label flex items-center gap-1.5 text-foreground">
             <MapPin className="size-4 text-primary dark:text-primary" aria-hidden /> Server location
           </label>
-          <select
-            id={selectId}
-            value={selected}
-            onChange={(e) => setSelected(e.target.value)}
-            className="mt-2 h-11 w-full cursor-pointer rounded-xl border border-border bg-background px-3 text-base text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
-            {machine.locations.map(({ plan, name }) => (
-              <option key={plan.data_center} value={plan.data_center}>
-                {name}
-              </option>
-            ))}
-          </select>
+          <Select value={selected} onValueChange={setSelected}>
+            <SelectTrigger
+              id={selectId}
+              className="mt-2 h-11 w-full rounded-xl border-border bg-background px-3 text-base font-normal shadow-none"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent align="start" className="rounded-xl">
+              {machine.locations.map(({ plan, name }) => (
+                <SelectItem key={plan.data_center} value={plan.data_center} className="min-h-11 rounded-lg">
+                  {name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex flex-col gap-3 sm:items-end">
           <p className="flex items-baseline gap-1 sm:justify-end">
@@ -336,7 +346,7 @@ function MachineRow({
           <button
             type="button"
             onClick={order}
-            className="inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary px-5 text-base font-bold text-[#02070a] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            className="inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary px-5 text-base font-bold text-white transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
             Choose this server
             <ArrowRight className="size-4" aria-hidden />

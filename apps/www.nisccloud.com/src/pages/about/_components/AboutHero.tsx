@@ -32,7 +32,7 @@ export default function AboutHero() {
           <motion.div {...rise(0.25)} className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link
               to="/contact"
-              className="inline-flex min-h-12 items-center justify-center rounded-[12px] bg-[#38b6ff] px-6 text-base font-semibold text-[#02070A] hover:bg-[#38b6ff]/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38b6ff] focus-visible:ring-offset-2"
+              className="inline-flex min-h-12 items-center justify-center rounded-[12px] bg-[#38b6ff] px-6 text-base font-semibold text-white hover:bg-[#38b6ff]/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38b6ff] focus-visible:ring-offset-2"
             >
               Talk to our team
             </Link>

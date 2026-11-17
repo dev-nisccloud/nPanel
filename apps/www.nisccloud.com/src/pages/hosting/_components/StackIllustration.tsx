@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils.ts";
 import type { FinderChoice, StackLayer } from "./cloud-catalog.ts";
 
 const LAYER_STYLE: Record<StackLayer, { icon: LucideIcon; tile: string }> = {
-  domain: { icon: Globe, tile: "bg-primary text-[#02070a]" },
+  domain: { icon: Globe, tile: "bg-primary text-white" },
   ssl: { icon: ShieldCheck, tile: "bg-emerald-500 text-white" },
   hosting: { icon: Server, tile: "bg-[#02070a] text-[#38b6ff] dark:bg-slate-800" },
   server: { icon: ServerCog, tile: "bg-[#02070a] text-[#38b6ff] dark:bg-slate-800" },

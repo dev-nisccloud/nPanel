@@ -84,7 +84,7 @@ function Card({ className, children }: { className?: string; children: ReactNode
 
 function Initials({ text, tone = "sky" }: { text: string; tone?: "sky" | "orange" | "dark" }) {
   const toneClass = {
-    sky: "bg-[#38b6ff] text-[#02070A]",
+    sky: "bg-[#38b6ff] text-white",
     orange: "bg-[#fc734d] text-white",
     dark: "bg-[#02070A] text-white dark:bg-white dark:text-[#02070A]",
   }[tone];
@@ -98,7 +98,7 @@ function Bubble({ from, text, mine = false }: { from: string; text: string; mine
       <p
         className={cn(
           "max-w-[78%] rounded-2xl px-3 py-2 text-[11px] leading-snug",
-          mine ? "rounded-br-sm bg-[#38b6ff] text-[#02070A]" : "rounded-bl-sm bg-muted text-foreground",
+          mine ? "rounded-br-sm bg-[#38b6ff] text-white" : "rounded-bl-sm bg-muted text-foreground",
         )}
       >
         {text}
@@ -301,7 +301,7 @@ export function CareersHeroScenes() {
             {["Build", "Run", "Grow"].map((area, i) => (
               <span
                 key={area}
-                className={cn("rounded-full px-2.5 py-1 text-[10px] font-semibold", i === 0 ? "bg-[#38b6ff] text-[#02070A]" : "bg-muted text-muted-foreground")}
+                className={cn("rounded-full px-2.5 py-1 text-[10px] font-semibold", i === 0 ? "bg-[#38b6ff] text-white" : "bg-muted text-muted-foreground")}
               >
                 {area}
               </span>
@@ -397,7 +397,7 @@ export function FactTeamArt() {
           className={cn(
             "relative rounded-full border px-3 py-1.5 text-[10px] font-semibold transition-all duration-500",
             step === i
-              ? "border-[#38b6ff] bg-[#38b6ff] text-[#02070A] shadow-[0_0_0_4px_rgb(56_182_255_/_0.2)]"
+              ? "border-[#38b6ff] bg-[#38b6ff] text-white shadow-[0_0_0_4px_rgb(56_182_255_/_0.2)]"
               : "border-border bg-background text-muted-foreground",
           )}
         >
@@ -821,7 +821,7 @@ export function OwnershipArt() {
               className={cn(
                 "grid size-7 place-items-center rounded-full border-2 bg-card text-[9px] font-bold transition-colors duration-300",
                 i <= step ? "border-[#38b6ff] text-[#38b6ff]" : "border-muted text-muted-foreground",
-                i === step && "bg-[#38b6ff] text-[#02070A]",
+                i === step && "bg-[#38b6ff] text-white",
               )}
             >
               {i === step ? "You" : i + 1}
@@ -844,7 +844,7 @@ export function PlainTalkArt() {
       </div>
       {step >= 1 ? (
         <motion.div {...pop} className="flex items-center justify-end gap-2">
-          <p className="rounded-xl rounded-br-sm bg-[#38b6ff] px-2.5 py-1.5 text-[10px] text-[#02070A]">Fair. I'll fix the images today.</p>
+          <p className="rounded-xl rounded-br-sm bg-[#38b6ff] px-2.5 py-1.5 text-[10px] text-white">Fair. I'll fix the images today.</p>
         </motion.div>
       ) : null}
     </div>

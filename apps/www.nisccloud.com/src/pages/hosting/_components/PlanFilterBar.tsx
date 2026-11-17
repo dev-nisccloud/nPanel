@@ -1,6 +1,13 @@
 import * as React from "react";
 import { SlidersHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.tsx";
 
 type Option = { value: string; label: string };
 
@@ -85,7 +92,7 @@ export function ChipGroup({
             className={cn(
               "h-9 cursor-pointer rounded-full border px-3.5 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
               option.value === value
-                ? "border-primary bg-primary text-[#02070a]"
+                ? "border-primary bg-primary text-white"
                 : "border-border bg-background text-foreground hover:border-primary/50",
             )}
           >
@@ -116,18 +123,21 @@ export function SelectFilter({
       <label htmlFor={id} className={hideLabel ? "sr-only" : "text-sm font-medium text-muted-foreground"}>
         {label}
       </label>
-      <select
-        id={id}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-9 min-w-40 cursor-pointer rounded-xl border border-border bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger
+          id={id}
+          className="h-11 w-full min-w-40 rounded-xl border-border bg-background px-3 text-sm font-normal shadow-none"
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent align="start" className="rounded-xl">
+          {options.map((option) => (
+            <SelectItem key={option.value} value={option.value} className="min-h-11 rounded-lg">
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

@@ -73,7 +73,7 @@ export default function CeoMessage() {
               <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold backdrop-blur-md">Since 2019</span>
             </figcaption>
           </div>
-          <span className="absolute -right-3 -top-3 grid size-14 place-items-center rounded-2xl bg-[#38b6ff] text-[#02070A] shadow-lg" aria-hidden>
+          <span className="absolute -right-3 -top-3 grid size-14 place-items-center rounded-2xl bg-[#38b6ff] text-white shadow-lg" aria-hidden>
             <Quote className="size-6" />
           </span>
         </motion.figure>
@@ -101,7 +101,7 @@ export default function CeoMessage() {
                 {...rise(index * 0.08)}
                 className="group rounded-[22px] border border-border bg-card p-5 transition-colors hover:border-[#38b6ff]/60"
               >
-                <span className="grid size-10 place-items-center rounded-xl bg-[#38b6ff]/10 text-[#38b6ff] transition-colors group-hover:bg-[#38b6ff] group-hover:text-[#02070A]">
+                <span className="grid size-10 place-items-center rounded-xl bg-[#38b6ff]/10 text-[#38b6ff] transition-colors group-hover:bg-[#38b6ff] group-hover:text-white">
                   <item.icon className="size-5" aria-hidden />
                 </span>
                 <p className="mt-4 text-sm font-semibold">{item.to}</p>
@@ -126,7 +126,7 @@ export default function CeoMessage() {
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link
               to="/contact"
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[12px] bg-[#38b6ff] px-6 text-base font-semibold text-[#02070A] hover:bg-[#38b6ff]/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38b6ff] focus-visible:ring-offset-2"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[12px] bg-[#38b6ff] px-6 text-base font-semibold text-white hover:bg-[#38b6ff]/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38b6ff] focus-visible:ring-offset-2"
             >
               Work with us
               <ArrowRight className="size-4" aria-hidden />

@@ -1,0 +1,66 @@
+# MinIO only, for the Plesk hosting server.
+#
+# Same service shape as system/docker-compose.yml (minio + minio-init),
+# without Postgres, PgBouncer, or a second nginx. Plesk already listens
+# on 80/443 and proxies the public hostname to 127.0.0.1:9000.
+#
+#   cd system/minio-host
+#   cp .env.example .env
+#   ./install.sh
+
+services:
+
+  minio:
+    image: minio/minio:latest
+    container_name: nPanel-Host-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_SITE_NAME: ${MINIO_SITE_NAME:-npanel-storage}
+      # Presigned URLs must use the public hostname Plesk serves.
+      MINIO_SERVER_URL: ${MINIO_SERVER_URL}
+      # Metrics stay on the loopback port. Do not publish 9000 publicly.
+      MINIO_PROMETHEUS_AUTH_TYPE: "public"
+    volumes:
+      # Host path on the empty disk. Never a Docker volume on the system disk.
+      - ${MINIO_DATA_DIR:-/mnt/storage/minio}:/data:Z
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    cpus: ${MINIO_CPU_LIMIT:-1.0}
+    mem_limit: ${MINIO_MEMORY_LIMIT:-1g}
+    pids_limit: 512
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # One-shot: create the default bucket and set public-read, then exit.
+  # Matches system/docker-compose.yml so existing S3_BUCKET usage keeps working.
+  minio-init:
+    image: minio/mc:latest
+    container_name: nPanel-Host-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_DEFAULT_BUCKET: ${MINIO_DEFAULT_BUCKET:-npanel-uploads}
+    entrypoint: >
+      /bin/sh -c "
+        mc alias set local http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD;
+        mc mb --ignore-existing local/$$MINIO_DEFAULT_BUCKET;
+        mc anonymous set download local/$$MINIO_DEFAULT_BUCKET;
+        echo 'Bucket $$MINIO_DEFAULT_BUCKET ready';
+      "
+    restart: "no"

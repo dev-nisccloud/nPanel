@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { ArrowRight, MapPin, Search } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.tsx";
 import Navbar from "../_components/Navbar.tsx";
 import Footer from "../_components/Footer.tsx";
 import { trpcQuery } from "@/lib/domain-search/api.ts";
@@ -108,19 +115,33 @@ export default function CareersPage() {
                 <div className="mt-12 grid gap-4 md:grid-cols-3">
                   <label className="grid gap-2 text-sm font-semibold text-foreground">
                     Type
-                    <select className={selectClass} value={employmentType} onChange={(event) => setEmploymentType(event.target.value)}>
-                      {types.map((item) => (
-                        <option key={item}>{item}</option>
-                      ))}
-                    </select>
+                    <Select value={employmentType} onValueChange={setEmploymentType}>
+                      <SelectTrigger className={selectClass}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent align="start" className="rounded-xl">
+                        {types.map((item) => (
+                          <SelectItem key={item} value={item} className="min-h-11 rounded-lg">
+                            {item}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </label>
                   <label className="grid gap-2 text-sm font-semibold text-foreground">
                     Location
-                    <select className={selectClass} value={location} onChange={(event) => setLocation(event.target.value)}>
-                      {locations.map((item) => (
-                        <option key={item}>{item}</option>
-                      ))}
-                    </select>
+                    <Select value={location} onValueChange={setLocation}>
+                      <SelectTrigger className={selectClass}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent align="start" className="rounded-xl">
+                        {locations.map((item) => (
+                          <SelectItem key={item} value={item} className="min-h-11 rounded-lg">
+                            {item}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </label>
                   <label className="grid gap-2 text-sm font-semibold text-foreground">
                     Keyword

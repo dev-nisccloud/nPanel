@@ -2,6 +2,13 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Input } from "@/components/ui/input.tsx";
 import FileField from "@/components/ui/file-field.tsx";
 import { Label } from "@/components/ui/label.tsx";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
 import { trpcQuery } from "@/lib/domain-search/api.ts";
 
@@ -138,26 +145,27 @@ export default function CareerApplyForm({ slug, roleTitle }: { slug: string; rol
         </div>
         <div className="grid gap-2">
           <Label htmlFor="career-country">Country</Label>
-          <select
-            id="career-country"
-            className="border-input min-h-11 rounded-md border bg-transparent px-3 text-sm"
-            value={countryCode}
-            required
-            onChange={(event) => {
-              setCountryCode(event.target.value);
+          <Select
+            value={countryCode || undefined}
+            onValueChange={(value) => {
+              setCountryCode(value);
               setCity("");
               setCityQuery("");
               setCityChoices([]);
               setFreeTextCity(false);
             }}
           >
-            <option value="">Choose a country</option>
-            {countries.map((country) => (
-              <option key={country.code} value={country.code}>
-                {country.name}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger id="career-country" aria-required="true" className="h-11 w-full rounded-md border-input bg-transparent px-3 text-sm font-normal shadow-none">
+              <SelectValue placeholder="Choose a country" />
+            </SelectTrigger>
+            <SelectContent align="start" className="rounded-xl">
+              {countries.map((country) => (
+                <SelectItem key={country.code} value={country.code} className="min-h-11 rounded-lg">
+                  {country.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="grid gap-2">
           <Label htmlFor="career-city">Location (city)</Label>
@@ -197,20 +205,18 @@ export default function CareerApplyForm({ slug, roleTitle }: { slug: string; rol
         </div>
         <div className="grid gap-2">
           <Label htmlFor="career-heard">How did you hear about this job?</Label>
-          <select
-            id="career-heard"
-            className="border-input min-h-11 rounded-md border bg-transparent px-3 text-sm"
-            value={heardFrom}
-            required
-            onChange={(event) => setHeardFrom(event.target.value)}
-          >
-            <option value="">Choose one</option>
-            {heardAbout.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
+          <Select value={heardFrom || undefined} onValueChange={setHeardFrom}>
+            <SelectTrigger id="career-heard" aria-required="true" className="h-11 w-full rounded-md border-input bg-transparent px-3 text-sm font-normal shadow-none">
+              <SelectValue placeholder="Choose one" />
+            </SelectTrigger>
+            <SelectContent align="start" className="rounded-xl">
+              {heardAbout.map((option) => (
+                <SelectItem key={option} value={option} className="min-h-11 rounded-lg">
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         {heardFrom === "Other" ? (
           <div className="grid gap-2">
