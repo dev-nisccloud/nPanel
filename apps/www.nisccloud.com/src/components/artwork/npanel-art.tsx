@@ -223,9 +223,9 @@ export function NpanelOperationsArt() {
 /** Run my business online: a domain, hosting and email connected and managed in nPanel. */
 export function RunOnlineArt() {
   const chain = [
-    [Globe, "Domain", "savannabakery.co.ke", "Active"],
+    [Globe, "Domain", "savannabakery.com", "Active"],
     [Server, "Website hosting", "SSL enabled", "Active"],
-    [Mail, "Business email", "info@savannabakery.co.ke", "Active"],
+    [Mail, "Business email", "info@savannabakery.com", "Active"],
   ] as const;
   return (
     <ArtStage tone="emerald" label="A domain, website hosting and business email connected and managed in nPanel">

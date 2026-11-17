@@ -224,7 +224,7 @@ export default function VdsPage() {
 					plan={selectedPlan}
 					requireDomainStep={false}
 					intent={dialogIntent}
-					buyDomainHref="/agency/domains"
+					buyDomainHref="/hq/domains"
 				/>
 			) : null}
 		</>

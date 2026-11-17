@@ -162,12 +162,12 @@ export default function BrandIdentityPage() {
         { title: "Clear ownership and handover", desc: "Once agreed invoices are paid, you own the approved deliverables listed in your proposal, subject to third-party licence terms. The proposal also states which source files are included.", visual: "ownership" },
       ]}
       faqs={[
-        { q: "How many logo concepts will I receive?", a: "Small Business includes three concepts. Corporate directions and review stages are agreed in the project brief before work begins." },
+        { q: "How many logo concepts will I receive?", a: "Small Business includes three concepts. Enterprise directions and review stages are agreed in the project brief before work begins." },
         { q: "Can I use the logo for print materials immediately?", a: "Yes. You receive high-resolution print-ready files including vector formats (SVG, AI/EPS) that can be scaled to any size, from a business card to a billboard, without quality loss." },
         { q: "What if the initial direction misses the brief?", a: "We review the approved strategy and your consolidated feedback, then agree the correction within the revision scope documented in your proposal." },
         { q: "Can the strategy work beyond Kenya?", a: "Yes. The work is based on the audience, category and markets in your brief. Kenya-specific context can inform the strategy without limiting the brand to a local-agency position." },
-        { q: "How do revisions work?", a: "Small Business includes two revision rounds. Growth and Corporate rounds are agreed in the proposal. Each round means you give consolidated feedback and we implement those changes before the next review." },
-        { q: "Can you rebrand an existing business without losing our existing customers?", a: "Yes. A Corporate project can include a rebrand approach with customer communication planning, a transition timeline, and guidelines for phasing out old assets." },
+        { q: "How do revisions work?", a: "Small Business includes two revision rounds. Growth and Enterprise rounds are agreed in the proposal. Each round means you give consolidated feedback and we implement those changes before the next review." },
+        { q: "Can you rebrand an existing business without losing our existing customers?", a: "Yes. A Enterprise project can include a rebrand approach with customer communication planning, a transition timeline, and guidelines for phasing out old assets." },
       ]}
       ctaHeadline="Ready to build a brand people trust?"
       ctaSubtext="A clear visual identity helps you win clients, contracts, and credibility. Let's build something professional and useful together."

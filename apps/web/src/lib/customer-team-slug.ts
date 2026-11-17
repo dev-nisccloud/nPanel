@@ -1,5 +1,6 @@
 const RESERVED_FIRST_PATH_SEGMENTS = new Set([
 	"agency",
+	"hq",
 	"auth",
 	"api",
 	"login",

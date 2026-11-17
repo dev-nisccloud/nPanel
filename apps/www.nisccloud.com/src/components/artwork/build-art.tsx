@@ -120,7 +120,7 @@ export function ProjectJourneyArt() {
                   <span className="block h-5 rounded-md bg-card/80" />
                   {i === col ? (
                     <motion.div layoutId="journey-card" transition={{ duration: 0.6, ease }} className="rounded-lg border border-[#38b6ff]/50 bg-card p-1.5 shadow-md">
-                      <p className="text-[8px] font-semibold leading-tight text-foreground">kilele-coffee.co.ke</p>
+                      <p className="text-[8px] font-semibold leading-tight text-foreground">kilele-coffee.com</p>
                       <div className="mt-1 h-1 overflow-hidden rounded-full bg-muted">
                         <motion.div className="h-full bg-[#38b6ff]" animate={{ width: `${(col + 1) * 25}%` }} transition={{ duration: 0.6 }} />
                       </div>
@@ -212,7 +212,7 @@ export function BlueprintSiteArt() {
               className="absolute -bottom-1 left-3 flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 shadow-lg"
             >
               <span className="size-2 rounded-full bg-emerald-500" />
-              <span className="text-[10px] font-semibold text-foreground">kilele-coffee.co.ke is live</span>
+              <span className="text-[10px] font-semibold text-foreground">kilele-coffee.com is live</span>
             </motion.div>
           ) : null}
         </AnimatePresence>

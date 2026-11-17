@@ -36,7 +36,7 @@ export default function EmailHostingPage() {
           Business email on your own domain, with <span className="text-primary">AI that drafts your replies</span>
         </>
       }
-      subtext="Nisc Mail gives your team addresses like you@yourbusiness.co.ke, with an AI writing assistant, spam and phishing filtering, daily backups and sender records set up for you. Use it in our mail client, Outlook or your phone."
+      subtext="Nisc Mail gives your team addresses like you@yourbusiness.com, with an AI writing assistant, spam and phishing filtering, daily backups and sender records set up for you. Use it in our mail client, Outlook or your phone."
       serviceType="hosting"
       plansUnderHero
       customPlansSection={<EmailPricingSection />}
@@ -52,7 +52,7 @@ export default function EmailHostingPage() {
         {
           icon: <AtSign size={20} />,
           title: "Email on your own domain",
-          desc: "Addresses like info@, sales@ and your own name at yourbusiness.co.ke, created from your nPanel account.",
+          desc: "Addresses like info@, sales@ and your own name at yourbusiness.com, created from your nPanel account.",
         },
         {
           icon: <Sparkles size={20} />,
@@ -118,7 +118,7 @@ export default function EmailHostingPage() {
         {
           title: "Look established from the first email",
           visual: "brand",
-          desc: "A quote from sales@yourbusiness.co.ke earns more trust than the same quote from a free Gmail or Yahoo address.",
+          desc: "A quote from sales@yourbusiness.com earns more trust than the same quote from a free Gmail or Yahoo address.",
         },
         {
           title: "Mailboxes stay with the business",
@@ -176,7 +176,7 @@ export default function EmailHostingPage() {
         },
         {
           q: "How much storage does each plan have?",
-          a: "Storage and mailbox counts are shown on each plan card above. Corporate is sized to your organisation when you need more than 100 mailboxes or custom storage.",
+          a: "Storage and mailbox counts are shown on each plan card above. Enterprise is sized to your organisation when you need more than 100 mailboxes or custom storage.",
         },
         {
           q: "How is my email protected from spam and phishing?",

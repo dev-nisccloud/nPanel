@@ -1,8 +1,40 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
-import { SOCIAL_MEDIA_PLANS, SERVICE_PACKAGE_NOTES } from "@/lib/service-packages.ts";
+import { SERVICE_PACKAGE_NOTES } from "@/lib/service-packages.ts";
+import { fetchSocialMediaPlansPublic } from "@/lib/vps-plans-api.ts";
+import { NpanelPricingSection } from "@/pages/services/_components/NpanelPricingSection.tsx";
+import { useCurrency } from "@/components/providers/currency.tsx";
+import { convertKesForDisplay, formatCurrency } from "@/lib/currency.ts";
 import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
 import { Share2, Users, Calendar, Camera, TrendingUp, MessageSquare, BarChart2, Star } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
+
+const SOCIAL_ADDONS = [
+  { id: "social-photoshoot", label: "Monthly Content Photoshoot (Half-Day)", price: 25000, period: "month" },
+  { id: "social-reels", label: "Extra 4 Short-Form Videos", price: 15000, period: "month" },
+  { id: "social-ads", label: "Social Media Ad Boosting Management", price: 15000, period: "month" },
+];
+
+function SocialAddons() {
+  const { currency, kesToCurrencyRate } = useCurrency();
+  const display = (amount: number) =>
+    kesToCurrencyRate == null ? "Updating…" : formatCurrency(convertKesForDisplay(amount, currency, kesToCurrencyRate), currency);
+  return (
+    <div className="mx-auto max-w-2xl px-4 pb-16 md:px-8">
+      <h3 className="text-center text-sm font-semibold text-foreground">Optional add-ons</h3>
+      <p className="mt-1 text-center text-sm text-muted-foreground">Quoted with the plan. Not included in the monthly price above.</p>
+      <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+        {SOCIAL_ADDONS.map((addon) => (
+          <li key={addon.id} className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3.5 text-sm">
+            <span className="font-medium">{addon.label}</span>
+            <span className="shrink-0 font-semibold tabular-nums">
+              {display(addon.price)}/{addon.period}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 const showcaseBlocks: ShowcaseBlock[] = [
   {
@@ -39,7 +71,20 @@ export default function SocialMediaPage() {
       subtext="Plan, produce, publish, and review social content on the channels selected for your business. The service creates a consistent operating rhythm while your team keeps control of facts, approvals, and sensitive responses."
       serviceType="marketing"
       checkoutServiceType="social_media"
-      checkoutProductName="Social Media"
+      checkoutProductName="Social Media Management"
+      customPlansSection={
+        <>
+        <NpanelPricingSection
+          fetchPlans={fetchSocialMediaPlansPublic}
+          title="Social media plans"
+          description="Two monthly plans, priced in nPanel, plus Enterprise when the work needs a scope of its own. Prices exclude 16% VAT."
+          checkoutServiceType="social_media"
+          serviceName="Social Media Management"
+          sectionId="social-plans"
+        />
+        <SocialAddons />
+      </>
+      }
       heroImage={niscWebsiteImage("Social media marketing.png")}
       heroImageStandalone
       trustStats={[
@@ -90,12 +135,7 @@ export default function SocialMediaPage() {
           desc: "For supported channels included in scope, organise review monitoring, draft responses, and escalate issues that need an authorised decision.",
         },
       ]}
-      plans={SOCIAL_MEDIA_PLANS}
-      addons={[
-        { id: "social-photoshoot", label: "Monthly Content Photoshoot (Half-Day)", price: 25000, period: "month" },
-        { id: "social-reels", label: "Extra 4 Short-Form Videos", price: 15000, period: "month" },
-        { id: "social-ads", label: "Social Media Ad Boosting Management", price: 15000, period: "month" },
-      ]}
+      plans={[]}
       process={[
         { num: "01", title: "Brand, channel & risk audit", desc: "We review your current accounts, target audience, access, brand rules, competitors, and issues that require an authorised response." },
         { num: "02", title: "Strategy & review plan", desc: "We define content pillars, selected channels, formats, publishing cadence, approval route, response coverage, and escalation contacts." },

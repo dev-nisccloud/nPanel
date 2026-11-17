@@ -6,7 +6,7 @@ import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { RefreshCw, Eye, EyeOff, Check } from "lucide-react";
+import { Check } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 
 import { Button } from "@/components/ui/button";
@@ -46,7 +46,6 @@ import {
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
   role: z.enum(["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"]),
 });
 
@@ -65,7 +64,6 @@ export function CreateUserSheet({
   onOpenChange,
   onSuccess,
 }: CreateUserSheetProps) {
-  const [showPassword, setShowPassword] = React.useState(false);
   const [step, setStep] = React.useState<0 | 1>(0);
   const [createdUserId, setCreatedUserId] = React.useState<string | null>(null);
   const [accessDraft, setAccessDraft] = React.useState<Record<string, AgencyAccessLevel>>({});
@@ -75,7 +73,6 @@ export function CreateUserSheet({
     defaultValues: {
       name: "",
       email: "",
-      password: "",
       role: "AGENCY_USER",
     },
   });
@@ -114,38 +111,12 @@ export function CreateUserSheet({
     },
   });
 
-  const generatePassword = () => {
-    const uppers = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    const lowers = "abcdefghijklmnopqrstuvwxyz";
-    const digits = "0123456789";
-    const specials = "!@#$%^&*()-_=+[]{};:,.<>/?";
-    const all = uppers + lowers + digits + specials;
-    const length = 14;
-
-    const pwd = [
-      uppers[Math.floor(Math.random() * uppers.length)],
-      lowers[Math.floor(Math.random() * lowers.length)],
-      digits[Math.floor(Math.random() * digits.length)],
-      specials[Math.floor(Math.random() * specials.length)],
-    ];
-    for (let i = pwd.length; i < length; i++) {
-      pwd.push(all[Math.floor(Math.random() * all.length)]!);
-    }
-    for (let i = pwd.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [pwd[i], pwd[j]] = [pwd[j]!, pwd[i]!];
-    }
-    form.setValue("password", pwd.join(""));
-  };
-
   const resetSheet = () => {
     form.reset({
       name: "",
       email: "",
-      password: "",
       role: "AGENCY_USER",
     });
-    setShowPassword(false);
     setStep(0);
     setCreatedUserId(null);
     setAccessDraft({});
@@ -161,7 +132,6 @@ export function CreateUserSheet({
     createUserMutation.mutate({
       name: data.name,
       email: data.email,
-      password: data.password,
       role: data.role,
     });
   };
@@ -193,7 +163,7 @@ export function CreateUserSheet({
             <SheetTitle>Create User</SheetTitle>
             <SheetDescription>
               {step === 0
-                ? "Create a new agency user account. Credentials will be sent to the provided email address."
+                ? "Create a new Nisc HQ staff account. They'll get an email to set their own password, which also confirms their email."
                 : "Choose what this user can open, then save."}
             </SheetDescription>
             <div className="flex items-center gap-2 pt-2 text-xs text-muted-foreground">
@@ -269,44 +239,6 @@ export function CreateUserSheet({
                       )}
                     />
 
-                    <FormField
-                      control={form.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Password</FormLabel>
-                          <FormControl>
-                            <div className="flex gap-2">
-                              <Input
-                                type={showPassword ? "text" : "password"}
-                                placeholder="Enter password or generate one"
-                                className="w-full"
-                                {...field}
-                              />
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                onClick={() => setShowPassword((value) => !value)}
-                                aria-label={showPassword ? "Hide password" : "Show password"}
-                              >
-                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                onClick={generatePassword}
-                                aria-label="Generate password"
-                              >
-                                <RefreshCw className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
                   </div>
                 </ScrollArea>
                 <SheetFooter className="flex-shrink-0 gap-2 border-t px-6 py-4 sm:gap-0">

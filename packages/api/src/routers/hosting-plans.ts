@@ -246,7 +246,7 @@ export const hostingPlansRouter = router({
 			if (!isAgencySuperAdminRole(session.user.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency super admins can create service plans",
+					message: "Only Nisc HQ super admins can create service plans",
 				});
 			}
 
@@ -379,7 +379,7 @@ export const hostingPlansRouter = router({
 			if (!isAgencySuperAdminRole(session.user.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency super admins can update service plans",
+					message: "Only Nisc HQ super admins can update service plans",
 				});
 			}
 
@@ -694,7 +694,7 @@ export const hostingPlansRouter = router({
 			if (!isAgencySuperAdminRole(session.user.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency super admins can delete service plans",
+					message: "Only Nisc HQ super admins can delete service plans",
 				});
 			}
 

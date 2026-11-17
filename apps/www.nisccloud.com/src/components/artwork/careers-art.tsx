@@ -165,7 +165,7 @@ function BuildScene() {
           {["bg-[#fc734d]", "bg-amber-400", "bg-emerald-400"].map((c) => (
             <span key={c} className={cn("size-1.5 rounded-full", c)} />
           ))}
-          <span className="ml-1.5 truncate rounded-full bg-white px-2 py-0.5 text-[9px] text-slate-500 ring-1 ring-slate-200">acaciatraders.co.ke</span>
+          <span className="ml-1.5 truncate rounded-full bg-white px-2 py-0.5 text-[9px] text-slate-500 ring-1 ring-slate-200">acaciatraders.com</span>
         </div>
         <div className="grid gap-2.5 p-2.5">
           <div className="h-14 rounded-lg bg-gradient-to-br from-[#38b6ff] via-[#7cd0ff] to-[#fc734d]/70 sm:h-16" />
@@ -358,7 +358,7 @@ export function FactYearArt() {
   );
 }
 
-const SITES = ["savannabakery.co.ke", "jamboclinic.com", "kilimatours.co.ke", "baobabmedia.africa", "acaciatraders.co.ke", "savannaind.com"];
+const SITES = ["savannabakery.com", "jamboclinic.com", "kilimatours.com", "baobabmedia.africa", "acaciatraders.com", "savannaind.com"];
 
 export function FactCustomersArt() {
   const { ref, step } = useCycle(SITES.length, 1600);
@@ -726,7 +726,7 @@ function HireTask() {
         </ul>
       </Panel>
       <Card className="font-mono text-[10px] leading-relaxed text-muted-foreground">
-        <span className="text-[#38b6ff]">$</span> deploy --site kilimatours.co.ke
+        <span className="text-[#38b6ff]">$</span> deploy --site kilimatours.com
         <br />
         {step >= 3 ? <span className="text-emerald-600 dark:text-emerald-400">✓ live in 42s</span> : <span>building…</span>}
       </Card>

@@ -13,6 +13,7 @@ export const SERVICE_PRODUCT_IDS = [
 	"email_hosting",
 	"wordpress_hosting",
 	"seo_reports",
+	"social_media",
 	"creatives_design",
 	"media_buying",
 	"one_time_service",
@@ -89,7 +90,16 @@ export const SERVICE_PRODUCTS: ServiceProductDef[] = [
 	},
 	{
 		id: "seo_reports",
-		label: "SEO Reports",
+		label: "SEO & AI Search Optimisation",
+		needsPlan: true,
+		needsDomain: false,
+		needsProvisionUser: false,
+		supportsZeepoTokens: false,
+		defaultBillingCycle: "MONTHLY",
+	},
+	{
+		id: "social_media",
+		label: "Social Media Management",
 		needsPlan: true,
 		needsDomain: false,
 		needsProvisionUser: false,
@@ -116,7 +126,7 @@ export const SERVICE_PRODUCTS: ServiceProductDef[] = [
 	},
 	{
 		id: "one_time_service",
-		label: "One-time service",
+		label: "One-time service or project",
 		needsPlan: false,
 		needsDomain: false,
 		needsProvisionUser: false,
@@ -446,6 +456,8 @@ export type CatalogPlanOption = {
 	billingCycle: string;
 	zeepoPlanType?: string;
 	tokenGrant?: number;
+	/** Enterprise: no catalogue price; staff enter the price agreed with the client. */
+	agreedPrice?: boolean;
 };
 
 export function normalizeBillingCycle(raw: string | null | undefined): Exclude<BillingCycleValue, "ONE_TIME"> {
@@ -460,6 +472,34 @@ export function normalizeBillingCycle(raw: string | null | undefined): Exclude<B
 		return v;
 	}
 	return "MONTHLY";
+}
+
+export function mapEnterprisePlans(
+	plans:
+		| Array<{
+				id: string;
+				name: string;
+				productId: string;
+				productName: string;
+				serviceType: string;
+				billingCycle: string;
+				currency: string;
+		  }>
+		| undefined,
+	serviceType: string,
+): CatalogPlanOption[] {
+	return (plans ?? [])
+		.filter((p) => p.serviceType === serviceType)
+		.map((p) => ({
+			id: p.id,
+			name: p.name,
+			productId: p.productId,
+			productName: p.productName,
+			displayPrice: 0,
+			displayCurrency: p.currency || "KES",
+			billingCycle: p.billingCycle || "MONTHLY",
+			agreedPrice: true,
+		}));
 }
 
 export function mapPricingPlans(

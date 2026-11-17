@@ -1,5 +1,6 @@
 ﻿import { useState, useRef, useEffect, type MouseEvent } from "react";
 import ProductsMegaMenu, {
+  ProductTag,
   productFamilies,
   productSections,
 } from "./ProductsMegaMenu.tsx";
@@ -137,7 +138,7 @@ const navItems: NavItem[] = [
   },
   {
     label: "Marketing & Branding",
-    href: "/services/marketing",
+    href: "/services",
     children: [
       {
         label: "Brand Strategy & Positioning",
@@ -152,9 +153,9 @@ const navItems: NavItem[] = [
         icon: <PenTool size={16} />,
       },
       {
-        label: "SEO / AEO / GEO",
-        desc: "Show up on Google, Maps, and AI answers",
-        href: "/services/seo",
+        label: "SEO & AI Search",
+        desc: "Show up on Google, Maps and AI answers",
+        href: "/services/seo-ai-search",
         icon: <BarChart2 size={16} />,
       },
       {
@@ -164,8 +165,8 @@ const navItems: NavItem[] = [
         icon: <Megaphone size={16} />,
       },
       {
-        label: "Email Marketing",
-        desc: "Newsletters and follow-ups that convert",
+        label: "Nisc Outreach",
+        desc: "AI email marketing and campaigns",
         href: "/services/email-marketing",
         icon: <AtSign size={16} />,
       },
@@ -341,6 +342,19 @@ function MegaDropdown({
   );
 }
 
+const PRODUCTS_NAV_HREF = displayNavItems.find((item) => item.label === "Products")?.href ?? null;
+
+/** Index of the product family that owns this path, so the mobile menu opens where the visitor is. */
+function familyIndexForPath(pathname: string): number | null {
+  const index = productFamilies.findIndex((family) =>
+    family.href === pathname ||
+    productSections(family).some((section) =>
+      section.items.some((service) => service.href.split(/[?#]/)[0] === pathname),
+    ),
+  );
+  return index >= 0 ? index : null;
+}
+
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -349,6 +363,27 @@ export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const navRef = useRef<HTMLDivElement>(null);
+  const menuScrollRef = useRef<HTMLDivElement>(null);
+  const menuSectionRefs = useRef(new Map<string, HTMLElement>());
+
+  /** Bring a just-opened menu section to the top; the section above may have collapsed. */
+  const scrollMenuTo = (key: string, afterMs = 0) => {
+    window.setTimeout(() => {
+      requestAnimationFrame(() => {
+        const container = menuScrollRef.current;
+        const el = menuSectionRefs.current.get(key);
+        if (!container || !el) return;
+        const top =
+          el.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop - 8;
+        const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        container.scrollTo({ top: Math.max(0, top), behavior: reduce ? "auto" : "smooth" });
+      });
+    }, afterMs);
+  };
+  const menuSectionRef = (key: string) => (el: HTMLElement | null) => {
+    if (el) menuSectionRefs.current.set(key, el);
+    else menuSectionRefs.current.delete(key);
+  };
   const closeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const auth = useNavbarAuth();
   const { resolvedTheme, setTheme } = useTheme();
@@ -384,6 +419,17 @@ export default function Navbar() {
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
   }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const family = familyIndexForPath(location.pathname);
+    if (family != null && PRODUCTS_NAV_HREF) {
+      setMobileExpanded(PRODUCTS_NAV_HREF);
+      setMobileFamily(family);
+      scrollMenuTo(`family-${family}`, 50);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -594,11 +640,14 @@ export default function Navbar() {
             exit={{ opacity: 0, height: 0 }}
             className="glass-surface-strong overflow-hidden border-x-0 border-b-0 xl:hidden"
           >
-            <div className="px-4 py-3 flex flex-col gap-1 h-[calc(100dvh-64px)] overflow-y-auto pb-10">
+            <div
+              ref={menuScrollRef}
+              className="px-4 py-3 flex flex-col gap-1 h-[calc(100dvh-64px)] overflow-y-auto overscroll-contain pb-10"
+            >
               {displayNavItems.map((item) => {
                 const hasChildren = !!item.children?.length;
                 return (
-                  <div key={item.href}>
+                  <div key={item.href} ref={menuSectionRef(`item-${item.href}`)}>
                     <button
                       aria-expanded={
                         hasChildren ? mobileExpanded === item.href : undefined
@@ -610,9 +659,9 @@ export default function Navbar() {
                           return;
                         }
                         if (hasChildren) {
-                          setMobileExpanded(
-                            mobileExpanded === item.href ? null : item.href,
-                          );
+                          const opening = mobileExpanded !== item.href;
+                          setMobileExpanded(opening ? item.href : null);
+                          if (opening) scrollMenuTo(`item-${item.href}`, 320);
                         } else {
                           navigate(item.href);
                           setOpen(false);
@@ -643,16 +692,17 @@ export default function Navbar() {
                                 return (
                                   <div
                                     key={family.label}
+                                    ref={menuSectionRef(`family-${index}`)}
                                     className="mb-2 rounded-xl border border-border"
                                   >
                                     <button
                                       type="button"
                                       aria-expanded={mobileFamily === index}
-                                      onClick={() =>
-                                        setMobileFamily(
-                                          mobileFamily === index ? null : index,
-                                        )
-                                      }
+                                      onClick={() => {
+                                        const opening = mobileFamily !== index;
+                                        setMobileFamily(opening ? index : null);
+                                        if (opening) scrollMenuTo(`family-${index}`);
+                                      }}
                                       className={`flex w-full items-center gap-3 p-4 text-left text-sm font-semibold ${navFocus}`}
                                     >
                                       <FamilyIcon
@@ -694,14 +744,7 @@ export default function Navbar() {
                                                 className="shrink-0 text-primary"
                                               />
                                               {service.label}
-                                              {[
-                                                "/hosting/hybrid-email",
-                                                "/hosting/agency",
-                                              ].includes(service.href) && (
-                                                <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
-                                                  New
-                                                </span>
-                                              )}
+                                              <ProductTag href={service.href} />
                                             </Link>
                                           );
                                             })}

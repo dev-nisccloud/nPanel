@@ -41,7 +41,7 @@ function formatChatTime(value: string | Date): string {
 
 /**
  * Session chat paths + library (not landing / activity).
- * Agency: `/agency/zeepo-ai/library` or `/agency/zeepo-ai/:sessionId`
+ * Agency: `/hq/zeepo-ai/library` or `/hq/zeepo-ai/:sessionId`
  * Customer: `/:slug/zeepo-ai/library` or `/:slug/zeepo-ai/:sessionId`
  */
 export function isZeepoAiChatSessionPath(pathname: string | undefined): boolean {

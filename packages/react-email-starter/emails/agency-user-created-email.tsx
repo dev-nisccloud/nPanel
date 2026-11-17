@@ -12,42 +12,37 @@ import {
 interface AgencyUserCreatedEmailProps {
   userFirstname?: string;
   email?: string;
-  password?: string;
   role?: string;
-  loginLink?: string;
+  setPasswordLink?: string;
 }
 
 export const AgencyUserCreatedEmail = ({
   userFirstname,
   email,
-  password,
   role,
-  loginLink,
+  setPasswordLink,
 }: AgencyUserCreatedEmailProps) => {
   return (
-    <EmailLayout preview="Your agency account has been created - Nisc Cloud®">
+    <EmailLayout preview="Your Nisc HQ account has been created - Nisc Cloud®">
       <EmailHeader />
       <Section>
         <EmailText>Hello {userFirstname},</EmailText>
         <EmailText>
-          An agency user account has been created for you with Nisc Cloud®. You now have access to the nPanel agency dashboard.
+          A Nisc HQ account has been created for you with Nisc Cloud®. Set your password to confirm your email and open Nisc HQ in nPanel.
         </EmailText>
-        <EmailDetails title="Your account details">
+        <EmailDetails title="Your account">
           <EmailText style={{ margin: '8px 0' }}>
             <strong>Email:</strong> {email}
-          </EmailText>
-          <EmailText style={{ margin: '8px 0' }}>
-            <strong>Password:</strong> {password}
           </EmailText>
           <EmailText style={{ margin: '8px 0' }}>
             <strong>Role:</strong> {role}
           </EmailText>
         </EmailDetails>
-        <EmailButton href={loginLink || '#'}>
-          Log in to nPanel
+        <EmailButton href={setPasswordLink || '#'}>
+          Set your password
         </EmailButton>
         <EmailText>
-          <strong>Important:</strong> Change this password to one of your choosing after your first login.
+          This link works once and expires in 72 hours. If it expires, use &quot;Forgot your password?&quot; on the sign-in page.
         </EmailText>
         <EmailSignature />
       </Section>
@@ -59,9 +54,8 @@ export const AgencyUserCreatedEmail = ({
 AgencyUserCreatedEmail.PreviewProps = {
   userFirstname: 'Jane Smith',
   email: 'jane.smith@agency.com',
-  password: 'TempPassword123!',
   role: 'AGENCY_USER',
-  loginLink: 'https://app.nisccloud.com/login',
+  setPasswordLink: 'https://app.nisccloud.com/auth/reset-password?token=example&welcome=1',
 } as AgencyUserCreatedEmailProps;
 
 export default AgencyUserCreatedEmail;

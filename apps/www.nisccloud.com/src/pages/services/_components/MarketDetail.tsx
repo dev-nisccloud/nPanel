@@ -7,7 +7,7 @@ import ServiceStatistics, {
 import { ShowcaseVisualCard } from "@/pages/_components/ServiceShowcaseSection.tsx";
 
 const features: ServiceFeature[] = [
-  { icon: Search, title: "SEO & Content", href: "/services/seo", desc: "Technical audits, keyword strategy, and content that help people find you on Google, Maps, and AI answers." },
+  { icon: Search, title: "SEO & AI Search", href: "/services/seo-ai-search", desc: "Technical improvements, useful content and clear reporting that help people find you on Google, Maps and AI answers." },
   { icon: TrendingUp, title: "Paid Media", href: "/services/paid-ads", desc: "Campaigns across Google, Meta, TikTok, and LinkedIn managed for leads and sales, with clear reporting." },
   { icon: Share2, title: "Social Media", href: "/services/social-media", desc: "Strategy, design, posting, and community replies across the platforms your customers use." },
   { icon: Mail, title: "Email Marketing", href: "/services/email-marketing", desc: "Automated sequences, broadcast campaigns, and testing to turn subscribers into buyers." },

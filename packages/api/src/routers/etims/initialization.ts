@@ -31,7 +31,7 @@ export const etimsInitializationRouter = router({
             if (!skipEtimsAuthChecks() && !isSuperAdmin(ctx.session?.user?.role)) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
-                    message: "Only agency super admins can initialize eTIMS devices.",
+                    message: "Only Nisc HQ super admins can initialize eTIMS devices.",
                 });
             }
 

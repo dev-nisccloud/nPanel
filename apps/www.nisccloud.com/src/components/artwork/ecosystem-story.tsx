@@ -28,7 +28,7 @@ type Service = {
 
 /** Fictional illustration data only; nothing here is a live availability or account state. */
 const SERVICES: Service[] = [
-  { icon: Globe, label: "Domains", detail: ".ke · .com", event: "savannabakery.co.ke registered", tile: "from-[#38b6ff] to-[#38b6ff]", side: "left", y: 92 },
+  { icon: Globe, label: "Domains", detail: ".ke · .com", event: "savannabakery.com registered", tile: "from-[#38b6ff] to-[#38b6ff]", side: "left", y: 92 },
   { icon: Server, label: "Hosting", detail: "Web · WordPress", event: "Hosting plan active", tile: "from-slate-700 to-slate-950", side: "left", y: 162 },
   { icon: Mail, label: "Email", detail: "On your domain", event: "Mailbox amina@ created", tile: "from-[#38b6ff] to-[#38b6ff]", side: "left", y: 232 },
   { icon: ShieldCheck, label: "Security", detail: "SSL · backups", event: "SSL certificate issued", tile: "from-emerald-400 to-emerald-600", side: "left", y: 302 },

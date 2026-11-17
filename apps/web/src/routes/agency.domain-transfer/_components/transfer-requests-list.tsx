@@ -248,7 +248,7 @@ export function TransferRequestsList({ variant = "customer" }: TransferRequestsL
       });
       return;
     }
-    navigate(`/agency/nisc-service-orders?order=${encodeURIComponent(niscOrderId)}`);
+    navigate(`/hq/nisc-service-orders?order=${encodeURIComponent(niscOrderId)}`);
   };
 
   if (isLoading) {

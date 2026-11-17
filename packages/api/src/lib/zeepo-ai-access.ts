@@ -65,7 +65,7 @@ export async function assertZeepoAiSubscriptionForTeam(teamId: string): Promise<
 	if (!sub) {
 		throw new TRPCError({
 			code: "FORBIDDEN",
-			message: "No active Zeepo AI wallet. Purchase tokens to continue.",
+			message: "No active Zeepo AI wallet. Buy credits to continue.",
 		});
 	}
 }

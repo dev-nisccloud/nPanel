@@ -359,7 +359,7 @@ export function BuyNowDialog({
     return role.toUpperCase().includes("AGENCY") || !!user?.agencyRoleId;
   }, [session?.user]);
   const isAgencySide = React.useMemo(() => {
-    return location.pathname.startsWith("/agency") || isAgencyUser;
+    return location.pathname.startsWith("/hq") || isAgencyUser;
   }, [location.pathname, isAgencyUser]);
 
   const showAgencyBillingStep = isAgencySide;
@@ -1742,6 +1742,35 @@ export function BuyNowDialog({
     immediatePaymentErrorRef.current = null;
   };
 
+  // The cart the server checks and prices before charging; it is kept on the payment so the order
+  // can be completed from it even if this dialog closes.
+  const buildMpesaOrderIntent = (): {
+    items: CreateFromPaymentInput["items"];
+    currency: string;
+  } | null => {
+    if (!plan?.productId) return null;
+    if (plan.hivelocity) {
+      const item = hivelocityCheckoutSnapshotRef.current ?? buildHivelocityPaymentItem();
+      return item ? { items: [item], currency: plan.currency ?? "KES" } : null;
+    }
+    if (showDomainStep && !effectiveDomain) return null;
+    const exVatStr = paymentTotalString(pricing.subtotal);
+    return {
+      items: [
+        {
+          productId: plan.productId,
+          productPlanId: plan.planId,
+          billingCycle: plan.billingCycle,
+          primaryDomain: showDomainStep ? effectiveDomain ?? undefined : undefined,
+          itemPrice: exVatStr,
+          itemSubtotal: exVatStr,
+          description: plan.planName,
+        },
+      ],
+      currency: plan.currency ?? "KES",
+    };
+  };
+
   // Handle M-Pesa payment
   const handleMpesaPayment = () => {
     const resolved = resolveMpesaCheckoutPayment({
@@ -1783,6 +1812,12 @@ export function BuyNowDialog({
       formattedPhone = '254' + formattedPhone;
     }
 
+    const orderIntent = buildMpesaOrderIntent();
+    if (!orderIntent) {
+      toast.error("Your order details are incomplete. Go back and check your selections.");
+      return;
+    }
+
     const transactionDesc = (`Purchase: ${plan?.planName || 'Service Plan'}`).slice(0, 13);
     captureEvent("mpesa_payment_initiated", { amount: amount, phone_length: (typeof formattedPhone !== "undefined" ? formattedPhone : mpesaPhoneNumber).replace(/\D/g, "").length });
     initiateMpesaPayment.mutate({
@@ -1791,6 +1826,7 @@ export function BuyNowDialog({
       accountReference: resolved.accountReference,
       transactionDesc,
       checkoutTotalIncVat: pricing.total,
+      orderIntent,
       ...(resolvedCheckoutTeamId && { teamId: resolvedCheckoutTeamId }),
       ...(resolvedBilledForUserId && { billedForUserId: resolvedBilledForUserId }),
     });
@@ -2527,7 +2563,7 @@ export function BuyNowDialog({
                     <User className="h-5 w-5" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-foreground">My agency account</p>
+                    <p className="font-semibold text-foreground">My Nisc HQ account</p>
                     <p className="text-xs text-muted-foreground mt-1">
                       Bill as the agency; hosting is provisioned under your account context.
                     </p>

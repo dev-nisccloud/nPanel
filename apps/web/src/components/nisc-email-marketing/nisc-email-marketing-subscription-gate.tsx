@@ -15,7 +15,7 @@ type NiscEmailMarketingSubscriptionGateProps = {
 
 export function NiscEmailMarketingSubscriptionGate({
 	children,
-	title = "Nisc Email Marketing",
+	title = "Nisc Outreach",
 	description = "Choose a plan to unlock campaigns, audiences, AI email builder, and sending domains.",
 }: NiscEmailMarketingSubscriptionGateProps) {
 	const { isCustomer, teamSlug } = useNiscEmailMarketingRoute();

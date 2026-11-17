@@ -224,7 +224,7 @@ const cachedFacebookList = {
 } as const;
 
 export function FacebookCampaignsTab({
-  detailsBase = "/agency/social-media-ads/facebook",
+  detailsBase = "/hq/social-media-ads/facebook",
   publisherPlatform,
   assetPlatform = "meta_facebook",
   connectionId,

@@ -22,7 +22,7 @@ const items = [
       "A great website means nothing if it goes down or loads slowly. We host you on solid cloud infrastructure that is fast, secure, and available, with professional email that matches your domain.",
     bullets: [
       "Managed cloud hosting with a 99.9% uptime target",
-      "Business email at your domain (info@yourbusiness.co.ke)",
+      "Business email at your domain (info@yourbusiness.com)",
       "Free SSL certificate so visitors see the padlock",
       "Backup and DDoS controls where included in the selected plan",
       "Setup responsibilities confirmed for your selected plan",

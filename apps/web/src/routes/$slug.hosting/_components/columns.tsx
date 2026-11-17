@@ -39,7 +39,7 @@ export const hostingColumns: ColumnDef<z.infer<typeof hostingSubscriptionSchema>
     header: ({ column }) => <DataTableColumnHeader column={column} title="Subscription name" />,
     cell: ({ row }) => (
       <Link 
-        to={`/agency/hosting/${row.original.id}`}
+        to={`/hq/hosting/${row.original.id}`}
         className="font-medium text-primary hover:underline"
       >
         {row.original.subscriptionName}

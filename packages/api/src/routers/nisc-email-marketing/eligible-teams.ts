@@ -17,7 +17,7 @@ export const niscEmailMarketingEligibleTeamsRouter = router({
 			if (!isAgencyUserRole(role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency users can list organizations for email marketing linking",
+					message: "Only Nisc HQ staff can list organizations for email marketing linking",
 				});
 			}
 			return db

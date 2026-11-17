@@ -109,7 +109,7 @@ export default function InvoiceViewPage() {
 		}
 	);
 
-	const invoicesPath = teamSlug ? `/${teamSlug}/invoices` : "/agency/invoices";
+	const invoicesPath = teamSlug ? `/${teamSlug}/invoices` : "/hq/invoices";
 	const [isDownloading, setIsDownloading] = React.useState(false);
 	const [updatePaymentOpen, setUpdatePaymentOpen] = React.useState(false);
 	const [transactionSheetOpen, setTransactionSheetOpen] = React.useState(false);

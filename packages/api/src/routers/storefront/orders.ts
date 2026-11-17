@@ -72,6 +72,8 @@ const createFromPaymentInputSchema = z.object({
   quoteToken: z.string().min(1),
   /** VPS, VDS and dedicated servers: hostname entered in the cart. */
   serverHostname: z.string().trim().max(253).optional(),
+  /** Transfers: keep the current nameservers or switch to Nisc. Omitted means the cart default. */
+  transferNameservers: z.enum(["keep", "nisc"]).optional(),
 });
 // ---------------------------------------------------------------------------
 // Router
@@ -169,6 +171,7 @@ export const storefrontOrdersRouter = router({
         fallbackProductId: input.productId,
         lockedQuote: lockedQuoteResult.payload,
         serverHostname: input.serverHostname,
+        transferNameservers: input.transferNameservers,
       });
 
       const paidAmountRaw = tx.paidAmount ?? tx.amount;

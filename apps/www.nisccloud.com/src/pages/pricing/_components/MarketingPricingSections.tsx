@@ -5,13 +5,16 @@ import type { OrderPlan } from "@/pages/hosting/_components/OrderDialog.tsx";
 import {
   PAID_ADS_PLANS,
   SERVICE_PACKAGE_NOTES,
-  SOCIAL_MEDIA_PLANS,
   SSL_PLANS,
-  ZEPO_AI_PLANS,
 } from "@/lib/service-packages.ts";
+import { ZepoTokensSection } from "@/pages/services/zeepo-ai/_components/ZepoTokensSection.tsx";
+import { fetchSocialMediaPlansPublic } from "@/lib/vps-plans-api.ts";
+import { NpanelPricingSection } from "@/pages/services/_components/NpanelPricingSection.tsx";
 import { BRAND_OFFER, ECOMMERCE_OFFER, SOFTWARE_OFFER, WEBSITE_OFFER, type ProjectOffer } from "@/lib/project-packages.ts";
+import { ENTERPRISE_CARD, ENTERPRISE_MUTED, ENTERPRISE_TIER_NAME, EnterpriseTick } from "@/components/enterprise-tier.tsx";
 import { useCurrency } from "@/components/providers/currency.tsx";
 import { convertKesForDisplay, formatCurrency } from "@/lib/currency.ts";
+import { cn } from "@/lib/utils.ts";
 
 type MockPricingProps = {
   serviceName: string;
@@ -27,21 +30,24 @@ function QuotedOfferSummary({ offer, href }: { offer: ProjectOffer; href: string
   return (
     <div className="pt-8">
       <div className="grid gap-4 md:grid-cols-3">
-        {offer.packages.map((item) => (
-          <article key={item.id} className="flex flex-col rounded-2xl border border-border bg-card p-6">
-            <h3 className="type-h3 text-foreground">{item.name}</h3>
-            <p className="mt-2 text-sm font-semibold text-primary">Quoted in the proposal</p>
-            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{item.summary}</p>
-            <ul className="mt-5 flex-1 space-y-2.5 text-sm text-muted-foreground">
+        {offer.packages.map((item) => {
+          const enterprise = item.name === ENTERPRISE_TIER_NAME;
+          return (
+          <article key={item.id} className={enterprise ? ENTERPRISE_CARD : "flex flex-col rounded-2xl border border-border bg-card p-6"}>
+            <h3 className={cn("type-h3", enterprise ? "text-white" : "text-foreground")}>{item.name}</h3>
+            <p className={cn("mt-2 text-sm font-semibold", enterprise ? "text-brand-orange" : "text-primary")}>Quoted in the proposal</p>
+            <p className={cn("mt-3 text-sm leading-relaxed", enterprise ? ENTERPRISE_MUTED : "text-muted-foreground")}>{item.summary}</p>
+            <ul className={cn("mt-5 flex-1 space-y-2.5 text-sm", enterprise ? "text-white/90" : "text-muted-foreground")}>
               {item.includes.map((line) => (
                 <li key={line} className="flex gap-2">
-                  <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+                  {enterprise ? <EnterpriseTick /> : <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />}
                   <span>{line}</span>
                 </li>
               ))}
             </ul>
           </article>
-        ))}
+          );
+        })}
       </div>
       <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">{offer.intro}</p>
@@ -74,7 +80,16 @@ export function SoftwarePricing() {
 }
 
 export function SocialMediaPricing() {
-  return <MockPricing serviceName="Social Media Management" note={SERVICE_PACKAGE_NOTES.SOCIAL_MEDIA} plans={SOCIAL_MEDIA_PLANS} />;
+  return (
+    <NpanelPricingSection
+      fetchPlans={fetchSocialMediaPlansPublic}
+      title="Social media plans"
+      description={SERVICE_PACKAGE_NOTES.SOCIAL_MEDIA}
+      checkoutServiceType="social_media"
+      serviceName="Social Media Management"
+      sectionId="social-media-plans"
+    />
+  );
 }
 
 export function PaidAdsPricing() {
@@ -82,7 +97,7 @@ export function PaidAdsPricing() {
 }
 
 export function ZepoAiPricing() {
-  return <MockPricing serviceName="Zepo AI Automation" note={SERVICE_PACKAGE_NOTES.ZEPO_AI} plans={ZEPO_AI_PLANS} />;
+  return <ZepoTokensSection sectionId="zepo-ai-tokens" />;
 }
 
 /** SSL checkout lives on the product page; this shows the same catalogue prices and links there to order. */

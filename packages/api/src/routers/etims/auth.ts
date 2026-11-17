@@ -18,7 +18,7 @@ export const etimsAuthRouter = router({
             if (!skipEtimsAuthChecks() && !isAgencyUser(ctx.session?.user?.role)) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
-                    message: "Only agency users can view eTIMS configuration.",
+                    message: "Only Nisc HQ staff can view eTIMS configuration.",
                 });
             }
 

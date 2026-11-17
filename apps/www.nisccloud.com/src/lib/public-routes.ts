@@ -13,11 +13,12 @@ export const STATIC_PUBLIC_ROUTES = [
   "/services/website-design",
   "/services/ecommerce",
   "/services/software",
-  "/services/seo",
+  "/services/seo-ai-search",
   "/services/paid-ads",
   "/services/social-media",
   "/services/zepo-ai",
   "/services/email-marketing",
+  "/services/ai-website-builder",
   "/contact",
   "/pricing",
   "/about",
@@ -62,6 +63,7 @@ export const STATIC_PUBLIC_ROUTES = [
 /** Retired URLs and their replacements, served as permanent (301/308) redirects by every host. */
 export const PERMANENT_REDIRECTS: Readonly<Record<string, string>> = {
   "/services/zeepo-ai": "/services/zepo-ai",
+  "/services/seo": "/services/seo-ai-search",
   "/hosting/shared": "/hosting/web-hosting",
   "/blog/shared-vs-vps-hosting-kenya": "/blog/web-hosting-vs-vps-kenya",
 };

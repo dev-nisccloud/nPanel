@@ -204,7 +204,7 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
         <div className="w-full max-w-7xl mx-auto">
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <p className="text-destructive mb-4">Domain not found</p>
-            <Button onClick={() => navigate("/agency/domains-portfolio")} variant="outline">
+            <Button onClick={() => navigate("/hq/domains-portfolio")} variant="outline">
               Back to Portfolio
             </Button>
           </div>
@@ -246,7 +246,7 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
         {/* Header */}
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <Link to="/agency/domains-portfolio">
+            <Link to="/hq/domains-portfolio">
               <Button variant="ghost" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
@@ -396,14 +396,14 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
         onOpenChange={setHostingDialogOpen}
         planType="web"
         domainName={mergedDomain.domain}
-        buyDomainHref="/agency/domains"
+        buyDomainHref="/hq/domains"
       />
       <HostingPlanDialog
         open={emailDialogOpen}
         onOpenChange={setEmailDialogOpen}
         planType="email"
         domainName={mergedDomain.domain}
-        buyDomainHref="/agency/domains"
+        buyDomainHref="/hq/domains"
       />
       <CreateSubscriptionFromDomainDialog
         open={createSubscriptionDialogOpen}
@@ -470,7 +470,7 @@ function ConnectedServicesSection({
             </div>
             <Button
               size="sm"
-              onClick={() => navigate(`/agency/hosting/${subscriptionId}`)}
+              onClick={() => navigate(`/hq/hosting/${subscriptionId}`)}
             >
               Manage site
             </Button>

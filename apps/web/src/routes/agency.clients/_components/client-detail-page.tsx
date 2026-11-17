@@ -543,7 +543,7 @@ export function ClientDetailPage({ clientId }: { clientId: string }) {
     return (
       <div className="@container/main flex flex-col px-4 py-4 md:px-6 md:py-6 lg:px-8">
         <div className="mx-auto w-full max-w-4xl space-y-5">
-          <Link to="/agency/clients">
+          <Link to="/hq/clients">
             <Button variant="ghost" size="sm" className="-ml-2 h-8 px-2">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to clients
@@ -552,7 +552,7 @@ export function ClientDetailPage({ clientId }: { clientId: string }) {
           <div className="rounded-lg border border-dashed px-4 py-12 text-center">
             <p className="text-destructive mb-4">{error?.message ?? "Client not found"}</p>
             <Button asChild variant="outline" size="sm">
-              <Link to="/agency/clients">Back to clients</Link>
+              <Link to="/hq/clients">Back to clients</Link>
             </Button>
           </div>
         </div>
@@ -626,7 +626,7 @@ export function ClientDetailPage({ clientId }: { clientId: string }) {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         backAction={
-          <Link to="/agency/clients">
+          <Link to="/hq/clients">
             <Button variant="ghost" size="sm" className="-ml-2 h-8 px-2 text-muted-foreground hover:text-foreground">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to clients

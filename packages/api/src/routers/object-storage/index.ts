@@ -38,7 +38,7 @@ function isAgencyUser(role: string | null | undefined): boolean {
 
 function assertAgencyUser(role: string | null | undefined) {
 	if (!isAgencyUser(role)) {
-		throw new TRPCError({ code: "FORBIDDEN", message: "Only agency users can access object storage." });
+		throw new TRPCError({ code: "FORBIDDEN", message: "Only Nisc HQ staff can access object storage." });
 	}
 }
 
@@ -69,7 +69,7 @@ function assertCanCreateUploadUrl(params: {
 	if (!maxSize) {
 		throw new TRPCError({
 			code: "FORBIDDEN",
-			message: "This upload type is only available to agency users.",
+			message: "This upload type is only available to Nisc HQ staff.",
 		});
 	}
 

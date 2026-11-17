@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { EllipsisVertical, CircleUser, LogOut, Key, Mail, Users } from "lucide-react";
+import { EllipsisVertical, CircleUser, LogOut, Key, Mail, Users, Radio } from "lucide-react";
 import { useNavigate } from "react-router";
 
 import { toast } from "@/components/ui/sonner";
@@ -140,21 +140,25 @@ export function NavUser() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => void navigate("/agency/my-account")}>
+              <DropdownMenuItem onClick={() => void navigate("/hq/my-account")}>
                 <CircleUser />
                 My Account
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => void navigate("/hq/online-users")}>
+                <Radio />
+                Who is signed in
+              </DropdownMenuItem>
               {isSuperAdmin && (
                 <>
-                  <DropdownMenuItem onClick={() => void navigate("/agency/manage-users")}>
+                  <DropdownMenuItem onClick={() => void navigate("/hq/manage-users")}>
                     <Users />
                     Manage Users
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => void navigate("/agency/api-keys")}>
+                  <DropdownMenuItem onClick={() => void navigate("/hq/api-keys")}>
                     <Key />
                     API Keys
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => void navigate("/agency/mail-mcp")}>
+                  <DropdownMenuItem onClick={() => void navigate("/hq/mail-mcp")}>
                     <Mail />
                     Mail MCP
                   </DropdownMenuItem>

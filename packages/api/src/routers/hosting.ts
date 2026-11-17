@@ -1200,7 +1200,7 @@ export const hostingRouter = router({
 			} else if (!isAgencySuperAdminRole(userRole)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency super admins can modify unlinked subscriptions",
+					message: "Only Nisc HQ super admins can modify unlinked subscriptions",
 				});
 			}
 

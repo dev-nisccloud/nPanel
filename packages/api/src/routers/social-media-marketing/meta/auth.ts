@@ -210,7 +210,7 @@ export const metaAuthRouter = router({
 				if (!isAgencyUserRole(userRole)) {
 					throw new TRPCError({
 						code: 'FORBIDDEN',
-						message: 'Only agency users can manage Meta integration tokens',
+						message: 'Only Nisc HQ staff can manage Meta integration tokens',
 					});
 				}
 
@@ -403,7 +403,7 @@ export const metaAuthRouter = router({
 				if (!isAgencyUserRole(userRole)) {
 					throw new TRPCError({
 						code: 'FORBIDDEN',
-						message: 'Only agency users can manage Meta integration tokens',
+						message: 'Only Nisc HQ staff can manage Meta integration tokens',
 					});
 				}
 
@@ -616,7 +616,7 @@ export const metaAuthRouter = router({
 				if (!isAgencyUserRole(ctx.session?.user?.role)) {
 					throw new TRPCError({
 						code: 'FORBIDDEN',
-						message: 'Only agency users can manage Meta integration tokens',
+						message: 'Only Nisc HQ staff can manage Meta integration tokens',
 					});
 				}
 				const appId = getMetaAppId();
@@ -676,7 +676,7 @@ export const metaAuthRouter = router({
 			if (!isAgencyUserRole(ctx.session?.user?.role)) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'Only agency users can view Meta integration credentials',
+					message: 'Only Nisc HQ staff can view Meta integration credentials',
 				});
 			}
 			const integration = await db.query.socialMediaIntegration.findFirst({

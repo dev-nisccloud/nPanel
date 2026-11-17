@@ -13,7 +13,7 @@ type SocialAdsScopeValue = {
 const SocialAdsScopeContext = React.createContext<SocialAdsScopeValue>({
   audience: "agency",
   teamId: null,
-  basePath: "/agency/social-media-ads",
+  basePath: "/hq/social-media-ads",
 });
 
 export function SocialAdsScopeProvider({

@@ -60,13 +60,13 @@ interface WordPressInstancesTableProps {
 
 export function WordPressInstancesTable({ domainName, onInstallClick }: WordPressInstancesTableProps) {
   const { pathname } = useLocation();
-  const isAgency = pathname.startsWith("/agency");
+  const isAgency = pathname.startsWith("/hq");
   const teamSlug = pathname.split("/")[1] ?? "";
   const detailBasePath = isAgency
-    ? "/agency/wordpress"
+    ? "/hq/wordpress"
     : teamSlug
       ? `/${teamSlug}/wordpress`
-      : "/agency/wordpress";
+      : "/hq/wordpress";
 
   const { data: wordpressData, isLoading, isError, error, refetch } = useWordPressInstances();
   const [searchTerm, setSearchTerm] = React.useState("");

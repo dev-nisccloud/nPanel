@@ -50,6 +50,7 @@ import {
 	getServiceDef,
 	lineSummaryLabel,
 	MAX_PRODUCT_LINES,
+	mapEnterprisePlans,
 	mapPricingPlans,
 	orderTotalsFromQuotes,
 	quoteLine,
@@ -236,6 +237,16 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 		undefined,
 		{ enabled: open && uses("seo_reports") },
 	);
+	const { data: socialPlansData, isLoading: loadingSocialPlans } =
+		trpc.products.getSocialMediaPlansForPricing.useQuery(undefined, {
+			enabled: open && uses("social_media"),
+		});
+	const usesEnterprise = uses("seo_reports") || uses("social_media");
+	const { data: enterprisePlansData, isLoading: loadingEnterprisePlans } =
+		trpc.products.getAgencyEnterprisePlans.useQuery(
+			{ serviceTypes: ["nisc_seo_reports", "social_media"] },
+			{ enabled: open && usesEnterprise },
+		);
 	const { data: creativesPlansData, isLoading: loadingCreativesPlans } =
 		trpc.products.getCreativesDesignPlansForPricing.useQuery(undefined, {
 			enabled: open && uses("creatives_design"),
@@ -284,7 +295,15 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 				case "wordpress_hosting":
 					return mapPricingPlans(wordpressPlansData?.plans);
 				case "seo_reports":
-					return mapPricingPlans(seoPlansData?.plans);
+					return [
+						...mapPricingPlans(seoPlansData?.plans),
+						...mapEnterprisePlans(enterprisePlansData, "nisc_seo_reports"),
+					];
+				case "social_media":
+					return [
+						...mapPricingPlans(socialPlansData?.plans),
+						...mapEnterprisePlans(enterprisePlansData, "social_media"),
+					];
 				case "creatives_design":
 					return mapPricingPlans(creativesPlansData?.plans);
 				case "media_buying":
@@ -300,6 +319,8 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 			emailHostingPlansData?.plans,
 			wordpressPlansData?.plans,
 			seoPlansData?.plans,
+			socialPlansData?.plans,
+			enterprisePlansData,
 			creativesPlansData?.plans,
 			mediaBuyingPlansData?.plans,
 		],
@@ -319,7 +340,9 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 				case "wordpress_hosting":
 					return loadingWordpressPlans;
 				case "seo_reports":
-					return loadingSeoPlans;
+					return loadingSeoPlans || loadingEnterprisePlans;
+				case "social_media":
+					return loadingSocialPlans || loadingEnterprisePlans;
 				case "creatives_design":
 					return loadingCreativesPlans;
 				case "media_buying":
@@ -335,6 +358,8 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 			loadingEmailHostingPlans,
 			loadingWordpressPlans,
 			loadingSeoPlans,
+			loadingSocialPlans,
+			loadingEnterprisePlans,
 			loadingCreativesPlans,
 			loadingMediaBuyingPlans,
 		],

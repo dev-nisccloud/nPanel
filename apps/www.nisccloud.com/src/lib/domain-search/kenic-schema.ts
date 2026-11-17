@@ -1,3 +1,6 @@
+/** Set when the registry gave no answer for a domain; it is unknown, not taken. */
+export const KENIC_CHECK_FAILED_REASON = "Check failed or not returned";
+
 /** All KENIC TLDs we can parse / exact-match (includes specialty SLDs). */
 export const KENIC_SUPPORTED_TLDS = [
   "ke",
@@ -179,7 +182,7 @@ export function normalizeToKenicCards(
       tld: tldDisplay,
       available: false,
       currency: "KES",
-      reason: "Check failed or not returned",
+      reason: KENIC_CHECK_FAILED_REASON,
     };
   });
 }

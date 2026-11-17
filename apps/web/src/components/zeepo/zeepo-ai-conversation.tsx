@@ -458,7 +458,7 @@ export const ZeepoAiAssistantBubble = memo(function ZeepoAiAssistantBubble({
               route.isCustomer
                 ? undefined
                 : (ticketId) =>
-                    navigate(`/agency/support?ticket=${encodeURIComponent(ticketId)}`)
+                    navigate(`/hq/support?ticket=${encodeURIComponent(ticketId)}`)
             }
           />
         ) : null}

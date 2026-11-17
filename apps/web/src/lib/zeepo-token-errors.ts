@@ -8,6 +8,9 @@ const TOKEN_BILLING_PATTERNS = [
 	/purchase a plan or token top-up/i,
 	/no tokens left/i,
 	/you have zero tokens/i,
+	/not enough credits/i,
+	/buy more credits/i,
+	/buy a plan or credit pack/i,
 ] as const;
 
 export type ZeepoTokenBillingErrorReason = "depleted" | "no_subscription";

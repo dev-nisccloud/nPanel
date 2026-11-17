@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { ArrowRight, Building2, Check, ChevronDown, Loader2 } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { cn } from "@/lib/utils.ts";
 import { billingCycleToMonths, type BillingCycle } from "@/lib/billing-cycle.ts";
 import { customTierEnquiryUrl, planTermPrice, type CustomTier } from "@/lib/plan-catalog.ts";
+import { ENTERPRISE_BUTTON, ENTERPRISE_CARD, ENTERPRISE_LINK, ENTERPRISE_MUTED, EnterpriseGlow, EnterpriseTick } from "@/components/enterprise-tier.tsx";
 import {
   FAIR_USE_HREF,
   getFeatureIcon,
@@ -296,42 +297,35 @@ function SpotlightCard({
 
 function CustomTierCard({ tier }: { tier: CustomTier }) {
   return (
-    <article className="relative flex h-full flex-col rounded-2xl border border-neutral-800 bg-neutral-950 p-6 text-white dark:border-white/10 dark:bg-neutral-900">
-      <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-primary">
-        <Building2 className="h-4.5 w-4.5" />
-      </span>
-      <header className="mt-4">
+    <article className={ENTERPRISE_CARD}>
+      <EnterpriseGlow />
+      <header>
         <h3 className="type-h3">{tier.name}</h3>
-        <p className="mt-1 min-h-10 text-sm text-white/65">{tier.audience}</p>
+        <p className={cn("mt-1 min-h-10 text-sm", ENTERPRISE_MUTED)}>{tier.audience}</p>
       </header>
       <div className="mt-5">
         <p className="text-3xl font-extrabold tracking-tight">Custom pricing</p>
-        <p className="mt-1.5 text-[13px] leading-relaxed text-white/70">
+        <p className={cn("mt-1.5 text-[13px] leading-relaxed", ENTERPRISE_MUTED)}>
           Quoted to your requirements
-          {" "}<br />
+          <br />
           No obligation until you accept the proposal
         </p>
       </div>
-      <Button asChild size="lg" className="mt-5 w-full gap-2 bg-white font-semibold text-neutral-950 hover:bg-white/90">
+      <Button asChild size="lg" className={cn("mt-5 w-full gap-2", ENTERPRISE_BUTTON)}>
         <a href={customTierEnquiryUrl(tier)}>
-          Talk to Sales
+          Talk to us
           <ArrowRight className="h-4 w-4" />
         </a>
       </Button>
-      <ul className="mt-6 flex-1 space-y-2.5 border-t border-white/10 pt-5">
+      <ul className="mt-6 flex-1 space-y-2.5 border-t border-white/15 pt-5">
         {tier.points.map((point) => (
-          <li key={point} className="flex items-start gap-2.5 text-[13px] leading-snug text-white/85">
-            <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary">
-              <Check className="h-2.5 w-2.5" strokeWidth={3.5} />
-            </span>
+          <li key={point} className="flex items-start gap-2.5 text-[13px] leading-snug text-white/90">
+            <EnterpriseTick />
             {point}
           </li>
         ))}
       </ul>
-      <a
-        href={customTierEnquiryUrl(tier)}
-        className="mt-6 text-center text-sm font-medium text-white/70 underline-offset-4 hover:text-white hover:underline"
-      >
+      <a href={customTierEnquiryUrl(tier)} className={cn("mt-6 text-center text-sm", ENTERPRISE_LINK)}>
         Request a proposal
       </a>
     </article>

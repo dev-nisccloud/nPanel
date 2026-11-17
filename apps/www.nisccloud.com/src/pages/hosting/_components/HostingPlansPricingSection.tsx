@@ -202,13 +202,25 @@ export function HostingPlansPricingSection({
             </AlertDescription>
           </Alert>
         ) : models.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed bg-card/50 py-12">
-            <p className="mb-4 text-muted-foreground">
-              These plans are being updated. Contact us for current options.
-            </p>
-            <Button asChild variant="outline">
-              <Link to="/contact">Contact sales</Link>
-            </Button>
+          <div className="mx-auto max-w-xl text-center">
+            <p className="text-muted-foreground">These plans are being updated. Enterprise is still available below.</p>
+            {customTier ? (
+              <div className="mt-8 text-left">
+                <PlanCardsSpotlight
+                  models={[]}
+                  cycle={cycle}
+                  customTier={customTier}
+                  pendingId={pendingId}
+                  onChoose={handleChoose}
+                  currency={currency}
+                  kesToCurrencyRate={kesToCurrencyRate}
+                />
+              </div>
+            ) : (
+              <Button asChild variant="outline" className="mt-6">
+                <Link to="/contact">Contact sales</Link>
+              </Button>
+            )}
           </div>
         ) : (
           <>

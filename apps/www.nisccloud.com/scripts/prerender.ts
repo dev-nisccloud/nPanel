@@ -18,9 +18,9 @@ type ServerEntry = {
   PRERENDER_ROUTES: readonly string[];
   ROUTE_META: Record<string, PageMeta>;
   SITE_ORIGIN: string;
-  SITE_NAME: string;
   DEFAULT_OG_IMAGE: string;
   fitDescription: (text: string) => string;
+  fullPageTitle: (title: string) => string;
 };
 
 const ROOT = join(import.meta.dirname, "..");
@@ -39,7 +39,7 @@ function setTag(html: string, pattern: RegExp, replacement: string): string {
 function applyHead(template: string, route: string, meta: PageMeta | null, entry: ServerEntry): string {
   if (!meta) return template;
   const url = `${entry.SITE_ORIGIN}${route === "/" ? "/" : route}`;
-  const title = meta.title.includes(entry.SITE_NAME) ? meta.title : `${meta.title} | ${entry.SITE_NAME}`;
+  const title = entry.fullPageTitle(meta.title);
   const description = entry.fitDescription(meta.description);
   const image = meta.ogImage ?? entry.DEFAULT_OG_IMAGE;
   const t = escapeAttr(title);

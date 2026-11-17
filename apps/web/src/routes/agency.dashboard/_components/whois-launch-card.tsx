@@ -23,7 +23,7 @@ export function WhoisLaunchCard() {
 	const openLookup = (event?: FormEvent) => {
 		event?.preventDefault();
 		const next = sanitizeDomain(domain);
-		navigate(next ? `/agency/whois?domain=${encodeURIComponent(next)}` : "/agency/whois");
+		navigate(next ? `/hq/whois?domain=${encodeURIComponent(next)}` : "/hq/whois");
 	};
 
 	return (
@@ -55,7 +55,7 @@ export function WhoisLaunchCard() {
 				</Button>
 			</form>
 
-			<Button variant="ghost" size="sm" className="mt-auto w-fit px-0" onClick={() => navigate("/agency/whois")}>
+			<Button variant="ghost" size="sm" className="mt-auto w-fit px-0" onClick={() => navigate("/hq/whois")}>
 				Open full Whois
 			</Button>
 		</section>

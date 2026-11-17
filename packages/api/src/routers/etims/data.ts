@@ -25,7 +25,7 @@ const isAgencyUser = (role: string | null | undefined) =>
 function assertReadAccess(role: string | null | undefined) {
     if (skipEtimsAuthChecks()) return;
     if (!isAgencyUser(role)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Only agency users can access eTIMS data." });
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only Nisc HQ staff can access eTIMS data." });
     }
 }
 

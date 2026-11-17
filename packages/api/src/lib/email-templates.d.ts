@@ -25,18 +25,16 @@ export declare function renderTeamInviteEmail({ invitedUserEmail, inviterName, t
     acceptInviteLink: string;
     expiresInDays?: number;
 }): Promise<string>;
-export declare function renderAccountCreatedEmail({ userFirstname, email, password, loginLink, }: {
+export declare function renderAccountCreatedEmail({ userFirstname, email, setPasswordLink, }: {
     userFirstname: string;
     email: string;
-    password: string;
-    loginLink: string;
+    setPasswordLink: string;
 }): Promise<string>;
-export declare function renderAgencyUserCreatedEmail({ userFirstname, email, password, role, loginLink, }: {
+export declare function renderAgencyUserCreatedEmail({ userFirstname, email, role, setPasswordLink, }: {
     userFirstname: string;
     email: string;
-    password: string;
     role: string;
-    loginLink: string;
+    setPasswordLink: string;
 }): Promise<string>;
 export declare function renderInvoiceDeliveryEmail({ customerName, invoiceNumber, issueDate, dueDate, totalAmount, currency, supportEmail, supportPhone, }: {
     customerName?: string;

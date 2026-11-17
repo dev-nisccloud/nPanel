@@ -52,7 +52,7 @@ const sslFaqs = [
   {
     question: "What is a Wildcard SSL certificate?",
     answer:
-      "A Wildcard SSL secures your main domain and all first-level subdomains under one certificate, for example shop.yourdomain.co.ke and mail.yourdomain.co.ke. It reduces cost and renewal hassle when you run many subdomains.",
+      "A Wildcard SSL secures your main domain and all first-level subdomains under one certificate, for example shop.yourdomain.com and mail.yourdomain.com. It reduces cost and renewal hassle when you run many subdomains.",
   },
   {
     question: "What happens if my SSL certificate expires?",

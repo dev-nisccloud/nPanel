@@ -32,7 +32,7 @@ const scenes = {
     label: "Domains",
     icon: Globe,
     subtitle: "Your business starts with your address.",
-    rows: ["yourcompany.co.ke", "yourcompany.com", "yourcompany.africa"],
+    rows: ["yourcompany.com", "yourcompany.com", "yourcompany.africa"],
     status: "Find your domain",
     detail: "Search. Register. Connect.",
   },

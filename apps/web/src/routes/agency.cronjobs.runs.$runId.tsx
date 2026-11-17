@@ -85,7 +85,7 @@ export default function AgencyCronJobRunDetailPage() {
   if (query.isError || !query.data) {
     return (
       <div className="@container/main flex flex-col gap-4 px-4 md:px-6 lg:px-8 py-4 md:py-6">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/agency/cronjobs")}>
+        <Button variant="ghost" size="sm" onClick={() => navigate("/hq/cronjobs")}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
@@ -102,7 +102,7 @@ export default function AgencyCronJobRunDetailPage() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => navigate("/agency/cronjobs")}
+          onClick={() => navigate("/hq/cronjobs")}
           className="-ml-2 h-8 w-fit text-muted-foreground hover:text-foreground group"
         >
           <ArrowLeft className="mr-1 h-4 w-4 group-hover:-translate-x-1 transition-transform" />
