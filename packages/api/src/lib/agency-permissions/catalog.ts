@@ -11,6 +11,7 @@ export type AgencyPermissionModuleId =
 	| "servers.vds"
 	| "servers.dedicated"
 	| "backup"
+	| "storage"
 	| "social"
 	| "social_linkedin"
 	| "social_instagram"
@@ -48,6 +49,7 @@ const MODULE_LABELS: Record<AgencyPermissionModuleId, string> = {
 	"servers.vds": "VDS",
 	"servers.dedicated": "Dedicated servers",
 	backup: "Backup & restore",
+	storage: "Cloud storage",
 	social: "Social",
 	social_linkedin: "LinkedIn",
 	social_instagram: "Instagram",
@@ -136,6 +138,8 @@ export const AGENCY_PERMISSION_CATALOG: readonly AgencyPermissionEntry[] = [
 	entry("backup", "jobs", "Jobs", "View or manage backup jobs and schedules"),
 	entry("backup", "restores", "Restores", "View or run restores and downloads"),
 	entry("backup", "settings", "Settings", "View or change backup settings"),
+
+	entry("storage", "browse", "Cloud Storage", "View and organize Cloud Storage files and folders"),
 
 	entry("social", "accounts", "Accounts", "View or connect social accounts"),
 	entry("social", "posts", "Posts", "View or publish social posts"),
