@@ -140,7 +140,7 @@ export default function ClientsAndCapabilities() {
           <FileCheck2 className="h-5 w-5 shrink-0 text-primary mt-0.5" aria-hidden />
           <p className="text-sm text-muted-foreground">
             <span className="font-semibold text-foreground">Results stay with the client until they approve them.</span>{" "}
-            The sites above are live. We do not publish traffic, revenue or quotes until that client has reviewed them. Ask us for a reference that matches your project.
+            The websites, films and poster above are published with the client’s agreement. We do not publish traffic, revenue or quotes until that client has reviewed them. Ask us for a reference that matches your project.
           </p>
         </div>
       </section>

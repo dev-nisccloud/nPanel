@@ -2,33 +2,51 @@ import { ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
 import type { WorkProject } from "@/lib/work-projects.ts";
 
-export function ProjectCard({ project }: { project: WorkProject }) {
+export function ProjectCard({ project, priority = false }: { project: WorkProject; priority?: boolean }) {
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card">
-      <div className={cn("aspect-[16/10]", project.fit === "contain" ? "bg-white p-8" : "bg-muted")}>
+    <article className="grid overflow-hidden rounded-2xl border border-border bg-card md:grid-cols-2">
+      <div
+        className={cn(
+          "flex items-center justify-center",
+          project.frame === "mockup" ? "bg-[#02070A]" : "bg-muted",
+        )}
+      >
         <img
           src={project.image}
-          alt=""
-          className={cn("h-full w-full", project.fit === "contain" ? "object-contain" : "object-cover object-top")}
-          loading="lazy"
+          alt={project.imageAlt}
+          className="h-auto w-full"
+          loading={priority ? "eager" : "lazy"}
           decoding="async"
+          fetchPriority={priority ? "high" : "auto"}
         />
       </div>
-      <div className="flex flex-1 flex-col p-5">
-        <p className="type-label text-muted-foreground">{project.sector}</p>
-        <h3 className="type-h3 mt-2 text-balance">{project.name}</h3>
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{project.summary}</p>
-        <p className="mt-3 text-sm font-semibold text-foreground">{project.role}</p>
-        <a
-          href={project.href}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-4 inline-flex min-h-11 items-center gap-1 self-start text-sm font-semibold text-primary hover:underline"
-        >
-          Visit {project.name}
-          <ArrowUpRight className="size-4" aria-hidden />
-          <span className="sr-only"> (opens in a new tab)</span>
-        </a>
+      <div className="flex flex-col justify-center p-6 md:p-8">
+        <h4 className="type-h3 text-balance">{project.client}</h4>
+        <p className="type-label mt-2 text-muted-foreground">{project.job}</p>
+        <div className="mt-4 space-y-3">
+          {project.paragraphs.map((paragraph) => (
+            <p key={paragraph} className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+              {paragraph}
+            </p>
+          ))}
+        </div>
+        {project.links.length > 0 ? (
+          <div className="mt-5 flex flex-wrap gap-x-5 gap-y-1">
+            {project.links.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-11 items-center gap-1 self-start rounded-md text-sm font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                {link.label}
+                <ArrowUpRight className="size-4" aria-hidden />
+                <span className="sr-only"> (opens in a new tab)</span>
+              </a>
+            ))}
+          </div>
+        ) : null}
       </div>
     </article>
   );
