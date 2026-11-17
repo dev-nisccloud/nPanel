@@ -99,7 +99,7 @@ export default function AboutFeatureBlocks() {
                 <span className="flex items-center justify-between">
                   <span
                     className={`grid size-11 place-items-center rounded-xl transition-colors ${
-                      selected ? "bg-[#38b6ff] text-[#02070A]" : "bg-[#38b6ff]/10 text-[#38b6ff]"
+                      selected ? "bg-[#38b6ff] text-white" : "bg-[#38b6ff]/10 text-[#38b6ff]"
                     }`}
                   >
                     <item.icon className="size-5" aria-hidden />

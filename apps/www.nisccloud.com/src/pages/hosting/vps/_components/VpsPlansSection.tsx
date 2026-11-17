@@ -7,6 +7,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert.tsx";
 import { useCurrency } from "@/components/providers/currency.tsx";
 import { convertKesForDisplay, formatCurrency } from "@/lib/currency.ts";
 import { cn } from "@/lib/utils.ts";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.tsx";
 import { EveryPlanIncludes } from "@/pages/hosting/_components/EveryPlanIncludes.tsx";
 import {
   applyMarginWith,
@@ -184,7 +191,7 @@ function SizeCard({
       )}
     >
       {recommended ? (
-        <span className="absolute -top-3 left-6 rounded-full bg-primary px-3 py-1 text-xs font-bold text-[#02070a]">Recommended</span>
+        <span className="absolute -top-3 left-6 rounded-full bg-primary px-3 py-1 text-xs font-bold text-white">Recommended</span>
       ) : null}
       <h3 className="type-h3">VPS {tier.name}</h3>
       <p className="mt-1 min-h-[3rem] text-[15px] leading-relaxed text-muted-foreground">{tier.bestFor}</p>
@@ -208,24 +215,27 @@ function SizeCard({
         <label htmlFor={selectId} className="type-label flex items-center gap-1.5 text-foreground">
           <MapPin className="size-4 text-primary dark:text-primary" aria-hidden /> Server location
         </label>
-        <select
-          id={selectId}
-          value={selected}
-          onChange={(e) => setSelected(e.target.value)}
-          className="mt-2 h-11 w-full cursor-pointer rounded-xl border border-border bg-background px-3 text-base text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-        >
-          {group.locations.map(({ plan, name }) => (
-            <option key={plan.data_center} value={plan.data_center}>
-              {name}
-            </option>
-          ))}
-        </select>
+        <Select value={selected} onValueChange={setSelected}>
+          <SelectTrigger
+            id={selectId}
+            className="mt-2 h-11 w-full rounded-xl border-border bg-background px-3 text-base font-normal shadow-none"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent align="start" className="rounded-xl">
+            {group.locations.map(({ plan, name }) => (
+              <SelectItem key={plan.data_center} value={plan.data_center} className="min-h-11 rounded-lg">
+                {name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <button
           type="button"
           onClick={order}
           className={cn(
             "mt-4 inline-flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl text-base font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
-            recommended ? "bg-primary text-[#02070a] hover:brightness-110" : "border border-border bg-background text-foreground hover:border-primary/50",
+            recommended ? "bg-primary text-white hover:brightness-110" : "border border-border bg-background text-foreground hover:border-primary/50",
           )}
         >
           Choose VPS {tier.name}

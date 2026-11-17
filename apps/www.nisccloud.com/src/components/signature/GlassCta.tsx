@@ -36,7 +36,7 @@ export function GlassCta({
       <div
         className={cn(
           "relative mx-auto max-w-7xl overflow-hidden rounded-[28px] shadow-[0_40px_80px_-50px_rgb(2_7_10_/_0.7)]",
-          blue ? "bg-[#38b6ff] text-[#02070A]" : "bg-[#02070A] text-white",
+          blue ? "bg-[#38b6ff] text-white" : "bg-[#02070A] text-white",
         )}
       >
         <div
@@ -48,9 +48,9 @@ export function GlassCta({
         />
         <div className="relative grid items-center gap-10 px-6 py-10 sm:px-10 md:py-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] lg:gap-14 lg:px-14 lg:py-14">
           <div>
-            {eyebrow ? <p className={cn("type-label", blue ? "text-[#02070A]/75" : "text-[#38b6ff]")}>{eyebrow}</p> : null}
+            {eyebrow ? <p className={cn("type-label", blue ? "text-white/75" : "text-[#38b6ff]")}>{eyebrow}</p> : null}
             <h2 className="type-h2 mt-3 max-w-2xl text-balance">{title}</h2>
-            <div className={cn("mt-4 max-w-[60ch] space-y-3 text-base leading-relaxed md:text-lg", blue ? "text-[#02070A]/80" : "text-white/80")}>{body}</div>
+            <div className={cn("mt-4 max-w-[60ch] space-y-3 text-base leading-relaxed md:text-lg", blue ? "text-white/85" : "text-white/80")}>{body}</div>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <Link
                 to={action.to}
@@ -58,7 +58,7 @@ export function GlassCta({
                   "group inline-flex h-12 items-center justify-center gap-2 rounded-xl px-6 text-base font-bold shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
                   blue
                     ? "bg-[#02070A] text-white hover:bg-black focus-visible:ring-[#02070A] focus-visible:ring-offset-[#38b6ff]"
-                    : "bg-[#38b6ff] text-[#02070A] hover:bg-[#38b6ff]/85 focus-visible:ring-[#38b6ff] focus-visible:ring-offset-[#02070A]",
+                    : "bg-[#38b6ff] text-white hover:bg-[#38b6ff]/85 focus-visible:ring-[#38b6ff] focus-visible:ring-offset-[#02070A]",
                 )}
               >
                 {action.label}
@@ -69,7 +69,7 @@ export function GlassCta({
                   to={secondary.to}
                   className={cn(
                     "inline-flex h-12 items-center justify-center rounded-xl border px-6 text-base font-semibold focus-visible:outline-none focus-visible:ring-2",
-                    blue ? "border-[#02070A]/25 hover:bg-white/25 focus-visible:ring-[#02070A]" : "border-white/25 hover:bg-white/10 focus-visible:ring-white",
+                    blue ? "border-white/40 hover:bg-white/15 focus-visible:ring-white" : "border-white/25 hover:bg-white/10 focus-visible:ring-white",
                   )}
                 >
                   {secondary.label}

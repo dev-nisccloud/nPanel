@@ -90,7 +90,7 @@ export function StepSpotlight({
                   <span
                     className={cn(
                       "relative z-10 grid size-10 shrink-0 place-items-center rounded-xl ring-4",
-                      i === steps.length - 1 ? "bg-[#fc734d] text-white" : "bg-[#38b6ff] text-[#02070A]",
+                      i === steps.length - 1 ? "bg-[#fc734d] text-white" : "bg-[#38b6ff] text-white",
                       dark ? "ring-[#02070A]" : "ring-card",
                     )}
                   >

@@ -6,14 +6,14 @@ export type TileTone = "card" | "brand" | "dark" | "muted";
 
 const TONE_CLASS: Record<TileTone, string> = {
   card: "border border-border bg-card",
-  brand: "bg-[#38b6ff] text-[#02070A]",
+  brand: "bg-[#38b6ff] text-white",
   dark: "bg-[#02070A] text-white dark:bg-[#38b6ff]/10",
   muted: "border border-border bg-muted/60",
 };
 
 const BODY_CLASS: Record<TileTone, string> = {
   card: "text-muted-foreground",
-  brand: "text-[#02070A]/80",
+  brand: "text-white/85",
   dark: "text-white/85",
   muted: "text-muted-foreground",
 };

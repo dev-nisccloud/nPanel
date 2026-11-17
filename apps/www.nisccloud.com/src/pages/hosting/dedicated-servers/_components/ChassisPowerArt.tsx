@@ -59,7 +59,7 @@ export function ChassisPowerArt() {
           aria-label={online ? "Server is online" : "Power on this server"}
           className={cn(
             "flex size-14 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-default",
-            online ? "border-primary bg-primary text-[#02070a]" : "border-border bg-background text-foreground hover:border-primary",
+            online ? "border-primary bg-primary text-white" : "border-border bg-background text-foreground hover:border-primary",
           )}
         >
           <Power className="size-6" aria-hidden />
