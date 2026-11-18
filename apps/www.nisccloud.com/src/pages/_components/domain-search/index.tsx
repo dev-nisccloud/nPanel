@@ -3,9 +3,6 @@ import { useInView, useReducedMotion } from "motion/react";
 import { useSearchParams } from "react-router-dom";
 import { Search, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
-import { Input } from "@/components/ui/input.tsx";
-import { Card, CardContent } from "@/components/ui/card.tsx";
-import { Alert, AlertDescription } from "@/components/ui/alert.tsx";
 import { PricingProvider } from "@/lib/domain-search/pricing-context.tsx";
 import { useDomainCart } from "@/lib/domain-search/use-domain-cart.ts";
 import {
@@ -33,7 +30,7 @@ function DomainSearchContent({ compact = false }: DomainSearchProps) {
   const [promptIndex, setPromptIndex] = React.useState(0);
   const [letters, setLetters] = React.useState(0);
   const [deleting, setDeleting] = React.useState(false);
-  const prompts = ["Search your domain", "Type your domain here", "Register your business domain"];
+  const prompts = ["yourbusiness.com", "yourshop.com", "yourbrand.com"];
 
   const [searchParams] = useSearchParams();
   const [domainName, setDomainName] = React.useState("");
@@ -41,6 +38,7 @@ function DomainSearchContent({ compact = false }: DomainSearchProps) {
   const [rawSearchQueryForResults, setRawSearchQueryForResults] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const [isSearching, setIsSearching] = React.useState(false);
+  const inputRef = React.useRef<HTMLInputElement>(null);
   React.useEffect(() => {
     if (!inView || focused || domainName || reducedMotion) return;
     const length = prompts[promptIndex].length;
@@ -103,39 +101,53 @@ function DomainSearchContent({ compact = false }: DomainSearchProps) {
     return () => window.clearTimeout(t);
   }, [applySearch, compact, searchParams]);
 
+  const pickTld = (tld: string) => {
+    const base = toSingleLabelName(sanitizeDomainName(domainName.trim()));
+    if (!base) {
+      setDomainName(`.${tld}`);
+      inputRef.current?.focus();
+      window.requestAnimationFrame(() => inputRef.current?.setSelectionRange(0, 0));
+      return;
+    }
+    const next = `${base}.${tld}`;
+    setDomainName(next);
+    const result = applySearch(next);
+    if (result.started && result.changed) {
+      setIsSearching(true);
+      trackEvent("domain_search", { source: compact ? "homepage" : "domains_page" });
+    }
+  };
+
   return (
-    <section ref={searchRef} id="domain-search" className="py-4 md:py-6 relative overflow-hidden scroll-mt-24">
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse 70% 50% at 50% 60%, color-mix(in srgb, var(--color-primary) 5%, transparent), transparent)",
-        }}
-      />
+    <section ref={searchRef} id="domain-search" className="relative scroll-mt-24 px-4 py-8 md:py-12">
+      <div className="mx-auto max-w-6xl">
+        <div className="relative overflow-hidden rounded-[28px] bg-brand-midnight px-5 py-8 text-white ring-1 ring-transparent dark:ring-white/10 sm:px-10 sm:py-12">
+          <div aria-hidden className="pointer-events-none absolute -left-24 -top-24 size-72 rounded-full bg-primary/30 blur-3xl" />
+          <div aria-hidden className="pointer-events-none absolute -bottom-28 -right-16 size-72 rounded-full bg-brand-orange/20 blur-3xl" />
 
-      <div className="max-w-7xl mx-auto px-4 md:px-8 relative">
-        <div className="text-center mb-4">
-          <h2 className="type-h2 mb-2">
-            Search for your domain
-          </h2>
-          <p className="text-muted-foreground text-base max-w-xl mx-auto">
-            Check if the name you want is free, then check out easily and point it to your hosting.
-          </p>
-        </div>
+          <div className="relative mx-auto max-w-3xl text-center">
+            <h2 className="type-h2 text-white">Find the name for your business</h2>
+            <p className="mx-auto mt-3 max-w-xl text-base text-white/75">
+              Check .co.ke, .ke, .com and more in one search, then point it to your hosting from nPanel.
+            </p>
 
-        <Card className="border border-primary/30 bg-gradient-to-br from-primary/15 via-background/80 to-orange-200/20 dark:to-orange-950/20 backdrop-blur-xl shadow-xl shadow-primary/10 rounded-3xl mb-4">
-          <CardContent className="p-4 md:p-5">
-            <div className="space-y-3">
-              {error && (
-                <Alert variant="destructive" className="max-w-2xl mx-auto">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-              <div className="flex flex-col sm:flex-row gap-3 max-w-3xl mx-auto">
-                <Input
-                  aria-label="Domain name"
-                  placeholder={reducedMotion || focused ? prompts[0] : prompts[promptIndex].slice(0, letters)}
+            <form
+              role="search"
+              className="mt-7"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (domainName.trim()) handleSearch();
+              }}
+            >
+              <label htmlFor={`domain-search-input-${compact ? "home" : "page"}`} className="sr-only">
+                Domain name
+              </label>
+              <div className="flex items-center gap-2 rounded-2xl bg-white p-2 pl-4 shadow-2xl shadow-black/30 ring-1 ring-white/20 focus-within:ring-4 focus-within:ring-primary/40 dark:bg-zinc-950">
+                <Search className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+                <input
+                  ref={inputRef}
+                  id={`domain-search-input-${compact ? "home" : "page"}`}
+                  placeholder={reducedMotion || focused ? "yourbusiness.com" : prompts[promptIndex].slice(0, letters)}
                   onFocus={() => setFocused(true)}
                   onBlur={() => setFocused(false)}
                   value={domainName}
@@ -143,49 +155,58 @@ function DomainSearchContent({ compact = false }: DomainSearchProps) {
                     setDomainName(e.target.value);
                     if (error) setError(null);
                   }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && domainName.trim()) handleSearch();
-                  }}
-                  className="flex-1 h-14 text-base rounded-2xl bg-background/80 border-primary/25 shadow-inner"
+                  autoComplete="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  aria-invalid={error ? true : undefined}
+                  aria-describedby={error ? "domain-search-error" : undefined}
+                  className="h-12 min-w-0 flex-1 bg-transparent text-base text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-white sm:text-lg"
                 />
                 <Button
+                  type="submit"
                   size="lg"
-                  onClick={handleSearch}
                   disabled={!domainName.trim() || isSearching}
-                  className="h-14 px-8 rounded-2xl cursor-pointer"
+                  className="h-12 shrink-0 rounded-xl px-5 text-base font-semibold sm:px-7"
                 >
                   {isSearching ? (
                     <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Searching...
+                      <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden />
+                      <span className="hidden sm:inline">Checking…</span>
+                      <span className="sr-only sm:hidden">Checking</span>
                     </>
                   ) : (
-                    <>
-                      <Search className="h-4 w-4 mr-2" />
-                      Search
-                    </>
+                    "Search"
                   )}
                 </Button>
               </div>
-              <TldPricingCards />
-            </div>
-          </CardContent>
-        </Card>
+              {error && (
+                <p id="domain-search-error" role="alert" className="mt-2 flex items-center justify-center gap-1.5 text-sm text-red-200">
+                  <AlertCircle className="size-4" aria-hidden />
+                  {error}
+                </p>
+              )}
+            </form>
+
+            <TldPricingCards onPick={pickTld} />
+          </div>
+        </div>
 
         {searchQueryName && (
-          <DomainSearchResults
-            searchQuery={searchQueryName}
-            rawSearchQuery={rawSearchQueryForResults}
-            error={error}
-            compact={compact}
-            onLoadingChange={setIsSearching}
-            isDomainInCart={cart.isDomainInCart}
-            onAddToCart={cart.handleAddToCart}
-            onRemoveFromCart={cart.handleRemoveFromCart}
-            isDomainBundleInCart={cart.isDomainBundleInCart}
-            onAddDomainBundle={cart.handleAddDomainBundle}
-            onRemoveDomainBundle={cart.handleRemoveDomainBundle}
-          />
+          <div className="mt-8">
+            <DomainSearchResults
+              searchQuery={searchQueryName}
+              rawSearchQuery={rawSearchQueryForResults}
+              error={error}
+              compact={compact}
+              onLoadingChange={setIsSearching}
+              isDomainInCart={cart.isDomainInCart}
+              onAddToCart={cart.handleAddToCart}
+              onRemoveFromCart={cart.handleRemoveFromCart}
+              isDomainBundleInCart={cart.isDomainBundleInCart}
+              onAddDomainBundle={cart.handleAddDomainBundle}
+              onRemoveDomainBundle={cart.handleRemoveDomainBundle}
+            />
+          </div>
         )}
       </div>
     </section>

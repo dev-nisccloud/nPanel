@@ -52,7 +52,7 @@ export const ZEEPO_AI_PLAN_IDS = {
 /** Minimum token balance required before starting a billable turn (customers). */
 export const ZEEPO_AI_MIN_TOKENS_TO_START = 25;
 /** One-time welcome grant for first-time Zeepo AI customers with an existing service. */
-export const ZEEPO_AI_WELCOME_TOKEN_GRANT = 100;
+export const ZEEPO_AI_WELCOME_TOKEN_GRANT = 300;
 /** Normalize Anthropic usage + merge delta/final snapshots. */
 export function mergeAnthropicUsage(prev, next) {
     if (!next)

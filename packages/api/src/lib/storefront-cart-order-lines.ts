@@ -8,6 +8,7 @@ import { and, eq } from "@npanel/db";
 import { db } from "@npanel/db";
 import { niscProduct, niscProductPlan } from "@npanel/db/schema/products";
 import {
+	assertOutreachUpsellPlan,
 	billingCycleToMonths,
 	computeStorefrontCartQuote,
 	normalizeStorefrontMainBillingCycle,
@@ -24,6 +25,7 @@ import {
 import { resolveActiveNiscProductById } from "./planless-product-resolver";
 import { NISC_DOMAINS_PRODUCT_ID } from "./planless-services-billing";
 import { convertWithFxSnapshot, getAuthoritativeFxRate } from "./fx-rates";
+import { NISC_EMAIL_MARKETING_PRODUCT_ID } from "./nisc-email-marketing-billing";
 import type { StorefrontPriceQuotePayload } from "./storefront-price-quote";
 
 const HOSTING_SERVICE_TYPES = new Set([
@@ -35,12 +37,15 @@ const HOSTING_SERVICE_TYPES = new Set([
 	"dedicated_servers",
 ]);
 
-/** Shared / email hosting must be bound to a customer domain at checkout. */
-const DOMAIN_REQUIRED_HOSTING_TYPES = new Set([
-	"web_hosting",
-	"wordpress_hosting",
-	"email_hosting",
-]);
+/** Services that are served from Nisc nameservers once provisioned. */
+const NISC_DNS_SERVICE_TYPES = new Set(["web_hosting", "wordpress_hosting", "email_hosting"]);
+
+export type TransferNameserverMode = "keep" | "nisc";
+
+/** Keep the current DNS unless the same order brings website or email hosting to Nisc. */
+export function defaultTransferNameserverMode(cart: StorefrontCartQuoteInput): TransferNameserverMode {
+	return NISC_DNS_SERVICE_TYPES.has(cart.main.serviceType) || cart.upsellHosting ? "nisc" : "keep";
+}
 
 const HOSTNAME_SUFFIX_BY_SERVICE: Record<string, string> = {
 	vps: "vps",
@@ -163,6 +168,8 @@ export async function buildStorefrontCartOrderLines(input: {
 	lockedQuote?: StorefrontPriceQuotePayload;
 	/** Server hostname chosen in the cart. It does not affect price, so it is not part of the quote. */
 	serverHostname?: string;
+	/** Nameservers for a transferred domain. Defaults via `defaultTransferNameserverMode`. */
+	transferNameservers?: TransferNameserverMode;
 }): Promise<{
 	lines: StorefrontCartOrderLine[];
 	quote:
@@ -170,17 +177,6 @@ export async function buildStorefrontCartOrderLines(input: {
 		| StorefrontPriceQuotePayload;
 }> {
 	const parsed = storefrontCartQuoteInputSchema.parse(input.cart);
-
-	if (
-		DOMAIN_REQUIRED_HOSTING_TYPES.has(parsed.main.serviceType) &&
-		!parsed.upsellDomain?.domain?.trim()
-	) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message:
-				"A domain is required for this hosting plan  register, transfer, or connect one you already own.",
-		});
-	}
 
 	const quote = input.lockedQuote ?? (await computeStorefrontCartQuote(parsed));
 	const convertLine = async (amount: number, sourceCurrency: string) =>
@@ -213,6 +209,7 @@ export async function buildStorefrontCartOrderLines(input: {
 	}
 
 	const isMainDomainTransfer = parsed.main.serviceType === "domain_transfer";
+	const nameserverMode = input.transferNameservers ?? defaultTransferNameserverMode(parsed);
 	const serverMetadata =
 		!isMainDomainTransfer && parsed.hivelocity && mainQuote.hivelocity
 			? buildServerProvisioningMetadata({
@@ -239,6 +236,7 @@ export async function buildStorefrontCartOrderLines(input: {
 			metadata: isMainDomainTransfer
 				? {
 						transferAuthCode: parsed.transferAuthCode?.trim(),
+						nameserverMode,
 					}
 				: serverMetadata,
 		},
@@ -273,6 +271,7 @@ export async function buildStorefrontCartOrderLines(input: {
 				metadata: {
 					transferAuthCode: authCode,
 					transferProvider: parsed.upsellDomain.provider ?? null,
+					nameserverMode,
 				},
 			});
 		} else {
@@ -340,6 +339,28 @@ export async function buildStorefrontCartOrderLines(input: {
 			billingCycle: parsed.upsellHosting.billingCycle,
 			primaryDomain: domainForHosting,
 			itemPrice: hostingPrice,
+			description: null,
+			metadata: null,
+		});
+	}
+
+	if (parsed.upsellOutreach) {
+		await assertOutreachUpsellPlan(parsed.upsellOutreach.planId);
+		const outreachCycle = parsed.upsellOutreach.billingCycle;
+		const outreachPlan = await resolveNiscPlanQuote(
+			parsed.upsellOutreach.planId,
+			outreachCycle,
+		);
+		const outreachSourcePrice = pickCheckoutPrice(
+			{ monthly: outreachPlan.monthly, yearly: outreachPlan.yearly },
+			outreachCycle,
+		);
+		lines.push({
+			productId: NISC_EMAIL_MARKETING_PRODUCT_ID,
+			productPlanId: parsed.upsellOutreach.planId,
+			billingCycle: outreachCycle,
+			primaryDomain: null,
+			itemPrice: await convertLine(outreachSourcePrice, outreachPlan.currency),
 			description: null,
 			metadata: null,
 		});

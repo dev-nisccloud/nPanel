@@ -44,7 +44,7 @@ export function LiveAiSupportPanel({
 }) {
   const config = React.useMemo<ZeepoAiRouteConfig>(
     () => ({
-      basePath: teamSlug ? `/${teamSlug}/zeepo-ai` : "/agency/zeepo-ai",
+      basePath: teamSlug ? `/${teamSlug}/zeepo-ai` : "/hq/zeepo-ai",
       teamId,
       teamSlug,
       isCustomer: Boolean(teamSlug),

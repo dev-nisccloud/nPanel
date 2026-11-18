@@ -100,7 +100,7 @@ export function ManagePermissionsSheet({
             <div>
               <SheetTitle>Manage Permissions</SheetTitle>
               <SheetDescription>
-                Grant or revoke permissions for agency users
+                Grant or revoke permissions for Nisc HQ staff
               </SheetDescription>
             </div>
           </div>

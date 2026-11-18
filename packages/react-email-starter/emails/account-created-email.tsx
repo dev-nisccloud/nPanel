@@ -12,15 +12,13 @@ import {
 interface AccountCreatedEmailProps {
   userFirstname?: string;
   email?: string;
-  password?: string;
-  loginLink?: string;
+  setPasswordLink?: string;
 }
 
 export const AccountCreatedEmail = ({
   userFirstname,
   email,
-  password,
-  loginLink,
+  setPasswordLink,
 }: AccountCreatedEmailProps) => {
   return (
     <EmailLayout preview="Your account has been created - Nisc Cloud®">
@@ -28,21 +26,18 @@ export const AccountCreatedEmail = ({
       <Section>
         <EmailText>Hello {userFirstname},</EmailText>
         <EmailText>
-          An account has been created for you with Nisc Cloud®. You can now log in to nPanel to access your dashboard and manage your services.
+          An account has been created for you with Nisc Cloud®. Set your password to confirm your email and open nPanel, where you can manage your services.
         </EmailText>
-        <EmailDetails title="Your login credentials">
+        <EmailDetails title="Your account">
           <EmailText style={{ margin: '8px 0' }}>
             <strong>Email:</strong> {email}
           </EmailText>
-          <EmailText style={{ margin: '8px 0' }}>
-            <strong>Password:</strong> {password}
-          </EmailText>
         </EmailDetails>
-        <EmailButton href={loginLink || '#'}>
-          Log in to nPanel
+        <EmailButton href={setPasswordLink || '#'}>
+          Set your password
         </EmailButton>
         <EmailText>
-          <strong>Important:</strong> Change this password to one of your choosing after your first login.
+          This link works once and expires in 72 hours. If it expires, use &quot;Forgot your password?&quot; on the sign-in page.
         </EmailText>
         <EmailSignature />
       </Section>
@@ -54,8 +49,7 @@ export const AccountCreatedEmail = ({
 AccountCreatedEmail.PreviewProps = {
   userFirstname: 'John Doe',
   email: 'john.doe@example.com',
-  password: 'TempPassword123!',
-  loginLink: 'https://app.nisccloud.com/login',
+  setPasswordLink: 'https://app.nisccloud.com/auth/reset-password?token=example&welcome=1',
 } as AccountCreatedEmailProps;
 
 export default AccountCreatedEmail;

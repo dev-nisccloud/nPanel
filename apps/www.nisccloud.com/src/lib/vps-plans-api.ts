@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { parseTrpcBatch } from "@/lib/domain-search/api.ts";
 
 // --- Types ---
 export const vpsPlanSchema = z.object({
@@ -63,21 +64,10 @@ export type PricingSettings = {
 // --- API ---
 const TRPC_BASE = "/api/trpc";
 
-type TrpcBatchItem = {
-  result?: { data?: unknown };
-  error?: { message?: string };
-};
-
 function batchEnvelope(input: unknown): Record<string, unknown> {
   return { "0": input };
 }
 
-async function parseTrpcBatch(res: Response): Promise<unknown> {
-  const batch = (await res.json()) as TrpcBatchItem[];
-  if (batch[0]?.error) throw new Error(batch[0].error.message ?? "tRPC error");
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return batch[0]?.result?.data;
-}
 
 export async function trpcQuery<T>(procedure: string, input?: unknown, timeoutMs = 30_000): Promise<T> {
   const params = new URLSearchParams({ batch: "1" });
@@ -145,6 +135,8 @@ const FACILITIES_TTL_MS = 60 * 60 * 1000;
 export type SharedHostingPlan = {
   id: string;
   name: string;
+  description?: string | null;
+  highlights?: string[];
   niscPrice: string | null;
   niscCurrency: string;
   billingCycle: string;
@@ -202,9 +194,28 @@ export async function fetchSeoPlansPublic(): Promise<SharedHostingPricingData> {
   return toHostingPricingData(res);
 }
 
+export async function fetchSocialMediaPlansPublic(): Promise<SharedHostingPricingData> {
+  const res = await trpcQuery<HostingPricingResponse>("products.getSocialMediaPlansForPricing");
+  return toHostingPricingData(res);
+}
+
 export async function fetchEmailMarketingPlansPublic(): Promise<SharedHostingPricingData> {
   const res = await trpcQuery<HostingPricingResponse>("products.getNiscEmailMarketingPlansForPricing");
   return toHostingPricingData(res);
+}
+
+export type ZepoTokenPack = {
+  id: string;
+  name: string;
+  description: string | null;
+  tokens: number;
+  price: string;
+  currency: string;
+  isPopular: boolean;
+};
+
+export async function fetchZepoTokenPacksPublic(): Promise<{ welcomeTokenGrant: number; packs: ZepoTokenPack[] }> {
+  return trpcQuery("products.getZeepoAiTokenPacksForPricing");
 }
 
 // --- Specific fetchers ---

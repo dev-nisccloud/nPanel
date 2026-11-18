@@ -65,7 +65,7 @@ function PlanCard({
 			)}
 			<p className="text-sm font-semibold text-foreground">{plan.name}</p>
 			<p className="text-sm leading-relaxed text-muted-foreground line-clamp-3">
-				{plan.description ?? "Add tokens to your team wallet."}
+				{plan.description ?? "Add credits to your team wallet."}
 			</p>
 			<div className="flex items-end justify-between gap-2">
 				<p className="text-xl font-bold tabular-nums text-primary">
@@ -121,7 +121,7 @@ export function ZeepoAiBuyTokensDialog({
 										<Coins className="size-7 text-amber-600 dark:text-amber-400" />
 									</div>
 									<DialogHeader className="space-y-2 sm:text-center">
-										<DialogTitle className="text-xl">Need more tokens?</DialogTitle>
+										<DialogTitle className="text-xl">Need more credits?</DialogTitle>
 										<DialogDescription className="text-sm leading-relaxed">
 											Buy a top-up pack. Tokens are added to your team wallet after payment.
 										</DialogDescription>
@@ -164,7 +164,7 @@ export function ZeepoAiBuyTokensDialog({
 									</Button>
 								)}
 								<div className="min-w-0 flex-1 py-0.5">
-									<DialogTitle className="text-base">Buy Zeepo AI tokens</DialogTitle>
+									<DialogTitle className="text-base">Buy Zepo AI credits</DialogTitle>
 									<DialogDescription className="text-sm">
 										One-time packs. An invoice is created when you purchase.
 									</DialogDescription>

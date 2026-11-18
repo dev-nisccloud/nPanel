@@ -40,7 +40,7 @@ export async function assertAgencyStaff(userId: string): Promise<void> {
 	if (!ok) {
 		throw new TRPCError({
 			code: "FORBIDDEN",
-			message: "Only agency users can perform this action.",
+			message: "Only Nisc HQ staff can perform this action.",
 		});
 	}
 }

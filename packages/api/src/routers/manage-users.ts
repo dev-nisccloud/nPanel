@@ -2,12 +2,13 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { desc, eq, inArray } from "@npanel/db";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 
 import { db } from "@npanel/db";
 import { session as sessionTable, user } from "@npanel/db/schema/auth";
 import { userActivityLog, userProfile } from "@npanel/db/schema/auth-extras";
-import { auth } from "@npanel/auth";
+import { auth, createSetPasswordLink } from "@npanel/auth";
+import { suppressSignupVerificationEmail } from "@npanel/auth/admin-created-account";
 import { renderAgencyUserCreatedEmail } from "../lib/email-templates";
 import { sendEmail } from "../lib/email";
 
@@ -37,7 +38,6 @@ const getAllUsersOutputSchema = z.array(userOutputSchema);
 const createUserInputSchema = z.object({
 	name: z.string().min(1, "Name is required"),
 	email: z.string().email("Invalid email address"),
-	password: z.string().min(8, "Password must be at least 8 characters"),
 	role: z.enum(["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"]),
 });
 
@@ -241,7 +241,7 @@ export const manageUsersRouter = router({
 			if (!["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"].includes(userRow.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "This user is not an agency user",
+					message: "This user is not an Nisc HQ staff",
 				});
 			}
 
@@ -300,10 +300,13 @@ export const manageUsersRouter = router({
 			}
 
 			// Use Better Auth's signUpEmail API to create the user
+			// The person chooses their own password from the emailed link; this one is never shown.
+			const placeholderPassword = randomBytes(24).toString("base64url");
+			suppressSignupVerificationEmail(input.email);
 			const signupResult = await auth.api.signUpEmail({
 				body: {
 					email: input.email,
-					password: input.password,
+					password: placeholderPassword,
 					name: input.name,
 					// Agency-created accounts bypass the public sign-up form; terms are implied.
 					acceptedTermsAndConditions: true,
@@ -362,26 +365,21 @@ export const manageUsersRouter = router({
 				});
 			}
 
-			// Send custom credentials email for agency user
 			try {
-				const frontendUrl = process.env.CORS_ORIGIN || "http://localhost:3002";
-				const loginLink = `${frontendUrl}/auth/login`;
-
 				const html = await renderAgencyUserCreatedEmail({
 					userFirstname: input.name,
 					email: input.email,
-					password: input.password,
 					role: input.role,
-					loginLink,
+					setPasswordLink: await createSetPasswordLink(updatedUser.id),
 				});
 
 				await sendEmail({
 					to: input.email,
-					subject: "Your agency account has been created - Nisc Cloud®",
+					subject: "Your Nisc HQ account has been created - Nisc Cloud®",
 					html,
 				});
 			} catch (emailError) {
-				console.error("Failed to send agency user creation email:", emailError);
+				console.error("Failed to send Nisc HQ staff creation email:", emailError);
 			}
 
 			// Log activity
@@ -470,7 +468,7 @@ export const manageUsersRouter = router({
 			if (!["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"].includes(existingUser.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "This user is not an agency user",
+					message: "This user is not an Nisc HQ staff",
 				});
 			}
 
@@ -600,7 +598,7 @@ export const manageUsersRouter = router({
 			if (!["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"].includes(existingUser.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "This user is not an agency user",
+					message: "This user is not an Nisc HQ staff",
 				});
 			}
 
@@ -708,7 +706,7 @@ export const manageUsersRouter = router({
 			if (!["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"].includes(targetUser.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "This user is not an agency user",
+					message: "This user is not an Nisc HQ staff",
 				});
 			}
 
@@ -725,7 +723,7 @@ export const manageUsersRouter = router({
 					id: randomUUID(),
 					userId: targetUser.id,
 					action: "AGENCY_USER_PASSWORD_RESET_REQUESTED_BY_ADMIN",
-					description: `Password reset requested for agency user by admin: ${session.user.email}`,
+					description: `Password reset requested for Nisc HQ staff by admin: ${session.user.email}`,
 					metadata: {
 						requestedBy: session.user.id,
 						requestedByEmail: session.user.email,
@@ -784,7 +782,7 @@ export const manageUsersRouter = router({
 			if (!["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"].includes(sessUser.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "This user is not an agency user",
+					message: "This user is not an Nisc HQ staff",
 				});
 			}
 
@@ -846,7 +844,7 @@ export const manageUsersRouter = router({
 			if (!["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"].includes(profileUser.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "This user is not an agency user",
+					message: "This user is not an Nisc HQ staff",
 				});
 			}
 
@@ -910,7 +908,7 @@ export const manageUsersRouter = router({
 			if (!["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"].includes(existingUser.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "This user is not an agency user",
+					message: "This user is not an Nisc HQ staff",
 				});
 			}
 

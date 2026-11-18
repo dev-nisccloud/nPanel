@@ -34,7 +34,7 @@ function MaintenanceChecklistVisual() {
           <CalendarCheck size={16} className="text-primary" />
           Monthly website care
         </span>
-        <span className="text-xs text-muted-foreground">yourbusiness.co.ke</span>
+        <span className="text-xs text-muted-foreground">yourbusiness.com</span>
       </div>
 
       <ul className="space-y-1 p-3">

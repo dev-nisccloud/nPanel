@@ -36,7 +36,7 @@ import {
 } from "./kit.tsx";
 
 /** Fictional demonstration data only. IPs use the RFC 5737 documentation range. */
-const DOMAIN = "savannabakery.co.ke";
+const DOMAIN = "savannabakery.com";
 
 const hostingTabs: [string, string][] = [
   ["Overview", "Summary"],
@@ -359,7 +359,7 @@ export function WordPressArt({ variant = 0 }: { variant?: number }) {
     return (
       <ArtStage tone="emerald" label="WordPress backup and restore points for a hosted site">
         <div className="sm:pb-12 sm:pl-12">
-          <NpanelWindow path="hosting/subscriptions" active="hosting" title="Backup & Restore" subtitle="Nisc Backup for savannabakery.co.ke">
+          <NpanelWindow path="hosting/subscriptions" active="hosting" title="Backup & Restore" subtitle="Nisc Backup for savannabakery.com">
             <TabStrip tabs={[["WordPress", "Instances"], ["Backup & Restore", "Nisc Backup"], ["Databases", "MySQL"]]} active={1} />
             <div className="space-y-1.5">
               {["Before plugin update", "Daily backup", "Daily backup"].map((t, i) => (

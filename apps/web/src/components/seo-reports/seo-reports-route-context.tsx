@@ -10,7 +10,7 @@ export type SeoReportsRouteConfig = {
 };
 
 export const DEFAULT_SEO_REPORTS_ROUTE: SeoReportsRouteConfig = {
-	basePath: "/agency/seo-reports",
+	basePath: "/hq/seo-reports",
 	teamId: null,
 	teamSlug: null,
 	isCustomer: false,

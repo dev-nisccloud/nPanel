@@ -575,7 +575,7 @@ export function TeamViewSheet({
                                                             className="p-3 border rounded-lg space-y-3 bg-muted/20 text-left hover:bg-muted/40 transition-colors"
                                                             onClick={() => {
                                                                 onOpenChange(false);
-                                                                void navigate(`/agency/subscriptions?subscriptionId=${subscription.id}`);
+                                                                void navigate(`/hq/subscriptions?subscriptionId=${subscription.id}`);
                                                             }}
                                                         >
                                                             <div className="flex items-center justify-between gap-2">
@@ -644,7 +644,7 @@ export function TeamViewSheet({
                                                             className="p-3 border rounded-lg space-y-3 bg-muted/20 text-left hover:bg-muted/40 transition-colors"
                                                             onClick={() => {
                                                                 onOpenChange(false);
-                                                                void navigate(`/agency/invoices/${invoice.id}`);
+                                                                void navigate(`/hq/invoices/${invoice.id}`);
                                                             }}
                                                         >
                                                             <div className="flex items-center justify-between gap-2">
@@ -707,7 +707,7 @@ export function TeamViewSheet({
                                                             className="p-3 border rounded-lg space-y-3 bg-muted/20 text-left hover:bg-muted/40 transition-colors"
                                                             onClick={() => {
                                                                 onOpenChange(false);
-                                                                void navigate(`/agency/quotations/${quote.id}`);
+                                                                void navigate(`/hq/quotations/${quote.id}`);
                                                             }}
                                                         >
                                                             <div className="flex items-center justify-between gap-2">

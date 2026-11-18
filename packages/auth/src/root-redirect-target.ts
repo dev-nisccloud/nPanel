@@ -15,6 +15,7 @@ const NON_TEAM_ROOT_SEGMENTS = new Set([
   "auth",
   "api",
   "agency",
+  "hq",
   "offline",
   "create-organization",
   "create-team", // legacy alias → /create-organization
@@ -30,21 +31,25 @@ const NON_TEAM_ROOT_SEGMENTS = new Set([
 /** Remap legacy UI paths after Team → Organization rename. */
 function remapLegacyUiPath(pathWithQuery: string): string {
   const qIdx = pathWithQuery.indexOf("?");
-  const pathname = qIdx >= 0 ? pathWithQuery.slice(0, qIdx) : pathWithQuery;
+  let pathname = qIdx >= 0 ? pathWithQuery.slice(0, qIdx) : pathWithQuery;
   const query = qIdx >= 0 ? pathWithQuery.slice(qIdx) : "";
+  if (pathname === "/agency" || pathname.toLowerCase().startsWith("/agency/")) {
+    pathname = `/hq${pathname.slice("/agency".length)}`;
+    pathWithQuery = `${pathname}${query}`;
+  }
   const p = pathname.toLowerCase();
 
   if (p === "/create-team" || p.startsWith("/create-team/")) {
     return `/create-organization${pathname.slice("/create-team".length)}${query}`;
   }
-  if (p === "/agency/manage-teams" || p.startsWith("/agency/manage-teams/")) {
-    return `/agency/manage-organizations${pathname.slice("/agency/manage-teams".length)}${query}`;
+  if (p === "/hq/manage-teams" || p.startsWith("/hq/manage-teams/")) {
+    return `/hq/manage-organizations${pathname.slice("/hq/manage-teams".length)}${query}`;
   }
-  if (p === "/agency/teams" || p.startsWith("/agency/teams/")) {
-    return `/agency/organizations${pathname.slice("/agency/teams".length)}${query}`;
+  if (p === "/hq/teams" || p.startsWith("/hq/teams/")) {
+    return `/hq/organizations${pathname.slice("/hq/teams".length)}${query}`;
   }
-  if (p.startsWith("/agency/invoices/teams/") || p === "/agency/invoices/teams") {
-    return `/agency/invoices/organizations${pathname.slice("/agency/invoices/teams".length)}${query}`;
+  if (p.startsWith("/hq/invoices/teams/") || p === "/hq/invoices/teams") {
+    return `/hq/invoices/organizations${pathname.slice("/hq/invoices/teams".length)}${query}`;
   }
   return pathWithQuery;
 }
@@ -120,7 +125,12 @@ async function isUserAuthorizedForRedirectPath(
   const pLower = pathname.toLowerCase();
   const isAgency = role?.includes("AGENCY") ?? false;
 
-  if (pLower === "/agency" || pLower.startsWith("/agency/")) {
+  if (
+    pLower === "/hq" ||
+    pLower.startsWith("/hq/") ||
+    pLower === "/agency" ||
+    pLower.startsWith("/agency/")
+  ) {
     return isAgency;
   }
 
@@ -318,7 +328,7 @@ export async function getRootRedirectTargetFromHeaders(
   const isAgency = role?.includes("AGENCY");
 
   const defaultRedirect = isAgency
-    ? "/agency/dashboard"
+    ? "/hq/dashboard"
     : // CUSTOMER roles go through team routing (dashboard or create-organization).
     await getCustomerTeamRedirectPath(u);
 

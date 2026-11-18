@@ -40,7 +40,7 @@ export function QuotationCustomersTable({ customers }: QuotationCustomersTablePr
 				</TableHeader>
 				<TableBody>
 					{customers.map((customer) => {
-						const path = `/agency/quotations/customers/${encodeURIComponent(customer.customerGroupKey)}`;
+						const path = `/hq/quotations/customers/${encodeURIComponent(customer.customerGroupKey)}`;
 						const isUnassigned = customer.customerGroupKey === "unassigned";
 						return (
 							<TableRow

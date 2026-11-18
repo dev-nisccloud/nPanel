@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { z } from "zod";
+import { OnlineBadge, formatSignedInAt } from "@/components/online-status";
 import { clientSchema } from "./schema";
 
 type ClientRow = z.infer<typeof clientSchema>;
@@ -41,6 +42,7 @@ export function ClientsTableSkeleton() {
 						<TableHead>Email</TableHead>
 						<TableHead>Role</TableHead>
 						<TableHead>Status</TableHead>
+						<TableHead>Last login</TableHead>
 						<TableHead>Created</TableHead>
 						<TableHead className="w-12 pr-6"></TableHead>
 					</TableRow>
@@ -52,6 +54,7 @@ export function ClientsTableSkeleton() {
 							<TableCell><Skeleton className="h-4 w-40" /></TableCell>
 							<TableCell><Skeleton className="h-4 w-24" /></TableCell>
 							<TableCell><Skeleton className="h-4 w-20" /></TableCell>
+							<TableCell><Skeleton className="h-4 w-28" /></TableCell>
 							<TableCell><Skeleton className="h-4 w-24" /></TableCell>
 							<TableCell className="pr-6"><Skeleton className="h-8 w-8" /></TableCell>
 						</TableRow>
@@ -65,6 +68,7 @@ export function ClientsTableSkeleton() {
 export interface ClientsTableProps {
 	data: ClientRow[];
 	canLoginAsCustomer?: boolean;
+	onlineUserIds?: ReadonlySet<string>;
 	onView?: (id: string) => void;
 	onLoginAsCustomer?: (id: string) => void;
 	onDeactivate?: (id: string) => void;
@@ -78,6 +82,7 @@ export interface ClientsTableProps {
 export function ClientsTable({
 	data,
 	canLoginAsCustomer = false,
+	onlineUserIds,
 	onView,
 	onLoginAsCustomer,
 	onDeactivate,
@@ -96,6 +101,7 @@ export function ClientsTable({
 						<TableHead>Email</TableHead>
 						<TableHead>Role</TableHead>
 						<TableHead>Status</TableHead>
+						<TableHead>Last login</TableHead>
 						<TableHead>Created</TableHead>
 						<TableHead className="w-12 pr-6"></TableHead>
 					</TableRow>
@@ -135,7 +141,7 @@ export function ClientsTable({
 									<div className="flex items-center gap-2 font-medium">
 										<User className="h-4 w-4 text-muted-foreground" />
 										{client.name}
-
+										{onlineUserIds?.has(client.id) ? <OnlineBadge /> : null}
 									</div>
 								</TableCell>
 								<TableCell>
@@ -164,6 +170,9 @@ export function ClientsTable({
 									>
 										{client.status}
 									</Badge>
+								</TableCell>
+								<TableCell className="text-sm text-muted-foreground">
+									{formatSignedInAt(client.lastLoginAt)}
 								</TableCell>
 								<TableCell>
 									{new Date(client.createdAt).toLocaleDateString()}

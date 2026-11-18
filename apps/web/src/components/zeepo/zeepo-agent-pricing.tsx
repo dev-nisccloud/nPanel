@@ -19,13 +19,13 @@ type ZeepoAgentPricingProps = {
 
 function formatTokenGrant(tokenGrant: number): string | null {
 	if (tokenGrant <= 0) return null;
-	return `${tokenGrant.toLocaleString()} tokens`;
+	return `${tokenGrant.toLocaleString()} credits`;
 }
 
 function getZeepoProductFeatures(planFilter: ZeepoPlanFilter) {
 	if (planFilter === "top_up") {
 		return [
-			{ key: "tokens", label: "Tokens included" },
+			{ key: "tokens", label: "Credits included" },
 			{ key: "top_up", label: "One-time top-up" },
 			{ key: "web_search", label: "Web search included" },
 			{ key: "domain_check", label: "Domain checks included" },
@@ -33,7 +33,7 @@ function getZeepoProductFeatures(planFilter: ZeepoPlanFilter) {
 	}
 
 	return [
-		{ key: "tokens", label: "Monthly tokens" },
+		{ key: "tokens", label: "Monthly credits" },
 		{ key: "subscription", label: "Monthly subscription" },
 		{ key: "web_search", label: "Web search included" },
 		{ key: "domain_check", label: "Domain checks included" },

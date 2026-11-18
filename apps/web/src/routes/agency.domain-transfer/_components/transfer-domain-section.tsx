@@ -2,7 +2,12 @@
 
 import * as React from "react";
 import { Link } from "react-router";
-import { ArrowLeftRight, X, AlertCircle, Lock, Globe } from "lucide-react";
+import { ArrowLeftRight, X, AlertCircle, Globe } from "lucide-react";
+import {
+  TransferCheckReport,
+  announceRecheck,
+  type CheckTransferResult,
+} from "./transfer-check-report";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/utils/cn";
@@ -51,7 +56,7 @@ function formatPrice(price?: number, currency?: string): string {
   return `${symbol} ${formattedNumber}`;
 }
 
-export function TransferDomainSection({ registerDomainsHref = "/agency/domains", teamId }: TransferDomainSectionProps = {}) {
+export function TransferDomainSection({ registerDomainsHref = "/hq/domains", teamId }: TransferDomainSectionProps = {}) {
   const [domainInput, setDomainInput] = React.useState("");
   const [status, setStatus] = React.useState<ValidationStatus>("idle");
   const [message, setMessage] = React.useState("");
@@ -72,6 +77,13 @@ export function TransferDomainSection({ registerDomainsHref = "/agency/domains",
   const [createPricedResult, setCreatePricedResult] = React.useState<DomainSearchResult | null>(null);
   const [purchaseSheetOpen, setPurchaseSheetOpen] = React.useState(false);
   const [isPricingProcessing, setIsPricingProcessing] = React.useState(false);
+  const [lastResult, setLastResult] = React.useState<CheckTransferResult | null>(null);
+  const lastResultRef = React.useRef<CheckTransferResult | null>(null);
+
+  const rememberResult = React.useCallback((result: CheckTransferResult | null) => {
+    lastResultRef.current = result;
+    setLastResult(result);
+  }, []);
 
   const currencyContext = useCurrency();
   const pricingHook = useDomainPricing(currencyContext);
@@ -97,17 +109,21 @@ export function TransferDomainSection({ registerDomainsHref = "/agency/domains",
       return;
     }
 
+    if (lastResultRef.current?.domain?.toLowerCase() !== trimmed.toLowerCase()) {
+      rememberResult(null);
+    }
     setStatus("loading");
     setMessage("");
     setTransferPrice(null);
     setParsedDomain(null);
     setProvider(null);
-    setTransferStatus(null);
     setPricedResult(null);
     setCreatePricedResult(null);
 
     try {
       const result = await checkTransferMutation.mutateAsync({ domain: trimmed });
+      announceRecheck(lastResultRef.current, result);
+      rememberResult(result);
       const statusFromApi = result.transferStatus as TransferStatus | undefined;
 
       setProvider(result.provider);
@@ -141,12 +157,6 @@ export function TransferDomainSection({ registerDomainsHref = "/agency/domains",
       setMessage(result.error ?? "This domain cannot be transferred.");
       setTransferPrice(null);
       setParsedDomain(null);
-
-      if (statusFromApi !== "available" && statusFromApi !== "locked") {
-        toast.error("Domain not transferrable", {
-          description: result.error ?? "This domain cannot be transferred.",
-        });
-      }
     } catch {
       setStatus("error");
       setMessage(
@@ -158,9 +168,10 @@ export function TransferDomainSection({ registerDomainsHref = "/agency/domains",
       setProvider(null);
       setTransferStatus("unavailable");
     }
-  }, [domainInput, checkTransferMutation]);
+  }, [domainInput, checkTransferMutation, rememberResult]);
 
   const handleClear = () => {
+    rememberResult(null);
     setDomainInput("");
     setStatus("idle");
     setMessage("");
@@ -288,7 +299,7 @@ export function TransferDomainSection({ registerDomainsHref = "/agency/domains",
       : null;
 
   const inputBorderClass =
-    status === "error"
+    status === "error" && !lastResult
       ? "border-destructive focus-visible:ring-destructive"
       : status === "valid"
         ? "border-primary focus-visible:ring-primary"
@@ -346,6 +357,7 @@ export function TransferDomainSection({ registerDomainsHref = "/agency/domains",
                   setParsedDomain(null);
                   setProvider(null);
                   setTransferStatus(null);
+                  rememberResult(null);
                 }
               }}
               onKeyDown={(e) =>
@@ -411,34 +423,23 @@ export function TransferDomainSection({ registerDomainsHref = "/agency/domains",
           </div>
         )}
 
-        {/* Locked ?? explain and ask user to unlock */}
-        {status === "error" && transferStatus === "locked" && (
-          <div className="mt-4 flex gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-left">
-            <Lock className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-500" />
-            <div>
-              <h3 className="font-medium text-foreground">Domain is locked</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                This domain is locked at the current registrar. Unlock it in your registrar&apos;s
-                control panel, then try the transfer again.
-              </p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                After unlocking at your current registrar, wait about 15 seconds for your changes
-                to reflect, then return here and check the domain again to continue with the
-                transfer.
-              </p>
-            </div>
-          </div>
+        {lastResult && !lastResult.transferrable && lastResult.transferStatus !== "available" && (
+          <TransferCheckReport
+            className="mt-4"
+            result={lastResult}
+            onCheckAgain={validateAndFetchPrice}
+            checking={status === "loading"}
+          />
         )}
 
-        {/* Other errors (reserved, unavailable, invalid) ?? why transfer failed */}
-        {status === "error" && message && transferStatus !== "available" && transferStatus !== "locked" && (
+        {status === "error" && message && !lastResult && (
           <div
             className="mt-4 flex gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-left"
             role="alert"
           >
             <AlertCircle className="h-5 w-5 shrink-0 text-destructive" />
             <div>
-              <h3 className="font-medium text-destructive">Why the transfer failed</h3>
+              <h3 className="font-medium text-destructive">We couldn&apos;t check this domain</h3>
               <p className="mt-1 text-sm text-muted-foreground">{message}</p>
             </div>
           </div>
@@ -454,7 +455,10 @@ export function TransferDomainSection({ registerDomainsHref = "/agency/domains",
       </div>
 
       {showReadyCard && parsedDomain && provider && (
-        <div className="mt-6">
+        <div className="mx-auto mt-6 max-w-2xl space-y-4">
+          {lastResult && (
+            <TransferCheckReport result={lastResult} onCheckAgain={validateAndFetchPrice} />
+          )}
           <TransferReadyCard
             domain={parsedDomain.full}
             extension={parsedDomain.extension}

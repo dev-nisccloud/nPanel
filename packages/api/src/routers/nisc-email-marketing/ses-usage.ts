@@ -25,7 +25,7 @@ function assertAgencyReadAccess(role: string | null | undefined) {
   if (!isAgencyUserRole(role)) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only agency users can access SES usage data",
+      message: "Only Nisc HQ staff can access SES usage data",
     });
   }
 }

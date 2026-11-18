@@ -60,7 +60,7 @@ export const ProjectsSection = () => {
     }
     
     setLoadingProjectId(projectId);
-    navigate(`/agency/gen-ai/image-gen-studio/editor/${projectId}`);
+    navigate(`/hq/gen-ai/image-gen-studio/editor/${projectId}`);
   };
 
   const onCopy = (id: string) => {

@@ -117,14 +117,14 @@ export async function assertZeepoAiCanStartTurn(ctx: ZeepoAiBillingContext): Pro
 	if (!balance) {
 		throw new TRPCError({
 			code: "FORBIDDEN",
-			message: "No active Zeepo AI wallet. Purchase tokens to continue.",
+			message: "No active Zeepo AI wallet. Buy credits to continue.",
 		});
 	}
 
 	if (balance.tokens < ZEEPO_AI_MIN_TOKENS_TO_START) {
 		throw new TRPCError({
 			code: "FORBIDDEN",
-			message: `Insufficient tokens (${formatTokenBalance(balance.tokens)} remaining). Purchase more tokens to continue.`,
+			message: `Not enough credits (${formatTokenBalance(balance.tokens)} remaining). Buy more credits to continue.`,
 		});
 	}
 }
@@ -226,7 +226,7 @@ export async function debitZeepoAiTokensOrThrow(
 	if (!result || result.tokensDebited <= 0) {
 		throw new TRPCError({
 			code: "FORBIDDEN",
-			message: "Insufficient tokens. Purchase more tokens to continue.",
+			message: "Not enough credits. Buy more credits to continue.",
 		});
 	}
 	if (result.tokensDebited < params.tokens) {
@@ -241,7 +241,7 @@ export async function debitZeepoAiTokensOrThrow(
 		});
 		throw new TRPCError({
 			code: "FORBIDDEN",
-			message: "Insufficient tokens. Purchase more tokens to continue.",
+			message: "Not enough credits. Buy more credits to continue.",
 		});
 	}
 	return result;

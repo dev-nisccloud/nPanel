@@ -65,7 +65,7 @@ export function AboutHeroVisual({ photo }: { photo: { src: string; srcSet: strin
         <Card>
           <div className="flex items-center justify-between gap-2">
             <p className="flex items-center gap-1.5 text-[11px] font-semibold text-foreground">
-              <Globe className="size-3.5 text-[#38b6ff]" /> savannabakery.co.ke
+              <Globe className="size-3.5 text-[#38b6ff]" /> savannabakery.com
             </p>
             <Pill>Online</Pill>
           </div>
@@ -165,9 +165,9 @@ function JourneyScreen({ step }: { step: number }) {
     return (
       <div className="grid h-full content-center gap-2">
         {[
-          ["Domain", "savannabakery.co.ke"],
+          ["Domain", "savannabakery.com"],
           ["Hosting", "web-01 · Nairobi"],
-          ["Email", "orders@savannabakery.co.ke"],
+          ["Email", "orders@savannabakery.com"],
           ["SSL", "Valid · auto-renew"],
         ].map(([k, v], i) => (
           <motion.div
@@ -231,7 +231,7 @@ export function JourneyArt() {
             <span className="size-2 rounded-full bg-amber-400" />
             <span className="size-2 rounded-full bg-emerald-400" />
             <span className="ml-2 flex-1 truncate rounded-md bg-background/80 px-2 py-0.5 font-mono text-[10px] text-muted-foreground">
-              {step === 0 ? "notes" : "savannabakery.co.ke"}
+              {step === 0 ? "notes" : "savannabakery.com"}
             </span>
           </div>
           <div className="h-56 p-4 sm:h-64 sm:p-5">

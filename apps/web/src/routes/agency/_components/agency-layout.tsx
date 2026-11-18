@@ -98,7 +98,7 @@ export default function AgencyLayout({ children }: Readonly<{ children: ReactNod
         }
         const data = (await res.json()) as { redirect?: string };
         const target = data.redirect ?? "/";
-        if (!target.startsWith("/agency")) {
+        if (!target.startsWith("/hq")) {
           navigate(target, { replace: true });
         } else {
           navigate("/", { replace: true });

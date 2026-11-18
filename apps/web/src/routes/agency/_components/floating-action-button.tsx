@@ -481,7 +481,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
     const isAgencyRole =
       role === "AGENCY_USER" || role === "AGENCY_ADMIN" || role === "AGENCY_SUPER_ADMIN";
     if (isAgencyRole) {
-      navigate("/agency/zeepo-ai-agent");
+      navigate("/hq/zeepo-ai-agent");
     } else {
       const slug = params.slug;
       if (slug) navigate(`/${slug}/zeepo-ai-agent`);

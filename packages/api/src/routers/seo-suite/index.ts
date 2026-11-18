@@ -65,7 +65,7 @@ const isAgencyUser = (role: string) =>
 async function requireAgency(ctx: Context) {
   const user = await getAuthenticatedUser(ctx);
   if (!isAgencyUser(user.role)) {
-    throw new TRPCError({ code: "FORBIDDEN", message: "Agency access required." });
+    throw new TRPCError({ code: "FORBIDDEN", message: "Nisc HQ access required." });
   }
   return user;
 }

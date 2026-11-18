@@ -52,8 +52,8 @@ export function HivelocityHostnameField({ productType, hostname, onHostnameChang
       </div>
       <p id="hivelocity-hostname-help" className={showError ? "mt-2 text-sm text-destructive" : "mt-2 text-sm text-muted-foreground"}>
         {showError
-          ? "Enter a full hostname, such as server.yourbusiness.co.ke."
-          : "Keep the suggested name or use your own, such as server.yourbusiness.co.ke. You can point DNS at it later in nPanel."}
+          ? "Enter a full hostname, such as server.yourbusiness.com."
+          : "Keep the suggested name or use your own, such as server.yourbusiness.com. You can point DNS at it later in nPanel."}
       </p>
     </div>
   );

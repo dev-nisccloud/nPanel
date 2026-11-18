@@ -1,122 +1,147 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
-import { ZEPO_AI_PLANS, SERVICE_PACKAGE_NOTES } from "@/lib/service-packages.ts";
-import { Zap, MessageSquare, BarChart2, Users, Calendar, Shield, Sparkles } from "lucide-react";
+import { Building2, Mail, Server, TrendingUp } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
-import { ZepoMascot } from "@/components/zepo-mascot.tsx";
+import { ZepoChatStory, ZepoInboxStory } from "@/components/artwork/npanel-stories/ai-stories.tsx";
+import { NPANEL_APP } from "@/lib/domain-search/api.ts";
+import { ClosingCta } from "@/components/closing-cta.tsx";
+import { CapabilityGroups, type CapabilityGroup } from "@/pages/services/_components/CapabilityGroups.tsx";
+import { ZepoTokensSection } from "./_components/ZepoTokensSection.tsx";
+
+const NPANEL_HOME = `${NPANEL_APP.replace(/\/+$/, "")}/`;
 
 const showcaseBlocks: ShowcaseBlock[] = [
   {
-    tag: "24/7 Customer Help",
+    tag: "Ask Zepo AI",
+    artwork: <ZepoChatStory />,
+    caption: false,
     headline: "Start with the service question in front of you",
-    body: "Use Zepo chat to understand Nisc Cloud services, compare suitable options from the needs you describe, or find the relevant account action. When a customer-service or technical request needs a person, Zepo can pass on the conversation context.",
+    body: "Ask Zepo AI about your services, domains, invoices or what to buy next. It answers from what your account already holds, points you to the right action, and opens a support ticket with the conversation attached when a person needs to step in.",
     bullets: [
       "Chat available 24 hours a day",
-      "Guidance based on the details you provide",
-      "Human escalation for eligible support requests",
+      "Answers based on your own account",
+      "A person takes over with the full conversation",
     ],
     mockupRight: true,
     visual: "bot",
   },
   {
-    tag: "Business Support",
-    headline: "Turn approved context into a reviewable first draft",
-    body: "After onboarding, Zepo can use the business information you choose to provide when supporting a task. Research notes, written drafts, image concepts, and recommendations remain starting points for your team to check.",
+    tag: "Your email assistant",
+    artwork: <ZepoInboxStory />,
+    caption: false,
+    headline: "Your inbox, handled inside nPanel",
+    body: "When you host email with Nisc Cloud or use Nisc Mail, Zepo AI works beside your inbox. It reads new messages, summarises long threads, drafts replies and helps you answer, all without leaving nPanel.",
     bullets: [
-      "Research organised around a stated question",
-      "Written or visual drafts for supported tasks",
-      "Recommendations presented for human review",
+      "Summaries of long emails and threads",
+      "Reply drafts you can edit, shorten or reshape",
+      "Works with hosted business email and Nisc Mail",
     ],
     mockupRight: false,
-    visual: "results",
+    visual: "automation",
+  },
+];
+
+const capabilities: CapabilityGroup[] = [
+  {
+    icon: Building2,
+    title: "Understands your business",
+    body: "What you do, your industry, who you sell to and every service in your Nisc Cloud account.",
+    example: "Who are the main competitors for a bakery in Westlands?",
+    items: [
+      "Your business, industry and customers",
+      "Your hosting, domains, email and invoices",
+      "Context carried through the conversation",
+    ],
+  },
+  {
+    icon: TrendingUp,
+    title: "Plans your growth",
+    body: "Research and strategy you can act on, plus the visuals to go with it.",
+    example: "Write a marketing plan for our December sale.",
+    items: [
+      "Market research on your industry",
+      "Marketing and brand strategy",
+      "Images for posts and campaigns",
+      "A starter brand kit: colours, fonts, logo ideas",
+    ],
+  },
+  {
+    icon: Server,
+    title: "Looks after your services",
+    body: "It knows your services, so it can tell you what is coming up and help when something breaks.",
+    example: "When does my hosting expire? Renew my domain.",
+    items: [
+      "Expiry dates and renewals; you confirm the payment",
+      "Troubleshooting from your service details",
+      "Support tickets opened with the chat attached",
+      "Renewal reminders before anything lapses",
+    ],
+  },
+  {
+    icon: Mail,
+    title: "Handles your email",
+    body: "For Nisc Cloud hosted email and Nisc Mail, right inside nPanel.",
+    example: "Summarise today's emails and draft a reply to Kito Events.",
+    items: [
+      "Reads and summarises new messages",
+      "Drafts replies in your tone",
+      "Helps you reply without leaving nPanel",
+    ],
   },
 ];
 
 export default function AiAutomationPage() {
   return (
     <ServicePageShell
-      badge="AI Automation"
-      headline={<>Meet Zepo. <br /><span className="text-primary">A starting point for everyday work.</span></>}
-      subtext="Zepo combines Nisc Cloud service guidance with supported research, drafting, image, marketing, SEO, and technical-guidance tasks. You choose the context it may use, review its output, and keep a human route for eligible support requests."
+      badge="Zepo AI"
+      headline={<>Meet Zepo AI. <br /><span className="text-primary">Built by Nisc Cloud to run your business with you.</span></>}
+      subtext="Zepo AI understands your business from the moment you create your Nisc Cloud account. It researches your market, plans your marketing, looks after your services and handles your email, all inside nPanel. You pay only for what it does, in credits."
       serviceType="marketing"
-      checkoutServiceType="ai_automation"
-      checkoutProductName="Zepo AI"
-      heroImage="/brand/zepo-mascot.webp"
+      heroImage="/brand/zepo-mascot-hd.webp"
       heroImageStandalone
+      primaryCtaLabel="Buy Zepo credits"
+      heroCta2="Open Zepo AI in nPanel"
+      heroCta2Href={NPANEL_HOME}
       trustStats={[
+        { value: "300", label: "Free Credits To Start" },
         { value: "24/7", label: "Chat Availability" },
-        { value: "Human", label: "Review Stays Required" },
-        { value: "Scoped", label: "Supported Tasks" },
-        { value: "Your", label: "Context Controls" },
+        { value: "Email", label: "Read, Reply, Draft" },
+        { value: "Credits", label: "No Monthly Plan" },
       ]}
-      features={[
-        {
-          icon: <ZepoMascot className="size-7" />,
-          title: "Nisc Cloud service assistant",
-          desc: "Ask about Nisc Cloud services and compare suitable options using the needs and account details available in the conversation.",
-        },
-        {
-          icon: <MessageSquare size={20} />,
-          title: "Conversation continuity",
-          desc: "Keep the question, relevant details, and prior messages together so you do not have to restart the same service conversation from scratch.",
-        },
-        {
-          icon: <Zap size={20} />,
-          title: "Renewal reminders",
-          desc: "Receive reminders for approaching Nisc Cloud service renewals and follow the relevant confirmed account flow to take action.",
-        },
-        {
-          icon: <Calendar size={20} />,
-          title: "Research and drafting",
-          desc: "Explore a stated topic, organise findings, and prepare a first draft that your team checks for accuracy, sources, and fit.",
-        },
-        {
-          icon: <Users size={20} />,
-          title: "Approved business context",
-          desc: "Choose the relevant business information Zepo may use after onboarding, and update that context as your needs change.",
-        },
-        {
-          icon: <BarChart2 size={20} />,
-          title: "SEO and Marketing Support",
-          desc: "Generate reviewable ideas for SEO, campaigns, messaging, and sales hooks without treating suggestions as guaranteed outcomes.",
-        },
-        {
-          icon: <Shield size={20} />,
-          title: "Customer and technical escalation",
-          desc: "Eligible customer-service or technical requests can be handed to the appropriate team with relevant conversation context.",
-        },
-        {
-          icon: <Sparkles size={20} />,
-          title: "Content and image generation",
-          desc: "Create written or visual starting points for supported tasks. Your team checks facts, rights, brand fit, and suitability before use.",
-        },
-      ]}
-      plans={ZEPO_AI_PLANS}
+      showcaseBlocks={showcaseBlocks}
+      contentSlots={{
+        afterShowcase: (
+          <CapabilityGroups
+            title="One assistant for the business, the services and the inbox."
+            intro="Ask in plain words. Zepo AI works from what it knows about your business and your Nisc Cloud account."
+            groups={capabilities}
+          />
+        ),
+      }}
+      plans={[]}
+      customPlansSection={<ZepoTokensSection />}
       process={[
-        { num: "01", title: "Choose a supported job", desc: "Start with a clear service question or a defined research, drafting, image, SEO, marketing, sales, or technical-guidance task." },
-        { num: "02", title: "Share only relevant context", desc: "Provide the business details and preferences needed for that job. Keep passwords, secrets, and unnecessary personal or confidential data out of prompts." },
-        { num: "03", title: "Check the output", desc: "Review facts, sources, tone, rights, risks, and technical recommendations before publishing or acting on generated work." },
-        { num: "04", title: "Confirm or escalate", desc: "Use confirmed account flows for service, billing, or access actions. Eligible customer-service and technical issues can move to a person with context." },
-      ]}
-      whyPoints={[
-        { title: "One place to start", desc: "Begin common service questions and supported knowledge-work tasks in one chat instead of deciding which tool to open first.", visual: "speed" },
-        { title: "Context you deliberately provide", desc: "Business-aware output uses relevant information you approve rather than claiming to know facts you have not shared.", visual: "localMarket" },
-        { title: "First drafts, not final authority", desc: "Zepo helps teams move from a blank page to something concrete while keeping factual and professional judgement with people.", visual: "bot" },
-        { title: "A human route for support", desc: "Customer-service and technical requests can be escalated when the issue falls outside a safe self-service answer.", visual: "support" },
-        { title: "Control before consequence", desc: "Generated guidance does not replace confirmed flows for changes affecting services, billing, access, or publication.", visual: "pricing" },
-        { title: "Connected to the Nisc Cloud journey", desc: "Service guidance, renewal reminders, and escalation relate to the Nisc Cloud services managed through your account.", visual: "integrate" },
+        { num: "01", title: "Create your account", desc: "Zepo AI starts from your business details and the services in your Nisc Cloud account." },
+        { num: "02", title: "Get 300 free credits", desc: "They land in your team wallet when you first start Zepo AI with an active service such as hosting or email." },
+        { num: "03", title: "Ask or hand over a task", desc: "Ask a question, open your inbox, or give Zepo AI research, strategy, images or a service problem." },
+        { num: "04", title: "Top up when you run low", desc: "Buy a credit pack here or in nPanel. There is no monthly plan." },
       ]}
       faqs={[
-        { q: "What can I ask Zepo?", a: "You can ask about Nisc Cloud services or use the supported tools available to your account for research, drafting, images, technical guidance, SEO, marketing, and sales ideas. Capability and limits can vary by account or service." },
-        { q: "What happens when Zepo cannot complete my request?", a: "It may ask for clearer information, explain a limitation, or escalate an eligible customer-service or technical request to the appropriate Nisc Cloud team with the relevant conversation context." },
-        { q: "Does Zepo know my business?", a: "Only from the approved context and relevant Nisc Cloud service information available to it. You should correct outdated details and avoid supplying credentials or unnecessary sensitive data." },
-        { q: "Does Zepo make changes automatically?", a: "Generated content, recommendations, and technical guidance require review. Actions affecting services, billing, or access must use the relevant confirmed account flow; Zepo should not be treated as automatic authorisation." },
-        { q: "Can Zepo remind me about renewals?", a: "Yes. Zepo can remind you about approaching Nisc Cloud service renewals and point you to the relevant account action." },
-        { q: "Is Zepo available all day?", a: "The chat is available 24 hours a day. A human response after escalation follows the availability and scope of the relevant support team." },
+        { q: "How do credits work?", a: "Each reply or task Zepo AI completes uses credits from your team wallet. Short questions use a few; research, strategy, documents and images use more. Your balance shows in nPanel, and you buy a new pack when you run low." },
+        { q: "How do I get the 300 free credits?", a: "They are added once to your team wallet when you first start Zepo AI, as long as your team has an active Nisc Cloud service such as hosting or business email." },
+        { q: "Can Zepo AI renew my domain or hosting?", a: "Yes. Ask it and it tells you what is due, then starts the renewal for you. You confirm the payment before anything is charged." },
+        { q: "Can it help when something stops working?", a: "Yes. Zepo AI can read the details of your hosting, domains, DNS and email to help you find the problem. If it needs a person, it opens a support ticket with the conversation attached." },
+        { q: "Which email can Zepo AI work with?", a: "Email hosted with Nisc Cloud, including Nisc Mail. It reads, summarises and drafts replies inside nPanel, and you decide what gets sent." },
+        { q: "What does Zepo AI know about my business?", a: "What you tell it and what is in your Nisc Cloud account: your business details, services, domains and invoices. Keep passwords and other secrets out of the chat." },
       ]}
-      ctaHeadline="Put Zepo to work across your business"
-      ctaSubtext="Start with one service question or supported task, provide only the context it needs, and keep review and consequential decisions with your team."
-      pricingNote={SERVICE_PACKAGE_NOTES.ZEPO_AI}
-      showcaseBlocks={showcaseBlocks}
+      closing={
+        <ClosingCta
+          headline="Let Zepo AI take the busywork"
+          subtext="Create your account, add a service and start with 300 free credits. Zepo AI is waiting inside nPanel."
+          primary={{ label: "Buy Zepo credits", href: "#plans" }}
+          secondary={{ label: "Open Zepo AI in nPanel", href: NPANEL_HOME, external: true }}
+          steps={["Create your Nisc Cloud account", "Get 300 free credits with a service", "Ask Zepo AI inside nPanel"]}
+        />
+      }
     />
   );
 }

@@ -1,125 +1,154 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
 import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
 import { EmailMarketingPricingSection } from "@/pages/services/email-marketing/_components/EmailMarketingPricingSection.tsx";
-import { Mail, Users, BarChart2, Zap, Target, RefreshCw, Shield, Inbox } from "lucide-react";
+import { OutreachProductFamily } from "@/pages/services/email-marketing/_components/OutreachProductFamily.tsx";
+import { BarChart2, MessageSquare, Palette, Target } from "lucide-react";
+import { CapabilityGroups, type CapabilityGroup } from "@/pages/services/_components/CapabilityGroups.tsx";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
 import { EmailMarketingStory } from "@/components/artwork/npanel-stories";
+import { OutreachStory } from "@/components/artwork/npanel-stories/ai-stories.tsx";
+import { ClosingCta } from "@/components/closing-cta.tsx";
+
+const OUTREACH_GROUPS: CapabilityGroup[] = [
+  {
+    icon: Palette,
+    title: "Starts from your brand",
+    body: "Add your domain and Outreach fetches your logo and brand colours. No website yet? Describe your business and what you sell.",
+    example: "We're Savanna Bakery in Nairobi. Our site is savannabakery.com, use our colours.",
+    items: [
+      "Logo and brand colours fetched from your website",
+      "Works from a short description if you have no site",
+      "Brand kits and a media library for your images",
+      "Every template designed to match your business",
+    ],
+  },
+  {
+    icon: Target,
+    title: "Built around your objective",
+    body: "Choose the kind of email, then say what you want it to achieve. The design, wording and button follow that goal.",
+    example: "End-year sale: 20% off all cakes until 31 December, for our regular customers.",
+    items: [
+      "Promotion or sale, such as an end-year campaign",
+      "Welcome emails for new customers",
+      "A monthly newsletter",
+      "Transactional updates about orders and accounts",
+    ],
+  },
+  {
+    icon: MessageSquare,
+    title: "Edit by chatting",
+    body: "Approve the design or ask for changes in plain words. Generate a new variation when you want another direction.",
+    example: "Make the headline shorter and put the offer above the photo.",
+    items: [
+      "Changes in plain words, no editor to learn",
+      "New variations on request",
+      "You approve before anything is sent",
+    ],
+  },
+  {
+    icon: BarChart2,
+    title: "Sends from you, reports back",
+    body: "Pick an audience and send from your own verified domain. Each campaign gets its own report in nPanel.",
+    example: "Send it to the Regular customers list on Friday morning.",
+    items: [
+      "Audiences with bulk contact import",
+      "Sends from your business domain, not a shared one",
+      "Delivered, opened, clicked, bounced and unsubscribed",
+      "Your most clicked links",
+    ],
+  },
+];
 
 const showcaseBlocks: ShowcaseBlock[] = [
   {
-    tag: "Campaign Analytics",
-    artwork: <EmailMarketingStory />,
+    tag: "AI that knows your brand",
+    artwork: <OutreachStory />,
     caption: false,
-    headline: "Know what subscribers did next",
-    body: "Campaign reports show sends, opens, clicks, unsubscribes, and other events available from your email platform. Where store tracking is correctly connected, we can also review platform-attributed orders without treating attribution as proof of sole causation.",
+    headline: "Describe your business. The AI designs the campaign.",
+    body: "Add your domain or describe what you do, and Outreach fetches your logo and brand colours. Choose the objective, such as an end-year sale or a welcome email, and the AI designs a template that looks like your business. Ask for changes in plain words until it is right.",
     bullets: [
-      "Engagement and list-health trends in plain language",
-      "Attributed order data where the platform supports it",
-      "Next-test recommendations based on observed behaviour",
+      "Logo and brand colours fetched from your domain",
+      "Pick an objective: sale, welcome, newsletter or update",
+      "Changes and new variations by chatting",
     ],
     mockupRight: true,
-    visual: "reporting",
+    visual: "automation",
   },
   {
-    tag: "Automation Flows",
-    headline: "Follow up at useful customer moments",
-    body: "We map lifecycle messages around the customer events your systems can reliably provide. Each flow includes entry rules, exclusions, review points, and a clear purpose before it is activated.",
+    tag: "Results",
+    artwork: <EmailMarketingStory />,
+    caption: false,
+    headline: "See what happened after you pressed send",
+    body: "Every campaign has its own report in nPanel: delivered, opened, clicked, bounced and unsubscribed, plus the links people clicked most. Zepo can read the results with you and suggest what to try next.",
     bullets: [
-      "Welcome and onboarding journeys for eligible contacts",
-      "Cart or post-purchase flows when store data is available",
-      "Re-engagement rules designed to protect list quality",
+      "Opens, clicks, bounces and unsubscribes per campaign",
+      "Your most clicked links",
+      "Next-step ideas from Zepo",
     ],
     mockupRight: false,
-    visual: "automation",
+    visual: "reporting",
   },
 ];
 
 export default function EmailMarketingPage() {
   return (
     <ServicePageShell
-      badge="Email Marketing"
-      headline={<>Make your email list <br /><span className="text-primary">a useful customer channel</span></>}
-      subtext="Plan campaigns and lifecycle messages around consented audiences, useful content, and measurable subscriber actions. We handle the agreed strategy, production, sending, and review cycle."
+      badge="Nisc Outreach"
+      seoTitle="Nisc Outreach: AI email marketing"
+      headline={<>From an idea to an inbox. <br /><span className="text-primary">AI handles the work.</span></>}
+      subtext="Describe your business or add your domain. Outreach fetches your brand kit and logo, you choose the objective, and the AI designs, sends and tracks the campaign in nPanel."
       serviceType="marketing"
-      plansUnderHero
+      primaryCtaLabel="Create your first campaign"
+      heroCta2="See how it works"
+      heroCta2Href="#how-it-works"
       customPlansSection={<EmailMarketingPricingSection />}
       plans={[]}
       heroImage={niscWebsiteImage("Email marketing.png")}
       heroImageStandalone
       trustStats={[
-        { value: "Segmented", label: "Audience Lists" },
-        { value: "Reviewed", label: "Before Sending" },
-        { value: "Free", label: "Strategy Call" },
-        { value: "Monthly", label: "Learning Cycle" },
+        { value: "AI", label: "Designs From Your Brand" },
+        { value: "Your", label: "Domain As Sender" },
+        { value: "Live", label: "Opens And Clicks" },
+        { value: "nPanel", label: "One Workspace" },
       ]}
-      features={[
-        {
-          icon: <Mail size={20} />,
-          title: "Professional email design",
-          desc: "Reusable, mobile-responsive templates aligned to your brand and checked in the email clients included in the agreed testing scope.",
-        },
-        {
-          icon: <Users size={20} />,
-          title: "Practical segmentation",
-          desc: "Group eligible contacts using the reliable fields available in your platform, such as purchase history, engagement, location, or customer tags.",
-        },
-        {
-          icon: <RefreshCw size={20} />,
-          title: "Automation sequences",
-          desc: "Build agreed welcome, cart, post-purchase, or win-back flows when the required events and consent status are available.",
-        },
-        {
-          icon: <Target size={20} />,
-          title: "A/B subject line testing",
-          desc: "Where list size and platform features make a test meaningful, compare subject lines or content variants and record what the result suggests.",
-        },
-        {
-          icon: <BarChart2 size={20} />,
-          title: "Detailed analytics & reports",
-          desc: "Review delivery, clicks, unsubscribes, list changes, and configured conversion events. Revenue appears only where the connected platform can attribute it.",
-        },
-        {
-          icon: <Zap size={20} />,
-          title: "Behavioural triggers",
-          desc: "Use supported events such as sign-up, click, cart, or purchase to start relevant flows, with eligibility and suppression rules agreed first.",
-        },
-        {
-          icon: <Shield size={20} />,
-          title: "Deliverability management",
-          desc: "We configure available sender-authentication records and apply sound list practices. Inbox placement remains controlled by mailbox providers and cannot be guaranteed.",
-        },
-        {
-          icon: <Inbox size={20} />,
-          title: "List hygiene & cleaning",
-          desc: "We review bounces, complaints, inactivity, and suppression rules on the agreed cadence to reduce avoidable sends and protect list quality.",
-        },
-      ]}
+      showcaseBlocks={showcaseBlocks}
+      contentSlots={{
+        afterShowcase: (
+          <>
+            <CapabilityGroups
+              title={<>Tell it about your business. <span className="text-primary">It does the designing.</span></>}
+              intro="Describe what you do or add your domain. Outreach fetches your logo and brand colours, asks what the campaign is for, and designs an email that looks like it came from you."
+              exampleLabel="You type"
+              groups={OUTREACH_GROUPS}
+            />
+            <OutreachProductFamily />
+          </>
+        ),
+      }}
       process={[
-        { num: "01", title: "Access, consent & list audit", desc: "We review data sources, consent records, list health, current segments, and available campaign history before recommending sends." },
-        { num: "02", title: "Message & journey build", desc: "We create the agreed templates, campaign themes, segments, and automation rules, then confirm exclusions and approval responsibilities." },
-        { num: "03", title: "Review & send", desc: "Campaign copy, design, links, audience, and settings are checked and shared for approval before the scheduled send." },
-        { num: "04", title: "Learn & adjust", desc: "We review engagement, list health, and configured conversion signals, then choose the next useful test or journey improvement." },
-      ]}
-      whyPoints={[
-        { title: "Use the audience you have permission to reach", desc: "Strategy starts with lawful collection, current consent records, and useful expectations rather than simply sending to every address available.", visual: "results" },
-        { title: "Production capacity without the blank page", desc: "We draft subject lines, body copy, and layouts in your agreed voice, while your team retains review and factual approval.", visual: "typing" },
-        { title: "Segments based on real data", desc: "We use fields and behaviours your systems can support instead of inventing precision from incomplete customer records.", visual: "segments" },
-        { title: "Automation with guardrails", desc: "Entry, exit, suppression, and frequency rules help automated journeys stay relevant after activation.", visual: "automation" },
-        { title: "List health before send volume", desc: "Authentication, bounce handling, complaint monitoring, and hygiene reduce avoidable deliverability risk without promising inbox placement.", visual: "inbox" },
-        { title: "Reporting with attribution limits", desc: "Reports distinguish email-platform activity from attributed outcomes and explain the tracking assumptions behind conversion figures.", visual: "reporting" },
+        { num: "01", title: "Tell it about your business", desc: "Add your domain so it can fetch your logo and colours, or describe what you do." },
+        { num: "02", title: "Choose the objective", desc: "A sale, a welcome, a newsletter or an update. Add the details, such as an end-year offer." },
+        { num: "03", title: "Review the design", desc: "Approve it or ask for changes in chat. Try a variation if you want another look." },
+        { num: "04", title: "Send and track", desc: "Pick the list, send from your verified domain and watch opens and clicks in nPanel." },
       ]}
       faqs={[
-        { q: "Do I need to already have an email list?", a: "No. We can scope consent-based sign-up forms, lead magnets, or in-store collection flows. We do not buy lists or treat an address as permission to market." },
-        { q: "What email platform do you use?", a: "We work with Mailchimp, Klaviyo, ActiveCampaign, and Brevo. We recommend the best platform for your business size and goals during onboarding." },
-        { q: "How do I get my email list to you?", a: "You export your existing contacts as a CSV and share it securely. We clean, import, and segment the list as part of our onboarding process." },
-        { q: "Can you integrate email with our e-commerce store?", a: "Often, provided the store, email platform, account permissions, and required events are compatible. Standard connectors can be scoped during onboarding; custom data work is assessed separately." },
-        { q: "Will the emails be compliant with data regulations?", a: "We can configure unsubscribe tools, sender details, suppression rules, and consent-aware workflows. Your organisation remains responsible for its lawful basis, notices, records, audience data, and legal review in every market it targets." },
-        { q: "How quickly can we start sending campaigns?", a: "Timing depends on account access, sender authentication, list condition, content, approvals, and automation complexity. We confirm a launch estimate after the audit rather than promise a fixed first-send date." },
+        { q: "What is the difference between Nisc Mail and Nisc Outreach?", a: "Nisc Mail is your everyday business email, one person writing to another. Nisc Outreach sends campaigns to many people at once, designed by AI and tracked in a report. You manage both in nPanel." },
+        { q: "Does the AI really design the email?", a: "Yes. Add your domain or describe your business, choose the objective and give a short brief. It fetches your logo and brand colours, creates the design and builds the email. You approve it or ask for changes before anything is sent." },
+        { q: "What kinds of campaigns can I create?", a: "Choose promotional or sale emails (an end-year sale, for example), welcome emails, a monthly newsletter, or transactional updates about orders and accounts. Then describe the goal in your own words." },
+        { q: "Can I bring my existing contacts?", a: "Yes. You can add contacts in bulk to an audience and keep separate lists. Only send to people who agreed to hear from you." },
+        { q: "Do I need my own domain?", a: "Campaigns send from a domain you have verified in nPanel, so your emails come from your business address. If you do not have a domain yet, you can register one with Nisc Cloud." },
+        { q: "What results can I see?", a: "For each campaign: delivered, opened, clicked, bounced and unsubscribed, a breakdown of bounces, and the links people clicked most." },
+        { q: "Can Zepo help with my campaigns?", a: "Yes. Zepo can read your campaign results in nPanel and suggest what to try next, such as a new subject line or a different audience." },
       ]}
-      ctaHeadline="Your email list is ready to work harder"
-      ctaSubtext="Bring your current platform, audience sources, and campaign history. We will identify a useful first campaign or lifecycle journey and the data needed to measure it responsibly."
-      pricingNote="Monthly retainer. No long-term contract. Cancel with 30-day notice."
-      showcaseBlocks={showcaseBlocks}
+      closing={
+        <ClosingCta
+          headline="Your next campaign starts with one sentence"
+          subtext="Pick a plan, tell the AI what you want to send, and watch the results arrive in nPanel."
+          primary={{ label: "Create your first campaign", href: "#plans" }}
+          secondary={{ label: "See how it works", href: "#how-it-works" }}
+          steps={["Choose a Nisc Outreach plan", "Describe your campaign", "Send and track it in nPanel"]}
+        />
+      }
     />
   );
 }

@@ -63,7 +63,7 @@ const categories: Category[] = [
         title: "How to install WordPress on your hosting account",
         summary:
           "One-click WordPress installation from your hosting control panel.",
-        content: `Log in to nPanel and open your hosting service, then launch the hosting control panel. Open the WordPress installer (WordPress Toolkit on plans that include it) and choose Install. Fill in your domain, site name, admin username, and password. Select your preferred language and click Install. WordPress will be live on your domain within 2 to 3 minutes. Your admin panel is accessible at yourdomain.co.ke/wp-admin.`,
+        content: `Log in to nPanel and open your hosting service, then launch the hosting control panel. Open the WordPress installer (WordPress Toolkit on plans that include it) and choose Install. Fill in your domain, site name, admin username, and password. Select your preferred language and click Install. WordPress will be live on your domain within 2 to 3 minutes. Your admin panel is accessible at yourdomain.com/wp-admin.`,
         tags: ["wordpress", "install", "npanel"],
       },
       {
@@ -91,7 +91,7 @@ const categories: Category[] = [
         title: "How to set up DNS records for your domain",
         summary:
           "A and CNAME records explained - point your domain to any service.",
-        content: `Log into your Nisc Cloud dashboard and select your domain. Go to DNS Management. To point your domain to a hosting server, add an A Record with the name @ and the value set to your server's IP address. To point www to your main domain, add a CNAME Record with name www pointing to yourdomain.co.ke. For email, you will need MX records - your hosting provider supplies these. Changes take up to 24 hours to propagate.`,
+        content: `Log into your Nisc Cloud dashboard and select your domain. Go to DNS Management. To point your domain to a hosting server, add an A Record with the name @ and the value set to your server's IP address. To point www to your main domain, add a CNAME Record with name www pointing to yourdomain.com. For email, you will need MX records - your hosting provider supplies these. Changes take up to 24 hours to propagate.`,
         tags: ["dns", "a record", "cname", "mx"],
       },
       {
@@ -113,7 +113,7 @@ const categories: Category[] = [
         title: "How to set up your business email in Outlook",
         summary:
           "Configure your Nisc Cloud email in Microsoft Outlook using IMAP.",
-        content: `Open Outlook and go to File > Add Account. Enter your full email address (e.g. info@yourbusiness.co.ke) and click Connect. Select IMAP. Enter incoming server: mail.nisccloud.co.ke, Port: 993, SSL/TLS. Enter outgoing server: mail.nisccloud.co.ke, Port: 587, STARTTLS. Enter your email password. Click Connect. Your emails will sync within a few minutes. Contact support if you need your exact server details.`,
+        content: `Open Outlook and go to File > Add Account. Enter your full email address (e.g. info@yourbusiness.com) and click Connect. Select IMAP. Enter incoming server: mail.nisccloud.co.ke, Port: 993, SSL/TLS. Enter outgoing server: mail.nisccloud.co.ke, Port: 587, STARTTLS. Enter your email password. Click Connect. Your emails will sync within a few minutes. Contact support if you need your exact server details.`,
         tags: ["outlook", "imap", "setup", "email"],
       },
       {

@@ -172,7 +172,7 @@ export function HostingDataTable() {
 
   const handleViewDetails = (id: number) => {
     // Navigate to details page
-    window.location.href = `/agency/hosting/${id}`;
+    window.location.href = `/hq/hosting/${id}`;
   };
 
   const handleEdit = (id: number) => {
@@ -222,7 +222,7 @@ export function HostingDataTable() {
               <TableRow key={subscription.id}>
                 <TableCell className="pl-6">
                   <Link 
-                    to={`/agency/hosting/${subscription.id}`}
+                    to={`/hq/hosting/${subscription.id}`}
                     className="font-medium text-foreground hover:underline"
                   >
                     {subscription.subscriptionName}
@@ -249,7 +249,7 @@ export function HostingDataTable() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-40">
                             <DropdownMenuItem asChild>
-                              <Link to={`/agency/hosting/${subscription.id}`}>View details</Link>
+                              <Link to={`/hq/hosting/${subscription.id}`}>View details</Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleEdit(subscription.id)}>
                               Edit subscription

@@ -97,7 +97,7 @@ export function HostingDataTable() {
       key: String(subscription.id),
       title: (
         <Link
-          to={`/agency/hosting/${subscription.id}`}
+          to={`/hq/hosting/${subscription.id}`}
           className="text-foreground hover:underline"
           onClick={(e) => e.stopPropagation()}
         >
@@ -130,7 +130,7 @@ export function HostingDataTable() {
         <>
           <VisitSiteButton url={subscription.subscriptionName} />
           <ViewDetailsButton
-            onClick={() => navigate(`/agency/hosting/${subscription.id}`)}
+            onClick={() => navigate(`/hq/hosting/${subscription.id}`)}
           />
           <TooltipProvider>
             <Tooltip>
@@ -196,7 +196,7 @@ export function HostingDataTable() {
           )}
         </>
       ),
-      onClick: () => navigate(`/agency/hosting/${subscription.id}`),
+      onClick: () => navigate(`/hq/hosting/${subscription.id}`),
     };
   });
 

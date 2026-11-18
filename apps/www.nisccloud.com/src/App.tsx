@@ -56,7 +56,7 @@ const WebsiteDesignPage = lazy(
 );
 const EcommercePage = lazy(() => import("./pages/services/ecommerce/page.tsx"));
 const SoftwarePage = lazy(() => import("./pages/services/software/page.tsx"));
-const SeoPage = lazy(() => import("./pages/services/seo/page.tsx"));
+const SeoAiSearchPage = lazy(() => import("./pages/services/seo-ai-search/page.tsx"));
 const PaidAdsPage = lazy(() => import("./pages/services/paid-ads/page.tsx"));
 const SocialMediaPage = lazy(
   () => import("./pages/services/social-media/page.tsx"),
@@ -64,6 +64,9 @@ const SocialMediaPage = lazy(
 const ZeepoAiPage = lazy(() => import("./pages/services/zeepo-ai/page.tsx"));
 const EmailMarketingPage = lazy(
   () => import("./pages/services/email-marketing/page.tsx"),
+);
+const AiWebsiteBuilderPage = lazy(
+  () => import("./pages/services/ai-website-builder/page.tsx"),
 );
 
 const SecurityPage = lazy(() => import("./pages/security/page.tsx"));
@@ -174,13 +177,17 @@ export function AppRoutes() {
           />
           <Route path="/services/ecommerce" element={<EcommercePage />} />
           <Route path="/services/software" element={<SoftwarePage />} />
-          <Route path="/services/seo" element={<SeoPage />} />
+          <Route path="/services/seo-ai-search" element={<SeoAiSearchPage />} />
           <Route path="/services/paid-ads" element={<PaidAdsPage />} />
           <Route path="/services/social-media" element={<SocialMediaPage />} />
           <Route path="/services/zepo-ai" element={<ZeepoAiPage />} />
           <Route
             path="/services/email-marketing"
             element={<EmailMarketingPage />}
+          />
+          <Route
+            path="/services/ai-website-builder"
+            element={<AiWebsiteBuilderPage />}
           />
 
           {/* Help Centre */}

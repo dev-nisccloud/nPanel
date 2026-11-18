@@ -1422,7 +1422,7 @@ export const invoicingRouter = router({
 			if (!isAgencyUser(user.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency users can look up invoices by KRA number.",
+					message: "Only Nisc HQ staff can look up invoices by KRA number.",
 				});
 			}
 			const row = await db.query.invoice.findFirst({
@@ -2853,7 +2853,7 @@ export const invoicingRouter = router({
 			if (!isAgencyUser(user.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency users can look up credit notes by KRA number.",
+					message: "Only Nisc HQ staff can look up credit notes by KRA number.",
 				});
 			}
 			const row = await db.query.creditNote.findFirst({
@@ -2873,7 +2873,7 @@ export const invoicingRouter = router({
 			if (!isAgencyUser(user.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency users can issue credit notes.",
+					message: "Only Nisc HQ staff can issue credit notes.",
 				});
 			}
 
@@ -2998,7 +2998,7 @@ export const invoicingRouter = router({
 			if (!isAgencyUser(user.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency users can retry KRA sync.",
+					message: "Only Nisc HQ staff can retry KRA sync.",
 				});
 			}
 
@@ -3168,7 +3168,7 @@ export const invoicingRouter = router({
 			if (!isAgencyUser(user.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency users can refund invoices.",
+					message: "Only Nisc HQ staff can refund invoices.",
 				});
 			}
 

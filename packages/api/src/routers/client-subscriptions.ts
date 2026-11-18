@@ -3645,7 +3645,7 @@ export const clientSubscriptionsRouter = router({
             if (!isAgencyUserRole(session.user.role)) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
-                    message: "Only agency users can create one-time services",
+                    message: "Only Nisc HQ staff can create one-time services",
                 });
             }
 
@@ -3739,7 +3739,7 @@ export const clientSubscriptionsRouter = router({
             if (!isAgencyUserRole(session.user.role)) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
-                    message: "Only agency users can update service progress",
+                    message: "Only Nisc HQ staff can update service progress",
                 });
             }
 
@@ -3876,7 +3876,7 @@ export const clientSubscriptionsRouter = router({
             if (!isAgencyUserRole(session.user.role)) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
-                    message: "Only agency users can add service notes",
+                    message: "Only Nisc HQ staff can add service notes",
                 });
             }
 
@@ -3944,7 +3944,7 @@ export const clientSubscriptionsRouter = router({
             if (!isAgencyUserRole(session.user.role)) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
-                    message: "Only agency users can update service notes",
+                    message: "Only Nisc HQ staff can update service notes",
                 });
             }
 
@@ -3999,7 +3999,7 @@ export const clientSubscriptionsRouter = router({
             if (!isAgencyUserRole(session.user.role)) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
-                    message: "Only agency users can delete service notes",
+                    message: "Only Nisc HQ staff can delete service notes",
                 });
             }
 
@@ -4288,7 +4288,7 @@ export const clientSubscriptionsRouter = router({
             if (!isAgencySuperAdminRole(session.user.role)) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
-                    message: "Only agency super admins can delete subscriptions",
+                    message: "Only Nisc HQ super admins can delete subscriptions",
                 });
             }
 
@@ -4792,7 +4792,7 @@ export const clientSubscriptionsRouter = router({
             if (!isAgencyUserRole(session.user.role)) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
-                    message: "Only agency users can run the renewal reminder cron",
+                    message: "Only Nisc HQ staff can run the renewal reminder cron",
                 });
             }
 
@@ -4966,7 +4966,7 @@ export const clientSubscriptionsRouter = router({
             if (!isAgencyUserRole(ctx.session.user.role)) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
-                    message: "Only agency users can view renewal reminder cron status",
+                    message: "Only Nisc HQ staff can view renewal reminder cron status",
                 });
             }
 
@@ -5045,7 +5045,7 @@ export const clientSubscriptionsRouter = router({
             if (!isAgencyUserRole(ctx.session.user.role)) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
-                    message: "Only agency users can list renewal reminder cron runs",
+                    message: "Only Nisc HQ staff can list renewal reminder cron runs",
                 });
             }
 
@@ -5108,7 +5108,7 @@ export const clientSubscriptionsRouter = router({
             if (!isAgencyUserRole(ctx.session.user.role)) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
-                    message: "Only agency users can view renewal reminder cron runs",
+                    message: "Only Nisc HQ staff can view renewal reminder cron runs",
                 });
             }
 
@@ -5148,7 +5148,7 @@ export const clientSubscriptionsRouter = router({
             if (!isAgencyUserRole(ctx.session.user.role)) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
-                    message: "Only agency users can change the renewal reminder cron",
+                    message: "Only Nisc HQ staff can change the renewal reminder cron",
                 });
             }
             const { setRenewalReminderCronEnabled } = await import(
@@ -5172,7 +5172,7 @@ export const clientSubscriptionsRouter = router({
             if (!isAgencyUserRole(ctx.session.user.role)) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
-                    message: "Only agency users can view renewal reminder cron activity",
+                    message: "Only Nisc HQ staff can view renewal reminder cron activity",
                 });
             }
             const { listRenewalReminderCronActivity } = await import(
@@ -5192,7 +5192,7 @@ export const clientSubscriptionsRouter = router({
             if (!isAgencySuperAdminRole(ctx.session.user.role)) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
-                    message: "Only agency super admins can view Zeepo AI token wallets",
+                    message: "Only Nisc HQ super admins can view Zeepo AI token wallets",
                 });
             }
             const {
@@ -5223,7 +5223,7 @@ export const clientSubscriptionsRouter = router({
             if (!isAgencySuperAdminRole(ctx.session.user.role)) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
-                    message: "Only agency super admins can adjust Zeepo AI tokens",
+                    message: "Only Nisc HQ super admins can adjust Zeepo AI tokens",
                 });
             }
             const { adjustZeepoAiTokensForSubscription } = await import("../lib/zeepo-ai-tokens");
@@ -5251,7 +5251,7 @@ export const clientSubscriptionsRouter = router({
             if (!isAgencySuperAdminRole(ctx.session.user.role)) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
-                    message: "Only agency super admins can view Zeepo AI token logs",
+                    message: "Only Nisc HQ super admins can view Zeepo AI token logs",
                 });
             }
             const { listZeepoAiWalletLogsForSubscription } = await import("../lib/zeepo-ai-tokens");

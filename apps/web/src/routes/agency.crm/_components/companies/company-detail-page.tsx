@@ -37,7 +37,7 @@ export function CompanyDetailPage({ companyId }: { companyId: string }) {
       <CrmDetailMissing
         title="Company not found"
         description="This company does not exist or has been deleted."
-        backTo="/agency/crm/companies"
+        backTo="/hq/crm/companies"
         backLabel="Back to companies"
       />
     );
@@ -48,7 +48,7 @@ export function CompanyDetailPage({ companyId }: { companyId: string }) {
   return (
     <CrmDetailFrame>
       <CrmDetailHeader
-        backTo="/agency/crm/companies"
+        backTo="/hq/crm/companies"
         title={company.name}
         description={description}
         actions={
@@ -144,7 +144,7 @@ export function CompanyDetailPage({ companyId }: { companyId: string }) {
         company={company}
         onSuccess={() => {
           setDeleteOpen(false);
-          navigate("/agency/crm/companies");
+          navigate("/hq/crm/companies");
         }}
       />
     </CrmDetailFrame>

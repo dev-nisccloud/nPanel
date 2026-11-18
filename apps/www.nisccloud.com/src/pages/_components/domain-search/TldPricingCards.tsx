@@ -1,5 +1,5 @@
-/** Extension showcase row under the search bar. */
-export function TldPricingCards() {
+/** Extension quick picks under the search bar; picking one searches the typed name with that ending. */
+export function TldPricingCards({ onPick }: { onPick?: (tld: string) => void }) {
   const tlds: { tld: string; note: string; local?: boolean }[] = [
     { tld: "co.ke", note: "Kenyan business", local: true },
     { tld: "ke", note: "Kenya", local: true },
@@ -10,20 +10,26 @@ export function TldPricingCards() {
   ];
 
   return (
-    <ul className="mt-4 grid w-full grid-cols-3 gap-2 sm:grid-cols-6">
-      {tlds.map(({ tld, note, local }) => (
-        <li
-          key={tld}
-          className="flex flex-col items-center justify-center rounded-xl border border-border bg-background/80 px-2 py-2.5 text-center"
-        >
-          <span className="sr-only">.{tld}</span>
-          <span aria-hidden className="text-base font-bold tracking-tight text-foreground">
-            <span className={local ? "text-[#b9411f] dark:text-brand-orange" : "text-primary dark:text-primary"}>.</span>
-            {tld}
-          </span>
-          <span className="mt-0.5 text-[11px] leading-tight text-muted-foreground">{note}</span>
-        </li>
-      ))}
-    </ul>
+    <div className="mt-5">
+      <p className="text-xs font-medium text-white/60">Popular endings</p>
+      <ul className="mt-2.5 flex flex-wrap justify-center gap-2">
+        {tlds.map(({ tld, note, local }) => (
+          <li key={tld}>
+            <button
+              type="button"
+              onClick={() => onPick?.(tld)}
+              className="group inline-flex min-h-11 items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-4 text-left transition-colors hover:border-white/40 hover:bg-white/[0.12] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+              aria-label={`Search .${tld} (${note})`}
+            >
+              <span className="text-sm font-bold tracking-tight text-white">
+                <span className={local ? "text-brand-orange" : "text-primary"}>.</span>
+                {tld}
+              </span>
+              <span className="text-xs text-white/60">{note}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

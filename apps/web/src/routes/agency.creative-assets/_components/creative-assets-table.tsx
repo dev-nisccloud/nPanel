@@ -79,7 +79,7 @@ export function CreativeAssetsTable({
 							<TableRow
 								key={asset.id}
 								className="cursor-pointer"
-								onClick={() => navigate(`/agency/creative-assets/${asset.id}`)}
+								onClick={() => navigate(`/hq/creative-assets/${asset.id}`)}
 							>
 								<TableCell className="pl-6 font-medium">
 									<div className="flex flex-col gap-0.5">
@@ -130,7 +130,7 @@ export function CreativeAssetsTable({
 								<TableCell onClick={(e) => e.stopPropagation()}>
 									<div className="flex items-center gap-1">
 										<Button variant="ghost" size="sm" asChild>
-											<Link to={`/agency/creative-assets/${asset.id}`}>
+											<Link to={`/hq/creative-assets/${asset.id}`}>
 												<Eye className="mr-2 h-4 w-4" />
 												View
 											</Link>

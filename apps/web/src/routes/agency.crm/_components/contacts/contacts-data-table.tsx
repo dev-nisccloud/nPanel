@@ -152,7 +152,7 @@ export function ContactsDataTable({
           </Avatar>
           <div>
             <Link
-              to={`/agency/crm/contacts/${contact.id}`}
+              to={`/hq/crm/contacts/${contact.id}`}
               className="font-semibold text-foreground hover:underline"
             >
               {[contact.firstName, contact.lastName].filter(Boolean).join(" ") || "Unnamed Contact"}
@@ -218,7 +218,7 @@ export function ContactsDataTable({
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link to={`/agency/crm/contacts/${contact.id}`}>
+              <Link to={`/hq/crm/contacts/${contact.id}`}>
                 <Eye className="mr-2 h-4 w-4" />
                 View Details
               </Link>

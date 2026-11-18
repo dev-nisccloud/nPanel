@@ -809,7 +809,7 @@ export const creativeBriefsRouter = router({
       if (!isAgencyUserRole(actor.role)) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "Only agency users can list approvers",
+          message: "Only Nisc HQ staff can list approvers",
         });
       }
 

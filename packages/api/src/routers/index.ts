@@ -105,6 +105,7 @@ import { hivelocityPricingSettingsRouter } from "./hivelocity-pricing-settings";
 import { cronWorkflowRunRouter } from "./cron-workflow-run";
 import { apiKeysRouter } from "./api-keys";
 import { mailMcpRouter } from "./mail-mcp";
+import { userPresenceRouter } from "./user-presence";
 import { digitaxRouter } from "./digitax";
 import { ipRecordsRouter } from "./ip-records";
 import { zeepoCanvasRouter } from "./zeepo-canvas";
@@ -327,6 +328,7 @@ export const appRouter = router({
 	apiKeys: apiKeysRouter,
 	// NISC Mail MCP user provisioning (agency super admin only)
 	mailMcp: mailMcpRouter,
+	userPresence: userPresenceRouter,
 	// DigiTax Integration
 	digitax: digitaxRouter,
 	// IP Records

@@ -1,7 +1,11 @@
 import * as React from "react";
 import { Link } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
-import { ArrowLeftRight, X, AlertCircle, Lock, Globe, Loader2 } from "lucide-react";
+import { ArrowLeftRight, X, AlertCircle, Globe, Loader2 } from "lucide-react";
+import {
+  TransferCheckReport,
+  announceRecheck,
+} from "@/components/domain-transfer/TransferCheckReport.tsx";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
@@ -38,6 +42,8 @@ export function TransferDomainSection() {
   const [provider, setProvider] = React.useState<TransferProvider | null>(null);
   const [transferStatus, setTransferStatus] = React.useState<TransferStatus | null>(null);
   const [pricedResult, setPricedResult] = React.useState<DomainSearchResult | null>(null);
+  const [lastResult, setLastResult] = React.useState<CheckTransferResult | null>(null);
+  const lastResultRef = React.useRef<CheckTransferResult | null>(null);
   const [isPricingProcessing, setIsPricingProcessing] = React.useState(false);
   const [isNavigatingToCart, setIsNavigatingToCart] = React.useState(false);
 
@@ -53,6 +59,11 @@ export function TransferDomainSection() {
   });
 
   const applyCheckResult = React.useCallback((result: CheckTransferResult) => {
+    const previous = lastResultRef.current;
+    lastResultRef.current = result;
+    setLastResult(result);
+    announceRecheck(previous, result);
+
     const statusFromApi = result.transferStatus as TransferStatus | undefined;
     setProvider(result.provider);
     setTransferStatus(statusFromApi ?? (result.transferrable ? "ready" : "unavailable"));
@@ -84,11 +95,6 @@ export function TransferDomainSection() {
     setTransferPrice(null);
     setParsedDomain(null);
 
-    if (statusFromApi !== "available" && statusFromApi !== "locked") {
-      toast.error("Domain not transferrable", {
-        description: result.error ?? "This domain cannot be transferred.",
-      });
-    }
   }, []);
 
   const validateAndFetchPrice = React.useCallback(async () => {
@@ -104,12 +110,15 @@ export function TransferDomainSection() {
       return;
     }
 
+    if (lastResultRef.current?.domain?.toLowerCase() !== trimmed.toLowerCase()) {
+      lastResultRef.current = null;
+      setLastResult(null);
+    }
     setStatus("loading");
     setMessage("");
     setTransferPrice(null);
     setParsedDomain(null);
     setProvider(null);
-    setTransferStatus(null);
     setPricedResult(null);
 
     try {
@@ -126,6 +135,8 @@ export function TransferDomainSection() {
   }, [domainInput, checkTransferMutation, applyCheckResult]);
 
   const handleClear = () => {
+    lastResultRef.current = null;
+    setLastResult(null);
     setDomainInput("");
     setStatus("idle");
     setMessage("");
@@ -211,7 +222,7 @@ export function TransferDomainSection() {
     calculated != null ? (calculated.displayCurrency ?? calculated.currency) : null;
 
   const inputBorderClass =
-    status === "error"
+    status === "error" && !lastResult
       ? "border-destructive focus-visible:ring-destructive"
       : status === "valid"
         ? "border-primary focus-visible:ring-primary"
@@ -274,7 +285,7 @@ export function TransferDomainSection() {
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Input
-              placeholder="example.com or example.co.ke"
+              placeholder="example.com"
               value={domainInput}
               onChange={(e) => {
                 setDomainInput(e.target.value);
@@ -285,6 +296,8 @@ export function TransferDomainSection() {
                   setParsedDomain(null);
                   setProvider(null);
                   setTransferStatus(null);
+                  lastResultRef.current = null;
+                  setLastResult(null);
                 }
               }}
               onKeyDown={(e) =>
@@ -346,41 +359,27 @@ export function TransferDomainSection() {
           </div>
         )}
 
-        {status === "error" && transferStatus === "locked" && (
-          <div className="mt-4 flex gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-left">
-            <Lock className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-500" />
-            <div>
-              <h3 className="type-h3 text-foreground">Domain is locked</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                This domain is locked at your current provider. Turn off transfer lock in their control panel, then try again.
-              </p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                After unlocking, wait about 15 seconds for the change to show, then check the domain again.
-              </p>
-              <Button type="button" size="sm" variant="outline" className="mt-3" onClick={validateAndFetchPrice}>
-                Check again
-              </Button>
-            </div>
-          </div>
+        {lastResult && !lastResult.transferrable && lastResult.transferStatus !== "available" && (
+          <TransferCheckReport
+            className="mt-4"
+            result={lastResult}
+            onCheckAgain={validateAndFetchPrice}
+            checking={status === "loading"}
+          />
         )}
 
-        {status === "error" && message && transferStatus !== "available" && transferStatus !== "locked" && (
+        {status === "error" && message && !lastResult && (
           <div
             className="mt-4 flex gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-left"
             role="alert"
           >
             <AlertCircle className="h-5 w-5 shrink-0 text-destructive" />
             <div>
-              <h3 className="type-h3 text-destructive">This domain cannot transfer yet</h3>
+              <h3 className="type-h3 text-destructive">We couldn&apos;t check this domain</h3>
               <p className="mt-1 text-sm text-muted-foreground">{message}</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Button type="button" size="sm" variant="outline" onClick={validateAndFetchPrice}>
-                  Check again
-                </Button>
-                <Button asChild type="button" size="sm" variant="ghost">
-                  <Link to="/whois">Review WHOIS details</Link>
-                </Button>
-              </div>
+              <Button type="button" size="sm" variant="outline" className="mt-3" onClick={validateAndFetchPrice}>
+                Try again
+              </Button>
             </div>
           </div>
         )}
@@ -411,8 +410,12 @@ export function TransferDomainSection() {
       </div>
 
       {showReadyCard && parsedDomain && provider && displayPrice != null && (
-        <div className="mt-6">
+        <div className="mx-auto mt-6 max-w-2xl space-y-4">
+          {lastResult && (
+            <TransferCheckReport result={lastResult} onCheckAgain={validateAndFetchPrice} />
+          )}
           <TransferReadyCard
+            currentExpiresAt={lastResult?.details?.expiresAt ?? null}
             domain={parsedDomain.full}
             price={displayPrice}
             currency={displayCurrency ?? "KES"}
@@ -422,15 +425,6 @@ export function TransferDomainSection() {
             isLoading={isNavigatingToCart}
             onContinueToCart={handleContinueToCart}
           />
-          <div className="mx-auto mt-4 max-w-2xl rounded-xl border border-border/70 bg-muted/20 p-4 text-sm">
-            <p className="font-semibold text-foreground">Before checkout</p>
-            <p className="mt-1 leading-relaxed text-muted-foreground">
-              Save the current nameservers, keep DNS unchanged during the transfer, unlock the domain and request the current EPP code. Eligibility and code validity are finally confirmed after provider submission.
-            </p>
-            <Link to="/whois" className="mt-3 inline-flex font-semibold text-primary hover:underline">
-              Review current WHOIS and nameservers
-            </Link>
-          </div>
         </div>
       )}
     </div>

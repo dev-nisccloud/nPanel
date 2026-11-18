@@ -413,7 +413,7 @@ export const domainsRouter = router({
             priority: "NORMAL",
             title: "Domain Added to Team",
             message: `Domain ${input.domainName} has been added to your team "${teamRow.name}" successfully. You can now manage it and perform other operations.`,
-            link: `/agency/domains-portfolio`,
+            link: `/hq/domains-portfolio`,
             metadata: {
               domainId,
               domainName: input.domainName,
@@ -611,7 +611,7 @@ export const domainsRouter = router({
     if (!isAgencyUser(authenticatedUser.role)) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "Only agency users can access all domains",
+        message: "Only Nisc HQ staff can access all domains",
       });
     }
 
@@ -925,7 +925,7 @@ export const domainsRouter = router({
               priority: "NORMAL",
               title: "Domain Linked to Team",
               message: `Domain ${existingDomain.domainName} has been linked to your team "${teamRow.name}".`,
-              link: "/agency/domains-portfolio",
+              link: "/hq/domains-portfolio",
               metadata: {
                 domainId: input.id,
                 domainName: existingDomain.domainName,

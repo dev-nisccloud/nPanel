@@ -1,11 +1,11 @@
 import * as React from "react";
-import { Check, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge.tsx";
+import { Loader2 } from "lucide-react";
+import { ServiceIcon } from "./service-icon.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
 import { cn } from "@/lib/utils.ts";
 import type { BillingCycle } from "./CartItem.tsx";
-import { periodPrice, SERVICE_BILLING_CYCLES } from "@/lib/billing-cycle.ts";
+import { billingCycleShortSuffix, periodPrice, SERVICE_BILLING_CYCLES } from "@/lib/billing-cycle.ts";
 import { isPlanListed, publicPlanName } from "@/lib/plan-catalog.ts";
 import {
   fetchSharedHostingPlansPublic,
@@ -218,6 +218,20 @@ function buildAllLivePlans(data: SharedHostingPricingData, type: HostingUpsellTy
   });
 }
 
+/** Three numbers that differ between plans. Shared ticks such as SSL stay off the cart. */
+function planHighlights(features: FeatureRow[]): string {
+  const valued = features.filter((feature) => feature.value);
+  return (valued.length ? valued : features)
+    .slice(0, 3)
+    .map((feature) => (feature.value ? `${feature.value} ${feature.label.toLowerCase()}` : feature.label))
+    .join(" · ");
+}
+
+function differingSpec(features: FeatureRow[]): string | null {
+  const valued = features.find((feature) => feature.value);
+  return valued?.value ?? null;
+}
+
 function toUpsellPlanInfo(plan: LivePlan): UpsellPlanInfo {
   return {
     planId: plan.planId,
@@ -264,9 +278,6 @@ export function HostingUpsell({
   const [selectedPlanId, setSelectedPlanId] = React.useState<
     Partial<Record<HostingUpsellType, string>>
   >(() => initialSelectedPlanIds ?? {});
-  const [showAllPlans, setShowAllPlans] = React.useState<
-    Partial<Record<HostingUpsellType, boolean>>
-  >({});
   const [loading, setLoading] = React.useState(true);
   const [cycles, setCycles] = React.useState<Partial<Record<HostingUpsellType, BillingCycle>>>(
     () => initialCycles ?? {},
@@ -366,30 +377,24 @@ export function HostingUpsell({
   }, [loading, onLoadingChange]);
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
-      <h3 className="type-h3 text-foreground mb-1">
-        Turn your domain into a website
-      </h3>
-      <p className="text-sm text-muted-foreground mb-4">
-        Add hosting to go live right away. Pick one, you can always upgrade later.
-      </p>
+    <section aria-labelledby="cart-hosting-addon-heading" className="bg-card border border-border rounded-2xl p-5 shadow-sm sm:p-6">
+      <div className="mb-4 flex items-start gap-3">
+        <ServiceIcon serviceType="web_hosting" size="md" />
+        <div className="min-w-0">
+          <p className="type-label text-primary">Optional add-on</p>
+          <h2 id="cart-hosting-addon-heading" className="mt-1 mb-1 text-lg font-semibold leading-snug text-foreground">
+            Turn your domain into a website
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Add hosting to go live right away. Pick one, you can always upgrade later.
+          </p>
+        </div>
+      </div>
       {/* <p className="text-sm text-muted-foreground mb-4">
         {domainName
           ? `Get ${domainName} free for the 1st year with any hosting plan below.`
           : "Add hosting to go live right away. Pick one  you can always upgrade later."}
       </p> */}
-
-      {/* Single "Recommended for you" badge  shown once at top if any plan is recommended */}
-      {!loading && Object.values(plansCatalog).some((list) => list?.some((p) => p.isRecommended)) && (
-        <div className="mb-3 flex items-center gap-2">
-          <Badge className="bg-primary/10 text-primary border-primary/20 text-xs font-medium px-2.5 py-0.5">
-            ⭐ Recommended for you
-          </Badge>
-          <span className="text-xs text-muted-foreground">
-            {SLOTS.find((s) => plansCatalog[s.id]?.some((p) => p.isRecommended))?.label} highlighted below
-          </span>
-        </div>
-      )}
 
       {loading ? (
         <div className="flex items-center gap-2 py-6 justify-center text-muted-foreground text-sm">
@@ -402,10 +407,7 @@ export function HostingUpsell({
             const catalog = plansCatalog[slot.id] ?? [];
             const plan = getActivePlan(slot.id);
             const isSelected = selectedType === slot.id;
-            const isRecommended = plan?.isRecommended ?? false;
             const features = plan?.features ?? FALLBACK_FEATURES[slot.id];
-            const otherPlansCount = catalog.length > 1 ? catalog.length - 1 : 0;
-            const isExpanded = Boolean(showAllPlans[slot.id]);
 
             return (
               <div
@@ -414,9 +416,7 @@ export function HostingUpsell({
                   "rounded-xl border-2 p-4 cursor-pointer transition-all",
                   isSelected
                     ? "border-primary bg-primary/5"
-                    : isRecommended
-                      ? "border-primary/30 hover:border-primary/60 bg-primary/[0.02]"
-                      : "border-border hover:border-primary/40 bg-card",
+                    : "border-border hover:border-primary/40 bg-card",
                 )}
                 onClick={() => handleSelectType(slot.id, isSelected)}
               >
@@ -452,7 +452,7 @@ export function HostingUpsell({
                               plan.currency,
                             )}
                             <span className="text-xs font-normal text-muted-foreground">
-                              /{getCycle(slot.id) === "MONTHLY" ? "mo" : "term"}
+                              /{billingCycleShortSuffix(getCycle(slot.id))}
                             </span>
                           </p>
                         ) : (
@@ -462,6 +462,9 @@ export function HostingUpsell({
                     </div>
 
                     <p className="text-xs text-muted-foreground mt-0.5 mb-2">{slot.tagline}</p>
+                    {isSelected && (
+                      <p className="mb-2 text-xs text-foreground">{planHighlights(features)}</p>
+                    )}
 
                     {/* Billing cycle  visible when selected */}
                     {isSelected && plan && (
@@ -482,7 +485,7 @@ export function HostingUpsell({
                                   periodPrice(plan.monthlyPrice, plan.yearlyPrice, opt.value),
                                   plan.currency,
                                 )}
-                                /{opt.value === "MONTHLY" ? "mo" : "term"}
+                                /{billingCycleShortSuffix(opt.value)}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -490,95 +493,60 @@ export function HostingUpsell({
                       </div>
                     )}
 
-                    {/* Other plans picker */}
-                    {isSelected && otherPlansCount > 0 && (
-                      <div className="mb-2" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80"
-                          onClick={() =>
-                            setShowAllPlans((prev) => ({
-                              ...prev,
-                              [slot.id]: !prev[slot.id],
-                            }))
-                          }
-                        >
-                          {isExpanded ? (
-                            <>
-                              <ChevronUp className="w-3.5 h-3.5" />
-                              Hide other plans
-                            </>
-                          ) : (
-                            <>
-                              <ChevronDown className="w-3.5 h-3.5" />
-                              View other plans ({otherPlansCount} more)
-                            </>
-                          )}
-                        </button>
-
-                        {isExpanded && (
-                          <div className="mt-2 rounded-lg border border-border bg-muted/20 p-2 space-y-1">
-                            {catalog.map((option) => {
-                              const isActive = option.planId === plan?.planId;
-                              const cycle = getCycle(slot.id);
-                              const price = fmt(
-                                periodPrice(option.monthlyPrice, option.yearlyPrice, cycle),
-                                option.currency,
-                              );
-
-                              return (
+                    {isSelected && catalog.length > 1 && (
+                      <div className="mb-2" onClick={(event) => event.stopPropagation()}>
+                        <p className="text-xs font-semibold text-foreground">Change plan</p>
+                        <ul className="mt-1">
+                          {catalog.map((option) => {
+                            const isActive = option.planId === plan?.planId;
+                            const cycle = getCycle(slot.id);
+                            const price = fmt(
+                              periodPrice(option.monthlyPrice, option.yearlyPrice, cycle),
+                              option.currency,
+                            );
+                            const spec = differingSpec(option.features);
+                            return (
+                              <li key={option.planId}>
                                 <button
-                                  key={option.planId}
                                   type="button"
+                                  aria-pressed={isActive}
                                   className={cn(
-                                    "w-full flex items-center justify-between gap-2 rounded-md px-2.5 py-2 text-left transition-colors",
-                                    isActive
-                                      ? "bg-primary/10 border border-primary/30"
-                                      : "hover:bg-muted/60 border border-transparent",
+                                    "flex min-h-8 w-full items-center gap-2 rounded-lg px-2 py-1 text-left text-xs transition-colors",
+                                    isActive ? "bg-primary/10 font-semibold text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
                                   )}
                                   onClick={() => handlePlanPick(slot.id, option)}
                                 >
-                                  <span className="min-w-0">
-                                    <span className="block text-xs font-semibold text-foreground truncate">
-                                      {publicPlanName(option.planId, option.name)}
-                                      {option.isRecommended && (
-                                        <span className="ml-1.5 text-[10px] font-medium text-primary">
-                                          Recommended
-                                        </span>
-                                      )}
-                                    </span>
+                                  <span className="min-w-0 flex-1 truncate">
+                                    {publicPlanName(option.planId, option.name)}
+                                    {spec ? <span className="font-normal"> · {spec}</span> : null}
                                   </span>
-                                  <span className="text-xs font-semibold text-foreground whitespace-nowrap shrink-0">
-                                    {price}
-                                    <span className="text-muted-foreground font-normal">
-                                      /{cycle === "MONTHLY" ? "mo" : "term"}
-                                    </span>
+                                  <span className="shrink-0 tabular-nums">
+                                    {price}/{billingCycleShortSuffix(cycle)}
                                   </span>
                                 </button>
-                              );
-                            })}
-                          </div>
-                        )}
+                              </li>
+                            );
+                          })}
+                        </ul>
                       </div>
                     )}
-
-                    {/* Features: label  value or checkmark */}
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 border-t border-border pt-2.5">
-                      {features.map((f) => (
-                        <div key={f.label} className="flex items-center justify-between gap-1 min-w-0">
-                          <span className="text-xs text-muted-foreground truncate">{f.label}</span>
-                          {f.value != null ? (
-                            <span className="text-xs font-semibold text-foreground whitespace-nowrap ml-1">
-                              {f.value}
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary/10 shrink-0">
-                              <Check className="w-2.5 h-2.5 text-primary stroke-[3]" />
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn(
+                        "mt-3 h-8 min-h-0 w-fit rounded-full px-3 text-xs",
+                        isSelected
+                          ? "border-transparent text-muted-foreground hover:text-destructive"
+                          : "border-primary/40 text-primary hover:bg-primary/10",
+                      )}
+                      aria-pressed={isSelected}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleSelectType(slot.id, isSelected);
+                      }}
+                    >
+                      {isSelected ? "Remove" : "Add to cart"}
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -591,7 +559,7 @@ export function HostingUpsell({
         <Button
           variant="ghost"
           size="sm"
-          className="mt-3 w-full text-muted-foreground hover:text-destructive text-xs"
+          className="mt-3 h-8 min-h-0 w-fit px-0 text-xs text-muted-foreground hover:text-destructive"
           onClick={() => onSelect(null)}
         >
           No thanks, I only need the domain
@@ -600,9 +568,9 @@ export function HostingUpsell({
 
       {!selectedType && !loading && (
         <p className="text-xs text-muted-foreground text-center mt-3">
-          No hosting needed  skip and continue with the domain only.
+          Hosting this elsewhere? Continue with the domain only.
         </p>
       )}
-    </div>
+    </section>
   );
 }

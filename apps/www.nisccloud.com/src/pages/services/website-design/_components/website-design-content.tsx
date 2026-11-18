@@ -23,7 +23,7 @@ const PLAN_FIT: PlanFit[] = [
     chooseIf: "you need more pages than a compact site and a CMS, with the page count agreed in the proposal.",
   },
   {
-    name: "Corporate",
+    name: "Enterprise",
     level: 3,
     bestFor: "A larger organisation",
     chooseIf: "you need a custom design, more than one language, or a full SEO audit and schema markup.",
@@ -37,7 +37,7 @@ export function WebsiteDesignPlanFit() {
       id="which-plan"
       label="Choosing a plan"
       title="Which website design plan fits?"
-      answer="Small Business covers up to five pages. Growth adds a CMS and a broader page set. Corporate is for a custom design, more than one language, and a fuller SEO setup. The proposal confirms the schedule and the price."
+      answer="Small Business covers up to five pages. Growth adds a CMS and a broader page set. Enterprise is for a custom design, more than one language, and a fuller SEO setup. The proposal confirms the schedule and the price."
     >
       <PlanFitGrid
         plans={PLAN_FIT}

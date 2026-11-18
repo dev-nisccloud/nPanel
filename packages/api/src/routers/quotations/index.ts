@@ -651,7 +651,7 @@ export const quotationsRouter = router({
 			if (!isAgencySuperAdmin(user.role) && input.createdBy && input.createdBy !== user.id) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency super admin can create quotations for other users.",
+					message: "Only a Nisc HQ super admin can create quotations for other users.",
 				});
 			}
 			const quotationId = input.id ?? crypto.randomUUID();

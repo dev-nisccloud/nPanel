@@ -37,8 +37,8 @@ export function DashboardMetricsGrid({ metrics }: { metrics: AgencyDashboardMetr
 					{ label: "KC balance", value: metrics.balances.kc },
 				]}
 				actions={[
-					{ label: "Portfolio", href: "/agency/domains-portfolio" },
-					{ label: "Register", href: "/agency/domains" },
+					{ label: "Portfolio", href: "/hq/domains-portfolio" },
+					{ label: "Register", href: "/hq/domains" },
 				]}
 			/>
 
@@ -59,8 +59,8 @@ export function DashboardMetricsGrid({ metrics }: { metrics: AgencyDashboardMetr
 					{ label: "Suspended", value: metrics.hosting.suspended, tone: "negative" },
 				]}
 				actions={[
-					{ label: "Hosting", href: "/agency/hosting" },
-					{ label: "VPS", href: "/agency/vps" },
+					{ label: "Hosting", href: "/hq/hosting" },
+					{ label: "VPS", href: "/hq/vps" },
 				]}
 			/>
 
@@ -81,8 +81,8 @@ export function DashboardMetricsGrid({ metrics }: { metrics: AgencyDashboardMetr
 					{ label: "Not synced", value: metrics.invoices.notSynced, tone: "negative" },
 				]}
 				actions={[
-					{ label: "Invoices", href: "/agency/invoices" },
-					{ label: "New invoice", href: "/agency/invoices/create" },
+					{ label: "Invoices", href: "/hq/invoices" },
+					{ label: "New invoice", href: "/hq/invoices/create" },
 				]}
 			/>
 
@@ -102,7 +102,7 @@ export function DashboardMetricsGrid({ metrics }: { metrics: AgencyDashboardMetr
 					{ label: "Success", value: metrics.transactions.success, tone: "positive" },
 					{ label: "Failed", value: metrics.transactions.failed, tone: "negative" },
 				]}
-				actions={[{ label: "Transactions", href: "/agency/transactions" }]}
+				actions={[{ label: "Transactions", href: "/hq/transactions" }]}
 			/>
 
 			<AgencyMetricCard
@@ -121,7 +121,7 @@ export function DashboardMetricsGrid({ metrics }: { metrics: AgencyDashboardMetr
 					{ label: "Processed", value: metrics.orders.completed, tone: "positive" },
 					{ label: "Failed", value: metrics.orders.failed, tone: "negative" },
 				]}
-				actions={[{ label: "Service orders", href: "/agency/nisc-service-orders" }]}
+				actions={[{ label: "Service orders", href: "/hq/nisc-service-orders" }]}
 			/>
 
 			<AgencyMetricCard
@@ -141,8 +141,8 @@ export function DashboardMetricsGrid({ metrics }: { metrics: AgencyDashboardMetr
 					{ label: "Closed", value: metrics.quotations.closed, tone: "positive" },
 				]}
 				actions={[
-					{ label: "Quotations", href: "/agency/quotations" },
-					{ label: "New quote", href: "/agency/quotations/create" },
+					{ label: "Quotations", href: "/hq/quotations" },
+					{ label: "New quote", href: "/hq/quotations/create" },
 				]}
 			/>
 
@@ -162,13 +162,13 @@ export function DashboardMetricsGrid({ metrics }: { metrics: AgencyDashboardMetr
 					{ label: "Open", value: metrics.tickets.open, tone: "negative" },
 					{ label: "Closed", value: metrics.tickets.closed, tone: "positive" },
 				]}
-				actions={[{ label: "Support", href: "/agency/support" }]}
+				actions={[{ label: "Support", href: "/hq/support" }]}
 			/>
 
 			<AgencyMetricCard
 				icon={Icons.Clients}
 				title="Accounts"
-				description="Clients and agency users"
+				description="Clients and Nisc HQ staff"
 				loading={metrics.accounts.isLoading}
 				error={metrics.accounts.isError}
 				slices={[
@@ -192,8 +192,8 @@ export function DashboardMetricsGrid({ metrics }: { metrics: AgencyDashboardMetr
 					},
 				]}
 				actions={[
-					{ label: "Clients", href: "/agency/clients" },
-					{ label: "Social ads", href: "/agency/social-media-ads" },
+					{ label: "Clients", href: "/hq/clients" },
+					{ label: "Social ads", href: "/hq/social-media-ads" },
 				]}
 			/>
 		</section>

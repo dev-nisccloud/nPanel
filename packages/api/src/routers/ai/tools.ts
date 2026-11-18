@@ -24,8 +24,8 @@ const agencysidebarItems = [
   {
     label: "Agency",
     items: [
-      { title: "Clients", url: "/agency/clients" },
-      { title: "Billing", url: "/agency/billing" },
+      { title: "Clients", url: "/hq/clients" },
+      { title: "Billing", url: "/hq/billing" },
     ],
   },
 ];

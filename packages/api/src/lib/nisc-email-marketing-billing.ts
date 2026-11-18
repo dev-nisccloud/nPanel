@@ -85,7 +85,7 @@ export async function assertCanLinkNiscEmResource(params: {
 	if (!isAgencyUserRole(params.role)) {
 		throw new TRPCError({
 			code: "FORBIDDEN",
-			message: "Only agency users can link email marketing resources to an organization",
+			message: "Only Nisc HQ staff can link email marketing resources to an organization",
 		});
 	}
 	if (params.currentTeamId) {

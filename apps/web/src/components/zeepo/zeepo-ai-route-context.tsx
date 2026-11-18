@@ -3,7 +3,7 @@
 import * as React from "react";
 
 export type ZeepoAiRouteConfig = {
-  /** e.g. `/agency/zeepo-ai` or `/{slug}/zeepo-ai` */
+  /** e.g. `/hq/zeepo-ai` or `/{slug}/zeepo-ai` */
   basePath: string;
   teamId: string | null;
   teamSlug: string | null;
@@ -11,7 +11,7 @@ export type ZeepoAiRouteConfig = {
 };
 
 export const DEFAULT_ZEEPO_AI_ROUTE: ZeepoAiRouteConfig = {
-  basePath: "/agency/zeepo-ai",
+  basePath: "/hq/zeepo-ai",
   teamId: null,
   teamSlug: null,
   isCustomer: false,

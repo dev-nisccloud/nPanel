@@ -36,7 +36,7 @@ export default function EmailBuilderLandingPage() {
       },
       {
         onSuccess: (data) => {
-          navigate(`/agency/email-marketing/email-builder/editor/${data.data.id}`);
+          navigate(`/hq/email-marketing/email-builder/editor/${data.data.id}`);
         },
         onError: () => {
           setIsCreating(false);

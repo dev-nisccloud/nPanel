@@ -1,4 +1,4 @@
-import { Paintbrush, Globe, Server, Mail, TrendingUp, ShieldCheck, Bot, Check } from "lucide-react";
+import { Paintbrush, Globe, Server, Mail, TrendingUp, ShieldCheck, Send, Check } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useEffect, useState } from "react";
 import { ZepoMascot } from "@/components/zepo-mascot.tsx";
@@ -10,8 +10,8 @@ const SERVICES = [
   { id: "4", title: "Business email hosting", icon: Mail },
   { id: "5", title: "SEO & Paid Advertising", icon: TrendingUp },
   { id: "6", title: "SSL & Website Security", icon: ShieldCheck },
-  { id: "7", title: "Zepo AI Automation", icon: ZepoMascot },
-  { id: "8", title: "AI chatbots & lead flows", icon: Bot },
+  { id: "7", title: "Zepo AI assistant", icon: ZepoMascot },
+  { id: "8", title: "Nisc Outreach email marketing", icon: Send },
 ];
 
 export default function BentoServiceCarousel() {

@@ -148,7 +148,15 @@ export const createUserColumns = ({ onEditUser }: UserColumnsProps = {}): Column
       const lastLoginAt = row.getValue("lastLoginAt") as string | null;
       return (
         <span className="text-sm text-muted-foreground">
-          {lastLoginAt ? new Date(lastLoginAt).toLocaleDateString() : "Never"}
+          {lastLoginAt
+            ? new Date(lastLoginAt).toLocaleString(undefined, {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "Never"}
         </span>
       );
     },

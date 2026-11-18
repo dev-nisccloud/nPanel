@@ -83,7 +83,7 @@ export const EditorHeader = ({ design }: EditorHeaderProps) => {
         <div className="flex shrink-0 items-center justify-between gap-3 border-b bg-white px-4 py-3">
             <div className="flex items-center gap-2 w-full">
                 <Button variant="ghost" size="icon" asChild>
-                    <Link to="/agency/email-marketing/email-builder" title="Back to Email Builder">
+                    <Link to="/hq/email-marketing/email-builder" title="Back to Email Builder">
                         <ArrowLeft className="h-4 w-4" />
                     </Link>
                 </Button>

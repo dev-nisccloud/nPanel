@@ -203,6 +203,7 @@ const NAMESPACE_RULES: Record<string, (rest: string) => AgencyRequirement> = {
 	stabilityAi: () => key("gen_ai.image_generator"),
 	backgroundRemover: () => key("gen_ai.background_remover"),
 	clients: () => key("clients.list"),
+	userPresence: () => key("clients.list"),
 	teams: (rest) => {
 		const sub = rest.split(".")[0] ?? "";
 		if (sub === "permissions") return key("clients.organizations");
