@@ -77,7 +77,7 @@ export function ErrorBoundary({ error }: { error: any }) {
         <CardContent className="space-y-4">
           <p className="text-center text-sm text-muted-foreground">{details}</p>
           <div className="flex flex-col gap-2">
-            <Button onClick={() => window.location.reload()} className="w-full">
+            <Button onClick={() => window.location.reload()} className="h-12 w-full">
               Try Again
             </Button>
             <Button
