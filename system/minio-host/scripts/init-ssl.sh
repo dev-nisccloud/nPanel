@@ -50,7 +50,7 @@ docker compose run --rm --entrypoint certbot certbot \
   --non-interactive \
   -d "$DOMAIN_STORAGE"
 
-live="/mnt/storage/letsencrypt/live/$DOMAIN_STORAGE"
+live="/mnt/backups/nisc-storage/letsencrypt/live/$DOMAIN_STORAGE"
 if [ ! -f "$live/fullchain.pem" ] || [ ! -f "$live/privkey.pem" ]; then
   echo "Certificate files were not written under $live"
   exit 1

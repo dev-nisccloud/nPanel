@@ -60,8 +60,8 @@ lsblk -o NAME,SIZE,TYPE,FSTYPE,LABEL,MOUNTPOINT,MODEL,SERIAL,ROTA
 echo
 echo "----- classification -----"
 echo "SYSTEM     operating system or hosting files. Never format this."
-echo "STORAGE    already mounted at /mnt/storage."
-echo "CANDIDATE  no mounts. This is the only class prepare-disk.sh may use."
+echo "STORAGE    mounted at /mnt/backups. MinIO uses only nisc-storage there."
+echo "CANDIDATE  no mounts. Do not format one while /mnt/backups exists."
 echo "IN_USE     mounted somewhere else. Do not take it."
 echo
 
@@ -76,7 +76,7 @@ lsblk -dn -o NAME,TYPE | while read -r name dtype; do
   for m in $(lsblk -nr -o MOUNTPOINT "$dev" 2>/dev/null); do
     [ -n "$m" ] || continue
     mounts="${mounts}${m},"
-    if [ "$m" = "/mnt/storage" ]; then
+    if [ "$m" = "/mnt/backups" ]; then
       [ "$class" = "SYSTEM" ] || class="STORAGE"
       continue
     fi
@@ -99,19 +99,16 @@ storage=$(grep -c '^STORAGE ' "$tmp" || true)
 
 section "decision"
 if [ "$storage" -gt 0 ]; then
-  echo "A disk is already mounted at /mnt/storage. Use that disk."
-  echo "Do not format it. Run prepare-disk.sh only if the subdirectories"
-  echo "/mnt/storage/minio, letsencrypt, and certbot are missing."
-elif [ "$candidates" -eq 1 ]; then
-  one=$(awk '$1 == "CANDIDATE" { print $2 }' "$tmp")
-  echo "One empty disk: $one"
+  echo "The backup disk is mounted at /mnt/backups. Do not format it."
+  echo "MinIO objects go only in /mnt/backups/nisc-storage/minio."
+  echo "Leave /mnt/backups/nisc-mail-retention and /mnt/backups/plesk-backups alone."
   echo "Next command: sh /opt/nisccloudstorage/scripts/prepare-disk.sh"
-  echo "When it asks, type: $one"
 elif [ "$candidates" -eq 0 ]; then
-  echo "No empty disk. Stop. Do not format a SYSTEM or IN_USE disk."
+  echo "/mnt/backups is not mounted. Stop. Do not format a SYSTEM or IN_USE disk."
 else
-  echo "More than one empty disk. Pick the reserved storage disk by size"
-  echo "and serial from the table above, then pass that device to prepare-disk.sh."
+  echo "/mnt/backups is not mounted, and unused disks were found."
+  echo "This server's storage disk should already be the ~15 TiB ext4 on /dev/sdb."
+  echo "Do not format a disk until you confirm it is not already the backup disk."
   awk '$1 == "CANDIDATE" { print "  " $2 }' "$tmp"
 fi
 echo

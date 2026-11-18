@@ -43,19 +43,19 @@ if [ -z "${DOMAIN_STORAGE:-}" ]; then
   exit 1
 fi
 
-if ! findmnt -n /mnt/storage >/dev/null 2>&1; then
-  echo "/mnt/storage is not mounted. Run scripts/identify.sh, then scripts/prepare-disk.sh."
+if ! findmnt -n /mnt/backups >/dev/null 2>&1; then
+  echo "/mnt/backups is not mounted. Run scripts/identify.sh, then scripts/prepare-disk.sh."
   exit 1
 fi
 
-for dir in /mnt/storage/minio /mnt/storage/letsencrypt /mnt/storage/certbot; do
+for dir in /mnt/backups/nisc-storage/minio /mnt/backups/nisc-storage/letsencrypt /mnt/backups/nisc-storage/certbot; do
   if [ ! -d "$dir" ]; then
     echo "Missing $dir. Run scripts/prepare-disk.sh."
     exit 1
   fi
 done
 
-if [ -f nginx/conf.d/storage-https.conf ] && [ ! -f "/mnt/storage/letsencrypt/live/${DOMAIN_STORAGE}/fullchain.pem" ]; then
+if [ -f nginx/conf.d/storage-https.conf ] && [ ! -f "/mnt/backups/nisc-storage/letsencrypt/live/${DOMAIN_STORAGE}/fullchain.pem" ]; then
   echo "nginx/conf.d/storage-https.conf is present but the certificate is not."
   echo "Move that file out of conf.d until scripts/init-ssl.sh succeeds."
   exit 1
@@ -63,7 +63,7 @@ fi
 
 echo "Computer: $(hostname)"
 echo "Binding:  ${STORAGE_BIND_IP}:80 and ${STORAGE_BIND_IP}:443"
-echo "Data:     ${MINIO_DATA_DIR:-/mnt/storage/minio}"
+echo "Data:     ${MINIO_DATA_DIR:-/mnt/backups/nisc-storage/minio}"
 echo "CPU cap:  ${MINIO_CPU_LIMIT:-1.0}    Memory cap: ${MINIO_MEMORY_LIMIT:-1g}"
 
 docker compose up -d minio minio-init nginx

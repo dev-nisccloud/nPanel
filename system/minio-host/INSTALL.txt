@@ -27,9 +27,9 @@ You will end up with:
       http://127.0.0.1:9001
 
   Reserved disk
-      /mnt/storage/minio          object files
-      /mnt/storage/letsencrypt    certificates
-      /mnt/storage/certbot        Let's Encrypt webroot
+      /mnt/backups/nisc-storage/minio          object files
+      /mnt/backups/nisc-storage/letsencrypt    certificates
+      /mnt/backups/nisc-storage/certbot        Let's Encrypt webroot
 
   Caps
       MinIO: 1 CPU, 1 GB RAM
@@ -129,8 +129,8 @@ lsblk -o NAME,SIZE,TYPE,FSTYPE,LABEL,MOUNTPOINT,MODEL,SERIAL,ROTA
 echo
 echo "----- classification -----"
 echo "SYSTEM     operating system or hosting files. Never format this."
-echo "STORAGE    already mounted at /mnt/storage."
-echo "CANDIDATE  no mounts. This is the only class prepare-disk.sh may use."
+echo "STORAGE    mounted at /mnt/backups. MinIO uses only nisc-storage there."
+echo "CANDIDATE  no mounts. Do not format one while /mnt/backups exists."
 echo "IN_USE     mounted somewhere else. Do not take it."
 echo
 
@@ -145,7 +145,7 @@ lsblk -dn -o NAME,TYPE | while read -r name dtype; do
   for m in $(lsblk -nr -o MOUNTPOINT "$dev" 2>/dev/null); do
     [ -n "$m" ] || continue
     mounts="${mounts}${m},"
-    if [ "$m" = "/mnt/storage" ]; then
+    if [ "$m" = "/mnt/backups" ]; then
       [ "$class" = "SYSTEM" ] || class="STORAGE"
       continue
     fi
@@ -168,19 +168,16 @@ storage=$(grep -c '^STORAGE ' "$tmp" || true)
 
 section "decision"
 if [ "$storage" -gt 0 ]; then
-  echo "A disk is already mounted at /mnt/storage. Use that disk."
-  echo "Do not format it. Run prepare-disk.sh only if the subdirectories"
-  echo "/mnt/storage/minio, letsencrypt, and certbot are missing."
-elif [ "$candidates" -eq 1 ]; then
-  one=$(awk '$1 == "CANDIDATE" { print $2 }' "$tmp")
-  echo "One empty disk: $one"
+  echo "The backup disk is mounted at /mnt/backups. Do not format it."
+  echo "MinIO objects go only in /mnt/backups/nisc-storage/minio."
+  echo "Leave /mnt/backups/nisc-mail-retention and /mnt/backups/plesk-backups alone."
   echo "Next command: sh /opt/nisccloudstorage/scripts/prepare-disk.sh"
-  echo "When it asks, type: $one"
 elif [ "$candidates" -eq 0 ]; then
-  echo "No empty disk. Stop. Do not format a SYSTEM or IN_USE disk."
+  echo "/mnt/backups is not mounted. Stop. Do not format a SYSTEM or IN_USE disk."
 else
-  echo "More than one empty disk. Pick the reserved storage disk by size"
-  echo "and serial from the table above, then pass that device to prepare-disk.sh."
+  echo "/mnt/backups is not mounted, and unused disks were found."
+  echo "This server's storage disk should already be the ~15 TiB ext4 on /dev/sdb."
+  echo "Do not format a disk until you confirm it is not already the backup disk."
   awk '$1 == "CANDIDATE" { print "  " $2 }' "$tmp"
 fi
 echo
@@ -215,221 +212,120 @@ Read the report before you do anything else. Check these four things:
 
   decision
       SYSTEM disks hold the operating system or hosting files.
-      Do not type a SYSTEM or IN_USE device later.
-      One CANDIDATE means that is the reserved disk.
-      Zero CANDIDATE lines means stop. There is no empty disk.
-      A STORAGE line means /mnt/storage is already mounted. Do not
-      format that disk.
+      Do not format those.
+      A STORAGE line means /dev/sdb is already mounted at /mnt/backups.
+      That is the disk. Do not format it.
+      MinIO may use only /mnt/backups/nisc-storage.
+      nisc-mail-retention and plesk-backups stay untouched.
+      If /mnt/backups is not mounted, stop. Do not format another disk.
 
-If the decision says there is no empty disk, stop here.
+If the decision does not mention /mnt/backups, stop here.
 
 
-2. Prepare only the disk the script classified as safe
--------------------------------------------------------
+2. Create only the nisc-storage directories
+--------------------------------------------
+
+The disk is already mounted. The script checks that, then waits for KEEP.
+KEEP creates directories. It does not format or remount.
 
 cat > /opt/nisccloudstorage/scripts/prepare-disk.sh << 'ENDFILE'
 #!/bin/sh
-# Mount the reserved disk at /mnt/storage and create MinIO and certificate
-# directories on it. Refuses the operating-system disk. Formats only when
-# the disk has no filesystem and you type FORMAT.
+# Create only the Nisc Cloud Storage directories on the existing backup disk.
+# Does not format, partition, or remount. Does not touch mail retention or
+# Plesk backups.
 
 set -eu
 
-MOUNT=/mnt/storage
+MOUNT=/mnt/backups
+ROOT="$MOUNT/nisc-storage"
 
 if [ "$(id -u)" -ne 0 ]; then
   echo "Run as root."
   exit 1
 fi
 
-is_system_mount() {
-  case "$1" in
-    /|/boot|/boot/efi|/usr|/home|"[SWAP]") return 0 ;;
-    /var|/var/*|/usr/*|/boot/*) return 0 ;;
-  esac
-  return 1
-}
-
-is_system_disk() {
-  for m in $(lsblk -nr -o MOUNTPOINT "$1" 2>/dev/null); do
-    if is_system_mount "$m"; then
-      return 0
-    fi
-  done
-  return 1
-}
-
-echo "Disks on $(hostname):"
-lsblk -d -o NAME,SIZE,TYPE,MODEL,SERIAL
+echo "Nothing will be formatted."
 echo
-printf "Reserved disk device (example /dev/sdb): "
-read -r DISK
+echo "Expected disk:"
+echo "  /dev/sdb    about 15 TiB, ext4, mounted at $MOUNT"
+echo
+echo "Left untouched:"
+echo "  $MOUNT/nisc-mail-retention/    Dovecot retention archives"
+echo "  $MOUNT/plesk-backups/          Plesk backup storage"
+echo
+echo "Created if missing:"
+echo "  $ROOT/minio/                   all Nisc Cloud Storage objects"
+echo "  $ROOT/letsencrypt/             this stack's certificates"
+echo "  $ROOT/certbot/                 Let's Encrypt challenge files"
+echo
 
-case "$DISK" in
-  /dev/*) ;;
+if ! findmnt -n "$MOUNT" >/dev/null 2>&1; then
+  echo "REFUSED. $MOUNT is not mounted."
+  echo "Mount the existing ext4 filesystem. Do not run mkfs."
+  lsblk -o NAME,SIZE,FSTYPE,LABEL,MOUNTPOINT
+  exit 1
+fi
+
+src=$(findmnt -n -o SOURCE "$MOUNT")
+fstype=$(findmnt -n -o FSTYPE "$MOUNT")
+echo "Mounted now: $src  fstype=$fstype  on $MOUNT"
+df -h "$MOUNT"
+echo
+
+case "$src" in
+  /dev/sdb|/dev/sdb[0-9]*) ;;
   *)
-    echo "Aborted. The value must look like /dev/sdb or /dev/nvme1n1."
+    echo "REFUSED. $MOUNT is $src, not /dev/sdb."
     exit 1
     ;;
 esac
 
-if [ ! -b "$DISK" ]; then
-  echo "Aborted. $DISK is not a block device."
+if [ "$fstype" != "ext4" ]; then
+  echo "REFUSED. $MOUNT is $fstype, not ext4."
   exit 1
 fi
 
-kind=$(lsblk -ndo TYPE "$DISK")
-if [ "$kind" != "disk" ]; then
-  echo "Aborted. $DISK is a $kind. Pass the whole disk, not a partition."
-  exit 1
-fi
-
-if is_system_disk "$DISK"; then
-  echo "REFUSED. $DISK holds the operating system or hosting files."
-  exit 1
-fi
-
-for m in $(lsblk -nr -o MOUNTPOINT "$DISK" 2>/dev/null); do
-  case "$m" in
-    ""|/mnt/storage) ;;
-    *)
-      echo "REFUSED. $DISK is mounted at $m."
-      exit 1
-      ;;
-  esac
-done
-
-echo
-lsblk -o NAME,SIZE,FSTYPE,LABEL,MOUNTPOINT "$DISK"
-echo
-echo "Type the same device path again to confirm you mean $DISK"
+echo "Type KEEP to create only the nisc-storage directories."
 printf "> "
-read -r again
-if [ "$again" != "$DISK" ]; then
-  echo "Aborted. The confirmation did not match."
+read -r go
+if [ "$go" != "KEEP" ]; then
+  echo "Aborted. No directories were created."
   exit 1
 fi
 
-base=$(basename "$DISK")
-case "$base" in
-  nvme*n[0-9]|mmcblk[0-9]*) PART="${DISK}p1" ;;
-  *) PART="${DISK}1" ;;
-esac
-
-fstype=$(lsblk -nr -o FSTYPE "$DISK" | sed '/^$/d' | head -n 1 || true)
-
-if [ -z "$fstype" ]; then
-  if ! command -v parted >/dev/null 2>&1 || ! command -v mkfs.ext4 >/dev/null 2>&1; then
-    echo "parted and mkfs.ext4 are required."
-    echo "Debian/Ubuntu: apt-get install -y parted e2fsprogs"
-    echo "Alma/RHEL:     dnf install -y parted e2fsprogs"
-    exit 1
-  fi
-  echo "No filesystem on $DISK. This erases it."
-  echo "Type FORMAT in capitals to continue."
-  printf "> "
-  read -r go
-  if [ "$go" != "FORMAT" ]; then
-    echo "Aborted."
-    exit 1
-  fi
-  parted -s "$DISK" mklabel gpt
-  parted -s "$DISK" mkpart primary ext4 0% 100%
-  i=0
-  while [ ! -b "$PART" ] && [ "$i" -lt 15 ]; do
-    sleep 1
-    i=$((i + 1))
-  done
-  if [ ! -b "$PART" ]; then
-    echo "Partition $PART did not appear. Check lsblk and stop."
-    exit 1
-  fi
-  mkfs.ext4 -L nisccloudstorage "$PART"
-  fstype=ext4
-else
-  disk_fs=$(lsblk -ndo FSTYPE "$DISK" || true)
-  if [ -n "$disk_fs" ]; then
-    PART=$DISK
-    fstype=$disk_fs
-  else
-    child=$(lsblk -nr -o NAME,FSTYPE "$DISK" | awk 'NR>1 && $2 != "" { print $1; exit }')
-    if [ -z "$child" ]; then
-      echo "Could not find the filesystem on $DISK."
-      exit 1
-    fi
-    PART="/dev/$child"
-    fstype=$(lsblk -ndo FSTYPE "$PART")
-  fi
-  echo "Keeping existing $fstype filesystem on $PART. Nothing will be formatted."
-fi
-
-mkdir -p "$MOUNT"
-if ! findmnt -n "$MOUNT" >/dev/null 2>&1; then
-  mount "$PART" "$MOUNT"
-fi
-
-uuid=$(blkid -o value -s UUID "$PART")
-if [ -z "$uuid" ]; then
-  echo "Could not read the UUID of $PART."
-  exit 1
-fi
-
-if grep -q "$uuid" /etc/fstab; then
-  echo "fstab already has UUID=$uuid"
-else
-  cp -a /etc/fstab "/etc/fstab.bak.$(date +%Y%m%d%H%M%S)"
-  printf '%s\n' "UUID=$uuid $MOUNT $fstype defaults,noatime,nofail 0 2" >> /etc/fstab
-  echo "Added fstab line. nofail keeps the hosting server bootable if this disk is missing."
-fi
-
-if findmnt -n "$MOUNT" >/dev/null 2>&1; then
-  umount "$MOUNT"
-fi
-mount -a
-findmnt "$MOUNT"
-
-mkdir -p "$MOUNT/minio" "$MOUNT/letsencrypt" "$MOUNT/certbot"
-chown 1000:1000 "$MOUNT/minio"
-chmod 750 "$MOUNT/minio"
-chmod 755 "$MOUNT/letsencrypt" "$MOUNT/certbot"
+mkdir -p "$ROOT/minio" "$ROOT/letsencrypt" "$ROOT/certbot"
+chown 1000:1000 "$ROOT/minio"
+chmod 750 "$ROOT/minio"
+chmod 755 "$ROOT/letsencrypt" "$ROOT/certbot"
 
 echo
-echo "Ready."
-echo "  disk:        $PART"
-echo "  mount:       $MOUNT"
-echo "  minio data:  $MOUNT/minio"
-echo "  certificates:$MOUNT/letsencrypt"
+echo "Ready. The disk was not formatted and the mount was not changed."
+echo "  objects:      $ROOT/minio"
+echo "  certificates: $ROOT/letsencrypt"
+echo "  webroot:      $ROOT/certbot"
 df -h "$MOUNT"
+echo
+echo "Other trees on this disk:"
+ls -ld "$MOUNT/nisc-mail-retention" "$MOUNT/plesk-backups" 2>/dev/null || true
 ENDFILE
 
   chmod 755 /opt/nisccloudstorage/scripts/prepare-disk.sh
   sh /opt/nisccloudstorage/scripts/prepare-disk.sh
 
-When it asks for the device, type the CANDIDATE from the identify
-report, for example /dev/sdb or /dev/nvme1n1. Type the whole disk,
-not a partition. It asks you to type that path a second time.
-
-If the disk has no filesystem, it asks you to type FORMAT. That erases
-that disk. It refuses a disk that holds /, /boot, /var, /usr, /home,
-or swap.
-
-If the disk already has ext4 or xfs, it mounts that filesystem and
-does not format it.
+Type KEEP when the script shows /dev/sdb mounted at /mnt/backups.
+Any other answer aborts. Nothing is formatted.
 
 When it finishes, these commands must succeed:
 
-  findmnt /mnt/storage
-  df -h /mnt/storage /mnt/storage/minio
-  ls -ld /mnt/storage/minio /mnt/storage/letsencrypt /mnt/storage/certbot
+  findmnt /mnt/backups
+  df -h /mnt/backups /mnt/backups/nisc-storage/minio
+  ls -ld /mnt/backups/nisc-storage/minio /mnt/backups/nisc-storage/letsencrypt /mnt/backups/nisc-storage/certbot
 
-df must show the large disk, not the small system disk.
-/mnt/storage/minio must be owned by uid 1000.
+df must show the large disk, about 15 TiB, not the small system disk.
+/mnt/backups/nisc-storage/minio must be owned by uid 1000.
 
-A line was added to /etc/fstab with nofail. If this disk is missing
-at the next boot, the hosting server still starts. A copy of the
-previous fstab is /etc/fstab.bak.<timestamp>.
-
-Do not reboot until findmnt /mnt/storage works.
+The script does not edit /etc/fstab. /dev/sdb stays mounted at /mnt/backups.
+nisc-mail-retention and plesk-backups are not modified.
 
 
 3. Install Docker if it is not already installed
@@ -441,22 +337,19 @@ Do not reboot until findmnt /mnt/storage works.
 If both print a version, go to section 4. The compose command has a
 space. The old docker-compose binary is not used.
 
-Debian or Ubuntu, only if docker is missing:
-
-  apt-get update
-  apt-get install -y ca-certificates curl
-
-AlmaLinux, CloudLinux, Rocky, CentOS, or RHEL, only if docker is missing:
+This server is AlmaLinux 8.10. If either command is missing:
 
   dnf install -y ca-certificates curl
-
-Then:
-
   curl -fsSL https://get.docker.com -o /root/get-docker.sh
   sh /root/get-docker.sh
   systemctl enable --now docker
   docker --version
   docker compose version
+  systemctl is-active docker
+  systemctl is-active firewalld
+  getenforce
+
+You want active, active, and Enforcing. Leave firewalld and SELinux on.
 
 Images are pulled from Docker Hub (registry-1.docker.io). No GitHub
 login is involved.
@@ -471,7 +364,7 @@ Stay in /opt/nisccloudstorage.
 
 cat > /opt/nisccloudstorage/docker-compose.yml << 'ENDFILE'
 # Standalone MinIO stack. Its own nginx and its own Let's Encrypt.
-# Object data and certificates live on the reserved disk mounted at /mnt/storage.
+# Objects live only in /mnt/backups/nisc-storage/minio on the existing /dev/sdb ext4.
 # MinIO's S3 port is not published. Nginx on STORAGE_BIND_IP is the public door.
 # The console is only on 127.0.0.1:9001.
 #
@@ -492,7 +385,7 @@ services:
       MINIO_SERVER_URL: https://${DOMAIN_STORAGE}
       MINIO_PROMETHEUS_AUTH_TYPE: "public"
     volumes:
-      - ${MINIO_DATA_DIR:-/mnt/storage/minio}:/data:Z
+      - ${MINIO_DATA_DIR:-/mnt/backups/nisc-storage/minio}:/data:Z
     ports:
       - "127.0.0.1:9001:9001"
     cpus: ${MINIO_CPU_LIMIT:-1.0}
@@ -539,8 +432,8 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - ${CERTBOT_WEBROOT:-/mnt/storage/certbot}:/var/www/certbot:z
-      - ${LETSENCRYPT_DIR:-/mnt/storage/letsencrypt}:/etc/letsencrypt:z
+      - ${CERTBOT_WEBROOT:-/mnt/backups/nisc-storage/certbot}:/var/www/certbot:z
+      - ${LETSENCRYPT_DIR:-/mnt/backups/nisc-storage/letsencrypt}:/etc/letsencrypt:z
     depends_on:
       - minio
     cpus: "0.50"
@@ -561,8 +454,8 @@ services:
     container_name: nisccloudstorage-certbot
     restart: unless-stopped
     volumes:
-      - ${CERTBOT_WEBROOT:-/mnt/storage/certbot}:/var/www/certbot:z
-      - ${LETSENCRYPT_DIR:-/mnt/storage/letsencrypt}:/etc/letsencrypt:z
+      - ${CERTBOT_WEBROOT:-/mnt/backups/nisc-storage/certbot}:/var/www/certbot:z
+      - ${LETSENCRYPT_DIR:-/mnt/backups/nisc-storage/letsencrypt}:/etc/letsencrypt:z
     entrypoint: >
       /bin/sh -c "
         trap exit TERM;
@@ -742,9 +635,9 @@ MINIO_ROOT_USER=minioadmin
 MINIO_ROOT_PASSWORD=paste-the-openssl-line-here
 MINIO_SITE_NAME=nisccloudstorage
 MINIO_DEFAULT_BUCKET=nisccloudstorage
-MINIO_DATA_DIR=/mnt/storage/minio
-LETSENCRYPT_DIR=/mnt/storage/letsencrypt
-CERTBOT_WEBROOT=/mnt/storage/certbot
+MINIO_DATA_DIR=/mnt/backups/nisc-storage/minio
+LETSENCRYPT_DIR=/mnt/backups/nisc-storage/letsencrypt
+CERTBOT_WEBROOT=/mnt/backups/nisc-storage/certbot
 MINIO_CPU_LIMIT=1.0
 MINIO_MEMORY_LIMIT=1g
 ----------------------------------------------------------------------
@@ -782,14 +675,14 @@ Replace STORAGE_BIND_IP below with the address from .env.
   curl -fsS http://STORAGE_BIND_IP/minio/health/live && echo OK
   docker logs nisccloudstorage-minio-init --tail 20
   docker stats --no-stream nisccloudstorage-minio
-  df -h / /mnt/storage
+  df -h / /mnt/backups
 
 You want:
 
   OK
   a log line: Bucket nisccloudstorage ready
   a memory limit of 1 GiB
-  / almost unchanged, /mnt/storage holding the MinIO files
+  / almost unchanged, /mnt/backups holding the MinIO files
 
 If curl returns a hosting-panel page instead of OK, port 80 on that
 address still belongs to Plesk. Stop. Do not request a certificate.
@@ -877,7 +770,7 @@ docker compose run --rm --entrypoint certbot certbot \
   --non-interactive \
   -d "$DOMAIN_STORAGE"
 
-live="/mnt/storage/letsencrypt/live/$DOMAIN_STORAGE"
+live="/mnt/backups/nisc-storage/letsencrypt/live/$DOMAIN_STORAGE"
 if [ ! -f "$live/fullchain.pem" ] || [ ! -f "$live/privkey.pem" ]; then
   echo "Certificate files were not written under $live"
   exit 1
@@ -910,9 +803,9 @@ ENDFILE
 The script asks you to type y. It then:
 
   1. Runs certbot in a one-off container against the HTTP webroot
-     on /mnt/storage/certbot.
+     on /mnt/backups/nisc-storage/certbot.
   2. Checks that fullchain.pem and privkey.pem exist under
-     /mnt/storage/letsencrypt/live/<your domain>.
+     /mnt/backups/nisc-storage/letsencrypt/live/<your domain>.
   3. Replaces the HTTP site with a redirect to HTTPS.
   4. Installs the HTTPS site that proxies to MinIO.
   5. Reloads nginx.
@@ -969,13 +862,13 @@ The bucket list should contain nisccloudstorage.
 10. When something fails
 ------------------------
 
-identify.sh says there is no empty disk
-    Stop. Do not format the SYSTEM disk.
+identify.sh does not show /mnt/backups
+    Stop. Do not format a disk. The 15 TiB ext4 on /dev/sdb must
+    already be mounted there.
 
 prepare-disk.sh says REFUSED
-    You typed the operating-system disk or a disk that is already
-    mounted somewhere else. Run identify.sh again and use the
-    CANDIDATE line only.
+    /mnt/backups is missing, is not ext4, or is not /dev/sdb.
+    Do not format anything to get past this.
 
 docker compose up says address already in use
     STORAGE_BIND_IP port 80 or 443 is still taken. Run identify.sh
@@ -991,15 +884,13 @@ Bucket log does not mention nisccloudstorage
   docker logs nisccloudstorage-minio-init --tail 30
 
 MinIO exits with permission denied on /data
-    chown 1000:1000 /mnt/storage/minio
+    chown 1000:1000 /mnt/backups/nisc-storage/minio
     cd /opt/nisccloudstorage && docker compose up -d minio nginx
 
-SELinux, getenforce prints Enforcing, and the container cannot write
-    The compose file already labels the data directory for one
-    container and the certificate directories for sharing.
-    If it still fails:
+SELinux on AlmaLinux 8.10 is Enforcing. A permission denied after chown
+is usually SELinux. Label only nisc-storage, never all of /mnt/backups:
 
-  chcon -Rt container_file_t /mnt/storage/minio /mnt/storage/letsencrypt /mnt/storage/certbot
+  chcon -Rt container_file_t /mnt/backups/nisc-storage/minio /mnt/backups/nisc-storage/letsencrypt /mnt/backups/nisc-storage/certbot
   cd /opt/nisccloudstorage && docker compose up -d
 
 init-ssl.sh cannot reach the challenge
@@ -1018,7 +909,7 @@ init-ssl.sh cannot reach the challenge
     is STORAGE_BIND_IP.
 
 nginx -t fails after the certificate, missing pem file
-    ls /mnt/storage/letsencrypt/live
+    ls /mnt/backups/nisc-storage/letsencrypt/live
     The directory name must equal DOMAIN_STORAGE. If you changed the
     domain, the three nginx files must contain that same name.
 
@@ -1026,7 +917,7 @@ You changed the password or DOMAIN_STORAGE after the first start
     cd /opt/nisccloudstorage
     docker compose up -d --force-recreate
 
-    Existing files stay in /mnt/storage/minio. The app must use the
+    Existing files stay in /mnt/backups/nisc-storage/minio. The app must use the
     new password. A new domain needs a new certificate: run
     init-ssl.sh again after DNS is updated.
 
@@ -1052,11 +943,11 @@ Start it again:
   docker compose start
 
 Files survive stop, reboot, and container recreate. They are deleted
-only if you delete /mnt/storage/minio or format the disk.
+only if you delete /mnt/backups/nisc-storage/minio or format the disk.
 
 After a reboot:
 
-  findmnt /mnt/storage
+  findmnt /mnt/backups
   docker compose ps
 
 Docker was enabled in section 3, and the containers use

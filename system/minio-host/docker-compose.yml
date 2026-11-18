@@ -1,5 +1,5 @@
 # Standalone MinIO stack. Its own nginx and its own Let's Encrypt.
-# Object data and certificates live on the reserved disk mounted at /mnt/storage.
+# Objects live only in /mnt/backups/nisc-storage/minio on the existing /dev/sdb ext4.
 # MinIO's S3 port is not published. Nginx on STORAGE_BIND_IP is the public door.
 # The console is only on 127.0.0.1:9001.
 #
@@ -20,7 +20,7 @@ services:
       MINIO_SERVER_URL: https://${DOMAIN_STORAGE}
       MINIO_PROMETHEUS_AUTH_TYPE: "public"
     volumes:
-      - ${MINIO_DATA_DIR:-/mnt/storage/minio}:/data:Z
+      - ${MINIO_DATA_DIR:-/mnt/backups/nisc-storage/minio}:/data:Z
     ports:
       - "127.0.0.1:9001:9001"
     cpus: ${MINIO_CPU_LIMIT:-1.0}
@@ -67,8 +67,8 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - ${CERTBOT_WEBROOT:-/mnt/storage/certbot}:/var/www/certbot:z
-      - ${LETSENCRYPT_DIR:-/mnt/storage/letsencrypt}:/etc/letsencrypt:z
+      - ${CERTBOT_WEBROOT:-/mnt/backups/nisc-storage/certbot}:/var/www/certbot:z
+      - ${LETSENCRYPT_DIR:-/mnt/backups/nisc-storage/letsencrypt}:/etc/letsencrypt:z
     depends_on:
       - minio
     cpus: "0.50"
@@ -89,8 +89,8 @@ services:
     container_name: nisccloudstorage-certbot
     restart: unless-stopped
     volumes:
-      - ${CERTBOT_WEBROOT:-/mnt/storage/certbot}:/var/www/certbot:z
-      - ${LETSENCRYPT_DIR:-/mnt/storage/letsencrypt}:/etc/letsencrypt:z
+      - ${CERTBOT_WEBROOT:-/mnt/backups/nisc-storage/certbot}:/var/www/certbot:z
+      - ${LETSENCRYPT_DIR:-/mnt/backups/nisc-storage/letsencrypt}:/etc/letsencrypt:z
     entrypoint: >
       /bin/sh -c "
         trap exit TERM;
