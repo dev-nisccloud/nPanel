@@ -145,7 +145,7 @@ export default function EcommercePage() {
         { q: "Can I manage the store myself after launch?", a: "Yes. We build on platforms with user-friendly dashboards. We provide full training covering product management, order processing, and reporting." },
         { q: "What happens if I need to add more products later?", a: "You can add products after launch within the platform's limits. For large updates, we can prepare a compatible import template or quote catalogue assistance after reviewing your data." },
         { q: "Can the store handle flash sales and high traffic?", a: "Capacity depends on the selected platform, hosting resources, catalogue, extensions, and expected peak. Tell us about planned promotions during discovery so we can recommend caching, infrastructure, and load testing appropriate to the risk." },
-        { q: "Do you integrate with Jumia or other marketplaces?", a: "Marketplace integration is assessed case by case. It requires a suitable seller account, an available and permitted API, compatible catalogue data, and a Corporate scope that names the integration." },
+        { q: "Do you integrate with Jumia or other marketplaces?", a: "Marketplace integration is assessed case by case. It requires a suitable seller account, an available and permitted API, compatible catalogue data, and a Enterprise scope that names the integration." },
       ]}
       ctaHeadline="Plan a store your team can operate"
       ctaSubtext="Bring your catalogue, preferred payment providers, and delivery workflow. We will map the build, integration scope, and handover before implementation starts."

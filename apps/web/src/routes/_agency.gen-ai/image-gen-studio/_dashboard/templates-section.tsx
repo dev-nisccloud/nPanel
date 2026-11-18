@@ -28,7 +28,7 @@ export const TemplatesSection = () => {
       },
       {
         onSuccess: (data) => {
-          navigate(`/agency/gen-ai/image-gen-studio/editor/${data.data.id}`);
+          navigate(`/hq/gen-ai/image-gen-studio/editor/${data.data.id}`);
         },
       }
     );

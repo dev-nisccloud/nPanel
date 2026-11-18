@@ -65,37 +65,6 @@ export const PAID_ADS_PLANS: OrderPlan[] = [
   },
 ];
 
-export const ZEPO_AI_PLANS: OrderPlan[] = [
-  {
-    id: "ai-starter",
-    name: "AI Starter",
-    price: 15000,
-    period: "month",
-    features: [
-      "AI chatbot (website + WhatsApp)",
-      "Up to 500 conversations/month",
-      "Lead capture & qualification",
-      "FAQ automation",
-      "English + Swahili support",
-      "Setup scope and schedule confirmed before activation",
-    ],
-  },
-  {
-    id: "ai-enterprise",
-    name: "AI Enterprise",
-    price: 70000,
-    period: "month",
-    features: [
-      "Conversation volume scoped to your requirements",
-      "Approved business context configured for Zepo",
-      "Supported workflows agreed before activation",
-      "Channel availability confirmed in your proposal",
-      "Human review and escalation rules",
-      "Dedicated AI success manager",
-    ],
-  },
-];
-
 export const SSL_PLANS: OrderPlan[] = [
   {
     id: "ssl-dv",
@@ -159,8 +128,7 @@ export const SERVICE_PACKAGE_NOTES = {
   BRAND_IDENTITY: "Quoted in a proposal. Paid 50% to start and 50% at launch. Approved deliverables transfer after the invoices are paid, subject to the proposal and third-party licence terms.",
   WEBSITE_DESIGN: "Quoted in a proposal. Paid 50% to start and 50% at launch. No hourly billing.",
   ECOMMERCE: "Quoted in a proposal. Paid 50% to start and 50% at launch. Hosting and payment gateway fees are separate.",
-  SOCIAL_MEDIA: "Monthly retainer. Content approval included. Cancel with 30-day notice.",
+  SOCIAL_MEDIA: "Billed monthly. No minimum term. Cancel anytime; cancellation takes effect at the end of the current billing month.",
   PAID_ADS: "Management fee billed monthly. Ad spend billed directly by Google/Meta/TikTok.",
-  ZEPO_AI: "Monthly subscription. No setup fee on 3-month commitment.",
   SSL: "Prices shown are per year, excluding VAT. Free installation included on all plans.",
 } as const;

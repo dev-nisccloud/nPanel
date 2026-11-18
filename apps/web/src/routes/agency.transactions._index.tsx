@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { RefreshCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,12 @@ export default function TransactionsIndexPage() {
       limit: 200,
       offset: 0,
     });
+
+  const unmatched = trpc.paymentTransactions.listUnmatched.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+  const unmatchedCount = unmatched.data?.length ?? 0;
 
   const transactions: PaymentTransactionUI[] = React.useMemo(() => {
     if (!data?.transactions) return [];
@@ -75,6 +81,20 @@ export default function TransactionsIndexPage() {
           </p>
         </div>
 
+        {unmatchedCount > 0 ? (
+          <Link
+            to="/hq/transactions/unmatched"
+            className="mt-4 flex items-center justify-between gap-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs"
+          >
+            <span>
+              {unmatchedCount === 1
+                ? "1 payment went through without an order."
+                : `${unmatchedCount} payments went through without an order.`}
+            </span>
+            <span className="font-medium underline underline-offset-2">Review</span>
+          </Link>
+        ) : null}
+
         <div className="mt-6">
           <OrganizationGroupsList
             groups={groups}
@@ -86,7 +106,7 @@ export default function TransactionsIndexPage() {
             error={(error as Error) ?? null}
             onRetry={() => refetch()}
             onOpenGroup={(group) =>
-              navigate(`/agency/transactions/organizations/${group.routeId}`)
+              navigate(`/hq/transactions/organizations/${group.routeId}`)
             }
             toolbarActions={
               <Button

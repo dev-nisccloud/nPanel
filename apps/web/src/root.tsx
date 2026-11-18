@@ -76,7 +76,7 @@ function PostHogPageViews() {
   const location = useLocation();
   useEffect(() => {
     const path = location.pathname;
-    const userType = path.startsWith("/agency") ? "agency" : path.match(/^\/[^/]+\//) ? "customer" : "unknown";
+    const userType = path.startsWith("/hq") || path.startsWith("/agency") ? "agency" : path.match(/^\/[^/]+\//) ? "customer" : "unknown";
     captureEvent("page_viewed", {
       page_path: path,
       page_title: typeof document !== "undefined" ? document.title : "",

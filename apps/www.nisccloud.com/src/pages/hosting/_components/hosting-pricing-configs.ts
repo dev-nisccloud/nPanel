@@ -104,7 +104,7 @@ export const EMAIL_HOSTING_PRICING_CONFIG: HostingPlansPricingConfig = {
     {
       label: "Mailboxes",
       value: "Professional addresses",
-      description: "Create branded email addresses like you@yourbusiness.co.ke.",
+      description: "Create branded email addresses like you@yourbusiness.com.",
     },
     {
       label: "Storage",

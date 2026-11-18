@@ -1035,7 +1035,7 @@ export const ticketsRouter = router({
       if (isInternal && !isAgency) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "Only agency users can send internal messages",
+          message: "Only Nisc HQ staff can send internal messages",
         });
       }
 
@@ -1275,7 +1275,7 @@ export const ticketsRouter = router({
         if (!assignedUser.role?.includes("AGENCY")) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "Can only assign tickets to agency users",
+            message: "Can only assign tickets to Nisc HQ staff",
           });
         }
       }

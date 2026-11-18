@@ -136,7 +136,7 @@ export default function MailMcpPage() {
 					<ShieldAlert className="h-8 w-8 text-destructive" />
 					<p className="text-sm font-semibold">You don&apos;t have access to Mail MCP.</p>
 					<p className="max-w-md text-xs text-muted-foreground">
-						Only agency super admins can create mailbox access tokens.
+						Only Nisc HQ super admins can create mailbox access tokens.
 					</p>
 				</div>
 			</div>

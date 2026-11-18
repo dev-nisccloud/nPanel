@@ -39,8 +39,9 @@ export default function ClientsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: session } = authClient.useSession();
-  const isSuperAdmin =
-    (session?.user as { role?: string } | undefined)?.role === "AGENCY_SUPER_ADMIN";
+  const role = (session?.user as { role?: string } | undefined)?.role ?? "";
+  const isSuperAdmin = role === "AGENCY_SUPER_ADMIN";
+  const canSeePresence = role.includes("AGENCY");
   const [isCreateSheetOpen, setIsCreateSheetOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [loginAsPending, setLoginAsPending] = React.useState(false);
@@ -68,6 +69,14 @@ export default function ClientsPage() {
   const { data: clients, isLoading, error, refetch } = trpc.clients.getAll.useQuery({}, {
     placeholderData: (previousData) => previousData,
   });
+  const presence = trpc.userPresence.snapshot.useQuery(undefined, {
+    enabled: canSeePresence,
+    refetchInterval: 60_000,
+  });
+  const onlineUserIds = React.useMemo(
+    () => new Set((presence.data?.people ?? []).filter((person) => person.isOnline).map((person) => person.id)),
+    [presence.data],
+  );
 
   const utils = trpc.useUtils();
 
@@ -106,7 +115,7 @@ export default function ClientsPage() {
   };
 
   const handleView = (id: string) => {
-    navigate(`/agency/clients/${id}`);
+    navigate(`/hq/clients/${id}`);
   };
 
   const changeStatusMutation = trpc.clients.changeStatus.useMutation({
@@ -135,7 +144,7 @@ export default function ClientsPage() {
 
   const handleLoginAsCustomer = (id: string) => {
     if (!isSuperAdmin) {
-      toast.error("Only agency super admins can login as a customer");
+      toast.error("Only Nisc HQ super admins can login as a customer");
       return;
     }
     const client = clients?.find((c) => c.id === id);
@@ -249,6 +258,7 @@ export default function ClientsPage() {
             <ClientsTable
               data={transformedClients}
               canLoginAsCustomer={isSuperAdmin}
+              onlineUserIds={canSeePresence ? onlineUserIds : undefined}
               onView={handleView}
               onLoginAsCustomer={handleLoginAsCustomer}
               onDeactivate={(id) => handleStatusChange(id, "DEACTIVATED", "deactivate")}

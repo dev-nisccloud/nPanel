@@ -37,7 +37,7 @@ export function PermissionsTab({ asset, onManagePermissions }: PermissionsTabPro
         <div>
           <h3 className="text-lg font-semibold">Permissions</h3>
           <p className="text-sm text-muted-foreground">
-            Manage agency user permissions for this asset
+            Manage Nisc HQ staff permissions for this asset
           </p>
         </div>
         {onManagePermissions && (
@@ -54,7 +54,7 @@ export function PermissionsTab({ asset, onManagePermissions }: PermissionsTabPro
             <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-muted-foreground">No permissions set</p>
             <p className="text-sm text-muted-foreground mt-2">
-              Add permissions to grant access to agency users
+              Add permissions to grant access to Nisc HQ staff
             </p>
             {onManagePermissions && (
               <Button className="mt-4" variant="outline" onClick={onManagePermissions}>

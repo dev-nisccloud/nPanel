@@ -31,7 +31,7 @@ export function useZeepoAiTokenBalance(
 		walletInitialized: query.data?.walletInitialized ?? false,
 		hasQualifyingService: query.data?.hasQualifyingService ?? false,
 		welcomeEligible: query.data?.welcomeEligible ?? false,
-		welcomeTokenGrant: query.data?.welcomeTokenGrant ?? 100,
+		welcomeTokenGrant: query.data?.welcomeTokenGrant ?? 300,
 		minTokensToStart,
 		/** False when this customer cannot start a billable turn. Agency is always true. */
 		canAffordTurn: isAgency || (tokens ?? 0) >= minTokensToStart,

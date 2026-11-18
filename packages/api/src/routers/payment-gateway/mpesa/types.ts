@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { createFromPaymentInputSchema } from "../../nisc-service-orders-schemas";
 
 /**
  * M-Pesa environment configuration
@@ -43,6 +44,18 @@ export const StkPushRequestSchema = z.object({
 	billedForUserId: z.string().optional(),
 	/** When set, a successful payment is applied to this invoice instead of creating a new order. */
 	invoiceId: z.string().optional(),
+	/**
+	 * The cart being paid for. Customers must send it (unless paying an invoice): the server checks
+	 * it against the catalogue, charges its own total and keeps it on the payment so the order can
+	 * be completed even if the browser closes.
+	 */
+	orderIntent: z
+		.object({
+			items: createFromPaymentInputSchema.shape.items,
+			currency: z.string().default("KES"),
+			skipInvoice: z.boolean().optional(),
+		})
+		.optional(),
 });
 
 export type StkPushRequest = z.infer<typeof StkPushRequestSchema>;

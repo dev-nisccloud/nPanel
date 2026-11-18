@@ -42,7 +42,7 @@ export function UpdateQuotationButton({ quotationId }: UpdateQuotationButtonProp
 			toast.success("Quotation updated successfully");
 			utils.quotations.list.invalidate();
 			utils.quotations.getById.invalidate({ id: quotationId });
-			setTimeout(() => navigate(`/agency/quotations/${quotationId}`), 1000);
+			setTimeout(() => navigate(`/hq/quotations/${quotationId}`), 1000);
 		},
 		onError: (error) => {
 			setStatus("idle");

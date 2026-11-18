@@ -44,9 +44,9 @@ export default function NiscEmailMarketingHubPage() {
 					<div className="flex flex-col gap-2">
 						<div className="flex items-center gap-2 text-muted-foreground">
 							<Mail className="h-4 w-4" />
-							<span className="text-xs">Nisc Email Marketing</span>
+							<span className="text-xs">Nisc Outreach</span>
 						</div>
-						<h1 className="text-base font-semibold tracking-tight">Email Marketing</h1>
+						<h1 className="text-base font-semibold tracking-tight">Nisc Outreach</h1>
 						<p className="text-xs text-muted-foreground">
 							Campaigns, audiences, AI email builder, and sending domains.
 						</p>

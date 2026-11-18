@@ -182,7 +182,7 @@ function InvoiceRowActions({ invoice, onRefetch }: InvoiceRowActionsProps) {
 								</Button>
 							</DropdownMenuTrigger>
 							<DropdownMenuContent align="end" className="w-64">
-								<DropdownMenuItem onClick={() => navigate(`/agency/invoices/${invoice.id}`)} disabled={busy}>
+								<DropdownMenuItem onClick={() => navigate(`/hq/invoices/${invoice.id}`)} disabled={busy}>
 									<Eye className="mr-2 h-4 w-4" />
 									View Invoice
 								</DropdownMenuItem>
@@ -362,7 +362,7 @@ export function InvoicesTable({ invoices, onRefetch }: InvoicesTableProps) {
 							</TableCell>
 							<TableCell
 								className="pl-6 cursor-pointer font-medium"
-								onClick={() => navigate(`/agency/invoices/${inv.id}`)}
+								onClick={() => navigate(`/hq/invoices/${inv.id}`)}
 							>
 								<div className="flex items-center gap-2">
 									<FileText className="h-4 w-4 text-muted-foreground" />

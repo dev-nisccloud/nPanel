@@ -33,6 +33,8 @@ import {
   ShoppingCart,
   Smartphone,
   Target,
+  LayoutTemplate,
+  Workflow,
   Wrench,
   Zap,
 } from "lucide-react";
@@ -81,6 +83,12 @@ export const productFamilies = [
             desc: "Nisc Mail with Google Workspace or Microsoft 365.",
             href: "/hosting/hybrid-email",
             icon: Mails,
+          },
+          {
+            label: "Agentic Email Marketing",
+            desc: "Nisc Outreach: AI designs and sends your campaigns.",
+            href: "/services/email-marketing",
+            icon: Send,
           },
         ],
       },
@@ -160,6 +168,32 @@ export const productFamilies = [
   },
 
   {
+    label: "AI & Automation",
+    icon: Workflow,
+    href: "/services/zepo-ai",
+    items: [
+      {
+        label: "Zepo AI",
+        desc: "Your assistant inside nPanel, from account to inbox.",
+        href: "/services/zepo-ai",
+        icon: ZepoMascot,
+      },
+      {
+        label: "Nisc Outreach",
+        desc: "AI email marketing that designs from your brand.",
+        href: "/services/email-marketing",
+        icon: Send,
+      },
+      {
+        label: "AI Website Builder",
+        desc: "Describe your business, get a website.",
+        href: "/services/ai-website-builder",
+        icon: LayoutTemplate,
+      },
+    ],
+  },
+
+  {
     label: "Security",
     icon: ShieldCheck,
     href: "/security",
@@ -218,12 +252,6 @@ export const productFamilies = [
         icon: Smartphone,
       },
 
-      {
-        label: "AI & Automation",
-        desc: "Explore smarter everyday workflows.",
-        href: "/services/zepo-ai",
-        icon: ZepoMascot,
-      },
     ],
   },
 
@@ -261,21 +289,39 @@ export const productFamilies = [
       },
 
       {
-        label: "SEO, AEO & GEO",
-        desc: "Visibility across search and AI answers.",
-        href: "/services/seo",
+        label: "SEO & AI Search",
+        desc: "Visibility on Google, Maps and AI answers.",
+        href: "/services/seo-ai-search",
         icon: BarChart2,
       },
 
       {
-        label: "Email Marketing",
-        desc: "Keep your audience connected.",
+        label: "Nisc Outreach",
+        desc: "AI email marketing and campaigns.",
         href: "/services/email-marketing",
         icon: Send,
       },
     ],
   },
 ];
+
+/** Small badges beside a product name in the desktop and mobile menus. */
+export const PRODUCT_TAGS: Record<string, "New" | "Coming soon"> = {
+  "/hosting/hybrid-email": "New",
+  "/hosting/agency": "New",
+  "/services/ai-website-builder": "Coming soon",
+  "/services/email-marketing": "New",
+};
+
+export function ProductTag({ href }: { href: string }) {
+  const tag = PRODUCT_TAGS[href];
+  if (!tag) return null;
+  return (
+    <span className="ml-1.5 whitespace-nowrap rounded-md bg-brand-orange/20 px-1.5 py-0.5 text-[10px] font-semibold text-foreground">
+      {tag}
+    </span>
+  );
+}
 
 export function productSections(family: (typeof productFamilies)[number]) {
   if ("groups" in family && family.groups) return family.groups;
@@ -318,11 +364,7 @@ export default function ProductsMegaMenu({
         <span className="min-w-0">
           <span className="block text-sm font-semibold leading-snug group-hover:text-primary">
             {item.label}
-            {["/hosting/hybrid-email", "/hosting/agency"].includes(item.href) && (
-              <span className="ml-1.5 rounded-md bg-brand-orange/20 px-1.5 py-0.5 text-[10px] text-foreground">
-                New
-              </span>
-            )}
+            <ProductTag href={item.href} />
           </span>
           <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">
             {item.desc}

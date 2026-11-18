@@ -14,7 +14,7 @@ export function ConnectFacebookButton({
   label = "Connect Facebook",
   size = "sm",
   className,
-  returnUrl = "/agency/social-media-ads/facebook",
+  returnUrl = "/hq/social-media-ads/facebook",
   platform = "meta_facebook",
   beforeConnect,
 }: {

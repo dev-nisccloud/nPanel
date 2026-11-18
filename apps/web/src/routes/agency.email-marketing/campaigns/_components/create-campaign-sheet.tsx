@@ -1201,7 +1201,7 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 														variant="outline"
 														onClick={() => {
 															onOpenChange(false);
-															navigate("/agency/email-marketing/audiences");
+															navigate("/hq/email-marketing/audiences");
 														}}
 													>
 														Go to Audiences

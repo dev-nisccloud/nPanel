@@ -167,7 +167,7 @@ function InvoiceCard({ invoice, onRefetch }: InvoiceCardProps) {
 	const navigate = useNavigate();
 	const { pathname } = useLocation();
 	const teamSlug = pathname.split("/")[1];
-	const basePath = teamSlug ? `/${teamSlug}/invoices` : "/agency/invoices";
+	const basePath = teamSlug ? `/${teamSlug}/invoices` : "/hq/invoices";
 
 	const StatusIcon = statusIcon[invoice.status];
 

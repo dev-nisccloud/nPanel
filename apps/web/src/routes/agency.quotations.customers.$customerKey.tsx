@@ -130,7 +130,7 @@ export default function CustomerQuotationsPage() {
 						title="Customer not found"
 						description="This customer link is invalid."
 						action={
-							<Button onClick={() => navigate("/agency/quotations")} variant="outline">
+							<Button onClick={() => navigate("/hq/quotations")} variant="outline">
 								<ArrowLeft className="mr-2 h-4 w-4" />
 								Back to customers
 							</Button>
@@ -183,7 +183,7 @@ export default function CustomerQuotationsPage() {
 						variant="ghost"
 						size="sm"
 						className="w-fit -ml-2 text-muted-foreground"
-						onClick={() => navigate("/agency/quotations")}
+						onClick={() => navigate("/hq/quotations")}
 					>
 						<ArrowLeft className="mr-2 h-4 w-4" />
 						All customers
@@ -220,7 +220,7 @@ export default function CustomerQuotationsPage() {
 							>
 								<RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
 							</Button>
-							<Button onClick={() => navigate("/agency/quotations/create")}>
+							<Button onClick={() => navigate("/hq/quotations/create")}>
 								<Plus className="mr-2 h-4 w-4" />
 								Create Quotation
 							</Button>
@@ -234,7 +234,7 @@ export default function CustomerQuotationsPage() {
 							title="No quotations for this customer"
 							description="Create a quotation for this customer to see it here."
 							action={
-								<Button onClick={() => navigate("/agency/quotations/create")}>
+								<Button onClick={() => navigate("/hq/quotations/create")}>
 									<Plus className="mr-2 h-4 w-4" />
 									Create Quotation
 								</Button>

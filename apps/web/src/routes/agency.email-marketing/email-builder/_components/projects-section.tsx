@@ -49,7 +49,7 @@ export const ProjectsSection = () => {
     const handleDesignClick = (designId: string) => {
         if (loadingDesignId) return;
         setLoadingDesignId(designId);
-        navigate(`/agency/email-marketing/email-builder/editor/${designId}`);
+        navigate(`/hq/email-marketing/email-builder/editor/${designId}`);
     };
 
     const onCopy = (id: string, e: React.MouseEvent) => {

@@ -113,9 +113,9 @@ export async function handleProcessNiscOrder(c: Context) {
 
 		const baseUrl = getNormalizedPublicAppUrl();
 		const orderLink = joinPublicAppPath(
-			`/agency/nisc-service-orders?order=${encodeURIComponent(niscOrderId)}`,
+			`/hq/nisc-service-orders?order=${encodeURIComponent(niscOrderId)}`,
 		);
-		const retryLink = joinPublicAppPath("/agency/nisc-service-orders");
+		const retryLink = joinPublicAppPath("/hq/nisc-service-orders");
 
 		let customerName = order.user?.name ?? null;
 		if (!customerName && order.team?.createdById) {

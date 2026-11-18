@@ -172,7 +172,7 @@ export function OverviewInvoicesBilling({ clientId }: { clientId: string }) {
 
       <div className="border-t px-3 py-2">
         <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" asChild>
-          <Link to="/agency/invoices">View invoices</Link>
+          <Link to="/hq/invoices">View invoices</Link>
         </Button>
       </div>
     </Card>

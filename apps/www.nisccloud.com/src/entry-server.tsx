@@ -7,7 +7,7 @@ import { ssrMetaSink, type PageMeta } from "./lib/seo.ts";
 
 export { PRERENDER_ROUTES } from "./lib/public-routes.ts";
 export { ROUTE_META };
-export { DEFAULT_OG_IMAGE, SITE_NAME, SITE_ORIGIN, fitDescription } from "./lib/seo.ts";
+export { DEFAULT_OG_IMAGE, SITE_NAME, SITE_ORIGIN, fitDescription, fullPageTitle } from "./lib/seo.ts";
 
 /**
  * Build-time render of one route. `prerender` waits for lazy route chunks, so the HTML holds

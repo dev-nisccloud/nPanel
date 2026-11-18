@@ -160,7 +160,7 @@ export function HivelocityHostnameSection({
 	};
 
 	const domainsBrowseHref = isAgencySide
-		? "/agency/domains"
+		? "/hq/domains"
 		: buyDomainHref ?? (teamSlug ? `/${teamSlug}/domains` : undefined);
 
 	const domainsCtaLabel = "Browse domains";

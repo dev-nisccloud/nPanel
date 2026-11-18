@@ -34,7 +34,7 @@ const options = [
 ];
 export function AgencyPlans() {
   return (
-    <section className="mx-auto max-w-7xl px-4 py-16 md:px-8">
+    <section id="plans" className="mx-auto max-w-7xl scroll-mt-24 px-4 py-16 md:px-8">
       <h2 className="type-h2">
         Agency hosting plans, shaped around your clients
       </h2>

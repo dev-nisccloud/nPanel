@@ -42,12 +42,12 @@ export function CreativeAssetCard({
   const navigate = useNavigate();
 
   const handleCardClick = () => {
-    navigate(`/agency/creative-assets/${data.id}`);
+    navigate(`/hq/creative-assets/${data.id}`);
   };
 
   const handleViewDetails = (e: React.MouseEvent) => {
     e.stopPropagation();
-    navigate(`/agency/creative-assets/${data.id}`);
+    navigate(`/hq/creative-assets/${data.id}`);
   };
 
   const handleEdit = (e: React.MouseEvent) => {

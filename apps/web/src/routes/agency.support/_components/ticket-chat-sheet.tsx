@@ -395,7 +395,7 @@ export function TicketChatSheet({
                 {customerLabel
                   ? `Opened for ${customerLabel}. `
                   : "Opened for a customer. "}
-                Only agency staff can see and reply. The customer is not included.
+                Only Nisc HQ staff can see and reply. The customer is not included.
               </p>
             </div>
           ) : null}

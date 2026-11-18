@@ -21,7 +21,7 @@ import { DedicatedPlansSection } from "@/pages/hosting/dedicated-servers/_compon
 import DomainSearch from "@/pages/_components/DomainSearch.tsx";
 import { EmailPricingSection } from "@/pages/hosting/email/_components/EmailPricingSection.tsx";
 import SecurityPlans from "@/pages/security/_components/SecurityPlans.tsx";
-import { SeoPricingSection } from "@/pages/services/seo/_components/SeoPricingSection.tsx";
+import { SeoPricingSection } from "@/pages/services/seo-ai-search/_components/SeoPricingSection.tsx";
 import { EmailMarketingPricingSection } from "@/pages/services/email-marketing/_components/EmailMarketingPricingSection.tsx";
 import { LicencePlansSection } from "@/pages/_components/LicencePlansSection.tsx";
 import { AgencyPlans } from "@/pages/hosting/agency/_components/AgencyPlans.tsx";
@@ -182,17 +182,17 @@ const groups: Group[] = [
       },
       {
         id: "seo",
-        label: "SEO / AEO",
+        label: "SEO & AI Search",
         section: "Digital marketing",
-        description: "Get found on Google and AI search with strategy, implementation and monthly reporting.",
-        href: "/services/seo",
+        description: "Get found on Google, Maps and AI-powered search with technical work, useful content and monthly reporting.",
+        href: "/services/seo-ai-search",
         component: SeoPricingSection,
       },
       {
         id: "email-marketing",
-        label: "Email Marketing",
+        label: "Nisc Outreach",
         section: "Digital marketing",
-        description: "Email design, automation flows and campaign analytics, managed for you.",
+        description: "AI email marketing in nPanel: AI-built campaigns from your brand, audiences, sending and results.",
         href: "/services/email-marketing",
         component: EmailMarketingPricingSection,
       },
@@ -221,8 +221,8 @@ const groups: Group[] = [
       },
       {
         id: "zepo-ai",
-        label: "AI & Automation",
-        description: "Zepo AI chat assistants, lead capture and follow-up automation.",
+        label: "Zepo AI",
+        description: "Your assistant inside nPanel, paid in credits. 300 free credits with any active service.",
         href: "/services/zepo-ai",
         component: ZepoAiPricing,
       },

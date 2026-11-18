@@ -79,7 +79,7 @@ function HostingDetailError({ error, onRetry }: { error: Error; onRetry: () => v
       <div className="w-full max-w-7xl mx-auto">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link to="/agency/hosting">
+            <Link to="/hq/hosting">
               <Button variant="ghost" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
@@ -116,7 +116,7 @@ function HostingDetailError({ error, onRetry }: { error: Error; onRetry: () => v
             <Button onClick={onRetry} variant="outline">
               Try Again
             </Button>
-            <Link to="/agency/hosting">
+            <Link to="/hq/hosting">
               <Button variant="ghost">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Hosting
@@ -223,7 +223,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link to="/agency/hosting">
+            <Link to="/hq/hosting">
               <Button variant="ghost" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back

@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { XMLParser } from "fast-xml-parser";
-import { publicProcedure, router } from "../../trpc";
+import { protectedProcedure, router } from "../../trpc";
+import { assertAgencySuperAdmin } from "../../lib/domain-transfer-access";
+
+const healthCheckProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+    await assertAgencySuperAdmin(ctx.session.user.id);
+    return next();
+});
 import { sendPleskXmlRequest } from "../../lib/plesk/xml-client";
 import { sendPleskRestRequest } from "../../lib/plesk/rest-client";
 
@@ -13,7 +19,7 @@ export const pleskHealthCheckRouter = router({
 	 * Test Plesk XML API connection
 	 * Makes a minimal request to verify connectivity and authentication
 	 */
-	testXmlConnection: publicProcedure
+	testXmlConnection: healthCheckProcedure
 		.input(z.object({}).optional().default({}))
 		.query(async () => {
 			try {
@@ -191,7 +197,7 @@ export const pleskHealthCheckRouter = router({
 	 * Test Plesk REST API connection
 	 * Makes a minimal request to verify connectivity and authentication
 	 */
-	testRestConnection: publicProcedure
+	testRestConnection: healthCheckProcedure
 		.input(z.object({}).optional().default({}))
 		.query(async () => {
 			try {
@@ -320,7 +326,7 @@ export const pleskHealthCheckRouter = router({
 	 * Test both XML and REST API connections
 	 * Comprehensive health check for Plesk integration
 	 */
-	testAll: publicProcedure
+	testAll: healthCheckProcedure
 		.input(z.object({}).optional().default({}))
 		.query(async () => {
 			const [xmlResult, restResult] = await Promise.allSettled([

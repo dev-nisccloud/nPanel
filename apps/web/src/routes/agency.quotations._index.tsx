@@ -146,7 +146,7 @@ export default function QuotationIndex() {
 							>
 								<RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
 							</Button>
-							<Button onClick={() => navigate("/agency/quotations/create")}>
+							<Button onClick={() => navigate("/hq/quotations/create")}>
 								<Plus className="mr-2 h-4 w-4" />
 								Create Quotation
 							</Button>
@@ -165,7 +165,7 @@ export default function QuotationIndex() {
 							}
 							action={
 								!searchTerm.trim() ? (
-									<Button onClick={() => navigate("/agency/quotations/create")}>
+									<Button onClick={() => navigate("/hq/quotations/create")}>
 										<Plus className="mr-2 h-4 w-4" />
 										Create Quotation
 									</Button>

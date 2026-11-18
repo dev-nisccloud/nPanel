@@ -25,6 +25,11 @@ import {
   validateAndRefreshIdleSessionById,
 } from "./session-enforcement";
 import { invalidateSessionCache } from "./session-cache";
+import { authRateLimitStorage } from "./rate-limit-storage";
+import {
+  consumeSignupVerificationSuppression,
+  SET_PASSWORD_LINK_TTL_SEC,
+} from "./admin-created-account";
 import {
   PARKED_AGENCY_SESSION_TTL_SEC,
   ensureParkedAgencySession,
@@ -56,7 +61,7 @@ import {
 import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
-import { admin } from "better-auth/plugins";
+import { admin, captcha } from "better-auth/plugins";
 import { eq } from "@npanel/db";
 import {
   adminAccessRoles,
@@ -341,30 +346,19 @@ export const auth = betterAuth<BetterAuthOptions>({
       roles: adminAccessRoles,
       impersonationSessionDuration: IMPERSONATION_SESSION_DURATION_SEC,
     }),
+    // Off until TURNSTILE_SECRET_KEY is set; the web app sends the token as x-captcha-response.
+    ...(process.env.TURNSTILE_SECRET_KEY?.trim()
+      ? [
+          captcha({
+            provider: "cloudflare-turnstile",
+            secretKey: process.env.TURNSTILE_SECRET_KEY.trim(),
+            endpoints: ["/sign-up/email", "/sign-in/email", "/request-password-reset"],
+          }),
+        ]
+      : []),
   ],
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
-      const isForgetPassword =
-        ctx.path === "/request-password-reset" ||
-        ctx.path === "/forget-password" ||
-        ctx.path === "/forgot-password";
-      if (isForgetPassword) {
-        const email = (ctx.body as { email?: string } | undefined)?.email;
-        if (email && typeof email === "string") {
-          const rows = await db
-            .select({ id: user.id })
-            .from(user)
-            .where(eq(user.email, email))
-            .limit(1);
-          if (!rows[0]) {
-            throw new APIError("NOT_FOUND", {
-              message:
-                "No account found with this email address. The email may be invalid or not registered. Please check the address or sign up for an account.",
-            });
-          }
-        }
-      }
-
       if (ctx.path.startsWith("/sign-up")) {
         if (!signupRequestAcceptsTerms(ctx.body)) {
           throw new APIError("BAD_REQUEST", {
@@ -892,17 +886,29 @@ export const auth = betterAuth<BetterAuthOptions>({
 
       if (ctx.path.startsWith("/sign-up")) {
         const newSession = ctx.context.newSession;
-        if (newSession?.user?.id) {
-          void recordTermsAcceptance(newSession.user.id).catch((error) =>
-            console.error("Failed to record terms acceptance on sign-up:", error),
-          );
-          void completeSignupSideEffects({
-            userId: newSession.user.id,
-            sessionId: newSession.session?.id,
-            emailVerified: Boolean(newSession.user.emailVerified),
-            signupMethod: "email_password",
-            headers: ctx.headers,
-          }).catch((error) =>
+        // With requireEmailVerification there is no session, and a repeat sign-up for an
+        // existing email returns a synthetic user that is not in the database.
+        const returnedUser = (ctx.context.returned as { user?: { id?: string } } | undefined)?.user;
+        const signupUserId = newSession?.user?.id ?? returnedUser?.id;
+        if (signupUserId) {
+          void (async () => {
+            const [created] = await db
+              .select({ id: user.id, emailVerified: user.emailVerified })
+              .from(user)
+              .where(eq(user.id, signupUserId))
+              .limit(1);
+            if (!created) return;
+            await recordTermsAcceptance(created.id).catch((error) =>
+              console.error("Failed to record terms acceptance on sign-up:", error),
+            );
+            await completeSignupSideEffects({
+              userId: created.id,
+              sessionId: newSession?.session?.id,
+              emailVerified: Boolean(created.emailVerified),
+              signupMethod: "email_password",
+              headers: ctx.headers,
+            });
+          })().catch((error) =>
             console.error("Failed to log signup / create signup notification:", error),
           );
         }
@@ -1180,6 +1186,8 @@ export const auth = betterAuth<BetterAuthOptions>({
   },
   emailAndPassword: {
     enabled: true,
+    // No session until the address is confirmed, for customers and staff alike.
+    requireEmailVerification: true,
     sendResetPassword: async ({ user: u, url, token }) => {
       void (async () => {
         try {
@@ -1220,6 +1228,14 @@ export const auth = betterAuth<BetterAuthOptions>({
       })();
     },
     onPasswordReset: async ({ user: u }) => {
+      if (!u.emailVerified) {
+        // The reset link was opened from this inbox, which confirms the address.
+        await db
+          .update(user)
+          .set({ emailVerified: true, updatedAt: new Date() })
+          .where(eq(user.id, u.id))
+          .catch((error) => console.error("Failed to mark email verified after reset:", error));
+      }
       void (async () => {
         try {
           await db.insert(userActivityLog).values({
@@ -1314,6 +1330,9 @@ export const auth = betterAuth<BetterAuthOptions>({
         const tokenPayload = peekEmailVerificationToken(token);
         const isEmailChangeVerification =
           tokenPayload?.requestType === "change-email-verification";
+        if (!isEmailChangeVerification && consumeSignupVerificationSuppression(u.email)) {
+          return;
+        }
 
         try {
           await db.insert(userActivityLog).values({
@@ -1423,8 +1442,23 @@ export const auth = betterAuth<BetterAuthOptions>({
       })();
     },
     sendOnSignUp: true,
+    // Better Auth only resends after the password is correct, so strangers cannot trigger it.
+    sendOnSignIn: true,
     autoSignInAfterVerification: true,
     expiresIn: 3600,
+  },
+  rateLimit: {
+    enabled: env.NODE_ENV === "production" || process.env.AUTH_RATE_LIMIT === "true",
+    window: 60,
+    max: 100,
+    customStorage: authRateLimitStorage,
+    customRules: {
+      "/sign-up/email": { window: 3600, max: 5 },
+      "/sign-in/email": { window: 60, max: 5 },
+      "/send-verification-email": { window: 600, max: 3 },
+      "/request-password-reset": { window: 600, max: 3 },
+      "/forget-password": { window: 600, max: 3 },
+    },
   },
   advanced: {
     ipAddress: {
@@ -1494,3 +1528,15 @@ export const auth = betterAuth<BetterAuthOptions>({
     },
   },
 });
+
+/** Single-use "set your password" link for accounts created by Nisc HQ staff. */
+export async function createSetPasswordLink(userId: string): Promise<string> {
+  const ctx = await auth.$context;
+  const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
+  await ctx.internalAdapter.createVerificationValue({
+    value: userId,
+    identifier: `reset-password:${token}`,
+    expiresAt: new Date(Date.now() + SET_PASSWORD_LINK_TTL_SEC * 1000),
+  });
+  return `${frontendBaseUrl()}/auth/reset-password?token=${token}&welcome=1`;
+}

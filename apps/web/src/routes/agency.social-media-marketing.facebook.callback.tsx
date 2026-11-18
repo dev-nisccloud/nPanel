@@ -39,8 +39,8 @@ export default function FacebookCallbackPage() {
 			setTimeout(() => {
 				window.location.replace(
 					connectionSourceRef.current === "meta_ads"
-						? "/agency/social-media-ads/facebook"
-						: "/agency/social-media-marketing/facebook",
+						? "/hq/social-media-ads/facebook"
+						: "/hq/social-media-marketing/facebook",
 				);
 			}, 2000);
 		},
@@ -102,8 +102,8 @@ export default function FacebookCallbackPage() {
 			setTimeout(() => {
 				window.location.replace(
 					connectionSourceRef.current === "meta_ads"
-						? "/agency/social-media-ads/facebook"
-						: "/agency/social-media-marketing/facebook",
+						? "/hq/social-media-ads/facebook"
+						: "/hq/social-media-marketing/facebook",
 				);
 			}, 1000);
 			return;
@@ -159,7 +159,7 @@ export default function FacebookCallbackPage() {
 									<AlertCircle className="h-12 w-12 text-destructive mb-4" />
 									<p className="text-sm text-destructive mb-4">{errorMessage}</p>
 									<Button
-										onClick={() => window.location.replace("/agency/social-media-marketing/facebook")}
+										onClick={() => window.location.replace("/hq/social-media-marketing/facebook")}
 										variant="outline"
 									>
 										Go Back

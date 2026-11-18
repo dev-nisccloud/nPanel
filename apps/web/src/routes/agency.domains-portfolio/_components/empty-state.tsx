@@ -16,11 +16,11 @@ export function EmptyState() {
         You haven&apos;t registered any domains yet. Start building your domains portfolio by registering your first domain.
       </p>
       <div className="flex flex-wrap items-center justify-center gap-2">
-        <Button variant="outline" onClick={() => navigate("/agency/domain-transfer")}>
+        <Button variant="outline" onClick={() => navigate("/hq/domain-transfer")}>
           <ArrowRightLeft className="mr-2 h-4 w-4" />
           Transfer Domain
         </Button>
-        <Button onClick={() => navigate("/agency/domains")}>
+        <Button onClick={() => navigate("/hq/domains")}>
           <Plus className="mr-2 h-4 w-4" />
           Register Your First Domain
         </Button>

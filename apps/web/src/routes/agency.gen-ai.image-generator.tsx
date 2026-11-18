@@ -17,7 +17,7 @@ export default function ImageGeneratorPage() {
           <h1 className="text-base font-semibold tracking-tight">Image generator</h1>
           <p className="text-xs text-muted-foreground">
             Effortlessly create anything from quick AI-generated images to striking posters right from your text prompt. For advanced creative control and fine-tuned design features, try{" "}
-            <Link to="/agency/gen-ai/image-gen-studio" className="text-primary underline hover:no-underline">
+            <Link to="/hq/gen-ai/image-gen-studio" className="text-primary underline hover:no-underline">
               Visual Studio
             </Link>
             .

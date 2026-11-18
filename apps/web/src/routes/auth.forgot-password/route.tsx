@@ -17,6 +17,7 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Turnstile } from "@/components/turnstile";
 
 const FormSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -25,6 +26,8 @@ const FormSchema = z.object({
 export default function ForgotPasswordPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEmailSent, setIsEmailSent] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -39,7 +42,9 @@ export default function ForgotPasswordPage() {
       const result = await authClient.requestPasswordReset({
         email: data.email,
         redirectTo: `${window.location.origin}/auth/reset-password`,
+        fetchOptions: captchaToken ? { headers: { "x-captcha-response": captchaToken } } : undefined,
       });
+      setCaptchaResetKey((value) => value + 1);
 
       if (result.error) {
         toast.error(
@@ -50,7 +55,7 @@ export default function ForgotPasswordPage() {
 
       captureEvent("password_reset_requested");
       setIsEmailSent(true);
-      toast.success("Password reset email sent!");
+      toast.success("Check your email");
     } catch {
       toast.error("We couldn't send a reset email. Please try again.");
     } finally {
@@ -72,7 +77,7 @@ export default function ForgotPasswordPage() {
             </div>
             <h1 className="text-xl font-medium">Check your email</h1>
             <p className="text-muted-foreground text-sm">
-              We've sent a password reset link to your email address. Please check your inbox and follow the instructions to reset your password.
+              If an account exists for that email, we've sent a password reset link. Check your inbox and spam folder. The link expires in 1 hour.
             </p>
           </div>
 
@@ -128,7 +133,8 @@ export default function ForgotPasswordPage() {
               )}
             />
 
-            <Button className="h-12 w-full" type="submit" disabled={isSubmitting}>
+            <Turnstile onToken={setCaptchaToken} resetKey={captchaResetKey} />
+            <Button className="w-full" type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
                 <div className="flex items-center gap-2">
                   <Spinner variant="ellipsis" className="text-primary-foreground" size="sm" />

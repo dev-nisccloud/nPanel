@@ -45,7 +45,7 @@ export function CompanyContactsTab({ contacts }: { contacts: CompanyContactRow[]
               <TableRow key={contact.id}>
                 <TableCell className="px-4">
                   <Link
-                    to={`/agency/crm/contacts/${contact.id}`}
+                    to={`/hq/crm/contacts/${contact.id}`}
                     className="text-sm font-semibold text-foreground hover:underline"
                   >
                     {contact.fullName}

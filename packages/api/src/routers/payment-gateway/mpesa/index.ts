@@ -22,6 +22,9 @@ import {
 	isProcessingResultCode,
 } from "./error-codes";
 import { applySuccessfulPaymentToInvoiceSafe } from "../../../lib/invoice-apply-gateway-payment";
+import { computeCeilVatTotals } from "../../../lib/convert-price";
+import { assertCustomerOrderMeetsPriceFloor } from "../../../lib/customer-order-price-floor";
+import { storedOrderSubtotalExVat } from "../../../lib/stored-order-intent";
 
 const isAgencyUserRole = (role: string | null | undefined) =>
 	role === "AGENCY_USER" || role === "AGENCY_ADMIN" || role === "AGENCY_SUPER_ADMIN";
@@ -171,19 +174,51 @@ export const mpesaRouter = router({
 				}
 
 				const requestedAmount = Math.ceil(input.amount);
-				const checkoutTotalIncVat =
-					input.checkoutTotalIncVat != null
-						? Math.ceil(input.checkoutTotalIncVat)
-						: null;
 
-				// Customers must send the tax-inclusive checkout total; agency may overpay but never underpay.
+				// The cart is checked and priced here, before any money moves. Customers must send it
+				// (invoice payments excepted); the server's total is what gets charged.
+				let intentTotalIncVat: number | null = null;
+				if (input.orderIntent) {
+					if (!agencyUser) {
+						const intentCurrency = (input.orderIntent.currency || "KES").trim().toUpperCase();
+						if (intentCurrency !== "KES") {
+							throw new TRPCError({
+								code: "BAD_REQUEST",
+								message: "M-Pesa can only be used for orders priced in KES.",
+							});
+						}
+						await assertCustomerOrderMeetsPriceFloor(input.orderIntent.items, {
+							userId: transactionUserId,
+							beforePayment: true,
+						});
+					}
+					intentTotalIncVat = computeCeilVatTotals(
+						storedOrderSubtotalExVat(input.orderIntent.items),
+					).totalIncVat;
+				} else if (!agencyUser && !input.invoiceId) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"This checkout page is out of date. Refresh the page and try again. You have not been charged.",
+					});
+				}
+
+				const checkoutTotalIncVat =
+					intentTotalIncVat ??
+					(input.checkoutTotalIncVat != null ? Math.ceil(input.checkoutTotalIncVat) : null);
+
+				// Customers must have a tax-inclusive total; agency may overpay but never underpay.
 				if (!agencyUser && checkoutTotalIncVat == null) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message: "checkoutTotalIncVat is required for customer M-Pesa checkout.",
 					});
 				}
-				if (checkoutTotalIncVat != null && requestedAmount < checkoutTotalIncVat) {
+				if (
+					checkoutTotalIncVat != null &&
+					requestedAmount < checkoutTotalIncVat &&
+					(agencyUser || intentTotalIncVat == null)
+				) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message: `Payment amount (${requestedAmount}) is less than the checkout total (${checkoutTotalIncVat}). Underpayment is not allowed.`,
@@ -210,7 +245,7 @@ export const mpesaRouter = router({
 				const transactionId = crypto.randomUUID();
 				await db.insert(paymentTransaction).values({
 						id: transactionId,
-						userId: transactionUserId, // Use customer userId if provided by agency, otherwise agency userId
+						userId: transactionUserId, // Use customer userId if provided by agency, otherwise Nisc HQ staffId
 						teamId: input.teamId || null,
 						gateway: "MPESA",
 						gatewayStatus: response.ResponseCode,
@@ -226,7 +261,19 @@ export const mpesaRouter = router({
 						rawResponse: JSON.parse(JSON.stringify(response)),
 						metadata: input.invoiceId
 							? { invoiceId: input.invoiceId, source: "invoice" }
-							: null,
+							: input.orderIntent
+								? {
+										source: "npanel_checkout",
+										items: input.orderIntent.items,
+										currency: input.orderIntent.currency,
+										...(input.teamId ? { teamId: input.teamId } : {}),
+										...(agencyUser && input.billedForUserId
+											? { billedForUserId: input.billedForUserId }
+											: {}),
+										...(input.orderIntent.skipInvoice ? { skipInvoice: true } : {}),
+										expectedTotalIncVat: intentTotalIncVat,
+									}
+								: null,
 						initiatedAt: now,
 						createdAt: now,
 						updatedAt: now,

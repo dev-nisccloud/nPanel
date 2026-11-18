@@ -5,7 +5,15 @@
 /** Stable product id - seeded by apps/server/src/scripts/seed-seo-reports-product.ts */
 export const NISC_SEO_REPORTS_PRODUCT_ID = "nisc-seo-reports";
 
+/** Plans on sale. Enterprise is hidden and priced per client by agency staff. */
 export const NISC_SEO_REPORTS_PLAN_IDS = {
+	essentials: "nisc-seo-reports-plan-essentials",
+	growth: "nisc-seo-reports-plan-search-growth",
+	enterprise: "nisc-seo-reports-plan-enterprise",
+} as const;
+
+/** Retired plans: hidden from sale but kept active so existing subscriptions renew. */
+export const NISC_SEO_REPORTS_LEGACY_PLAN_IDS = {
 	starter: "nisc-seo-reports-plan-starter",
 	growth: "nisc-seo-reports-plan-growth",
 	pro: "nisc-seo-reports-plan-pro",

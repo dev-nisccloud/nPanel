@@ -16,7 +16,8 @@ import {
 } from "@npanel/db/schema/auth-extras";
 import { account, session as sessionTable, user, verification } from "@npanel/db/schema/auth";
 import * as crypto from "crypto";
-import { auth } from "@npanel/auth";
+import { auth, createSetPasswordLink } from "@npanel/auth";
+import { suppressSignupVerificationEmail } from "@npanel/auth/admin-created-account";
 import { hashCredentialPassword } from "@npanel/auth/hash-credential-password";
 import { renderAccountCreatedEmail } from "../lib/email-templates";
 import { sendEmail } from "../lib/email";
@@ -112,7 +113,6 @@ const createClientProfileInputSchema = z.object({
 const createClientInputSchema = z.object({
 	name: z.string().min(1, "Name is required"),
 	email: z.string().email("Invalid email address"),
-	password: z.string().min(8, "Password must be at least 8 characters"),
 	role: z.enum(["CUSTOMER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"]).optional().default("CUSTOMER"),
 	profile: createClientProfileInputSchema.optional(),
 	createOrganization: z
@@ -574,10 +574,13 @@ export const clientsRouter = router({
 
 			// Use Better Auth's signUpEmail API to create the user
 			// This properly handles password hashing and account creation
+			// The person chooses their own password from the emailed link; this one is never shown.
+			const placeholderPassword = crypto.randomBytes(24).toString("base64url");
+			suppressSignupVerificationEmail(input.email);
 			const signupResult = await auth.api.signUpEmail({
 				body: {
 					email: input.email,
-					password: input.password,
+					password: placeholderPassword,
 					name: input.name,
 					// Agency-created accounts bypass the public sign-up form; terms are implied.
 					acceptedTermsAndConditions: true,
@@ -846,16 +849,11 @@ export const clientsRouter = router({
 			}
 			updatedUser = refetchedUser;
 
-			// Send custom credentials email
 			try {
-				const frontendUrl = process.env.CORS_ORIGIN || "http://localhost:3002";
-				const loginLink = `${frontendUrl}/auth/login`;
-
 				const html = await renderAccountCreatedEmail({
 					userFirstname: input.name,
 					email: input.email,
-					password: input.password, // Send plain password in email (they should change it)
-					loginLink,
+					setPasswordLink: await createSetPasswordLink(updatedUser.id),
 				});
 
 				await sendEmail({

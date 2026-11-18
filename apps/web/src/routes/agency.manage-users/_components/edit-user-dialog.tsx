@@ -155,7 +155,7 @@ export function EditUserDialog({
         <DialogHeader className="pb-4">
           <DialogTitle>Edit User</DialogTitle>
           <DialogDescription>
-            Update agency user information. Only changed fields will be updated.
+            Update Nisc HQ staff information. Only changed fields will be updated.
           </DialogDescription>
         </DialogHeader>
 

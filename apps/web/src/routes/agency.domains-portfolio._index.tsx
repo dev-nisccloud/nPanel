@@ -171,7 +171,7 @@ export default function DomainsPortfolioPage() {
       domain.source === "openprovider" &&
       openProviderIdsWithSubscriptionsSet.has(numericId);
     const expiry = formatDomainDate(domain.expiryDate);
-    const detailHref = `/agency/domains-portfolio/${domain.id}`;
+    const detailHref = `/hq/domains-portfolio/${domain.id}`;
 
     return {
       key: String(domain.id),
@@ -353,12 +353,12 @@ export default function DomainsPortfolioPage() {
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={() => navigate("/agency/domain-transfer")}
+                    onClick={() => navigate("/hq/domain-transfer")}
                   >
                     <ArrowRightLeft className="mr-2 h-4 w-4" />
                     Transfer Domain
                   </Button>
-                  <Button onClick={() => navigate("/agency/domains")}>
+                  <Button onClick={() => navigate("/hq/domains")}>
                     <Plus className="mr-2 h-4 w-4" />
                     Register Domain
                   </Button>

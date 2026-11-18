@@ -6,8 +6,6 @@ import { useFieldArray, useForm } from "react-hook-form";
 import { z } from "zod";
 import {
   Building2,
-  Eye,
-  EyeOff,
   FileText,
   HelpCircle,
   Mail,
@@ -16,7 +14,6 @@ import {
   MessageSquare,
   Phone,
   Plus,
-  RefreshCw,
   UserPlus,
   Users,
   X,
@@ -62,7 +59,6 @@ const formSchema = z
   .object({
     name: z.string().min(1, "Name is required"),
     email: z.string().email("Invalid email address"),
-    password: z.string().min(8, "Password must be at least 8 characters"),
     firstName: z.string().optional(),
     lastName: z.string().optional(),
     phone: z.string().optional(),
@@ -141,7 +137,6 @@ type FormData = z.infer<typeof formSchema>;
 const DEFAULT_VALUES: FormData = {
   name: "",
   email: "",
-  password: "",
   firstName: "",
   lastName: "",
   phone: "",
@@ -266,7 +261,6 @@ export function CreateClientSheet({
   onOpenChange,
   onSuccess,
 }: CreateClientSheetProps) {
-  const [showPassword, setShowPassword] = React.useState(false);
   const utils = trpc.useUtils();
 
   const form = useForm<FormData>({
@@ -320,7 +314,6 @@ export function CreateClientSheet({
       toast.success(parts.join("  "));
 
       form.reset(DEFAULT_VALUES);
-      setShowPassword(false);
       utils.clients.getAll.invalidate();
       utils.teams.getAll.invalidate();
       onOpenChange(false);
@@ -334,33 +327,8 @@ export function CreateClientSheet({
   React.useEffect(() => {
     if (!open) {
       form.reset(DEFAULT_VALUES);
-      setShowPassword(false);
     }
   }, [open, form]);
-
-  const generatePassword = () => {
-    const uppers = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    const lowers = "abcdefghijklmnopqrstuvwxyz";
-    const digits = "0123456789";
-    const specials = "!@#$%^&*()-_=+[]{};:,.<>/?";
-    const all = uppers + lowers + digits + specials;
-    const length = 14;
-
-    const pwd = [
-      uppers[Math.floor(Math.random() * uppers.length)],
-      lowers[Math.floor(Math.random() * lowers.length)],
-      digits[Math.floor(Math.random() * digits.length)],
-      specials[Math.floor(Math.random() * specials.length)],
-    ];
-    for (let i = pwd.length; i < length; i++) {
-      pwd.push(all[Math.floor(Math.random() * all.length)]);
-    }
-    for (let i = pwd.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [pwd[i], pwd[j]] = [pwd[j], pwd[i]];
-    }
-    form.setValue("password", pwd.join(""));
-  };
 
   const onSubmit = (data: FormData) => {
     const profile = {
@@ -378,7 +346,6 @@ export function CreateClientSheet({
     createClientMutation.mutate({
       name: data.name.trim(),
       email: data.email.trim(),
-      password: data.password,
       role: "CUSTOMER",
       ...(hasProfile ? { profile } : {}),
       generalEmailsAccepted: radioToBool(data.generalEmailsAccepted),
@@ -421,7 +388,7 @@ export function CreateClientSheet({
         <SheetHeader>
           <SheetTitle>Create Client</SheetTitle>
           <SheetDescription>
-            Create the account, fill in profile details, and optionally set up or join an organization. Credentials are emailed after everything succeeds.
+            Create the account, fill in profile details, and optionally set up or join an organization. When everything succeeds, they get an email to set their own password, which also confirms their email.
           </SheetDescription>
         </SheetHeader>
 
@@ -461,44 +428,6 @@ export function CreateClientSheet({
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <div className="flex gap-2">
-                        <Input
-                          type={showPassword ? "text" : "password"}
-                          placeholder="Enter password or generate one"
-                          className="w-full"
-                          {...field}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setShowPassword((value) => !value)}
-                          aria-label={showPassword ? "Hide password" : "Show password"}
-                        >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          onClick={generatePassword}
-                          aria-label="Generate password"
-                        >
-                          <RefreshCw className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </section>
 
             <Separator />

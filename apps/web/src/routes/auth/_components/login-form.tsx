@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useState, useEffect, useCallback } from "react";
-import { Eye, EyeOff } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 
 import { toast } from "@/components/ui/sonner";
@@ -18,6 +17,7 @@ import type { MfaIntent } from "@/lib/mfa-auth";
 import { captureEvent } from "@/lib/posthog";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { MfaVerifyStep } from "@/routes/auth/_components/mfa-verify-step";
+import { Turnstile } from "@/components/turnstile";
 
 const FormSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -39,6 +39,9 @@ export function LoginForm({ onChromeVisibilityChange }: LoginFormProps) {
   const [isCheckingSession, setIsCheckingSession] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [redirectFailed, setRedirectFailed] = useState(false);
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
 
   const setAuthStep = useCallback((next: LoginAuthStep) => {
     setStep(next);
@@ -116,12 +119,14 @@ export function LoginForm({ onChromeVisibilityChange }: LoginFormProps) {
   const onSubmit = async (data: z.infer<typeof FormSchema>) => {
     try {
       setIsSubmitting(true);
+      setUnverifiedEmail(null);
 
       let result;
       try {
         result = await authClient.signIn.email({
           email: data.email,
           password: data.password,
+          fetchOptions: captchaToken ? { headers: { "x-captcha-response": captchaToken } } : undefined,
         });
       } catch (authError: unknown) {
         console.error("Auth client error:", authError);
@@ -147,9 +152,17 @@ export function LoginForm({ onChromeVisibilityChange }: LoginFormProps) {
         return;
       }
 
+      setCaptchaResetKey((value) => value + 1);
+
       if (result?.data) {
         captureEvent("user_logged_in", { method: "email" });
         await resolvePostCredentials();
+        return;
+      }
+
+      if (result?.error?.code === "EMAIL_NOT_VERIFIED") {
+        setUnverifiedEmail(data.email);
+        setIsSubmitting(false);
         return;
       }
 
@@ -233,16 +246,29 @@ export function LoginForm({ onChromeVisibilityChange }: LoginFormProps) {
             });
           });
         }}
-        className="space-y-4"
+        className="space-y-3"
       >
+        {unverifiedEmail ? (
+          <div
+            role="status"
+            aria-live="polite"
+            className="rounded-lg border border-[#38b6ff]/40 bg-[#38b6ff]/10 px-4 py-3 text-sm text-foreground"
+          >
+            <p className="font-semibold">Confirm your email to sign in</p>
+            <p className="mt-1 text-muted-foreground">
+              We&apos;ve sent a new link to <span className="font-medium text-foreground">{unverifiedEmail}</span>.
+              Open it, then sign in here. The link expires in 1 hour. Check spam if you can&apos;t see it.
+            </p>
+          </div>
+        ) : null}
         <FormField
           control={form.control}
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email Address</FormLabel>
+              <FormLabel className="sr-only">Email address</FormLabel>
               <FormControl>
-                <Input id="email" type="email" placeholder="you@example.com" autoComplete="email" {...field} />
+                <Input id="email" type="email" placeholder="Email address" autoComplete="email" className="h-12" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -253,29 +279,24 @@ export function LoginForm({ onChromeVisibilityChange }: LoginFormProps) {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Password</FormLabel>
+              <FormLabel className="sr-only">Password</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
+                    placeholder="Password"
                     autoComplete="current-password"
+                    className="h-12 pr-16"
                     {...field}
                   />
-                  <Button
+                  <button
                     type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    className="absolute top-0 right-3 h-full text-sm font-medium text-foreground underline-offset-4 hover:underline"
                     onClick={() => setShowPassword(!showPassword)}
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-muted-foreground" />
-                    )}
-                  </Button>
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
                 </div>
               </FormControl>
               <FormMessage />
@@ -285,23 +306,20 @@ export function LoginForm({ onChromeVisibilityChange }: LoginFormProps) {
         <div className="text-right">
           <Link
             to="/auth/forgot-password"
-            className="text-sm text-primary hover:underline"
+            className="text-sm text-foreground underline underline-offset-4"
           >
             Forgot your password?
           </Link>
         </div>
-        <Button
-          className="h-12 w-full"
-          type="submit"
-          disabled={isSubmitting}
-        >
+        <Turnstile onToken={setCaptchaToken} resetKey={captchaResetKey} />
+        <Button className="h-12 w-full bg-foreground text-background hover:bg-foreground/90" type="submit" disabled={isSubmitting}>
           {isSubmitting ? (
             <div className="flex items-center gap-2">
-              <Spinner variant="ellipsis" className="text-primary-foreground" size="sm" />
+              <Spinner variant="ellipsis" className="text-background" size="sm" />
               <span>Signing in...</span>
             </div>
           ) : (
-            "Login"
+            "Sign in"
           )}
         </Button>
       </form>

@@ -108,13 +108,13 @@ export function ZeepoAiAssistantInterface() {
         if (result.granted) {
           applyZeepoAiWelcomeGrantToCache(utils, route.teamId, result);
           toast.success(
-            `Welcome to Zeepo AI  ${result.tokensGranted} free tokens are on your team wallet to try it out.`,
+            `Welcome to Zeepo AI  ${result.tokensGranted} free credits are on your team wallet to try it out.`,
             { duration: 7000 },
           );
         } else if (result.reason === "no_qualifying_service") {
           toast.message("Free credits unlock with a service", {
             description:
-              "Your balance starts at 0. Add hosting (or any active subscription) and we’ll gift you free Zeepo AI tokens.",
+              "Your balance starts at 0. Add hosting (or any active subscription) and we’ll gift you free Zepo AI credits.",
             duration: 9000,
           });
         }
@@ -241,7 +241,7 @@ export function ZeepoAiAssistantInterface() {
     if (!canSend) return;
     if (route.isCustomer && !isAgency && !tokensLoading && !claimWelcomeGrant.isPending && !canAffordTurn) {
       setBuyOpen(true);
-      toast.error("Insufficient tokens. Purchase more tokens to continue.");
+      toast.error("Not enough credits. Buy more credits to continue.");
       return;
     }
     const staged = [...pendingFiles];

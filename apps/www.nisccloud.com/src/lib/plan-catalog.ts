@@ -19,16 +19,50 @@ const PLAN_PRESENTATION: Record<string, PlanPresentation> = {
   "nisc-email-hosting-plan-standard": { name: "Business", audience: "For growing teams" },
   "nisc-email-hosting-plan-corporate": { name: "Scale", audience: "For larger teams and departments" },
 
-  "nisc-seo-reports-plan-starter": { name: "Search Foundations", audience: "For one website building visibility" },
-  "nisc-seo-reports-plan-growth": { name: "Search Growth", audience: "For businesses competing in several markets" },
+  "nisc-seo-reports-plan-essentials": { name: "Search Essentials", audience: "One business website establishing search visibility" },
+  "nisc-seo-reports-plan-search-growth": { name: "Search Growth", audience: "One business website competing for more enquiries and sales" },
+  "nisc-seo-reports-plan-starter": { name: "Search Essentials", audience: "One business website establishing search visibility" },
+  "nisc-seo-reports-plan-growth": { name: "Search Growth", audience: "One business website competing for more enquiries and sales" },
   "nisc-seo-reports-plan-pro": { name: "Search Authority", audience: "For multi-site brands that lead their category" },
+
+  "zeepo-ai-plan-topup-500": { name: "500 credits", audience: "For questions, replies and quick research" },
+  "zeepo-ai-plan-topup-1500": { name: "1,500 credits", audience: "For campaigns, strategies and heavier work" },
+  "zeepo-ai-plan-topup-5000": { name: "5,000 credits", audience: "For steady, everyday use across your team" },
 };
 
+/** Stable catalogue ids for SEO & AI Search Optimisation (packages/api seo-reports-billing). */
+export const NISC_SEO_PLAN_IDS = {
+  essentials: "nisc-seo-reports-plan-essentials",
+  searchGrowth: "nisc-seo-reports-plan-search-growth",
+  enterprise: "nisc-seo-reports-plan-enterprise",
+} as const;
+
+/** Retired SEO plans. Hidden in nPanel, and also filtered here so an old catalogue response cannot list them. */
+const RETIRED_SEO_PLAN_IDS = [
+  "nisc-seo-reports-plan-starter",
+  "nisc-seo-reports-plan-growth",
+  "nisc-seo-reports-plan-pro",
+] as const;
+
 /** Kept in nPanel for existing subscriptions; not sold from the public site. */
-const HIDDEN_PLAN_IDS = new Set([
+const HIDDEN_PLAN_IDS = new Set<string>([
   "nisc-web-hosting-plan-ultimate",
   "dd59f6e8-3892-43e6-a090-8d330400f6aa",
+  ...RETIRED_SEO_PLAN_IDS,
+  NISC_SEO_PLAN_IDS.enterprise,
+  "nisc-social-media-plan-enterprise",
 ]);
+
+/** Customer-facing product names where the catalogue name is internal. */
+const PUBLIC_PRODUCT_NAMES: Record<string, string> = {
+  seo_reports: "SEO & AI Search Optimisation",
+  zeepo_ai: "Zepo AI credits",
+  email_marketing: "Nisc Outreach",
+};
+
+export function publicProductName(serviceType: string, catalogueName: string): string {
+  return PUBLIC_PRODUCT_NAMES[serviceType] ?? catalogueName;
+}
 
 export function publicPlanName(planId: string | null | undefined, catalogueName: string): string {
   return (planId && PLAN_PRESENTATION[planId]?.name) || catalogueName;
@@ -53,7 +87,7 @@ export type CustomTier = {
 /** The quote-only fourth tier. It is never a priced or free product. */
 export const CUSTOM_TIERS: Partial<Record<string, CustomTier>> = {
   web_hosting: {
-    name: "Corporate",
+    name: "Enterprise",
     audience: "For organisations with custom requirements",
     points: [
       "Resources sized to your sites, traffic and team",
@@ -64,7 +98,7 @@ export const CUSTOM_TIERS: Partial<Record<string, CustomTier>> = {
     serviceName: "Web Hosting",
   },
   email_hosting: {
-    name: "Corporate",
+    name: "Enterprise",
     audience: "For more than 100 mailboxes or custom storage",
     points: [
       "Mailbox count and storage sized to your organisation",
@@ -75,15 +109,26 @@ export const CUSTOM_TIERS: Partial<Record<string, CustomTier>> = {
     serviceName: "Nisc Mail",
   },
   seo_reports: {
-    name: "Corporate Search",
-    audience: "For multiple brands, regions or more than 10 websites",
+    name: "Enterprise",
+    audience: "Ecommerce, large websites, several brands, locations, languages or markets",
     points: [
       "Scope, markets and reporting agreed with you",
       "Content and outreach volumes to match your goals",
       "A fixed proposal before you commit",
     ],
     contactService: "market",
-    serviceName: "SEO, AEO and GEO",
+    serviceName: "SEO & AI Search Optimisation",
+  },
+  social_media: {
+    name: "Enterprise",
+    audience: "Several brands, locations or markets, with channels and volume agreed with you",
+    points: [
+      "Channels, content volume and coverage agreed with you",
+      "Approval workflow built around your team",
+      "A fixed proposal before you commit",
+    ],
+    contactService: "market",
+    serviceName: "Social Media Management",
   },
 };
 
@@ -92,7 +137,7 @@ export function customTierEnquiryUrl(tier: CustomTier): string {
     service: tier.contactService,
     serviceName: tier.serviceName,
     plan: tier.name,
-    tier: "corporate",
+    tier: "enterprise",
   });
   return `/contact?${search.toString()}`;
 }

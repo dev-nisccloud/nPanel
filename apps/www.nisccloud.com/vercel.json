@@ -8,7 +8,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' https://vercel.live; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://npanel.nisccloud.com https://vercel.live; frame-src https://vercel.live https://www.instagram.com; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self' https:; upgrade-insecure-requests"
+          "value": "default-src 'self'; script-src 'self' https://vercel.live https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://npanel.nisccloud.com https://vercel.live; frame-src https://vercel.live https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self' https:; upgrade-insecure-requests"
         },
         {
           "key": "X-Content-Type-Options",
@@ -37,6 +37,11 @@
     {
       "source": "/services/zeepo-ai",
       "destination": "/services/zepo-ai",
+      "permanent": true
+    },
+    {
+      "source": "/services/seo",
+      "destination": "/services/seo-ai-search",
       "permanent": true
     },
     {
@@ -84,8 +89,8 @@
       "destination": "/services/software/index.html"
     },
     {
-      "source": "/services/seo",
-      "destination": "/services/seo/index.html"
+      "source": "/services/seo-ai-search",
+      "destination": "/services/seo-ai-search/index.html"
     },
     {
       "source": "/services/paid-ads",
@@ -102,6 +107,10 @@
     {
       "source": "/services/email-marketing",
       "destination": "/services/email-marketing/index.html"
+    },
+    {
+      "source": "/services/ai-website-builder",
+      "destination": "/services/ai-website-builder/index.html"
     },
     {
       "source": "/contact",
@@ -293,6 +302,10 @@
     },
     {
       "source": "/services/zeepo-ai",
+      "destination": "/spa.html"
+    },
+    {
+      "source": "/services/seo",
       "destination": "/spa.html"
     },
     {

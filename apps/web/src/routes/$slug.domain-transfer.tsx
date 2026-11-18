@@ -36,7 +36,7 @@ export default function DomainTransferPage() {
 
             <TabsContent value="transfer-domain" className="mt-0 data-[state=inactive]:hidden" forceMount>
               <TransferDomainSection
-                registerDomainsHref={teamSlug ? `/${teamSlug}/domains` : "/agency/domains"}
+                registerDomainsHref={teamSlug ? `/${teamSlug}/domains` : "/hq/domains"}
                 teamId={teamData?.id ?? null}
               />
               <div className="mt-6">

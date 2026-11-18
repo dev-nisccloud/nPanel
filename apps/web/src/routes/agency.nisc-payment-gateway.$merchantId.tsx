@@ -227,7 +227,7 @@ export default function MerchantDetailsPage() {
     return (
       <div className="flex flex-col items-center justify-center h-96">
         <h2 className="text-2xl font-semibold">Merchant not found</h2>
-        <Button onClick={() => navigate("/agency/nisc-payment-gateway")} className="mt-4">
+        <Button onClick={() => navigate("/hq/nisc-payment-gateway")} className="mt-4">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to merchants
         </Button>
@@ -255,7 +255,7 @@ export default function MerchantDetailsPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate("/agency/nisc-payment-gateway")}
+              onClick={() => navigate("/hq/nisc-payment-gateway")}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back

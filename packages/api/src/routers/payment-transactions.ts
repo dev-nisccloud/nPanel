@@ -7,9 +7,20 @@ import {
   paymentTransaction,
   paymentTransactionActivityLog,
 } from "@npanel/db/schema/payment-transactions";
-import { and, count, desc, eq, inArray, isNull, or } from "@npanel/db";
+import { niscOrder } from "@npanel/db/schema/nisc-orders";
+import { niscProduct } from "@npanel/db/schema/products";
+import { and, count, desc, eq, inArray, isNull, or, sql } from "@npanel/db";
 import { z } from "zod";
 import { protectedProcedure, router, type Context } from "../trpc";
+import { computeCeilVatTotals } from "../lib/convert-price";
+import {
+  readStoredOrderIntent,
+  readUnmatchedResolution,
+  storedOrderSubtotalExVat,
+} from "../lib/stored-order-intent";
+
+/** A paid order is only listed as unmatched once the customer's browser has had this long to finish it. */
+const UNMATCHED_GRACE_MINUTES = 10;
 
 const paymentTransactionStatusSchema = z.enum([
 	"PENDING",
@@ -110,7 +121,7 @@ async function requireAgencyUser(ctx: Context): Promise<{ id: string; role: stri
 	if (row.status !== "ACTIVE") {
 		throw new TRPCError({
 			code: "FORBIDDEN",
-			message: "Your account must be active to record manual payments.",
+			message: "Your account must be active to do this.",
 		});
 	}
 
@@ -118,7 +129,7 @@ async function requireAgencyUser(ctx: Context): Promise<{ id: string; role: stri
 	if (!isAgencyUser(role)) {
 		throw new TRPCError({
 			code: "FORBIDDEN",
-			message: "Only agency users can record manual payment transactions.",
+			message: "Only Nisc HQ staff can do this.",
 		});
 	}
 
@@ -299,6 +310,222 @@ export const paymentTransactionsRouter = router({
 				transactionId,
 				checkoutRequestId: transactionReference,
 			};
+		}),
+
+	/**
+	 * Staff only: payments that succeeded but never produced an order (browser closed, a network
+	 * error after paying, ...). Only payments whose cart was saved at checkout can be listed.
+	 */
+	listUnmatched: protectedProcedure.query(async ({ ctx }) => {
+		await requireAgencyUser(ctx);
+		const cutoff = new Date(Date.now() - UNMATCHED_GRACE_MINUTES * 60_000);
+
+		const rows = await db
+			.select({
+				id: paymentTransaction.id,
+				userId: paymentTransaction.userId,
+				userName: userTable.name,
+				userEmail: userTable.email,
+				teamName: teamTable.name,
+				gateway: paymentTransaction.gateway,
+				amount: paymentTransaction.amount,
+				paidAmount: paymentTransaction.paidAmount,
+				currency: paymentTransaction.currency,
+				checkoutRequestId: paymentTransaction.checkoutRequestId,
+				receiptNumber: paymentTransaction.receiptNumber,
+				phoneNumber: paymentTransaction.phoneNumber,
+				processedAt: paymentTransaction.processedAt,
+				updatedAt: paymentTransaction.updatedAt,
+				metadata: paymentTransaction.metadata,
+			})
+			.from(paymentTransaction)
+			.leftJoin(niscOrder, eq(niscOrder.paymentTransactionId, paymentTransaction.id))
+			.leftJoin(userTable, eq(userTable.id, paymentTransaction.userId))
+			.leftJoin(teamTable, eq(teamTable.id, paymentTransaction.teamId))
+			.where(
+				and(
+					eq(paymentTransaction.status, "SUCCESS"),
+					isNull(niscOrder.id),
+					sql`jsonb_exists(${paymentTransaction.metadata}, 'items')`,
+					sql`(${paymentTransaction.metadata} -> 'unmatchedResolution') is null`,
+					sql`coalesce(${paymentTransaction.processedAt}, ${paymentTransaction.updatedAt}) < ${cutoff}`,
+				),
+			)
+			.orderBy(desc(paymentTransaction.updatedAt))
+			.limit(100);
+
+		const intents = rows.map((r: { metadata: unknown }) => readStoredOrderIntent(r.metadata));
+		const productIds = [
+			...new Set(
+				intents.flatMap((intent: ReturnType<typeof readStoredOrderIntent>) =>
+					intent ? intent.items.map((i) => i.productId) : [],
+				),
+			),
+		];
+		const products =
+			productIds.length > 0
+				? await db
+						.select({ id: niscProduct.id, name: niscProduct.name })
+						.from(niscProduct)
+						.where(inArray(niscProduct.id, productIds))
+				: [];
+		const productName = new Map(products.map((p: { id: string; name: string }) => [p.id, p.name]));
+
+		return rows.map((r: (typeof rows)[number], idx: number) => {
+			const intent = intents[idx] ?? null;
+			const paid = Math.ceil(Number.parseFloat(r.paidAmount ?? r.amount) || 0);
+			const expected = intent
+				? computeCeilVatTotals(storedOrderSubtotalExVat(intent.items)).totalIncVat
+				: null;
+			return {
+				id: r.id,
+				customerName: r.userName ?? null,
+				customerEmail: r.userEmail ?? null,
+				organization: r.teamName ?? null,
+				gateway: r.gateway,
+				currency: r.currency,
+				paidAmount: paid,
+				expectedAmount: expected,
+				reference: r.receiptNumber ?? r.checkoutRequestId,
+				phoneNumber: r.phoneNumber ?? null,
+				paidAt: r.processedAt ?? r.updatedAt,
+				lines: (intent?.items ?? []).map((i) => ({
+					product: productName.get(i.productId) ?? "Service",
+					detail: i.primaryDomain ?? i.description ?? null,
+				})),
+				canComplete: intent != null && expected != null && paid >= expected,
+			};
+		});
+	}),
+
+	/** Staff only: create the order for a paid-but-unmatched payment from the cart saved at checkout. */
+	completeUnmatched: protectedProcedure
+		.input(z.object({ transactionId: z.string().min(1) }))
+		.mutation(async ({ ctx, input }) => {
+			const staff = await requireAgencyUser(ctx);
+
+			const [tx] = await db
+				.select()
+				.from(paymentTransaction)
+				.where(eq(paymentTransaction.id, input.transactionId))
+				.limit(1);
+			if (!tx || tx.status !== "SUCCESS" || !tx.checkoutRequestId) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Successful payment not found." });
+			}
+			const [existing] = await db
+				.select({ id: niscOrder.id })
+				.from(niscOrder)
+				.where(eq(niscOrder.paymentTransactionId, tx.id))
+				.limit(1);
+			if (existing) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message: "This payment already has an order.",
+				});
+			}
+			const intent = readStoredOrderIntent(tx.metadata);
+			if (!intent) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "No order details were saved with this payment. Create the order manually.",
+				});
+			}
+			const paid = Math.ceil(Number.parseFloat(tx.paidAmount ?? tx.amount) || 0);
+			const expected = computeCeilVatTotals(storedOrderSubtotalExVat(intent.items)).totalIncVat;
+			if (paid < expected) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `The payment (${tx.currency} ${paid}) is less than the order total (${expected}). Create the order manually.`,
+				});
+			}
+			const createCaller = ctx.createCaller;
+			if (!createCaller) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Order creation is temporarily unavailable. Please try again.",
+				});
+			}
+			const caller = createCaller(ctx) as {
+				niscServiceOrders: {
+					createFromPayment: (data: Record<string, unknown>) => Promise<unknown>;
+				};
+			};
+			// Runs as staff, billed to the customer who paid, so the order lands on their account.
+			await caller.niscServiceOrders.createFromPayment({
+				checkoutRequestId: tx.checkoutRequestId,
+				items: intent.items,
+				currency: intent.currency,
+				teamId: intent.teamId ?? tx.teamId ?? undefined,
+				billedForUserId: tx.userId,
+				skipInvoice: intent.skipInvoice,
+			});
+
+			const now = new Date();
+			await db.insert(paymentTransactionActivityLog).values({
+				id: crypto.randomUUID(),
+				transactionId: tx.id,
+				userId: staff.id,
+				action: "UNMATCHED_COMPLETED",
+				description: "Order created by staff from an unmatched payment.",
+				metadata: { receipt: tx.receiptNumber ?? tx.checkoutRequestId },
+				createdAt: now,
+			});
+			return { success: true };
+		}),
+
+	/** Staff only: take a payment off the unmatched list, flagging it for a refund or dismissing it. */
+	resolveUnmatched: protectedProcedure
+		.input(
+			z.object({
+				transactionId: z.string().min(1),
+				action: z.enum(["REFUND_NEEDED", "DISMISSED"]),
+				note: z.string().trim().max(500).optional(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const staff = await requireAgencyUser(ctx);
+			const [tx] = await db
+				.select({ id: paymentTransaction.id, metadata: paymentTransaction.metadata })
+				.from(paymentTransaction)
+				.where(eq(paymentTransaction.id, input.transactionId))
+				.limit(1);
+			if (!tx) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Payment not found." });
+			}
+			if (readUnmatchedResolution(tx.metadata)) {
+				throw new TRPCError({ code: "CONFLICT", message: "This payment was already resolved." });
+			}
+			const now = new Date();
+			const base =
+				tx.metadata && typeof tx.metadata === "object" ? (tx.metadata as Record<string, unknown>) : {};
+			await db
+				.update(paymentTransaction)
+				.set({
+					metadata: {
+						...base,
+						unmatchedResolution: {
+							action: input.action,
+							by: staff.id,
+							at: now.toISOString(),
+							...(input.note ? { note: input.note } : {}),
+						},
+					},
+					updatedAt: now,
+				})
+				.where(eq(paymentTransaction.id, tx.id));
+			await db.insert(paymentTransactionActivityLog).values({
+				id: crypto.randomUUID(),
+				transactionId: tx.id,
+				userId: staff.id,
+				action: `UNMATCHED_${input.action}`,
+				description:
+					input.action === "REFUND_NEEDED"
+						? "Marked as needing a refund (no order was created)."
+						: "Removed from the unmatched payments list.",
+				metadata: input.note ? { note: input.note } : null,
+				createdAt: now,
+			});
+			return { success: true };
 		}),
 
 	list: protectedProcedure
@@ -544,7 +771,7 @@ export const paymentTransactionsRouter = router({
 			if (!agencyUser) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency users can view transaction summary.",
+					message: "Only Nisc HQ staff can view transaction summary.",
 				});
 			}
 

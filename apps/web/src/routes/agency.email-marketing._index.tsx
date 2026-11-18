@@ -14,7 +14,7 @@ export default function EmailMarketingPage() {
         </div>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Link to="/agency/email-marketing/email-builder">
+          <Link to="/hq/email-marketing/email-builder">
             <div className="rounded-lg border bg-card p-4 shadow-sm transition-colors hover:bg-accent/50">
               <Mail className="mb-2 h-8 w-8 text-muted-foreground" />
               <h3 className="font-medium">Email Builder</h3>

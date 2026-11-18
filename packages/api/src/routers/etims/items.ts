@@ -14,11 +14,11 @@ const isSuperAdmin = (r: string | null | undefined) => r === "AGENCY_SUPER_ADMIN
 
 function assertRead(role: string | null | undefined) {
     if (skipEtimsAuthChecks()) return;
-    if (!isAgencyUser(role)) throw new TRPCError({ code: "FORBIDDEN", message: "Only agency users can access eTIMS item data." });
+    if (!isAgencyUser(role)) throw new TRPCError({ code: "FORBIDDEN", message: "Only Nisc HQ staff can access eTIMS item data." });
 }
 function assertWrite(role: string | null | undefined) {
     if (skipEtimsAuthChecks()) return;
-    if (!isSuperAdmin(role)) throw new TRPCError({ code: "FORBIDDEN", message: "Only agency super admins can modify eTIMS item data." });
+    if (!isSuperAdmin(role)) throw new TRPCError({ code: "FORBIDDEN", message: "Only Nisc HQ super admins can modify eTIMS item data." });
 }
 
 const CLASSIC_SANDBOX_BASE = "https://etims-api-sbx.kra.go.ke/etims-api";

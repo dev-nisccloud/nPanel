@@ -14,25 +14,25 @@ const actions: {
 		icon: FileText,
 		label: "Create invoice",
 		description: "Bill a client",
-		href: "/agency/invoices/create",
+		href: "/hq/invoices/create",
 	},
 	{
 		icon: Server,
 		label: "Hosting",
 		description: "Open subscriptions",
-		href: "/agency/hosting",
+		href: "/hq/hosting",
 	},
 	{
 		icon: UserPlus,
 		label: "Clients",
 		description: "Manage accounts",
-		href: "/agency/clients",
+		href: "/hq/clients",
 	},
 	{
 		icon: Ticket,
 		label: "Support",
 		description: "Open the queue",
-		href: "/agency/support",
+		href: "/hq/support",
 	},
 ];
 

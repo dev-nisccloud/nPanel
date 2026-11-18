@@ -13,7 +13,7 @@ const STACKS: { label: string; icon: LucideIcon; tone: string }[] = [
 ];
 
 const TERMINAL_LINES: { prompt?: boolean; text: string }[] = [
-  { prompt: true, text: "ssh you@yourbusiness.co.ke" },
+  { prompt: true, text: "ssh you@yourbusiness.com" },
   { text: "Connected to your web hosting" },
   { prompt: true, text: "php artisan migrate" },
   { prompt: true, text: "npm run build" },

@@ -12,8 +12,8 @@ export type NiscEmailMarketingRouteConfig = {
 };
 
 export const DEFAULT_NISC_EM_ROUTE: NiscEmailMarketingRouteConfig = {
-	basePath: "/agency/nisc-email-marketing",
-	emailBuilderBasePath: "/agency/nisc-email-builder",
+	basePath: "/hq/nisc-email-marketing",
+	emailBuilderBasePath: "/hq/nisc-email-builder",
 	teamId: null,
 	teamSlug: null,
 	isCustomer: false,
