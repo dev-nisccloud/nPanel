@@ -113,7 +113,7 @@ export default function ReauthPage() {
                 </Button>
               </div>
             </div>
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
+            <Button type="submit" className="h-12 w-full" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
                   <Spinner className="mr-2 size-4" />

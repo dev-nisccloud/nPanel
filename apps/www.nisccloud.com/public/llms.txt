@@ -49,7 +49,7 @@ Current prices, billing cycles and renewal prices are on https://nisccloud.com/p
 - [Platform](https://nisccloud.com/platform): nPanel, the in-house control panel, the email MCP and Zepo AI
 - [Services](https://nisccloud.com/services): Full service catalogue
 - [Pricing](https://nisccloud.com/pricing): Plans and package pricing by product
-- [Our Work](https://nisccloud.com/work): Eight live sites we designed, seven of them hosted on Nisc Cloud, plus the wider client list
+- [Our Work](https://nisccloud.com/work): Websites, brand identity, video and campaign creative for Cruises by Holiday Bazaar, Trelan Engineering, Ashut Engineers and Luxewrap, plus the wider client list
 - [About](https://nisccloud.com/about): Company story and team
 - [Contact](https://nisccloud.com/contact): Get in touch or book a free strategy call
 - [Blog](https://nisccloud.com/blog): Guides on hosting, marketing and AI

@@ -2,6 +2,7 @@
  * Response headers for every page and asset, shared by vercel.json (generated) and server.ts.
  * Card payments leave the site through a form POST to the payment provider, so form-action
  * must allow https: destinations. vercel.live is only used by Vercel preview toolbars.
+ * instagram.com is the reel player on Our Work.
  */
 const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",

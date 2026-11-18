@@ -1,34 +1,62 @@
-import { ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
-import type { WorkProject } from "@/lib/work-projects.ts";
+import type { WorkProject, WorkReel } from "@/lib/work-projects.ts";
 
-export function ProjectCard({ project }: { project: WorkProject }) {
+function Reel({ reel }: { reel: WorkReel }) {
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card">
-      <div className={cn("aspect-[16/10]", project.fit === "contain" ? "bg-white p-8" : "bg-muted")}>
-        <img
-          src={project.image}
-          alt=""
-          className={cn("h-full w-full", project.fit === "contain" ? "object-contain" : "object-cover object-top")}
-          loading="lazy"
-          decoding="async"
-        />
-      </div>
-      <div className="flex flex-1 flex-col p-5">
-        <p className="type-label text-muted-foreground">{project.sector}</p>
-        <h3 className="type-h3 mt-2 text-balance">{project.name}</h3>
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{project.summary}</p>
-        <p className="mt-3 text-sm font-semibold text-foreground">{project.role}</p>
-        <a
-          href={project.href}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-4 inline-flex min-h-11 items-center gap-1 self-start text-sm font-semibold text-primary hover:underline"
-        >
-          Visit {project.name}
-          <ArrowUpRight className="size-4" aria-hidden />
-          <span className="sr-only"> (opens in a new tab)</span>
-        </a>
+    <iframe
+      title={reel.title}
+      src={`https://www.instagram.com/reel/${reel.id}/embed`}
+      className="h-[28rem] w-[17.5rem] max-w-full rounded-xl border border-border bg-card"
+      scrolling="no"
+      loading="lazy"
+      allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+      allowFullScreen
+      referrerPolicy="strict-origin-when-cross-origin"
+    />
+  );
+}
+
+export function ProjectCard({ project, priority = false }: { project: WorkProject; priority?: boolean }) {
+  const poster = project.poster === true;
+  return (
+    <article
+      className={cn(
+        "w-full overflow-hidden rounded-2xl border border-border bg-card",
+        poster ? "flex h-full flex-col" : "grid items-center",
+        !poster && (project.reels ? "lg:grid-cols-[auto_minmax(0,1fr)]" : "md:grid-cols-2"),
+      )}
+    >
+      {project.reels ? (
+        <div className="flex flex-wrap justify-center gap-3 p-4 md:justify-end md:p-5">
+          {project.reels.map((reel) => (
+            <Reel key={reel.id} reel={reel} />
+          ))}
+        </div>
+      ) : (
+        <div className={cn("w-full", poster && "mx-auto max-w-[20rem] px-4 pt-4")}>
+          <img
+            src={project.image}
+            alt={project.imageAlt ?? ""}
+            className={cn(
+              "w-full object-cover",
+              poster ? "aspect-[4/5] rounded-xl" : "aspect-[3/2]",
+            )}
+            loading={priority ? "eager" : "lazy"}
+            decoding="async"
+            fetchPriority={priority ? "high" : "auto"}
+          />
+        </div>
+      )}
+      <div className={cn("flex flex-col p-6 md:p-8", poster ? "flex-1" : "justify-center")}>
+        <h3 className="type-h3 text-balance">{project.client}</h3>
+        <p className="type-label mt-2 text-muted-foreground">{project.job}</p>
+        <div className="mt-4 space-y-3">
+          {project.paragraphs.map((paragraph) => (
+            <p key={paragraph} className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+              {paragraph}
+            </p>
+          ))}
+        </div>
       </div>
     </article>
   );

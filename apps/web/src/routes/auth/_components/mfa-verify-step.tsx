@@ -172,7 +172,7 @@ export function MfaVerifyStep({
         />
         <Button
           type="submit"
-          className="w-full"
+          className="h-12 w-full"
           disabled={!isCodeComplete || isSubmitting || isSendingCode}
         >
           {isSubmitting ? "Verifying..." : "Verify code"}
