@@ -211,7 +211,7 @@ export default function ResetPasswordPage() {
               )}
             />
 
-            <Button className="w-full" type="submit" disabled={isResetting}>
+            <Button className="h-12 w-full" type="submit" disabled={isResetting}>
               {isResetting ? (
                 <div className="flex items-center gap-2">
                   <Spinner variant="ellipsis" className="text-primary-foreground" size="sm" />

@@ -128,7 +128,7 @@ export default function ForgotPasswordPage() {
               )}
             />
 
-            <Button className="w-full" type="submit" disabled={isSubmitting}>
+            <Button className="h-12 w-full" type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
                 <div className="flex items-center gap-2">
                   <Spinner variant="ellipsis" className="text-primary-foreground" size="sm" />

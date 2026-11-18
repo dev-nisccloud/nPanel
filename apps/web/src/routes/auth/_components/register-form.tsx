@@ -329,7 +329,7 @@ export function RegisterForm({ termsAccepted, onTermsAcceptedChange }: RegisterF
           )}
         />
         <Button
-          className="w-full"
+          className="h-12 w-full"
           type="submit"
           disabled={isSubmitting || !termsAccepted}
         >
