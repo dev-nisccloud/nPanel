@@ -9,7 +9,7 @@ export default function Layout() {
   return (
     <main>
       <div className="grid min-h-dvh bg-background lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.92fr)]">
-        <div className="relative order-2 hidden min-h-dvh bg-primary p-3 lg:block">
+        <div className="relative order-2 hidden min-h-dvh p-3 lg:block">
           <AuthRightPanelCarousel />
         </div>
         <div className="relative order-1 flex min-h-dvh flex-col px-6 py-6 sm:px-12">

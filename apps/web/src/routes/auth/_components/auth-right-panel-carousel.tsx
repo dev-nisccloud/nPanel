@@ -24,7 +24,7 @@ export function AuthRightPanelCarousel() {
 
   return (
     <section
-      className="relative h-full overflow-hidden rounded-3xl bg-primary"
+      className="relative h-full overflow-hidden rounded-3xl"
       aria-label="Nisc Cloud onboarding highlights"
     >
       {slides.map((slide, idx) => (
@@ -33,7 +33,7 @@ export function AuthRightPanelCarousel() {
           src={slide.imageSrc}
           alt=""
           className={[
-            "absolute inset-0 h-full w-full object-contain transition-opacity duration-700",
+            "absolute inset-0 h-full w-full object-cover transition-opacity duration-700",
             idx === activeIndex ? "opacity-100" : "opacity-0",
           ].join(" ")}
         />
