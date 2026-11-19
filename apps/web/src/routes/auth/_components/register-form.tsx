@@ -324,7 +324,7 @@ export function RegisterForm({ termsAccepted, onTermsAcceptedChange }: RegisterF
         />
         <Turnstile onToken={setCaptchaToken} resetKey={captchaResetKey} />
         <Button
-          className="h-12 w-full bg-foreground text-background hover:bg-foreground/90"
+          className="h-12 w-full"
           type="submit"
           disabled={isSubmitting || !termsAccepted}
         >
