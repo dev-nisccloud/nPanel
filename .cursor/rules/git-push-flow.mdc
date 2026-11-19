@@ -1,0 +1,17 @@
+---
+description: Push flow for nPanel. Pull requests into main and production, then a fast-forward sync to the source remote.
+alwaysApply: true
+---
+
+# Git push flow
+
+`origin` is `https://github.com/githubnisccloud/nPanel`. `source` is `https://github.com/dev-nisccloud/nPanel.git`. If `source` is missing, add it with `git remote add source https://github.com/dev-nisccloud/nPanel.git` before pushing.
+
+Do this only when the user asks to push. Do not force-push `main` or `production`.
+
+1. Push the current branch to `origin` (`git push -u origin HEAD`).
+2. Open a pull request into `main` on `githubnisccloud/nPanel` (`gh pr create --base main`). If that pull request already exists, use it.
+3. Open a pull request from `main` into `production` on the same repo (`gh pr create --base production --head main`). If that pull request already exists, use it.
+4. Fast-forward `source` so it matches `origin`. Fetch `origin`, then push the current branch, `main`, and `production` to `source` with a normal push. A normal push already refuses a non-fast-forward. If one is refused, stop and say which branch is ahead. Do not force it.
+
+Return both pull request URLs and say whether `source` fast-forwarded.

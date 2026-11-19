@@ -326,7 +326,7 @@ function ProposedPlatformServices() {
       <BentoTile index={2} tone="dark" className="p-6 md:col-span-6 md:p-8">
         <TileText tone="dark" title="Grow" text="Connect campaigns and customer activity to an agreed growth plan." />
         <div className="mt-5 flex flex-wrap gap-2">
-          {[["SEO", "/services/seo"], ["Paid advertising", "/services/paid-ads"], ["Social media", "/services/social-media"], ["Email marketing", "/services/email-marketing"]].map(([label, href]) => (
+          {[["SEO & AI Search", "/services/seo-ai-search"], ["Paid advertising", "/services/paid-ads"], ["Social media", "/services/social-media"], ["Email marketing", "/services/email-marketing"]].map(([label, href]) => (
             <Link key={label} to={href} className="rounded-full bg-white/10 px-3 py-1.5 text-sm font-semibold">{label}</Link>
           ))}
         </div>

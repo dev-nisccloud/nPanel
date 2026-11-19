@@ -145,7 +145,7 @@ export function SubscriptionsTable({
 				onViewSubscription(subscriptionId);
 				return;
 			}
-			void navigate(`/agency/subscriptions?subscriptionId=${subscriptionId}`);
+			void navigate(`/hq/subscriptions?subscriptionId=${subscriptionId}`);
 		},
 		[onViewSubscription, navigate],
 	);

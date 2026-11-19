@@ -22,7 +22,7 @@ export function HostingPerformanceArtwork() {
           viewBox="0 6 506 462"
           className="block h-auto w-full"
           role="img"
-          aria-label="A customer beside an illustrative website speed report for mywebpage.co.ke"
+          aria-label="A customer beside an illustrative website speed report for mywebpage.com"
         >
           <defs>
             <linearGradient id="ps-scan" x1="0" x2="1" y1="0" y2="0">

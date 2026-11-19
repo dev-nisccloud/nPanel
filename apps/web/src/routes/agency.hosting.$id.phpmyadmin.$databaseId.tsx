@@ -17,7 +17,7 @@ export default function AgencyHostingPhpMyAdminRoute() {
       siteId={siteId}
       databaseId={dbId}
       databaseName={searchParams.get("name") || undefined}
-      backTo={`/agency/hosting/${siteId}`}
+      backTo={`/hq/hosting/${siteId}`}
     />
   );
 }

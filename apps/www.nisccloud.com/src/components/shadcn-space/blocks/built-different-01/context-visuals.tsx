@@ -675,7 +675,7 @@ export function ClarityVisual(_props: VisualProps) {
       <motion.div {...soft} className="w-full space-y-2">
         <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-card px-3 py-2 text-xs text-muted-foreground">
           <Search className="size-3.5 text-primary" />
-          yourbrand.co.ke
+          yourbrand.com
         </div>
         <motion.div
           initial={{ opacity: 0, y: 4 }}

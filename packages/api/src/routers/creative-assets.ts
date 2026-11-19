@@ -537,7 +537,7 @@ function assertCreativeAssetAgencyMutate(
 	if (!isAgencyUser(userRole)) {
 		throw new TRPCError({
 			code: "FORBIDDEN",
-			message: "Only agency users can perform this action",
+			message: "Only Nisc HQ staff can perform this action",
 		});
 	}
 	assertOwnerOrSuperAdmin(assetCreatedBy, userId, userRole, "asset");
@@ -568,7 +568,7 @@ export const creativeAssetsRouter = router({
 			if (!isAgencyUser(user.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency users can create creative assets",
+					message: "Only Nisc HQ staff can create creative assets",
 				});
 			}
 
@@ -686,7 +686,7 @@ export const creativeAssetsRouter = router({
 				// Customers cannot upload versions
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency users can upload new versions",
+					message: "Only Nisc HQ staff can upload new versions",
 				});
 			}
 
@@ -779,7 +779,7 @@ export const creativeAssetsRouter = router({
 			if (!isAgencyUser(user.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency users can approve versions internally",
+					message: "Only Nisc HQ staff can approve versions internally",
 				});
 			}
 
@@ -919,7 +919,7 @@ export const creativeAssetsRouter = router({
 			if (!isAgencyUser(user.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency users can reject versions internally",
+					message: "Only Nisc HQ staff can reject versions internally",
 				});
 			}
 
@@ -996,7 +996,7 @@ export const creativeAssetsRouter = router({
 			if (!isAgencyUser(user.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency users can make versions public",
+					message: "Only Nisc HQ staff can make versions public",
 				});
 			}
 
@@ -1281,7 +1281,7 @@ export const creativeAssetsRouter = router({
 			if (!isAgencyUser(user.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency users can update version status",
+					message: "Only Nisc HQ staff can update version status",
 				});
 			}
 
@@ -1437,7 +1437,7 @@ export const creativeAssetsRouter = router({
 			if (!isAgencyUser(user.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency users can make versions private",
+					message: "Only Nisc HQ staff can make versions private",
 				});
 			}
 
@@ -2110,7 +2110,7 @@ export const creativeAssetsRouter = router({
 			if (!targetUserRow || !isAgencyUser(targetUserRow.role as string)) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Target user must be an agency user",
+					message: "Target user must be an Nisc HQ staff",
 				});
 			}
 
@@ -2207,7 +2207,7 @@ export const creativeAssetsRouter = router({
 			if (!isAgencyUser(user.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency users can update creative assets",
+					message: "Only Nisc HQ staff can update creative assets",
 				});
 			}
 
@@ -2328,7 +2328,7 @@ export const creativeAssetsRouter = router({
 			if (!isAgencyUser(user.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency users can archive creative assets",
+					message: "Only Nisc HQ staff can archive creative assets",
 				});
 			}
 
@@ -2400,7 +2400,7 @@ export const creativeAssetsRouter = router({
 			if (!isAgencyUser(user.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency users can unarchive creative assets",
+					message: "Only Nisc HQ staff can unarchive creative assets",
 				});
 			}
 
@@ -2483,7 +2483,7 @@ export const creativeAssetsRouter = router({
 			if (!isAgencyUser(user.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency users can run AI image analysis",
+					message: "Only Nisc HQ staff can run AI image analysis",
 				});
 			}
 

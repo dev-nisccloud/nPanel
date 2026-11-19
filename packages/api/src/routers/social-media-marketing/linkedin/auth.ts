@@ -179,7 +179,7 @@ export const linkedinAuthRouter = router({
 				if (!isAgencyUserRole(userRole)) {
 					throw new TRPCError({
 						code: 'FORBIDDEN',
-						message: 'Only agency users can manage LinkedIn integration tokens',
+						message: 'Only Nisc HQ staff can manage LinkedIn integration tokens',
 					});
 				}
 
@@ -381,7 +381,7 @@ export const linkedinAuthRouter = router({
 				if (!isAgencyUserRole(userRole)) {
 					throw new TRPCError({
 						code: 'FORBIDDEN',
-						message: 'Only agency users can manage LinkedIn integration tokens',
+						message: 'Only Nisc HQ staff can manage LinkedIn integration tokens',
 					});
 				}
 
@@ -507,7 +507,7 @@ export const linkedinAuthRouter = router({
 				if (!isAgencyUserRole(ctx.session?.user?.role)) {
 					throw new TRPCError({
 						code: 'FORBIDDEN',
-						message: 'Only agency users can manage LinkedIn integration tokens',
+						message: 'Only Nisc HQ staff can manage LinkedIn integration tokens',
 					});
 				}
 				const clientId = getLinkedInClientId();
@@ -568,7 +568,7 @@ export const linkedinAuthRouter = router({
 			if (!isAgencyUserRole(ctx.session?.user?.role)) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'Only agency users can view LinkedIn integration credentials',
+					message: 'Only Nisc HQ staff can view LinkedIn integration credentials',
 				});
 			}
 			const integration = await db.query.socialMediaIntegration.findFirst({

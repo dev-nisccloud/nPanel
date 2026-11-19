@@ -54,7 +54,7 @@ export const WEBSITE_OFFER: ProjectOffer = {
     },
     {
       id: "corporate",
-      name: "Corporate",
+      name: "Enterprise",
       summary: "A custom build for a larger organisation or more than one language.",
       includes: [
         "Custom interface design",
@@ -109,7 +109,7 @@ export const ECOMMERCE_OFFER: ProjectOffer = {
     },
     {
       id: "corporate",
-      name: "Corporate",
+      name: "Enterprise",
       summary: "A store with the integrations a larger operation needs.",
       includes: [
         "A full catalogue with variants",
@@ -164,7 +164,7 @@ export const BRAND_OFFER: ProjectOffer = {
     },
     {
       id: "corporate",
-      name: "Corporate",
+      name: "Enterprise",
       summary: "Strategy, a full manual and support after delivery.",
       includes: [
         "Full brand guidelines",
@@ -219,7 +219,7 @@ export const SOFTWARE_OFFER: ProjectOffer = {
     },
     {
       id: "corporate",
-      name: "Corporate",
+      name: "Enterprise",
       summary: "A system for more than one team, with the reporting you need.",
       includes: [
         "More than one team or brand",

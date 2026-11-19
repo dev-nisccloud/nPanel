@@ -89,7 +89,7 @@ function transformPleskSubscriptionToDetail(
  */
 export function useHostingDetailBatched(subscriptionId: string) {
   const { pathname } = useLocation();
-  const isAgencyHostingRoute = pathname.startsWith("/agency/");
+  const isAgencyHostingRoute = pathname.startsWith("/hq/");
   const customerTeamSlug = !isAgencyHostingRoute ? (pathname.split("/")[1] ?? "") : "";
 
   const {

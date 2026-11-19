@@ -132,7 +132,7 @@ export default function QuotationViewPage() {
 			navigate(
 				quotation
 					? quotationCustomerGroupPath(quotation.customerName, quotation.customerEmail)
-					: "/agency/quotations",
+					: "/hq/quotations",
 			);
 		},
 		onError: (e) => toast.error("Failed to delete quotation", { description: e.message }),
@@ -226,7 +226,7 @@ export default function QuotationViewPage() {
 					<p className="text-muted-foreground mb-4">
 						{error?.message ?? "The quotation you're looking for doesn't exist."}
 					</p>
-					<Button onClick={() => navigate("/agency/quotations")} variant="outline">
+					<Button onClick={() => navigate("/hq/quotations")} variant="outline">
 						<ArrowLeft className="mr-2 h-4 w-4" />
 						Back to Quotations
 					</Button>
@@ -283,7 +283,7 @@ export default function QuotationViewPage() {
 						Send to email
 					</Button>
 					<Button
-						onClick={() => navigate(`/agency/quotations/${quotationId}/edit`)}
+						onClick={() => navigate(`/hq/quotations/${quotationId}/edit`)}
 						disabled={isDownloading}
 						variant="outline"
 					>

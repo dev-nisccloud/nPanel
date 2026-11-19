@@ -25,6 +25,7 @@ import {
 	type FxRateSnapshot,
 } from "./fx-rates";
 import { computeTaxTotals, resolveTaxPolicy } from "./tax-policy";
+import { NISC_EMAIL_MARKETING_PRODUCT_ID } from "./nisc-email-marketing-billing";
 
 export const storefrontBillingCycleSchema = z.enum([
 	"MONTHLY",
@@ -84,12 +85,16 @@ export function isDomainYearlyBillingCycle(cycle: string | null | undefined): bo
 	);
 }
 
+/** Zepo AI credit packs bought from the website cart; sold once, never renewed. */
+export const ZEPO_AI_CREDITS_SERVICE_TYPE = "zeepo_ai";
+
 /** Domains never use MONTHLY; transfers are always 1 year. */
 export function normalizeStorefrontMainBillingCycle(
 	serviceType: string,
 	billingCycle: StorefrontBillingCycle,
 ): StorefrontBillingCycle {
 	if (serviceType === "domain_transfer") return "YEARLY";
+	if (serviceType === ZEPO_AI_CREDITS_SERVICE_TYPE) return "MONTHLY";
 	if (serviceType === "domain_registration") {
 		return isDomainYearlyBillingCycle(billingCycle) ? billingCycle : "YEARLY";
 	}
@@ -133,6 +138,13 @@ export const storefrontCartQuoteInputSchema = z.object({
 			serviceType: z.enum(["web_hosting", "wordpress_hosting", "email_hosting"]),
 			planId: z.string().min(1),
 			billingCycle: storefrontBillingCycleSchema,
+		})
+		.optional(),
+	/** Nisc Outreach add-on, billed on the term the customer picks, as its own subscription. */
+	upsellOutreach: z
+		.object({
+			planId: z.string().min(1),
+			billingCycle: storefrontBillingCycleSchema.default("MONTHLY"),
 		})
 		.optional(),
 	hivelocity: z
@@ -333,12 +345,35 @@ export async function resolveNiscPlanQuote(
 		});
 	}
 
+	if (isOneTimePlanCycle(plan.billingCycle)) {
+		if (billingCycle !== "MONTHLY") {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "This is a one-time purchase and has no billing term.",
+			});
+		}
+		const price = Number.parseFloat(plan.price ?? "");
+		const amount = Number.isFinite(price) && price > 0 ? Math.round(price * 100) / 100 : 0;
+		return {
+			monthly: amount,
+			yearly: amount,
+			planName: plan.name ?? "",
+			currency: plan.currency ?? "KES",
+		};
+	}
+
 	const pricing = derivePlanPricingKes(plan.price, plan.billingCycle, billingCycle);
 	return {
 		...pricing,
 		planName: plan.name ?? "",
 		currency: plan.currency ?? "KES",
 	};
+}
+
+/** Plans sold once (e.g. Zepo AI credit packs): priced as-is and checked out with the MONTHLY cycle. */
+export function isOneTimePlanCycle(planBillingCycle: string | null | undefined): boolean {
+	const cycle = (planBillingCycle ?? "").trim().toUpperCase();
+	return cycle === "CUSTOM" || cycle === "ONE_TIME";
 }
 
 export async function resolveDomainRetailPriceKes(domain: string): Promise<number> {
@@ -411,7 +446,7 @@ async function resolveDomainBundlePriceKes(domains: string[]): Promise<number> {
 	return total;
 }
 
-async function resolveHivelocityBasePricing(
+export async function resolveHivelocityBasePricing(
 	serviceType: string,
 	hivelocityProductId: number,
 	locationName?: string,
@@ -688,6 +723,25 @@ export async function resolveMainLineQuote(
 	};
 }
 
+/** Outreach add-on lines may only reference an active, public plan of the Outreach product. */
+export async function assertOutreachUpsellPlan(planId: string): Promise<void> {
+	const plan = await db.query.niscProductPlan.findFirst({
+		where: and(
+			eq(niscProductPlan.id, planId),
+			eq(niscProductPlan.productId, NISC_EMAIL_MARKETING_PRODUCT_ID),
+			eq(niscProductPlan.isActive, true),
+			eq(niscProductPlan.hidden, false),
+		),
+		columns: { id: true },
+	});
+	if (!plan) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "The selected Nisc Outreach plan is no longer available.",
+		});
+	}
+}
+
 export async function computeStorefrontCartQuote(
 	input: StorefrontCartQuoteInput,
 ): Promise<StorefrontCartQuote> {
@@ -736,6 +790,28 @@ export async function computeStorefrontCartQuote(
 		sourceSubtotal += pickCheckoutPrice(
 			{ monthly: hostingMonthlyKes, yearly: hostingYearlyKes },
 			parsed.upsellHosting.billingCycle,
+		);
+	}
+
+	if (parsed.upsellOutreach) {
+		if (parsed.main.serviceType === "email_marketing") {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Nisc Outreach is already the main item in this cart.",
+			});
+		}
+		await assertOutreachUpsellPlan(parsed.upsellOutreach.planId);
+		const outreachCycle = parsed.upsellOutreach.billingCycle;
+		const outreachPlan = await resolveNiscPlanQuote(
+			parsed.upsellOutreach.planId,
+			outreachCycle,
+		);
+		sourceSubtotal += pickCheckoutPrice(
+			{
+				monthly: await toKes(outreachPlan.monthly, outreachPlan.currency),
+				yearly: await toKes(outreachPlan.yearly, outreachPlan.currency),
+			},
+			outreachCycle,
 		);
 	}
 

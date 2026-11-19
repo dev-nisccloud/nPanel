@@ -57,7 +57,7 @@ const EmptyState: React.FC<{
 export default function DomainConfigurationPage() {
 	const route = useNiscEmailMarketingRoute();
 	const location = useLocation();
-	const showUsageTab = !route.isCustomer && location.pathname.startsWith("/agency/");
+	const showUsageTab = !route.isCustomer && location.pathname.startsWith("/hq/");
 	const [searchTerm, setSearchTerm] = React.useState("");
 	const [isAddSheetOpen, setIsAddSheetOpen] = React.useState(false);
 	const [isRefreshing, setIsRefreshing] = React.useState(false);

@@ -68,7 +68,7 @@ const MODULE_LABELS: Record<AgencyPermissionModuleId, string> = {
 	support: "Support",
 	products: "Products & orders",
 	operations: "Operations",
-	agency_admin: "Agency administration",
+	agency_admin: "Nisc HQ",
 };
 
 function entry(
@@ -222,8 +222,8 @@ export const AGENCY_PERMISSION_CATALOG: readonly AgencyPermissionEntry[] = [
 	entry("hr", "openings", "Open roles", "View or publish career roles"),
 	entry("hr", "applications", "Applications", "View job applications and download CVs"),
 
-	entry("agency_admin", "users", "Users", "View or manage agency users"),
-	entry("agency_admin", "roles", "Roles", "View or manage agency roles and permissions"),
+	entry("agency_admin", "users", "Users", "View or manage Nisc HQ staff"),
+	entry("agency_admin", "roles", "Roles", "View or manage Nisc HQ roles and permissions"),
 	entry("agency_admin", "api_keys", "API keys", "View or manage API keys"),
 ] as const;
 

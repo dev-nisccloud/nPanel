@@ -139,7 +139,7 @@ export function DealViewSheet({
                   <SheetField label="Primary contact">
                     {deal.primaryContact ? (
                       <Link
-                        to={`/agency/crm/contacts/${deal.primaryContact.id}`}
+                        to={`/hq/crm/contacts/${deal.primaryContact.id}`}
                         className="hover:underline"
                       >
                         {contactName || "Contact"}

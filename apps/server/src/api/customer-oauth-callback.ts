@@ -12,9 +12,9 @@ const PLATFORM_BY_SLUG = {
 } as const;
 
 const FALLBACK_BY_SLUG: Record<string, string> = {
-  meta: "/agency/social-media-ads/facebook",
-  linkedin: "/agency/social-media-ads/linkedin",
-  google: "/agency/social-media-ads/google",
+  meta: "/hq/social-media-ads/facebook",
+  linkedin: "/hq/social-media-ads/linkedin",
+  google: "/hq/social-media-ads/google",
 };
 
 const FALLBACK_PATH = FALLBACK_BY_SLUG.meta;

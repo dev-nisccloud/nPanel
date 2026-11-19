@@ -45,8 +45,8 @@ export default function VpsDetailRoute() {
   }
 
   const teamSlug = typeof slug === "string" ? slug : "";
-  const vpsListPath = teamSlug ? `/${teamSlug}/vps` : "/agency/vps";
-  const subscriptionsPathPrefix = teamSlug ? `/${teamSlug}/subscriptions` : "/agency/subscriptions";
+  const vpsListPath = teamSlug ? `/${teamSlug}/vps` : "/hq/vps";
+  const subscriptionsPathPrefix = teamSlug ? `/${teamSlug}/subscriptions` : "/hq/subscriptions";
 
   return (
     <ErrorBoundary>

@@ -359,7 +359,7 @@ export default function AudienceDetailPage() {
 							type="button"
 							variant="ghost"
 							size="sm"
-							onClick={() => navigate("/agency/email-marketing/audiences")}
+							onClick={() => navigate("/hq/email-marketing/audiences")}
 							className="px-0 text-xs"
 						>
 							<ArrowLeft className="mr-1 h-3 w-3" />

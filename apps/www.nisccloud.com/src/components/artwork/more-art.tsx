@@ -25,7 +25,7 @@ import { ArtFlash, ArtReveal, ArtStage, ArtSwap, Float, KeyValues, Meter, Npanel
 import { ZepoMascot } from "@/components/zepo-mascot.tsx";
 
 /** Variant compositions so multi-block pages do not repeat a layout. All data is fictional. */
-const DOMAIN = "savannabakery.co.ke";
+const DOMAIN = "savannabakery.com";
 
 /** Hosting File Manager tab. */
 export function HostingFilesArt() {

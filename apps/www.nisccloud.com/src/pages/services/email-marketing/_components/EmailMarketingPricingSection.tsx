@@ -5,10 +5,10 @@ export function EmailMarketingPricingSection() {
   return (
     <NpanelPricingSection
       fetchPlans={fetchEmailMarketingPlansPublic}
-      title="Choose your email marketing plan"
-      description="Professional email design, list segmentation, automation flows, and campaign analytics managed for you, with clear reporting in your nPanel portal."
+      title="Choose your Nisc Outreach plan"
+      description="AI-built campaigns, audiences, sending from your own domain and campaign reports, all in nPanel."
       checkoutServiceType="email_marketing"
-      serviceName="Email Marketing"
+      serviceName="Nisc Outreach"
     />
   );
 }

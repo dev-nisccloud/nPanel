@@ -43,7 +43,7 @@ export function InvoiceTeamsTable({ teams }: InvoiceTeamsTableProps) {
 							<TableRow
 								key={routeId}
 								className="cursor-pointer"
-								onClick={() => navigate(`/agency/invoices/organizations/${routeId}`)}
+								onClick={() => navigate(`/hq/invoices/organizations/${routeId}`)}
 							>
 								<TableCell className="pl-6 font-medium">
 									<div className="flex items-center gap-2">

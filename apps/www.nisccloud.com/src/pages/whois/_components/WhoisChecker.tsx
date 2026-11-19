@@ -732,7 +732,7 @@ export default function WhoisChecker() {
 								<Input
 									ref={inputRef}
 									className="pl-9 h-12 text-base"
-									placeholder="Enter a domain, e.g. google.com or safaricom.co.ke"
+									placeholder="Enter a domain, e.g. google.com"
 									value={inputValue}
 									onChange={(e) => setInputValue(e.target.value)}
 									onKeyDown={handleKeyDown}

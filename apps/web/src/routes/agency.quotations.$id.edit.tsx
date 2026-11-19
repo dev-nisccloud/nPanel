@@ -74,7 +74,7 @@ export default function EditQuotationPage() {
 					<p className="text-muted-foreground mb-4">
 						{error?.message ?? "The quotation you're looking for doesn't exist."}
 					</p>
-					<Button onClick={() => navigate("/agency/quotations")} variant="outline">
+					<Button onClick={() => navigate("/hq/quotations")} variant="outline">
 						<ArrowLeft className="mr-2 h-4 w-4" />
 						Back to Quotations
 					</Button>

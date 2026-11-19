@@ -127,7 +127,7 @@ export const Navbar = ({
   return (
     <nav className="flex h-[68px] min-w-0 shrink-0 items-center gap-x-4 border-b bg-background p-4">
       {/* Back Button */}
-      <Link to="/agency/gen-ai/image-gen-studio">
+      <Link to="/hq/gen-ai/image-gen-studio">
         <Button size="icon" variant="ghost" className="h-8 w-8">
           <ArrowLeft className="size-4" />
         </Button>

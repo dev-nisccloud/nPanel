@@ -103,7 +103,8 @@ export default function ContactForm() {
   const prefilledPlan = searchParams.get("plan")?.slice(0, 80) ?? null;
   const prefilledPlanPrice = searchParams.get("planPrice");
   const prefilledPlanPeriod = searchParams.get("planPeriod");
-  const isCorporate = searchParams.get("tier") === "corporate";
+  const tier = searchParams.get("tier");
+  const isCorporate = tier === "enterprise" || tier === "corporate";
   const [openedAt] = useState(() => Date.now());
 
   const {

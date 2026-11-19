@@ -241,7 +241,7 @@ export default function InvoiceIndex() {
 									/>
 								</Button>
 								{activeTab === "invoices" ? (
-									<Button onClick={() => navigate("/agency/invoices/create")}>
+									<Button onClick={() => navigate("/hq/invoices/create")}>
 										<Plus className="mr-2 h-4 w-4" />
 										Create Invoice
 									</Button>
@@ -261,7 +261,7 @@ export default function InvoiceIndex() {
 								}
 								action={
 									!searchTerm.trim() ? (
-										<Button onClick={() => navigate("/agency/invoices/create")}>
+										<Button onClick={() => navigate("/hq/invoices/create")}>
 											<Plus className="mr-2 h-4 w-4" />
 											Create Invoice
 										</Button>
@@ -299,7 +299,7 @@ export default function InvoiceIndex() {
 						) : (
 							<CreditNotesTable
 								creditNotes={filteredCreditNotes}
-								detailPathPrefix="/agency/invoices/credit-notes"
+								detailPathPrefix="/hq/invoices/credit-notes"
 								onRefetch={refetchCreditNotes}
 							/>
 						)}

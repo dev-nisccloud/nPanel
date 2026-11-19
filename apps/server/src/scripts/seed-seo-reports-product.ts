@@ -1,11 +1,11 @@
 /**
- * Idempotent seed for SEO Reports product, plans, and plan usage limits.
+ * Idempotent seed for the SEO & AI Search Optimisation product, plans, and plan usage limits.
  *
  * Run from apps/server (env + DATABASE_URL live here):
  *   bun run seed:seo-reports
  */
 import { randomUUID } from "node:crypto";
-import { and, eq, ilike, ne, notInArray, or } from "@npanel/db";
+import { and, eq, ilike, inArray, ne, notInArray, or } from "@npanel/db";
 import { db } from "@npanel/db";
 import {
 	niscProduct,
@@ -13,12 +13,14 @@ import {
 	niscProductPlanUsage,
 } from "@npanel/db/schema/products";
 import {
+	NISC_SEO_REPORTS_LEGACY_PLAN_IDS,
 	NISC_SEO_REPORTS_PLAN_IDS,
 	NISC_SEO_REPORTS_PRODUCT_ID,
 	SEO_GA4_PROPERTIES_USAGE_KIND,
 	SEO_GSC_SITES_USAGE_KIND,
 } from "@npanel/api/lib/seo-reports-billing";
 import { invalidateProductsCache } from "@npanel/api/lib/products-cache";
+import { AGENCY_ONLY_PLAN_METADATA_KEY } from "@npanel/api/lib/enterprise-plans";
 
 type ProductFeature = {
 	key: string;
@@ -26,86 +28,79 @@ type ProductFeature = {
 	description: string;
 };
 
-/** Pricing-table rows - agency deliverables customers expect from SEO (not platform UI). */
-const PRODUCT_FEATURES: ProductFeature[] = [
+/** Pricing-table rows. The website renders these in order, so keep the scope wording customer-facing. */
+const PRODUCT_FEATURES = [
 	{
-		key: "websites",
-		label: "Websites managed",
-		description: "Sites we actively optimize and monitor for organic search growth",
+		key: "npanel_dashboard",
+		label: "Search dashboard in nPanel",
+		description: "Your search positions, clicks, queries, top pages and traffic from Google Search Console and GA4",
+	},
+	{ key: "websites", label: "Websites", description: "Websites included in the monthly work" },
+	{
+		key: "starting_assessment",
+		label: "Starting assessment",
+		description: "The baseline we set before the first month of work",
 	},
 	{
-		key: "target_keywords",
-		label: "Target keywords",
-		description: "Priority keywords we research, track, and work to improve rankings for",
+		key: "search_queries",
+		label: "Priority search queries tracked",
+		description: "Searches we track and work to improve, chosen with you",
 	},
 	{
-		key: "keyword_research",
-		label: "Keyword research",
-		description: "Ongoing keyword discovery aligned to your products, services, and search intent",
+		key: "page_improvements",
+		label: "Existing pages improved",
+		description: "Defined updates to pages you already have, such as clearer answers, headings and internal links",
 	},
 	{
-		key: "on_page_seo",
-		label: "On-page SEO",
-		description: "Title tags, meta descriptions, headings, internal linking, and page structure improvements",
+		key: "new_content",
+		label: "New researched articles or service pages",
+		description: "New pages written for searches you want to win. Separate from page improvements",
 	},
 	{
-		key: "technical_seo",
-		label: "Technical SEO",
-		description: "Site audits, crawl issues, indexing, speed, and mobile fixes that block rankings",
+		key: "technical_hours",
+		label: "Technical implementation",
+		description: "Agreed fixes and changes to your existing site. Not redesigns or rebuilds",
 	},
 	{
-		key: "content_optimization",
-		label: "Content optimization",
-		description: "Existing pages refreshed and new content briefed to match what searchers are looking for",
+		key: "ai_foundations",
+		label: "AI search foundations",
+		description: "Work that helps search engines and AI tools read and quote your site",
+	},
+	{ key: "competitors", label: "Competitors", description: "Who outranks you, and where the gaps are" },
+	{
+		key: "business_profile",
+		label: "Business information and Google Business Profile",
+		description: "Accurate business details across search and maps",
 	},
 	{
-		key: "local_seo",
-		label: "Local SEO",
-		description: "Google Business Profile, local listings, and location pages that drive nearby customers",
+		key: "outreach",
+		label: "Outreach",
+		description: "Researched approaches to relevant sites. Links are earned, never guaranteed",
 	},
 	{
-		key: "link_building",
-		label: "Off-page & link building",
-		description: "Quality outreach and authority-building to strengthen your domain trust over time",
+		key: "ai_visibility",
+		label: "AI visibility checks",
+		description: "Sampled checks of how AI tools answer a fixed set of buyer questions",
 	},
-	{
-		key: "competitor_analysis",
-		label: "Competitor analysis",
-		description: "See where rivals outrank you and close the gaps with a clear action plan",
-	},
-	{
-		key: "performance_reporting",
-		label: "Performance reporting",
-		description: "Clear reports on rankings, traffic, and conversions - delivered on a regular cadence",
-	},
-	{
-		key: "strategy_reviews",
-		label: "Strategy reviews",
-		description: "Live check-ins with your SEO manager on progress, priorities, and next steps",
-	},
-	{
-		key: "team_access",
-		label: "Team access",
-		description: "Invite colleagues to view progress and reports alongside your agency",
-	},
-];
+	{ key: "reporting", label: "Reporting", description: "What we did, what changed and what comes next" },
+	{ key: "review_call", label: "Review call", description: "Time with your SEO lead to agree priorities" },
+] as const satisfies readonly ProductFeature[];
 
 const PRODUCT = {
 	id: NISC_SEO_REPORTS_PRODUCT_ID,
-	name: "SEO",
+	name: "SEO & AI Search Optimisation",
 	description:
-		"Done-for-you search engine optimization from Nisc Cloud - keyword strategy, on-page and technical fixes, content optimization, and off-page growth. Track rankings, traffic, and results anytime in your SEO Reports portal.",
+		"Done-for-you search work from Nisc Cloud across Google Search, Maps and AI answers. Search positions, clicks, top pages, queries, traffic and reports show in nPanel automatically.",
 	category: "MARKETING",
 	serviceType: "nisc_seo_reports",
 	isActive: true,
 	sortOrder: 23,
 	features: PRODUCT_FEATURES,
 	highlights: [
-		"Keyword research and on-page optimization handled for you",
-		"Technical SEO audits and fixes that unblock Google visibility",
-		"Content and local SEO support as your business grows",
-		"Off-page and competitor insights on higher plans",
-		"Live performance reports in your portal - see what we delivered",
+		"Search positions, clicks, top pages, queries and traffic in nPanel",
+		"Page improvements and technical fixes every month",
+		"AI search foundations for answer engines",
+		"Monthly report with next priorities",
 	],
 	isAddOn: false,
 	metadata: {
@@ -133,145 +128,136 @@ type PlanSeed = {
 	isPopular?: boolean;
 	isRecommended?: boolean;
 	isDefault?: boolean;
+	/** Hidden from the website and cart; agency staff set the agreed price on the order. */
+	agencyOnly?: boolean;
 	sortOrder: number;
 	highlights: string[];
 	planFeatures: PlanFeatureEntry[];
 };
 
-function feature(
-	key: string,
-	available: boolean,
-	valueOverride?: string,
-): PlanFeatureEntry {
-	return valueOverride ? { key, available, valueOverride } : { key, available };
+type FeatureKey = (typeof PRODUCT_FEATURES)[number]["key"];
+
+function buildPlanFeatures(values: Record<FeatureKey, string | false>): PlanFeatureEntry[] {
+	return PRODUCT_FEATURES.map(({ key }) => {
+		const value = values[key];
+		return value === false ? { key, available: false } : { key, available: true, valueOverride: value };
+	});
 }
 
-function buildPlanFeatures(config: {
-	websites: string;
-	targetKeywords: string;
-	contentOptimization: string;
-	technicalSeo: string;
-	localSeo: boolean;
-	linkBuilding: boolean | string;
-	competitorAnalysis: boolean;
-	performanceReporting: string;
-	strategyReviews: boolean | string;
-}): PlanFeatureEntry[] {
-	return [
-		feature("websites", true, config.websites),
-		feature("target_keywords", true, config.targetKeywords),
-		feature("keyword_research", true),
-		feature("on_page_seo", true),
-		feature("technical_seo", true, config.technicalSeo),
-		feature("content_optimization", true, config.contentOptimization),
-		feature("local_seo", config.localSeo),
-		feature(
-			"link_building",
-			config.linkBuilding !== false,
-			typeof config.linkBuilding === "string" ? config.linkBuilding : undefined,
-		),
-		feature("competitor_analysis", config.competitorAnalysis),
-		feature("performance_reporting", true, config.performanceReporting),
-		feature(
-			"strategy_reviews",
-			config.strategyReviews !== false,
-			typeof config.strategyReviews === "string" ? config.strategyReviews : undefined,
-		),
-		feature("team_access", true, "Unlimited"),
-	];
-}
+const AGREED = "Agreed with you";
 
 const PLANS: PlanSeed[] = [
 	{
-		id: NISC_SEO_REPORTS_PLAN_IDS.starter,
-		name: "Starter",
-		description:
-			"Essential SEO for one website - keyword research, on-page fixes, and monthly reporting to get you ranking.",
+		id: NISC_SEO_REPORTS_PLAN_IDS.essentials,
+		name: "Search Essentials",
+		description: "One business website establishing search visibility.",
 		pricingModel: "FIXED",
 		billingCycle: "MONTHLY",
-		priceKes: "9999.00",
+		priceKes: "25000.00",
 		gscSites: 1,
 		ga4Properties: 1,
 		sortOrder: 1,
 		highlights: [
-			"1 website managed",
-			"25 target keywords",
-			"On-page & technical SEO fundamentals",
+			"Up to 25 priority search queries tracked",
+			"Up to 3 existing pages improved each month",
+			"Up to 2 hours of technical implementation each month",
+			"AI search foundations",
+			"Monthly report with next priorities",
 		],
 		planFeatures: buildPlanFeatures({
+			npanel_dashboard: "Included",
 			websites: "1",
-			targetKeywords: "25",
-			contentOptimization: "5 pages / month",
-			technicalSeo: "Quarterly audit",
-			localSeo: false,
-			linkBuilding: false,
-			competitorAnalysis: false,
-			performanceReporting: "Monthly",
-			strategyReviews: false,
+			starting_assessment: "Technical, content and search baseline",
+			search_queries: "Up to 25",
+			page_improvements: "Up to 3 a month",
+			new_content: "Quoted separately",
+			technical_hours: "Up to 2 hours a month",
+			ai_foundations: "Crawl-access review, clear answer content, relevant structured data, accurate business information",
+			competitors: "Initial benchmark",
+			business_profile: "Consistency check",
+			outreach: false,
+			ai_visibility: "Baseline, then quarterly sample checks",
+			reporting: "Monthly report: work, observations, next priorities",
+			review_call: false,
 		}),
 	},
 	{
 		id: NISC_SEO_REPORTS_PLAN_IDS.growth,
-		name: "Growth",
-		description:
-			"Scale organic traffic across three sites - content optimization, local SEO, competitor insights, and bi-weekly strategy reviews.",
+		name: "Search Growth",
+		description: "One business website competing for more enquiries and sales.",
 		pricingModel: "FIXED",
 		billingCycle: "MONTHLY",
-		priceKes: "24999.00",
-		gscSites: 3,
-		ga4Properties: 3,
+		priceKes: "65000.00",
+		gscSites: 1,
+		ga4Properties: 1,
 		isPopular: true,
 		isRecommended: true,
 		isDefault: true,
 		sortOrder: 2,
 		highlights: [
-			"3 websites managed",
-			"75 target keywords",
-			"Local SEO + competitor analysis",
+			"Up to 75 priority search queries tracked",
+			"Up to 6 page improvements and 2 new pages each month",
+			"Up to 4 hours of technical implementation each month",
+			"1 Google Business Profile or location",
+			"Monthly AI visibility checks and a 30-minute review",
 		],
 		planFeatures: buildPlanFeatures({
-			websites: "3",
-			targetKeywords: "75",
-			contentOptimization: "15 pages / month",
-			technicalSeo: "Monthly audit",
-			localSeo: true,
-			linkBuilding: "Basic outreach",
-			competitorAnalysis: true,
-			performanceReporting: "Bi-weekly",
-			strategyReviews: "Bi-weekly",
+			npanel_dashboard: "Included",
+			websites: "1",
+			starting_assessment: "Deeper technical and content assessment",
+			search_queries: "Up to 75",
+			page_improvements: "Up to 6 a month",
+			new_content: "2 a month",
+			technical_hours: "Up to 4 hours a month",
+			ai_foundations: "Foundations plus deeper topic and comparison content",
+			competitors: "Quarterly review of up to 3",
+			business_profile: "1 eligible profile or location",
+			outreach: "Up to 5 researched approaches a month",
+			ai_visibility: "Monthly, using a fixed set of buyer questions",
+			reporting: "Monthly performance report",
+			review_call: "One 30-minute review a month",
 		}),
 	},
 	{
-		id: NISC_SEO_REPORTS_PLAN_IDS.pro,
-		name: "Pro",
+		id: NISC_SEO_REPORTS_PLAN_IDS.enterprise,
+		name: "Enterprise",
 		description:
-			"Full-service SEO for up to ten websites - aggressive content, advanced link building, weekly strategy, and priority technical support.",
+			"Ecommerce, large websites, high keyword volumes, several brands, locations, languages or markets. Priced per client.",
 		pricingModel: "FIXED",
 		billingCycle: "MONTHLY",
-		priceKes: "59999.00",
+		priceKes: "0.00",
 		gscSites: 10,
 		ga4Properties: 10,
+		agencyOnly: true,
 		sortOrder: 3,
 		highlights: [
-			"10 websites managed",
-			"200 target keywords",
-			"Weekly strategy + advanced link building",
+			"Several websites, brands or locations",
+			"Technical capacity agreed with you",
+			"Content production with your approval workflow",
+			"International and multi-market strategy",
+			"Custom reporting and an assigned account lead",
 		],
 		planFeatures: buildPlanFeatures({
-			websites: "10",
-			targetKeywords: "200",
-			contentOptimization: "40 pages / month",
-			technicalSeo: "Priority fixes",
-			localSeo: true,
-			linkBuilding: "Advanced outreach",
-			competitorAnalysis: true,
-			performanceReporting: "Weekly",
-			strategyReviews: "Weekly",
+			npanel_dashboard: "Included",
+			websites: "Several sites and locations",
+			starting_assessment: AGREED,
+			search_queries: AGREED,
+			page_improvements: AGREED,
+			new_content: "Content production and approval workflow",
+			technical_hours: "Custom capacity",
+			ai_foundations: AGREED,
+			competitors: AGREED,
+			business_profile: "Several locations",
+			outreach: "Agreed authority-building programme",
+			ai_visibility: AGREED,
+			reporting: "Custom reporting and integrations",
+			review_call: "Agreed cadence with an account lead",
 		}),
 	},
 ];
 
-const CANONICAL_PLAN_IDS = PLANS.map((plan) => plan.id);
+const LEGACY_PLAN_IDS = Object.values(NISC_SEO_REPORTS_LEGACY_PLAN_IDS);
+const CANONICAL_PLAN_IDS = [...PLANS.map((plan) => plan.id), ...LEGACY_PLAN_IDS];
 
 function seoReportsProductMatch() {
 	return or(
@@ -363,7 +349,9 @@ async function upsertPlan(plan: PlanSeed) {
 		gscSites: plan.gscSites,
 		ga4Properties: plan.ga4Properties,
 		legacyPlanType: "SEO",
+		...(plan.agencyOnly ? { [AGENCY_ONLY_PLAN_METADATA_KEY]: true } : {}),
 	};
+	const hidden = plan.agencyOnly ?? false;
 
 	await db
 		.insert(niscProductPlan)
@@ -384,6 +372,7 @@ async function upsertPlan(plan: PlanSeed) {
 			isPopular: plan.isPopular ?? false,
 			isRecommended: plan.isRecommended ?? false,
 			isActive: true,
+			hidden,
 			isDefault: plan.isDefault ?? false,
 			sortOrder: plan.sortOrder,
 			metadata: planMetadata,
@@ -407,12 +396,24 @@ async function upsertPlan(plan: PlanSeed) {
 				isPopular: plan.isPopular ?? false,
 				isRecommended: plan.isRecommended ?? false,
 				isActive: true,
+				hidden,
 				isDefault: plan.isDefault ?? false,
 				sortOrder: plan.sortOrder,
 				metadata: planMetadata,
 				updatedAt: now,
 			},
 		});
+}
+
+/** Hide retired plans from sale without touching their price, so renewals continue unchanged. */
+async function retireLegacyPlans() {
+	const now = new Date();
+	const updated = await db
+		.update(niscProductPlan)
+		.set({ hidden: true, isPopular: false, isRecommended: false, isDefault: false, updatedAt: now })
+		.where(inArray(niscProductPlan.id, LEGACY_PLAN_IDS))
+		.returning({ id: niscProductPlan.id });
+	for (const { id } of updated) console.log(`  ⊘ Hid retired plan ${id} (still renews)`);
 }
 
 async function upsertPlanUsage(plan: PlanSeed) {
@@ -472,6 +473,8 @@ async function main() {
 			`  ✓ Plan ${plan.id} (${plan.gscSites} GSC / ${plan.ga4Properties} GA4, KSh ${plan.priceKes})`,
 		);
 	}
+
+	await retireLegacyPlans();
 
 	await invalidateProductsCache();
 	console.log("\nDone. Product cache invalidated.");

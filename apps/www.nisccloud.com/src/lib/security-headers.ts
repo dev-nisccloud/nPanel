@@ -6,12 +6,12 @@
  */
 const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
-  "script-src 'self' https://vercel.live",
+  "script-src 'self' https://vercel.live https://challenges.cloudflare.com",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
   "connect-src 'self' https://npanel.nisccloud.com https://vercel.live",
-  "frame-src https://vercel.live https://www.instagram.com",
+  "frame-src https://vercel.live https://challenges.cloudflare.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "object-src 'none'",

@@ -8,8 +8,8 @@ Nisc Cloud is a cloud infrastructure and cloud hosting provider that brings clou
 
 1. **Build** Brand identity, website design and development, ecommerce stores and custom software.
 2. **Run** Domains (.ke, .co.ke, .com and more), web hosting, WordPress hosting, business email, VPS, VDS, dedicated servers, SSL certificates and website security. Hosting, email, cloud servers and domains carry a 99.9% monthly uptime commitment, set out in the Service Level Agreement.
-3. **Grow** SEO / AEO / GEO, Google, Meta and TikTok advertising, social media management and email marketing.
-4. **Zepo AI** Support for customer conversations, follow-ups and repetitive workflows in the services where it is available.
+3. **Grow** SEO / AEO / GEO, Google, Meta and TikTok advertising, social media management and Nisc Outreach AI email marketing.
+4. **AI & Automation** Zepo AI, an assistant inside nPanel that knows the account and reads, summarises and drafts email; Nisc Outreach AI email marketing; an email MCP that connects Nisc Cloud mailboxes to ChatGPT, Claude and other MCP assistants; and an AI website builder (coming soon).
 
 ## Accreditation
 
@@ -46,7 +46,7 @@ Current prices, billing cycles and renewal prices are on https://nisccloud.com/p
 ## Core Pages
 
 - [Homepage](https://nisccloud.com/): Overview
-- [Platform](https://nisccloud.com/platform): nPanel and Zepo AI
+- [Platform](https://nisccloud.com/platform): nPanel, the in-house control panel, the email MCP and Zepo AI
 - [Services](https://nisccloud.com/services): Full service catalogue
 - [Pricing](https://nisccloud.com/pricing): Plans and package pricing by product
 - [Our Work](https://nisccloud.com/work): Websites, brand identity, video and campaign creative for Cruises by Holiday Bazaar, Trelan Engineering, Ashut Engineers and Luxewrap, plus the wider client list
@@ -62,11 +62,12 @@ Current prices, billing cycles and renewal prices are on https://nisccloud.com/p
 - [Website Design](https://nisccloud.com/services/website-design): Custom websites, mobile-first and SEO-ready
 - [Ecommerce](https://nisccloud.com/services/ecommerce): Online stores with payments and inventory
 - [Custom software](https://nisccloud.com/services/software): Web applications, mobile applications and internal tools, quoted in a proposal
-- [SEO / AEO / GEO](https://nisccloud.com/services/seo): Visibility on Google, AI search and Maps
+- [SEO & AI Search Optimisation](https://nisccloud.com/services/seo-ai-search): Visibility on Google, Maps and AI-powered search, with SEO, AEO and GEO in one service
 - [Paid Ads](https://nisccloud.com/services/paid-ads): Google, Meta and TikTok campaigns
 - [Social Media](https://nisccloud.com/services/social-media): Strategy, content and community management
-- [Email Marketing](https://nisccloud.com/services/email-marketing): Sequences, newsletters and automation
-- [Zepo AI](https://nisccloud.com/services/zeepo-ai): AI for customer conversations and follow-ups
+- [Nisc Outreach](https://nisccloud.com/services/email-marketing): AI email marketing. AI designs campaigns from your brand; send from your verified domain and track opens and clicks in nPanel
+- [Zepo AI](https://nisccloud.com/services/zepo-ai): Zepo AI, built by Nisc Cloud: assistant inside nPanel, paid in one-time credit packs (buy on the website or in nPanel); 300 free credits with an active service
+- [AI Website Builder](https://nisccloud.com/services/ai-website-builder): Coming soon. Describe your business and get a website, published from nPanel
 
 ## Cloud Products
 

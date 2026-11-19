@@ -620,7 +620,7 @@ export const tldSettingsRouter = router({
         if (!isAgencyUserRole(actor.role)) {
           throw new TRPCError({
             code: "FORBIDDEN",
-            message: "Only agency users can set per-TLD margins",
+            message: "Only Nisc HQ staff can set per-TLD margins",
           });
         }
 
@@ -766,7 +766,7 @@ export const tldSettingsRouter = router({
         if (!isAgencyUserRole(actor.role)) {
           throw new TRPCError({
             code: "FORBIDDEN",
-            message: "Only agency users can clear per-TLD margins",
+            message: "Only Nisc HQ staff can clear per-TLD margins",
           });
         }
 

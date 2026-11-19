@@ -29,7 +29,7 @@ function SslIllustration() {
           <div className="flex-1 mx-3 bg-white dark:bg-background border border-border/40 rounded-lg px-3 py-1 flex items-center gap-2">
             <Lock size={11} className="text-green-500 shrink-0" />
             <span className="font-mono text-green-600 font-semibold text-[11px]">https://</span>
-            <span className="font-mono text-muted-foreground text-[11px]">yourbusiness.co.ke</span>
+            <span className="font-mono text-muted-foreground text-[11px]">yourbusiness.com</span>
             <span className="ml-auto bg-green-100 text-green-700 text-[9px] font-bold px-1.5 py-0.5 rounded-full">Secure</span>
           </div>
         </div>
@@ -194,7 +194,7 @@ export default function SslPage() {
         { q: "What is the difference between DV, OV, and EV certificates?", a: "DV (Domain Validated) proves you control the domain and issues in minutes. OV (Organisation Validated) also verifies your business details. EV (Extended Validation) provides the highest trust level. For most business websites, OV is a strong choice." },
         { q: "My hosting already includes a free SSL. Why would I buy one?", a: "Free Let's Encrypt SSL is great for basic sites. Paid certificates offer higher warranty coverage, OV/EV business verification, better customer support, and compatibility with legacy systems that don't trust Let's Encrypt." },
         { q: "Will you install the SSL on my server?", a: "Yes. Free installation is included on every SSL certificate purchase. We handle the complete installation, HTTPS redirection setup, and mixed-content testing regardless of your hosting platform." },
-        { q: "What is a Wildcard SSL certificate?", a: "A Wildcard SSL (available as an add-on) secures your main domain plus all its subdomains. For example, *.yourbusiness.co.ke covers shop.yourbusiness.co.ke, mail.yourbusiness.co.ke, and any other subdomain you create." },
+        { q: "What is a Wildcard SSL certificate?", a: "A Wildcard SSL (available as an add-on) secures your main domain plus all its subdomains. For example, *.yourbusiness.com covers shop.yourbusiness.com, mail.yourbusiness.com, and any other subdomain you create." },
         { q: "Is SSL required for accepting online payments?", a: "Yes. Sites that collect payment or personal information need HTTPS with a valid SSL certificate. It is a basic requirement for secure checkout and forms." },
         { q: "What happens if my SSL expires?", a: "An expired SSL certificate causes browsers to show a full-page security warning that blocks most visitors. We send reminders well in advance and can set up auto-renewal so this never happens to you." },
       ]}

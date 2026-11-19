@@ -145,11 +145,10 @@ export function resolveEmailMarketingServiceLabel(
 	productName: string,
 ): string {
 	const st = normalizeServiceType(serviceType);
-	if (st === "nisc_email_marketing") return "Nisc Email Marketing";
+	if (st === "nisc_email_marketing" || st === "email_marketing") return "Nisc Outreach";
 	const name = productName.trim();
-	if (/nisc email marketing/i.test(name)) return "Nisc Email Marketing";
-	if (/email marketing/i.test(name)) return "Email Marketing";
-	return "Email Marketing";
+	if (/nisc email marketing|nisc outreach|email marketing/i.test(name)) return "Nisc Outreach";
+	return "Nisc Outreach";
 }
 
 export function resolveHostingServiceLabel(

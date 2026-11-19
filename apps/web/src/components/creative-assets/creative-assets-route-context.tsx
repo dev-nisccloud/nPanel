@@ -10,7 +10,7 @@ export type CreativeAssetsRouteConfig = {
 };
 
 export const DEFAULT_CREATIVE_ASSETS_ROUTE: CreativeAssetsRouteConfig = {
-	basePath: "/agency/creative-assets",
+	basePath: "/hq/creative-assets",
 	teamId: null,
 	teamSlug: null,
 	isCustomer: false,

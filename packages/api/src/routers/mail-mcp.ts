@@ -26,7 +26,7 @@ async function assertAgencySuperAdmin(userId: string): Promise<void> {
 	if (row.role !== "AGENCY_SUPER_ADMIN") {
 		throw new TRPCError({
 			code: "FORBIDDEN",
-			message: "Only agency super admins can manage Mail MCP users.",
+			message: "Only Nisc HQ super admins can manage Mail MCP users.",
 		});
 	}
 }

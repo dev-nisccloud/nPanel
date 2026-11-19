@@ -59,31 +59,10 @@ export default function LoginPage() {
             <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
               <span className="relative z-10 bg-background px-2 text-muted-foreground">or sign in with</span>
             </div>
-            <GoogleButton variant="outline" className="h-12 w-full bg-background" />
+            <GoogleButton variant="outline" className="h-12 w-full" />
           </div>
         ) : null}
       </div>
-
-      <p className="absolute inset-x-0 bottom-6 px-6 text-xs text-muted-foreground sm:px-12">
-        © {new Date().getFullYear()} Nisc Cloud Limited. All rights reserved.{" "}
-        <a
-          href="https://nisccloud.com/privacy"
-          target="_blank"
-          rel="noreferrer"
-          className="underline underline-offset-2 hover:text-foreground"
-        >
-          Privacy Policy
-        </a>{" "}
-        and{" "}
-        <a
-          href="https://nisccloud.com/terms"
-          target="_blank"
-          rel="noreferrer"
-          className="underline underline-offset-2 hover:text-foreground"
-        >
-          Terms of Service
-        </a>
-      </p>
     </>
   );
 }

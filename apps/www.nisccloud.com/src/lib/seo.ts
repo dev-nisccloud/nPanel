@@ -41,6 +41,14 @@ function upsertLink(rel: string, href: string) {
 
 const ROUTE_JSONLD_ID = "route-jsonld";
 const MAX_DESCRIPTION = 160;
+const MAX_TITLE = 60;
+
+/** Search results truncate around 60 characters, so the site suffix is dropped when it would be cut off. */
+export function fullPageTitle(title: string): string {
+  if (title.includes(SITE_NAME)) return title;
+  const withSuffix = `${title} | ${SITE_NAME}`;
+  return withSuffix.length <= MAX_TITLE ? withSuffix : title;
+}
 
 /** Search results truncate around 160 characters; prefer ending on a full sentence. */
 export function fitDescription(text: string): string {
@@ -61,7 +69,7 @@ export function applyPageMeta(meta: PageMeta) {
   if (typeof document === "undefined") return;
   const path = meta.canonicalPath ?? (window.location.pathname.replace(/\/+$/, "") || "/");
   const url = `${SITE_ORIGIN}${path === "/" ? "/" : path}`;
-  const fullTitle = meta.title.includes(SITE_NAME) ? meta.title : `${meta.title} | ${SITE_NAME}`;
+  const fullTitle = fullPageTitle(meta.title);
 
   document.title = fullTitle;
   const description = fitDescription(meta.description);

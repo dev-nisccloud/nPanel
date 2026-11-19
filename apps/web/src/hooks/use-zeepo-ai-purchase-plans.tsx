@@ -47,7 +47,7 @@ function mapRawPlans(
 			niscCurrency: (plan.displayCurrency as string) ?? "KES",
 			billingCycle: "CUSTOM",
 			features: [
-				`${tokenGrant.toLocaleString()} tokens`,
+				`${tokenGrant.toLocaleString()} credits`,
 				"One-time top-up",
 				"Added to your team wallet",
 				...highlights,

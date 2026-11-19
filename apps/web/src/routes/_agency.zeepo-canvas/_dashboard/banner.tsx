@@ -27,7 +27,7 @@ export const Banner = () => {
       },
       {
         onSuccess: (data) => {
-          navigate(`/agency/zeepo-canvas/editor/${data.data.id}`);
+          navigate(`/hq/zeepo-canvas/editor/${data.data.id}`);
         },
         onSettled: () => {
           setLoading(false);

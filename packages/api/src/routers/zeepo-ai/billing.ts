@@ -194,7 +194,7 @@ export const zeepoAiBillingRouter = router({
 			if (!isZeepoAiAgencyUser(ctx.session?.user?.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Activity usage is available to agency users only.",
+					message: "Activity usage is available to Nisc HQ staff only.",
 				});
 			}
 

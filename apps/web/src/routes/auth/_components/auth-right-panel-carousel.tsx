@@ -13,7 +13,8 @@ export function AuthRightPanelCarousel() {
   const slideCount = slides.length;
 
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (motion.matches) return;
 
     const id = window.setInterval(() => {
       setActiveIndex((prev) => (prev + 1) % slideCount);
@@ -23,14 +24,11 @@ export function AuthRightPanelCarousel() {
   }, [slideCount]);
 
   return (
-    <section
-      className="relative h-full overflow-hidden rounded-3xl"
-      aria-label="Nisc Cloud onboarding highlights"
-    >
-      {slides.map((slide, idx) => (
+    <section className="relative h-full overflow-hidden rounded-3xl" aria-label="Nisc Cloud onboarding highlights">
+      {slides.map((item, idx) => (
         <img
-          key={slide.imageSrc}
-          src={slide.imageSrc}
+          key={item.imageSrc}
+          src={item.imageSrc}
           alt=""
           className={[
             "absolute inset-0 h-full w-full object-cover transition-opacity duration-700",
@@ -41,20 +39,22 @@ export function AuthRightPanelCarousel() {
 
       <div className="absolute inset-x-0 bottom-6 z-10 flex items-center justify-center">
         <div className="flex items-center">
-          {slides.map((slide, idx) => {
+          {slides.map((item, idx) => {
             const isActive = idx === activeIndex;
             return (
               <button
-                key={slide.imageSrc}
+                key={item.imageSrc}
                 type="button"
                 onClick={() => setActiveIndex(idx)}
-                aria-label={`Show slide: ${slide.label}`}
+                aria-label={`Show slide: ${item.label}`}
                 className="inline-flex min-h-11 min-w-11 items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/70"
               >
                 <span
                   className={[
                     "block transition-all duration-300",
-                    isActive ? "h-2.5 w-8 rounded-full bg-primary-foreground" : "size-2.5 rounded-full bg-primary-foreground/45",
+                    isActive
+                      ? "h-2.5 w-8 rounded-full bg-primary-foreground"
+                      : "size-2.5 rounded-full bg-primary-foreground/45",
                   ].join(" ")}
                 />
               </button>

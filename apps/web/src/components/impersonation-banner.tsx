@@ -40,8 +40,8 @@ export function ImpersonationBanner() {
         throw new Error(result.error.message || "Failed to stop impersonation");
       }
       queryClient.clear();
-      toast.success("Returned to your agency account");
-      window.location.replace("/agency/clients");
+      toast.success("Returned to your Nisc HQ account");
+      window.location.replace("/hq/clients");
     } catch (error: unknown) {
       console.error("Stop impersonation failed:", error);
       setStopping(false);

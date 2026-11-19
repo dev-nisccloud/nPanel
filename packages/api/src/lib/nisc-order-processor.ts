@@ -1149,8 +1149,30 @@ async function processPleskOrderItem(
 type DomainTransferItemMetadata = {
 	transferAuthCode?: string;
 	nameServers?: Array<{ name: string; ip?: string }>;
+	/** "keep" leaves the domain on its current nameservers; absent or "nisc" uses the Nisc defaults. */
+	nameserverMode?: "keep" | "nisc";
 	domainTransferRequestId?: string;
 } | null;
+
+/**
+ * Nameservers to send with a transfer. "keep" reads the live delegation from RDAP so the
+ * customer's website and email stay up; if that lookup fails nothing is sent and the
+ * registry keeps the existing delegation.
+ */
+async function resolveTransferNameservers(
+	domain: string,
+	metadata: DomainTransferItemMetadata,
+): Promise<Array<{ name: string; ip?: string }> | undefined> {
+	if (metadata?.nameServers?.length) return metadata.nameServers;
+	if (metadata?.nameserverMode === "keep") {
+		const { rdapLookup } = await import("./whois/rdap-client");
+		const whois = await rdapLookup(domain).catch(() => null);
+		const current = whois?.nameservers ?? [];
+		return current.length > 0 ? current.map((name) => ({ name })) : undefined;
+	}
+	const { resolveNameserversForDomain } = await import("./tld-resolution");
+	return resolveNameserversForDomain(domain);
+}
 
 type DomainOrderItem = {
 	id: string;
@@ -1389,15 +1411,11 @@ async function processKenicTransferOrderItem(
 	}
 	try {
 		const metadata = item.metadata as DomainTransferItemMetadata & { manualRegistrantDetails?: any };
-		let nameServers = metadata?.nameServers;
-
-		if (!nameServers || nameServers.length === 0) {
-			try {
-				const { resolveNameserversForDomain } = await import("./tld-resolution");
-				nameServers = await resolveNameserversForDomain(domain);
-			} catch (err) {
-				return { ok: false, error: err instanceof Error ? err.message : "Failed to resolve nameservers for domain" };
-			}
+		let nameServers: Array<{ name: string; ip?: string }> | undefined;
+		try {
+			nameServers = await resolveTransferNameservers(domain, metadata);
+		} catch (err) {
+			return { ok: false, error: err instanceof Error ? err.message : "Failed to resolve nameservers for domain" };
 		}
 
 		const { executeKenicTransferRequest } = await import("./kenic-transfer-request");
@@ -1558,15 +1576,11 @@ async function processOpenProviderTransferOrderItem(
 		const metadata = item.metadata as DomainTransferItemMetadata & {
 			manualRegistrantDetails?: unknown;
 		};
-		let nameServers = metadata?.nameServers;
-
-		if (!nameServers || nameServers.length === 0) {
-			try {
-				const { resolveNameserversForDomain } = await import("./tld-resolution");
-				nameServers = await resolveNameserversForDomain(domainName);
-			} catch (err) {
-				return { ok: false, error: err instanceof Error ? err.message : "Failed to resolve nameservers for domain" };
-			}
+		let nameServers: Array<{ name: string; ip?: string }> | undefined;
+		try {
+			nameServers = await resolveTransferNameservers(domainName, metadata);
+		} catch (err) {
+			return { ok: false, error: err instanceof Error ? err.message : "Failed to resolve nameservers for domain" };
 		}
 
 		const openProvider = await import("@npanel/api/lib/openprovider-nisc");

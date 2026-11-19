@@ -84,7 +84,7 @@ function InvoiceRowActions({ invoice, onRefetch }: InvoiceRowActionsProps) {
 		}
 	};
 
-	const basePath = teamSlug ? `/${teamSlug}/invoices` : "/agency/invoices";
+	const basePath = teamSlug ? `/${teamSlug}/invoices` : "/hq/invoices";
 
 	return (
 		<TooltipProvider>
@@ -125,7 +125,7 @@ export function InvoicesTable({ invoices, onRefetch }: InvoicesTableProps) {
 	const navigate = useNavigate();
 	const { pathname } = useLocation();
 	const teamSlug = pathname.split("/")[1];
-	const basePath = teamSlug ? `/${teamSlug}/invoices` : "/agency/invoices";
+	const basePath = teamSlug ? `/${teamSlug}/invoices` : "/hq/invoices";
 
 	return (
 		<div className="overflow-hidden rounded-lg border bg-card shadow-sm">

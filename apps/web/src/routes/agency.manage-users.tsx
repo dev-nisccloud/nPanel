@@ -40,6 +40,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { OnlineBadge, formatSignedInAt } from "@/components/online-status";
 import { trpc } from "@/utils/trpc";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { z } from "zod";
@@ -76,6 +77,14 @@ export default function ManageUsersPage() {
   const { data: users, isLoading, error, refetch } = trpc.manageUsers.getAll.useQuery(
     {},
     { enabled: isSuperAdmin },
+  );
+  const presence = trpc.userPresence.snapshot.useQuery(undefined, {
+    enabled: isSuperAdmin,
+    refetchInterval: 60_000,
+  });
+  const onlineUserIds = React.useMemo(
+    () => new Set((presence.data?.people ?? []).filter((person) => person.isOnline).map((person) => person.id)),
+    [presence.data],
   );
 
   const utils = trpc.useUtils();
@@ -184,7 +193,7 @@ export default function ManageUsersPage() {
             <ShieldAlert className="h-8 w-8 text-destructive" />
             <p className="text-sm font-semibold">You don&apos;t have access to Manage Users.</p>
             <p className="max-w-md text-xs text-muted-foreground">
-              Only agency super admins can manage agency users. If you believe this is a mistake, please contact your account owner.
+              Only a Nisc HQ super admin can manage staff. If you believe this is a mistake, contact your account owner.
             </p>
           </div>
         </div>
@@ -225,7 +234,7 @@ export default function ManageUsersPage() {
         <div className="flex flex-col gap-2">
           <h1 className="text-base font-semibold tracking-tight">Manage Users</h1>
           <p className="text-xs text-muted-foreground">
-            Manage agency user accounts, view their activity, and handle their permissions.
+            Manage Nisc HQ staff, their access, and their sign-in activity.
           </p>
         </div>
 
@@ -263,7 +272,7 @@ export default function ManageUsersPage() {
           {!users || users.length === 0 ? (
             <EmptyState
               title="No users found"
-              description="Get started by creating a new agency user account."
+              description="Get started by creating a Nisc HQ staff account."
               action={
                 <Button onClick={() => setIsCreateSheetOpen(true)}>
                   <Plus className="mr-2 h-4 w-4" />
@@ -293,6 +302,7 @@ export default function ManageUsersPage() {
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Last login</TableHead>
                     <TableHead className="w-12 pr-6"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -307,6 +317,7 @@ export default function ManageUsersPage() {
                         <div className="flex items-center gap-2">
                           <User className="h-4 w-4 text-muted-foreground" />
                           <span className="font-medium">{user.name}</span>
+                          {onlineUserIds.has(user.id) ? <OnlineBadge /> : null}
                         </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground">{user.email}</TableCell>
@@ -322,6 +333,9 @@ export default function ManageUsersPage() {
                         >
                           {user.status}
                         </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {formatSignedInAt(user.lastLoginAt)}
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()} className="pr-6">
                         <TooltipProvider>

@@ -237,18 +237,12 @@ export const domainTransferRouter = router({
 			const userRole = ctx.session.user.role;
 			const now = new Date();
 			const id = crypto.randomUUID();
-			if (input.teamId && !isAgencyUserRole(userRole)) {
-				const [membership] = await db
-					.select({ id: teamMember.id })
-					.from(teamMember)
-					.where(and(eq(teamMember.teamId, input.teamId), eq(teamMember.userId, userId)))
-					.limit(1);
-				if (!membership) {
-					throw new TRPCError({
-						code: "FORBIDDEN",
-						message: "You do not have access to this team.",
-					});
-				}
+			// Submits straight to the registry with no payment, so customers must go through checkout.
+			if (!isAgencyUserRole(userRole) && !(await userIsAgencyStaff(userId))) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Transfers start after payment at checkout.",
+				});
 			}
 
 			await db.insert(domainTransferRequest).values({
@@ -375,7 +369,7 @@ export const domainTransferRouter = router({
 				if (!isAgencyUserRole(userRole) && !(await userIsAgencyStaff(userId))) {
 					throw new TRPCError({
 						code: "FORBIDDEN",
-						message: "Only agency users can create a transfer for another user.",
+						message: "Only Nisc HQ staff can create a transfer for another user.",
 					});
 				}
 				const [target] = await db
@@ -448,12 +442,26 @@ export const domainTransferRouter = router({
 					customerPriceCurrency: domainTransferRequest.customerPriceCurrency,
 					teamId: domainTransferRequest.teamId,
 					niscOrderId: domainTransferRequest.niscOrderId,
+					createdById: domainTransferRequest.createdById,
 				})
 				.from(domainTransferRequest)
 				.where(eq(domainTransferRequest.id, input.id))
 				.limit(1);
 
 			if (!row) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Transfer request not found.",
+				});
+			}
+
+			const callerId = ctx.session.user.id;
+			const isStaff =
+				isAgencyUserRole(ctx.session.user.role) || (await userIsAgencyStaff(callerId));
+			const ownsRequest =
+				row.createdById === callerId ||
+				(row.teamId !== null && (await getMemberTeamIds(callerId)).includes(row.teamId));
+			if (!isStaff && !ownsRequest) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "Transfer request not found.",
@@ -506,7 +514,7 @@ export const domainTransferRouter = router({
 			if (!isAgencyUserRole(userRole)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency users can delete transfer requests.",
+					message: "Only Nisc HQ staff can delete transfer requests.",
 				});
 			}
 

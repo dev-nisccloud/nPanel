@@ -42,7 +42,7 @@ const EditorProjectIdPage = () => {
         <TriangleAlert className="text-muted-foreground size-6" />
         <p className="text-muted-foreground text-sm">Failed to fetch project</p>
         <Button asChild variant="secondary">
-          <Link to="/agency/gen-ai/image-gen-studio">Back to Dashboard</Link>
+          <Link to="/hq/gen-ai/image-gen-studio">Back to Dashboard</Link>
         </Button>
       </div>
     );

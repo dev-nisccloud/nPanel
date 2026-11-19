@@ -67,7 +67,7 @@ export function ServerNameplate({
       </div>
 
       <p className="relative mt-5 break-all text-xl font-medium leading-snug sm:text-2xl">{hostname || "Add a hostname"}</p>
-      <p className="relative mt-1 flex flex-wrap items-center gap-x-2 text-[15px] text-white/60">
+      <p className="relative mt-1 flex flex-wrap items-center gap-x-2 text-sm text-white/60">
         <span>{planName}</span>
         {location ? (
           <span className="inline-flex items-center gap-1">

@@ -3363,7 +3363,7 @@ function CpanelStage() {
         >
           <div className="grid flex-1 grid-cols-2 gap-2 p-2.5 md:p-3">
             {[
-              { t: "Email", d: "you@brand.co.ke" },
+              { t: "Email", d: "you@brand.com" },
               { t: "Files", d: "File Manager" },
               { t: "WordPress", d: "1-click install" },
               { t: "Backups", d: "Restore anytime" },
@@ -3549,7 +3549,7 @@ function BusinessMailStage() {
                 animate={{ opacity: [0.6, 1, 0.6] }}
                 transition={{ duration: 2.4, repeat: Infinity }}
               >
-                you@yourbusiness.co.ke
+                you@yourbusiness.com
               </motion.div>
               <div className="mt-1 text-[10px] text-slate-700/65">
                 Looks credible in every inbox

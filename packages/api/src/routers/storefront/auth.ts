@@ -6,7 +6,8 @@
  *  • A forced db.update({ role: "CUSTOMER" }) runs after better-auth creates
  *    the account, neutralising any default better-auth may assign.
  *  • Input schema has no `role` field at all.
- *  • `checkEmail` returns only { exists: boolean }  no names, IDs, or metadata.
+ *  • New customers confirm their email with a 6-digit code before `register`. The code
+ *    response never says whether the email already has an account.
  *  • `register` returns only a short-lived storefrontToken + minimal display data.
  *  • `checkoutIdentity` / `issueCheckoutToken` / `completeProfile` /
  *    `createOrganization` may read an optional Better Auth session from
@@ -28,6 +29,18 @@ import { countries } from "@npanel/location/countries-intl";
 import { publicProcedure, router } from "../../trpc";
 import { auth } from "@npanel/auth";
 import { signStorefrontToken } from "../../lib/storefront-token";
+import { suppressSignupVerificationEmail } from "@npanel/auth/admin-created-account";
+import { sendEmail } from "../../lib/email";
+import { renderCheckoutEmailCodeEmail } from "../../lib/email-templates";
+import { checkRateLimit } from "../../lib/rate-limit";
+import { assertTurnstile } from "../../lib/turnstile";
+import {
+  CHECKOUT_CODE_TTL_MINUTES,
+  isValidCheckoutEmailProof,
+  issueCheckoutEmailCode,
+  normalizeCheckoutEmail,
+  verifyCheckoutEmailCode,
+} from "../../lib/storefront-email-proof";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -195,8 +208,14 @@ function assertLandingPageOrigin(
 // Input schemas
 // ---------------------------------------------------------------------------
 
-const checkEmailInputSchema = z.object({
+const sendEmailCodeInputSchema = z.object({
   email: z.string().email("Invalid email address"),
+  captchaToken: z.string().max(4096).optional(),
+});
+
+const verifyEmailCodeInputSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  code: z.string().regex(/^\d{6}$/, "Enter the 6-digit code"),
 });
 
 const registerInputSchema = z.object({
@@ -213,6 +232,8 @@ const registerInputSchema = z.object({
     .min(1, "Company name is required")
     .max(120, "Company name too long"),
   password: z.string().min(8, "Password must be at least 8 characters"),
+  /** Signed proof from `verifyEmailCode` for this email. */
+  emailProof: z.string().min(1, "Confirm your email first"),
   /** Required  must match dashboard sign-up (`acceptedTermsAndConditions`). */
   acceptedTermsAndConditions: z
     .boolean()
@@ -305,21 +326,74 @@ const displayCurrencyPreferenceOutputSchema = z.discriminatedUnion("authenticate
 
 export const storefrontAuthRouter = router({
   /**
-   * Check whether an email address is already registered.
-   * Returns ONLY { exists: boolean }  never exposes any user data.
-   *
-   * Rate limit: enforced upstream (server middleware / Cloudflare).
+   * Email a 6-digit code to confirm a new checkout email. Existing accounts get a sign-in
+   * link instead of a code; the response is identical either way.
    */
-  checkEmail: publicProcedure
-    .input(checkEmailInputSchema)
-    .query(async ({ input }) => {
-      const rows = await db
+  sendEmailCode: publicProcedure
+    .input(sendEmailCodeInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      await assertTurnstile(input.captchaToken, ctx.ipAddress);
+      const email = normalizeCheckoutEmail(input.email);
+      const perEmail = await checkRateLimit({
+        key: `storefront-email-code:${email}`,
+        limit: 3,
+        windowSec: 600,
+      });
+      if (!perEmail.allowed) {
+        throw new TRPCError({
+          code: "TOO_MANY_REQUESTS",
+          message: "Too many codes requested for this email. Wait 10 minutes and try again.",
+        });
+      }
+
+      const [existing] = await db
         .select({ id: user.id })
         .from(user)
-        .where(eq(user.email, input.email.toLowerCase().trim()))
+        .where(eq(user.email, email))
         .limit(1);
 
-      return { exists: rows.length > 0 };
+      const appUrl = (
+        process.env.APP_URL ||
+        process.env.CORS_ORIGIN ||
+        process.env.VITE_PUBLIC_APP_URL ||
+        "http://localhost:3002"
+      ).replace(/\/+$/, "");
+
+      const html = existing
+        ? await renderCheckoutEmailCodeEmail({ signInLink: `${appUrl}/auth/login` })
+        : await renderCheckoutEmailCodeEmail({
+            otpCode: await issueCheckoutEmailCode(email),
+            expiresInMinutes: CHECKOUT_CODE_TTL_MINUTES,
+          });
+
+      await sendEmail({
+        to: email,
+        subject: existing
+          ? "You already have a Nisc Cloud account"
+          : "Your Nisc Cloud checkout code",
+        html,
+      });
+
+      return { sent: true as const, expiresInMinutes: CHECKOUT_CODE_TTL_MINUTES };
+    }),
+
+  /** Check the emailed code and return a short-lived proof for `register`. */
+  verifyEmailCode: publicProcedure
+    .input(verifyEmailCodeInputSchema)
+    .mutation(async ({ input }) => {
+      const result = await verifyCheckoutEmailCode(input.email, input.code);
+      if (!result.ok) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            result.reason === "invalid"
+              ? "That code isn't right. Check the email and try again."
+              : result.reason === "too_many_attempts"
+                ? "Too many wrong codes. Request a new one."
+                : "That code has expired. Request a new one.",
+        });
+      }
+      return { emailProof: result.proof };
     }),
 
   /**
@@ -626,6 +700,12 @@ export const storefrontAuthRouter = router({
     .input(registerInputSchema)
     .mutation(async ({ input }) => {
       const email = input.email.toLowerCase().trim();
+      if (!isValidCheckoutEmailProof(input.emailProof, email)) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "Confirm your email with the code we sent before continuing.",
+        });
+      }
       const fullName = `${input.firstName.trim()} ${input.lastName.trim()}`;
       const now = new Date();
 
@@ -644,7 +724,9 @@ export const storefrontAuthRouter = router({
         });
       }
 
-      // 2. Create user via better-auth (handles bcrypt hashing)
+      // 2. Create user via better-auth (handles bcrypt hashing). The code already confirmed
+      //    the email, so skip the sign-up verification link.
+      suppressSignupVerificationEmail(email);
       const signupResult = await auth.api.signUpEmail({
         body: {
           email,
@@ -689,7 +771,7 @@ export const storefrontAuthRouter = router({
       // 3. ALWAYS force role = "CUSTOMER"  no exceptions, no variables
       await db
         .update(user)
-        .set({ role: "CUSTOMER" })
+        .set({ role: "CUSTOMER", emailVerified: true })
         .where(eq(user.id, userId));
 
       // 4. Insert user profile

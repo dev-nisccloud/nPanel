@@ -30,7 +30,7 @@ const PLAN_FIT: PlanFit[] = [
     chooseIf: "You run more than one website, or a store with regular visitors.",
   },
   {
-    name: "Corporate",
+    name: "Enterprise",
     level: 4,
     bestFor: "Organisations with custom requirements",
     chooseIf: "You need resources, migration or terms set around your organisation.",
@@ -44,7 +44,7 @@ export function WebHostingPlanFit() {
       id="which-plan"
       label="Choosing a plan"
       title="Which web hosting plan fits your website?"
-      answer="Choose by what you are running: Launch for a first website, Grow for small business websites and online stores, Accelerate for busier or multiple sites, and Corporate for custom requirements."
+      answer="Choose by what you are running: Launch for a first website, Grow for small business websites and online stores, Accelerate for busier or multiple sites, and Enterprise for custom requirements."
     >
       <PlanFitGrid
         plans={PLAN_FIT}

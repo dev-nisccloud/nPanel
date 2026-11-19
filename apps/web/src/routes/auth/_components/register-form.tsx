@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useState, useEffect } from "react";
-import { Eye, EyeOff } from "lucide-react";
 import { useSearchParams } from "react-router";
 
 import { toast } from "@/components/ui/sonner";
@@ -17,6 +16,7 @@ import { authClient } from "@/lib/auth-client";
 import { redirectToTarget } from "@/lib/auth-redirect";
 import { captureEvent } from "@/lib/posthog";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { Turnstile } from "@/components/turnstile";
 
 const FormSchema = z
   .object({
@@ -52,6 +52,8 @@ export function RegisterForm({ termsAccepted, onTermsAcceptedChange }: RegisterF
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [redirectFailed, setRedirectFailed] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -99,7 +101,9 @@ export function RegisterForm({ termsAccepted, onTermsAcceptedChange }: RegisterF
           password: data.password,
           name: data.name,
           acceptedTermsAndConditions: true,
+          fetchOptions: captchaToken ? { headers: { "x-captcha-response": captchaToken } } : undefined,
         } as Parameters<typeof authClient.signUp.email>[0]);
+        setCaptchaResetKey((value) => value + 1);
       } catch (authError: unknown) {
         // Handle auth client errors
         console.error("Auth client error:", authError);
@@ -225,16 +229,16 @@ export function RegisterForm({ termsAccepted, onTermsAcceptedChange }: RegisterF
             });
           });
         }} 
-        className="space-y-4"
+        className="space-y-3"
       >
         <FormField
           control={form.control}
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Full Name</FormLabel>
+              <FormLabel className="sr-only">Full name</FormLabel>
               <FormControl>
-                <Input id="name" type="text" placeholder="John Doe" autoComplete="name" {...field} />
+                <Input id="name" type="text" placeholder="Full name" autoComplete="name" className="h-12" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -245,9 +249,9 @@ export function RegisterForm({ termsAccepted, onTermsAcceptedChange }: RegisterF
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email Address</FormLabel>
+              <FormLabel className="sr-only">Email address</FormLabel>
               <FormControl>
-                <Input id="email" type="email" placeholder="you@example.com" autoComplete="email" {...field} />
+                <Input id="email" type="email" placeholder="Email address" autoComplete="email" className="h-12" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -258,29 +262,24 @@ export function RegisterForm({ termsAccepted, onTermsAcceptedChange }: RegisterF
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Password</FormLabel>
+              <FormLabel className="sr-only">Password</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
+                    placeholder="Password (8+ characters)"
                     autoComplete="new-password"
+                    className="h-12 pr-16"
                     {...field}
                   />
-                  <Button
+                  <button
                     type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    className="absolute top-0 right-3 h-full text-sm font-medium text-foreground underline-offset-4 hover:underline"
                     onClick={() => setShowPassword(!showPassword)}
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-muted-foreground" />
-                    )}
-                  </Button>
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
                 </div>
               </FormControl>
               <FormMessage />
@@ -292,29 +291,24 @@ export function RegisterForm({ termsAccepted, onTermsAcceptedChange }: RegisterF
           name="confirmPassword"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Confirm Password</FormLabel>
+              <FormLabel className="sr-only">Confirm password</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input
                     id="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
-                    placeholder="••••••••"
+                    placeholder="Confirm password"
                     autoComplete="new-password"
+                    className="h-12 pr-16"
                     {...field}
                   />
-                  <Button
+                  <button
                     type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    className="absolute top-0 right-3 h-full text-sm font-medium text-foreground underline-offset-4 hover:underline"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   >
-                    {showConfirmPassword ? (
-                      <EyeOff className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-muted-foreground" />
-                    )}
-                  </Button>
+                    {showConfirmPassword ? "Hide" : "Show"}
+                  </button>
                 </div>
               </FormControl>
               <FormMessage />
@@ -328,6 +322,7 @@ export function RegisterForm({ termsAccepted, onTermsAcceptedChange }: RegisterF
             <TermsAcceptanceField field={field} id="register-accept-terms" />
           )}
         />
+        <Turnstile onToken={setCaptchaToken} resetKey={captchaResetKey} />
         <Button
           className="h-12 w-full"
           type="submit"
@@ -335,11 +330,11 @@ export function RegisterForm({ termsAccepted, onTermsAcceptedChange }: RegisterF
         >
           {isSubmitting ? (
             <div className="flex items-center gap-2">
-              <Spinner variant="ellipsis" className="text-primary-foreground" size="sm" />
+              <Spinner variant="ellipsis" className="text-background" size="sm" />
               <span>Creating account...</span>
             </div>
           ) : (
-            "Register"
+            "Create account"
           )}
         </Button>
       </form>

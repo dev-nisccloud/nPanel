@@ -31,7 +31,7 @@ const PLAN_FIT: PlanFit[] = [
     chooseIf: "Several departments need their own addresses and long mail history.",
   },
   {
-    name: "Corporate",
+    name: "Enterprise",
     level: 4,
     bestFor: "More than 100 mailboxes",
     chooseIf: "You need custom storage or mailbox counts, or a planned move from your current provider.",
@@ -45,7 +45,7 @@ export function EmailPlanFit() {
       id="which-plan"
       label="Choosing a plan"
       title="Which business email plan fits your team?"
-      answer="Choose by the number of mailboxes and the storage your team needs. Essentials suits sole traders and small teams, Business suits growing teams, Scale suits larger teams and departments, and Corporate is quoted for more than 100 mailboxes."
+      answer="Choose by the number of mailboxes and the storage your team needs. Essentials suits sole traders and small teams, Business suits growing teams, Scale suits larger teams and departments, and Enterprise is quoted for more than 100 mailboxes."
     >
       <PlanFitGrid
         plans={PLAN_FIT}
@@ -167,13 +167,13 @@ export function EmailExplained() {
       tone="muted"
       label="Business email explained"
       title="What is business email hosting?"
-      answer="Business email hosting gives your team email addresses on your own domain, such as you@yourbusiness.co.ke, run on a provider's mail servers with spam filtering, security records and backups, instead of a free Gmail or Yahoo address."
+      answer="Business email hosting gives your team email addresses on your own domain, such as you@yourbusiness.com, run on a provider's mail servers with spam filtering, security records and backups, instead of a free Gmail or Yahoo address."
     >
       <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16">
         <div className="space-y-10">
           <Prose
             paragraphs={[
-              "Customers judge a business by its email address. A quote from sales@yourbusiness.co.ke looks established; the same quote from a free address can look like a side project, and is easier for scammers to imitate.",
+              "Customers judge a business by its email address. A quote from sales@yourbusiness.com looks established; the same quote from a free address can look like a side project, and is easier for scammers to imitate.",
               "Business email also keeps company mail under company control. When someone leaves, their mailbox stays with the business, and you can forward or reassign it instead of losing customer conversations.",
             ]}
           />

@@ -29,7 +29,7 @@ export default function LinkedInCallbackPage() {
 			toast.success("LinkedIn account connected successfully!");
 			// Redirect to main LinkedIn page after a short delay
 			setTimeout(() => {
-				navigate("/agency/social-media-marketing/linkedin");
+				navigate("/hq/social-media-marketing/linkedin");
 			}, 2000);
 		},
 		onError: (error) => {
@@ -121,7 +121,7 @@ export default function LinkedInCallbackPage() {
 									<AlertCircle className="h-12 w-12 text-destructive mb-4" />
 									<p className="text-sm text-destructive mb-4">{errorMessage}</p>
 									<Button
-										onClick={() => navigate("/agency/social-media-marketing/linkedin")}
+										onClick={() => navigate("/hq/social-media-marketing/linkedin")}
 										variant="outline"
 									>
 										Go Back

@@ -305,7 +305,7 @@ export default function OrderDialog({ open, onClose, plan, addons = [], serviceT
                   <div>
                     <Input
                       className="rounded-2xl"
-                      placeholder="e.g. mybusiness.co.ke"
+                      placeholder="e.g. mybusiness.com"
                       value={selectedDomain}
                       onChange={(e) => setSelectedDomain(e.target.value)}
                     />

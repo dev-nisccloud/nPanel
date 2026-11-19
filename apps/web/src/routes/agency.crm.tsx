@@ -4,11 +4,11 @@ export default function AgencyCrmLayout() {
   const location = useLocation();
   
   if (
-    location.pathname === "/agency/crm" ||
-    location.pathname === "/agency/crm/companies" ||
-    location.pathname.startsWith("/agency/crm/companies/")
+    location.pathname === "/hq/crm" ||
+    location.pathname === "/hq/crm/companies" ||
+    location.pathname.startsWith("/hq/crm/companies/")
   ) {
-    return <Navigate to="/agency/crm/contacts" replace />;
+    return <Navigate to="/hq/crm/contacts" replace />;
   }
   
   return <Outlet />;

@@ -52,7 +52,7 @@ export const CanvasHeader = ({ canvasId, initialName }: CanvasHeaderProps) => {
           variant="ghost"
           size="icon"
           className="size-8 rounded-full"
-          onClick={() => navigate("/agency/zeepo-canvas")}
+          onClick={() => navigate("/hq/zeepo-canvas")}
         >
           <ChevronLeftIcon className="size-4" />
         </Button>

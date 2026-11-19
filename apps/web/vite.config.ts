@@ -95,10 +95,16 @@ export default defineConfig(async (config) => {
     // Required so sentryOnBuildEnd can upload source maps
     sentryConfig,
     server: {
+      // Bind the IPv6 wildcard so the forwarded port opens, same as docs.
+      // Port 5173 stays closed in this environment even when the process is listening.
+      host: "::",
+      port: 5175,
+      strictPort: true,
       // Allow ngrok host (useful when testing auth/cookies over public URLs).
       allowedHosts: [
         "localhost",
         "127.0.0.1",
+        ".app.github.dev",
         "a26b-197-232-51-43.ngrok-free.app",
         "npanel-web.vercel.app",
         "npanel-server.vercel.app"

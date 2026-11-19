@@ -253,7 +253,7 @@ export const instagramAuthRouter = router({
 				if (!isAgencyUserRole(ctx.session?.user?.role)) {
 					throw new TRPCError({
 						code: 'FORBIDDEN',
-						message: 'Only agency users can manage Instagram integration tokens',
+						message: 'Only Nisc HQ staff can manage Instagram integration tokens',
 					});
 				}
 
@@ -318,7 +318,7 @@ export const instagramAuthRouter = router({
 				if (!isAgencyUserRole(userRole)) {
 					throw new TRPCError({
 						code: 'FORBIDDEN',
-						message: 'Only agency users can manage Instagram integration tokens',
+						message: 'Only Nisc HQ staff can manage Instagram integration tokens',
 					});
 				}
 
@@ -521,7 +521,7 @@ export const instagramAuthRouter = router({
 				if (!isAgencyUserRole(userRole)) {
 					throw new TRPCError({
 						code: 'FORBIDDEN',
-						message: 'Only agency users can manage Instagram integration tokens',
+						message: 'Only Nisc HQ staff can manage Instagram integration tokens',
 					});
 				}
 
@@ -629,7 +629,7 @@ export const instagramAuthRouter = router({
 			if (!isAgencyUserRole(ctx.session?.user?.role)) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'Only agency users can view Instagram integration credentials',
+					message: 'Only Nisc HQ staff can view Instagram integration credentials',
 				});
 			}
 
@@ -688,7 +688,7 @@ export const instagramAuthRouter = router({
 			if (!isAgencyUserRole(ctx.session?.user?.role)) {
 				throw new TRPCError({
 					code: 'FORBIDDEN',
-					message: 'Only agency users can view Instagram profile',
+					message: 'Only Nisc HQ staff can view Instagram profile',
 				});
 			}
 
@@ -765,7 +765,7 @@ export const instagramAuthRouter = router({
 		if (!isAgencyUserRole(ctx.session?.user?.role)) {
 			throw new TRPCError({
 				code: 'FORBIDDEN',
-				message: 'Only agency users can manage Instagram integration tokens',
+				message: 'Only Nisc HQ staff can manage Instagram integration tokens',
 			});
 		}
 

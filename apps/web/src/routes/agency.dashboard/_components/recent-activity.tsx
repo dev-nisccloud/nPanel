@@ -86,7 +86,7 @@ function RecentInvoices() {
 			{invoices.map((invoice) => (
 				<li key={invoice.id} className="border-b last:border-b-0">
 					<Link
-						to={`/agency/invoices/${invoice.id}`}
+						to={`/hq/invoices/${invoice.id}`}
 						className="flex items-baseline justify-between gap-4 px-4 py-2.5 hover:bg-muted/40"
 					>
 						<span className="min-w-0 truncate text-sm">
@@ -151,7 +151,7 @@ function RecentTransactions() {
 				return (
 					<li key={transaction.id} className="border-b last:border-b-0">
 						<Link
-							to="/agency/transactions"
+							to="/hq/transactions"
 							className="flex items-baseline justify-between gap-4 px-4 py-2.5 hover:bg-muted/40"
 						>
 							<span className="min-w-0 truncate text-sm">
@@ -207,11 +207,11 @@ export function RecentActivity() {
 				<CardContent className="p-0">
 					<TabsContent value="invoices" className="mt-0">
 						<RecentInvoices />
-						<ViewAllLink href="/agency/invoices" label="View all invoices" />
+						<ViewAllLink href="/hq/invoices" label="View all invoices" />
 					</TabsContent>
 					<TabsContent value="payments" className="mt-0">
 						<RecentTransactions />
-						<ViewAllLink href="/agency/transactions" label="View all transactions" />
+						<ViewAllLink href="/hq/transactions" label="View all transactions" />
 					</TabsContent>
 				</CardContent>
 			</Tabs>
