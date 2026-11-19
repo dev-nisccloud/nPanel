@@ -47,7 +47,7 @@ export default function LoginPage() {
             <h1 className="text-3xl font-semibold tracking-tight text-foreground">Sign in</h1>
             <p className="text-sm text-muted-foreground">
               New to Nisc Cloud?{" "}
-              <Link className="font-medium text-foreground underline underline-offset-4" to={registerHref}>
+              <Link className="font-medium text-primary underline underline-offset-4" to={registerHref}>
                 Register
               </Link>
             </p>

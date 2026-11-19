@@ -252,7 +252,7 @@ export function LoginForm({ onChromeVisibilityChange }: LoginFormProps) {
           <div
             role="status"
             aria-live="polite"
-            className="rounded-lg border border-[#38b6ff]/40 bg-[#38b6ff]/10 px-4 py-3 text-sm text-foreground"
+            className="rounded-lg border border-primary/40 bg-primary/10 px-4 py-3 text-sm text-foreground"
           >
             <p className="font-semibold">Confirm your email to sign in</p>
             <p className="mt-1 text-muted-foreground">
@@ -312,7 +312,7 @@ export function LoginForm({ onChromeVisibilityChange }: LoginFormProps) {
           </Link>
         </div>
         <Turnstile onToken={setCaptchaToken} resetKey={captchaResetKey} />
-        <Button className="h-12 w-full bg-foreground text-background hover:bg-foreground/90" type="submit" disabled={isSubmitting}>
+        <Button className="h-12 w-full" type="submit" disabled={isSubmitting}>
           {isSubmitting ? (
             <div className="flex items-center gap-2">
               <Spinner variant="ellipsis" className="text-background" size="sm" />
