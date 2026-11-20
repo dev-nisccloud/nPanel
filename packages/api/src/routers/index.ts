@@ -131,6 +131,7 @@ import { niscBackupFilePermissionsRouter } from "./nisc-backup/file-permissions"
 import { niscBackupPluginsRouter } from "./nisc-backup/plugins";
 import { storefrontRouter } from "./storefront";
 import { objectStorageRouter } from "./object-storage";
+import { niscStorageRouter } from "./nisc-storage";
 import { whoisRouter } from "./whois";
 import { niscPaymentGatewayRouter } from "./nisc-payment-gateway";
 import { customerOAuthRouter } from "./customer-oauth";
@@ -344,6 +345,7 @@ export const appRouter = router({
 	careers: careersRouter,
 	// MinIO / S3-compatible object storage (presigned uploads)
 	objectStorage: objectStorageRouter,
+	niscStorage: niscStorageRouter,
 	// WHOIS / RDAP domain lookup (public  no auth required)
 	whois: whoisRouter,
 	// Nisc Backup Integration

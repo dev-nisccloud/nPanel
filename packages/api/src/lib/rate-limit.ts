@@ -81,6 +81,15 @@ export function resolveProcedureRateLimit(path: string): {
   if (path === "objectStorage.createUploadUrl") {
     return { authenticated: 40, apiKey: 40, anonymous: 5, windowSec: 60 };
   }
+  if (path === "niscStorage.createUploadUrl" || path === "niscStorage.completeUpload") {
+    return { authenticated: 40, apiKey: 20, anonymous: 5, windowSec: 60 };
+  }
+  if (path === "niscStorage.revealCredentials" || path === "niscStorage.rotateCredentials") {
+    return { authenticated: 5, apiKey: 2, anonymous: 1, windowSec: 3600 };
+  }
+  if (path === "niscStorage.extractZip" || path === "niscStorage.downloadZip") {
+    return { authenticated: 10, apiKey: 5, anonymous: 1, windowSec: 3600 };
+  }
 
   // Landing guest support  tight anonymous caps to limit abuse.
   if (path === "support.guest.startSession") {

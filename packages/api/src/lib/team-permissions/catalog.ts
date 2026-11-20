@@ -17,7 +17,8 @@ export type TeamPermissionModuleId =
 	| "billing"
 	| "team_settings"
 	| "marketplace"
-	| "social_ads";
+	| "social_ads"
+	| "storage";
 
 export type TeamPermissionEntry = {
 	key: string;
@@ -43,6 +44,7 @@ const MODULE_LABELS: Record<TeamPermissionModuleId, string> = {
 	team_settings: "Team settings",
 	marketplace: "Marketplace",
 	social_ads: "Social Media & Ads",
+	storage: "Object storage",
 };
 
 function entry(
@@ -138,6 +140,10 @@ export const TEAM_PERMISSION_CATALOG: readonly TeamPermissionEntry[] = [
 	entry("social_ads", "instagram", "Instagram", "View Instagram ad accounts and campaigns granted to this organization"),
 	entry("social_ads", "linkedin", "LinkedIn", "View LinkedIn ad accounts and campaigns granted to this organization"),
 	entry("social_ads", "google", "Google Ads", "View Google Ads accounts and campaigns granted to this organization"),
+
+	entry("storage", "list", "List", "View this team's object storage plan"),
+	entry("storage", "files", "Files", "Browse or change files in folders the owner has granted"),
+	entry("storage", "sharing", "Folder access", "Choose which folders a team member can view, download, or add to"),
 ] as const;
 
 export type TeamPermissionKey = (typeof TEAM_PERMISSION_CATALOG)[number]["key"];

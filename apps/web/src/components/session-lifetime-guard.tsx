@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   isSessionLifetimeExpired,
   SESSION_TOUCH_THROTTLE_MS,
 } from "@npanel/auth/session-policy";
 import { authClient } from "@/lib/auth-client";
+import { hasActiveTransfer, subscribeActiveTransfer } from "@/lib/active-transfer";
 import { isPublicPath } from "@/lib/session-gate";
 
 const SESSION_POLL_MS = 60_000;
@@ -24,6 +25,54 @@ function redirectToLoginAfterExpiry() {
  */
 export function SessionLifetimeGuard() {
   const lastActivityTouchRef = useRef(0);
+  const [transferring, setTransferring] = useState(false);
+
+  useEffect(() => subscribeActiveTransfer(() => setTransferring(hasActiveTransfer())), []);
+
+  useEffect(() => {
+    if (!transferring || typeof window === "undefined") return;
+
+    const touch = () => {
+      void authClient.getSession();
+    };
+    touch();
+    const timer = window.setInterval(touch, SESSION_TOUCH_THROTTLE_MS);
+
+    const onLeave = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onLeave);
+
+    let lock: WakeLockSentinel | null = null;
+    let stopped = false;
+    const acquireLock = () => {
+      if (stopped || !("wakeLock" in navigator)) return;
+      void navigator.wakeLock
+        .request("screen")
+        .then((next) => {
+          if (stopped) {
+            void next.release().catch(() => undefined);
+            return;
+          }
+          lock = next;
+        })
+        .catch(() => undefined);
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") acquireLock();
+    };
+    acquireLock();
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      stopped = true;
+      window.clearInterval(timer);
+      window.removeEventListener("beforeunload", onLeave);
+      document.removeEventListener("visibilitychange", onVisible);
+      void lock?.release().catch(() => undefined);
+    };
+  }, [transferring]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

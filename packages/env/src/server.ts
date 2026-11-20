@@ -54,6 +54,13 @@ export const env = createEnv({
     S3_REGION: z.string().min(1).default("us-east-1"),
     /** Public base URL for object reads, e.g. https://storage.nisccloud.com/npanel-uploads */
     S3_PUBLIC_BASE_URL: z.string().url().optional(),
+    /** Customer object storage on objects.nisccloud.com. Separate from S3_* application media. */
+    NISC_STORAGE_ENDPOINT: z.string().url().optional(),
+    NISC_STORAGE_REGION: z.string().min(1).optional(),
+    NISC_STORAGE_ACCESS_KEY: z.string().min(1).optional(),
+    NISC_STORAGE_SECRET_KEY: z.string().min(1).optional(),
+    NISC_STORAGE_CLUSTER_ID: z.string().min(1).optional(),
+    NISC_STORAGE_COMMERCIAL_CAPACITY_BYTES: z.string().regex(/^\d+$/).optional(),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,

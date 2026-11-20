@@ -69,16 +69,13 @@ export function FileManagerFolderTree({
   treeRef.current = treeData;
   const onLoadFolderRef = React.useRef(onLoadFolder);
   onLoadFolderRef.current = onLoadFolder;
-  const expandPathRef = React.useRef(expandPath);
-  expandPathRef.current = expandPath;
-
   React.useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
         const folders = await onLoadFolderRef.current("/");
         if (cancelled) return;
-        let nodes: FolderTreeNode[] = [
+        setTreeData([
           {
             path: "/",
             name: "Home directory",
@@ -87,31 +84,7 @@ export function FileManagerFolderTree({
             isLoading: false,
             childrenLoaded: true,
           },
-        ];
-        setTreeData(nodes);
-
-        const target = expandPathRef.current?.trim() || "";
-        const segments = target.split("/").filter(Boolean);
-        let built = "";
-        for (const segment of segments) {
-          if (cancelled) return;
-          built = `${built}/${segment}`;
-          if (!findNode(nodes, built)) break;
-          try {
-            const children = await onLoadFolderRef.current(built);
-            if (cancelled) return;
-            nodes = mapNode(nodes, built, {
-              isExpanded: true,
-              isLoading: false,
-              childrenLoaded: true,
-              children,
-            });
-            setTreeData(nodes);
-          } catch (error) {
-            console.error("Failed to expand folder:", error);
-            break;
-          }
-        }
+        ]);
       } catch (error) {
         console.error("Failed to load initial folders:", error);
         if (cancelled) return;
@@ -150,6 +123,58 @@ export function FileManagerFolderTree({
       setTreeData((prev) => mapNode(prev, path, { isLoading: false, isExpanded: false }));
     }
   };
+
+  React.useEffect(() => {
+    const target = expandPath?.trim() || "";
+    if (!target || target === "/") return;
+    let cancelled = false;
+    void (async () => {
+      for (let attempt = 0; attempt < 40 && !cancelled; attempt += 1) {
+        const root = findNode(treeRef.current, "/");
+        if (root?.childrenLoaded && !root.isLoading) break;
+        await new Promise((resolve) => window.setTimeout(resolve, 50));
+      }
+      if (cancelled) return;
+      let nodes = treeRef.current;
+      const apply = (next: FolderTreeNode[]) => {
+        nodes = next;
+        treeRef.current = next;
+        setTreeData(next);
+      };
+      const segments = target.split("/").filter(Boolean);
+      let built = "";
+      for (const segment of segments) {
+        if (cancelled) return;
+        built = `${built}/${segment}`;
+        const node = findNode(nodes, built);
+        if (!node) break;
+        if (node.childrenLoaded) {
+          if (!node.isExpanded) apply(mapNode(nodes, built, { isExpanded: true }));
+          continue;
+        }
+        apply(mapNode(nodes, built, { isExpanded: true, isLoading: true }));
+        try {
+          const children = await onLoadFolderRef.current(built);
+          if (cancelled) return;
+          apply(
+            mapNode(treeRef.current, built, {
+              isExpanded: true,
+              isLoading: false,
+              childrenLoaded: true,
+              children,
+            }),
+          );
+        } catch (error) {
+          console.error("Failed to expand folder:", error);
+          apply(mapNode(treeRef.current, built, { isLoading: false, isExpanded: false }));
+          break;
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [expandPath]);
 
   const toggleFolder = (path: string) => {
     const node = findNode(treeRef.current, path);

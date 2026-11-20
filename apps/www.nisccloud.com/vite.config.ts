@@ -64,7 +64,9 @@ export default defineConfig(({ mode }) => {
   return {
     server: {
       host: "0.0.0.0",
+      // The dashboard owns 5175. Do not move this server onto the next port.
       port: 5174,
+      strictPort: true,
       allowedHosts: true,
       hmr: {
         overlay: false,
