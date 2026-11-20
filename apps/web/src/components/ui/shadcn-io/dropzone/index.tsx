@@ -65,13 +65,14 @@ export const Dropzone = ({
     onError,
     disabled,
     onDrop: (acceptedFiles, fileRejections, event) => {
+      if (onDrop) {
+        onDrop(acceptedFiles, fileRejections, event);
+        return;
+      }
       if (fileRejections.length > 0) {
         const message = fileRejections.at(0)?.errors.at(0)?.message;
         onError?.(new Error(message));
-        return;
       }
-
-      onDrop?.(acceptedFiles, fileRejections, event);
     },
     ...props,
   });

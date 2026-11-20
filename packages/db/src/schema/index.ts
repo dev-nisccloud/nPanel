@@ -48,4 +48,5 @@ export * from "./pagespeed-insights";
 export * from "./plesk-server-metrics";
 export * from "./customer-oauth";
 export * from "./crm";
+export * from "./nisc-storage";
 export {};

@@ -241,6 +241,7 @@ const NAMESPACE_RULES: Record<string, (rest: string) => AgencyRequirement> = {
 	agencyDashboard: () => key("dashboard.view"),
 	ipRecords: () => key("hosting.overview"),
 	objectStorage: () => ({ type: "anyGranted" }),
+	niscStorage: () => key("storage.browse"),
 };
 
 export function resolveAgencyProcedure(path: string): AgencyRequirement | null {

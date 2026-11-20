@@ -34,6 +34,7 @@ const PREFIX_RULES: Array<{ prefix: string; rule: CustomerRoutePermission }> = [
   { prefix: "/domain-transfer", rule: { type: "key", key: "domains.transfer" } },
   { prefix: "/domains", rule: { type: "key", key: "domains.search_register" } },
   { prefix: "/hosting", rule: { type: "module", module: "hosting" } },
+  { prefix: "/cloud-storage", rule: { type: "module", module: "storage" } },
   { prefix: "/emails", rule: { type: "module", module: "emails" } },
   { prefix: "/wordpress", rule: { type: "module", module: "wordpress" } },
   { prefix: "/vps", rule: { type: "module", module: "servers.vps" } },
