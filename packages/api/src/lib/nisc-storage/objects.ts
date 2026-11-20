@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from "node:crypto";
+import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { createWriteStream } from "node:fs";
 import { mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -8,7 +8,7 @@ import { pipeline } from "node:stream/promises";
 
 import { and, eq, lt, sql } from "@npanel/db";
 import { db } from "@npanel/db";
-import { niscStorageResource, niscStorageUploadReservation } from "@npanel/db/schema/nisc-storage";
+import { niscStorageFolderGrant, niscStorageResource, niscStorageUploadReservation } from "@npanel/db/schema/nisc-storage";
 import archiver from "archiver";
 import { openPromise, validateFileName, type Entry, type ZipFile } from "yauzl";
 
@@ -385,6 +385,112 @@ export async function moveStorageFile(
 		);
 	}
 	return { key: destination };
+}
+
+function renameContinueToken(resourceId: string, source: string, destination: string): string {
+	const secret = process.env.BETTER_AUTH_SECRET ?? "";
+	return createHmac("sha256", secret).update(`rename\n${resourceId}\n${source}\n${destination}`).digest("base64url");
+}
+
+function renameTokenMatches(given: string | undefined, expected: string): boolean {
+	if (!given) return false;
+	const left = Buffer.from(given);
+	const right = Buffer.from(expected);
+	return left.length === right.length && timingSafeEqual(left, right);
+}
+
+/** Renames a folder and everything inside it. Large folders continue with the returned token. */
+export async function renameStoragePrefix(
+	access: StorageAccess,
+	actor: StorageActor,
+	folderInput: string,
+	newName: string,
+	continueToken?: string,
+) {
+	const source = requireFolder(folderInput);
+	if (!source) throw new StorageOperationError("Choose a folder to rename.", "LIMIT");
+	const parent = source.includes("/") ? source.slice(0, source.lastIndexOf("/")) : "";
+	const destination = joinStorageKey(parent, newName);
+	if (!destination) throw new StorageOperationError("That folder name is not allowed.", "LIMIT");
+	if (destination === source) return { prefix: destination, complete: true, continueToken: null };
+	if (destination.startsWith(`${source}/`)) {
+		throw new StorageOperationError("Choose a different folder name.", "LIMIT");
+	}
+	await assertFileAccess(access, actor, "delete", source);
+	await assertFileAccess(access, actor, "put", source);
+
+	const token = renameContinueToken(access.resource.id, source, destination);
+	const existing = await listRawKeys({
+		bucket: access.resource.bucketName,
+		prefix: `${destination}/`,
+		maxKeys: 1,
+	});
+	if (existing.objects.length > 0 && !renameTokenMatches(continueToken, token)) {
+		throw new StorageOperationError("A folder with that name already exists.", "CONFLICT");
+	}
+
+	const listed = await listRawKeys({
+		bucket: access.resource.bucketName,
+		prefix: `${source}/`,
+		maxKeys: 50,
+	});
+	const keys = listed.objects.map((object) => object.key).filter((key) => key.startsWith(`${source}/`));
+	if (keys.length === 0) {
+		await retargetFolderGrants(access.resource.id, source, destination);
+		await clearReservationsUnder(access.resource.id, source);
+		await putFolderMarker(access.resource.bucketName, `${destination}/`).catch(() => undefined);
+		return { prefix: destination, complete: true, continueToken: null };
+	}
+
+	try {
+		for (const key of keys) {
+			const renamed = `${destination}${key.slice(source.length)}`;
+			await copyStoredObject(access.resource.bucketName, key, renamed);
+			await removeStoredObject(access.resource.bucketName, key);
+		}
+	} catch {
+		return { prefix: destination, complete: false, continueToken: token };
+	}
+
+	if (listed.nextToken) {
+		return { prefix: destination, complete: false, continueToken: token };
+	}
+	await retargetFolderGrants(access.resource.id, source, destination);
+	await clearReservationsUnder(access.resource.id, source);
+	return { prefix: destination, complete: true, continueToken: null };
+}
+
+async function retargetFolderGrants(resourceId: string, source: string, destination: string) {
+	const grants = await db
+		.select({ id: niscStorageFolderGrant.id, prefix: niscStorageFolderGrant.prefix })
+		.from(niscStorageFolderGrant)
+		.where(eq(niscStorageFolderGrant.resourceId, resourceId));
+	for (const grant of grants) {
+		if (grant.prefix !== source && !grant.prefix.startsWith(`${source}/`)) continue;
+		const next = `${destination}${grant.prefix.slice(source.length)}`;
+		if (next === grant.prefix) continue;
+		await db
+			.update(niscStorageFolderGrant)
+			.set({ prefix: next, updatedAt: new Date() })
+			.where(eq(niscStorageFolderGrant.id, grant.id))
+			.catch(async () => {
+				await db.delete(niscStorageFolderGrant).where(eq(niscStorageFolderGrant.id, grant.id));
+			});
+	}
+}
+
+async function clearReservationsUnder(resourceId: string, source: string) {
+	const held = await db
+		.select({ id: niscStorageUploadReservation.id, objectKey: niscStorageUploadReservation.objectKey })
+		.from(niscStorageUploadReservation)
+		.where(eq(niscStorageUploadReservation.resourceId, resourceId));
+	const stale = held
+		.filter((row) => row.objectKey === source || row.objectKey.startsWith(`${source}/`))
+		.map((row) => row.id);
+	if (stale.length === 0) return;
+	for (const id of stale) {
+		await db.delete(niscStorageUploadReservation).where(eq(niscStorageUploadReservation.id, id));
+	}
 }
 
 function safeZipRelative(name: string): string | null {

@@ -48,6 +48,7 @@ import {
 	extractStorageZip,
 	listStorageFolder,
 	moveStorageFile,
+	renameStoragePrefix,
 } from "../../lib/nisc-storage/objects";
 import { getStorageEncryption, getStorageQuota, headStorageBucket } from "../../lib/nisc-storage/seaweed";
 import { assertTeamPermission, isAgencyUserRole } from "../../lib/team-permissions/assert";
@@ -900,6 +901,24 @@ export const niscStorageRouter = router({
 					input.destinationPrefix,
 					input.destinationName,
 				);
+			} catch (error) {
+				fail(error);
+			}
+		}),
+
+	renamePrefix: protectedProcedure
+		.input(
+			z.object({
+				resourceId: resourceIdSchema,
+				prefix: prefixSchema,
+				name: fileNameSchema,
+				continueToken: z.string().min(1).max(200).optional(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const { actor, access } = await openResource(ctx, input.resourceId);
+			try {
+				return await renameStoragePrefix(access, actor, input.prefix, input.name, input.continueToken);
 			} catch (error) {
 				fail(error);
 			}

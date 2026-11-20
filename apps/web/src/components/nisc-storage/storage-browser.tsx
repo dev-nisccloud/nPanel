@@ -11,6 +11,7 @@ import {
 	List,
 	MoreHorizontal,
 	Move,
+	Pencil,
 	RefreshCw,
 	Search,
 	Trash2,
@@ -22,6 +23,8 @@ import { DeleteFileDialog, type DeleteFileItem } from "@/components/hosting/dele
 import { FileManagerFolderTree, type FolderTreeNode } from "@/components/hosting/file-manager-folder-tree";
 import { FileManagerTypeIcon } from "@/components/hosting/file-manager-icon";
 import { NewFolderDialog } from "@/components/hosting/new-folder-dialog";
+import { RenameFileDialog } from "@/components/hosting/rename-file-dialog";
+import type { FileManagerItem } from "@/components/hosting/file-manager-schema";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -172,6 +175,9 @@ export function StorageBrowser({
 	const [folderOpen, setFolderOpen] = React.useState(false);
 	const [deleteOpen, setDeleteOpen] = React.useState(false);
 	const [moveOpen, setMoveOpen] = React.useState(false);
+	const [renameOpen, setRenameOpen] = React.useState(false);
+	const [renameTarget, setRenameTarget] = React.useState<StorageRow | null>(null);
+	const renameResume = React.useRef<{ prefix: string; name: string; token: string } | null>(null);
 	const [moveFolder, setMoveFolder] = React.useState("");
 	const [moveName, setMoveName] = React.useState("");
 	const [busy, setBusy] = React.useState<string | null>(null);
@@ -353,6 +359,87 @@ export function StorageBrowser({
 		}
 	};
 
+	const openRename = (row: StorageRow) => {
+		setRenameTarget(row);
+		setRenameOpen(true);
+	};
+
+	const confirmRename = async (newName: string) => {
+		const target = renameTarget;
+		if (!target) return;
+		const nameError = fileNameError(newName);
+		if (nameError) {
+			toast.error(nameError);
+			throw new Error(nameError);
+		}
+		const trimmed = newName.trim();
+		setBusy("Renaming");
+		try {
+			if (target.kind === "file") {
+				await utils.client.niscStorage.moveObject.mutate({
+					resourceId,
+					sourceKey: target.key,
+					destinationPrefix: parentPrefix(target.key),
+					destinationName: trimmed,
+				});
+				toast.success("Renamed the file");
+			} else {
+				const resumed =
+					renameResume.current?.prefix === target.key && renameResume.current.name === trimmed
+						? renameResume.current.token
+						: undefined;
+				let continueToken = resumed;
+				let destination = target.key;
+				let complete = false;
+				for (let attempt = 0; attempt < 200 && !complete; attempt += 1) {
+					const result = await utils.client.niscStorage.renamePrefix.mutate({
+						resourceId,
+						prefix: target.key,
+						name: trimmed,
+						continueToken,
+					});
+					destination = result.prefix;
+					complete = result.complete;
+					continueToken = result.continueToken ?? undefined;
+					if (!complete && continueToken) {
+						renameResume.current = { prefix: target.key, name: trimmed, token: continueToken };
+					}
+				}
+				if (!complete) {
+					toast.error("The folder was partly renamed. Rename it again with the same name to finish.");
+					throw new Error("The folder was partly renamed.");
+				}
+				renameResume.current = null;
+				setPrefix((current) => {
+					if (current === target.key) return destination;
+					if (current.startsWith(`${target.key}/`)) return `${destination}${current.slice(target.key.length)}`;
+					return current;
+				});
+				toast.success("Renamed the folder");
+			}
+			setSelected((current) => current.filter((key) => key !== target.key));
+			await refresh();
+		} catch (error) {
+			if (!(error instanceof Error) || error.message !== "The folder was partly renamed.") {
+				toast.error(errorMessage(error));
+			}
+			throw error;
+		} finally {
+			setBusy(null);
+		}
+	};
+
+	const renameItem: FileManagerItem | null = renameTarget
+		? {
+				id: renameTarget.key,
+				name: renameTarget.name,
+				type: renameTarget.kind,
+				modified: renameTarget.modified ?? new Date().toISOString(),
+				permissions: "",
+				path: `/${renameTarget.key}`,
+			}
+		: null;
+
 	const downloadFile = async (key: string, name: string) => {
 		setDownload({ title: "Preparing your file", detail: `Getting ${name} ready.`, percent: 12 });
 		try {
@@ -497,6 +584,18 @@ export function StorageBrowser({
 							<Button variant="outline" className="min-h-11" disabled={!canList || Boolean(busy) || download !== null || selectedRows.every((row) => row.kind === "folder")} onClick={downloadSelection}>
 								<Download className="size-4" />
 								Download
+							</Button>
+							<Button
+								variant="outline"
+								className="min-h-11"
+								disabled={!canWrite || Boolean(busy) || selectedRows.length !== 1}
+								onClick={() => {
+									const row = selectedRows[0];
+									if (row) openRename(row);
+								}}
+							>
+								<Pencil className="size-4" />
+								Rename
 							</Button>
 							<Button
 								variant="outline"
@@ -663,6 +762,9 @@ export function StorageBrowser({
 												</DropdownMenuItem>
 											) : null}
 											<DropdownMenuSeparator />
+											<DropdownMenuItem className="min-h-11" disabled={!canWrite} onClick={() => openRename(row)}>
+												Rename
+											</DropdownMenuItem>
 											<DropdownMenuItem
 												className="min-h-11"
 												disabled={!canWrite || row.kind === "folder"}
@@ -715,6 +817,13 @@ export function StorageBrowser({
 			</div>
 			) : null}
 
+			<RenameFileDialog
+				open={renameOpen}
+				onOpenChange={setRenameOpen}
+				item={renameItem}
+				isRenaming={busy === "Renaming"}
+				onConfirm={confirmRename}
+			/>
 			<NewFolderDialog
 				open={folderOpen}
 				onOpenChange={setFolderOpen}
