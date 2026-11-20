@@ -18,6 +18,7 @@
     "seed:social-media": "bun run src/scripts/seed-social-media-product.ts",
     "seed:web-hosting": "bun run src/scripts/seed-web-hosting-product.ts",
     "seed:email-hosting": "bun run src/scripts/seed-email-hosting-product.ts",
+    "seed:nisc-storage": "bun run src/scripts/seed-nisc-storage-product.ts",
     "seed:wordpress-hosting": "bun run src/scripts/seed-wordpress-hosting-product.ts",
     "seed:hosting-products": "bun run src/scripts/seed-web-hosting-product.ts && bun run src/scripts/seed-email-hosting-product.ts && bun run src/scripts/seed-wordpress-hosting-product.ts",
     "seed:planless-services": "bun run src/scripts/seed-planless-services.ts",

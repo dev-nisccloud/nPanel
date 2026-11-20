@@ -105,7 +105,7 @@ export default defineConfig(async (config) => {
         "localhost",
         "127.0.0.1",
         ".app.github.dev",
-        "a26b-197-232-51-43.ngrok-free.app",
+        "0a80-197-232-51-43.ngrok-free.app",
         "npanel-web.vercel.app",
         "npanel-server.vercel.app"
       ],

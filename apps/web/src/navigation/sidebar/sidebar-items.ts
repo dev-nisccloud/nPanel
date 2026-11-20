@@ -87,6 +87,13 @@ export const sidebarItems: NavGroup[] = [
         permissionModule: "emails",
       },
       {
+        title: "Cloud Storage",
+        url: "/dashboard/cloud-storage",
+        icon: (props: any) => React.createElement(Icons.CLOUD_STORAGE, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        permissionModule: "storage",
+        isNew: true,
+      },
+      {
         title: "Cloud Servers",
         url: "/dashboard/dedicated-servers",
         icon: (props: any) => React.createElement(Icons.DedicatedServers, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
@@ -256,7 +263,7 @@ export const agencysidebarItems: NavGroup[] = [
       },
       {
         title: "Cloud Storage",
-        url: "/agency/cloud-storage",
+        url: "/hq/cloud-storage",
         icon: (props: any) => React.createElement(Icons.CLOUD_STORAGE, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         permissionKey: "storage.browse",
         isNew: true,

@@ -554,6 +554,27 @@
       "when": 1794800000000,
       "tag": "0078_career_job_details",
       "breakpoints": true
+    },
+    {
+      "idx": 79,
+      "version": "7",
+      "when": 1795154568779,
+      "tag": "0079_flawless_old_lace",
+      "breakpoints": true
+    },
+    {
+      "idx": 80,
+      "version": "7",
+      "when": 1795155560501,
+      "tag": "0080_fine_smiling_tiger",
+      "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1795158319124,
+      "tag": "0081_familiar_rogue",
+      "breakpoints": true
     }
   ]
 }
