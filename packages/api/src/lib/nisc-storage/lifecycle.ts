@@ -264,7 +264,19 @@ async function applyRemoteBucket(resource: StorageResource, reuseRemote: boolean
 	}
 }
 
-export async function provisionTeamStorage(actor: StorageActor, teamId: string, productPlanId: string) {
+export async function provisionTeamStorage(
+	actor: StorageActor,
+	teamId: string,
+	productPlanId: string,
+	options?: {
+		bucketName?: string;
+		agreedPrice?: string;
+		subscriptionDate?: Date;
+		nextRenewalDate?: Date;
+		autoRenew?: boolean;
+		userId?: string;
+	},
+) {
 	const { plan, quotaBytes, maxObjectBytes } = await loadPlan(productPlanId);
 	const [teamRow] = await db.select().from(team).where(eq(team.id, teamId)).limit(1);
 	if (!teamRow?.isActive) throw new StorageOperationError("That team was not found.", "NOT_FOUND");
@@ -290,7 +302,16 @@ export async function provisionTeamStorage(actor: StorageActor, teamId: string, 
 			const now = new Date();
 			const subscriptionId = randomUUID();
 			const resourceId = randomUUID();
-			let name = bucketNameFromSlug(teamRow.slug);
+			const requestedName = options?.bucketName ? parseBucketName(options.bucketName) : null;
+			if (options?.bucketName && !requestedName) {
+				throw new StorageOperationError(
+					"Bucket names are 3 to 63 characters, lowercase letters, numbers, and hyphens.",
+					"LIMIT",
+				);
+			}
+			let name = requestedName
+				? { bucketName: requestedName, source: "GIVEN" as const }
+				: bucketNameFromSlug(teamRow.slug);
 			const [nameTaken] = await tx
 				.select({ id: niscStorageResource.id })
 				.from(niscStorageResource)
@@ -298,22 +319,27 @@ export async function provisionTeamStorage(actor: StorageActor, teamId: string, 
 					and(eq(niscStorageResource.bucketName, name.bucketName), ne(niscStorageResource.status, "DELETED")),
 				)
 				.limit(1);
+			if (nameTaken && requestedName) {
+				throw new StorageOperationError("That bucket name is already taken.", "CONFLICT");
+			}
 			if (nameTaken) name = { bucketName: generatedBucketName(), source: "GENERATED" as const };
 
 			await tx.insert(niscClientSubscription).values({
 				id: subscriptionId,
 				name: "Object storage",
 				teamId,
-				userId: actor.userId,
+				userId: options?.userId ?? actor.userId,
 				productId: NISC_STORAGE_PRODUCT_ID,
 				productPlanId: plan.id,
 				subscribedBy: actor.userId,
 				recordedBy: actor.userId,
 				status: "PENDING",
-				subscriptionDate: now,
+				subscriptionDate: options?.subscriptionDate ?? now,
 				billingCycle: plan.billingCycle ?? "MONTHLY",
+				nextRenewalDate: options?.nextRenewalDate ?? null,
+				autoRenew: options?.autoRenew ?? false,
 				pricingModel: plan.pricingModel || "FIXED",
-				agreedPrice: plan.price,
+				agreedPrice: options?.agreedPrice ?? plan.price,
 				agreedCurrency: plan.currency ?? "KES",
 				metadata: { niscStorage: true },
 				createdAt: now,

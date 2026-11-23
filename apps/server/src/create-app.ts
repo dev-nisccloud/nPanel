@@ -45,6 +45,7 @@ import { handleNiscBackupDownloadFile } from "./api/nisc-backup-download-file";
 import { handleHostingFtpDownload } from "./api/hosting-ftp-download";
 import { handleHostingFtpExtract } from "./api/hosting-ftp-extract";
 import { handleHostingFtpUpload } from "./api/hosting-ftp-upload";
+import { handleNiscStorageObject } from "./api/nisc-storage-object";
 import { handleNiscStorageUpload } from "./api/nisc-storage-upload";
 import { handleTestPleskConnection } from "./api/test-plesk-connection";
 import { handlePhpMyAdminSso } from "./api/hosting-phpmyadmin";
@@ -254,6 +255,7 @@ export function createApp(options: CreateAppOptions = {}) {
     app.get("/api/hosting/ftp/download", handleHostingFtpDownload);
     app.put("/api/hosting/ftp/upload", handleHostingFtpUpload);
     app.put("/api/nisc-storage/upload", handleNiscStorageUpload);
+    app.get("/api/nisc-storage/object", handleNiscStorageObject);
     app.post("/api/hosting/ftp/extract", handleHostingFtpExtract);
     app.get("/api/kenic/test-connection", handleTestKenicConnection);
     app.get("/api/my-ip", handleMyIp);

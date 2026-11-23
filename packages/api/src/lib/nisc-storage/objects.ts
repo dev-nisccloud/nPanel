@@ -14,7 +14,7 @@ import { openPromise, validateFileName, type Entry, type ZipFile } from "yauzl";
 
 import { assertFileAccess, type StorageAccess, type StorageActor } from "./access";
 import { StorageOperationError } from "./errors";
-import { listAccess, syntheticFolders } from "./grants";
+import { capabilitiesAt, listAccess, syntheticFolders } from "./grants";
 import {
 	INTERNAL_OBJECT_PREFIX,
 	isUnderPrefix,
@@ -29,6 +29,7 @@ import {
 	headStoredObject,
 	listRawKeys,
 	listStoredObjects,
+	openStoredObject,
 	presignDownload,
 	putFolderMarker,
 	putStoredObjectBody,
@@ -95,6 +96,8 @@ export async function listStorageFolder(
 				folders: syntheticFolders(access.grants, folder).map((prefix) => ({ prefix })),
 				files: [],
 				nextToken: null,
+				prefix: folder,
+				canPut: folderCanPut(access, folder),
 			};
 		}
 	} else {
@@ -110,7 +113,7 @@ export async function listStorageFolder(
 	});
 	const folders = listed.folders
 		.map((prefix) => prefix.replace(/\/+$/, ""))
-		.filter((prefix) => prefix && !prefix.split("/").includes(INTERNAL_OBJECT_PREFIX))
+		.filter((prefix) => prefix && prefix !== folder && !prefix.split("/").includes(INTERNAL_OBJECT_PREFIX))
 		.filter((prefix) => access.scope !== "member" || listAccess(access.grants, prefix) !== "none");
 	const files = listed.files.filter((file) => {
 		if (!normalizeObjectKey(file.key)) return false;
@@ -121,7 +124,15 @@ export async function listStorageFolder(
 		folders: folders.map((prefix) => ({ prefix })),
 		files,
 		nextToken: listed.nextToken,
+		prefix: folder,
+		canPut: folderCanPut(access, folder),
 	};
+}
+
+function folderCanPut(access: StorageAccess, folder: string): boolean {
+	if (access.resource.status !== "ACTIVE") return false;
+	if (access.scope !== "member") return true;
+	return capabilitiesAt(access.grants, folder).canPut;
 }
 
 export async function createStorageFolder(access: StorageAccess, actor: StorageActor, folderInput: string) {
@@ -375,7 +386,13 @@ export async function moveStorageFile(
 	if (await headStoredObject(access.resource.bucketName, destination)) {
 		throw new StorageOperationError("A file with that name is already in this folder.", "CONFLICT");
 	}
-	await copyStoredObject(access.resource.bucketName, source, destination);
+	try {
+		await copyStoredObject(access.resource.bucketName, source, destination);
+	} catch (error) {
+		await removeStoredObject(access.resource.bucketName, destination).catch(() => undefined);
+		if (error instanceof StorageOperationError) throw error;
+		throw new StorageOperationError("The file could not be renamed.", "FAILED");
+	}
 	try {
 		await removeStoredObject(access.resource.bucketName, source);
 	} catch {
@@ -385,6 +402,19 @@ export async function moveStorageFile(
 		);
 	}
 	return { key: destination };
+}
+
+export async function readStorageObject(
+	access: StorageAccess,
+	actor: StorageActor,
+	keyInput: string,
+	range?: string | null,
+) {
+	const key = requireKey(keyInput);
+	await assertFileAccess(access, actor, "get", key);
+	const opened = await openStoredObject({ bucket: access.resource.bucketName, key, range });
+	const name = key.split("/").pop() || "file";
+	return { name, ...opened };
 }
 
 function renameContinueToken(resourceId: string, source: string, destination: string): string {
@@ -436,20 +466,28 @@ export async function renameStoragePrefix(
 	});
 	const keys = listed.objects.map((object) => object.key).filter((key) => key.startsWith(`${source}/`));
 	if (keys.length === 0) {
+		await removeStoredObject(access.resource.bucketName, `${source}/`).catch(() => undefined);
 		await retargetFolderGrants(access.resource.id, source, destination);
 		await clearReservationsUnder(access.resource.id, source);
 		await putFolderMarker(access.resource.bucketName, `${destination}/`).catch(() => undefined);
 		return { prefix: destination, complete: true, continueToken: null };
 	}
 
-	try {
-		for (const key of keys) {
-			const renamed = `${destination}${key.slice(source.length)}`;
+	let moved = 0;
+	for (const key of keys) {
+		const renamed = `${destination}${key.slice(source.length)}`;
+		try {
 			await copyStoredObject(access.resource.bucketName, key, renamed);
 			await removeStoredObject(access.resource.bucketName, key);
+			moved += 1;
+		} catch (error) {
+			if (moved === 0) {
+				await removeStoredObject(access.resource.bucketName, renamed).catch(() => undefined);
+				if (error instanceof StorageOperationError) throw error;
+				throw new StorageOperationError("The folder could not be renamed.", "FAILED");
+			}
+			return { prefix: destination, complete: false, continueToken: token };
 		}
-	} catch {
-		return { prefix: destination, complete: false, continueToken: token };
 	}
 
 	if (listed.nextToken) {

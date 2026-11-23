@@ -4,7 +4,6 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
 import {
-	CopyObjectCommand,
 	CreateBucketCommand,
 	DeleteBucketCommand,
 	DeleteObjectCommand,
@@ -454,15 +453,79 @@ export async function removeStoredObjects(bucket: string, keys: string[]): Promi
 }
 
 export async function copyStoredObject(bucket: string, sourceKey: string, destinationKey: string): Promise<void> {
-	const { client: s3 } = client();
+	if (sourceKey.endsWith("/")) {
+		await putFolderMarker(bucket, destinationKey.endsWith("/") ? destinationKey : `${destinationKey}/`);
+		return;
+	}
+	const current = config();
+	const url = new URL(current.endpoint);
+	url.pathname = `/${[bucket, ...destinationKey.split("/")].map(encodeURIComponent).join("/")}`;
+	url.search = "";
 	const copySource = [bucket, ...sourceKey.split("/")].map(encodeURIComponent).join("/");
+	let response: Response;
+	try {
+		response = await signedFetch({
+			method: "PUT",
+			url,
+			service: "s3",
+			region: current.region,
+			accessKey: current.accessKey,
+			secretKey: current.secretKey,
+			headers: { "x-amz-copy-source": copySource },
+			timeoutMs: 40_000,
+		});
+	} catch {
+		throw new StorageOperationError("The file could not be renamed.", "FAILED");
+	}
+	const copyBody = await response.text();
+	if (response.ok && /CopyObjectResult|<ETag>/i.test(copyBody)) return;
+	const { client: s3 } = client();
+	const signal = AbortSignal.timeout(40_000);
+	const source = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: sourceKey }), { abortSignal: signal });
+	if (!source.Body) throw new StorageOperationError("The file could not be read.", "FAILED");
 	await s3.send(
-		new CopyObjectCommand({
+		new PutObjectCommand({
 			Bucket: bucket,
 			Key: destinationKey,
-			CopySource: copySource,
+			Body: source.Body as Readable,
+			ContentType: source.ContentType || "application/octet-stream",
+			...(typeof source.ContentLength === "number" ? { ContentLength: source.ContentLength } : {}),
 		}),
+		{ abortSignal: signal },
 	);
+}
+
+export async function openStoredObject(params: {
+	bucket: string;
+	key: string;
+	range?: string | null;
+}): Promise<{
+	stream: ReadableStream<Uint8Array>;
+	contentType: string;
+	contentLength: number | null;
+	contentRange: string | null;
+}> {
+	const { client: s3 } = client();
+	try {
+		const result = await s3.send(
+			new GetObjectCommand({
+				Bucket: params.bucket,
+				Key: params.key,
+				Range: params.range || undefined,
+			}),
+		);
+		if (!result.Body) throw new StorageOperationError("The file could not be read.", "FAILED");
+		return {
+			stream: result.Body.transformToWebStream(),
+			contentType: result.ContentType || "application/octet-stream",
+			contentLength: typeof result.ContentLength === "number" ? result.ContentLength : null,
+			contentRange: result.ContentRange ?? null,
+		};
+	} catch (error) {
+		if (error instanceof StorageOperationError) throw error;
+		if (isMissingObject(error)) throw new StorageOperationError("That file was not found.", "NOT_FOUND");
+		throw new StorageOperationError(sanitizeStorageError(error), "FAILED");
+	}
 }
 
 export async function downloadStoredObject(bucket: string, key: string, filePath: string): Promise<void> {

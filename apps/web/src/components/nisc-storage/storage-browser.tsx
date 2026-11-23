@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 
 import { StorageDownloadDialog, StorageUploadDialog } from "@/components/nisc-storage/storage-transfer-dialogs";
+import { StorageFileViewer } from "@/components/nisc-storage/storage-file-viewer";
 import { DeleteFileDialog, type DeleteFileItem } from "@/components/hosting/delete-file-dialog";
 import { FileManagerFolderTree, type FolderTreeNode } from "@/components/hosting/file-manager-folder-tree";
 import { FileManagerTypeIcon } from "@/components/hosting/file-manager-icon";
@@ -186,17 +187,20 @@ export function StorageBrowser({
 	const [uploadOpen, setUploadOpen] = React.useState(false);
 	const [uploadSeed, setUploadSeed] = React.useState<File[]>([]);
 	const [download, setDownload] = React.useState<{ title: string; detail: string; percent: number } | null>(null);
+	const [preview, setPreview] = React.useState<StorageRow | null>(null);
 	const [treeVersion, setTreeVersion] = React.useState(0);
 
 	const status = resource.data?.status ?? "";
 	const canList =
 		status === "ACTIVE" ||
 		(mode === "agency" && (status === "SUSPENDED" || status === "PENDING_DELETION"));
-	const canWrite = status === "ACTIVE";
 	const listing = trpc.niscStorage.listObjects.useQuery(
 		{ resourceId, prefix, maxKeys: 100 },
 		{ enabled: canList && Boolean(resource.data) },
 	);
+	const canWrite =
+		status === "ACTIVE" &&
+		(listing.data?.prefix !== prefix || listing.data?.canPut !== false);
 	const pages = React.useMemo(
 		() => (listing.data ? [listing.data, ...extraPages] : extraPages),
 		[listing.data, extraPages],
@@ -213,6 +217,7 @@ export function StorageBrowser({
 		setExtraPages([]);
 		setSelected([]);
 		setFilter("");
+		setPreview(null);
 	}, [prefix]);
 
 	const rows = React.useMemo<StorageRow[]>(() => {
@@ -317,12 +322,11 @@ export function StorageBrowser({
 			toast.success(targets.length === 1 ? `Removed ${targets[0]?.name}` : `Removed ${targets.length} items`);
 			setSelected([]);
 			setDeleteOpen(false);
-			await refresh();
 		} catch (error) {
 			toast.error(errorMessage(error));
-			await refresh();
 		} finally {
 			setBusy(null);
+			void refresh();
 		}
 	};
 
@@ -350,12 +354,11 @@ export function StorageBrowser({
 			toast.success(files.length === 1 ? "Moved 1 file" : `Moved ${files.length} files`);
 			setMoveOpen(false);
 			setSelected([]);
-			await refresh();
 		} catch (error) {
 			toast.error(errorMessage(error));
-			await refresh();
 		} finally {
 			setBusy(null);
+			void refresh();
 		}
 	};
 
@@ -418,7 +421,6 @@ export function StorageBrowser({
 				toast.success("Renamed the folder");
 			}
 			setSelected((current) => current.filter((key) => key !== target.key));
-			await refresh();
 		} catch (error) {
 			if (!(error instanceof Error) || error.message !== "The folder was partly renamed.") {
 				toast.error(errorMessage(error));
@@ -426,6 +428,7 @@ export function StorageBrowser({
 			throw error;
 		} finally {
 			setBusy(null);
+			void refresh();
 		}
 	};
 
@@ -491,11 +494,11 @@ export function StorageBrowser({
 				destinationPrefix: prefix,
 			});
 			toast.success(`Unpacked ${result.extracted} files`);
-			await refresh();
 		} catch (error) {
 			toast.error(errorMessage(error));
 		} finally {
 			setBusy(null);
+			void refresh();
 		}
 	};
 
@@ -702,7 +705,7 @@ export function StorageBrowser({
 										"flex min-h-24 flex-col items-start gap-2 rounded-lg border p-3 text-left",
 										selected.includes(row.key) && "border-primary bg-primary/5",
 									)}
-									onClick={() => (row.kind === "folder" ? setPrefix(row.key) : void downloadFile(row.key, row.name))}
+									onClick={() => (row.kind === "folder" ? setPrefix(row.key) : setPreview(row))}
 								>
 									<FileManagerTypeIcon item={{ type: row.kind, name: row.name }} className="size-5" size={20} />
 									<span className="line-clamp-2 text-sm">{row.name}</span>
@@ -729,7 +732,7 @@ export function StorageBrowser({
 									<button
 										type="button"
 										className="flex min-h-11 min-w-0 flex-1 items-center gap-2 text-left"
-										onClick={() => (row.kind === "folder" ? setPrefix(row.key) : void downloadFile(row.key, row.name))}
+										onClick={() => (row.kind === "folder" ? setPrefix(row.key) : setPreview(row))}
 									>
 										<FileManagerTypeIcon item={{ type: row.kind, name: row.name }} className="size-4 shrink-0" size={16} />
 										<span className="truncate text-sm">{row.name}</span>
@@ -752,9 +755,14 @@ export function StorageBrowser({
 													Open
 												</DropdownMenuItem>
 											) : (
-												<DropdownMenuItem className="min-h-11" onClick={() => void downloadFile(row.key, row.name)}>
-													Download
-												</DropdownMenuItem>
+												<>
+													<DropdownMenuItem className="min-h-11" onClick={() => setPreview(row)}>
+														View
+													</DropdownMenuItem>
+													<DropdownMenuItem className="min-h-11" onClick={() => void downloadFile(row.key, row.name)}>
+														Download
+													</DropdownMenuItem>
+												</>
 											)}
 											{row.kind === "file" && row.name.toLowerCase().endsWith(".zip") ? (
 												<DropdownMenuItem className="min-h-11" disabled={!canWrite} onClick={() => void extract(row.key)}>
@@ -817,6 +825,15 @@ export function StorageBrowser({
 			</div>
 			) : null}
 
+			<StorageFileViewer
+				open={preview !== null}
+				onOpenChange={(next) => {
+					if (!next) setPreview(null);
+				}}
+				resourceId={resourceId}
+				file={preview && preview.kind === "file" ? preview : null}
+				onDownload={(key, name) => void downloadFile(key, name)}
+			/>
 			<RenameFileDialog
 				open={renameOpen}
 				onOpenChange={setRenameOpen}
@@ -842,12 +859,12 @@ export function StorageBrowser({
 							prefix: joinPrefix(prefix, folderName.trim()),
 						});
 						toast.success(`Created ${folderName.trim()}`);
-						await refresh();
 					} catch (error) {
 						toast.error(errorMessage(error));
 						throw error;
 					} finally {
 						setBusy(null);
+						void refresh();
 					}
 				}}
 			/>
