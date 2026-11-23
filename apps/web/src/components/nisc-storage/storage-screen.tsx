@@ -41,17 +41,15 @@ type BucketItem = {
 	deletionScheduledAt?: Date | string | null;
 };
 
-function bucketTitle(item: BucketItem, mode: "agency" | "customer"): string {
-	if (mode === "customer") return item.planName || item.label || "Object storage";
+function bucketTitle(item: BucketItem): string {
 	return item.bucketName || item.label || "Bucket";
 }
 
-function bucketDetail(item: BucketItem, mode: "agency" | "customer"): string {
+function bucketDetail(item: BucketItem): string {
 	const size = formatPlanBytes(item.quotaBytes);
-	if (mode === "customer") return item.status === "ACTIVE" ? size : item.status;
 	const owner = item.kind === "INTERNAL" ? "Internal" : item.teamName || "Team";
 	const plan = item.kind === "INTERNAL" ? "No plan" : item.planName || "Plan";
-	return `${owner} · ${plan} · ${size}`;
+	return item.status === "ACTIVE" ? `${owner} · ${plan} · ${size}` : `${owner} · ${plan} · ${item.status}`;
 }
 
 export function NiscStorageScreen({
@@ -174,10 +172,17 @@ export function NiscStorageScreen({
 								variant="outline"
 								role="combobox"
 								aria-expanded={open}
-								className="min-h-11 w-full justify-between sm:w-80"
+								className="h-auto min-h-11 w-full justify-between py-1.5 sm:w-96"
 							>
-								<span className="truncate">
-									{selected ? bucketTitle(selected, mode) : mode === "agency" ? "Choose a bucket" : "Storage"}
+								<span className="min-w-0 flex-1 text-left">
+									{selected ? (
+										<>
+											<span className="block truncate">{bucketTitle(selected)}</span>
+											<span className="block truncate text-xs text-muted-foreground">{bucketDetail(selected)}</span>
+										</>
+									) : (
+										mode === "agency" ? "Choose a bucket" : "Storage"
+									)}
 								</span>
 								<ChevronsUpDown className="size-4 shrink-0 opacity-50" />
 							</Button>
@@ -195,7 +200,7 @@ export function NiscStorageScreen({
 										{items.map((item) => (
 											<CommandItem
 												key={item.id}
-												value={`${bucketTitle(item, mode)} ${bucketDetail(item, mode)}`}
+												value={`${bucketTitle(item)} ${bucketDetail(item)}`}
 												className="min-h-11"
 												onSelect={() => {
 													setSelectedId(item.id);
@@ -204,8 +209,8 @@ export function NiscStorageScreen({
 											>
 												<HardDrive className="size-4" />
 												<span className="min-w-0 flex-1">
-													<span className="block truncate">{bucketTitle(item, mode)}</span>
-													<span className="block truncate text-xs text-muted-foreground">{bucketDetail(item, mode)}</span>
+													<span className="block truncate">{bucketTitle(item)}</span>
+													<span className="block truncate text-xs text-muted-foreground">{bucketDetail(item)}</span>
 												</span>
 												{item.status !== "ACTIVE" ? <Badge variant="outline">{item.status}</Badge> : null}
 												<span className={cn("size-2 rounded-full", item.id === selectedId ? "bg-primary" : "bg-transparent")} />
@@ -313,7 +318,7 @@ export function NiscStorageScreen({
 					open={deleteOpen}
 					onOpenChange={setDeleteOpen}
 					resourceId={selected.id}
-					bucketName={bucketTitle(selected, mode)}
+					bucketName={bucketTitle(selected)}
 					isSuperAdmin={isSuperAdmin}
 					alreadyScheduled={selected.status === "PENDING_DELETION"}
 					onDeleted={() => setSelectedId(null)}

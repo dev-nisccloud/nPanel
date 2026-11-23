@@ -464,9 +464,13 @@ export async function renameStoragePrefix(
 		prefix: `${source}/`,
 		maxKeys: 50,
 	});
-	const keys = listed.objects.map((object) => object.key).filter((key) => key.startsWith(`${source}/`));
-	if (keys.length === 0) {
-		await removeStoredObject(access.resource.bucketName, `${source}/`).catch(() => undefined);
+	const keys = listed.objects
+		.map((object) => object.key)
+		.filter((key) => key.startsWith(`${source}/`) && key !== `${source}/`);
+	if (keys.length === 0 && !listed.nextToken) {
+		if (!(await removeFolderShell(access.resource.bucketName, source))) {
+			return { prefix: destination, complete: false, continueToken: token };
+		}
 		await retargetFolderGrants(access.resource.id, source, destination);
 		await clearReservationsUnder(access.resource.id, source);
 		await putFolderMarker(access.resource.bucketName, `${destination}/`).catch(() => undefined);
@@ -490,12 +494,25 @@ export async function renameStoragePrefix(
 		}
 	}
 
-	if (listed.nextToken) {
+	if (listed.nextToken || !(await removeFolderShell(access.resource.bucketName, source))) {
 		return { prefix: destination, complete: false, continueToken: token };
 	}
 	await retargetFolderGrants(access.resource.id, source, destination);
 	await clearReservationsUnder(access.resource.id, source);
 	return { prefix: destination, complete: true, continueToken: null };
+}
+
+/** Removes the old folder after its files are gone, including a directory marker object storage puts back. */
+async function removeFolderShell(bucket: string, source: string): Promise<boolean> {
+	const listed = await listRawKeys({ bucket, prefix: `${source}/`, maxKeys: 50 });
+	const keys = listed.objects.map((object) => object.key).filter((key) => key.startsWith(`${source}/`));
+	if (keys.some((key) => !key.endsWith("/")) || listed.nextToken) return false;
+	for (const key of keys) {
+		await removeStoredObject(bucket, key).catch(() => undefined);
+	}
+	await removeStoredObject(bucket, `${source}/`).catch(() => undefined);
+	const left = await listRawKeys({ bucket, prefix: `${source}/`, maxKeys: 1 });
+	return left.objects.every((object) => !object.key.startsWith(`${source}/`));
 }
 
 async function retargetFolderGrants(resourceId: string, source: string, destination: string) {

@@ -238,8 +238,13 @@ export const niscStorageRouter = router({
 					.limit(1);
 				if (!membership) return { items: [], nextCursor: null };
 				const [row] = await db
-					.select()
+					.select({
+						resource: niscStorageResource,
+						teamName: team.name,
+						teamSlug: team.slug,
+					})
 					.from(niscStorageResource)
+					.leftJoin(team, eq(team.id, niscStorageResource.teamId))
 					.where(
 						and(eq(niscStorageResource.teamId, input.teamId), ne(niscStorageResource.status, "DELETED")),
 					)
@@ -247,25 +252,27 @@ export const niscStorageRouter = router({
 				if (!row) return { items: [], nextCursor: null };
 				let access: StorageAccess;
 				try {
-					access = await loadStorageAccess(actor, row.id);
+					access = await loadStorageAccess(actor, row.resource.id);
 				} catch (error) {
 					fail(error);
 				}
 				if (!(await memberCanSeeStorage(access, actor))) return { items: [], nextCursor: null };
-				const [plan] = row.productPlanId
+				const [plan] = row.resource.productPlanId
 					? await db
 							.select({ name: niscProductPlan.name })
 							.from(niscProductPlan)
-							.where(eq(niscProductPlan.id, row.productPlanId))
+							.where(eq(niscProductPlan.id, row.resource.productPlanId))
 							.limit(1)
 					: [];
 				return {
 					items: [
 						{
-							...presentResource(row, {
-								includeBucket: access.scope !== "member",
+							...presentResource(row.resource, {
+								includeBucket: true,
 								includeAccessKeyId: access.scope !== "member",
 							}),
+							teamName: row.teamName,
+							teamSlug: row.teamSlug,
 							planName: plan?.name ?? null,
 						},
 					],

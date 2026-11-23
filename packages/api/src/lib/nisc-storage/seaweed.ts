@@ -478,7 +478,7 @@ export async function copyStoredObject(bucket: string, sourceKey: string, destin
 		throw new StorageOperationError("The file could not be renamed.", "FAILED");
 	}
 	const copyBody = await response.text();
-	if (response.ok && /CopyObjectResult|<ETag>/i.test(copyBody)) return;
+	if (response.ok && /CopyObjectResult/i.test(copyBody)) return;
 	const { client: s3 } = client();
 	const signal = AbortSignal.timeout(40_000);
 	const source = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: sourceKey }), { abortSignal: signal });
