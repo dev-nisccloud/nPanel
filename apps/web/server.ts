@@ -121,6 +121,7 @@ function isLongLivedApiProxy(pathname: string, request: Request): boolean {
   if (pathname === "/api/hosting/ftp/download") return true;
   if (pathname === "/api/hosting/ftp/upload") return true;
   if (pathname === "/api/nisc-storage/upload") return true;
+  if (pathname === "/api/nisc-storage/object") return true;
   if (pathname === "/api/hosting/ftp/extract") return true;
   if (pathname === "/api/zeepo-ai/chat/stream") return true;
   if (pathname === "/api/zeepo-ai/support/guest/stream") return true;
