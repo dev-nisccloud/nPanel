@@ -405,7 +405,7 @@ export function RegisterETimsItemSheet({
             duration: 8000,
             action: {
               label: "Go to Settings",
-              onClick: () => { window.location.href = "/agency/kra-etims/settings"; },
+              onClick: () => { window.location.href = "/hq/kra-etims/settings"; },
             },
           });
         } else {

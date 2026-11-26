@@ -658,6 +658,100 @@ export class MetaAdsClient {
 	}
 
 	/**
+	 * Run many Graph reads in one HTTP call.
+	 * A failed subrequest is returned on its own; it does not fail the rest of the batch.
+	 */
+	async batchGet(
+		items: Array<{
+			name: string;
+			path: string;
+			query?: Record<string, string | number | undefined | null>;
+		}>
+	): Promise<
+		Map<
+			string,
+			| { ok: true; data: any }
+			| { ok: false; error: string; code?: number }
+		>
+	> {
+		const results = new Map<
+			string,
+			| { ok: true; data: any }
+			| { ok: false; error: string; code?: number }
+		>();
+
+		for (let offset = 0; offset < items.length; offset += 50) {
+			const chunk = items.slice(offset, offset + 50);
+			const batch = chunk.map((item) => {
+				const params = new URLSearchParams();
+				if (item.query) {
+					for (const [key, value] of Object.entries(item.query)) {
+						if (value !== undefined && value !== null && value !== "") {
+							params.set(key, String(value));
+						}
+					}
+				}
+				const query = params.toString();
+				const path = item.path.startsWith("/") ? item.path : `/${item.path}`;
+				return {
+					method: "GET",
+					name: item.name,
+					relative_url: `${this.config.apiVersion}${path}${query ? `?${query}` : ""}`,
+				};
+			});
+
+			const body = new URLSearchParams();
+			body.set("access_token", this.config.accessToken);
+			body.set("batch", JSON.stringify(batch));
+
+			const response = await request(this.config.baseUrl, {
+				method: "POST",
+				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				body: body.toString(),
+			});
+			const payload = (await response.body.json()) as unknown;
+
+			if (!Array.isArray(payload)) {
+				const error =
+					typeof payload === "object" && payload !== null && "error" in payload
+						? (payload as { error: MetaAdsApiError["error"] }).error
+						: null;
+				throw new MetaAdsApiError(
+					error?.code ?? response.statusCode,
+					error?.message ?? "Meta batch request failed",
+					error?.type ?? "BatchError",
+					error?.error_subcode,
+					error?.fbtrace_id
+				);
+			}
+
+			payload.forEach((entry, index) => {
+				const name = chunk[index]?.name;
+				if (!name) return;
+				const raw = entry as { code?: number; body?: string };
+				let parsed: any = null;
+				try {
+					parsed = typeof raw.body === "string" ? JSON.parse(raw.body) : raw.body;
+				} catch {
+					parsed = null;
+				}
+				const status = raw.code ?? 500;
+				if (status >= 200 && status < 300 && parsed && !parsed.error) {
+					results.set(name, { ok: true, data: parsed });
+					return;
+				}
+				results.set(name, {
+					ok: false,
+					error: parsed?.error?.message || `Meta request failed (${status})`,
+					code: parsed?.error?.code,
+				});
+			});
+		}
+
+		return results;
+	}
+
+	/**
 	 * Get Instagram accounts connected/authorized for use with an ad account
 	 * GET /{ad-account-id}/connected_instagram_accounts
 	 * Requires: ads_read scope

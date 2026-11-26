@@ -33,7 +33,7 @@ export const posts: Post[] = [
     readTime: "6 min read",
     date: "Apr 28, 2025",
     featured: true,
-    gradient: "from-blue-500/20 via-primary/10 to-transparent",
+    gradient: "from-[#38b6ff]/20 via-primary/10 to-transparent",
     author: "Amara Oduya",
     authorRole: "Head of Brand Strategy, Nisc Cloud",
     content: [
@@ -85,7 +85,7 @@ export const posts: Post[] = [
         type: "callout",
         icon: "💡",
         title: "The Minimum Viable Brand",
-        text: "You don't need a KES 500,000 rebrand to start. At a minimum: a clean logo, one primary colour, a professional email (you@yourcompany.co.ke), and a one-page website. That's enough to build trust and start growing.",
+        text: "You don't need a KES 500,000 rebrand to start. At a minimum: a clean logo, one primary colour, a professional email (you@yourcompany.com), and a one-page website. That's enough to build trust and start growing.",
       },
       { type: "h2", text: "Where to Start: The Nisc Cloud Framework" },
       {
@@ -117,7 +117,7 @@ export const posts: Post[] = [
     readTime: "8 min read",
     date: "Apr 22, 2025",
     featured: true,
-    gradient: "from-violet-500/20 via-primary/10 to-transparent",
+    gradient: "from-brand-orange/15 via-primary/10 to-transparent",
     author: "Kevin Mwangi",
     authorRole: "SEO Lead, Nisc Cloud",
     content: [
@@ -209,8 +209,8 @@ export const posts: Post[] = [
       {
         type: "stat-row",
         stats: [
-          { value: "87%", label: "Of Kenyan online shoppers prefer M-Pesa payments" },
-          { value: "KES 850B", label: "Annual M-Pesa transaction value in Kenya" },
+          { value: "65.7%", label: "Of Kenyan online shoppers prefer mobile money, such as M-Pesa" },
+          { value: "KES 38.3T", label: "Annual M-Pesa transaction value in Kenya" },
           { value: "3.2x", label: "Higher conversion with STK push vs manual till payment" },
         ],
       },
@@ -255,9 +255,9 @@ export const posts: Post[] = [
   {
     slug: "zeepo-ai-explained",
     category: "AI Automation",
-    title: "Zeepo AI Explained: How We're Replacing Your Sales Team With Smart Bots",
+    title: "Zepo AI Explained: Faster Replies and Follow-Ups",
     excerpt:
-      "CRM automation, WhatsApp chatbots, AI-generated follow-ups - Zeepo AI is the engine that keeps working while you sleep. Here's the full picture.",
+      "CRM automation, WhatsApp chatbots, AI-generated follow-ups - Zepo AI is the engine that keeps working while you sleep. Here's the full picture.",
     readTime: "7 min read",
     date: "Apr 10, 2025",
     gradient: "from-orange-500/20 via-primary/10 to-transparent",
@@ -266,12 +266,12 @@ export const posts: Post[] = [
     content: [
       {
         type: "intro",
-        text: "What if your business could respond to every lead within 60 seconds, qualify them automatically, send a personalised follow-up at the perfect time, and book a demo - all while you sleep? That's not science fiction. That's Zeepo AI.",
+        text: "What if your business could respond to every lead within 60 seconds, qualify them automatically, send a personalised follow-up at the perfect time, and book a demo - all while you sleep? That's not science fiction. That's Zepo AI.",
       },
-      { type: "h2", text: "What Is Zeepo AI?" },
+      { type: "h2", text: "What Is Zepo AI?" },
       {
         type: "p",
-        text: "Zeepo AI is Nisc Cloud's proprietary automation platform built specifically for Kenyan businesses. It connects your CRM, WhatsApp Business, email, and website into a single intelligent pipeline that automates the most repetitive and time-sensitive parts of your sales and support workflow.",
+        text: "Zepo AI is Nisc Cloud's proprietary automation platform built specifically for Kenyan businesses. It connects your CRM, WhatsApp Business, email, and website into a single intelligent pipeline that automates the most repetitive and time-sensitive parts of your sales and support workflow.",
       },
       {
         type: "stat-row",
@@ -296,12 +296,12 @@ export const posts: Post[] = [
         type: "callout",
         icon: "🤖",
         title: "WhatsApp Is the Channel",
-        text: "In Kenya, WhatsApp Business open rates exceed 90%. Zeepo AI treats WhatsApp as the primary communication channel, not a secondary one. This alone drives dramatically higher engagement compared to email-first automation tools built for Western markets.",
+        text: "In Kenya, WhatsApp Business open rates exceed 90%. Zepo AI treats WhatsApp as the primary communication channel, not a secondary one. This alone drives dramatically higher engagement compared to email-first automation tools built for Western markets.",
       },
       { type: "h2", text: "Implementation: What to Expect" },
       {
         type: "p",
-        text: "A standard Zeepo AI implementation takes 2-4 weeks and includes: business process mapping, chatbot training on your specific products and FAQs, CRM setup and integrations, team training, and a 30-day hypercare period. Most clients see measurable ROI within the first month of operation.",
+        text: "A standard Zepo AI implementation takes 2-4 weeks and includes: business process mapping, chatbot training on your specific products and FAQs, CRM setup and integrations, team training, and a 30-day hypercare period. Most clients see measurable ROI within the first month of operation.",
       },
       {
         type: "ul",
@@ -314,19 +314,19 @@ export const posts: Post[] = [
       },
       {
         type: "closing",
-        text: "Zeepo AI isn't a tool you set up and forget - it's a system that gets smarter over time. Book a live demo to see it in action with a simulated version of your own business workflow.",
+        text: "Zepo AI isn't a tool you set up and forget - it's a system that gets smarter over time. Book a live demo to see it in action with a simulated version of your own business workflow.",
       },
     ],
   },
   {
-    slug: "shared-vs-vps-hosting-kenya",
+    slug: "web-hosting-vs-vps-kenya",
     category: "Cloud Hosting",
-    title: "Shared Hosting vs VPS in Kenya: Which One Does Your Business Actually Need?",
+    title: "Web Hosting vs VPS in Kenya: Which One Does Your Business Actually Need?",
     excerpt:
-      "Not all hosting is equal. We help you pick the right tier - from shared hosting at KES 350/mo to managed VPS - without overpaying for resources you'll never use.",
+      "Not all hosting is equal. We help you pick the right tier - from web hosting at KES 350/mo to managed VPS - without overpaying for resources you'll never use.",
     readTime: "5 min read",
     date: "Apr 5, 2025",
-    gradient: "from-cyan-500/20 via-primary/10 to-transparent",
+    gradient: "from-[#38b6ff]/20 via-primary/10 to-transparent",
     author: "Dennis Ochieng",
     authorRole: "Infrastructure Lead, Nisc Cloud",
     content: [
@@ -334,10 +334,10 @@ export const posts: Post[] = [
         type: "intro",
         text: "The most common mistake Kenyan businesses make with hosting is either overspending on resources they don't need, or underspending and suffering through slow load times and downtime that costs them customers. Here's how to choose correctly.",
       },
-      { type: "h2", text: "Shared Hosting: What It Is and Who It's For" },
+      { type: "h2", text: "Web Hosting: What It Is and Who It's For" },
       {
         type: "p",
-        text: "Shared hosting puts your website on a server alongside hundreds of other websites. You share CPU, RAM, and bandwidth. This makes it very affordable - our shared plans start at KES 350/month - but it means your performance can be affected by other sites on the server.",
+        text: "Web hosting puts your website on a server alongside other websites, which share its CPU, RAM, and bandwidth. This makes it very affordable - our web hosting plans start at KES 350/month - but it means your performance can be affected by other sites on the server.",
       },
       {
         type: "ul",
@@ -351,12 +351,12 @@ export const posts: Post[] = [
       {
         type: "stat-row",
         stats: [
-          { value: "99.99%", label: "Uptime target on shared hosting" },
+          { value: "99.9%", label: "Uptime target on web hosting" },
           { value: "KES 350", label: "Starting price per month" },
-          { value: "24/7", label: "Support included on all plans" },
+          { value: "Free", label: "Migration help on all plans" },
         ],
       },
-      { type: "h2", text: "VPS Hosting: When You've Outgrown Shared" },
+      { type: "h2", text: "VPS Hosting: When You've Outgrown Web Hosting" },
       {
         type: "p",
         text: "A Virtual Private Server gives you a dedicated slice of a physical server. Your resources are yours alone - CPU, RAM, and storage are not shared. This means consistent performance, more control, and the ability to handle significantly more traffic.",
@@ -376,10 +376,10 @@ export const posts: Post[] = [
         title: "The Decision Framework",
         text: "If your site is generating revenue, getting more than 5,000 visitors/month, or running an e-commerce store, move to VPS. The performance difference is significant and slow load times directly reduce sales - Google data shows a 1-second delay reduces conversions by 7%.",
       },
-      { type: "h2", text: "Migration: Moving from Shared to VPS" },
+      { type: "h2", text: "Migration: Moving from Web Hosting to VPS" },
       {
         type: "p",
-        text: "Migration from shared hosting to VPS sounds technical but doesn't have to be painful. Nisc Cloud handles all migrations for free when you upgrade with us. Our typical migration window is 2-4 hours with zero downtime using our staging protocol.",
+        text: "Migration from web hosting to VPS sounds technical but doesn't have to be painful. Nisc Cloud handles all migrations for free when you upgrade with us. Our typical migration window is 2-4 hours with zero downtime using our staging protocol.",
       },
       {
         type: "closing",
@@ -392,16 +392,16 @@ export const posts: Post[] = [
     category: "Paid Advertising",
     title: "Google Ads vs Meta Ads in Kenya: Where Should Your Marketing Budget Go?",
     excerpt:
-      "We ran over KES 50 million in ad spend across both platforms. Here's what actually converts for different industries in the Kenyan market.",
+      "We have managed over KES 100 million (over USD 750,000) in client ad spend, including over KES 50 million (over USD 380,000), for a dozen Kenyan enterprises and medium-sized businesses. Here's what actually converts.",
     readTime: "9 min read",
     date: "Mar 30, 2025",
     gradient: "from-rose-500/20 via-primary/10 to-transparent",
-    author: "Amara Oduya",
+    author: "Christine",
     authorRole: "Head of Paid Media, Nisc Cloud",
     content: [
       {
         type: "intro",
-        text: "The Google vs Meta debate is one of the most common questions we get from new clients. After managing over KES 50 million in combined ad spend across dozens of Kenyan businesses, we have enough data to give you a definitive answer - for most industries.",
+        text: "The Google vs Meta debate is one of the most common questions we get from new clients. We have managed over KES 100 million (over USD 750,000) in client ad spend, including over KES 50 million (over USD 380,000), for a dozen Kenyan enterprises and medium-sized businesses in Kenya, so we have enough data to give you a definitive answer - for most industries.",
       },
       { type: "h2", text: "The Core Difference: Intent vs Interruption" },
       {
@@ -583,11 +583,11 @@ export const posts: Post[] = [
 ];
 
 export const categoryColors: Record<string, string> = {
-  "Brand Strategy": "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
-  "SEO / AEO / GEO": "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300",
+  "Brand Strategy": "bg-[#38b6ff]/10 text-[#38b6ff] dark:bg-[#38b6ff]/40 dark:text-[#38b6ff]",
+  "SEO / AEO / GEO": "bg-brand-orange/10 text-brand-orange",
   "E-commerce": "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
   "AI Automation": "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
-  "Cloud Hosting": "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300",
+  "Cloud Hosting": "bg-[#38b6ff]/10 text-[#38b6ff] dark:bg-[#38b6ff]/40 dark:text-[#38b6ff]",
   "Paid Advertising": "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300",
   "Social Media": "bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300",
   "Email Marketing": "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",

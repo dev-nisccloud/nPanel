@@ -86,8 +86,8 @@ export default function TeamLayout() {
     updateLast.mutate({ teamId: teamQuery.data.id });
   }, [teamQuery.data?.id]);
 
-  if (slug === "agency") {
-    return <Navigate to="/agency/dashboard" replace />;
+  if (slug === "agency" || slug === "hq") {
+    return <Navigate to="/hq/dashboard" replace />;
   }
 
   if (!prefsReady || isPending) {
@@ -103,7 +103,7 @@ export default function TeamLayout() {
   }
 
   if (isAgencyUser) {
-    return <Navigate to="/agency/dashboard" replace />;
+    return <Navigate to="/hq/dashboard" replace />;
   }
 
   if (!slug) {

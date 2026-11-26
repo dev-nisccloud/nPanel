@@ -24,6 +24,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import { ComboboxDropdown } from "@npanel/ui/components/combobox-dropdown";
@@ -47,10 +48,16 @@ import {
 	customerFromLookup,
 	extractTaxpayerRow,
 } from "../../_lib/etims-kra";
-import { type EtimsItemRecord } from "../../products/_components/etims-item-utils";
+import {
+	isFinishedProduct,
+	isRawMaterial,
+	isServiceItem,
+	itemTypeLabel,
+	type EtimsItemRecord,
+} from "../../products/_components/etims-item-utils";
 
 const lineSchema = z.object({
-	itemCd: z.string().min(1, "Select a service"),
+	itemCd: z.string().min(1, "Select an item"),
 	itemNm: z.string().min(1, "Enter a name for this line").max(200),
 	itemClsCd: z.string().min(1),
 	pkgUnitCd: z.string().min(1),
@@ -59,6 +66,8 @@ const lineSchema = z.object({
 	qty: z.coerce.number().positive("Qty must be greater than 0"),
 	inclusivePrc: z.coerce.number().positive("Price must be greater than 0"),
 	dcRt: z.coerce.number().min(0).max(100).default(0),
+	orderedQty: z.coerce.number().min(0).optional(),
+	maxQty: z.coerce.number().min(0).optional(),
 });
 
 const formSchema = z.object({
@@ -70,12 +79,37 @@ const formSchema = z.object({
 	pmtTyCd: z.string().min(1),
 	salesDt: z.string().min(1),
 	remark: z.string().max(400).optional().or(z.literal("")),
-	lines: z.array(lineSchema).min(1, "Add at least one service line"),
+	isPartial: z.boolean().default(false),
+	lines: z.array(lineSchema).min(1, "Add at least one line"),
 });
 
 type FormData = z.infer<typeof formSchema>;
 
 type ItemOption = EtimsItemRecord & { id: string; label: string };
+
+export type SaleSheetPrefillLine = {
+	itemCd: string;
+	itemNm: string;
+	itemClsCd: string;
+	pkgUnitCd: string;
+	qtyUnitCd: string;
+	taxTyCd: FormData["lines"][number]["taxTyCd"];
+	qty: number;
+	inclusivePrc: number;
+	dcRt: number;
+	orderedQty?: number;
+	maxQty?: number;
+};
+
+export type SaleSheetPrefill = {
+	mode: "partial" | "remaining";
+	seedInvcNo?: number;
+	trdInvcNo?: string;
+	custTin?: string;
+	custNm?: string;
+	pmtTyCd?: string;
+	lines: SaleSheetPrefillLine[];
+};
 
 export function SendETimsSaleSheet({
 	open,
@@ -83,12 +117,14 @@ export function SendETimsSaleSheet({
 	onSuccess,
 	tradeName,
 	address,
+	prefill,
 }: {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	onSuccess?: () => void;
 	tradeName?: string | null;
 	address?: string | null;
+	prefill?: SaleSheetPrefill | null;
 }) {
 	const form = useForm<FormData>({
 		resolver: zodResolver(formSchema),
@@ -126,11 +162,16 @@ export function SendETimsSaleSheet({
 	const itemOptions = React.useMemo((): ItemOption[] => {
 		const list = unwrapKraList(itemsData, "itemList", "items") as EtimsItemRecord[];
 		const pool = list.filter((it) => it.useYn !== "N" && it.itemCd);
-		return pool.map((it) => ({
-			...it,
-			id: String(it.itemCd),
-			label: `${it.itemNm} (${it.itemCd})`,
-		}));
+		return pool.map((it) => {
+			const type =
+				itemTypeLabel(it.itemTyCd)
+				|| (isServiceItem(it) ? "Service" : isFinishedProduct(it) ? "Finished product" : isRawMaterial(it) ? "Raw material" : "Item");
+			return {
+				...it,
+				id: String(it.itemCd),
+				label: `${type} · ${it.itemNm} (${it.itemCd})`,
+			};
+		});
 	}, [itemsData]);
 
 	const customerOptions = React.useMemo(() => {
@@ -157,14 +198,40 @@ export function SendETimsSaleSheet({
 
 	React.useEffect(() => {
 		if (!open) return;
-		form.reset({
-			...defaultForm(),
-			invcNo: suggestedInvcNo,
-			trdInvcNo: `TINV${suggestedInvcNo}`,
-		});
+		if (prefill) {
+			form.reset({
+				...defaultForm(),
+				invcNo: suggestedInvcNo,
+				trdInvcNo: prefill.trdInvcNo?.trim() || `TINV${suggestedInvcNo}`,
+				custTin: prefill.custTin ?? "",
+				custNm: prefill.custNm ?? "",
+				pmtTyCd: prefill.pmtTyCd || "01",
+				isPartial: prefill.mode === "partial",
+				remark: "",
+				lines: prefill.lines.map((line) => ({
+					itemCd: line.itemCd,
+					itemNm: line.itemNm,
+					itemClsCd: line.itemClsCd,
+					pkgUnitCd: line.pkgUnitCd || "OU",
+					qtyUnitCd: line.qtyUnitCd || "NO",
+					taxTyCd: line.taxTyCd ?? "B",
+					qty: line.qty,
+					inclusivePrc: line.inclusivePrc,
+					dcRt: line.dcRt ?? 0,
+					orderedQty: line.orderedQty,
+					maxQty: line.maxQty,
+				})),
+			});
+		} else {
+			form.reset({
+				...defaultForm(),
+				invcNo: suggestedInvcNo,
+				trdInvcNo: `TINV${suggestedInvcNo}`,
+			});
+		}
 		setLookupTin(null);
 		setTinSearch("");
-	}, [open, suggestedInvcNo, form]);
+	}, [open, suggestedInvcNo, form, prefill]);
 
 	const [tinSearch, setTinSearch] = React.useState("");
 	const [lookupTin, setLookupTin] = React.useState<string | null>(null);
@@ -190,6 +257,10 @@ export function SendETimsSaleSheet({
 	}, [lookupData, lookupTin, isLookingUp, form]);
 
 	const sendSale = trpc.etims.sales.sendSalesTransaction.useMutation();
+	const savePartialOrder = trpc.etims.sales.savePartialOrder.useMutation();
+	const applyPartialInvoice = trpc.etims.sales.applyPartialInvoice.useMutation();
+	const remainingMode = prefill?.mode === "remaining";
+	const isPartial = form.watch("isPartial");
 
 	const watchedLines = useWatch({ control: form.control, name: "lines" }) ?? [];
 	const lineAmounts = React.useMemo(
@@ -271,6 +342,10 @@ export function SendETimsSaleSheet({
 		const bands = aggregateTaxBands(itemList);
 		const custTin = data.custTin?.trim() || null;
 		const custNm = data.custNm?.trim() || null;
+		const hasGoods = data.lines.some((line) => {
+			const item = itemOptions.find((it) => it.itemCd === line.itemCd);
+			return item ? !isServiceItem(item) : !/^[A-Z]{2}3/.test(line.itemCd);
+		});
 		return {
 			trdInvcNo: data.trdInvcNo.trim(),
 			invcNo,
@@ -283,7 +358,7 @@ export function SendETimsSaleSheet({
 			salesSttsCd: "02",
 			cfmDt,
 			salesDt,
-			stockRlsDt: null,
+			stockRlsDt: hasGoods ? cfmDt : null,
 			totItemCnt: itemList.length,
 			...bands,
 			prchrAcptcYn: "N" as const,
@@ -302,6 +377,23 @@ export function SendETimsSaleSheet({
 	};
 
 	const onSubmit = async (data: FormData) => {
+		if (remainingMode) {
+			for (const line of data.lines) {
+				if (line.maxQty != null && Number(line.maxQty) > 0 && line.qty > Number(line.maxQty) + 1e-9) {
+					toast.error(`Qty for ${line.itemNm || line.itemCd} cannot exceed remaining ${line.maxQty}`);
+					return;
+				}
+			}
+		}
+		if (data.isPartial && !remainingMode) {
+			for (const line of data.lines) {
+				const ordered = Number(line.orderedQty) > 0 ? Number(line.orderedQty) : line.qty;
+				if (line.qty > ordered + 1e-9) {
+					toast.error(`Qty for ${line.itemNm || line.itemCd} cannot exceed ordered qty ${ordered}`);
+					return;
+				}
+			}
+		}
 		let invcNo = data.invcNo;
 		for (let attempt = 0; attempt < 4; attempt++) {
 			const payload = buildPayload(data, invcNo);
@@ -309,6 +401,39 @@ export function SendETimsSaleSheet({
 			const err = kraResultError(res);
 			if (!err) {
 				captureEvent("etims_sale_recorded", { has_vat: true, service: true });
+				try {
+					if (remainingMode && prefill?.seedInvcNo) {
+						await applyPartialInvoice.mutateAsync({
+							seedInvcNo: prefill.seedInvcNo,
+							lines: data.lines.map((line) => ({
+								itemCd: line.itemCd,
+								invoicedQty: line.qty,
+							})),
+						});
+					} else if (data.isPartial) {
+						await savePartialOrder.mutateAsync({
+							seedInvcNo: invcNo,
+							trdInvcNo: data.trdInvcNo.trim(),
+							custTin: data.custTin?.trim() || null,
+							custNm: data.custNm?.trim() || null,
+							pmtTyCd: data.pmtTyCd,
+							lines: data.lines.map((line) => ({
+								itemCd: line.itemCd,
+								itemNm: line.itemNm,
+								itemClsCd: line.itemClsCd,
+								pkgUnitCd: line.pkgUnitCd,
+								qtyUnitCd: line.qtyUnitCd,
+								taxTyCd: line.taxTyCd,
+								inclusivePrc: line.inclusivePrc,
+								dcRt: line.dcRt,
+								orderedQty: Number(line.orderedQty) > 0 ? Number(line.orderedQty) : line.qty,
+								invoicedQty: line.qty,
+							})),
+						});
+					}
+				} catch (persistErr) {
+					console.warn("[eTIMS] partial remainder persist failed", persistErr);
+				}
 				toast.success("Sale sent to KRA eTIMS");
 				onOpenChange(false);
 				onSuccess?.();
@@ -331,7 +456,11 @@ export function SendETimsSaleSheet({
 		<Sheet open={open} onOpenChange={onOpenChange}>
 			<SheetContent size="wide" className="w-full min-w-0 overflow-x-hidden overflow-y-auto">
 				<SheetHeader>
-					<SheetTitle>Record sale</SheetTitle>
+					<SheetTitle>
+						{remainingMode
+							? `Invoice remaining${prefill?.seedInvcNo ? ` of #${prefill.seedInvcNo}` : ""}`
+							: "Record sale"}
+					</SheetTitle>
 				</SheetHeader>
 
 				<Form {...form}>
@@ -476,9 +605,34 @@ export function SendETimsSaleSheet({
 							/>
 						</div>
 
+						{remainingMode ? (
+							<p className="text-xs text-muted-foreground">
+								Invoice leftover qty for this order.
+							</p>
+						) : (
+							<FormField
+								control={form.control}
+								name="isPartial"
+								render={({ field }) => (
+									<FormItem className="flex flex-row items-start gap-3 space-y-0">
+										<FormControl>
+											<Checkbox
+												checked={field.value}
+												onCheckedChange={(checked) => field.onChange(Boolean(checked))}
+											/>
+										</FormControl>
+										<div className="space-y-0.5">
+											<FormLabel className="font-medium">Partial invoice</FormLabel>
+											<p className="text-xs text-muted-foreground">Invoice part of the ordered qty now.</p>
+										</div>
+									</FormItem>
+								)}
+							/>
+						)}
+
 						<div className="space-y-3">
 							<div className="flex items-center justify-between">
-								<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Services</p>
+								<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Lines</p>
 								<Button
 									type="button"
 									variant="outline"
@@ -519,15 +673,15 @@ export function SendETimsSaleSheet({
 													name={`lines.${index}.itemCd`}
 													render={() => (
 														<FormItem>
-															<FormLabel>Service</FormLabel>
+															<FormLabel>Item</FormLabel>
 															<ComboboxDropdown
 																inDialog
-																placeholder="Select registered service…"
+																placeholder="Select product or service…"
 																searchPlaceholder="Search item code or name…"
 																items={itemOptions}
 																selectedItem={selected}
 																onSelect={(item) => applyItem(index, item)}
-																emptyResults="No services registered. Add one under Products first."
+																emptyResults="No items registered. Add one under Products first."
 															/>
 															{selected?.itemCd ? (
 																<p className="text-[11px] text-muted-foreground">
@@ -569,14 +723,39 @@ export function SendETimsSaleSheet({
 												name={`lines.${index}.qty`}
 												render={({ field: qtyField }) => (
 													<FormItem className="min-w-0">
-														<FormLabel>Qty</FormLabel>
+														<FormLabel>
+															Qty
+															{line?.maxQty != null && Number(line.maxQty) > 0
+																? ` (max ${line.maxQty})`
+																: ""}
+														</FormLabel>
 														<FormControl>
-															<Input type="number" step="0.01" {...qtyField} />
+															<Input
+																type="number"
+																step="0.01"
+																max={line?.maxQty != null && Number(line.maxQty) > 0 ? line.maxQty : undefined}
+																{...qtyField}
+															/>
 														</FormControl>
 														<FormMessage />
 													</FormItem>
 												)}
 											/>
+											{isPartial && !remainingMode ? (
+												<FormField
+													control={form.control}
+													name={`lines.${index}.orderedQty`}
+													render={({ field: orderedField }) => (
+														<FormItem className="min-w-0">
+															<FormLabel>Ordered qty</FormLabel>
+															<FormControl>
+																<Input type="number" step="0.01" {...orderedField} />
+															</FormControl>
+															<FormMessage />
+														</FormItem>
+													)}
+												/>
+											) : null}
 											<FormField
 												control={form.control}
 												name={`lines.${index}.inclusivePrc`}
@@ -697,6 +876,7 @@ function defaultForm(): FormData {
 		pmtTyCd: "01",
 		salesDt: isoDateInNairobi(),
 		remark: "",
+		isPartial: false,
 		lines: [
 			{
 				itemCd: "",

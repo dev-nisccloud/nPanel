@@ -1,6 +1,7 @@
 import type { SharedHostingPlan } from "@/lib/vps-plans-api.ts";
 import type { DomainSearchResult } from "@/lib/domain-search/types.ts";
 import { createStorefrontHandoff } from "@/lib/storefront-checkout-api.ts";
+import { trackEvent } from "@/lib/track.ts";
 
 export type StorefrontBillingCycle =
   | "MONTHLY"
@@ -28,6 +29,13 @@ export interface StorefrontCartParams {
 
 /** Navigate to cart with a server-signed handoff token (no prices in URL). */
 export async function navigateToStorefrontCart(params: StorefrontCartParams) {
+  // Product-level only: never send the domain name or customer data.
+  trackEvent("add_to_cart", {
+    service_type: params.serviceType,
+    product: params.productName,
+    billing_cycle: params.billingCycle ?? "MONTHLY",
+    bundle_size: params.bundleDomains?.length ?? 0,
+  });
   const { handoff } = await createStorefrontHandoff({
     serviceType: params.serviceType,
     planId: params.planId,
@@ -49,6 +57,7 @@ export async function navigateToStorefrontCart(params: StorefrontCartParams) {
 export function buildSharedHostingCartParams(
   plan: SharedHostingPlan,
   serviceType: string,
+  billingCycle: StorefrontBillingCycle = "MONTHLY",
 ): StorefrontCartParams {
   return {
     serviceType,
@@ -57,7 +66,7 @@ export function buildSharedHostingCartParams(
     planName: plan.name,
     productName: plan.productName,
     currency: plan.niscCurrency || "KES",
-    billingCycle: "MONTHLY",
+    billingCycle,
   };
 }
 

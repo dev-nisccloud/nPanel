@@ -14,8 +14,8 @@ export function isPleskWebspaceActive(status: number | null | undefined): boolea
 
 function subscriptionPageHref(pathname: string, subscriptionId: string): string | null {
 	const id = encodeURIComponent(subscriptionId);
-	if (pathname.startsWith("/agency")) {
-		return `/agency/subscriptions?subscriptionId=${id}`;
+	if (pathname.startsWith("/hq")) {
+		return `/hq/subscriptions?subscriptionId=${id}`;
 	}
 	const teamSlug = pathname.split("/").filter(Boolean)[0];
 	if (!teamSlug) return null;
@@ -30,7 +30,7 @@ export function FileManagerSuspendedOverlay({
 	domain?: string | null;
 }) {
 	const { pathname } = useLocation();
-	const isAgency = pathname.startsWith("/agency");
+	const isAgency = pathname.startsWith("/hq");
 	const teamSlug = isAgency ? undefined : pathname.split("/").filter(Boolean)[0];
 
 	const linkedQuery = trpc.clientSubscriptions.getLinkedIdByPleskId.useQuery(

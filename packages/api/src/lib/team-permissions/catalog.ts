@@ -10,16 +10,15 @@ export type TeamPermissionModuleId =
 	| "servers.vps"
 	| "servers.vds"
 	| "servers.dedicated"
-	| "ads.meta"
-	| "ads.google"
-	| "ads.linkedin"
 	| "email_marketing"
 	| "seo"
 	| "creatives"
 	| "gen_ai"
 	| "billing"
 	| "team_settings"
-	| "marketplace";
+	| "marketplace"
+	| "social_ads"
+	| "storage";
 
 export type TeamPermissionEntry = {
 	key: string;
@@ -37,9 +36,6 @@ const MODULE_LABELS: Record<TeamPermissionModuleId, string> = {
 	"servers.vps": "VPS Hosting",
 	"servers.vds": "VDS Hosting",
 	"servers.dedicated": "Dedicated Servers",
-	"ads.meta": "Meta Ads",
-	"ads.google": "Google Ads",
-	"ads.linkedin": "LinkedIn Ads",
 	email_marketing: "Email Marketing",
 	seo: "SEO",
 	creatives: "Creatives & Design",
@@ -47,6 +43,8 @@ const MODULE_LABELS: Record<TeamPermissionModuleId, string> = {
 	billing: "Billing",
 	team_settings: "Team settings",
 	marketplace: "Marketplace",
+	social_ads: "Social Media & Ads",
+	storage: "Object storage",
 };
 
 function entry(
@@ -76,13 +74,6 @@ function serverEntries(module: "servers.vps" | "servers.vds" | "servers.dedicate
 		entry(module, "metrics", "Metrics", "View performance metrics"),
 		entry(module, "history", "History", "View server event history"),
 		entry(module, "rescue", "Rescue", "Use rescue / recovery tools"),
-	];
-}
-
-function adsEntries(module: "ads.meta" | "ads.google" | "ads.linkedin") {
-	return [
-		entry(module, "accounts", "Accounts", "View or connect ad accounts"),
-		entry(module, "campaigns", "Campaigns", "View or create, pause, and edit campaigns"),
 	];
 }
 
@@ -121,10 +112,6 @@ export const TEAM_PERMISSION_CATALOG: readonly TeamPermissionEntry[] = [
 	...serverEntries("servers.vds"),
 	...serverEntries("servers.dedicated"),
 
-	...adsEntries("ads.meta"),
-	...adsEntries("ads.google"),
-	...adsEntries("ads.linkedin"),
-
 	entry("email_marketing", "campaigns", "Campaigns", "View or create and send campaigns"),
 	entry("email_marketing", "audiences", "Audiences", "View or manage audiences"),
 	entry("email_marketing", "email_builder", "AI email builder", "View or edit email designs"),
@@ -148,6 +135,15 @@ export const TEAM_PERMISSION_CATALOG: readonly TeamPermissionEntry[] = [
 	entry("team_settings", "invitations", "Invitations", "View or send and cancel invitations"),
 
 	entry("marketplace", "browse", "Browse", "Browse the marketplace"),
+
+	entry("social_ads", "facebook", "Facebook", "View Facebook ad accounts, campaigns, and Pages granted to this organization"),
+	entry("social_ads", "instagram", "Instagram", "View Instagram ad accounts and campaigns granted to this organization"),
+	entry("social_ads", "linkedin", "LinkedIn", "View LinkedIn ad accounts and campaigns granted to this organization"),
+	entry("social_ads", "google", "Google Ads", "View Google Ads accounts and campaigns granted to this organization"),
+
+	entry("storage", "list", "List", "View this team's object storage plan"),
+	entry("storage", "files", "Files", "Browse or change files in folders the owner has granted"),
+	entry("storage", "sharing", "Folder access", "Choose which folders a team member can view, download, or add to"),
 ] as const;
 
 export type TeamPermissionKey = (typeof TEAM_PERMISSION_CATALOG)[number]["key"];

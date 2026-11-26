@@ -3,6 +3,7 @@ import { Cookie } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils.ts";
+import { OPEN_COOKIE_SETTINGS_EVENT } from "@/lib/cookie-settings.ts";
 
 const STORAGE_KEY = "nisc-cookie-consent";
 
@@ -11,11 +12,19 @@ const CookieConsent = () => {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (localStorage.getItem(STORAGE_KEY)) return;
-
-    setShouldRender(true);
-    const timer = setTimeout(() => setVisible(true), 1000);
-    return () => clearTimeout(timer);
+    const open = () => {
+      setShouldRender(true);
+      setVisible(true);
+    };
+    window.addEventListener(OPEN_COOKIE_SETTINGS_EVENT, open);
+    if (localStorage.getItem(STORAGE_KEY)) {
+      return () => window.removeEventListener(OPEN_COOKIE_SETTINGS_EVENT, open);
+    }
+    const timer = setTimeout(open, 1000);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener(OPEN_COOKIE_SETTINGS_EVENT, open);
+    };
   }, []);
 
   const dismiss = (accepted: boolean) => {
@@ -60,14 +69,14 @@ const CookieConsent = () => {
               <Button
                 type="button"
                 variant="outline"
-                className="h-8 cursor-pointer rounded-full px-5 text-sm font-medium"
+                className="min-h-11 cursor-pointer rounded-[10px] px-5 text-sm font-medium"
                 onClick={() => dismiss(false)}
               >
                 Reject all
               </Button>
               <Button
                 type="button"
-                className="h-8 cursor-pointer rounded-full px-5 text-sm font-medium transition-colors duration-200 hover:bg-primary/80"
+                className="min-h-11 cursor-pointer rounded-[10px] px-5 text-sm font-medium transition-colors duration-200 hover:bg-primary/80"
                 onClick={() => dismiss(true)}
               >
                 Accept

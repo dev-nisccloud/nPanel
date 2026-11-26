@@ -79,6 +79,15 @@ function denialKey(requirement: AgencyRequirement | null): string {
 	return "allow";
 }
 
+/** Human resources is granted only to super admins or an explicit role permission. */
+function permissionsWithoutHumanResources(permissions: AgencyPermissionMap): AgencyPermissionMap {
+	const next: AgencyPermissionMap = { ...permissions };
+	for (const key of Object.keys(next)) {
+		if (key.startsWith("hr.")) delete next[key as keyof AgencyPermissionMap];
+	}
+	return next;
+}
+
 export async function loadAgencyAccess(userId: string): Promise<AgencyAccessContext | null> {
 	const cached = cache.get(userId);
 	if (cached && Date.now() - cached.at < CACHE_TTL_MS) return cached.value;
@@ -104,7 +113,7 @@ export async function loadAgencyAccess(userId: string): Promise<AgencyAccessCont
 
 	const unrestricted = userRes.role === "AGENCY_SUPER_ADMIN" || !userRes.agencyRole;
 	const permissions = unrestricted
-		? allAgencyWritePermissions()
+		? permissionsWithoutHumanResources(allAgencyWritePermissions())
 		: grantsFromStoredRole(
 				userRes.agencyRole?.permissions.map((row) => ({
 					key: row.permission.key,
@@ -134,12 +143,26 @@ export async function assertAgencyProcedureAccess(params: {
 	input?: unknown;
 }): Promise<void> {
 	if (params.userRole === "AGENCY_SUPER_ADMIN") return;
-	if (!isAgencyUserRole(params.userRole)) return;
-
-	const access = await loadAgencyAccess(params.userId);
-	if (!access || access.unrestricted) return;
 
 	const requirement = resolveAgencyProcedure(params.path);
+	const explicitHr = requirement?.type === "key" && requirement.key.startsWith("hr.");
+	if (!isAgencyUserRole(params.userRole)) {
+		if (!explicitHr) return;
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "You do not have access to human resources.",
+		});
+	}
+
+	const access = await loadAgencyAccess(params.userId);
+	if ((!access || access.unrestricted) && !explicitHr) return;
+	if (!access) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "You do not have access to human resources.",
+		});
+	}
+
 	const required = /password|credential|secret/i.test(params.path)
 		? "write"
 		: requiredAccessForProcedureType(params.type);

@@ -42,3 +42,17 @@ export function isMysqlFamily(type?: string): boolean {
   const t = (type || "mysql").toLowerCase();
   return t === "mysql" || t === "mariadb";
 }
+
+export function formatDatabaseSize(bytes: number | null | undefined): string {
+  if (bytes == null || Number.isNaN(bytes)) return "Not available";
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ["KB", "MB", "GB", "TB"];
+  let value = bytes / 1024;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  const rounded = value >= 10 ? Math.round(value) : Math.round(value * 10) / 10;
+  return `${rounded} ${units[unit]}`;
+}

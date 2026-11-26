@@ -66,7 +66,7 @@ export const ZEEPO_AI_PLAN_IDS = {
 export const ZEEPO_AI_MIN_TOKENS_TO_START = 25;
 
 /** One-time welcome grant for first-time Zeepo AI customers with an existing service. */
-export const ZEEPO_AI_WELCOME_TOKEN_GRANT = 100;
+export const ZEEPO_AI_WELCOME_TOKEN_GRANT = 300;
 
 export type AnthropicCacheCreationLike = {
 	ephemeral_5m_input_tokens?: number | null;

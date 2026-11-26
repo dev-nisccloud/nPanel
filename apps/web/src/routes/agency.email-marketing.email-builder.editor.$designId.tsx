@@ -71,7 +71,7 @@ export default function EmailEditorPage() {
                 <TriangleAlert className="text-muted-foreground size-6" />
                 <p className="text-muted-foreground text-sm">Failed to fetch email design</p>
                 <Button asChild variant="secondary">
-                    <Link to="/agency/email-marketing/email-builder">Back to Dashboard</Link>
+                    <Link to="/hq/email-marketing/email-builder">Back to Dashboard</Link>
                 </Button>
             </div>
         );

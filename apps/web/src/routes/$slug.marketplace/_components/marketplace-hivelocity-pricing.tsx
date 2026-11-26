@@ -75,18 +75,16 @@ function VpsPlansSection({ slug }: { slug: string }) {
   const pricing = useHivelocityPricing("VPS");
   const { productIdByType } = useHivelocityNiscProducts();
   const displayCurrency: "KES" | "USD" = pricing.usdToKesRate ? "KES" : "USD";
-  const showOriginalUsd = Boolean(pricing.settings?.base.marginType);
-
   const displayPlans = React.useMemo(() => plans.map((p) => {
     const baseUsd = { monthly: p.product_monthly_price, hourly: p.product_hourly_price, monthlyKes: pricing.toKes(p.product_monthly_price), hourlyKes: pricing.toKes(p.product_hourly_price) };
     const monthly  = pricing.applyMargin(p.product_monthly_price);
     const hourly   = pricing.applyMargin(p.product_hourly_price);
     const original = p.product_original_price ? pricing.applyMargin(p.product_original_price) : null;
     if (displayCurrency === "KES") {
-      return { ...p, __baseUsd: baseUsd, ...(showOriginalUsd ? { __originalUsd: baseUsd } : {}), product_monthly_price: pricing.toKes(monthly.final) ?? p.product_monthly_price, product_hourly_price: pricing.toKes(hourly.final) ?? p.product_hourly_price, product_original_price: p.product_original_price ? pricing.toKes(original?.final ?? p.product_original_price) ?? p.product_original_price : p.product_original_price };
+      return { ...p, __baseUsd: baseUsd, product_monthly_price: pricing.toKes(monthly.final) ?? p.product_monthly_price, product_hourly_price: pricing.toKes(hourly.final) ?? p.product_hourly_price, product_original_price: p.product_original_price ? pricing.toKes(original?.final ?? p.product_original_price) ?? p.product_original_price : p.product_original_price };
     }
-    return { ...p, __baseUsd: baseUsd, ...(showOriginalUsd ? { __originalUsd: baseUsd } : {}), product_monthly_price: monthly.final, product_hourly_price: hourly.final, product_original_price: p.product_original_price ? original?.final ?? p.product_original_price : p.product_original_price };
-  }), [plans, pricing, displayCurrency, showOriginalUsd]);
+    return { ...p, __baseUsd: baseUsd, product_monthly_price: monthly.final, product_hourly_price: hourly.final, product_original_price: p.product_original_price ? original?.final ?? p.product_original_price : p.product_original_price };
+  }), [plans, pricing, displayCurrency]);
 
   const displayPriceMap = React.useMemo(() => {
     const map = new Map<number, number>();
@@ -136,7 +134,7 @@ function VpsPlansSection({ slug }: { slug: string }) {
         onLoadMore={() => plansQuery.fetchNextPage()}
       >
         {filteredPlans.map((p) => (
-          <VpsPlanCard key={`${p.data_center}-${p.product_id}-${p.location_option_id}`} plan={p} locationName={facilityTitleByCode.get(p.data_center) ?? p.data_center} displayCurrency={displayCurrency} originalUsd={(p as any).__originalUsd} onBuyNow={openBuyNow} onAddToCart={openCartFlow} />
+          <VpsPlanCard key={`${p.data_center}-${p.product_id}-${p.location_option_id}`} plan={p} locationName={facilityTitleByCode.get(p.data_center) ?? p.data_center} displayCurrency={displayCurrency} onBuyNow={openBuyNow} onAddToCart={openCartFlow} />
         ))}
         {plansQuery.isFetchingNextPage && Array.from({ length: 6 }).map((_, i) => <VpsPlanCardSkeleton key={i} />)}
       </PlanGrid>
@@ -172,18 +170,16 @@ function VdsPlansSection({ slug }: { slug: string }) {
   const pricing = useHivelocityPricing("VDS");
   const { productIdByType } = useHivelocityNiscProducts();
   const displayCurrency: "KES" | "USD" = pricing.usdToKesRate ? "KES" : "USD";
-  const showOriginalUsd = Boolean(pricing.settings?.base.marginType);
-
   const displayPlans = React.useMemo(() => plans.map((p) => {
     const baseUsd = { monthly: p.product_monthly_price, hourly: p.product_hourly_price, monthlyKes: pricing.toKes(p.product_monthly_price), hourlyKes: pricing.toKes(p.product_hourly_price) };
     const monthly  = pricing.applyMargin(p.product_monthly_price);
     const hourly   = pricing.applyMargin(p.product_hourly_price);
     const original = p.product_original_price ? pricing.applyMargin(p.product_original_price) : null;
     if (displayCurrency === "KES") {
-      return { ...p, __baseUsd: baseUsd, ...(showOriginalUsd ? { __originalUsd: baseUsd } : {}), product_monthly_price: pricing.toKes(monthly.final) ?? p.product_monthly_price, product_hourly_price: pricing.toKes(hourly.final) ?? p.product_hourly_price, product_original_price: p.product_original_price ? pricing.toKes(original?.final ?? p.product_original_price) ?? p.product_original_price : p.product_original_price };
+      return { ...p, __baseUsd: baseUsd, product_monthly_price: pricing.toKes(monthly.final) ?? p.product_monthly_price, product_hourly_price: pricing.toKes(hourly.final) ?? p.product_hourly_price, product_original_price: p.product_original_price ? pricing.toKes(original?.final ?? p.product_original_price) ?? p.product_original_price : p.product_original_price };
     }
-    return { ...p, __baseUsd: baseUsd, ...(showOriginalUsd ? { __originalUsd: baseUsd } : {}), product_monthly_price: monthly.final, product_hourly_price: hourly.final, product_original_price: p.product_original_price ? original?.final ?? p.product_original_price : p.product_original_price };
-  }), [plans, pricing, displayCurrency, showOriginalUsd]);
+    return { ...p, __baseUsd: baseUsd, product_monthly_price: monthly.final, product_hourly_price: hourly.final, product_original_price: p.product_original_price ? original?.final ?? p.product_original_price : p.product_original_price };
+  }), [plans, pricing, displayCurrency]);
 
   const displayPriceMap = React.useMemo(() => {
     const map = new Map<number, number>();
@@ -233,7 +229,7 @@ function VdsPlansSection({ slug }: { slug: string }) {
         onLoadMore={() => plansQuery.fetchNextPage()}
       >
         {filteredPlans.map((p) => (
-          <VdsPlanCard key={`${p.data_center}-${p.product_id}-${p.location_option_id}`} plan={p} locationName={facilityTitleByCode.get(p.data_center) ?? p.data_center} displayCurrency={displayCurrency} originalUsd={(p as any).__originalUsd} onBuyNow={openBuyNow} onAddToCart={openCartFlow} />
+          <VdsPlanCard key={`${p.data_center}-${p.product_id}-${p.location_option_id}`} plan={p} locationName={facilityTitleByCode.get(p.data_center) ?? p.data_center} displayCurrency={displayCurrency} onBuyNow={openBuyNow} onAddToCart={openCartFlow} />
         ))}
         {plansQuery.isFetchingNextPage && Array.from({ length: 6 }).map((_, i) => <VdsPlanCardSkeleton key={i} />)}
       </PlanGrid>
@@ -274,18 +270,16 @@ function DedicatedPlansSection({ slug }: { slug: string }) {
   const pricing = useHivelocityPricing("DEDICATED_SERVERS");
   const { productIdByType } = useHivelocityNiscProducts();
   const displayCurrency: "KES" | "USD" = pricing.usdToKesRate ? "KES" : "USD";
-  const showOriginalUsd = Boolean(pricing.settings?.base.marginType);
-
   const displayPlans = React.useMemo(() => plans.map((p) => {
     const baseUsd = { monthly: p.product_monthly_price, hourly: p.product_hourly_price, monthlyKes: pricing.toKes(p.product_monthly_price), hourlyKes: pricing.toKes(p.product_hourly_price) };
     const monthly  = pricing.applyMargin(p.product_monthly_price);
     const hourly   = pricing.applyMargin(p.product_hourly_price);
     const original = p.product_original_price ? pricing.applyMargin(p.product_original_price) : null;
     if (displayCurrency === "KES") {
-      return { ...p, __baseUsd: baseUsd, ...(showOriginalUsd ? { __originalUsd: baseUsd } : {}), product_monthly_price: pricing.toKes(monthly.final) ?? p.product_monthly_price, product_hourly_price: pricing.toKes(hourly.final) ?? p.product_hourly_price, product_original_price: p.product_original_price ? pricing.toKes(original?.final ?? p.product_original_price) ?? p.product_original_price : p.product_original_price };
+      return { ...p, __baseUsd: baseUsd, product_monthly_price: pricing.toKes(monthly.final) ?? p.product_monthly_price, product_hourly_price: pricing.toKes(hourly.final) ?? p.product_hourly_price, product_original_price: p.product_original_price ? pricing.toKes(original?.final ?? p.product_original_price) ?? p.product_original_price : p.product_original_price };
     }
-    return { ...p, __baseUsd: baseUsd, ...(showOriginalUsd ? { __originalUsd: baseUsd } : {}), product_monthly_price: monthly.final, product_hourly_price: hourly.final, product_original_price: p.product_original_price ? original?.final ?? p.product_original_price : p.product_original_price };
-  }), [plans, pricing, displayCurrency, showOriginalUsd]);
+    return { ...p, __baseUsd: baseUsd, product_monthly_price: monthly.final, product_hourly_price: hourly.final, product_original_price: p.product_original_price ? original?.final ?? p.product_original_price : p.product_original_price };
+  }), [plans, pricing, displayCurrency]);
 
   const displayPriceMap = React.useMemo(() => {
     const map = new Map<number, number>();
@@ -391,7 +385,7 @@ function DedicatedPlansSection({ slug }: { slug: string }) {
         onLoadMore={() => plansQuery.fetchNextPage()}
       >
         {filteredPlans.map((p) => (
-          <DedicatedPlanCard key={`${p.data_center}-${p.product_id}-${p.location_option_id}`} plan={p} locationName={facilityTitleByCode.get(p.data_center) ?? p.data_center} displayCurrency={displayCurrency} originalUsd={(p as any).__originalUsd} onBuyNow={openBuyNow} onAddToCart={openCartFlow} />
+          <DedicatedPlanCard key={`${p.data_center}-${p.product_id}-${p.location_option_id}`} plan={p} locationName={facilityTitleByCode.get(p.data_center) ?? p.data_center} displayCurrency={displayCurrency} onBuyNow={openBuyNow} onAddToCart={openCartFlow} />
         ))}
         {plansQuery.isFetchingNextPage && Array.from({ length: 6 }).map((_, i) => <DedicatedPlanCardSkeleton key={i} />)}
       </PlanGrid>

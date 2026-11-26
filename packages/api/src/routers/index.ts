@@ -72,10 +72,6 @@ import { metaRouter } from "./social-media-marketing/meta";
 import { linkedinRouter } from "./social-media-marketing/linkedin";
 import { instagramRouter } from "./social-media-marketing/instagram";
 import { serviceSubscriptionsRouter } from "./service-subscriptions";
-import { googleAdsRouter } from "./google-ads";
-import { metaAdsRouter } from "./meta-ads";
-import { instagramAdsRouter } from "./instagram-ads";
-import { linkedInAdsRouter } from "./linkedin-ads";
 import { imageGenStudioRouter } from "./imagegen-studio";
 import { stabilityAiRouter } from "./stability-ai";
 import { imageGeneratorRouter } from "./image-generator";
@@ -108,6 +104,8 @@ import { hivelocityRouter } from "./hivelocity";
 import { hivelocityPricingSettingsRouter } from "./hivelocity-pricing-settings";
 import { cronWorkflowRunRouter } from "./cron-workflow-run";
 import { apiKeysRouter } from "./api-keys";
+import { mailMcpRouter } from "./mail-mcp";
+import { userPresenceRouter } from "./user-presence";
 import { digitaxRouter } from "./digitax";
 import { ipRecordsRouter } from "./ip-records";
 import { zeepoCanvasRouter } from "./zeepo-canvas";
@@ -133,10 +131,12 @@ import { niscBackupFilePermissionsRouter } from "./nisc-backup/file-permissions"
 import { niscBackupPluginsRouter } from "./nisc-backup/plugins";
 import { storefrontRouter } from "./storefront";
 import { objectStorageRouter } from "./object-storage";
+import { niscStorageRouter } from "./nisc-storage";
 import { whoisRouter } from "./whois";
 import { niscPaymentGatewayRouter } from "./nisc-payment-gateway";
 import { customerOAuthRouter } from "./customer-oauth";
 import { crmRouter } from "./crm";
+import { careersRouter } from "./careers";
 
 
 export const appRouter = router({
@@ -263,14 +263,6 @@ export const appRouter = router({
 		linkedin: linkedinRouter,
 		instagram: instagramRouter,
 	}),
-	// Google Ads Integration
-	googleAds: googleAdsRouter,
-	// Meta Ads Integration
-	metaAds: metaAdsRouter,
-	// Instagram Ads Integration
-	instagramAds: instagramAdsRouter,
-	// LinkedIn Ads Integration
-	linkedInAds: linkedInAdsRouter,
 	// ImageGen Studio
 	imageGenStudio: imageGenStudioRouter,
 	// Stability AI Image Generation
@@ -335,6 +327,9 @@ export const appRouter = router({
 	cronWorkflowRun: cronWorkflowRunRouter,
 	// API Keys Management
 	apiKeys: apiKeysRouter,
+	// NISC Mail MCP user provisioning (agency super admin only)
+	mailMcp: mailMcpRouter,
+	userPresence: userPresenceRouter,
 	// DigiTax Integration
 	digitax: digitaxRouter,
 	// IP Records
@@ -347,8 +342,10 @@ export const appRouter = router({
 	zeepoAiSupport: zeepoAiSupportRouter,
 	// Public landing-page storefront checkout (isolated from dashboard routers)
 	storefront: storefrontRouter,
+	careers: careersRouter,
 	// MinIO / S3-compatible object storage (presigned uploads)
 	objectStorage: objectStorageRouter,
+	niscStorage: niscStorageRouter,
 	// WHOIS / RDAP domain lookup (public  no auth required)
 	whois: whoisRouter,
 	// Nisc Backup Integration

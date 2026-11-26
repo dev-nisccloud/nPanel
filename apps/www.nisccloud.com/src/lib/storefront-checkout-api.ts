@@ -23,6 +23,8 @@ export type StorefrontBillingCycle =
 
 export type StorefrontCartQuoteRequest = {
   handoff?: string;
+  currency?: "KES" | "USD";
+  billingCountry?: string;
   transferAuthCode?: string;
   main?: {
     serviceType?: string;
@@ -45,6 +47,10 @@ export type StorefrontCartQuoteRequest = {
     planId: string;
     billingCycle: StorefrontBillingCycle;
   };
+  upsellOutreach?: {
+    planId: string;
+    billingCycle?: StorefrontBillingCycle;
+  };
   hivelocity?: {
     hivelocityProductId: number;
     locationName: string;
@@ -54,7 +60,20 @@ export type StorefrontCartQuoteRequest = {
 };
 
 export type StorefrontCartQuote = {
-  currency: string;
+  currency: "KES" | "USD";
+  quoteToken: string;
+  quoteExpiresAt: number;
+  sourceCurrency: "KES";
+  sourceSubtotal: number;
+  sourceTaxAmount: number;
+  sourceTotal: number;
+  fxRate: number;
+  fxProvider: "ExchangeRate-API" | "IDENTITY";
+  fxTimestamp: number;
+  fxExpiresAt: number;
+  taxPolicyId: "STANDARD_VAT" | "EXPORT_ZERO_RATED";
+  taxRate: number;
+  taxEvidenceMismatch: boolean;
   monthlyPrice: number;
   yearlyPrice: number;
   planName: string;
@@ -103,9 +122,21 @@ export async function fetchStorefrontCartQuote(
   return trpcQuery<StorefrontCartQuote>("storefront.cart.quote", input);
 }
 
-export async function checkStorefrontEmail(email: string): Promise<boolean> {
-  const res = await trpcQuery<{ exists: boolean }>("storefront.auth.checkEmail", { email });
-  return res.exists;
+export async function sendCheckoutEmailCode(
+  email: string,
+  captchaToken?: string | null,
+): Promise<{ sent: true; expiresInMinutes: number }> {
+  return trpcMutation("storefront.auth.sendEmailCode", {
+    email,
+    ...(captchaToken ? { captchaToken } : {}),
+  });
+}
+
+export async function verifyCheckoutEmailCode(
+  email: string,
+  code: string,
+): Promise<{ emailProof: string }> {
+  return trpcMutation("storefront.auth.verifyEmailCode", { email, code });
 }
 
 export async function registerStorefrontCustomer(input: {
@@ -115,6 +146,7 @@ export async function registerStorefrontCustomer(input: {
   phone: string;
   companyName: string;
   password: string;
+  emailProof: string;
   acceptedTermsAndConditions: true;
   planName?: string;
 }): Promise<{ storefrontToken: string; teamSlug: string; displayName: string }> {
@@ -201,12 +233,16 @@ export function buildStorefrontSignInUrl(returnTo?: string): string {
     // Open the details step after login so the signed-in checkout UI shows immediately.
     url.searchParams.set("resume", "1");
     target = url.toString();
-    // Landing-origin backup: survives refresh after `resume` is stripped from the URL.
-    const handoff = url.searchParams.get("h")?.trim();
-    if (handoff) persistStorefrontCartResume(handoff);
   }
   const params = new URLSearchParams({ redirect: target });
   return `${NPANEL_APP}/auth/login?${params.toString()}`;
+}
+
+/** Call when the customer actually leaves for login; a backup that survives refresh after `resume` is stripped. */
+export function markStorefrontCartResumeFromLocation(): void {
+  if (typeof window === "undefined") return;
+  const handoff = new URL(window.location.href).searchParams.get("h")?.trim();
+  if (handoff) persistStorefrontCartResume(handoff);
 }
 
 const STOREFRONT_CART_RESUME_KEY = "npanel_storefront_cart_resume";
@@ -233,6 +269,13 @@ export type StorefrontCartDraft = {
     yearlyPrice: number;
     currency: string;
   } | null;
+  selectedOutreach?: {
+    planId: string;
+    name: string;
+    monthlyPrice: number;
+    currency: string;
+  } | null;
+  outreachBillingCycle?: StorefrontBillingCycle;
   hostingCycles?: Partial<
     Record<"web_hosting" | "wordpress_hosting" | "email_hosting", StorefrontBillingCycle>
   >;
@@ -247,6 +290,8 @@ export type StorefrontCartDraft = {
     hivelocityProductId: number;
     productType: "DEDICATED_SERVERS" | "VPS" | "VDS";
   } | null;
+  /** Null follows the recommended default for the order. */
+  transferNameservers?: "keep" | "nisc" | null;
 };
 
 type StorefrontCartDraftRecord = {
@@ -360,6 +405,7 @@ export async function initiateStorefrontStkPush(input: {
   storefrontToken: string;
   phone: string;
   cart: StorefrontCartQuoteRequest;
+  quoteToken: string;
 }): Promise<{ checkoutRequestId: string; message: string }> {
   return trpcMutation("storefront.payment.initiateStkPush", input);
 }
@@ -377,6 +423,7 @@ export type StorefrontJengaCustomer = {
 export async function initiateStorefrontJengaCheckout(input: {
   storefrontToken: string;
   cart: StorefrontCartQuoteRequest;
+  quoteToken: string;
   customer: StorefrontJengaCustomer;
   /** Origin of the storefront tab (window.location.origin). */
   returnOrigin: string;
@@ -388,6 +435,38 @@ export async function initiateStorefrontJengaCheckout(input: {
   message: string;
 }> {
   return trpcMutation("storefront.payment.initiateJengaCheckout", input);
+}
+
+export async function getPaystackAvailability(): Promise<{
+  enabled: boolean;
+  usdEnabled: boolean;
+  kesEnabled: boolean;
+}> {
+  return trpcQuery("storefront.payment.getPaystackAvailability");
+}
+
+export async function initiateStorefrontPaystackCheckout(input: {
+  storefrontToken: string;
+  cart: StorefrontCartQuoteRequest;
+  quoteToken: string;
+  email: string;
+}): Promise<{
+  reference: string;
+  accessCode: string;
+  amount: number;
+  currency: "KES" | "USD";
+}> {
+  return trpcMutation("storefront.payment.initiatePaystackCheckout", input);
+}
+
+export async function getStorefrontPaystackPaymentStatus(input: {
+  storefrontToken: string;
+  reference: string;
+}): Promise<{
+  status: "PENDING" | "SUCCESS" | "FAILED" | "REJECTED";
+  reference: string;
+}> {
+  return trpcQuery("storefront.payment.getPaystackPaymentStatus", input);
 }
 
 export async function getStorefrontJengaPaymentStatus(input: {
@@ -406,6 +485,7 @@ export async function getStorefrontJengaPaymentStatus(input: {
     productId?: string;
     billingCycle?: string;
     primaryDomain?: string;
+    quoteToken?: string;
   } | null;
 }> {
   return trpcQuery("storefront.payment.getJengaPaymentStatus", input);
@@ -458,6 +538,9 @@ export async function createStorefrontOrderFromPayment(input: {
   billingCycle: StorefrontBillingCycle;
   primaryDomain?: string;
   cart?: StorefrontCartQuoteRequest;
+  quoteToken: string;
+  serverHostname?: string;
+  transferNameservers?: "keep" | "nisc";
 }): Promise<{ orderId: string; orderNumber: string; teamSlug: string }> {
   return trpcMutation("storefront.orders.createFromPayment", input);
 }

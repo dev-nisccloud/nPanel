@@ -21,6 +21,7 @@ import {
 	CampaignCancelledEmail,
 	ServiceRenewalReminderEmail,
 	StorefrontWelcomeEmail,
+	CheckoutEmailCodeEmail,
 	type AccountEmailChangePurpose,
 } from "react-email-starter/emails";
 
@@ -112,41 +113,35 @@ export async function renderTeamInviteEmail({
 export async function renderAccountCreatedEmail({
   userFirstname,
   email,
-  password,
-  loginLink,
+  setPasswordLink,
 }: {
   userFirstname: string;
   email: string;
-  password: string;
-  loginLink: string;
+  setPasswordLink: string;
 }) {
   return render(AccountCreatedEmail({
     userFirstname,
     email,
-    password,
-    loginLink,
+    setPasswordLink,
   }));
 }
 
 export async function renderAgencyUserCreatedEmail({
   userFirstname,
   email,
-  password,
   role,
-  loginLink,
+  setPasswordLink,
 }: {
   userFirstname: string;
   email: string;
-  password: string;
   role: string;
-  loginLink: string;
+  setPasswordLink: string;
 }) {
   return render(AgencyUserCreatedEmail({
     userFirstname,
     email,
-    password,
     role,
-    loginLink,
+    setPasswordLink,
   }));
 }
 
@@ -595,4 +590,10 @@ function escapeHtml(s: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+export async function renderCheckoutEmailCodeEmail(
+  props: { otpCode: string; expiresInMinutes: number } | { signInLink: string },
+) {
+  return render(CheckoutEmailCodeEmail(props));
 }

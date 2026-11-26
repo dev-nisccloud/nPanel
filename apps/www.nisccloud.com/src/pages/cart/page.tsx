@@ -1,15 +1,25 @@
 import * as React from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import { ShoppingCart, ArrowLeft } from "lucide-react";
+import { ShoppingCart, ArrowLeft, ArrowRight, Check, Globe, Lock, Mail, MessageSquare, Server } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
+import { publicPlanName, publicProductName } from "@/lib/plan-catalog.ts";
+import { trackEvent } from "@/lib/track.ts";
 import Navbar from "@/pages/_components/Navbar.tsx";
 import { TransferEppCodeField } from "./_components/TransferEppCodeField.tsx";
+import {
+  TransferNameserverChoice,
+  type TransferNameserverMode,
+} from "./_components/TransferNameserverChoice.tsx";
 import { CartPageSkeleton } from "./_components/CartPageSkeleton.tsx";
 import { CartItem } from "./_components/CartItem.tsx";
 import { DomainUpsell } from "./_components/DomainUpsell.tsx";
 import { HostingUpsell } from "./_components/HostingUpsell.tsx";
+import { OutreachUpsell, type SelectedOutreachPlan } from "./_components/OutreachUpsell.tsx";
 import { OrderSummary } from "./_components/OrderSummary.tsx";
+import { CheckoutFooter } from "./_components/CheckoutFooter.tsx";
+import { CheckoutEmailCodeDialog } from "./_components/CheckoutEmailCodeDialog.tsx";
+import { Turnstile } from "@/components/Turnstile.tsx";
 import { CustomerInfoStep, CUSTOMER_INFO_FORM_ID, SIGNED_IN_CHECKOUT_FORM_ID, SIGNED_IN_ORG_FORM_ID, SIGNED_IN_PROFILE_FORM_ID } from "./_components/CustomerInfoStep.tsx";
 import type { CustomerInfoIdentity } from "./_components/CustomerInfoStep.tsx";
 import {
@@ -28,9 +38,9 @@ import type { SelectedDomain } from "./_components/DomainUpsell.tsx";
 import type { HostingUpsellType, UpsellPlanInfo } from "./_components/HostingUpsell.tsx";
 import type { SelectedHostingPlan } from "./_components/OrderSummary.tsx";
 import type { CustomerInfo } from "./_components/CustomerInfoStep.tsx";
-import { computeHivelocitySummaryLines } from "@/lib/vps-plans-api.ts";
+import { computeHivelocitySummaryLines, formatOptionPriceKes } from "@/lib/vps-plans-api.ts";
+import { describeServerSelection } from "./_components/server-options.ts";
 import {
-  checkStorefrontEmail,
   clearStorefrontCartDraft,
   clearStorefrontCartResume,
   completeStorefrontProfile,
@@ -43,6 +53,7 @@ import {
   persistStorefrontCartDraft,
   registerStorefrontCustomer,
   resolveStorefrontProductId,
+  sendCheckoutEmailCode,
   type StorefrontCartDraft,
   type StorefrontCartQuoteRequest,
   type StorefrontJengaCustomer,
@@ -50,6 +61,9 @@ import {
 } from "@/lib/storefront-checkout-api.ts";
 import { useStorefrontCartQuote } from "@/lib/use-storefront-cart-quote.ts";
 import { serviceTypeToHivelocityProductType } from "@/lib/hivelocity-default-hostname.ts";
+import { useCurrency } from "@/components/providers/currency.tsx";
+import { formatCurrency } from "@/lib/currency.ts";
+import { isOneTimeService } from "@/lib/billing-cycle.ts";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -58,7 +72,18 @@ import { serviceTypeToHivelocityProductType } from "@/lib/hivelocity-default-hos
 const NPANEL_URL = import.meta.env.VITE_NPANEL_APP_URL ?? "https://npanel.nisccloud.com";
 
 /** Service types that want a domain upsell */
-const HOSTING_TYPES = new Set(["web_hosting", "wordpress_hosting", "email_hosting"]);
+/** Hosting, email and servers can take a domain, but a domain is not required to check out. */
+const HOSTING_TYPES = new Set([
+  "web_hosting",
+  "wordpress_hosting",
+  "email_hosting",
+  "vps",
+  "vds",
+  "dedicated_servers",
+]);
+
+/** Services served from Nisc nameservers, so a transferred domain should point at us. */
+const NISC_DNS_SERVICE_TYPES = new Set(["web_hosting", "wordpress_hosting", "email_hosting"]);
 
 /** VPS / VDS / dedicated  require OS + hostname configuration */
 const HIVELOCITY_SERVICE_TYPES = new Set(["vps", "vds", "dedicated_servers"]);
@@ -86,44 +111,79 @@ function getInitialCartDraft(handoff?: string): StorefrontCartDraft | null {
 // ---------------------------------------------------------------------------
 
 const STEPS = [
-  { id: 1, label: "Your cart" },
-  { id: 2, label: "Your details" },
-];
+  { id: 1, label: "Review" },
+  { id: 2, label: "Details" },
+  { id: 3, label: "Payment" },
+] as const;
 
-function StepIndicator({ current }: { current: 1 | 2 }) {
+const STEP_NUDGE: Record<1 | 2 | 3, string> = {
+  1: "Next: your details, then payment.",
+  2: "Almost done. Payment is the last step.",
+  3: "Last step. Confirm the payment on your phone or card.",
+};
+
+/**
+ * A thin checkout meter, not a card. It starts nearly half full (endowed progress)
+ * and the fill turns green once payment is the only step left, so the finish
+ * reads as close rather than as a warning.
+ */
+function CheckoutProgress({ current }: { current: 1 | 2 | 3 }) {
+  const fill = current === 1 ? 42 : current === 2 ? 78 : 94;
+  const finishing = current >= 2;
   return (
-    <div className="flex items-center gap-2">
-      {STEPS.map((step, idx) => (
-        <React.Fragment key={step.id}>
-          <div className="flex items-center gap-2">
-            <div
-              className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                step.id <= current
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground"
-              }`}
-            >
-              {step.id}
-            </div>
-            <span
-              className={`text-sm font-medium hidden sm:block transition-colors ${
-                step.id <= current ? "text-foreground" : "text-muted-foreground"
-              }`}
-            >
-              {step.label}
-            </span>
-          </div>
-          {idx < STEPS.length - 1 && (
-            <div
-              className={`flex-1 h-px mx-1 transition-colors ${
-                current > step.id ? "bg-primary/50" : "bg-border"
-              }`}
-              style={{ minWidth: 24 }}
-            />
-          )}
-        </React.Fragment>
-      ))}
-    </div>
+    <nav aria-label="Checkout progress">
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          <span className={finishing ? "font-semibold text-emerald-700 dark:text-emerald-400" : "font-semibold text-foreground"}>
+            Step {current} of {STEPS.length}
+          </span>
+          <span className="ml-2">{STEP_NUDGE[current]}</span>
+        </p>
+        <ol className="hidden shrink-0 items-center gap-2.5 sm:flex">
+          {STEPS.map((step) => {
+            const done = step.id < current;
+            const active = step.id === current;
+            return (
+              <li key={step.id} aria-current={active ? "step" : undefined} className="flex items-center gap-1.5">
+                <span
+                  className={`flex size-5 items-center justify-center rounded-full text-xs font-bold transition-colors ${
+                    done || active
+                      ? finishing
+                        ? "bg-emerald-600 text-white"
+                        : "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {done ? <Check className="size-3" strokeWidth={3} aria-hidden /> : step.id}
+                </span>
+                <span className={`text-xs ${active ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
+                  {step.label}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+      <div
+        className="mt-2 h-1 overflow-hidden rounded-full bg-muted"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={fill}
+        aria-label="Checkout completion"
+      >
+        <div
+          className={`h-full rounded-full transition-[width,background-color] duration-500 ease-out motion-reduce:transition-none ${
+            current === 3
+              ? "bg-emerald-500"
+              : current === 2
+                ? "bg-gradient-to-r from-primary to-emerald-500"
+                : "bg-primary"
+          }`}
+          style={{ width: `${fill}%` }}
+        />
+      </div>
+    </nav>
   );
 }
 
@@ -131,23 +191,52 @@ function StepIndicator({ current }: { current: 1 | 2 }) {
 // Empty cart state
 // ---------------------------------------------------------------------------
 
+const START_POINTS = [
+  { label: "Web hosting", desc: "Put your website online", href: "/hosting/web-hosting", icon: Server },
+  { label: "Domains", desc: "Register .co.ke, .ke, .com and more", href: "/hosting/domains", icon: Globe },
+  { label: "Business email", desc: "Email on your own domain", href: "/hosting/email", icon: Mail },
+  { label: "Zepo AI credits", desc: "One-time packs, no monthly plan", href: "/services/zepo-ai", icon: MessageSquare },
+] as const;
+
 function EmptyCart() {
   return (
-    <div className="flex flex-col items-center justify-center pt-24 md:pt-28 pb-24 text-center px-4">
-      <ShoppingCart className="w-12 h-12 text-muted-foreground/40 mb-4" />
-      <h2 className="text-xl font-bold text-foreground mb-2">Your cart is empty</h2>
-      <p className="text-muted-foreground mb-6 max-w-xs">
-        Browse our services and select a plan to get started.
+    <main id="main-content" className="mx-auto w-full max-w-6xl flex-1 px-4 pt-28 pb-16 md:px-6 md:pt-32 xl:px-8">
+      <ShoppingCart className="size-8 text-primary" aria-hidden />
+      <h1 className="mt-4 text-2xl font-semibold tracking-tight text-foreground">Your cart is empty</h1>
+      <p className="mt-2 max-w-md text-base text-muted-foreground">
+        Pick where you'd like to start. Prices are in your currency and locked before you pay.
       </p>
+      <ul className="mt-8 grid max-w-3xl gap-3 sm:grid-cols-2">
+        {START_POINTS.map(({ label, desc, href, icon: Icon }) => (
+          <li key={href}>
+            <Link
+              to={href}
+              className="group flex min-h-[72px] items-center gap-3 rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              <Icon className="size-5 shrink-0 text-primary" aria-hidden />
+              <span className="min-w-0 flex-1">
+                <span className="block text-base font-semibold text-foreground">{label}</span>
+                <span className="block text-sm text-muted-foreground">{desc}</span>
+              </span>
+              <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary motion-reduce:transition-none" aria-hidden />
+            </Link>
+          </li>
+        ))}
+      </ul>
       <Link
-        to="/"
-        className="inline-flex items-center gap-2 text-primary hover:text-primary/80 font-medium text-sm"
+        to="/pricing"
+        className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-md text-sm font-semibold text-primary hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       >
-        <ArrowLeft className="w-4 h-4" />
-        Back to home
+        See all pricing
+        <ArrowRight className="size-4" aria-hidden />
       </Link>
-    </div>
+    </main>
   );
+}
+
+/** Expired or tampered checkout links can't be retried; everything else (network, API) can. */
+function isDeadCheckoutLink(message: string): boolean {
+  return /checkout link|select your plan again/i.test(message);
 }
 
 // ---------------------------------------------------------------------------
@@ -155,6 +244,7 @@ function EmptyCart() {
 // ---------------------------------------------------------------------------
 
 export default function CartPage() {
+  const { currency: selectedCurrency } = useCurrency();
   const [searchParams, setSearchParams] = useSearchParams();
   const handoff = searchParams.get("h")?.trim() ?? "";
   const resumeFromQuery = searchParams.get("resume") === "1";
@@ -193,6 +283,12 @@ export default function CartPage() {
   const [hostingCycles, setHostingCycles] = React.useState<
     Partial<Record<HostingUpsellType, BillingCycle>>
   >(() => getInitialCartDraft()?.hostingCycles ?? {});
+  const [selectedOutreach, setSelectedOutreach] = React.useState<SelectedOutreachPlan | null>(
+    () => getInitialCartDraft()?.selectedOutreach ?? null,
+  );
+  const [outreachCycle, setOutreachCycle] = React.useState<BillingCycle>(
+    () => getInitialCartDraft()?.outreachBillingCycle ?? "MONTHLY",
+  );
   const [step, setStep] = React.useState<1 | 2>(shouldResumeCheckout ? 2 : 1);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [checkoutIdentity, setCheckoutIdentity] = React.useState<CustomerInfoIdentity>({
@@ -200,6 +296,12 @@ export default function CartPage() {
   });
   const resumeHandledRef = React.useRef(false);
   const [paymentOpen, setPaymentOpen] = React.useState(false);
+  const [paymentAttempt, setPaymentAttempt] = React.useState<{
+    totalAmount: number;
+    currency: "KES" | "USD";
+    cart: StorefrontCartQuoteRequest;
+    quoteToken: string;
+  } | null>(null);
   const [checkoutSession, setCheckoutSession] = React.useState<{
     storefrontToken: string;
     teamSlug: string;
@@ -215,6 +317,10 @@ export default function CartPage() {
   );
   const [hostingUpsellLoading, setHostingUpsellLoading] = React.useState(true);
   const [hasRevealedPage, setHasRevealedPage] = React.useState(false);
+  const [transferNameserverChoice, setTransferNameserverChoice] =
+    React.useState<TransferNameserverMode | null>(
+      () => getInitialCartDraft()?.transferNameservers ?? null,
+    );
 
   const cartDraftSnapshot = React.useMemo(
     (): StorefrontCartDraft => ({
@@ -225,15 +331,21 @@ export default function CartPage() {
       selectedHostingType,
       selectedHostingPlanInfo,
       hostingCycles,
+      selectedOutreach,
+      outreachBillingCycle: outreachCycle,
       hivelocityConfig,
+      transferNameservers: transferNameserverChoice,
     }),
     [
+      transferNameserverChoice,
       billingCycle,
       selectedDomain,
       transferAuthCode,
       selectedHostingType,
       selectedHostingPlanInfo,
       hostingCycles,
+      selectedOutreach,
+      outreachCycle,
       hivelocityConfig,
     ],
   );
@@ -258,7 +370,11 @@ export default function CartPage() {
   const cartQuoteRequest = React.useMemo((): StorefrontCartQuoteRequest | null => {
     if (!handoff) return null;
 
-    const request: StorefrontCartQuoteRequest = { handoff };
+    const request: StorefrontCartQuoteRequest = {
+      handoff,
+      currency: selectedCurrency,
+      billingCountry: checkoutSession?.jengaCustomer?.countryCode,
+    };
 
     // Only override handoff billing cycle after the user toggles it on the cart page.
     if (billingCycleUserSetRef.current && billingCycle) {
@@ -283,6 +399,10 @@ export default function CartPage() {
       };
     }
 
+    if (selectedOutreach) {
+      request.upsellOutreach = { planId: selectedOutreach.planId, billingCycle: outreachCycle };
+    }
+
     if (hivelocityConfig?.selectedOsId) {
       request.hivelocity = {
         hivelocityProductId: hivelocityConfig.hivelocityProductId,
@@ -304,22 +424,38 @@ export default function CartPage() {
     selectedHostingType,
     selectedHostingPlanInfo,
     hostingCycles,
+    selectedOutreach,
+    outreachCycle,
     hivelocityConfig,
     transferAuthCode,
+    selectedCurrency,
+    checkoutSession?.jengaCustomer?.countryCode,
   ]);
 
-  const { quote, quoteError, quoteInitialLoading, quoteRefreshing } = useStorefrontCartQuote(cartQuoteRequest);
+  const {
+    quote,
+    quoteError,
+    quoteInitialLoading,
+    quoteRefreshing,
+    quoteExpiresIn,
+    quoteExpired,
+    retryQuote,
+  } = useStorefrontCartQuote(cartQuoteRequest);
 
   const serviceType = quote?.serviceType ?? "";
   const planId = quote?.planId ?? "";
   const productId = quote?.productId ?? "";
   const planName = quote?.planName ?? "Selected Plan";
-  const productName = quote?.productName ?? "Nisc Cloud Service";
+  const productName = publicProductName(quote?.serviceType ?? "", quote?.productName ?? "Nisc Cloud Service");
   const locationName = quote?.locationName ?? "";
   const currency = quote?.currency ?? "KES";
 
   const displayBillingCycle: BillingCycle =
     billingCycle ?? quote?.billingCycle ?? "MONTHLY";
+
+  const recommendedTransferNameservers: TransferNameserverMode =
+    NISC_DNS_SERVICE_TYPES.has(serviceType) || selectedHostingType ? "nisc" : "keep";
+  const transferNameservers = transferNameserverChoice ?? recommendedTransferNameservers;
 
   React.useEffect(() => {
     if (!quote?.billingCycle || billingCycleUserSetRef.current) return;
@@ -358,6 +494,8 @@ export default function CartPage() {
   const wantsHostingUpsell =
     serviceType === "domain_registration" || serviceType === "domain_transfer";
   const isDomainTransfer = serviceType === "domain_transfer";
+  const wantsOutreachUpsell =
+    Boolean(serviceType) && serviceType !== "email_marketing" && !isOneTimeService(serviceType);
 
   React.useEffect(() => {
     if (!quote) return;
@@ -407,7 +545,7 @@ export default function CartPage() {
   const canMountContent = Boolean(quote && !quoteInitialLoading);
 
   const selectedHostingPlan: SelectedHostingPlan | null = selectedHostingPlanInfo
-    ? { ...selectedHostingPlanInfo }
+    ? { ...selectedHostingPlanInfo, serviceType: selectedHostingType }
     : null;
 
   const selectedHostingCycle: BillingCycle =
@@ -441,6 +579,76 @@ export default function CartPage() {
     }
   }, []);
 
+  const removeWithUndo = React.useCallback(
+    (message: string, remove: () => void, restore: () => void) => {
+      remove();
+      toast(message, { action: { label: "Undo", onClick: restore } });
+    },
+    [],
+  );
+
+  const handleRemoveDomain = () => {
+    const previous = selectedDomain;
+    if (!previous) return;
+    removeWithUndo(`${previous.domain} removed`, () => setSelectedDomain(null), () => setSelectedDomain(previous));
+  };
+
+  const handleRemoveHosting = () => {
+    const previous = selectedHostingType;
+    if (!previous) return;
+    removeWithUndo("Hosting removed", () => handleHostingTypeSelect(null), () => handleHostingTypeSelect(previous));
+  };
+
+  const handleRemoveOutreach = () => {
+    const previous = selectedOutreach;
+    if (!previous) return;
+    removeWithUndo("Nisc Outreach removed", () => setSelectedOutreach(null), () => setSelectedOutreach(previous));
+  };
+
+  const handleRemoveMainItem = () => {
+    const previous = handoff;
+    flushCartDraft();
+    removeWithUndo(
+      "Removed from your cart",
+      () => setSearchParams({}),
+      () => setSearchParams({ h: previous }),
+    );
+  };
+
+  const scrollToAddon = (id: string) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+  };
+
+  const recommendedOutreachRef = React.useRef<SelectedOutreachPlan | null>(null);
+  const rememberRecommendedOutreach = React.useCallback((plan: SelectedOutreachPlan) => {
+    recommendedOutreachRef.current = plan;
+  }, []);
+
+  const addSuggestedHosting = () => {
+    handleHostingTypeSelect("web_hosting");
+    toast.success("Website hosting added", {
+      action: { label: "Undo", onClick: () => handleHostingTypeSelect(null) },
+    });
+    scrollToAddon("addon-hosting");
+  };
+
+  const addSuggestedOutreach = () => {
+    const plan = recommendedOutreachRef.current;
+    if (!plan) {
+      scrollToAddon("addon-outreach");
+      return;
+    }
+    const previous = selectedOutreach;
+    setSelectedOutreach(plan);
+    toast.success(`${plan.name} added`, {
+      action: { label: "Undo", onClick: () => setSelectedOutreach(previous) },
+    });
+    scrollToAddon("addon-outreach");
+  };
+
   const handleHostingCycleChange = React.useCallback(
     (type: HostingUpsellType, cycle: BillingCycle) => {
       setHostingCycles((prev) => ({ ...prev, [type]: cycle }));
@@ -449,7 +657,7 @@ export default function CartPage() {
   );
 
   const cartItem: CartItemData = {
-    planName,
+    planName: publicPlanName(planId, planName),
     productName,
     serviceType,
     monthlyPrice,
@@ -523,14 +731,10 @@ export default function CartPage() {
   const quoteSummaryLoading = quoteRefreshing;
 
   const canContinueStep1 = React.useMemo(() => {
-    if (quoteInitialLoading || !quote || quoteSummaryLoading) return false;
+    if (quoteInitialLoading || !quote || quoteSummaryLoading || quoteExpired) return false;
     if (quoteError) return false;
     if (isDomainTransfer && !transferAuthCode.trim()) return false;
     if (selectedDomain?.isTransfer && !transferAuthCode.trim()) return false;
-    // Web / WordPress / email hosting require a domain (register, transfer, or existing).
-    if (wantsDomainUpsell) {
-      if (!selectedDomain?.domain?.trim()) return false;
-    }
     if (!isHivelocityPlan) return true;
     if (!hivelocityPricing || hivelocityPricing.loading) return false;
     if (hivelocityPricing.loadError) return false;
@@ -543,10 +747,10 @@ export default function CartPage() {
     quote,
     quoteError,
     quoteSummaryLoading,
+    quoteExpired,
     isDomainTransfer,
     transferAuthCode,
     selectedDomain,
-    wantsDomainUpsell,
     isHivelocityPlan,
     hivelocityConfig,
     hivelocityConfigComplete,
@@ -555,16 +759,10 @@ export default function CartPage() {
 
   const handleContinue = () => {
     if (step === 1) {
-      if (!canContinueStep1) {
-        if (wantsDomainUpsell && !selectedDomain?.domain?.trim()) {
-          toast.error("Add a domain to continue", {
-            description: "Register, transfer, or connect a domain you already own.",
-          });
-        }
-        return;
-      }
+      if (!canContinueStep1) return;
       setCheckoutIdentity({ status: "loading" });
       setStep(2);
+      trackEvent("checkout_start", { service: serviceType || "unknown" });
       window.scrollTo({ top: 0, behavior: "smooth" });
       void fetchStorefrontCheckoutIdentity()
         .then(applySignedInIdentity)
@@ -593,6 +791,19 @@ export default function CartPage() {
     });
   }, [hivelocityConfig, hivelocityPricing]);
 
+  const serverComponents = React.useMemo(() => {
+    if (!isHivelocityPlan || !hivelocityConfig || !hivelocityPricing || hivelocityPricing.loading) return [];
+    const { osList, addonGroups, pricing, kesRate } = hivelocityPricing;
+    return describeServerSelection({
+      selectedOsId: hivelocityConfig.selectedOsId,
+      selectedOptionIds: hivelocityConfig.selectedOptionIds,
+      osList,
+      addonGroups,
+      osPrice: (usd) => formatOptionPriceKes(usd, pricing?.os ?? null, kesRate),
+      addonPrice: (usd) => formatOptionPriceKes(usd, pricing?.addons ?? null, kesRate),
+    });
+  }, [isHivelocityPlan, hivelocityConfig, hivelocityPricing]);
+
   const showQuoteErrorBanner = Boolean(
     quoteError &&
     !quoteSummaryLoading &&
@@ -601,6 +812,18 @@ export default function CartPage() {
 
   const checkoutTotal = quote?.total ?? 0;
 
+  const capturePaymentAttempt = () => {
+    if (!quote || !cartQuoteRequest || quoteExpired || quoteRefreshing) {
+      throw new Error("Pricing changed before payment opened. Refresh the quote and try again.");
+    }
+    return {
+      totalAmount: quote.total,
+      currency: quote.currency,
+      cart: cartQuoteRequest,
+      quoteToken: quote.quoteToken,
+    };
+  };
+
   const resolvePrimaryDomain = (): string | undefined => {
     if (serviceType === "domain_registration" || serviceType === "domain_transfer") return planName;
     // Existing domains name the hosting subscription; purchased domains also link hosting to that name.
@@ -608,17 +831,15 @@ export default function CartPage() {
     return undefined;
   };
 
-  const handleSubmit = async (info: CustomerInfo) => {
+  const [pendingInfo, setPendingInfo] = React.useState<CustomerInfo | null>(null);
+  const [emailCodeOpen, setEmailCodeOpen] = React.useState(false);
+  const [captchaToken, setCaptchaToken] = React.useState<string | null>(null);
+  const [captchaResetKey, setCaptchaResetKey] = React.useState(0);
+
+  const registerAndOpenPayment = async (info: CustomerInfo, emailProof: string) => {
     setIsSubmitting(true);
     try {
-      const exists = await checkStorefrontEmail(info.email);
-      if (exists) {
-        toast.error(
-          "An account with this email already exists. Sign in to nPanel to complete your purchase.",
-        );
-        return;
-      }
-
+      const attempt = capturePaymentAttempt();
       const reg = await registerStorefrontCustomer({
         firstName: info.firstName,
         lastName: info.lastName,
@@ -626,6 +847,7 @@ export default function CartPage() {
         phone: info.phone,
         companyName: info.companyName,
         password: info.password,
+        emailProof,
         acceptedTermsAndConditions: true,
         planName,
       });
@@ -644,6 +866,7 @@ export default function CartPage() {
           countryCode: "KE",
         },
       });
+      setPaymentAttempt(attempt);
       setPaymentOpen(true);
     } catch (err) {
       toast.error(
@@ -654,9 +877,32 @@ export default function CartPage() {
     }
   };
 
+  const handleSubmit = async (info: CustomerInfo) => {
+    setIsSubmitting(true);
+    try {
+      capturePaymentAttempt();
+      await sendCheckoutEmailCode(info.email, captchaToken);
+      setPendingInfo(info);
+      setEmailCodeOpen(true);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "We couldn't send your code. Please try again.",
+      );
+    } finally {
+      setCaptchaResetKey((value) => value + 1);
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEmailVerified = (emailProof: string) => {
+    setEmailCodeOpen(false);
+    if (pendingInfo) void registerAndOpenPayment(pendingInfo, emailProof);
+  };
+
   const handleSignedInSubmit = async (teamId: string) => {
     setIsSubmitting(true);
     try {
+      const attempt = capturePaymentAttempt();
       const issued = await issueStorefrontCheckoutToken(teamId);
       const prefill =
         checkoutIdentity.status === "signed-in"
@@ -682,6 +928,7 @@ export default function CartPage() {
             }
           : undefined,
       });
+      setPaymentAttempt(attempt);
       setPaymentOpen(true);
     } catch (err) {
       toast.error(
@@ -764,10 +1011,18 @@ export default function CartPage() {
       billingCycle: displayBillingCycle,
       primaryDomain: resolvePrimaryDomain(),
       cart: cartQuoteRequest ?? undefined,
+      quoteToken: quote?.quoteToken ?? "",
+      serverHostname: hivelocityConfig?.hostname.trim() || undefined,
+      transferNameservers,
     });
 
     clearStorefrontCartDraft();
     clearStorefrontCartResume();
+    trackEvent("checkout_success", {
+      service: serviceType || "unknown",
+      method: "mpesa",
+      billing_cycle: displayBillingCycle,
+    });
     toast.success(`Order ${order.orderNumber} confirmed! Redirecting to your dashboard…`);
     window.location.href = `${NPANEL_URL}/${order.teamSlug}/dashboard`;
   };
@@ -789,6 +1044,7 @@ export default function CartPage() {
       storefrontToken: string;
       orderReference: string;
       cart?: StorefrontCartQuoteRequest;
+      quoteToken?: string;
     };
     try {
       stored = JSON.parse(raw) as typeof stored;
@@ -827,15 +1083,24 @@ export default function CartPage() {
           billingCycle: displayBillingCycle,
           primaryDomain: resolvePrimaryDomain(),
           cart: stored.cart ?? cartQuoteRequest ?? undefined,
+          quoteToken: stored.quoteToken ?? quote?.quoteToken ?? "",
+          serverHostname: hivelocityConfig?.hostname.trim() || undefined,
+          transferNameservers,
         });
         sessionStorage.removeItem("storefront_jenga_checkout");
         clearStorefrontCartDraft();
         clearStorefrontCartResume();
+        trackEvent("checkout_success", {
+          service: serviceType || "unknown",
+          method: "card",
+          billing_cycle: displayBillingCycle,
+        });
         toast.success(`Order ${order.orderNumber} confirmed! Redirecting to your dashboard…`);
         window.location.href = `${NPANEL_URL}/${order.teamSlug}/dashboard`;
       },
     }).catch((err) => {
       setJengaResumePending(false);
+      trackEvent("checkout_failure", { method: "card", stage: "confirmation" });
       toast.error(err instanceof Error ? err.message : "Card payment confirmation failed.");
     });
   }, [
@@ -849,28 +1114,69 @@ export default function CartPage() {
   ]);
 
   if (!handoff) return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
       <Navbar />
       <EmptyCart />
+      <CheckoutFooter />
     </div>
   );
 
   if (quoteError && !quote && !quoteInitialLoading) {
+    const deadLink = isDeadCheckoutLink(quoteError);
     return (
-      <div className="min-h-screen bg-background text-foreground">
+      <div className="flex min-h-screen flex-col bg-background text-foreground">
         <Navbar />
-        <main className="max-w-5xl mx-auto px-4 md:px-6 pt-24 md:pt-28 pb-8">
-          <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-            {quoteError}
+        <main id="main-content" className="mx-auto w-full max-w-6xl flex-1 px-4 pt-28 pb-16 md:px-6 md:pt-32 xl:px-8">
+          <div role="alert">
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+              {!deadLink
+                ? "We couldn't price your order"
+                : /expired/i.test(quoteError)
+                  ? "This checkout link has expired"
+                  : "This checkout link isn't valid"}
+            </h1>
+            <p className="mt-2 max-w-md text-base text-muted-foreground">
+              {!deadLink
+                ? quoteError
+                : /expired/i.test(quoteError)
+                  ? "Checkout links last a limited time so prices stay accurate. Pick your plan again and you'll be straight back here."
+                  : "The link is incomplete or was changed. Pick your plan again and you'll be straight back here."}
+            </p>
           </div>
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 text-primary hover:text-primary/80 font-medium text-sm mt-6"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to home
-          </Link>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            {deadLink ? (
+              <Link
+                to="/pricing"
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-bold text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                Choose a plan
+                <ArrowRight className="size-4" aria-hidden />
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={retryQuote}
+                className="inline-flex min-h-11 items-center rounded-xl bg-primary px-5 text-sm font-bold text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                Try again
+              </button>
+            )}
+            <Link
+              to={deadLink ? "/" : "/pricing"}
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border px-5 text-sm font-semibold text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              {deadLink ? (
+                <>
+                  <ArrowLeft className="size-4" aria-hidden />
+                  Back to home
+                </>
+              ) : (
+                "See all pricing"
+              )}
+            </Link>
+          </div>
         </main>
+        <CheckoutFooter />
       </div>
     );
   }
@@ -883,30 +1189,46 @@ export default function CartPage() {
 
       {canMountContent && (
         <main
+          id="main-content"
           className={
             showSkeleton
-              ? "max-w-5xl mx-auto px-4 md:px-6 pt-24 md:pt-28 pb-8 invisible absolute inset-x-0 top-0 opacity-0 pointer-events-none h-0 overflow-hidden"
-              : "max-w-5xl mx-auto px-4 md:px-6 pt-24 md:pt-28 pb-8 animate-in fade-in duration-300"
+              ? "max-w-6xl mx-auto px-4 md:px-6 xl:px-8 pt-24 md:pt-28 pb-8 invisible absolute inset-x-0 top-0 opacity-0 pointer-events-none h-0 overflow-hidden"
+              : "max-w-6xl mx-auto px-4 md:px-6 xl:px-8 pt-24 md:pt-28 pb-8 animate-in fade-in duration-300"
           }
           aria-hidden={showSkeleton}
         >
-        {/* Step breadcrumb  lives in content, not in header */}
-        <div className="mb-6">
-          <StepIndicator current={step} />
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+              {step === 1 ? "Review your order" : "Your details"}
+            </h1>
+            <p className="mt-1.5 flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Lock className="size-3.5" aria-hidden />
+              {step === 1
+                ? "Prices are checked and locked before you pay."
+                : "Used for your nPanel account and invoices."}
+            </p>
+          </div>
         </div>
 
-        {/* Page title */}
-        <h1 className="text-2xl font-bold text-foreground mb-6">
-          {step === 1 ? "Your cart" : "Your details"}
-        </h1>
+        <div className="mb-5">
+          <CheckoutProgress current={paymentOpen ? 3 : step} />
+        </div>
 
         {showQuoteErrorBanner && (
           <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-            {quoteError}
+            <p>{quoteError}</p>
+            <button
+              type="button"
+              onClick={retryQuote}
+              className="mt-3 rounded-lg border border-destructive/30 px-3 py-2 text-xs font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Retry current pricing
+            </button>
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px] gap-6 xl:gap-8 items-start">
           {/* ── Left column ── */}
           <div className="space-y-4">
             <AnimatePresence mode="wait">
@@ -923,6 +1245,7 @@ export default function CartPage() {
                   <CartItem
                     item={cartItem}
                     onBillingCycleChange={handleBillingCycleChange}
+                    onRemove={handleRemoveMainItem}
                   />
 
                   {isDomainTransfer && (
@@ -933,10 +1256,18 @@ export default function CartPage() {
                     />
                   )}
 
+                  {isDomainTransfer && (
+                    <TransferNameserverChoice
+                      domain={planName}
+                      value={transferNameservers}
+                      recommended={recommendedTransferNameservers}
+                      onChange={setTransferNameserverChoice}
+                    />
+                  )}
+
                   {/* Domain upsell  for hosting buyers */}
                   {wantsDomainUpsell && (
                     <DomainUpsell
-                      required
                       selectedDomain={selectedDomain}
                       onDomainSelect={(domain) => {
                         setSelectedDomain(domain);
@@ -947,8 +1278,18 @@ export default function CartPage() {
                     />
                   )}
 
+                  {wantsDomainUpsell && selectedDomain?.isTransfer && (
+                    <TransferNameserverChoice
+                      domain={selectedDomain.domain}
+                      value={transferNameservers}
+                      recommended={recommendedTransferNameservers}
+                      onChange={setTransferNameserverChoice}
+                    />
+                  )}
+
                   {/* Hosting upsell  for domain buyers */}
                   {wantsHostingUpsell && (
+                    <div id="addon-hosting" className="scroll-mt-28">
                     <HostingUpsell
                       selectedType={selectedHostingType}
                       onSelect={handleHostingTypeSelect}
@@ -963,6 +1304,7 @@ export default function CartPage() {
                           : undefined
                       }
                     />
+                    </div>
                   )}
 
                   {isHivelocityPlan && hivelocityConfig && (
@@ -970,7 +1312,22 @@ export default function CartPage() {
                       config={hivelocityConfig}
                       onChange={setHivelocityConfig}
                       onPricingContext={handleHivelocityPricingContext}
+                      planName={cartItem.planName}
                     />
+                  )}
+
+                  {wantsOutreachUpsell && (
+                    <div id="addon-outreach" className="scroll-mt-28">
+                    <OutreachUpsell
+                      selectedPlanId={selectedOutreach?.planId ?? null}
+                      onSelect={setSelectedOutreach}
+                      billingCycle={outreachCycle}
+                      onBillingCycleChange={setOutreachCycle}
+                      currency={currency as "KES" | "USD"}
+                      kesToDisplayRate={quote?.fxRate ?? 1}
+                      onRecommendedReady={rememberRecommendedOutreach}
+                    />
+                    </div>
                   )}
                 </motion.div>
               ) : (
@@ -990,6 +1347,9 @@ export default function CartPage() {
                     onBeforeSignIn={flushCartDraft}
                     identity={checkoutIdentity}
                   />
+                  {checkoutIdentity.status !== "signed-in" && (
+                    <Turnstile onToken={setCaptchaToken} resetKey={captchaResetKey} className="mt-4" />
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -1004,14 +1364,31 @@ export default function CartPage() {
               hostingCycle={selectedHostingCycle}
               billingCycle={displayBillingCycle}
               onContinue={handleContinue}
-              onRemoveDomain={() => setSelectedDomain(null)}
-              onRemoveHostingPlan={selectedHostingType ? () => handleHostingTypeSelect(null) : undefined}
+              onRemoveDomain={handleRemoveDomain}
+              onRemoveHostingPlan={selectedHostingType ? handleRemoveHosting : undefined}
+              selectedOutreach={wantsOutreachUpsell ? selectedOutreach : null}
+              outreachCycle={outreachCycle}
+              onRemoveOutreach={handleRemoveOutreach}
+              addonSuggestions={
+                step === 1
+                  ? [
+                      ...(wantsHostingUpsell && !selectedHostingType
+                        ? [{ id: "addon-hosting", label: "Website hosting", serviceType: "web_hosting", onAdd: addSuggestedHosting }]
+                        : []),
+                      ...(wantsOutreachUpsell && !selectedOutreach
+                        ? [{ id: "addon-outreach", label: "Nisc Outreach", serviceType: "email_marketing", onAdd: addSuggestedOutreach }]
+                        : []),
+                    ]
+                  : []
+              }
               isContinueLoading={isSubmitting}
               step={step}
               customerFormId={detailsFormId}
               hivelocityLines={isHivelocityPlan ? [] : hivelocitySummaryLines}
+              serverComponents={serverComponents}
               continueDisabled={
                 (step === 1 && !canContinueStep1) ||
+                quoteExpired ||
                 (step === 2 && checkoutIdentity.status === "loading")
               }
               authoritativeTotals={
@@ -1024,6 +1401,13 @@ export default function CartPage() {
                   : undefined
               }
               quoteSummaryLoading={quoteSummaryLoading}
+              currency={currency as "KES" | "USD"}
+              kesToDisplayRate={quote?.fxRate ?? 1}
+              quoteExpiresAt={quote?.quoteExpiresAt}
+              quoteExpiresIn={quoteExpiresIn}
+              quoteExpired={quoteExpired}
+              onRefreshQuote={retryQuote}
+              taxRate={quote?.taxRate}
             />
           </div>
         </div>
@@ -1036,7 +1420,7 @@ export default function CartPage() {
               <div className="h-5 w-28 bg-accent animate-pulse rounded mt-0.5" />
             ) : (
               <p className="text-base font-bold text-foreground">
-                KES {checkoutTotal.toLocaleString()}
+                {formatCurrency(checkoutTotal, currency as "KES" | "USD")}
               </p>
             )}
           </div>
@@ -1049,6 +1433,7 @@ export default function CartPage() {
               isSubmitting ||
               showSkeleton ||
               quoteSummaryLoading ||
+              quoteExpired ||
               (step === 1 && !canContinueStep1) ||
               (step === 2 && checkoutIdentity.status === "loading")
             }
@@ -1058,32 +1443,49 @@ export default function CartPage() {
               : isSubmitting
               ? "Processing…"
               : step === 1
-                ? "Continue →"
+                ? "Continue to checkout"
                 : checkoutIdentity.status === "signed-in"
                   ? !checkoutIdentity.profileComplete
-                    ? "Save profile →"
+                    ? "Save profile"
                     : checkoutIdentity.teams.length === 0
-                      ? "Create organization →"
-                      : "Continue to payment →"
-                  : "Complete Order"}
+                      ? "Create organization"
+                      : "Continue to payment"
+                  : "Continue to payment"}
           </button>
         </div>
 
-        {/* Bottom padding for mobile sticky bar */}
-        <div className="h-20 lg:h-0" />
         </main>
       )}
 
-      {checkoutSession && cartQuoteRequest && !showSkeleton && (
+      {!showSkeleton && (
+        <div className="pb-20 lg:pb-0">
+          <CheckoutFooter />
+        </div>
+      )}
+
+      {checkoutSession && paymentAttempt && !showSkeleton && (
         <StorefrontPaymentDialog
           open={paymentOpen}
-          onOpenChange={setPaymentOpen}
+          onOpenChange={(open) => {
+            setPaymentOpen(open);
+            if (!open) setPaymentAttempt(null);
+          }}
           storefrontToken={checkoutSession.storefrontToken}
           defaultPhone={checkoutSession.phone}
-          totalAmount={checkoutTotal}
-          cart={cartQuoteRequest}
+          totalAmount={paymentAttempt.totalAmount}
+          currency={paymentAttempt.currency}
+          cart={paymentAttempt.cart}
+          quoteToken={paymentAttempt.quoteToken}
           customerPrefill={checkoutSession.jengaCustomer}
           onPaymentSuccess={handlePaymentSuccess}
+        />
+      )}
+      {pendingInfo && (
+        <CheckoutEmailCodeDialog
+          open={emailCodeOpen}
+          email={pendingInfo.email}
+          onOpenChange={setEmailCodeOpen}
+          onVerified={handleEmailVerified}
         />
       )}
       {jengaResumePending && (

@@ -20,10 +20,15 @@ export function useStorefrontCartQuote(input: StorefrontCartQuoteRequest | null)
   const [quoteError, setQuoteError] = React.useState<string | null>(null);
   const [quoteInitialLoading, setQuoteInitialLoading] = React.useState(Boolean(quoteKey));
   const [quoteRefreshing, setQuoteRefreshing] = React.useState(false);
+  const [requestKey, setRequestKey] = React.useState(0);
+  const [now, setNow] = React.useState(() => Date.now());
   const hasQuoteRef = React.useRef(false);
+  const inputRef = React.useRef(input);
+  inputRef.current = input;
 
   React.useEffect(() => {
-    if (!quoteKey || !input) {
+    const request = inputRef.current;
+    if (!quoteKey || !request) {
       setQuote(null);
       setQuoteError(null);
       setQuoteInitialLoading(false);
@@ -37,7 +42,7 @@ export function useStorefrontCartQuote(input: StorefrontCartQuoteRequest | null)
     if (isRefresh) setQuoteRefreshing(true);
     else setQuoteInitialLoading(true);
 
-    fetchStorefrontCartQuote(input)
+    fetchStorefrontCartQuote(request)
       .then((next) => {
         if (cancelled) return;
         setQuote(next);
@@ -58,7 +63,30 @@ export function useStorefrontCartQuote(input: StorefrontCartQuoteRequest | null)
     return () => {
       cancelled = true;
     };
-  }, [quoteKey]);
+  }, [quoteKey, requestKey]);
 
-  return { quote, quoteError, quoteInitialLoading, quoteRefreshing };
+  React.useEffect(() => {
+    if (!quote?.quoteExpiresAt) return;
+    const interval = window.setInterval(() => setNow(Date.now()), 1_000);
+    return () => window.clearInterval(interval);
+  }, [quote?.quoteExpiresAt]);
+
+  const quoteExpiresIn = quote?.quoteExpiresAt
+    ? Math.max(0, quote.quoteExpiresAt - now)
+    : null;
+  const quoteExpired = quoteExpiresIn === 0;
+  const retryQuote = React.useCallback(() => {
+    setNow(Date.now());
+    setRequestKey((key) => key + 1);
+  }, []);
+
+  return {
+    quote,
+    quoteError,
+    quoteInitialLoading,
+    quoteRefreshing,
+    quoteExpiresIn,
+    quoteExpired,
+    retryQuote,
+  };
 }

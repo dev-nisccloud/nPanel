@@ -11,9 +11,6 @@ export const CLIENT_TABS = [
   { value: "activity", label: "Sessions", permissionKey: "clients.activity" },
   { value: "integrations", label: "Integrations", permissionKey: "clients.integrations" },
   { value: "organizations", label: "Organizations", permissionKey: "clients.organizations" },
-  { value: "invoices", label: "Invoices", permissionKey: "billing.invoices" },
-  { value: "subscriptions", label: "Subscriptions", permissionKey: "billing.subscriptions" },
-  { value: "quotations", label: "Quotations", permissionKey: "billing.quotations" },
   { value: "transactions", label: "Transactions", permissionKey: "billing.transactions" },
 ] as const;
 

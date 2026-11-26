@@ -1,26 +1,7 @@
 import { motion } from "motion/react";
+import { CLIENT_LOGOS } from "@/lib/clients.ts";
 
-const clients = [
-  { name: "Amarom", logo: "/clients/amarom2.png" },
-  { name: "Defen Group", logo: "/clients/defen-group-logo.png" },
-  { name: "Liveright", logo: "/clients/liveright-logo.png" },
-  { name: "MMA", logo: "/clients/mma-logo.png" },
-  { name: "Stanjo", logo: "/clients/stanjo.png" },
-  { name: "Epitome", logo: "/clients/epitome-logo.png" },
-  { name: "Luxewrap", logo: "/clients/luxewrap-logo.png" },
-  { name: "Medplus", logo: "/clients/medplus-logo.png" },
-  { name: "Farma24", logo: "/clients/farma24-logo.png" },
-  { name: "Ashut", logo: "/clients/ashut-logo.png" },
-  { name: "Trelanbrams", logo: "/clients/trelanbrams-logo.png" },
-  { name: "Datini", logo: "/clients/datini-logo.png" },
-  { name: "HB", logo: "/clients/hb-logo.webp" },
-  { name: "Cruises Bob", logo: "/clients/cruisesbob-logo.png" },
-  { name: "Insaac", logo: "/clients/insaac2.png" },
-  { name: "2tokee", logo: "/clients/2tokee.png" },
-  { name: "APL", logo: "/clients/apl-logo.png" },
-] as const;
-
-const allClients = [...clients, ...clients];
+const allClients = [...CLIENT_LOGOS, ...CLIENT_LOGOS];
 
 export default function TrustedBy() {
   return (

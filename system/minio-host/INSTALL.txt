@@ -1,0 +1,966 @@
+The master guide is SETUP.md in this same directory.
+Follow that file from the top. This text file is an older copy of the same work.
+
+nisccloudstorage MinIO, its own Docker stack
+===================================
+
+Follow this on the server over SSH as root. Do not clone the git repo.
+Do not log in to GitHub. Images come from Docker Hub.
+
+This stack is not configured in Plesk. It is four containers:
+
+  nisccloudstorage-minio       object storage, data on the reserved disk
+  nisccloudstorage-minio-init  creates the bucket nisccloudstorage, then exits
+  nisccloudstorage-nginx       its own web server and TLS
+  nisccloudstorage-certbot     its own Let's Encrypt client
+
+You will end up with:
+
+  S3 API
+      https://cloudstorage.nisccloud.com
+      served by this stack's nginx, certificate from this stack's certbot
+
+  Bucket
+      nisccloudstorage
+
+  Console, this machine only
+      http://127.0.0.1:9001
+
+  Reserved disk
+      /mnt/backups/nisc-storage/minio          object files
+      /mnt/backups/nisc-storage/letsencrypt    certificates
+      /mnt/backups/nisc-storage/certbot        Let's Encrypt webroot
+
+  Caps
+      MinIO: 1 CPU, 1 GB RAM
+      nginx: 0.5 CPU, 256 MB RAM
+
+Plesk keeps serving sites and mail on the hosting address. This stack
+binds ports 80 and 443 only on a different address, STORAGE_BIND_IP.
+Let's Encrypt proves control of cloudstorage.nisccloud.com by answering
+on port 80 of that address. One address cannot have two programs on
+port 80, so the storage address must not be the address Plesk already
+uses for websites.
+
+If the public name is not cloudstorage.nisccloud.com, you will replace
+that string in three nginx files before the first start. The .env
+DOMAIN_STORAGE value and those files must be the same name.
+
+
+0. Become root
+--------------
+
+  whoami
+
+You must see: root
+If you see another user:
+
+  sudo -i
+
+
+1. Create the directory and the identify script
+-----------------------------------------------
+
+  mkdir -p /opt/nisccloudstorage/scripts /opt/nisccloudstorage/nginx/conf.d
+  cd /opt/nisccloudstorage
+
+Paste the identify script. It only prints. It does not mount or format.
+
+cat > /opt/nisccloudstorage/scripts/identify.sh << 'ENDFILE'
+#!/bin/sh
+# Print which computer this is, which addresses it has, who owns
+# ports 80 and 443, and which disks are safe to give to MinIO.
+# This script does not mount, partition, or format anything.
+
+set -eu
+
+section() {
+  printf '\n===== %s =====\n' "$1"
+}
+
+is_system_mount() {
+  case "$1" in
+    /|/boot|/boot/efi|/usr|/home|"[SWAP]") return 0 ;;
+    /var|/var/*|/usr/*|/boot/*) return 0 ;;
+  esac
+  return 1
+}
+
+section "computer"
+echo "hostname:    $(hostname 2>/dev/null || echo unknown)"
+echo "fqdn:        $(hostname -f 2>/dev/null || echo none)"
+echo "machine-id:  $(cat /etc/machine-id 2>/dev/null || echo unknown)"
+if [ -f /etc/os-release ]; then
+  # shellcheck disable=SC1091
+  . /etc/os-release
+  echo "os:          ${PRETTY_NAME:-unknown}"
+fi
+echo "kernel:      $(uname -srm)"
+if command -v systemd-detect-virt >/dev/null 2>&1; then
+  echo "virt:        $(systemd-detect-virt 2>/dev/null || echo unknown)"
+fi
+model=$(awk -F: '/model name/ { gsub(/^ +/, "", $2); print $2; exit }' /proc/cpuinfo 2>/dev/null || true)
+echo "cpu:         ${model:-unknown} x $(nproc 2>/dev/null || echo '?')"
+if command -v free >/dev/null 2>&1; then
+  free -h | awk 'NR==1 || /^Mem:/ { print }'
+fi
+echo "root disk:   $(df -h / | awk 'NR==2 { print $1 "  size=" $2 "  used=" $3 "  avail=" $4 "  mount=" $6 }')"
+echo "uptime:      $(uptime -p 2>/dev/null || uptime)"
+
+section "addresses"
+ip -4 -br address 2>/dev/null || ip -4 addr
+pub=$(curl -4 -fsS --max-time 8 https://ifconfig.me 2>/dev/null || true)
+echo "public-ipv4: ${pub:-could-not-reach-ifconfig.me}"
+
+section "ports 80 and 443"
+if command -v ss >/dev/null 2>&1; then
+  ss -lntup | awk 'NR==1 || $5 ~ /:80$/ || $5 ~ /:443$/ || $5 ~ /:80\]/ || $5 ~ /:443\]/'
+else
+  netstat -lntup 2>/dev/null | awk 'NR<=2 || /:80 / || /:443 /' || true
+fi
+echo
+echo "Read the process name on the right. sw-cp-server, nginx, httpd, and"
+echo "apache2 on 0.0.0.0:80 or *:80 belong to the hosting stack."
+echo "MinIO's own nginx must bind a different IP (STORAGE_BIND_IP)."
+echo "Let's Encrypt HTTP challenge uses port 80 on that storage IP."
+
+section "disks"
+lsblk -o NAME,SIZE,TYPE,FSTYPE,LABEL,MOUNTPOINT,MODEL,SERIAL,ROTA
+echo
+echo "----- classification -----"
+echo "SYSTEM     operating system or hosting files. Never format this."
+echo "STORAGE    mounted at /mnt/backups. MinIO uses only nisc-storage there."
+echo "CANDIDATE  no mounts. Do not format one while /mnt/backups exists."
+echo "IN_USE     mounted somewhere else. Do not take it."
+echo
+
+tmp=$(mktemp)
+trap 'rm -f "$tmp"' EXIT
+
+lsblk -dn -o NAME,TYPE | while read -r name dtype; do
+  [ "$dtype" = "disk" ] || continue
+  dev="/dev/$name"
+  class="CANDIDATE"
+  mounts=""
+  for m in $(lsblk -nr -o MOUNTPOINT "$dev" 2>/dev/null); do
+    [ -n "$m" ] || continue
+    mounts="${mounts}${m},"
+    if [ "$m" = "/mnt/backups" ]; then
+      [ "$class" = "SYSTEM" ] || class="STORAGE"
+      continue
+    fi
+    if is_system_mount "$m"; then
+      class="SYSTEM"
+      continue
+    fi
+    [ "$class" = "SYSTEM" ] || [ "$class" = "STORAGE" ] || class="IN_USE"
+  done
+  size=$(lsblk -nd -o SIZE "$dev")
+  model=$(lsblk -nd -o MODEL "$dev" | sed 's/  */ /g; s/^ *//; s/ *$//')
+  printf '%-10s %-14s %6s  mounts=%s  model=%s\n' \
+    "$class" "$dev" "$size" "${mounts:-none}" "${model:-unknown}"
+  printf '%s %s\n' "$class" "$dev" >> "$tmp"
+done
+
+echo
+candidates=$(grep -c '^CANDIDATE ' "$tmp" || true)
+storage=$(grep -c '^STORAGE ' "$tmp" || true)
+
+section "decision"
+if [ "$storage" -gt 0 ]; then
+  echo "The backup disk is mounted at /mnt/backups. Do not format it."
+  echo "MinIO objects go only in /mnt/backups/nisc-storage/minio."
+  echo "Leave /mnt/backups/nisc-mail-retention and /mnt/backups/plesk-backups alone."
+  echo "Next command: sh /opt/nisccloudstorage/scripts/prepare-disk.sh"
+elif [ "$candidates" -eq 0 ]; then
+  echo "/mnt/backups is not mounted. Stop. Do not format a SYSTEM or IN_USE disk."
+else
+  echo "/mnt/backups is not mounted, and unused disks were found."
+  echo "This server's storage disk should already be the ~15 TiB ext4 on /dev/sdb."
+  echo "Do not format a disk until you confirm it is not already the backup disk."
+  awk '$1 == "CANDIDATE" { print "  " $2 }' "$tmp"
+fi
+echo
+echo "STORAGE_BIND_IP must be an address from the addresses section that"
+echo "does not already have port 80 taken. Point cloudstorage.nisccloud.com"
+echo "at that same address."
+ENDFILE
+
+  chmod 755 /opt/nisccloudstorage/scripts/identify.sh
+  sh /opt/nisccloudstorage/scripts/identify.sh
+
+Read the report before you do anything else. Check these four things:
+
+  computer
+      hostname, machine-id, and os must be the hosting server you
+      intended to SSH into. If they are not, disconnect.
+
+  addresses
+      Write down every IPv4 address. public-ipv4 is what the internet
+      sees. STORAGE_BIND_IP must be one of the addresses on this
+      machine. It must not be the address customers already use for
+      websites and mail.
+
+  ports 80 and 443
+      If sw-cp-server, nginx, httpd, or apache2 listens on 0.0.0.0:80
+      or *:80, that is the hosting stack. Do not bind 0.0.0.0.
+      The storage address you chose must be free on port 80.
+      Order that address from the server provider if it is not already
+      in the addresses list. It has to show up in `ip -4 addr` before
+      Docker can use it. Adding the address to the operating system is
+      required. After that, this stack does not use the Plesk panel.
+
+  decision
+      SYSTEM disks hold the operating system or hosting files.
+      Do not format those.
+      A STORAGE line means /dev/sdb is already mounted at /mnt/backups.
+      That is the disk. Do not format it.
+      MinIO may use only /mnt/backups/nisc-storage.
+      nisc-mail-retention and plesk-backups stay untouched.
+      If /mnt/backups is not mounted, stop. Do not format another disk.
+
+If the decision does not mention /mnt/backups, stop here.
+
+
+2. Create only the nisc-storage directories
+--------------------------------------------
+
+The disk is already mounted. The script checks that, then waits for KEEP.
+KEEP creates directories. It does not format or remount.
+
+cat > /opt/nisccloudstorage/scripts/prepare-disk.sh << 'ENDFILE'
+#!/bin/sh
+# Create only the Nisc Cloud Storage directories on the existing backup disk.
+# Does not format, partition, or remount. Does not touch mail retention or
+# Plesk backups.
+
+set -eu
+
+MOUNT=/mnt/backups
+ROOT="$MOUNT/nisc-storage"
+
+if [ "$(id -u)" -ne 0 ]; then
+  echo "Run as root."
+  exit 1
+fi
+
+echo "Nothing will be formatted."
+echo
+echo "Expected disk:"
+echo "  /dev/sdb    about 15 TiB, ext4, mounted at $MOUNT"
+echo
+echo "Left untouched:"
+echo "  $MOUNT/nisc-mail-retention/    Dovecot retention archives"
+echo "  $MOUNT/plesk-backups/          Plesk backup storage"
+echo
+echo "Created if missing:"
+echo "  $ROOT/minio/                   all Nisc Cloud Storage objects"
+echo "  $ROOT/letsencrypt/             this stack's certificates"
+echo "  $ROOT/certbot/                 Let's Encrypt challenge files"
+echo
+
+if ! findmnt -n "$MOUNT" >/dev/null 2>&1; then
+  echo "REFUSED. $MOUNT is not mounted."
+  echo "Mount the existing ext4 filesystem. Do not run mkfs."
+  lsblk -o NAME,SIZE,FSTYPE,LABEL,MOUNTPOINT
+  exit 1
+fi
+
+src=$(findmnt -n -o SOURCE "$MOUNT")
+fstype=$(findmnt -n -o FSTYPE "$MOUNT")
+echo "Mounted now: $src  fstype=$fstype  on $MOUNT"
+df -h "$MOUNT"
+echo
+
+case "$src" in
+  /dev/sdb|/dev/sdb[0-9]*) ;;
+  *)
+    echo "REFUSED. $MOUNT is $src, not /dev/sdb."
+    exit 1
+    ;;
+esac
+
+if [ "$fstype" != "ext4" ]; then
+  echo "REFUSED. $MOUNT is $fstype, not ext4."
+  exit 1
+fi
+
+echo "Type KEEP to create only the nisc-storage directories."
+printf "> "
+read -r go
+if [ "$go" != "KEEP" ]; then
+  echo "Aborted. No directories were created."
+  exit 1
+fi
+
+mkdir -p "$ROOT/minio" "$ROOT/letsencrypt" "$ROOT/certbot"
+chown 1000:1000 "$ROOT/minio"
+chmod 750 "$ROOT/minio"
+chmod 755 "$ROOT/letsencrypt" "$ROOT/certbot"
+
+echo
+echo "Ready. The disk was not formatted and the mount was not changed."
+echo "  objects:      $ROOT/minio"
+echo "  certificates: $ROOT/letsencrypt"
+echo "  webroot:      $ROOT/certbot"
+df -h "$MOUNT"
+echo
+echo "Other trees on this disk:"
+ls -ld "$MOUNT/nisc-mail-retention" "$MOUNT/plesk-backups" 2>/dev/null || true
+ENDFILE
+
+  chmod 755 /opt/nisccloudstorage/scripts/prepare-disk.sh
+  sh /opt/nisccloudstorage/scripts/prepare-disk.sh
+
+Type KEEP when the script shows /dev/sdb mounted at /mnt/backups.
+Any other answer aborts. Nothing is formatted.
+
+When it finishes, these commands must succeed:
+
+  findmnt /mnt/backups
+  df -h /mnt/backups /mnt/backups/nisc-storage/minio
+  ls -ld /mnt/backups/nisc-storage/minio /mnt/backups/nisc-storage/letsencrypt /mnt/backups/nisc-storage/certbot
+
+df must show the large disk, about 15 TiB, not the small system disk.
+/mnt/backups/nisc-storage/minio must be owned by uid 1000.
+
+The script does not edit /etc/fstab. /dev/sdb stays mounted at /mnt/backups.
+nisc-mail-retention and plesk-backups are not modified.
+
+
+3. Install Docker if it is not already installed
+------------------------------------------------
+
+  docker --version
+  docker compose version
+
+If both print a version, go to section 4. The compose command has a
+space. The old docker-compose binary is not used.
+
+This server is AlmaLinux 8.10. If either command is missing:
+
+  dnf install -y ca-certificates curl
+  curl -fsSL https://get.docker.com -o /root/get-docker.sh
+  sh /root/get-docker.sh
+  systemctl enable --now docker
+  docker --version
+  docker compose version
+  systemctl is-active docker
+  systemctl is-active firewalld
+  getenforce
+
+You want active, active, and Enforcing. Leave firewalld and SELinux on.
+
+Images are pulled from Docker Hub (registry-1.docker.io). No GitHub
+login is involved.
+
+
+4. Write the stack files
+------------------------
+
+Stay in /opt/nisccloudstorage.
+
+4.1  Compose file
+
+cat > /opt/nisccloudstorage/docker-compose.yml << 'ENDFILE'
+# Standalone MinIO stack. Its own nginx and its own Let's Encrypt.
+# Objects live only in /mnt/backups/nisc-storage/minio on the existing /dev/sdb ext4.
+# MinIO's S3 port is not published. Nginx on STORAGE_BIND_IP is the public door.
+# The console is only on 127.0.0.1:9001.
+#
+# Do not put nginx/storage-https.conf into nginx/conf.d until init-ssl.sh has
+# written the certificate. nginx refuses to start when those pem files are missing.
+
+services:
+
+  minio:
+    image: minio/minio:latest
+    container_name: nisccloudstorage-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_SITE_NAME: ${MINIO_SITE_NAME:-nisccloudstorage}
+      MINIO_SERVER_URL: https://${DOMAIN_STORAGE}
+      MINIO_PROMETHEUS_AUTH_TYPE: "public"
+    volumes:
+      - ${MINIO_DATA_DIR:-/mnt/backups/nisc-storage/minio}:/data:Z
+    ports:
+      - "127.0.0.1:9001:9001"
+    cpus: ${MINIO_CPU_LIMIT:-1.0}
+    mem_limit: ${MINIO_MEMORY_LIMIT:-1g}
+    pids_limit: 512
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: nisccloudstorage-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_DEFAULT_BUCKET: ${MINIO_DEFAULT_BUCKET:-nisccloudstorage}
+    entrypoint: >
+      /bin/sh -c "
+        mc alias set local http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD;
+        mc mb --ignore-existing local/$$MINIO_DEFAULT_BUCKET;
+        mc anonymous set download local/$$MINIO_DEFAULT_BUCKET;
+        echo 'Bucket $$MINIO_DEFAULT_BUCKET ready';
+      "
+    restart: "no"
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: nisccloudstorage-nginx
+    restart: unless-stopped
+    ports:
+      - "${STORAGE_BIND_IP}:80:80"
+      - "${STORAGE_BIND_IP}:443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ${CERTBOT_WEBROOT:-/mnt/backups/nisc-storage/certbot}:/var/www/certbot:z
+      - ${LETSENCRYPT_DIR:-/mnt/backups/nisc-storage/letsencrypt}:/etc/letsencrypt:z
+    depends_on:
+      - minio
+    cpus: "0.50"
+    mem_limit: 256m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+
+  certbot:
+    image: certbot/certbot:latest
+    container_name: nisccloudstorage-certbot
+    restart: unless-stopped
+    volumes:
+      - ${CERTBOT_WEBROOT:-/mnt/backups/nisc-storage/certbot}:/var/www/certbot:z
+      - ${LETSENCRYPT_DIR:-/mnt/backups/nisc-storage/letsencrypt}:/etc/letsencrypt:z
+    entrypoint: >
+      /bin/sh -c "
+        trap exit TERM;
+        while :; do
+          certbot renew --webroot -w /var/www/certbot --quiet;
+          sleep 12h & wait $${!};
+        done
+      "
+ENDFILE
+
+4.2  nginx main config
+
+cat > /opt/nisccloudstorage/nginx/nginx.conf << 'ENDFILE'
+user  nginx;
+worker_processes  auto;
+
+error_log  /var/log/nginx/error.log warn;
+pid        /var/run/nginx.pid;
+
+events {
+    worker_connections  1024;
+}
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
+    log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                    '$status $body_bytes_sent "$http_referer" '
+                    '"$http_user_agent"';
+
+    access_log  /var/log/nginx/access.log  main;
+
+    sendfile           on;
+    tcp_nopush         on;
+    tcp_nodelay        on;
+    keepalive_timeout  65;
+
+    client_max_body_size 1G;
+
+    proxy_buffering         off;
+    proxy_request_buffering off;
+
+    gzip on;
+    gzip_types text/plain application/json application/xml;
+
+    include /etc/nginx/conf.d/*.conf;
+}
+ENDFILE
+
+4.3  HTTP config used until the certificate exists
+
+This file is the only file in nginx/conf.d for the first start.
+Do not copy the HTTPS config into conf.d yet. nginx will not start
+if it points at a certificate that does not exist.
+
+cat > /opt/nisccloudstorage/nginx/conf.d/storage-http.conf << 'ENDFILE'
+# HTTP bootstrap. Used before a certificate exists.
+# Serves the Let's Encrypt challenge and proxies the S3 API.
+# init-ssl.sh replaces this file with the redirect config after the certificate is issued.
+
+server {
+    listen 80;
+    server_name cloudstorage.nisccloud.com;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    client_max_body_size 1G;
+    proxy_ignore_client_abort on;
+
+    location / {
+        proxy_pass http://minio:9000;
+
+        proxy_set_header Host              $http_host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_http_version 1.1;
+        proxy_set_header   Connection "";
+
+        proxy_connect_timeout 300s;
+        proxy_send_timeout    300s;
+        proxy_read_timeout    300s;
+
+        proxy_buffering         off;
+        proxy_request_buffering off;
+    }
+}
+ENDFILE
+
+4.4  Files the certificate script installs later
+
+Leave these outside conf.d. init-ssl.sh copies them into place
+after Let's Encrypt writes the certificate.
+
+cat > /opt/nisccloudstorage/nginx/storage-http-redirect.conf << 'ENDFILE'
+# Replaces conf.d/storage-http.conf after Let's Encrypt has issued the certificate.
+# Port 80 stays up for renewals, and every other request goes to HTTPS.
+
+server {
+    listen 80;
+    server_name cloudstorage.nisccloud.com;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+ENDFILE
+
+cat > /opt/nisccloudstorage/nginx/storage-https.conf << 'ENDFILE'
+# Copied into conf.d/ only after the certificate exists.
+# nginx will not start if this file is in conf.d and the pem files are missing.
+
+server {
+    listen 443 ssl;
+    http2  on;
+    server_name cloudstorage.nisccloud.com;
+
+    ssl_certificate     /etc/letsencrypt/live/cloudstorage.nisccloud.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/cloudstorage.nisccloud.com/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+    ssl_session_cache   shared:SSL:10m;
+
+    client_max_body_size 1G;
+    proxy_ignore_client_abort on;
+
+    location / {
+        proxy_pass http://minio:9000;
+
+        proxy_set_header Host              $http_host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_http_version 1.1;
+        proxy_set_header   Connection "";
+
+        proxy_connect_timeout 300s;
+        proxy_send_timeout    300s;
+        proxy_read_timeout    300s;
+
+        proxy_buffering         off;
+        proxy_request_buffering off;
+    }
+}
+ENDFILE
+
+4.5  Password
+
+  openssl rand -hex 32
+
+Copy that line into a password manager. It is the MinIO root password.
+
+4.6  Environment file
+
+  nano /opt/nisccloudstorage/.env
+
+Paste this, then edit the three CHANGE values. No quotes. No spaces
+around the equals sign.
+
+STORAGE_BIND_IP is the dedicated address from the identify report.
+DOMAIN_STORAGE is the public name. The bucket is nisccloudstorage.
+
+----------------------------------------------------------------------
+STORAGE_BIND_IP=change_me_storage_ip
+DOMAIN_STORAGE=cloudstorage.nisccloud.com
+CERTBOT_EMAIL=admin@nisccloud.com
+MINIO_ROOT_USER=minioadmin
+MINIO_ROOT_PASSWORD=paste-the-openssl-line-here
+MINIO_SITE_NAME=nisccloudstorage
+MINIO_DEFAULT_BUCKET=nisccloudstorage
+MINIO_DATA_DIR=/mnt/backups/nisc-storage/minio
+LETSENCRYPT_DIR=/mnt/backups/nisc-storage/letsencrypt
+CERTBOT_WEBROOT=/mnt/backups/nisc-storage/certbot
+MINIO_CPU_LIMIT=1.0
+MINIO_MEMORY_LIMIT=1g
+----------------------------------------------------------------------
+
+If the public name is not cloudstorage.nisccloud.com, set
+DOMAIN_STORAGE to the real name and replace the name in the nginx
+files before you start:
+
+  cd /opt/nisccloudstorage
+  sed -i 's/cloudstorage.nisccloud.com/THE-REAL-NAME/g' \
+    nginx/conf.d/storage-http.conf \
+    nginx/storage-http-redirect.conf \
+    nginx/storage-https.conf
+
+Save .env and lock it:
+
+  chmod 600 /opt/nisccloudstorage/.env
+
+
+5. Start MinIO and the HTTP nginx
+---------------------------------
+
+  cd /opt/nisccloudstorage
+  docker compose pull
+  docker compose up -d minio minio-init nginx
+  docker compose ps
+
+nisccloudstorage-minio should become healthy within about a minute.
+nisccloudstorage-minio-init should show Exited (0). That exit is success.
+nisccloudstorage-certbot is not started yet. That is correct.
+Port 9000 is not published. MinIO is reached through nginx.
+Replace STORAGE_BIND_IP below with the address from .env.
+
+  grep '^STORAGE_BIND_IP=' .env
+  curl -fsS http://STORAGE_BIND_IP/minio/health/live && echo OK
+  docker logs nisccloudstorage-minio-init --tail 20
+  docker stats --no-stream nisccloudstorage-minio
+  df -h / /mnt/backups
+
+You want:
+
+  OK
+  a log line: Bucket nisccloudstorage ready
+  a memory limit of 1 GiB
+  / almost unchanged, /mnt/backups holding the MinIO files
+
+If curl returns a hosting-panel page instead of OK, port 80 on that
+address still belongs to Plesk. Stop. Do not request a certificate.
+
+  docker compose stop nginx
+  docker compose rm -f nginx
+
+Fix the address so only this stack answers on it, then start nginx
+again:
+
+  docker compose up -d nginx
+
+Confirm the cap and the disk again with the commands above.
+
+
+6. Point DNS at the storage address
+-----------------------------------
+
+STORAGE_BIND_IP and the public name must agree.
+
+  getent hosts cloudstorage.nisccloud.com
+
+or:
+
+  dig +short cloudstorage.nisccloud.com
+
+The result must be STORAGE_BIND_IP, not the hosting sites address.
+Create or change the A record at the DNS host, wait, and check again.
+Let's Encrypt will fail if this is wrong.
+
+
+7. Issue the certificate inside the certbot container
+-----------------------------------------------------
+
+cat > /opt/nisccloudstorage/scripts/init-ssl.sh << 'ENDFILE'
+#!/bin/sh
+# Issue the Let's Encrypt certificate with the certbot container, switch
+# nginx from the HTTP bootstrap to HTTPS, and schedule a reload so renewals
+# are picked up. Run this only after DNS points at STORAGE_BIND_IP and
+# `docker compose up -d minio minio-init nginx` is already running.
+
+set -eu
+
+cd /opt/nisccloudstorage
+
+if [ ! -f .env ]; then
+  echo "Missing /opt/nisccloudstorage/.env"
+  exit 1
+fi
+
+set -a
+# shellcheck disable=SC1091
+. ./.env
+set +a
+
+: "${DOMAIN_STORAGE:?Set DOMAIN_STORAGE in .env}"
+: "${CERTBOT_EMAIL:?Set CERTBOT_EMAIL in .env}"
+: "${STORAGE_BIND_IP:?Set STORAGE_BIND_IP in .env}"
+
+if [ "$STORAGE_BIND_IP" = "change_me_storage_ip" ] || [ "$STORAGE_BIND_IP" = "0.0.0.0" ]; then
+  echo "STORAGE_BIND_IP must be the dedicated storage address, not $STORAGE_BIND_IP."
+  exit 1
+fi
+
+echo "Computer:  $(hostname)"
+echo "Domain:    $DOMAIN_STORAGE"
+echo "Bind IP:   $STORAGE_BIND_IP"
+echo "Contact:   $CERTBOT_EMAIL"
+echo
+echo "The DNS A record for $DOMAIN_STORAGE must be $STORAGE_BIND_IP."
+printf "Continue? [y/N] "
+read -r confirm
+if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
+  echo "Aborted."
+  exit 1
+fi
+
+docker compose run --rm --entrypoint certbot certbot \
+  certonly \
+  --webroot \
+  --webroot-path=/var/www/certbot \
+  --email "$CERTBOT_EMAIL" \
+  --agree-tos \
+  --no-eff-email \
+  --non-interactive \
+  -d "$DOMAIN_STORAGE"
+
+live="/mnt/backups/nisc-storage/letsencrypt/live/$DOMAIN_STORAGE"
+if [ ! -f "$live/fullchain.pem" ] || [ ! -f "$live/privkey.pem" ]; then
+  echo "Certificate files were not written under $live"
+  exit 1
+fi
+
+cp nginx/storage-http-redirect.conf nginx/conf.d/storage-http.conf
+cp nginx/storage-https.conf nginx/conf.d/storage-https.conf
+
+docker compose exec nginx nginx -t
+docker compose exec nginx nginx -s reload
+docker compose up -d certbot
+
+cron_line='15 3,15 * * * cd /opt/nisccloudstorage && docker compose exec -T nginx nginx -s reload'
+(
+  crontab -l 2>/dev/null | grep -v 'nisccloudstorage && docker compose exec -T nginx nginx -s reload' || true
+  echo "$cron_line"
+) | crontab -
+
+echo
+echo "Certificate is live."
+echo "  https://$DOMAIN_STORAGE"
+echo "  files: $live"
+echo "Certbot renews inside nisccloudstorage-certbot every 12 hours."
+echo "Nginx reloads at 03:15 and 15:15 so a renewed certificate is used."
+ENDFILE
+
+  chmod 755 /opt/nisccloudstorage/scripts/init-ssl.sh
+  sh /opt/nisccloudstorage/scripts/init-ssl.sh
+
+The script asks you to type y. It then:
+
+  1. Runs certbot in a one-off container against the HTTP webroot
+     on /mnt/backups/nisc-storage/certbot.
+  2. Checks that fullchain.pem and privkey.pem exist under
+     /mnt/backups/nisc-storage/letsencrypt/live/<your domain>.
+  3. Replaces the HTTP site with a redirect to HTTPS.
+  4. Installs the HTTPS site that proxies to MinIO.
+  5. Reloads nginx.
+  6. Starts nisccloudstorage-certbot, which renews every 12 hours.
+  7. Adds a root cron entry that reloads nginx at 03:15 and 15:15
+     so a renewed certificate is actually used.
+
+Prove it:
+
+  curl -fsSI https://cloudstorage.nisccloud.com/minio/health/live
+  docker compose ps
+
+You want HTTP/2 200 or HTTP/1.1 200.
+nisccloudstorage-certbot should be Up.
+nisccloudstorage-minio-init should still be Exited (0).
+
+
+8. Values for the app
+----------------------------
+
+Set these on the app server:
+
+  S3_ENDPOINT=https://cloudstorage.nisccloud.com
+  S3_ACCESS_KEY=minioadmin
+  S3_SECRET_KEY=the-password-from-openssl
+  S3_BUCKET=nisccloudstorage
+  S3_REGION=us-east-1
+
+S3_ENDPOINT is https:// plus DOMAIN_STORAGE, with no trailing slash
+and no port. S3_BUCKET is nisccloudstorage.
+
+The bucket is created public-read. Anyone who knows an object URL can
+download that object. That matches the existing MinIO init used by
+this project.
+
+
+9. Console, from your PC
+------------------------
+
+Port 9001 is bound to 127.0.0.1 only. Do not open it in the firewall.
+
+  ssh -L 9001:127.0.0.1:9001 root@THE_HOSTING_SERVER
+
+Leave that session open. In a browser on your PC open:
+
+  http://localhost:9001
+
+User: minioadmin
+Password: the openssl line you stored
+
+The bucket list should contain nisccloudstorage.
+
+
+10. When something fails
+------------------------
+
+identify.sh does not show /mnt/backups
+    Stop. Do not format a disk. The 15 TiB ext4 on /dev/sdb must
+    already be mounted there.
+
+prepare-disk.sh says REFUSED
+    /mnt/backups is missing, is not ext4, or is not /dev/sdb.
+    Do not format anything to get past this.
+
+docker compose up says address already in use
+    STORAGE_BIND_IP port 80 or 443 is still taken. Run identify.sh
+    and pick an address whose port 80 is free. Do not switch the
+    bind address to 0.0.0.0.
+
+Bucket log does not mention nisccloudstorage
+    Open .env and check MINIO_DEFAULT_BUCKET=nisccloudstorage
+    with no quotes and no spaces. Then:
+
+  cd /opt/nisccloudstorage
+  docker compose up -d --force-recreate minio-init
+  docker logs nisccloudstorage-minio-init --tail 30
+
+MinIO exits with permission denied on /data
+    chown 1000:1000 /mnt/backups/nisc-storage/minio
+    cd /opt/nisccloudstorage && docker compose up -d minio nginx
+
+SELinux on AlmaLinux 8.10 is Enforcing. A permission denied after chown
+is usually SELinux. Label only nisc-storage, never all of /mnt/backups:
+
+  chcon -Rt container_file_t /mnt/backups/nisc-storage/minio /mnt/backups/nisc-storage/letsencrypt /mnt/backups/nisc-storage/certbot
+  cd /opt/nisccloudstorage && docker compose up -d
+
+init-ssl.sh cannot reach the challenge
+    From the server:
+
+  curl -fsSI http://STORAGE_BIND_IP/.well-known/acme-challenge/test
+
+    A 404 from nginx is fine. A Plesk HTML page means the storage
+    address is still served by the hosting stack. Fix that before
+    you run init-ssl.sh again.
+
+    Also confirm:
+
+  getent hosts cloudstorage.nisccloud.com
+
+    is STORAGE_BIND_IP.
+
+nginx -t fails after the certificate, missing pem file
+    ls /mnt/backups/nisc-storage/letsencrypt/live
+    The directory name must equal DOMAIN_STORAGE. If you changed the
+    domain, the three nginx files must contain that same name.
+
+You changed the password or DOMAIN_STORAGE after the first start
+    cd /opt/nisccloudstorage
+    docker compose up -d --force-recreate
+
+    Existing files stay in /mnt/backups/nisc-storage/minio. The app must use the
+    new password. A new domain needs a new certificate: run
+    init-ssl.sh again after DNS is updated.
+
+
+11. Day-to-day commands
+-----------------------
+
+Run these from /opt/nisccloudstorage.
+
+  docker compose ps
+  docker compose logs -f minio
+  docker compose logs --tail 50 certbot
+  docker stats --no-stream nisccloudstorage-minio nisccloudstorage-nginx
+  docker compose restart minio
+  docker compose pull && docker compose up -d
+
+Stop the stack without deleting files:
+
+  docker compose stop
+
+Start it again:
+
+  docker compose start
+
+Files survive stop, reboot, and container recreate. They are deleted
+only if you delete /mnt/backups/nisc-storage/minio or format the disk.
+
+After a reboot:
+
+  findmnt /mnt/backups
+  docker compose ps
+
+Docker was enabled in section 3, and the containers use
+restart: unless-stopped, so they come back when the machine boots.
+The certbot container keeps renewing. The cron entry reloads nginx.
+
+
+12. What this does not change
+-----------------------------
+
+  Sites, mail, and databases keep using the system disk.
+  This stack does not create a domain, a certificate, or a proxy
+  inside Plesk.
+  Nothing is cloned from GitHub.
+  Any other MinIO stack on a different machine
+  is not started by these commands.

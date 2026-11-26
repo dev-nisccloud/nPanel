@@ -44,12 +44,16 @@ export function createGoogleAdsClient(config: GoogleAdsClientConfig): GoogleAdsA
 export function getCustomerInstance(
 	client: GoogleAdsApi,
 	customerId: string,
-	refreshToken: string
+	refreshToken: string,
+	loginCustomerId?: string,
 ): Customer {
 	try {
 		const customer = client.Customer({
-			customer_id: customerId,
+			customer_id: customerId.replace(/-/g, ""),
 			refresh_token: refreshToken,
+			...(loginCustomerId
+				? { login_customer_id: loginCustomerId.replace(/-/g, "") }
+				: {}),
 		});
 
 		return customer;

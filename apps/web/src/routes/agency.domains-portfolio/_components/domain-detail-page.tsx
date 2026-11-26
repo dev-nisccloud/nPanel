@@ -30,7 +30,7 @@ import { NameserversTab } from "./nameservers-tab";
 import { WebDesignContactDialog } from "./web-design-contact-dialog";
 import { CreateSubscriptionFromDomainDialog } from "./create-subscription-from-domain-dialog";
 import { LinkKenicDomainToTeamDialog } from "./link-kenic-domain-to-team-dialog";
-import { DomainPortfolioContactInfo, type KenicRegistrantInfo } from "./domain-portfolio-contact-info";
+import { DomainPortfolioContactInfo, type KenicHandlers, type KenicRegistrantInfo } from "./domain-portfolio-contact-info";
 import { DomainTransferSecuritySection } from "@/components/domain-transfer-security-section";
 import type { DomainPortfolio } from "./domain-portfolio-card";
 
@@ -102,6 +102,11 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
         expiryDate: kenicLiveInfo.data.exDate || domain.expiryDate,
         registrationDate: kenicLiveInfo.data.crDate || domain.registrationDate,
         registrantInfo: kenicLiveInfo.data.registrantInfo,
+        kenicHandlers: kenicLiveInfo.data.handlers,
+        ownerHandle: kenicLiveInfo.data.handlers?.owner?.handle ?? domain.ownerHandle,
+        adminHandle: kenicLiveInfo.data.handlers?.admin?.handle,
+        techHandle: kenicLiveInfo.data.handlers?.tech?.handle,
+        billingHandle: kenicLiveInfo.data.handlers?.billing?.handle,
         isLocked: kenicLiveInfo.data.isTransferLocked ?? domain.isLocked,
       };
     }
@@ -199,7 +204,7 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
         <div className="w-full max-w-7xl mx-auto">
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <p className="text-destructive mb-4">Domain not found</p>
-            <Button onClick={() => navigate("/agency/domains-portfolio")} variant="outline">
+            <Button onClick={() => navigate("/hq/domains-portfolio")} variant="outline">
               Back to Portfolio
             </Button>
           </div>
@@ -241,7 +246,7 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
         {/* Header */}
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <Link to="/agency/domains-portfolio">
+            <Link to="/hq/domains-portfolio">
               <Button variant="ghost" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
@@ -339,7 +344,11 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
                     domain={mergedDomain as DomainPortfolio}
                     source={(mergedDomain as { source?: "kenic" | "openprovider" }).source}
                     registrantInfo={(mergedDomain as { registrantInfo?: KenicRegistrantInfo }).registrantInfo}
+                    kenicHandlers={
+                      (mergedDomain as { kenicHandlers?: KenicHandlers | null }).kenicHandlers
+                    }
                     canEdit={canEditContacts}
+                    allowReplace
                     onContactUpdated={async () => {
                       if ((mergedDomain as { source?: string }).source === "kenic") {
                         await refetchKenicLiveInfo();
@@ -387,14 +396,14 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
         onOpenChange={setHostingDialogOpen}
         planType="web"
         domainName={mergedDomain.domain}
-        buyDomainHref="/agency/domains"
+        buyDomainHref="/hq/domains"
       />
       <HostingPlanDialog
         open={emailDialogOpen}
         onOpenChange={setEmailDialogOpen}
         planType="email"
         domainName={mergedDomain.domain}
-        buyDomainHref="/agency/domains"
+        buyDomainHref="/hq/domains"
       />
       <CreateSubscriptionFromDomainDialog
         open={createSubscriptionDialogOpen}
@@ -461,7 +470,7 @@ function ConnectedServicesSection({
             </div>
             <Button
               size="sm"
-              onClick={() => navigate(`/agency/hosting/${subscriptionId}`)}
+              onClick={() => navigate(`/hq/hosting/${subscriptionId}`)}
             >
               Manage site
             </Button>

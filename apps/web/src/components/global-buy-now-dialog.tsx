@@ -1,5 +1,6 @@
 "use client";
 
+import type { CreateFromPaymentInput } from "@npanel/api/routers/nisc-service-orders-schemas";
 import * as React from "react";
 import { HelpCircle, Check, Receipt, CreditCard } from "lucide-react";
 import {
@@ -326,7 +327,7 @@ export function GlobalBuyNowDialog() {
   }, [session?.user]);
 
   const isAgencySide = React.useMemo(() => {
-    return location.pathname.startsWith("/agency") || isAgencyUser;
+    return location.pathname.startsWith("/hq") || isAgencyUser;
   }, [location.pathname, isAgencyUser]);
 
   const [registrantType, setRegistrantType] = React.useState<RegistrantType>(
@@ -1006,19 +1007,17 @@ export function GlobalBuyNowDialog() {
     ];
   }, [ctx, isAgencyUser, priceOverrideByKey, selectedMainPlan]);
 
-  // Create order on payment success - called from poll callback to avoid useEffect latency
-  const triggerOrderFromPayment = React.useCallback(
-    (checkoutRequestIdParam: string) => {
-      if (orderCreatedForCheckoutRef.current === checkoutRequestIdParam) return;
-      orderCreatedForCheckoutRef.current = checkoutRequestIdParam;
+  // The order lines and currency for whatever is being paid for. Sent to the server when payment
+  // starts (it checks and prices them before charging) and again when the order is created.
+  const buildOrderPayload = React.useCallback(
+    (): { items: CreateFromPaymentInput["items"]; currency: string } | null => {
       const str = (n: number) => (Number.isFinite(n) ? String(n) : "0");
 
       if (isTransferMode && transferContext) {
         const base = transferContext.price;
         const recorded = isAgencyUser ? parsePriceOverrideInput(priceOverrideByKey["transfer"]) ?? base : base;
         // Team transfers use teamId on the order; agency may also set billedForUserId (registrant).
-        createOrderFromPayment.mutate({
-          checkoutRequestId: checkoutRequestIdParam,
+        return {
           items: [
             {
               productId: transferContext.productId,
@@ -1036,13 +1035,10 @@ export function GlobalBuyNowDialog() {
             },
           ],
           currency: transferContext.currency,
-          ...(resolvedOrderTeamId ? { teamId: resolvedOrderTeamId } : {}),
-          ...(agencyBilledForUserId ? { billedForUserId: agencyBilledForUserId } : {}),
-        });
-        return;
+        };
       }
       if (isCartMode) {
-        if (!domainsProductId) return;
+        if (!domainsProductId) return null;
         const orderItems: Array<{
           productId: string;
           primaryDomain: string;
@@ -1103,37 +1099,20 @@ export function GlobalBuyNowDialog() {
           }
         }
 
-        if (orderItems.length === 0) return;
-        createOrderFromPayment.mutate({
-          checkoutRequestId: checkoutRequestIdParam,
-          items: orderItems,
-          currency: primaryCurrency,
-          ...(resolvedOrderTeamId ? { teamId: resolvedOrderTeamId } : {}),
-          ...(agencyBilledForUserId ? { billedForUserId: agencyBilledForUserId } : {}),
-        });
-        return;
+        if (orderItems.length === 0) return null;
+        return { items: orderItems, currency: primaryCurrency };
       }
       if (isUpgradeMode) {
         const upgradeItems = buildUpgradeOrderItems();
-        if (upgradeItems.length === 0) return;
-        createOrderFromPayment.mutate({
-          checkoutRequestId: checkoutRequestIdParam,
+        if (upgradeItems.length === 0) return null;
+        return {
           items: upgradeItems,
           currency: selectedMainPlan?.currency ?? displayCurrency,
-          ...(resolvedOrderTeamId ? { teamId: resolvedOrderTeamId } : {}),
-          ...(agencyBilledForUserId ? { billedForUserId: agencyBilledForUserId } : {}),
-        });
-        return;
+        };
       }
       const orderItems = buildDomainProductOrderItems();
-      if (orderItems.length === 0) return;
-      createOrderFromPayment.mutate({
-        checkoutRequestId: checkoutRequestIdParam,
-        items: orderItems,
-        currency: displayCurrency,
-        ...(resolvedOrderTeamId ? { teamId: resolvedOrderTeamId } : {}),
-        ...(agencyBilledForUserId ? { billedForUserId: agencyBilledForUserId } : {}),
-      });
+      if (orderItems.length === 0) return null;
+      return { items: orderItems, currency: displayCurrency };
     },
     [
       isTransferMode,
@@ -1142,20 +1121,34 @@ export function GlobalBuyNowDialog() {
       items,
       domainsProductId,
       primaryCurrency,
-      checkoutTeamId,
       ctx,
       displayCurrency,
-      createOrderFromPayment,
       isAgencyUser,
       priceOverrideByKey,
       registrantOrderMetadata,
-      agencyBilledForUserId,
-      resolvedOrderTeamId,
       buildDomainProductOrderItems,
       isUpgradeMode,
       buildUpgradeOrderItems,
       selectedMainPlan,
     ]
+  );
+
+  // Create order on payment success - called from poll callback to avoid useEffect latency
+  const triggerOrderFromPayment = React.useCallback(
+    (checkoutRequestIdParam: string) => {
+      if (orderCreatedForCheckoutRef.current === checkoutRequestIdParam) return;
+      orderCreatedForCheckoutRef.current = checkoutRequestIdParam;
+      const payload = buildOrderPayload();
+      if (!payload) return;
+      createOrderFromPayment.mutate({
+        checkoutRequestId: checkoutRequestIdParam,
+        items: payload.items,
+        currency: payload.currency,
+        ...(resolvedOrderTeamId ? { teamId: resolvedOrderTeamId } : {}),
+        ...(agencyBilledForUserId ? { billedForUserId: agencyBilledForUserId } : {}),
+      });
+    },
+    [buildOrderPayload, createOrderFromPayment, resolvedOrderTeamId, agencyBilledForUserId]
   );
 
   onPaymentSuccessRef.current = triggerOrderFromPayment;
@@ -1538,6 +1531,12 @@ export function GlobalBuyNowDialog() {
       return;
     }
 
+    const orderIntent = buildOrderPayload();
+    if (!orderIntent) {
+      toast.error("Your order details are incomplete. Go back and check your selections.");
+      return;
+    }
+
     const amount = resolved.amount;
     const timestamp = Date.now().toString().slice(-9);
     const transactionDesc = isCartMode ? `CART${timestamp}` : isTransferMode && transferContext
@@ -1551,6 +1550,7 @@ export function GlobalBuyNowDialog() {
         accountReference: resolved.accountReference,
         transactionDesc: transactionDesc.slice(0, 13),
         checkoutTotalIncVat: effectiveTotal,
+        orderIntent,
         ...(resolvedOrderTeamId ? { teamId: resolvedOrderTeamId } : {}),
         ...(agencyBilledForUserId ? { billedForUserId: agencyBilledForUserId } : {}),
       });
@@ -2807,7 +2807,7 @@ export function GlobalBuyNowDialog() {
                 </div>
               </div>
               <Button size="sm" className="shrink-0 w-full sm:w-auto" asChild>
-                <Link to="/agency/clients" onClick={() => close()}>
+                <Link to="/hq/clients" onClick={() => close()}>
                   Create customer in nPanel
                 </Link>
               </Button>
@@ -3021,7 +3021,7 @@ export function GlobalBuyNowDialog() {
                           </ul>
                         ) : null}
                         <Button size="sm" variant="outline" className="h-7 text-[10px]" asChild>
-                          <Link to="/agency/my-account" onClick={() => close()}>
+                          <Link to="/hq/my-account" onClick={() => close()}>
                             Complete profile
                           </Link>
                         </Button>

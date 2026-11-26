@@ -101,7 +101,7 @@ function getStatusColor(status: string): string {
 	if (s === "active")
 		return "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-transparent";
 	if (s.includes("prohibited") || s.includes("lock"))
-		return "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-transparent";
+		return "bg-[#38b6ff]/10 dark:bg-[#38b6ff]/30 text-[#38b6ff] dark:text-[#38b6ff] border-transparent";
 	if (s.includes("pending") || s.includes("hold"))
 		return "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 border-transparent";
 	if (s.includes("delete") || s.includes("expired"))
@@ -442,7 +442,7 @@ function WhoisResults({ data }: { data: WhoisData }) {
 						<div className="flex flex-col gap-0.5">
 							<span className="text-xs text-muted-foreground">DNSSEC</span>
 							{data.dnssec === "signedDelegation" ? (
-								<Badge className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs border-transparent w-fit gap-1">
+								<Badge className="bg-[#38b6ff]/10 dark:bg-[#38b6ff]/30 text-[#38b6ff] dark:text-[#38b6ff] text-xs border-transparent w-fit gap-1">
 									<Shield className="h-3 w-3" /> Signed
 								</Badge>
 							) : data.dnssec === "unsigned" ? (
@@ -717,7 +717,7 @@ export default function WhoisChecker() {
 			<div className="w-full max-w-4xl mx-auto flex flex-col gap-6">
 				{/* ── Header ──────────────────────────────────────────────────────── */}
 				<div className="flex flex-col gap-1">
-					<h1 className="text-base font-semibold tracking-tight">WHOIS Checker</h1>
+					<h1 className="type-h1">WHOIS Checker</h1>
 					<p className="text-xs text-muted-foreground">
 					Look up registration details for any domain. Free to use.
 				</p>
@@ -732,7 +732,7 @@ export default function WhoisChecker() {
 								<Input
 									ref={inputRef}
 									className="pl-9 h-12 text-base"
-									placeholder="Enter a domain, e.g. google.com or safaricom.co.ke"
+									placeholder="Enter a domain, e.g. google.com"
 									value={inputValue}
 									onChange={(e) => setInputValue(e.target.value)}
 									onKeyDown={handleKeyDown}

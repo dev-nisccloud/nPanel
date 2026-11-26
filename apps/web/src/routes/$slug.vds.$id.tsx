@@ -45,8 +45,8 @@ export default function VdsDetailRoute() {
   }
 
   const teamSlug = typeof slug === "string" ? slug : "";
-  const vpsListPath = teamSlug ? `/${teamSlug}/vds` : "/agency/vds";
-  const subscriptionsPathPrefix = teamSlug ? `/${teamSlug}/subscriptions` : "/agency/subscriptions";
+  const vpsListPath = teamSlug ? `/${teamSlug}/vds` : "/hq/vds";
+  const subscriptionsPathPrefix = teamSlug ? `/${teamSlug}/subscriptions` : "/hq/subscriptions";
 
   return (
     <ErrorBoundary>

@@ -64,6 +64,15 @@ export function resolveProcedureRateLimit(path: string): {
   if (path === "storefront.auth.createOrganization") {
     return { authenticated: 5, apiKey: 5, anonymous: 2, windowSec: 60 };
   }
+  if (path === "storefront.auth.sendEmailCode") {
+    return { authenticated: 5, apiKey: 5, anonymous: 5, windowSec: 3600 };
+  }
+  if (path === "storefront.auth.verifyEmailCode") {
+    return { authenticated: 15, apiKey: 15, anonymous: 15, windowSec: 600 };
+  }
+  if (path === "storefront.auth.register") {
+    return { authenticated: 5, apiKey: 5, anonymous: 5, windowSec: 3600 };
+  }
   if (path === "storefront.leads.submit") {
     return { authenticated: 10, apiKey: 10, anonymous: 5, windowSec: 3600 };
   }
@@ -71,6 +80,15 @@ export function resolveProcedureRateLimit(path: string): {
   // Presigned uploads  keep below the default so spam cannot mint endless URLs.
   if (path === "objectStorage.createUploadUrl") {
     return { authenticated: 40, apiKey: 40, anonymous: 5, windowSec: 60 };
+  }
+  if (path === "niscStorage.createUploadUrl" || path === "niscStorage.completeUpload") {
+    return { authenticated: 40, apiKey: 20, anonymous: 5, windowSec: 60 };
+  }
+  if (path === "niscStorage.revealCredentials" || path === "niscStorage.rotateCredentials") {
+    return { authenticated: 5, apiKey: 2, anonymous: 1, windowSec: 3600 };
+  }
+  if (path === "niscStorage.extractZip" || path === "niscStorage.downloadZip") {
+    return { authenticated: 10, apiKey: 5, anonymous: 1, windowSec: 3600 };
   }
 
   // Landing guest support  tight anonymous caps to limit abuse.

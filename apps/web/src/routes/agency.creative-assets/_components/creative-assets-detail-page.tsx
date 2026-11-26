@@ -85,7 +85,7 @@ function CreativeAssetsDetailError({
 			<div className="w-full max-w-7xl mx-auto">
 				<div className="flex items-center justify-between">
 					<div className="flex items-center gap-4">
-						<Link to="/agency/creative-assets">
+						<Link to="/hq/creative-assets">
 							<Button variant="ghost" size="sm">
 								<ArrowLeft className="h-4 w-4 mr-2" />
 								Back
@@ -274,7 +274,7 @@ export function CreativeAssetsDetailPage({
 				<div className="w-full max-w-7xl mx-auto">
 					<div className="flex items-center justify-between">
 						<div className="flex items-center gap-4">
-							<Link to="/agency/creative-assets">
+							<Link to="/hq/creative-assets">
 								<Button variant="ghost" size="sm">
 									<ArrowLeft className="h-4 w-4 mr-2" />
 									Back
@@ -319,7 +319,7 @@ export function CreativeAssetsDetailPage({
 				<div className="space-y-4">
 					<div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-  						<Link to="/agency/creative-assets">
+  						<Link to="/hq/creative-assets">
 								<Button variant="ghost" size="sm">
 									<ArrowLeft className="h-4 w-4 mr-2" />
 									Back

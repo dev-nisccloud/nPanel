@@ -102,14 +102,14 @@ export default function InvoiceViewPage() {
 	const teamSlug = pathname.split("/")[1];
 	const invoiceId = params.id as string;
 
-	const { data: invoice, isLoading, error } = trpc.invoicing.getById.useQuery(
+	const { data: invoice, isLoading, error, refetch, isFetching } = trpc.invoicing.getById.useQuery(
 		{ id: invoiceId },
 		{
 			enabled: !!invoiceId,
 		}
 	);
 
-	const invoicesPath = teamSlug ? `/${teamSlug}/invoices` : "/agency/invoices";
+	const invoicesPath = teamSlug ? `/${teamSlug}/invoices` : "/hq/invoices";
 	const [isDownloading, setIsDownloading] = React.useState(false);
 	const [updatePaymentOpen, setUpdatePaymentOpen] = React.useState(false);
 	const [transactionSheetOpen, setTransactionSheetOpen] = React.useState(false);
@@ -156,13 +156,36 @@ export default function InvoiceViewPage() {
 		);
 	}
 
-	if (error || !invoice) {
+	if (error) {
+		return (
+			<div className="@container/main flex flex-col gap-4 md:gap-6 min-h-screen items-center justify-center">
+				<div className="text-center max-w-md px-4">
+					<h1 className="text-base font-semibold mb-2">Something went wrong</h1>
+					<p className="text-xs text-muted-foreground mb-4 break-words">
+						{error.message}
+					</p>
+					<div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+						<Button onClick={() => refetch()} disabled={isFetching}>
+							{isFetching ? <Spinner className="mr-2 h-4 w-4" /> : null}
+							Try again
+						</Button>
+						<Button onClick={() => navigate(invoicesPath)} variant="outline">
+							<ArrowLeft className="mr-2 h-4 w-4" />
+							Back to Invoices
+						</Button>
+					</div>
+				</div>
+			</div>
+		);
+	}
+
+	if (!invoice) {
 		return (
 			<div className="@container/main flex flex-col gap-4 md:gap-6 min-h-screen items-center justify-center">
 				<div className="text-center">
 					<h1 className="text-base font-semibold mb-2">Invoice Not Found</h1>
 					<p className="text-xs text-muted-foreground mb-4">
-						{error?.message || "The invoice you're looking for doesn't exist."}
+						The invoice you're looking for doesn't exist.
 					</p>
 					<Button onClick={() => navigate(invoicesPath)} variant="outline">
 						<ArrowLeft className="mr-2 h-4 w-4" />
@@ -180,8 +203,8 @@ export default function InvoiceViewPage() {
 
 	return (
 		<>
-			<div className="@container/main flex flex-col gap-4 md:gap-6 py-6">
-				<div className="flex items-center justify-between gap-4">
+			<div className="flex h-[calc(100dvh-6rem)] min-h-0 flex-col overflow-hidden px-3 pb-3 md:h-[calc(100dvh-8.5rem)] md:px-4 md:pb-4">
+				<div className="flex shrink-0 flex-wrap items-start justify-between gap-3 pb-4">
 					<div className="flex items-center gap-4">
 						<Button
 							onClick={() => navigate(invoicesPath)}
@@ -207,7 +230,8 @@ export default function InvoiceViewPage() {
 								paymentTotals.remaining <= 0 ||
 								isDownloading ||
 								invoice.status === "CANCELLED" ||
-								invoice.status === "WRITTEN_OFF"
+								invoice.status === "WRITTEN_OFF" ||
+								invoice.status === "REFUNDED"
 							}
 						>
 							<DollarSign className="mr-2 h-4 w-4" />
@@ -244,38 +268,37 @@ export default function InvoiceViewPage() {
 					</div>
 				</div>
 
-				<div className="flex flex-col items-center gap-4 px-4">
-					<InvoicePaymentSummary
-						amount={invoice.amount}
-						amountPaid={invoice.amountPaid}
-						amountRemaining={invoice.amountRemaining}
-						creditBalance={invoice.creditBalance}
-						status={invoice.status}
-						dueDate={invoice.dueDate}
-						currency={invoice.currency}
-						transactions={invoice.transactions ?? []}
-					/>
-				</div>
-
-				<div className="px-4">
-					<InvoiceTransactionsSection
-						transactions={invoice.transactions ?? []}
-						emptyMessage="No payments have been recorded on this invoice yet."
-						onViewTransaction={(tx) => {
-							setViewingTransaction(tx);
-							setTransactionSheetOpen(true);
-						}}
-					/>
-				</div>
-
-				<div className="flex justify-center items-start">
-					<PreviewDetails
-						yourDetails={previewData.yourDetails}
-						companyDetails={previewData.companyDetails}
-						invoiceDetails={previewData.invoiceDetails}
-						invoiceTerms={previewData.invoiceTerms}
-						etimsFiscal={invoice.etimsFiscal ?? pdfMeta.etimsFiscal}
-					/>
+				<div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-2 gap-4 lg:grid-cols-[minmax(0,1.75fr)_minmax(17rem,0.72fr)] lg:grid-rows-1">
+					<section className="min-h-0 overflow-y-auto overscroll-contain rounded-xl border bg-muted/30 p-4 sm:p-5">
+						<PreviewDetails
+							fillWidth
+							yourDetails={previewData.yourDetails}
+							companyDetails={previewData.companyDetails}
+							invoiceDetails={previewData.invoiceDetails}
+							invoiceTerms={previewData.invoiceTerms}
+							etimsFiscal={invoice.etimsFiscal ?? pdfMeta.etimsFiscal}
+						/>
+					</section>
+					<aside className="@container flex min-h-0 flex-col gap-4 overflow-y-auto overscroll-contain">
+						<InvoicePaymentSummary
+							amount={invoice.amount}
+							amountPaid={invoice.amountPaid}
+							amountRemaining={invoice.amountRemaining}
+							creditBalance={invoice.creditBalance}
+							status={invoice.status}
+							dueDate={invoice.dueDate}
+							currency={invoice.currency}
+							transactions={invoice.transactions ?? []}
+						/>
+						<InvoiceTransactionsSection
+							transactions={invoice.transactions ?? []}
+							emptyMessage="No payments have been recorded on this invoice yet."
+							onViewTransaction={(tx) => {
+								setViewingTransaction(tx);
+								setTransactionSheetOpen(true);
+							}}
+						/>
+					</aside>
 				</div>
 			</div>
 			<InvoicePayDialog

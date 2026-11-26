@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Trash2, Search, RefreshCw, Mail, Pencil, Eye } from "lucide-react";
+import { Plus, Trash2, Search, RefreshCw, Mail, Pencil, Eye, Globe, BookOpen, ExternalLink } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { z } from "zod";
 
@@ -29,6 +29,8 @@ import { MailboxUsageDisplay } from "./mailbox-usage";
 import { useEmailsBySiteId } from "./use-emails-by-site-id";
 import { AddMailAddressSheet } from "./add-mail-address-sheet";
 import { ViewMailAddressSheet } from "./view-mail-address-sheet";
+import { MailClientSetupSheet } from "./mail-client-setup-sheet";
+import { buildWebmailUrl } from "./mail-client-settings";
 import { captureEvent } from "@/lib/posthog";
 
 interface MailTableProps {
@@ -98,10 +100,17 @@ export function MailTable({
   onCreateSheetOpened,
 }: MailTableProps) {
   const { data: emailsData, isLoading, isError, error, refetch } = useEmailsBySiteId(siteId);
+  const utils = trpc.useUtils();
+  const refreshEmails = React.useCallback(async () => {
+    await utils.plesk.emails.getBySiteId.invalidate({ siteId });
+  }, [siteId, utils]);
   const [searchTerm, setSearchTerm] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState("all");
   const [isAddMailOpen, setIsAddMailOpen] = React.useState(false);
   const [isViewMailOpen, setIsViewMailOpen] = React.useState(false);
+  const [isSetupOpen, setIsSetupOpen] = React.useState(false);
+  const [setupLocalPart, setSetupLocalPart] = React.useState<string | null>(null);
+  const webmailUrl = buildWebmailUrl(domainName);
   const [selectedMail, setSelectedMail] = React.useState<z.infer<typeof emailAccountSchema> | null>(null);
   const [sheetInitial, setSheetInitial] = React.useState<any | null>(null);
   const [sheetMode, setSheetMode] = React.useState<"create" | "edit">("create");
@@ -125,7 +134,7 @@ export function MailTable({
       setDeleteDialogOpen(false);
       setMailToDelete(null);
       setIsDeleting(false);
-      refetch();
+      void refreshEmails();
     },
     onError: (error) => {
       console.error("[MailTable] Delete email error:", error);
@@ -167,6 +176,19 @@ export function MailTable({
     return filtered;
   }, [emailsData, searchTerm, statusFilter]);
 
+  const handleWebmail = () => {
+    if (!webmailUrl) return;
+    window.open(webmailUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const handleSetupGuide = (id: number | undefined) => {
+    if (!id) return;
+    const record = emailsData?.find((r) => r.id === id);
+    if (!record?.name) return;
+    setSetupLocalPart(record.name);
+    setIsSetupOpen(true);
+  };
+
   const handleView = (id: number | undefined) => {
     if (!id) return;
     const record = emailsData?.find((r) => r.id === id);
@@ -191,6 +213,7 @@ export function MailTable({
       autoresponderEnabled: record.autoresponder?.enabled ?? false,
       autoresponderSubject: record.autoresponder?.subject || "",
       autoresponderText: record.autoresponder?.text || "",
+      autoresponderEndDate: record.autoresponder?.end_date || "",
       antivir: (record.antivir as "off" | "inout" | "in" | "out") || "off",
       maxOutgoingMessages: record.outgoingMessagesLimit ?? 100,
       description: record.description || "",
@@ -317,6 +340,31 @@ export function MailTable({
                     variant="outline"
                     size="sm"
                     className="h-7 px-2.5 text-xs"
+                    disabled={!webmailUrl}
+                    title={webmailUrl ? `Open ${webmailUrl}` : "Webmail is unavailable"}
+                    onClick={handleWebmail}
+                  >
+                    <Globe className="mr-1 h-3.5 w-3.5" />
+                    Webmail
+                    <ExternalLink className="ml-1 h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2.5 text-xs"
+                    disabled={!email.name || !domainName}
+                    title="Mail client setup guide"
+                    onClick={() => handleSetupGuide(email.id)}
+                  >
+                    <BookOpen className="mr-1 h-3.5 w-3.5" />
+                    Mail client setup guide
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2.5 text-xs"
                     onClick={() => handleView(email.id)}
                   >
                     <Eye className="mr-1 h-3.5 w-3.5" />
@@ -349,6 +397,13 @@ export function MailTable({
         })}
       </CleanList>
 
+      <MailClientSetupSheet
+        open={isSetupOpen}
+        onOpenChange={setIsSetupOpen}
+        localPart={setupLocalPart ?? undefined}
+        domainName={domainName}
+      />
+
       <ViewMailAddressSheet
         open={isViewMailOpen}
         onOpenChange={(open) => {
@@ -374,8 +429,8 @@ export function MailTable({
         maxMailboxQuotaBytes={maxMailboxQuotaBytes}
         initialValues={sheetInitial || undefined}
         mode={sheetMode}
-        onSuccess={() => {
-          refetch();
+        onSuccess={async () => {
+          await refreshEmails();
           setSheetInitial(null);
           setSheetMode("create");
         }}

@@ -10,6 +10,7 @@ import {
 	isProcessingResultCode,
 	isTerminalResultCode,
 } from "./error-codes";
+import { completeStorefrontOrderFromVerifiedPayment } from "../../../lib/storefront-order-completion";
 
 export type StkPushQueryData = {
 	responseCode: string;
@@ -201,6 +202,14 @@ export async function queryStkPushForUser(
 				userAgent: null,
 				createdAt: now,
 			});
+			if (isSuccess) {
+				await completeStorefrontOrderFromVerifiedPayment({
+					checkoutRequestId,
+					userId: dbTransaction.userId,
+					teamId: dbTransaction.teamId,
+					metadata: dbTransaction.metadata,
+				});
+			}
 		}
 
 		if (isProcessingResultCode(resultCode)) {

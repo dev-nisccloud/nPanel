@@ -41,9 +41,9 @@ export function MpesaPaymentFields({
           className={cn("h-9", phoneError && "border-destructive")}
         />
         {phoneError ? (
-          <p className="text-[11px] text-destructive">{phoneError}</p>
+          <p className="text-xs text-destructive">{phoneError}</p>
         ) : (
-          <p className="text-[11px] text-muted-foreground">M-Pesa registered number</p>
+          <p className="text-xs text-muted-foreground">M-Pesa registered number</p>
         )}
       </div>
 
@@ -60,7 +60,7 @@ export function MpesaPaymentFields({
           className={cn("h-9", READ_ONLY_INPUT_CLASS)}
         />
         {amountHelperText ? (
-          <p className="text-[11px] text-muted-foreground">{amountHelperText}</p>
+          <p className="text-xs text-muted-foreground">{amountHelperText}</p>
         ) : null}
       </div>
 
@@ -77,7 +77,7 @@ export function MpesaPaymentFields({
           maxLength={12}
         />
         {accountRefHelperText ? (
-          <p className="text-[11px] text-muted-foreground">{accountRefHelperText}</p>
+          <p className="text-xs text-muted-foreground">{accountRefHelperText}</p>
         ) : null}
       </div>
     </div>

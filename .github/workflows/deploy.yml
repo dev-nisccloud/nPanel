@@ -284,6 +284,14 @@ jobs:
           fi
           echo "✅ Using server URL for web build: $SERVER_URL"
 
+      # The web image installs the whole monorepo; hosted runners run out of disk without this.
+      - name: Free runner disk space
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          docker system prune --all --force
+          df -h /
+
       - name: Build and Push Web Container
         run: |
           LANDING_URL="${{ secrets.VITE_LANDING_PAGE_URL_STAGING }}"
@@ -548,6 +556,14 @@ jobs:
             exit 1
           fi
           echo "✅ Using server URL for web build: $SERVER_URL"
+
+      # The web image installs the whole monorepo; hosted runners run out of disk without this.
+      - name: Free runner disk space
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          docker system prune --all --force
+          df -h /
 
       - name: Build and Push Web Container
         run: |

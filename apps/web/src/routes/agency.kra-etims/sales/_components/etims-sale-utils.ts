@@ -8,6 +8,8 @@ export type EtimsSaleRecord = Record<string, unknown> & {
     orgInvcNo?: number | null;
     custTin?: string | null;
     custNm?: string | null;
+    salesTyCd?: string | null;
+    trdInvcNo?: string | null;
     rcptTyCd?: string | null;
     pmtTyCd?: string | null;
     salesSttsCd?: string | null;
@@ -172,4 +174,8 @@ export function creditNoteReason(sale: EtimsSaleRecord) {
 
 export function isCreditNote(sale: EtimsSaleRecord) {
     return sale.rcptTyCd === "R";
+}
+
+export function isCopyReceipt(sale: Pick<EtimsSaleRecord, "salesTyCd">) {
+    return String(sale.salesTyCd ?? "").trim().toUpperCase() === "C";
 }

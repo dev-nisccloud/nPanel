@@ -14,13 +14,13 @@ export const INVOICE_PDF_PAYMENT_DEFAULTS = {
 	mpesaAccountNumber: "2052676528",
 } as const;
 
-const line = { fontSize: 8, color: "#4b5563", lineHeight: 1.35 } as const;
+const line = { fontSize: 7, color: "#4b5563", lineHeight: 1.22 } as const;
 const heading = {
-	fontSize: 8,
+	fontSize: 7,
 	fontWeight: "bold" as const,
 	color: "#111827",
 	textTransform: "uppercase" as const,
-	marginBottom: 3,
+	marginBottom: 2,
 	letterSpacing: 0.3,
 };
 
@@ -48,8 +48,8 @@ export function FixedPaymentDetailsPdf({ paymentDetails }: { paymentDetails?: Pa
 				borderTopWidth: 1,
 				borderTopStyle: "dashed",
 				borderTopColor: "#d1d5db",
-				paddingTop: 6,
-				paddingBottom: 8,
+				paddingTop: 4,
+				paddingBottom: 4,
 			}}
 		>
 			<View style={{ flex: 1, paddingRight: 10 }}>

@@ -330,6 +330,7 @@ async function resolveNiscProductId(kind: CloudPlanKind): Promise<string> {
 	const products = await db.query.niscProduct.findMany({
 		where: and(
 			eq(niscProduct.isActive, true),
+			eq(niscProduct.hidden, false),
 			or(eq(niscProduct.serviceType, serviceType), ilike(niscProduct.name, `%${kind} hosting%`)),
 		),
 		columns: { id: true },

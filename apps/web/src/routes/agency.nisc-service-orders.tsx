@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useSearchParams } from "react-router";
-import { Plus, RefreshCw, Search, Receipt, RotateCcw, EllipsisVertical } from "lucide-react";
+import { RefreshCw, Search, Receipt, RotateCcw, EllipsisVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -144,7 +144,7 @@ export default function NiscServiceOrdersPage() {
 				<div className="flex flex-col gap-2">
 					<h1 className="text-base font-semibold tracking-tight">Nisc Service Orders</h1>
 					<p className="text-xs text-muted-foreground">
-						Create and manage Nisc product orders. Orders are processed in the background.
+						Orders created from subscriptions. Each order is processed in the background.
 					</p>
 				</div>
 
@@ -162,25 +162,29 @@ export default function NiscServiceOrdersPage() {
 						<Button variant="outline" size="icon" onClick={() => refetch()} title="Refresh">
 							<RefreshCw className="h-4 w-4" />
 						</Button>
+						{/* Create order is not needed for now. New orders come from Create subscription.
 						<Button onClick={() => setIsCreateOpen(true)}>
 							<Plus className="mr-2 h-4 w-4" />
 							Create order
 						</Button>
+						*/}
 					</div>
 				</div>
 
 				<div className="mt-6">
 					{!data?.orders.length ? (
-						<EmptyState
-							title="No orders yet"
-							description="Create a Nisc service order to get started."
-							action={
-								<Button onClick={() => setIsCreateOpen(true)}>
-									<Plus className="mr-2 h-4 w-4" />
-									Create order
-								</Button>
-							}
-						/>
+						<>
+							<EmptyState
+								title="No orders yet"
+								description="Orders show up here after a subscription is created for a customer."
+							/>
+							{/* Create order is not needed for now.
+							<Button onClick={() => setIsCreateOpen(true)}>
+								<Plus className="mr-2 h-4 w-4" />
+								Create order
+							</Button>
+							*/}
+						</>
 					) : filteredOrders.length === 0 ? (
 						<div className="flex flex-col items-center justify-center py-12 text-center">
 							<p className="text-lg font-semibold mb-2">No orders match your search</p>

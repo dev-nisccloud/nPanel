@@ -557,7 +557,7 @@ export const ordersRouter = router({
 			if (!isAgencyRole(userRole)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency users can view the global order summary",
+					message: "Only Nisc HQ staff can view the global order summary",
 				});
 			}
 

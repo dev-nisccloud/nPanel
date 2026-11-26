@@ -52,7 +52,7 @@ export default function BentoOrbitingIcons() {
 
         <div className="flex flex-col items-center justify-center gap-1.5">
           <Circle ref={hubRef} className="size-14 border-primary/30 bg-background p-2">
-            <img
+            <img loading="lazy" decoding="async"
               src="/nisciconoriginal.png"
               alt="Nisc Cloud"
               className="size-full object-contain"
@@ -82,7 +82,7 @@ export default function BentoOrbitingIcons() {
           duration={3}
           delay={index * 0.15}
           gradientStartColor="#38b6ff"
-          gradientStopColor="#6366f1"
+          gradientStopColor="var(--primary)"
         />
       ))}
       <AnimatedBeam
@@ -91,7 +91,7 @@ export default function BentoOrbitingIcons() {
         toRef={userRef}
         duration={3}
         gradientStartColor="#38b6ff"
-        gradientStopColor="#6366f1"
+        gradientStopColor="var(--primary)"
       />
     </div>
   );

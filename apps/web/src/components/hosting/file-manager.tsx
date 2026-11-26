@@ -654,6 +654,7 @@ function FileManagerContent({
           <div className="h-full min-h-0 w-64 shrink-0">
             <FileManagerFolderTree
               currentPath={currentPath}
+              expandPath={currentPath}
               onPathSelect={navigateToPath}
               onLoadFolder={loadFolderTree}
               className="rounded-lg overflow-hidden h-full"

@@ -6,6 +6,7 @@ import type { InvoiceTerms } from "@/routes/agency.invoices/create/types";
 
 export const InvoiceTermsPdf: React.FC<InvoiceTerms> = ({
   invoiceNumber,
+  scuId,
   issueDate,
   issuedAtDisplay,
   dueDate,
@@ -32,6 +33,14 @@ export const InvoiceTermsPdf: React.FC<InvoiceTerms> = ({
             {invoiceNumber || "-"}
           </Text>
         </View>
+        {scuId?.trim() ? (
+          <View style={lineStyle}>
+            <Text style={labelStyle}>SCU ID</Text>
+            <Text style={[valueStyle, { maxWidth: 160, textAlign: "right" }]} wrap>
+              {scuId.trim()}
+            </Text>
+          </View>
+        ) : null}
         <View style={lineStyle}>
           <Text style={labelStyle}>ISSUED</Text>
           <Text wrap={false} style={valueStyle}>

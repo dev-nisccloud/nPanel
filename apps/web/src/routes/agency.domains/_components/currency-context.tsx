@@ -3,6 +3,8 @@
 import * as React from "react";
 import { convertPriceWithCeil } from "@npanel/api/lib/convert-price";
 import { trpc } from "@/utils/trpc";
+import { authClient } from "@/lib/auth-client";
+import { usePreferencesStore } from "@/stores/preferences/preferences-provider";
 
 // Supported currencies (limited set for efficiency)
 export const SUPPORTED_CURRENCIES = [
@@ -26,9 +28,29 @@ interface CurrencyContextType {
 const CurrencyContext = React.createContext<CurrencyContextType | undefined>(undefined);
 
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
-  // Agency: domain prices are always shown in KES (conversion applied when source is USD/EUR etc.)
-  const [selectedCurrency, setSelectedCurrency] = React.useState<SupportedCurrency>('KES');
+  const globalDisplayCurrency = usePreferencesStore((state) => state.displayCurrency);
+  const setGlobalDisplayCurrency = usePreferencesStore((state) => state.setDisplayCurrency);
+  const { data: session } = authClient.useSession();
+  const impersonatedBy = (
+    session?.session as { impersonatedBy?: string | null } | undefined
+  )?.impersonatedBy;
+  const [selectedCurrency, setSelectedCurrencyState] =
+    React.useState<SupportedCurrency>(globalDisplayCurrency);
   const [isConverting, setIsConverting] = React.useState(false);
+  const updateDisplayCurrency = trpc.user.updateDisplayCurrencyPreference.useMutation();
+
+  React.useEffect(() => {
+    setSelectedCurrencyState(globalDisplayCurrency);
+  }, [globalDisplayCurrency]);
+
+  const setSelectedCurrency = React.useCallback((currency: SupportedCurrency) => {
+    setSelectedCurrencyState(currency);
+    localStorage.setItem('selectedCurrency', currency);
+    if ((currency === "KES" || currency === "USD") && !impersonatedBy) {
+      setGlobalDisplayCurrency(currency);
+      updateDisplayCurrency.mutate({ currency });
+    }
+  }, [impersonatedBy, setGlobalDisplayCurrency, updateDisplayCurrency]);
 
   // Guard setState so we never update after unmount (e.g. when user switches to Settings tab while conversion is in progress)
   const isMountedRef = React.useRef(true);
@@ -38,20 +60,6 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
       isMountedRef.current = false;
     };
   }, []);
-
-  // Load from localStorage on mount
-  // Commented out to always use KES as default for agency side
-  // React.useEffect(() => {
-  //   const saved = localStorage.getItem('selectedCurrency') as SupportedCurrency;
-  //   if (saved && SUPPORTED_CURRENCIES.some(c => c.code === saved)) {
-  //     setSelectedCurrency(saved);
-  //   }
-  // }, []);
-
-  // Save to localStorage on change
-  React.useEffect(() => {
-    localStorage.setItem('selectedCurrency', selectedCurrency);
-  }, [selectedCurrency]);
 
   // Public rates - CurrencyProvider also mounts on auth via GlobalBuyNowDialogWrapper; protected currency.* would 401 and loop redirects.
   const { data: exchangeRates, isLoading: isLoadingRates } = trpc.publicPricing.getExchangeRatesPublic.useQuery(

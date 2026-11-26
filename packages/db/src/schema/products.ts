@@ -29,6 +29,8 @@ export const niscProduct = pgTable(
     category: text("category").notNull(),
     serviceType: text("service_type").notNull(),
     isActive: boolean("is_active").default(true).notNull(),
+    /** When true, omit this product from every catalog and pricing read. */
+    hidden: boolean("hidden").default(false).notNull(),
     sortOrder: integer("sort_order").default(0).notNull(),
 
     features: jsonb("features").notNull().default(emptyJsonbArray),
@@ -55,6 +57,7 @@ export const niscProduct = pgTable(
     index("nisc_product_category_idx").on(table.category),
     index("nisc_product_serviceType_idx").on(table.serviceType),
     index("nisc_product_isActive_idx").on(table.isActive),
+    index("nisc_product_hidden_idx").on(table.hidden),
     index("nisc_product_isAddOn_idx").on(table.isAddOn),
     uniqueIndex("nisc_product_etimsItemCd_unique").on(table.etimsItemCd),
   ],
@@ -121,6 +124,8 @@ export const niscProductPlan = pgTable(
     isPopular: boolean("is_popular").default(false).notNull(),
     isRecommended: boolean("is_recommended").default(false).notNull(),
     isActive: boolean("is_active").default(true).notNull(),
+    /** When true, omit this plan from every catalog and pricing read. */
+    hidden: boolean("hidden").default(false).notNull(),
     isDefault: boolean("is_default").default(false).notNull(),
     sortOrder: integer("sort_order").default(0).notNull(),
 
@@ -141,6 +146,7 @@ export const niscProductPlan = pgTable(
     index("nisc_product_plan_productId_idx").on(table.productId),
     index("nisc_product_plan_pricingModel_idx").on(table.pricingModel),
     index("nisc_product_plan_isActive_idx").on(table.isActive),
+    index("nisc_product_plan_hidden_idx").on(table.hidden),
     index("nisc_product_plan_isDefault_idx").on(table.isDefault),
   ],
 );

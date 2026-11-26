@@ -460,6 +460,11 @@ export class EtimsOscuClient {
         }
 
         let data = bodyJson as Record<string, unknown>;
+        const header = asRecord(data.responseHeader);
+        const headerCode = header?.responseCode;
+        if (headerCode != null && Number(headerCode) >= 400) {
+            throw new Error(kraGatewayErrorMessage(endpointKey, Number(headerCode) || statusCode, bodyJson, bodyText));
+        }
 
         // Developer Platform often wraps the OSCU body in responseBody
         const wrapped = data.responseBody;

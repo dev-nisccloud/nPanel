@@ -10,7 +10,7 @@ const REALTIME_QUERY_OPTIONS = {
 	refetchOnMount: true,
 } as const;
 
-const SETTLED_INVOICE_STATUSES = new Set(["PAID", "CANCELLED", "WRITTEN_OFF"]);
+const SETTLED_INVOICE_STATUSES = new Set(["PAID", "CANCELLED", "WRITTEN_OFF", "REFUNDED"]);
 
 export function useCustomerDashboardMetrics() {
 	const { pathname } = useLocation();

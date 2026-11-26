@@ -1,14 +1,20 @@
 import * as React from "react";
 import { useMutation } from "@tanstack/react-query";
 import {
-  Search, CheckCircle2, XCircle, Loader2, Plus, Minus, Link2,
-  ArrowLeftRight, AlertCircle, Lock, Globe, Eye, EyeOff, Key,
+  Search, CheckCircle2, XCircle, Loader2, Link2,
+  ArrowLeftRight, AlertCircle, Globe, Eye, EyeOff, Key,
 } from "lucide-react";
+import {
+  EppGuide,
+  TransferCheckReport,
+  announceRecheck,
+} from "@/components/domain-transfer/TransferCheckReport.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Label } from "@/components/ui/label.tsx";
-import { trpcQuery, trpcMutation } from "@/lib/domain-search/api.ts";
+import { trpcQuery } from "@/lib/domain-search/api.ts";
+import { checkKenicDomains } from "@/lib/domain-search/kenic-check.ts";
 import {
   checkDomainTransfer,
   type CheckTransferResult,
@@ -22,6 +28,7 @@ import {
 } from "@/lib/domain-search/search-utils.ts";
 import {
   isUnavailableKenicTld,
+  KENIC_CHECK_FAILED_REASON,
   normalizeToKenicCards,
   parseFullDomain,
 } from "@/lib/domain-search/kenic-schema.ts";
@@ -31,6 +38,9 @@ import { kenicItemToDomainSearchResult } from "@/lib/domain-search/to-domain-sea
 import type { DomainSearchResult } from "@/lib/domain-search/types.ts";
 import { cn } from "@/lib/utils.ts";
 import { CartPillTabs } from "./CartPillTabs.tsx";
+import { ServiceIcon } from "./service-icon.tsx";
+import { useCurrency } from "@/components/providers/currency.tsx";
+import { convertKesForDisplay, formatCurrency } from "@/lib/currency.ts";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -49,8 +59,6 @@ interface DomainUpsellProps {
   onDomainSelect: (domain: SelectedDomain | null) => void;
   transferAuthCode?: string;
   onTransferAuthCodeChange?: (code: string) => void;
-  /** When true, copy makes clear a domain is mandatory before checkout. */
-  required?: boolean;
 }
 
 function getExtKey(domain: string): string {
@@ -99,9 +107,16 @@ function DomainUpsellInner({
   onDomainSelect,
   transferAuthCode = "",
   onTransferAuthCodeChange,
-  required = false,
 }: DomainUpsellProps) {
-  const { calculatePricesBatch, getPricingInfo } = usePricing();
+  const { calculatePricesBatch, getPricingInfo, isConversionAvailable } = usePricing();
+  const { currency, kesToCurrencyRate } = useCurrency();
+  const formatDisplayKes = (amountKes: number) =>
+    kesToCurrencyRate === null
+      ? null
+      : formatCurrency(
+          convertKesForDisplay(amountKes, currency, kesToCurrencyRate),
+          currency,
+        );
 
   // ---- Search state ----
   const [input, setInput] = React.useState("");
@@ -118,6 +133,7 @@ function DomainUpsellInner({
   const [isLoading, setIsLoading] = React.useState(false);
   const [isLoadingMore, setIsLoadingMore] = React.useState(false);
   const [isError, setIsError] = React.useState(false);
+  const [pendingDomains, setPendingDomains] = React.useState<string[]>([]);
 
   // ---- Own-domain state ----
   const [ownDomainInput, setOwnDomainInput] = React.useState("");
@@ -157,162 +173,110 @@ function DomainUpsellInner({
   };
 
   const fetchRecommendedBatch = React.useCallback(
-    async (name: string, batchIdx: number, exactDomain: string | null) => {
+    async (
+      name: string,
+      batchIdx: number,
+      exactDomain: string | null,
+      onPartial?: (partial: DomainSearchResult[], pending: string[]) => void,
+    ) => {
       const batch = getRecommendedBatch(batchIdx);
       const order = [...batch.kenic, ...batch.open];
       const out: DomainSearchResult[] = [];
+      const pending = new Set<string>();
 
-      // If user typed a full domain with a TLD not in this batch, check it first on batch 0.
+      const finalize = () => {
+        const seen = new Set<string>();
+        const unique = out.filter((r) => {
+          const key = r.domain.toLowerCase();
+          // Never surface non-purchasable KENIC SLDs (e.g. .go.ke)
+          if (isUnavailableKenicTld(key)) return false;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        return sortDomainResults(unique, order, exactDomain);
+      };
+
+      const kenicCheck = async (domains: string[], label: string) => {
+        const data = await checkKenicDomains(domains);
+        return normalizeToKenicCards(label, data?.normalized ?? []).map((item) => {
+          const createCalc = getPricingInfo(item.domain, item.createPrice ?? 0, item.currency ?? "KES");
+          return kenicItemToDomainSearchResult(item, { createFinal: createCalc.finalPrice, createCalc });
+        });
+      };
+
+      const openCheck = async (label: string, extensions: string[]) => {
+        const res = await trpcQuery<{
+          success: boolean;
+          data?: {
+            results: Array<{
+              domain: string;
+              status: string;
+              reason?: string;
+              price?: DomainSearchResult["price"];
+            }>;
+          };
+        }>("openProvider.domains.checkAvailability", {
+          name: nameForOpenProvider(label),
+          extensions,
+          with_price: true,
+          with_whois: false,
+        });
+        if (!res?.success || !res.data?.results) return [];
+        const raw: DomainSearchResult[] = res.data.results.map((r) => ({
+          domain: r.domain ?? "",
+          status: r.status ?? "unknown",
+          reason: r.reason,
+          price: r.price,
+        }));
+        return calculatePricesBatch(raw).catch(() => raw);
+      };
+
+      // OpenProvider answers in about a second; KeNIC can take several. Run both and show each as it lands.
+      const track = (domains: string[], task: Promise<DomainSearchResult[]>) => {
+        for (const d of domains) pending.add(d.toLowerCase());
+        return task
+          .then((found) => {
+            out.push(...found);
+          })
+          .catch(() => {
+            // one registry failing should not hide the other's results
+          })
+          .finally(() => {
+            for (const d of domains) pending.delete(d.toLowerCase());
+            onPartial?.(finalize(), [...pending]);
+          });
+      };
+
+      const tasks: Promise<void>[] = [];
+
+      // If user typed a full domain with a TLD not in this batch, check it too on batch 0.
       if (batchIdx === 0 && exactDomain) {
         const parsed = parseFullDomain(exactDomain);
-        if (parsed) {
-          const alreadyCovered =
-            batch.kenic.includes(parsed.tld) || batch.open.includes(parsed.tld);
-          if (!alreadyCovered) {
-            try {
-              if (parsed.tld === "co.ke" || parsed.tld === "ke" || parsed.tld.endsWith(".ke")) {
-                const data = await trpcMutation<{
-                  normalized?: Array<{
-                    domain: string;
-                    available: boolean;
-                    reason?: string;
-                    currency?: string;
-                    createFee?: { amount: number; currency: string };
-                  }>;
-                }>("kenic.domainCheck.check", {
-                  domains: [exactDomain],
-                  withFee: true,
-                  currency: "KES",
-                  periodYears: 1,
-                });
-                const cards = normalizeToKenicCards(parsed.name, data?.normalized ?? []);
-                for (const item of cards) {
-                  const createCalc = getPricingInfo(
-                    item.domain,
-                    item.createPrice ?? 0,
-                    item.currency ?? "KES",
-                  );
-                  out.push(
-                    kenicItemToDomainSearchResult(item, {
-                      createFinal: createCalc.finalPrice,
-                      createCalc,
-                    }),
-                  );
-                }
-              } else {
-                const res = await trpcQuery<{
-                  success: boolean;
-                  data?: {
-                    results: Array<{
-                      domain: string;
-                      status: string;
-                      reason?: string;
-                      price?: DomainSearchResult["price"];
-                    }>;
-                  };
-                }>("openProvider.domains.checkAvailability", {
-                  name: nameForOpenProvider(parsed.name),
-                  extensions: [parsed.tld],
-                  with_price: true,
-                  with_whois: false,
-                });
-                if (res?.success && res.data?.results) {
-                  const raw: DomainSearchResult[] = res.data.results.map((r) => ({
-                    domain: r.domain ?? "",
-                    status: r.status ?? "unknown",
-                    reason: r.reason,
-                    price: r.price,
-                  }));
-                  out.push(...(await calculatePricesBatch(raw).catch(() => raw)));
-                }
-              }
-            } catch {
-              // ignore exact-only failure
-            }
-          }
-        }
-      }
-
-      if (batch.kenic.length > 0) {
-        try {
-          const kenicDomains = batch.kenic.map((tld) => `${name}.${tld}`);
-          const data = await trpcMutation<{
-            normalized?: Array<{
-              domain: string;
-              available: boolean;
-              reason?: string;
-              currency?: string;
-              createFee?: { amount: number; currency: string };
-            }>;
-          }>("kenic.domainCheck.check", {
-            domains: kenicDomains,
-            withFee: true,
-            currency: "KES",
-            periodYears: 1,
-          });
-          const cards = normalizeToKenicCards(name, data?.normalized ?? []);
-          for (const item of cards) {
-            const createCalc = getPricingInfo(
-              item.domain,
-              item.createPrice ?? 0,
-              item.currency ?? "KES",
-            );
-            out.push(
-              kenicItemToDomainSearchResult(item, {
-                createFinal: createCalc.finalPrice,
-                createCalc,
-              }),
-            );
-          }
-        } catch {
-          // ignore
+        if (parsed && !batch.kenic.includes(parsed.tld) && !batch.open.includes(parsed.tld)) {
+          const isKe = parsed.tld === "co.ke" || parsed.tld === "ke" || parsed.tld.endsWith(".ke");
+          tasks.push(
+            track(
+              [exactDomain],
+              isKe ? kenicCheck([exactDomain], parsed.name) : openCheck(parsed.name, [parsed.tld]),
+            ),
+          );
         }
       }
 
       if (batch.open.length > 0) {
-        try {
-          const res = await trpcQuery<{
-            success: boolean;
-            data?: {
-              results: Array<{
-                domain: string;
-                status: string;
-                reason?: string;
-                price?: DomainSearchResult["price"];
-              }>;
-            };
-          }>("openProvider.domains.checkAvailability", {
-            name: nameForOpenProvider(name),
-            extensions: batch.open,
-            with_price: true,
-            with_whois: false,
-          });
-          if (res?.success && res.data?.results) {
-            const raw: DomainSearchResult[] = res.data.results.map((r) => ({
-              domain: r.domain ?? "",
-              status: r.status ?? "unknown",
-              reason: r.reason,
-              price: r.price,
-            }));
-            out.push(...(await calculatePricesBatch(raw).catch(() => raw)));
-          }
-        } catch {
-          // ignore
-        }
+        tasks.push(track(batch.open.map((tld) => `${name}.${tld}`), openCheck(name, batch.open)));
       }
 
-      // Dedupe by domain; never surface non-purchasable KENIC SLDs (e.g. .go.ke)
-      const seen = new Set<string>();
-      const unique = out.filter((r) => {
-        const key = r.domain.toLowerCase();
-        if (isUnavailableKenicTld(key)) return false;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
+      if (batch.kenic.length > 0) {
+        const kenicDomains = batch.kenic.map((tld) => `${name}.${tld}`);
+        tasks.push(track(kenicDomains, kenicCheck(kenicDomains, name)));
+      }
+
+      await Promise.all(tasks);
 
       return {
-        results: sortDomainResults(unique, order, exactDomain),
+        results: finalize(),
         hasMore: batch.hasMore,
       };
     },
@@ -375,16 +339,25 @@ function DomainUpsellInner({
     setBatchIndex(0);
     setHasMore(true);
 
-    fetchRecommendedBatch(name, 0, exactDomain)
+    setPendingDomains([]);
+
+    fetchRecommendedBatch(name, 0, exactDomain, (partial, pending) => {
+      if (cancelled) return;
+      setResults(partial);
+      setPendingDomains(pending);
+      if (partial.length > 0) setIsLoading(false);
+    })
       .then(({ results: next, hasMore: more }) => {
         if (cancelled) return;
         setResults(next);
+        setPendingDomains([]);
         setHasMore(more);
         setIsLoading(false);
       })
       .catch(() => {
         if (!cancelled) {
           setIsError(true);
+          setPendingDomains([]);
           setIsLoading(false);
         }
       });
@@ -417,7 +390,11 @@ function DomainUpsellInner({
     }
   };
 
+  const lastTransferResultRef = React.useRef<CheckTransferResult | null>(null);
+
   const applyTransferCheckResult = React.useCallback((result: CheckTransferResult) => {
+    announceRecheck(lastTransferResultRef.current, result);
+    lastTransferResultRef.current = result;
     setTransferResult(result);
 
     if (result.transferrable && result.domain && result.provider) {
@@ -441,9 +418,14 @@ function DomainUpsellInner({
       return;
     }
 
+    const sameDomain =
+      lastTransferResultRef.current?.domain?.toLowerCase() === trimmed.toLowerCase();
+    if (!sameDomain) {
+      lastTransferResultRef.current = null;
+      setTransferResult(null);
+    }
     setTransferStatus("loading");
     setTransferMessage("");
-    setTransferResult(null);
     setTransferPriceKes(null);
 
     try {
@@ -489,6 +471,12 @@ function DomainUpsellInner({
 
     let cancelled = false;
     setTransferPricingLoading(true);
+    const sourceCurrency = transferResult.currency ?? "USD";
+    if (sourceCurrency !== "KES" && !isConversionAvailable) {
+      setTransferPriceKes(null);
+      setTransferPricingLoading(false);
+      return;
+    }
     calculatePricesBatch([rawResult])
       .then((priced) => {
         if (cancelled) return;
@@ -508,7 +496,7 @@ function DomainUpsellInner({
     return () => {
       cancelled = true;
     };
-  }, [transferStatus, transferResult, calculatePricesBatch]);
+  }, [transferStatus, transferResult, calculatePricesBatch, isConversionAvailable]);
 
   const transferReady =
     transferStatus === "valid" &&
@@ -523,12 +511,18 @@ function DomainUpsellInner({
   // ---- Helpers ----
   const isAvailable = (r: DomainSearchResult) => r.status === "free" || r.status === "available";
 
-  const getDomainPrice = (r: DomainSearchResult): number => {
+  const getDomainPrice = (r: DomainSearchResult): number | null => {
+    const sourceCurrency = r.price?.reseller?.currency ?? r.price?.product?.currency;
+    if (sourceCurrency && sourceCurrency !== "KES" && !isConversionAvailable) return null;
     const calc = r.price?.calculated;
-    if (calc?.convertedPrice) return Math.ceil(calc.convertedPrice);
-    if (calc?.finalPrice) return Math.ceil(calc.finalPrice);
-    if (r.price?.product?.price) return Math.ceil(r.price.product.price);
-    return 0;
+    if (calc?.displayCurrency === "KES" && calc.convertedPrice) {
+      return Math.ceil(calc.convertedPrice);
+    }
+    if (calc?.currency === "KES" && calc.finalPrice) return Math.ceil(calc.finalPrice);
+    if (r.price?.product?.currency === "KES" && r.price.product.price) {
+      return Math.ceil(r.price.product.price);
+    }
+    return null;
   };
 
   // ---- Add own domain ----
@@ -538,7 +532,7 @@ function DomainUpsellInner({
       .replace(/^www\./i, "")
       .split("/")[0] ?? "";
     if (!isValidExistingDomain(v)) {
-      setOwnDomainError("Enter a valid domain (e.g. mybusiness.co.ke or mybusiness.com).");
+      setOwnDomainError("Enter a valid domain (e.g. mybusiness.com).");
       return;
     }
     setOwnDomainError(null);
@@ -548,23 +542,20 @@ function DomainUpsellInner({
   const searchedName = searchTrigger?.name ?? "";
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
-      <div className="flex items-center gap-2 mb-1">
-        <Search className="w-5 h-5 text-muted-foreground" />
-        <h3 className="text-base font-bold text-foreground">
-          {required ? "Domain required" : "Secure your domain"}
-        </h3>
-        {required && (
-          <Badge variant="secondary" className="text-[10px] font-semibold uppercase tracking-wide">
-            Required
-          </Badge>
-        )}
+    <section aria-labelledby="cart-domain-heading" className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+      <div className="mb-4 flex items-start gap-3">
+        <ServiceIcon serviceType="domain_registration" size="md" />
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 id="cart-domain-heading" className="text-lg font-semibold leading-snug text-foreground">
+              Add a domain, if you want one
+            </h2>
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Register a new name, transfer one, or use a domain you already have elsewhere. You can also continue and connect it later.
+          </p>
+        </div>
       </div>
-      <p className="text-sm text-muted-foreground mb-4">
-        {required
-          ? "This hosting plan needs a domain before you can continue. Register a new one, transfer from elsewhere, or connect a domain you already own."
-          : "Search to register a new domain, transfer one you own elsewhere, or connect an existing domain."}
-      </p>
 
       <CartPillTabs
         value={tab}
@@ -583,7 +574,7 @@ function DomainUpsellInner({
           },
           {
             value: "own",
-            label: "I already have one",
+            label: "Connect my domain",
             icon: <Link2 className="h-3.5 w-3.5 shrink-0" />,
           },
         ]}
@@ -592,162 +583,208 @@ function DomainUpsellInner({
       {/* ── Search tab ── */}
       {tab === "search" && (
         <>
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <Input
+          <form
+            role="search"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSearch();
+            }}
+          >
+            <label htmlFor="cart-domain-search" className="sr-only">
+              Search for a domain
+            </label>
+            <div
+              className={cn(
+                "flex items-center gap-2 rounded-2xl border bg-background p-1.5 pl-4 transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20",
+                validationError ? "border-destructive" : "border-border",
+              )}
+            >
+              <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+              <input
+                id="cart-domain-search"
                 value={input}
                 onChange={handleInputChange}
-                onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }}
-                placeholder="e.g. mybusiness or mybusiness.co.ke"
-                className={cn(
-                  "h-11 rounded-xl text-sm",
-                  validationError && "border-destructive focus-visible:ring-destructive",
-                )}
+                placeholder="yourbusiness or yourbusiness.com"
+                autoComplete="off"
+                spellCheck={false}
+                aria-invalid={validationError ? true : undefined}
+                aria-describedby={validationError ? "cart-domain-search-error" : undefined}
+                className="h-11 min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground sm:text-sm"
               />
-              {validationError && (
-                <p className="text-xs text-destructive mt-1">{validationError}</p>
-              )}
+              <Button
+                type="submit"
+                disabled={isLoading || !input.trim()}
+                className="h-11 shrink-0 rounded-xl px-5 font-semibold"
+              >
+                {isLoading ? <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden /> : "Check"}
+                <span className="sr-only">{isLoading ? "Checking availability" : ""}</span>
+              </Button>
             </div>
-            <Button
-              onClick={handleSearch}
-              disabled={isLoading || !input.trim()}
-              className="h-11 px-5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shrink-0"
-            >
-              {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Search"}
-            </Button>
-          </div>
+            {validationError && (
+              <p id="cart-domain-search-error" className="mt-1.5 text-xs text-destructive">
+                {validationError}
+              </p>
+            )}
+          </form>
 
-          {/* Results */}
-          {(searchedName || isLoading) && (
-            <div className="mt-4 space-y-2">
-              {isError && (
-                <p className="text-sm text-destructive py-2">
-                  Could not fetch results. Please try again.
-                </p>
-              )}
+          {(searchedName || isLoading) && (() => {
+            const available = results.filter(isAvailable);
+            const unchecked = results.filter((r) => !isAvailable(r) && r.reason === KENIC_CHECK_FAILED_REASON);
+            const taken = results.filter((r) => !isAvailable(r) && r.reason !== KENIC_CHECK_FAILED_REASON);
+            const shownDomains = new Set(results.map((r) => r.domain.toLowerCase()));
+            const stillChecking = pendingDomains.filter((d) => !shownDomains.has(d) && !isUnavailableKenicTld(d));
+            return (
+              <div className="mt-4" aria-live="polite" aria-busy={isLoading || stillChecking.length > 0}>
+                {isError && (
+                  <p className="py-2 text-sm text-destructive">Could not fetch results. Please try again.</p>
+                )}
 
-              {isLoading && (
-                <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Checking availability for{" "}
-                  <strong className="text-foreground">{searchedName}</strong>…
-                </div>
-              )}
+                {isLoading && results.length === 0 && (
+                  <div className="grid grid-cols-[minmax(0,1fr)] gap-2" aria-label={`Checking availability for ${searchedName}`}>
+                    {[0, 1, 2, 3].map((i) => (
+                      <div key={i} className="h-[68px] animate-pulse rounded-xl bg-muted motion-reduce:animate-none" />
+                    ))}
+                  </div>
+                )}
 
-              {!isLoading && !isError && results.length === 0 && searchedName && (
-                <p className="text-sm text-muted-foreground py-2">No results found.</p>
-              )}
+                {!isLoading && !isError && results.length === 0 && stillChecking.length === 0 && searchedName && (
+                  <p className="py-2 text-sm text-muted-foreground">No results found. Try a different name.</p>
+                )}
 
-              {!isLoading &&
-                results.map((r) => {
-                  const available = isAvailable(r);
-                  const price = getDomainPrice(r);
-                  const isSelected = selectedDomain?.domain === r.domain;
-                  const isExact =
-                    !!searchTrigger?.exactDomain &&
-                    r.domain.toLowerCase() === searchTrigger.exactDomain;
-
-                  return (
-                    <div
-                      key={r.domain}
-                      className={cn(
-                        "flex items-center justify-between gap-3 p-3 rounded-xl border transition-all",
-                        available
-                          ? isSelected
-                            ? "border-primary bg-primary/5"
-                            : isExact
-                              ? "border-primary/50 bg-primary/5"
-                              : "border-border hover:border-primary/40 bg-card"
-                          : "border-border bg-muted/30 opacity-60",
-                      )}
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        {available ? (
-                          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                        ) : (
-                          <XCircle className="w-4 h-4 text-muted-foreground shrink-0" />
-                        )}
-                        <span
-                          className={cn(
-                            "text-sm font-medium truncate",
-                            available ? "text-foreground" : "text-muted-foreground",
-                          )}
-                        >
-                          {r.domain}
-                        </span>
-                        {isExact && (
-                          <Badge className="text-xs bg-primary/10 text-primary border-primary/20 shrink-0">
-                            Exact match
-                          </Badge>
-                        )}
-                        {available && (
-                          <Badge className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hidden sm:inline-flex shrink-0">
-                            Available
-                          </Badge>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-3 shrink-0">
-                        {available && price > 0 && (
-                          <span className="text-sm font-bold text-foreground whitespace-nowrap">
-                            KES {price.toLocaleString()}
-                            <sup className="ml-0.5 text-[9px] font-normal text-muted-foreground">/yr</sup>
-                          </span>
-                        )}
-                        {!available && (
-                          <span className="text-xs text-muted-foreground">Taken</span>
-                        )}
-                        {available && (
-                          <Button
-                            size="sm"
-                            variant={isSelected ? "destructive" : "outline"}
+                {(available.length > 0 || stillChecking.length > 0) && (
+                  <ul className="grid grid-cols-[minmax(0,1fr)] gap-2">
+                    {available.map((r) => {
+                      const price = getDomainPrice(r);
+                      const displayPrice = price === null ? null : formatDisplayKes(price);
+                      const isSelected = selectedDomain?.domain === r.domain;
+                      const isExact =
+                        !!searchTrigger?.exactDomain && r.domain.toLowerCase() === searchTrigger.exactDomain;
+                      const disabled = price === null || kesToCurrencyRate === null;
+                      return (
+                        <li key={r.domain}>
+                          <div
                             className={cn(
-                              "h-8 w-8 p-0 rounded-lg transition-all",
-                              !isSelected && "border-primary text-primary hover:bg-primary/10",
+                              "flex min-h-[68px] w-full items-center gap-3 rounded-xl border px-3.5 py-3 text-left",
+                              disabled && "opacity-60",
+                              isSelected
+                                ? "border-primary bg-primary/[0.07] ring-1 ring-primary"
+                                : "border-border bg-card",
                             )}
-                            onClick={() =>
-                              onDomainSelect(
-                                isSelected ? null : { domain: r.domain, priceKes: price },
-                              )
-                            }
-                            aria-label={isSelected ? "Remove domain" : "Add domain"}
                           >
-                            {isSelected ? <Minus className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+                            <span
+                              aria-hidden
+                              className={cn(
+                                "flex size-6 shrink-0 items-center justify-center rounded-full border transition-colors",
+                                isSelected
+                                  ? "border-primary bg-primary text-primary-foreground"
+                                  : "border-border text-transparent",
+                              )}
+                            >
+                              <CheckCircle2 className="size-4" />
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-sm font-semibold text-foreground">{r.domain}</span>
+                              <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                                {isExact ? (
+                                  <span className="font-semibold text-primary">Your exact name is available</span>
+                                ) : (
+                                  <span className="text-emerald-700 dark:text-emerald-400">Available</span>
+                                )}
+                              </span>
+                            </span>
+                            <span className="flex shrink-0 items-center gap-2">
+                              {price === null ? (
+                                <span className="text-xs text-muted-foreground">Price unavailable</span>
+                              ) : (
+                                <span className="text-sm font-bold tabular-nums text-foreground">
+                                  {displayPrice ?? "…"}
+                                  <span className="ml-0.5 text-xs font-normal text-muted-foreground">/yr</span>
+                                </span>
+                              )}
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                aria-pressed={isSelected}
+                                disabled={disabled}
+                                onClick={() =>
+                                  onDomainSelect(isSelected ? null : { domain: r.domain, priceKes: price! })
+                                }
+                                className={cn(
+                                  "h-8 min-h-0 rounded-full px-3 text-xs",
+                                  isSelected
+                                    ? "border-transparent text-muted-foreground hover:text-destructive"
+                                    : "border-primary/40 text-primary hover:bg-primary/10",
+                                )}
+                              >
+                                {isSelected ? "Remove" : "Add to cart"}
+                              </Button>
+                            </span>
+                          </div>
+                        </li>
+                      );
+                    })}
+                    {stillChecking.map((d) => (
+                      <li
+                        key={d}
+                        className="flex min-h-[68px] items-center gap-3 rounded-xl border border-dashed border-border px-3.5 py-3"
+                      >
+                        <Loader2 className="size-5 shrink-0 animate-spin text-muted-foreground motion-reduce:animate-none" aria-hidden />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium text-foreground">{d}</span>
+                          <span className="text-xs text-muted-foreground">Checking with the registry…</span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
 
-              {/* Bottom-only skeleton while appending List more results */}
-              {isLoadingMore && (
-                <div className="flex items-center gap-2 py-3 text-sm text-muted-foreground border-t border-border">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Loading more extensions…
-                </div>
-              )}
+                {taken.length > 0 && (
+                  <p className="mt-3 flex items-start gap-2 text-xs text-muted-foreground">
+                    <XCircle className="mt-px size-3.5 shrink-0" aria-hidden />
+                    <span>
+                      <span className="font-medium">Taken:</span> {taken.map((r) => r.domain).join(", ")}
+                    </span>
+                  </p>
+                )}
 
-              {hasMore && !isLoading && results.length > 0 && (
-                <div className="pt-2 flex justify-center">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="rounded-xl"
-                    disabled={isLoadingMore}
-                    onClick={() => void handleListMore()}
-                  >
-                    {isLoadingMore ? "Loading…" : "List more"}
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
+                {unchecked.length > 0 && (
+                  <p className="mt-2 flex items-start gap-2 text-xs text-muted-foreground">
+                    <AlertCircle className="mt-px size-3.5 shrink-0" aria-hidden />
+                    <span>
+                      <span className="font-medium">Couldn&apos;t check right now:</span>{" "}
+                      {unchecked.map((r) => r.domain).join(", ")}. Search again in a moment.
+                    </span>
+                  </p>
+                )}
+
+                {isLoadingMore && (
+                  <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden />
+                    Loading more extensions…
+                  </div>
+                )}
+
+                {hasMore && !isLoading && stillChecking.length === 0 && results.length > 0 && (
+                  <div className="mt-3 flex justify-center">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="min-h-11 rounded-xl text-primary"
+                      disabled={isLoadingMore}
+                      onClick={() => void handleListMore()}
+                    >
+                      {isLoadingMore ? "Loading…" : "Show more extensions"}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {!searchedName && !isLoading && (
-            <p className="text-xs text-muted-foreground mt-3 text-center">
-              Search a name or full domain. We check .co.ke, .ke, .com, .net, .store, .app and more.
+            <p className="mt-3 text-xs text-muted-foreground">
+              Type a name or a full domain. We check .co.ke, .ke, .com, .net, .store, .app and more.
             </p>
           )}
         </>
@@ -767,6 +804,7 @@ function DomainUpsellInner({
                 if (transferStatus !== "idle") {
                   setTransferStatus("idle");
                   setTransferMessage("");
+                  lastTransferResultRef.current = null;
                   setTransferResult(null);
                   setTransferPriceKes(null);
                 }
@@ -774,7 +812,7 @@ function DomainUpsellInner({
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleTransferCheck();
               }}
-              placeholder="e.g. mybusiness.co.ke or mybusiness.com"
+              placeholder="e.g. mybusiness.com"
               className="h-11 rounded-xl text-sm"
               disabled={transferStatus === "loading"}
             />
@@ -814,30 +852,26 @@ function DomainUpsellInner({
             </div>
           )}
 
-          {transferStatus === "error" && transferApiStatus === "locked" && (
-            <div className="mt-4 flex gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
-              <Lock className="h-5 w-5 shrink-0 text-amber-600" />
+          {transferResult &&
+            !transferResult.transferrable &&
+            transferApiStatus !== "available" && (
+              <TransferCheckReport
+                className="mt-4"
+                result={transferResult}
+                onCheckAgain={handleTransferCheck}
+                checking={transferStatus === "loading"}
+              />
+            )}
+
+          {transferStatus === "error" && transferMessage && !transferResult && (
+            <div className="mt-4 flex gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+              <AlertCircle className="h-5 w-5 shrink-0 text-destructive" />
               <div>
-                <h4 className="text-sm font-semibold text-foreground">Domain is locked</h4>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Unlock it at your current registrar, wait about 15 seconds, then check again.
-                </p>
+                <h4 className="text-sm font-semibold text-destructive">We couldn&apos;t check this domain</h4>
+                <p className="mt-1 text-sm text-muted-foreground">{transferMessage}</p>
               </div>
             </div>
           )}
-
-          {transferStatus === "error" &&
-            transferMessage &&
-            transferApiStatus !== "available" &&
-            transferApiStatus !== "locked" && (
-              <div className="mt-4 flex gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
-                <AlertCircle className="h-5 w-5 shrink-0 text-destructive" />
-                <div>
-                  <h4 className="text-sm font-semibold text-destructive">Transfer not available</h4>
-                  <p className="mt-1 text-sm text-muted-foreground">{transferMessage}</p>
-                </div>
-              </div>
-            )}
 
           {transferStatus === "valid" && transferPricingLoading && (
             <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
@@ -864,6 +898,9 @@ function DomainUpsellInner({
                     </span>
                     <span className="text-xs text-muted-foreground">
                       Transfer + 1 year renewal
+                      {transferResult.details?.registrar
+                        ? ` · from ${transferResult.details.registrar}`
+                        : ""}
                     </span>
                   </div>
                   <Badge className="text-xs bg-primary/10 text-primary border-primary/20 hidden sm:inline-flex shrink-0">
@@ -873,16 +910,20 @@ function DomainUpsellInner({
 
                 <div className="flex items-center gap-3 shrink-0">
                   <span className="text-sm font-bold text-foreground whitespace-nowrap">
-                    KES {transferPriceKes!.toLocaleString()}
+                    {formatDisplayKes(transferPriceKes!) ?? "Updating price…"}
                   </span>
                   <Button
+                    type="button"
                     size="sm"
-                    variant={selectedDomain?.domain === transferResult.domain ? "destructive" : "outline"}
+                    variant="outline"
                     className={cn(
-                      "h-8 w-8 p-0 rounded-lg transition-all",
-                      selectedDomain?.domain !== transferResult.domain &&
-                        "border-primary text-primary hover:bg-primary/10",
+                      "h-8 min-h-0 rounded-full px-3 text-xs",
+                      selectedDomain?.domain === transferResult.domain
+                        ? "border-transparent text-muted-foreground hover:text-destructive"
+                        : "border-primary/40 text-primary hover:bg-primary/10",
                     )}
+                    disabled={kesToCurrencyRate === null}
+                    aria-pressed={selectedDomain?.domain === transferResult.domain}
                     onClick={() => {
                       if (selectedDomain?.domain === transferResult.domain) {
                         onDomainSelect(null);
@@ -896,17 +937,8 @@ function DomainUpsellInner({
                         provider: transferResult.provider ?? undefined,
                       });
                     }}
-                    aria-label={
-                      selectedDomain?.domain === transferResult.domain
-                        ? "Remove transfer domain"
-                        : "Add transfer domain"
-                    }
                   >
-                    {selectedDomain?.domain === transferResult.domain ? (
-                      <Minus className="w-4 h-4" />
-                    ) : (
-                      <Plus className="w-4 h-4" />
-                    )}
+                    {selectedDomain?.domain === transferResult.domain ? "Remove" : "Add to cart"}
                   </Button>
                 </div>
               </div>
@@ -919,7 +951,7 @@ function DomainUpsellInner({
       {tab === "own" && (
         <>
           <p className="text-sm text-muted-foreground mb-3">
-            Enter the domain you already own. We&apos;ll use it as the name for your hosting subscription and connect it after setup  no domain purchase is added.
+            Keep your domain where it is and point it to your new service. Nothing is added to your bill.
           </p>
           <div className="flex gap-2">
             <div className="flex-1">
@@ -930,7 +962,8 @@ function DomainUpsellInner({
                   if (ownDomainError) setOwnDomainError(null);
                 }}
                 onKeyDown={(e) => { if (e.key === "Enter") handleAddOwnDomain(); }}
-                placeholder="e.g. mybusiness.co.ke"
+                placeholder="e.g. mybusiness.com"
+                aria-label="Domain you already own"
                 className={cn(
                   "h-11 rounded-xl text-sm",
                   ownDomainError && "border-destructive focus-visible:ring-destructive",
@@ -943,34 +976,30 @@ function DomainUpsellInner({
             <Button
               onClick={handleAddOwnDomain}
               disabled={!ownDomainInput.trim()}
-              className="h-11 px-5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shrink-0"
+              variant="outline"
+              className="h-8 min-h-0 shrink-0 self-center rounded-full border-primary/40 px-3 text-xs text-primary hover:bg-primary/10"
             >
-              Add
+              Connect
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            No extra charge  you already own this domain.
-          </p>
+          <ol className="mt-3 space-y-1 text-xs text-muted-foreground">
+            <li>1. Your domain stays registered with your current provider.</li>
+            <li>2. After setup, update its nameservers or DNS records there to point to Nisc Cloud.</li>
+            <li>3. Want everything in one place later? You can transfer it to us any time.</li>
+          </ol>
         </>
       )}
 
       {/* Selected domain confirmation */}
       {selectedDomain && (
-        <div
-          className={cn(
-            "mt-4 rounded-xl border p-4",
-            selectedDomain.isTransfer
-              ? "border-primary/30 bg-primary/5"
-              : "border-emerald-500/20 bg-emerald-500/10",
-          )}
-        >
+        <div className="mt-4 rounded-xl border border-primary/30 bg-primary/5 p-4">
           <div className="flex items-start gap-3">
             {selectedDomain.isTransfer ? (
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <ArrowLeftRight className="h-4 w-4" />
               </div>
             ) : (
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-1" />
+              <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-1" aria-hidden />
             )}
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-3">
@@ -981,32 +1010,27 @@ function DomainUpsellInner({
                   <p
                     className={cn(
                       "text-xs mt-0.5",
-                      selectedDomain.isTransfer
-                        ? "text-muted-foreground"
-                        : "text-emerald-700 dark:text-emerald-400",
+                      "text-muted-foreground",
                     )}
                   >
                     {selectedDomain.isExisting
-                      ? "Will be used as your subscription name and connected after setup"
+                      ? "Connected to your order · stays with your current provider · no charge"
                       : selectedDomain.isTransfer
                         ? "Domain transfer added to your order"
                         : "Domain registration added to your order"}
                     {!selectedDomain.isExisting && selectedDomain.priceKes > 0 && (
                       <span className="ml-1">
-                        · KES {selectedDomain.priceKes.toLocaleString()}
+                        · {formatDisplayKes(selectedDomain.priceKes) ?? "Updating price…"}
                         {selectedDomain.isTransfer ? "" : "/yr"}
                       </span>
                     )}
                   </p>
                 </div>
-                <button
+                <Button
                   type="button"
-                  className={cn(
-                    "text-xs underline hover:no-underline shrink-0",
-                    selectedDomain.isTransfer
-                      ? "text-primary"
-                      : "text-emerald-600 dark:text-emerald-400",
-                  )}
+                  variant="outline"
+                  size="sm"
+                  className="h-8 min-h-0 shrink-0 rounded-full px-3 text-xs text-muted-foreground hover:text-destructive"
                   onClick={() => {
                     onDomainSelect(null);
                     onTransferAuthCodeChange?.("");
@@ -1014,7 +1038,7 @@ function DomainUpsellInner({
                   }}
                 >
                   Remove
-                </button>
+                </Button>
               </div>
 
               {selectedDomain.isTransfer && onTransferAuthCodeChange && (
@@ -1055,13 +1079,22 @@ function DomainUpsellInner({
                       )}
                     </Button>
                   </div>
+                  <div className="mt-3">
+                    <EppGuide
+                      registrar={
+                        transferResult?.domain === selectedDomain.domain && transferResult.details?.registrar
+                          ? transferResult.details.registrar
+                          : "your current registrar"
+                      }
+                    />
+                  </div>
                 </div>
               )}
             </div>
           </div>
         </div>
       )}
-    </div>
+    </section>
   );
 }
 

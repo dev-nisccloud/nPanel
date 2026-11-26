@@ -327,7 +327,7 @@ function InvoiceCard({ invoice, onRefetch }: InvoiceCardProps) {
 					if ((e.target as HTMLElement).closest('[role="menu"], [role="menuitem"], button')) {
 						return;
 					}
-					window.location.href = `/agency/invoices/${invoice.id}`;
+					window.location.href = `/hq/invoices/${invoice.id}`;
 				}}
 			>
 				<div className="space-y-2 flex-1">
@@ -376,7 +376,7 @@ function InvoiceCard({ invoice, onRefetch }: InvoiceCardProps) {
 							<DropdownMenuItem
 								onClick={(e) => {
 									e.stopPropagation();
-									navigate(`/agency/invoices/${invoice.id}`);
+									navigate(`/hq/invoices/${invoice.id}`);
 								}}
 								disabled={isDownloading || isResending || isDeleting}
 							>

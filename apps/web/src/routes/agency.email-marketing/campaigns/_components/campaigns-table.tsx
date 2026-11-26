@@ -211,7 +211,7 @@ function CampaignRowActions({ campaign, onRefetch }: CampaignRowActionsProps) {
 								</Button>
 							</DropdownMenuTrigger>
 							<DropdownMenuContent align="end" className="w-48">
-								<DropdownMenuItem onClick={() => navigate(`/agency/email-marketing/campaigns/${campaign.id}`)}>
+								<DropdownMenuItem onClick={() => navigate(`/hq/email-marketing/campaigns/${campaign.id}`)}>
 									View Details
 								</DropdownMenuItem>
 								<DropdownMenuItem onClick={handleRefresh} disabled={isRefreshing}>
@@ -305,7 +305,7 @@ export function CampaignsTable({ campaigns, onRefetch }: CampaignsTableProps) {
 						<TableRow key={campaign.id}>
 							<TableCell className="pl-6">
 								<Link
-									to={`/agency/email-marketing/campaigns/${campaign.id}`}
+									to={`/hq/email-marketing/campaigns/${campaign.id}`}
 									className="flex items-center gap-2 font-medium text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded"
 								>
 									<Mail className="h-4 w-4 text-muted-foreground shrink-0" />

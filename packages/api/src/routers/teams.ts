@@ -208,8 +208,9 @@ export const teamsRouter = router({
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-+|-+$/g, "");
 
-      // Check if slug already exists and make it unique
-      let slug = baseSlug;
+      // These words are staff and app addresses, so a team cannot take them.
+      const reservedSlugs = new Set(["agency", "hq", "auth", "api"]);
+      let slug = !baseSlug || reservedSlugs.has(baseSlug) ? `${baseSlug || "team"}-team` : baseSlug;
       let counter = 1;
 
       while (true) {
@@ -1452,7 +1453,7 @@ export const teamsRouter = router({
       if (!isAgencyRole(userRole)) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "Only agency users can add members without an invitation",
+          message: "Only Nisc HQ staff can add members without an invitation",
         });
       }
       await assertTeamMutationAccess(input.teamId, session.user.id, userRole);

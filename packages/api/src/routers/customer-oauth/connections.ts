@@ -23,7 +23,7 @@ export const customerOAuthConnectionsRouter = router({
     .input(
       z
         .object({
-          platform: z.enum(["meta_facebook", "google_ads", "linkedin_ads"]).optional(),
+          platform: z.enum(["meta_facebook", "meta_facebook_pages", "google_ads", "linkedin_ads"]).optional(),
           status: z
             .enum(["ACTIVE", "EXPIRED", "REVOKED", "ERROR", "PENDING_SELECTION"])
             .optional(),
@@ -75,9 +75,10 @@ export const customerOAuthConnectionsRouter = router({
 
           return {
             ...connection,
-            // Don't expose encrypted tokens
+            // Don't expose encrypted tokens or cached page tokens
             accessToken: undefined,
             refreshToken: undefined,
+            selectionData: undefined,
             assetCount: assetCountResult.count,
             activeAssetCount: activeAssetCountResult.count,
             needsAction:
@@ -128,9 +129,10 @@ export const customerOAuthConnectionsRouter = router({
 
       return {
         ...connection,
-        // Don't expose encrypted tokens
+        // Don't expose encrypted tokens or cached page tokens
         accessToken: undefined,
         refreshToken: undefined,
+        selectionData: undefined,
         assets: assets.map((asset) => ({
           ...asset,
           assetAccessToken: undefined, // Don't expose page tokens

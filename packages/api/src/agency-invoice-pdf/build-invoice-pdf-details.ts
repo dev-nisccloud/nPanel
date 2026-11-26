@@ -14,8 +14,10 @@ import type {
 	EtimsFiscalFields,
 } from "./types";
 
-import { COMPANY_LOGO_URL } from "../lib/company-branding";
-import { taxBucketsFromKraPayload } from "./tis-receipt-totals";
+import { COMPANY_LOGO_URL, resolvePdfLogoUrl } from "../lib/company-branding";
+import { isKraCopyReceiptLabel, isKraCopySalesType } from "../lib/etims-scu-print";
+import { salesTyCdFromKraPayload } from "../lib/etims-fiscal-fields";
+import { resolveLineEtimsTaxBand, taxBucketsFromKraPayload } from "./tis-receipt-totals";
 
 export { COMPANY_LOGO_URL } from "../lib/company-branding";
 export { resolveInvoiceEtimsVerificationUrl } from "../lib/etims-receipt-url";
@@ -40,7 +42,11 @@ export function buildInvoicePdfDetails(invoice: InvoiceDetail): {
 		yourCountry: fromDetails?.country as string | undefined,
 		yourZip: fromDetails?.zip as string | undefined,
 		yourTaxId: fromDetails?.taxId as string | undefined,
-		yourLogo: COMPANY_LOGO_URL,
+		yourLogo: resolvePdfLogoUrl(
+			(typeof fromDetails?.logoUrl === "string" && fromDetails.logoUrl.trim()
+				? fromDetails.logoUrl
+				: COMPANY_LOGO_URL),
+		),
 	};
 
 	const companyDetails: CompanyDetails = {
@@ -59,12 +65,22 @@ export function buildInvoicePdfDetails(invoice: InvoiceDetail): {
 			? (invoice.metadata as Record<string, unknown>)
 			: {};
 	const invoiceSource = typeof invoiceMeta.source === "string" ? invoiceMeta.source : null;
+	const salesTyCd =
+		salesTyCdFromKraPayload(invoice.kraSyncPayload, invoice.kraSyncResponse) ??
+		(invoice as InvoiceDetail & { etimsFiscal?: EtimsFiscalFields | null }).etimsFiscal?.salesTyCd ??
+		null;
+	const isCopyReceipt =
+		isKraCopySalesType(salesTyCd) ||
+		isKraCopyReceiptLabel(
+			(invoice as InvoiceDetail & { etimsFiscal?: EtimsFiscalFields | null }).etimsFiscal?.receiptLabel,
+		);
 
 	const invoiceDetails: InvoiceItemDetails = {
 		note: invoice.note ?? undefined,
 		discount: invoice.discount ?? undefined,
 		taxRate: invoice.taxPercentage != null ? String(invoice.taxPercentage) : undefined,
-		items: (invoice.lineItems ?? []).map((li) => {
+		isCopyReceipt,
+		items: (invoice.lineItems ?? []).map((li, index, lines) => {
 			const lineMeta =
 				li.metadata && typeof li.metadata === "object"
 					? (li.metadata as Record<string, unknown>)
@@ -86,6 +102,12 @@ export function buildInvoicePdfDetails(invoice: InvoiceDetail): {
 					typeof billingCycle === "string" && billingCycle !== "__unset__"
 						? billingCycle
 						: undefined,
+				etimsTaxTyCd: resolveLineEtimsTaxBand({
+					metadata: lineMeta,
+					kraPayloads: [invoice.kraSyncPayload, invoice.kraSyncResponse],
+					index,
+					lineCount: lines.length,
+				}),
 			};
 		}),
 		currency: invoice.currency ?? "KES",
@@ -96,11 +118,16 @@ export function buildInvoicePdfDetails(invoice: InvoiceDetail): {
 			undefined,
 	};
 
+	const storedSdcId =
+		(invoice as InvoiceDetail & { etimsFiscal?: EtimsFiscalFields | null }).etimsFiscal?.sdcId ??
+		null;
 	const etimsFiscal =
 		extractEtimsFiscalFieldsFromInvoice(invoice, {
 			tisReceiptNumber: invoice.invoiceNumber,
 			tisIssuedAt: invoice.issueDate,
 			itemCount: invoiceDetails.items.length,
+			sdcId: storedSdcId,
+			salesTyCd,
 		}) ??
 		ensureEtimsPrintFields(
 			(invoice as InvoiceDetail & { etimsFiscal?: EtimsFiscalFields | null }).etimsFiscal,
@@ -108,11 +135,14 @@ export function buildInvoicePdfDetails(invoice: InvoiceDetail): {
 				tisReceiptNumber: invoice.invoiceNumber,
 				tisIssuedAt: invoice.issueDate,
 				itemCount: invoiceDetails.items.length,
+				sdcId: storedSdcId,
+				salesTyCd,
 			},
 		);
 
 	const invoiceTerms: InvoiceTerms = {
 		invoiceNumber: invoice.invoiceNumber ?? undefined,
+		scuId: etimsFiscal?.sdcId ?? undefined,
 		issueDate: invoice.issueDate ?? undefined,
 		issuedAtDisplay:
 			formatKraSdcDateTimeDisplay(etimsFiscal.sdcDateTime) ??

@@ -8,7 +8,7 @@ import {
   HostingSubscriptionsList,
 } from "@/components/hosting/hosting-subscriptions-list";
 import { CleanListCell } from "@/components/ui/clean-list";
-import { ViewDetailsButton, VisitSiteButton } from "@/components/ui/list-row-actions";
+import { ViewDetailsButton } from "@/components/ui/list-row-actions";
 import { PurchaseAnotherPlanButton } from "@/routes/$slug.marketplace/_components/purchase-another-plan-button";
 
 import { HostingPricing } from "./hosting-pricing";
@@ -56,7 +56,6 @@ export function HostingDataTable() {
     const detailId = emailHostingDetailId(subscription);
     const titleText =
       subscription.primaryDomain ?? subscription.subscriptionName ?? subscription.id;
-    const siteUrl = subscription.primaryDomain ?? subscription.subscriptionName;
     const detailHref = `/${teamSlug}/emails/${detailId}`;
     const subscribed = formatListDate(subscription.subscriptionDate);
     const expires = formatListDate(subscription.expiryDate);
@@ -92,12 +91,7 @@ export function HostingDataTable() {
           />
         ),
       },
-      actions: (
-        <>
-          <VisitSiteButton url={siteUrl} />
-          <ViewDetailsButton onClick={() => navigate(detailHref)} />
-        </>
-      ),
+      actions: <ViewDetailsButton onClick={() => navigate(detailHref)} />,
       onClick: () => navigate(detailHref),
     };
   });

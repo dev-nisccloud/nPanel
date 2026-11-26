@@ -204,6 +204,7 @@ export default function ETimsProductsPage() {
                 }}
                 items={itemList}
                 initialItem={stockItem}
+                onSuccess={() => void refetch()}
             />
 
             <ViewETimsItemSheet
@@ -329,7 +330,7 @@ export default function ETimsProductsPage() {
                                     <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
                                 </Button>
                                 <Button variant="outline" asChild>
-                                    <Link to="/agency/kra-etims/stock">
+                                    <Link to="/hq/kra-etims/stock">
                                         <Warehouse className="mr-2 h-4 w-4" />
                                         Stock taking
                                     </Link>

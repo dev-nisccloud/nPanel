@@ -149,7 +149,7 @@ export function CustomerSubscriptionsTable({ onViewSubscription, onRenewSubscrip
 				),
 				details: zeepo ? (
 					<div className="flex min-w-0 flex-col gap-0.5">
-						<p className="truncate text-sm font-medium text-foreground">Remaining tokens</p>
+						<p className="truncate text-sm font-medium text-foreground">Remaining credits</p>
 						<CleanListCell>{formatRemainingTokenCount(sub.remainingTokens)}</CleanListCell>
 					</div>
 				) : (

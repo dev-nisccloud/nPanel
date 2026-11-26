@@ -12,6 +12,7 @@ import { createRouteHandler } from "uploadthing/server";
 import { ourFileRouter } from "./api/uploadthing";
 import { createBunWebSocket } from "hono/bun";
 import { handleVpsSshUpgrade } from "./api/ws/vps-ssh";
+import { handleCareerApply, handleCareerCvDownload } from "./api/careers";
 
 import { registerAuthCustomRoutes } from "./auth-custom-routes";
 import { handleImageGenerator } from "./api/workers/image-generator";
@@ -30,13 +31,12 @@ import { handleZeepoAiSupportGuestStream } from "./api/zeepo-ai-support-guest-st
 import { handleEmailBuilderAi } from "./api/workers/email-builder-ai";
 import { handleNiscEmailBuilder } from "./api/workers/nisc-email-builder";
 import { handleEmailBuilderAiWebhook } from "./api/webhooks/replicate-email-builder-ai";
-import { handleMetaAdsAnalysis } from "./api/workers/meta-ads-analysis";
-import { handleMetaAdsAnalysisWebhook } from "./api/webhooks/replicate-meta-ads-analysis";
 import { handleInvoiceKraSync } from "./api/workers/invoice-kra-sync";
 import { handleSeoSuiteRankCheck } from "./api/workers/seo-suite-rank";
 import { handleSeoSuiteAudit } from "./api/workers/seo-suite-audit";
 import { handleSubscriptionRenewalReminders } from "./api/workers/subscription-renewal-reminders";
 
+import { handleCustomerOAuthCallback } from "./api/customer-oauth-callback";
 import { handleHealth } from "./api/health";
 import { handleManifest } from "./api/manifest";
 import { handlePleskHealthCheck } from "./api/plesk-health-check";
@@ -45,12 +45,15 @@ import { handleNiscBackupDownloadFile } from "./api/nisc-backup-download-file";
 import { handleHostingFtpDownload } from "./api/hosting-ftp-download";
 import { handleHostingFtpExtract } from "./api/hosting-ftp-extract";
 import { handleHostingFtpUpload } from "./api/hosting-ftp-upload";
+import { handleNiscStorageObject } from "./api/nisc-storage-object";
+import { handleNiscStorageUpload } from "./api/nisc-storage-upload";
 import { handleTestPleskConnection } from "./api/test-plesk-connection";
 import { handlePhpMyAdminSso } from "./api/hosting-phpmyadmin";
 import { handlePhpMyAdminProxy } from "./api/hosting-phpmyadmin-proxy";
 import { handleTestKenicConnection } from "./api/test-kenic-connection";
 import { handleMpesaWebhook } from "./api/webhooks/mpesa";
 import { handleJengaCallback, handleJengaIpn } from "./api/webhooks/jenga";
+import { handlePaystackWebhook } from "./api/webhooks/paystack";
 import { handleReplicateWebhook } from "./api/webhooks/replicate-image-generator";
 import { handleResendWebhook } from "./api/webhooks/resend";
 import { handleSnsWebhook } from "./api/webhooks/sns";
@@ -237,6 +240,8 @@ export function createApp(options: CreateAppOptions = {}) {
     app.use("/trpc/*", trpcMiddleware);
     app.use("/api/trpc/*", trpcMiddleware);
 
+    app.get("/api/oauth/:platform/callback", handleCustomerOAuthCallback);
+
     app.get("/manifest.json", handleManifest);
     app.get("/api/manifest.json", handleManifest);
     app.get("/api/plesk/health-check", handlePleskHealthCheck);
@@ -249,9 +254,13 @@ export function createApp(options: CreateAppOptions = {}) {
     app.get("/api/nisc-backup/downloads/:id/file", handleNiscBackupDownloadFile);
     app.get("/api/hosting/ftp/download", handleHostingFtpDownload);
     app.put("/api/hosting/ftp/upload", handleHostingFtpUpload);
+    app.put("/api/nisc-storage/upload", handleNiscStorageUpload);
+    app.get("/api/nisc-storage/object", handleNiscStorageObject);
     app.post("/api/hosting/ftp/extract", handleHostingFtpExtract);
     app.get("/api/kenic/test-connection", handleTestKenicConnection);
     app.get("/api/my-ip", handleMyIp);
+    app.post("/api/careers/apply", handleCareerApply);
+    app.get("/api/careers/applications/:id/cv", handleCareerCvDownload);
 
     app.post("/api/ai/image-generator", apiKeyAuth, handleExternalImageGeneration);
 
@@ -261,6 +270,7 @@ export function createApp(options: CreateAppOptions = {}) {
     app.on(["POST"], "/api/webhooks/mpesa", handleMpesaWebhook);
     app.on(["GET"], "/api/webhooks/jenga/callback", handleJengaCallback);
     app.on(["POST"], "/api/webhooks/jenga/ipn", handleJengaIpn);
+    app.on(["POST"], "/api/webhooks/paystack", handlePaystackWebhook);
     app.on(["POST"], "/api/webhooks/replicate", handleReplicateWebhook);
     app.on(["POST"], "/api/webhooks/zeepo-canvas", handleZeepoCanvasWebhook);
     app.on(["POST"], "/api/webhooks/zeepo-agent", handleZeepoAgentWebhook);
@@ -269,8 +279,6 @@ export function createApp(options: CreateAppOptions = {}) {
     app.on(["POST"], "/api/webhooks/resend", handleResendWebhook);
     app.on(["POST"], "/api/webhooks/sns", handleSnsWebhook);
     app.on(["POST"], "/api/webhooks/replicate/email-builder-ai", handleEmailBuilderAiWebhook);
-    app.on(["POST"], "/api/webhooks/replicate/meta-ads-analysis", handleMetaAdsAnalysisWebhook);
-
     app.get("/api/ws/vps-ssh", upgradeWebSocket(handleVpsSshUpgrade));
 
     const uploadthingHandler = createRouteHandler({
@@ -295,7 +303,6 @@ export function createApp(options: CreateAppOptions = {}) {
     app.on(["POST"], "/api/workers/zeepo-agent*", handleZeepoAgent);
     app.on(["POST"], "/api/workers/email-builder-ai*", handleEmailBuilderAi);
     app.on(["POST"], "/api/workers/nisc-email-builder*", handleNiscEmailBuilder);
-    app.on(["POST"], "/api/workers/meta-ads-analysis*", handleMetaAdsAnalysis);
     app.on(["POST"], "/api/workers/invoice-kra-sync*", handleInvoiceKraSync);
     app.on(["POST"], "/api/workers/seo-suite-rank*", handleSeoSuiteRankCheck);
     app.on(["POST"], "/api/workers/seo-suite-audit*", handleSeoSuiteAudit);

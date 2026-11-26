@@ -12,6 +12,7 @@ export default function ServicesPage() {
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       <Navbar />
+      <main id="main-content">
       <ServiceHero />
       <ServicesFeatureBlocks />
       <CreateDetail />
@@ -19,6 +20,7 @@ export default function ServicesPage() {
       <MarketDetail />
       <AutomateDetail />
       <ServicesCTA />
+      </main>
       <Footer />
     </div>
   );

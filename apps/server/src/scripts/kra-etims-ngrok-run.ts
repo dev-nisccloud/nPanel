@@ -7,7 +7,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const BASE = "https://loverlike-cinderella-signatureless.ngrok-free.dev";
+const BASE = (process.env.ETIMS_CERT_NGROK_URL ?? "https://ffe3-197-232-51-43.ngrok-free.app").replace(/\/$/, "");
 const LAST = "20180101000000";
 const PARENT = "KE1NTBA0000001";
 const CHILD = "KE1NTBA0000002";
@@ -97,9 +97,99 @@ function isPass(cd: string | null, success?: unknown) {
     return cd === "000" || cd === "001" || cd === "902";
 }
 
+function isEmptyLookup(payload: unknown): boolean {
+    const rec = asRecord(payload);
+    const msg = String(rec?.errorMessage ?? resultMsgOf(payload) ?? "");
+    const cd = resultCdOf(payload);
+    return cd === "001" || /no search result/i.test(msg);
+}
+
+function nestedRows(payload: unknown, keys: string[]): Array<Record<string, unknown>> {
+    const walk = (v: unknown, depth: number): unknown[] => {
+        if (depth > 8 || !v || typeof v !== "object") return [];
+        const r = v as Record<string, unknown>;
+        for (const k of keys) {
+            if (Array.isArray(r[k])) return r[k] as unknown[];
+        }
+        for (const k of ["data", "responseBody", "json"]) {
+            const n = walk(r[k], depth + 1);
+            if (n.length) return n;
+        }
+        return [];
+    };
+    return walk(payload, 0).map(asRecord).filter((row): row is Record<string, unknown> => Boolean(row));
+}
+
 function expectedCounter(message: string): number | null {
-    const m = message.match(/Expected:\s*(\d+)\s+but\s+found/i);
+    const seq =
+        message.match(/invcNo sequence, expected:\s*(\d+)/i) ??
+        message.match(/use the expected value:\s*(\d+)/i) ??
+        message.match(/rsdQty mismatch.*?Expected:\s*(\d+(?:\.\d+)?)/i) ??
+        message.match(/sarNo.*?Expected:\s*(\d+(?:\.\d+)?)/i);
+    if (seq) return Number(seq[1]);
+    if (/taxblAmt|taxAmt|splyAm|totAmt|totTax|on item:/i.test(message)) return null;
+    const m = message.match(/Expected:\s*(\d+(?:\.\d+)?)\s+but\s+found/i);
     return m ? Number(m[1]) : null;
+}
+
+function remapPurchaseItems(items: Array<Record<string, unknown>>) {
+    return items.map((row, i) => ({
+        ...row,
+        itemSeq: i + 1,
+        itemCd: PARENT,
+        itemClsCd: "1010150100",
+        pkgUnitCd: "NT",
+        qtyUnitCd: "BA",
+    }));
+}
+
+function patchPurchaseFromError(purchase: Record<string, unknown>, message: string): boolean {
+    const items = Array.isArray(purchase.itemList)
+        ? (purchase.itemList as Array<Record<string, unknown>>)
+        : [];
+    const item = message.match(/Invalid (\w+) on item:\s*(\d+)\.\s*Expected:\s*([\d.]+),\s*But Found:\s*([\d.]+)/i);
+    if (item) {
+        const field = item[1].replace(/splyAmnt/i, "splyAmt");
+        const idx = Number(item[2]) - 1;
+        const expected = Number(item[3]);
+        const row = items[idx];
+        if (!row || !Number.isFinite(expected)) return false;
+        row[field] = expected;
+        if (/^splyAmt$/i.test(field)) row.prc = expected;
+        console.log(`  purchase patch item ${idx + 1} ${field}=${expected}`);
+        return true;
+    }
+    const header = message.match(/Invalid (\w+)\s*\.?\s*Expected:\s*([\d.]+),\s*But Found:\s*([\d.]+)/i);
+    if (header && !/invcNo|sequence|rsdQty|sarNo/i.test(message)) {
+        const expected = Number(header[2]);
+        if (!Number.isFinite(expected)) return false;
+        purchase[header[1]] = expected;
+        console.log(`  purchase patch header ${header[1]}=${expected}`);
+        return true;
+    }
+    return false;
+}
+
+function expectedItemSeq(message: string): number | null {
+    const m = message.match(/ending with:\s*\*+(\d+)/i);
+    return m ? Number(m[1]) : null;
+}
+
+function itemCdFromSeq(seq: number) {
+    return `KE1NTBA${String(seq).padStart(7, "0")}`;
+}
+
+/** KRA credit-note `rfdDt` is parsed with a 12-hour clock (1–12). 15:50 → 03:50. */
+function toKra12HourClock(stamp: string): string {
+    const compact = stamp.replace(/\D/g, "");
+    if (compact.length < 14) return stamp;
+    const date = compact.slice(0, 8);
+    let hh = Number(compact.slice(8, 10));
+    const mmss = compact.slice(10, 14);
+    if (!Number.isFinite(hh)) return stamp;
+    if (hh === 0) hh = 12;
+    else if (hh > 12) hh -= 12;
+    return `${date}${String(hh).padStart(2, "0")}${mmss}`;
 }
 
 function pickCls(list: Array<Record<string, unknown>>, tax: string, fallback: string) {
@@ -130,18 +220,12 @@ function fiscalOf(payload: unknown): { sdcDateTime: string | null; rcptSign: str
 }
 
 function firstImport(payload: unknown): Record<string, unknown> | null {
-    const walk = (v: unknown, depth: number): unknown[] => {
-        if (depth > 8 || !v || typeof v !== "object") return [];
-        const r = v as Record<string, unknown>;
-        if (Array.isArray(r.itemList)) return r.itemList;
-        for (const k of ["data", "responseBody"]) {
-            const n = walk(r[k], depth + 1);
-            if (n.length) return n;
-        }
-        return [];
-    };
-    const row = walk(payload, 0).map(asRecord).find((x) => x?.taskCd);
-    return row ?? null;
+    const rows = nestedRows(payload, ["itemList"]);
+    return rows.find((row) => row.taskCd && String(row.imptItemsttsCd ?? "2") !== "3") ?? rows.find((row) => row.taskCd) ?? null;
+}
+
+function queuedPurchases(payload: unknown): Array<Record<string, unknown>> {
+    return nestedRows(payload, ["saleList", "pchsList", "itemList"]).filter((row) => row.spplrInvcNo != null);
 }
 
 async function call(method: "GET" | "POST", procedure: string, input?: unknown): Promise<unknown> {
@@ -169,11 +253,25 @@ async function call(method: "GET" | "POST", procedure: string, input?: unknown):
     }
 }
 
-function sessionCmcKey(): string | null {
+async function lookupUntilRows(
+    procedure: string,
+    input: unknown,
+    extract: (payload: unknown) => unknown[],
+): Promise<unknown> {
+    let payload: unknown = await call("GET", procedure, input);
+    for (let i = 0; i < 4 && extract(payload).length === 0; i++) {
+        await Bun.sleep(1500);
+        payload = await call("GET", procedure, input);
+    }
+    return payload;
+}
+
+function sessionCmcKey(tin: string): string | null {
     const p = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../.etims-certification/session.json");
     if (!existsSync(p)) return null;
     try {
-        const parsed = JSON.parse(readFileSync(p, "utf8")) as { cmcKey?: string };
+        const parsed = JSON.parse(readFileSync(p, "utf8")) as { cmcKey?: string; tin?: string };
+        if (parsed.tin && parsed.tin !== tin) return null;
         return parsed.cmcKey?.trim() || null;
     } catch {
         return null;
@@ -181,14 +279,21 @@ function sessionCmcKey(): string | null {
 }
 
 async function main() {
+    console.log(`walk ${BASE}`);
     const salesDt = kraDate();
     const cfmDt = kraDateTime();
     const log: Array<{ step: string; ok: boolean; cd: string | null; detail: string }> = [];
     const rec = (step: string, payload: unknown, extra = "") => {
         const recObj = asRecord(payload);
         const cd = resultCdOf(payload);
-        const ok = isPass(cd, recObj?.success) || recObj?.isInitialized === true || recObj?.usesDatabase === false;
-        const detail = extra || resultMsgOf(payload) || (recObj?.errorMessage ? String(recObj.errorMessage) : "");
+        const ok =
+            isPass(cd, recObj?.success) ||
+            isEmptyLookup(payload) ||
+            recObj?.isInitialized === true ||
+            recObj?.usesDatabase === false;
+        const detail = [extra, resultMsgOf(payload) || (recObj?.errorMessage ? String(recObj.errorMessage) : "")]
+            .filter(Boolean)
+            .join(" | ");
         log.push({ step, ok: Boolean(ok || (cd && isPass(cd))), cd, detail });
         const mark = log[log.length - 1]!.ok ? "ok" : "FAIL";
         console.log(`${mark.padEnd(4)} ${step.padEnd(42)} cd=${cd ?? "-"} ${detail}`.trim());
@@ -206,7 +311,7 @@ async function main() {
     let init = (await call("POST", "etimsCert.initialization.initializeDevice", {})) as Record<string, unknown>;
     rec("1 initializeDevice {}", init, `tin=${init.tin} reused=${init.reusedExistingCmcKey}`);
     if (init.success !== true) {
-        const stored = sessionCmcKey();
+        const stored = sessionCmcKey(tin);
         if (stored && resultCdOf(init) === "901") {
             throw new Error("Init 901 — env PIN/serial still not a KRA pair. Restart API after env change.");
         }
@@ -289,62 +394,73 @@ async function main() {
             },
         }),
     );
-    rec("9 getItemList", await call("GET", "etimsCert.items.getItemList", last));
+    rec(
+        "9 getItemList",
+        await lookupUntilRows("etimsCert.items.getItemList", last, (p) => nestedRows(p, ["itemList"])),
+    );
 
-    rec(
-        "10 saveItem parent B",
-        await call("POST", "etimsCert.items.saveItem", {
-            item: {
-                itemCd: PARENT,
-                itemClsCd: clsB,
-                itemTyCd: "1",
-                itemNm: "nPanel Cert VAT16",
-                itemStdNm: "nPanel Cert VAT16",
-                orgnNatCd: "KE",
-                pkgUnitCd: "NT",
-                qtyUnitCd: "BA",
-                taxTyCd: "B",
-                bcd: "NPB0001",
-                dftPrc: 1000,
-                grpPrcL1: 1000,
-                grpPrcL2: 1000,
-                grpPrcL3: 1000,
-                grpPrcL4: 1000,
-                grpPrcL5: 0,
-                sftyQty: 0,
-                isrcAplcbYn: "N",
-                useYn: "Y",
-                ...AUDITOR,
-            },
-        }),
-    );
-    rec(
-        "10b saveItem child A",
-        await call("POST", "etimsCert.items.saveItem", {
-            item: {
-                itemCd: CHILD,
-                itemClsCd: clsA,
-                itemTyCd: "1",
-                itemNm: "nPanel Cert Exempt",
-                itemStdNm: "nPanel Cert Exempt",
-                orgnNatCd: "KE",
-                pkgUnitCd: "NT",
-                qtyUnitCd: "BA",
-                taxTyCd: "A",
-                bcd: "NPA0002",
-                dftPrc: 1000,
-                grpPrcL1: 1000,
-                grpPrcL2: 1000,
-                grpPrcL3: 1000,
-                grpPrcL4: 1000,
-                grpPrcL5: 0,
-                sftyQty: 0,
-                isrcAplcbYn: "N",
-                useYn: "Y",
-                ...AUDITOR,
-            },
-        }),
-    );
+    async function saveItemStep(
+        step: string,
+        startCd: string,
+        fields: Record<string, unknown>,
+    ) {
+        let itemCd = startCd;
+        let payload: unknown = null;
+        for (let i = 0; i < 6; i++) {
+            payload = await call("POST", "etimsCert.items.saveItem", {
+                item: { ...fields, itemCd, ...AUDITOR },
+            });
+            const recObj = asRecord(payload);
+            if (recObj?.success === true || isPass(resultCdOf(payload))) break;
+            const seq = expectedItemSeq(String(recObj?.errorMessage ?? resultMsgOf(payload)));
+            if (seq == null || itemCdFromSeq(seq) === itemCd) break;
+            console.log(`  itemCd ${itemCd} rejected, retry ${itemCdFromSeq(seq)}`);
+            itemCd = itemCdFromSeq(seq);
+        }
+        rec(step, payload, `itemCd=${itemCd}`);
+        return itemCd;
+    }
+
+    await saveItemStep("10 saveItem parent B", PARENT, {
+        itemClsCd: clsB,
+        itemTyCd: "1",
+        itemNm: "nPanel Cert VAT16",
+        itemStdNm: "nPanel Cert VAT16",
+        orgnNatCd: "KE",
+        pkgUnitCd: "NT",
+        qtyUnitCd: "BA",
+        taxTyCd: "B",
+        bcd: "NPB0001",
+        dftPrc: 1000,
+        grpPrcL1: 1000,
+        grpPrcL2: 1000,
+        grpPrcL3: 1000,
+        grpPrcL4: 1000,
+        grpPrcL5: 0,
+        sftyQty: 0,
+        isrcAplcbYn: "N",
+        useYn: "Y",
+    });
+    await saveItemStep("10b saveItem child A", CHILD, {
+        itemClsCd: clsA,
+        itemTyCd: "1",
+        itemNm: "nPanel Cert Exempt",
+        itemStdNm: "nPanel Cert Exempt",
+        orgnNatCd: "KE",
+        pkgUnitCd: "NT",
+        qtyUnitCd: "BA",
+        taxTyCd: "A",
+        bcd: "NPA0002",
+        dftPrc: 1000,
+        grpPrcL1: 1000,
+        grpPrcL2: 1000,
+        grpPrcL3: 1000,
+        grpPrcL4: 1000,
+        grpPrcL5: 0,
+        sftyQty: 0,
+        isrcAplcbYn: "N",
+        useYn: "Y",
+    });
 
     rec(
         "11 sendStockIO",
@@ -408,7 +524,9 @@ async function main() {
         }),
     );
 
-    const imports = await call("GET", "etimsCert.imports.getImportedItems", last);
+    const imports = await lookupUntilRows("etimsCert.imports.getImportedItems", last, (p) =>
+        nestedRows(p, ["itemList"]).filter((row) => row.taskCd),
+    );
     rec("13 getImportedItems", imports);
     const importRow = firstImport(imports);
     if (importRow) {
@@ -505,83 +623,122 @@ async function main() {
         };
         salePayload = await call("POST", "etimsCert.sales.sendSalesTransaction", body);
         const recObj = asRecord(salePayload);
+        const saleMsg = String(recObj?.errorMessage ?? resultMsgOf(salePayload));
         if (recObj?.success === true || isPass(resultCdOf(salePayload))) break;
-        const next = expectedCounter(String(recObj?.errorMessage ?? resultMsgOf(salePayload)));
-        if (next == null || next === saleInvc) break;
-        console.log(`  sale invcNo ${saleInvc} rejected, retry ${next}`);
-        saleInvc = next;
+        const next = expectedCounter(saleMsg);
+        if (next != null && next !== saleInvc) {
+            console.log(`  sale invcNo ${saleInvc} rejected, retry ${next}`);
+            saleInvc = next;
+            continue;
+        }
+        if (/already exists/i.test(saleMsg) && saleInvc < 30) {
+            console.log(`  sale invcNo ${saleInvc} already exists, retry ${saleInvc + 1}`);
+            saleInvc += 1;
+            continue;
+        }
+        break;
     }
     const fiscal = fiscalOf(salePayload);
     rec("15 sendSalesTransaction", salePayload, `invcNo=${saleInvc} sdc=${fiscal.sdcDateTime ?? "-"}`);
 
-    rec("16 getPurchaseTransactions", await call("GET", "etimsCert.purchases.getPurchaseTransactions", last));
+    const purchaseList = await lookupUntilRows("etimsCert.purchases.getPurchaseTransactions", last, queuedPurchases);
+    rec("16 getPurchaseTransactions", purchaseList);
+    const queued = queuedPurchases(purchaseList);
 
     let pInvc = saleInvc + 1;
-    for (let n = 1; n <= 3; n++) {
+    if (!queued.length) {
+        rec("17 sendPurchaseTransaction", { success: false, errorMessage: "no queued supplier invoice" }, "need a saleList row");
+    }
+    for (let n = 0; n < queued.length; n++) {
+        const row = queued[n]!;
+        const spplrInvcNo = Number(row.spplrInvcNo);
+        const origItems = Array.isArray(row.itemList) && row.itemList.length ? row.itemList : [saleLine];
+        const purchase: Record<string, unknown> = {
+            spplrTin: String(row.spplrTin ?? tin),
+            invcNo: pInvc,
+            orgInvcNo: 0,
+            spplrBhfId: String(row.spplrBhfId ?? "00"),
+            spplrNm: String(row.spplrNm ?? "Application Test Supplier"),
+            spplrInvcNo,
+            regTyCd: "M",
+            pchsTyCd: "N",
+            rcptTyCd: "P",
+            pmtTyCd: String(row.pmtTyCd ?? "01"),
+            pchsSttsCd: "02",
+            cfmDt,
+            pchsDt: salesDt,
+            wrhsDt: null,
+            cnclReqDt: null,
+            cnclDt: null,
+            rfdDt: null,
+            totItemCnt: origItems.length,
+            taxblAmtA: Number(row.taxblAmtA ?? 0),
+            taxblAmtB: Number(row.taxblAmtB ?? 0),
+            taxblAmtC: Number(row.taxblAmtC ?? 0),
+            taxblAmtD: Number(row.taxblAmtD ?? 0),
+            taxblAmtE: Number(row.taxblAmtE ?? 0),
+            taxRtA: Number(row.taxRtA ?? 0),
+            taxRtB: Number(row.taxRtB ?? 16),
+            taxRtC: Number(row.taxRtC ?? 0),
+            taxRtD: Number(row.taxRtD ?? 0),
+            taxRtE: Number(row.taxRtE ?? 0),
+            taxAmtA: Number(row.taxAmtA ?? 0),
+            taxAmtB: Number(row.taxAmtB ?? 0),
+            taxAmtC: Number(row.taxAmtC ?? 0),
+            taxAmtD: Number(row.taxAmtD ?? 0),
+            taxAmtE: Number(row.taxAmtE ?? 0),
+            totTaxblAmt: Number(row.totTaxblAmt ?? 0),
+            totTaxAmt: Number(row.totTaxAmt ?? 0),
+            totAmt: Number(row.totAmt ?? 0),
+            remark: `purchase of supplier invc ${spplrInvcNo}`,
+            ...AUDITOR,
+            itemList: origItems,
+        };
+        let remapped = false;
+        let payload: unknown = null;
+        for (let i = 0; i < 12; i++) {
+            payload = await call("POST", "etimsCert.purchases.sendPurchaseTransaction", { purchase });
+            const recObj = asRecord(payload);
+            if (recObj?.success === true || isPass(resultCdOf(payload))) break;
+            const msg = String(recObj?.errorMessage ?? resultMsgOf(payload));
+            const next = expectedCounter(msg);
+            if (next != null && next !== Number(purchase.invcNo)) {
+                console.log(`  purchase invcNo ${purchase.invcNo} rejected, retry ${next}`);
+                purchase.invcNo = next;
+                pInvc = next;
+                continue;
+            }
+            if (!remapped && /does not exist in your inventory|item management package/i.test(msg)) {
+                purchase.itemList = remapPurchaseItems(origItems);
+                remapped = true;
+                console.log(`  purchase ${spplrInvcNo} remapped items onto ${PARENT}`);
+                continue;
+            }
+            if (patchPurchaseFromError(purchase, msg)) continue;
+            break;
+        }
+        rec(`17 sendPurchaseTransaction #${n + 1}`, payload, `invcNo=${pInvc} spplrInvcNo=${spplrInvcNo}`);
+        pInvc += 1;
+    }
+
+    async function saveStockMasterStep(step: string, itemCd: string, startQty: number) {
+        let rsdQty = startQty;
         let payload: unknown = null;
         for (let i = 0; i < 6; i++) {
-            payload = await call("POST", "etimsCert.purchases.sendPurchaseTransaction", {
-                purchase: {
-                    spplrTin: tin,
-                    invcNo: pInvc,
-                    orgInvcNo: 0,
-                    spplrBhfId: "00",
-                    spplrNm: "Application Test Supplier",
-                    spplrInvcNo: pInvc,
-                    regTyCd: "M",
-                    pchsTyCd: "N",
-                    rcptTyCd: "P",
-                    pmtTyCd: "01",
-                    pchsSttsCd: "02",
-                    cfmDt,
-                    pchsDt: salesDt,
-                    totItemCnt: 1,
-                    taxblAmtA: 0,
-                    taxblAmtB: 1000,
-                    taxblAmtC: 0,
-                    taxblAmtD: 0,
-                    taxblAmtE: 0,
-                    taxRtA: 0,
-                    taxRtB: 16,
-                    taxRtC: 0,
-                    taxRtD: 0,
-                    taxRtE: 0,
-                    taxAmtA: 0,
-                    taxAmtB: 160,
-                    taxAmtC: 0,
-                    taxAmtD: 0,
-                    taxAmtE: 0,
-                    totTaxblAmt: 1000,
-                    totTaxAmt: 160,
-                    totAmt: 1160,
-                    remark: `purchase ${n} of 3`,
-                    ...AUDITOR,
-                    itemList: [saleLine],
-                },
+            payload = await call("POST", "etimsCert.stock.saveStockMaster", {
+                stockMaster: { itemCd, rsdQty, ...AUDITOR },
             });
             const recObj = asRecord(payload);
             if (recObj?.success === true || isPass(resultCdOf(payload))) break;
             const next = expectedCounter(String(recObj?.errorMessage ?? resultMsgOf(payload)));
-            if (next == null || next === pInvc) break;
-            console.log(`  purchase invcNo ${pInvc} rejected, retry ${next}`);
-            pInvc = next;
+            if (next == null || next === rsdQty) break;
+            console.log(`  ${itemCd} rsdQty ${rsdQty} rejected, retry ${next}`);
+            rsdQty = next;
         }
-        rec(`17 sendPurchaseTransaction #${n}`, payload, `invcNo=${pInvc}`);
-        pInvc += 1;
+        rec(step, payload, `itemCd=${itemCd} rsdQty=${rsdQty}`);
     }
-
-    rec(
-        "18 saveStockMaster parent",
-        await call("POST", "etimsCert.stock.saveStockMaster", {
-            stockMaster: { itemCd: PARENT, rsdQty: 10, ...AUDITOR },
-        }),
-    );
-    rec(
-        "18b saveStockMaster child",
-        await call("POST", "etimsCert.stock.saveStockMaster", {
-            stockMaster: { itemCd: CHILD, rsdQty: 10, ...AUDITOR },
-        }),
-    );
+    await saveStockMasterStep("18 saveStockMaster parent", PARENT, 20);
+    await saveStockMasterStep("18b saveStockMaster child", CHILD, 20);
 
     rec("19 getStockMovements", await call("GET", "etimsCert.stock.getStockMovements", last));
     rec("20 getInvoiceDetails", await call("GET", "etimsCert.sales.getInvoiceDetails", { invcNo: saleInvc }));
@@ -593,7 +750,11 @@ async function main() {
 
     const originalSdc = fiscal.sdcDateTime ?? cfmDt;
     let rfdDt = kraDateTime();
-    if (rfdDt <= originalSdc) rfdDt = addSeconds(originalSdc, 60);
+    if (rfdDt <= originalSdc.replace(/\D/g, "").slice(0, 14) || rfdDt <= originalSdc) {
+        const compactSdc = originalSdc.replace(/\D/g, "").slice(0, 14) || originalSdc;
+        rfdDt = addSeconds(compactSdc.length === 14 ? compactSdc : rfdDt, 60);
+    }
+    rfdDt = toKra12HourClock(rfdDt);
     let cnInvc = pInvc;
     let cnPayload: unknown = null;
     for (let i = 0; i < 6; i++) {

@@ -177,6 +177,15 @@ export function CreateTeamDialog({ open, onOpenChange, onSuccess }: CreateTeamDi
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   />
                 </div>
+                {formData.teamLogo ? (
+                  <button
+                    type="button"
+                    className="text-sm font-medium underline"
+                    onClick={() => setFormData((prev) => ({ ...prev, teamLogo: null }))}
+                  >
+                    Remove logo
+                  </button>
+                ) : null}
               </div>
 
               {/* Organization Name */}

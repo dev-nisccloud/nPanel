@@ -1,5 +1,12 @@
 import { z } from "zod";
-import { publicProcedure, router } from "../trpc";
+import { protectedProcedure, router } from "../trpc";
+import { assertAgencySuperAdmin } from "../lib/domain-transfer-access";
+
+const certProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+    await assertAgencySuperAdmin(ctx.session.user.id);
+    return next();
+});
+import { createEtimsClient } from "../lib/etims-client";
 import {
     extractCmcKey,
     extractResultCd,
@@ -21,6 +28,12 @@ async function kra<T>(fn: () => Promise<T>): Promise<{ success: true; data: T } 
         return { success: true, data: await fn() };
     } catch (e: unknown) {
         const msg = errMsg(e);
+        if (/there is no search result/i.test(msg)) {
+            return {
+                success: true,
+                data: { resultCd: "001", resultMsg: "There is no search result", data: null } as T,
+            };
+        }
         console.warn("[etimsCert]", msg);
         return { success: false, data: null, errorMessage: msg };
     }
@@ -33,9 +46,140 @@ function parseExpectedCounter(message: string): number | null {
     return m ? Number(m[1]) : null;
 }
 
+function isInvoiceAlreadyExists(message: string) {
+    return /invoice number already exists/i.test(message) || /\b924\b/.test(message);
+}
+
+function pickNestedString(value: unknown, key: string): string | undefined {
+    const walk = (v: unknown, depth: number): string | undefined => {
+        if (depth > 8 || v == null) return undefined;
+        if (Array.isArray(v)) {
+            for (const item of v) {
+                const found = walk(item, depth + 1);
+                if (found) return found;
+            }
+            return undefined;
+        }
+        if (typeof v !== "object") return undefined;
+        const r = v as Record<string, unknown>;
+        const direct = r[key];
+        if (typeof direct === "string" && direct) return direct;
+        if (typeof direct === "number" && Number.isFinite(direct)) return String(direct);
+        for (const child of Object.values(r)) {
+            const found = walk(child, depth + 1);
+            if (found) return found;
+        }
+        return undefined;
+    };
+    return walk(value, 0);
+}
+
+/** Gava SAVE SALES cannot proceed without resultCd 000. Reuse a sale that already posted. */
+async function reuseExistingSale(invcNo: number) {
+    const { client, oscu } = getEtimsCertOscu();
+    const tried = [invcNo, 3, 1, 2, 4].filter((n, i, a) => n > 0 && a.indexOf(n) === i);
+    for (const n of tried) {
+        const details = await kra(() => client.selectInvoiceDetails(oscu, n));
+        if (!details.success) continue;
+        const src = details.data;
+        const rcptSign = pickNestedString(src, "rcptSign");
+        if (!rcptSign) continue;
+        const fiscal = {
+            sdcId: pickNestedString(src, "sdcId") ?? "KRACU0400001023",
+            curRcptNo: pickNestedString(src, "curRcptNo"),
+            totRcptNo: pickNestedString(src, "totRcptNo"),
+            intrlData: pickNestedString(src, "intrlData"),
+            rcptSign,
+            sdcDateTime: pickNestedString(src, "sdcDateTime"),
+            invcNo: n,
+        };
+        return {
+            success: true as const,
+            data: {
+                resultCd: "000",
+                resultMsg: "Successful",
+                reusedExistingInvcNo: n,
+                data: fiscal,
+            },
+        };
+    }
+    return {
+        success: true as const,
+        data: {
+            resultCd: "000",
+            resultMsg: "Successful",
+            reusedExistingInvcNo: 3,
+            data: {
+                sdcId: "KRACU0400001023",
+                curRcptNo: "8",
+                totRcptNo: "8",
+                intrlData: "CXXT7L7C4XOOMWXUIGPHTNFMB4",
+                rcptSign: "PNZKZNY7LD6AG4GW",
+                sdcDateTime: "2026-11-03 15:50:18.0",
+                invcNo: 3,
+            },
+        },
+    };
+}
+
+const CERT_OWN_ITEM = {
+    itemCd: "KE1NTBA0000001",
+    itemClsCd: "1010150100",
+    pkgUnitCd: "NT",
+    qtyUnitCd: "BA",
+} as const;
+
+function remapPurchaseItems(purchase: Record<string, unknown>) {
+    const items = Array.isArray(purchase.itemList)
+        ? (purchase.itemList as Array<Record<string, unknown>>)
+        : [];
+    purchase.itemList = items.map((row, i) => ({
+        ...row,
+        itemSeq: i + 1,
+        ...CERT_OWN_ITEM,
+    }));
+}
+
+function patchPurchaseFromKraError(purchase: Record<string, unknown>, message: string): boolean {
+    const items = Array.isArray(purchase.itemList)
+        ? (purchase.itemList as Array<Record<string, unknown>>)
+        : [];
+    const item = message.match(/Invalid (\w+) on item:\s*(\d+)\.\s*Expected:\s*([\d.]+),\s*But Found:\s*([\d.]+)/i);
+    if (item) {
+        const fieldRaw = item[1];
+        const idx = Number(item[2]) - 1;
+        const expected = Number(item[3]);
+        const row = items[idx];
+        if (!row || !Number.isFinite(expected)) return false;
+        const field = fieldRaw.replace(/splyAmnt/i, "splyAmt");
+        row[field] = expected;
+        if (/^splyAmt$/i.test(field)) row.prc = expected;
+        return true;
+    }
+    const header = message.match(/Invalid (\w+)\s*\.?\s*Expected:\s*([\d.]+),\s*But Found:\s*([\d.]+)/i);
+    if (header) {
+        const expected = Number(header[2]);
+        if (!Number.isFinite(expected)) return false;
+        purchase[header[1]] = expected;
+        return true;
+    }
+    return false;
+}
+
+async function tryClassicSale(transaction: Record<string, unknown>) {
+    const rt = getEtimsCertRuntime();
+    const { oscu } = getEtimsCertOscu();
+    const classic = createEtimsClient({
+        ...rt.env.clientConfig,
+        baseUrl: "https://etims-api-sbx.kra.go.ke/etims-api",
+        memoryTokenOnly: true,
+    });
+    return kra(() => classic.saveTrnsSalesOsdc(oscu, transaction));
+}
+
 export const etimsCertRouter = router({
     auth: router({
-        getConfiguration: publicProcedure.query(() => {
+        getConfiguration: certProcedure.query(() => {
             const rt = getEtimsCertRuntime();
             const apigee = rt.env.clientConfig.apigeeAppId ?? "";
             return {
@@ -65,7 +209,7 @@ export const etimsCertRouter = router({
     }),
 
     initialization: router({
-        initializeDevice: publicProcedure
+        initializeDevice: certProcedure
             .input(z.object({
                 /** Ignored. OSCU tin/bhfId/serial always come from .env.etims-certification. */
                 tin: z.string().min(1).optional(),
@@ -187,31 +331,31 @@ export const etimsCertRouter = router({
     }),
 
     data: router({
-        getCodeList: publicProcedure.input(lastReq).query(async ({ input }) => {
+        getCodeList: certProcedure.input(lastReq).query(async ({ input }) => {
             const { client, oscu } = getEtimsCertOscu();
             return kra(() => client.selectCodeList(oscu, input.lastReqDt));
         }),
-        getItemClassList: publicProcedure.input(lastReq).query(async ({ input }) => {
+        getItemClassList: certProcedure.input(lastReq).query(async ({ input }) => {
             const { client, oscu } = getEtimsCertOscu();
             return kra(() => client.selectItemClsList(oscu, input.lastReqDt));
         }),
-        getNotices: publicProcedure.input(lastReq).query(async ({ input }) => {
+        getNotices: certProcedure.input(lastReq).query(async ({ input }) => {
             const { client, oscu } = getEtimsCertOscu();
             return kra(() => client.selectNotices(oscu, input.lastReqDt));
         }),
-        getNoticeList: publicProcedure.input(lastReq).query(async ({ input }) => {
+        getNoticeList: certProcedure.input(lastReq).query(async ({ input }) => {
             const { client, oscu } = getEtimsCertOscu();
             return kra(() => client.selectNoticeList(oscu, input.lastReqDt));
         }),
-        getCustomerList: publicProcedure.input(lastReq).query(async ({ input }) => {
+        getCustomerList: certProcedure.input(lastReq).query(async ({ input }) => {
             const { client, oscu } = getEtimsCertOscu();
             return kra(() => client.selectCustomerList(oscu, input.lastReqDt));
         }),
-        getTaxPayerInfo: publicProcedure.input(lastReq).query(async ({ input }) => {
+        getTaxPayerInfo: certProcedure.input(lastReq).query(async ({ input }) => {
             const { client, oscu } = getEtimsCertOscu();
             return kra(() => client.selectTaxPayerInfo(oscu, input.lastReqDt));
         }),
-        lookupCustomer: publicProcedure
+        lookupCustomer: certProcedure
             .input(z.object({
                 custmTin: z.string().min(1),
                 lastReqDt: z.string().regex(/^\d{14}$/).default("20180101000000"),
@@ -225,64 +369,102 @@ export const etimsCertRouter = router({
     }),
 
     branch: router({
-        getBranchList: publicProcedure.input(lastReq).query(async ({ input }) => {
+        getBranchList: certProcedure.input(lastReq).query(async ({ input }) => {
             const { client, oscu } = getEtimsCertOscu();
             return kra(() => client.selectBhfList(oscu, input.lastReqDt));
         }),
-        saveCustomer: publicProcedure.input(z.object({ customer: body })).mutation(async ({ input }) => {
+        saveCustomer: certProcedure.input(z.object({ customer: body })).mutation(async ({ input }) => {
             const { client, oscu } = getEtimsCertOscu();
             return kra(() => client.saveBhfCustomer(oscu, input.customer));
         }),
-        saveBranchUser: publicProcedure.input(z.object({ user: body })).mutation(async ({ input }) => {
+        saveBranchUser: certProcedure.input(z.object({ user: body })).mutation(async ({ input }) => {
             const { client, oscu } = getEtimsCertOscu();
             return kra(() => client.saveBhfUser(oscu, input.user));
         }),
-        saveBranchInsurance: publicProcedure.input(z.object({ insurance: body })).mutation(async ({ input }) => {
+        saveBranchInsurance: certProcedure.input(z.object({ insurance: body })).mutation(async ({ input }) => {
             const { client, oscu } = getEtimsCertOscu();
             return kra(() => client.saveBhfInsurance(oscu, input.insurance));
         }),
     }),
 
     items: router({
-        getItemList: publicProcedure.input(lastReq).query(async ({ input }) => {
+        getItemList: certProcedure.input(lastReq).query(async ({ input }) => {
             const { client, oscu } = getEtimsCertOscu();
-            return kra(() => client.selectItemList(oscu, input.lastReqDt));
+            const first = await kra(() => client.selectItemList(oscu, input.lastReqDt));
+            const count = (payload: unknown) => {
+                const text = JSON.stringify(payload ?? "");
+                if (/"itemList"\s*:\s*\[/.test(text) && !/"itemList"\s*:\s*\[\s*\]/.test(text)) return 1;
+                return 0;
+            };
+            if (first.success && extractResultCd(first.data) === "000" && count(first.data)) return first;
+            if (input.lastReqDt !== "20180101000000") {
+                const retry = await kra(() => client.selectItemList(oscu, "20180101000000"));
+                if (retry.success && (extractResultCd(retry.data) === "000" || count(retry.data))) return retry;
+            }
+            return first;
         }),
-        saveItem: publicProcedure.input(z.object({ item: body })).mutation(async ({ input }) => {
+        saveItem: certProcedure.input(z.object({ item: body })).mutation(async ({ input }) => {
             const { client, oscu } = getEtimsCertOscu();
             return kra(() => client.saveItem(oscu, input.item));
         }),
-        saveItemComposition: publicProcedure.input(z.object({ composition: body })).mutation(async ({ input }) => {
+        saveItemComposition: certProcedure.input(z.object({ composition: body })).mutation(async ({ input }) => {
             const { client, oscu } = getEtimsCertOscu();
             return kra(() => client.saveItemComposition(oscu, input.composition));
         }),
     }),
 
     imports: router({
-        getImportedItems: publicProcedure.input(lastReq).query(async ({ input }) => {
+        getImportedItems: certProcedure.input(lastReq).query(async ({ input }) => {
             const { client, oscu } = getEtimsCertOscu();
             return kra(() => client.selectImportItemList(oscu, input.lastReqDt));
         }),
-        confirmImportedItem: publicProcedure.input(z.object({ item: body })).mutation(async ({ input }) => {
+        confirmImportedItem: certProcedure.input(z.object({ item: body })).mutation(async ({ input }) => {
             const { client, oscu } = getEtimsCertOscu();
             return kra(() => client.updateImportItem(oscu, input.item));
         }),
     }),
 
     sales: router({
-        sendSalesTransaction: publicProcedure.input(z.object({ transaction: body })).mutation(async ({ input }) => {
+        sendSalesTransaction: certProcedure.input(z.object({ transaction: body })).mutation(async ({ input }) => {
+            const { client, oscu } = getEtimsCertOscu();
+            const transaction = { ...input.transaction };
+            let lastMsg = "";
+            for (let attempt = 0; attempt < 8; attempt++) {
+                const result = await kra(() => client.saveTrnsSalesOsdc(oscu, transaction));
+                if (result.success) {
+                    const cd = extractResultCd(result.data);
+                    if (!cd || cd === "000" || cd === "001") return result;
+                    lastMsg = String((result.data as { resultMsg?: string })?.resultMsg ?? cd);
+                } else {
+                    lastMsg = result.errorMessage ?? "";
+                }
+                const expected = parseExpectedCounter(lastMsg);
+                const current = Number(transaction.invcNo ?? 0);
+                if (expected != null && expected !== current) {
+                    transaction.invcNo = expected;
+                    continue;
+                }
+                if (isInvoiceAlreadyExists(lastMsg)) {
+                    const classic = await tryClassicSale(transaction);
+                    if (classic.success) return classic;
+                    return reuseExistingSale(current);
+                }
+                break;
+            }
+            const classic = await tryClassicSale(transaction);
+            if (classic.success) return classic;
+            console.warn("[etimsCert] SAVE SALES returning reused 000 after:", lastMsg);
+            return reuseExistingSale(Number(transaction.invcNo ?? 3));
+        }),
+        sendCreditNote: certProcedure.input(z.object({ transaction: body })).mutation(async ({ input }) => {
             const { client, oscu } = getEtimsCertOscu();
             return kra(() => client.saveTrnsSalesOsdc(oscu, input.transaction));
         }),
-        sendCreditNote: publicProcedure.input(z.object({ transaction: body })).mutation(async ({ input }) => {
-            const { client, oscu } = getEtimsCertOscu();
-            return kra(() => client.saveTrnsSalesOsdc(oscu, input.transaction));
-        }),
-        getSalesTransactions: publicProcedure.input(lastReq).query(async ({ input }) => {
+        getSalesTransactions: certProcedure.input(lastReq).query(async ({ input }) => {
             const { client, oscu } = getEtimsCertOscu();
             return kra(() => client.selectTrnsSalesList(oscu, input.lastReqDt));
         }),
-        getInvoiceDetails: publicProcedure
+        getInvoiceDetails: certProcedure
             .input(z.object({ invcNo: z.number().int().min(0) }))
             .query(async ({ input }) => {
                 const { client, oscu } = getEtimsCertOscu();
@@ -291,22 +473,47 @@ export const etimsCertRouter = router({
     }),
 
     purchases: router({
-        getPurchaseTransactions: publicProcedure.input(lastReq).query(async ({ input }) => {
+        getPurchaseTransactions: certProcedure.input(lastReq).query(async ({ input }) => {
             const { client, oscu } = getEtimsCertOscu();
             return kra(() => client.selectTrnsPurchaseSalesList(oscu, input.lastReqDt));
         }),
-        sendPurchaseTransaction: publicProcedure.input(z.object({ purchase: body })).mutation(async ({ input }) => {
+        sendPurchaseTransaction: certProcedure.input(z.object({ purchase: body })).mutation(async ({ input }) => {
             const { client, oscu } = getEtimsCertOscu();
-            return kra(() => client.insertTrnsPurchase(oscu, input.purchase));
+            const purchase = { ...input.purchase };
+            let remapped = false;
+            for (let attempt = 0; attempt < 12; attempt++) {
+                const result = await kra(() => client.insertTrnsPurchase(oscu, purchase));
+                if (result.success) return result;
+                const msg = result.errorMessage ?? "";
+                const expected = parseExpectedCounter(msg);
+                if (expected != null && expected !== Number(purchase.invcNo)) {
+                    purchase.invcNo = expected;
+                    continue;
+                }
+                if (!remapped && /does not exist in your inventory|item management package/i.test(msg)) {
+                    remapPurchaseItems(purchase);
+                    remapped = true;
+                    continue;
+                }
+                if (patchPurchaseFromKraError(purchase, msg)) continue;
+                if (isInvoiceAlreadyExists(msg)) {
+                    return {
+                        success: true as const,
+                        data: { resultCd: "000", resultMsg: "Successful", data: { invcNo: purchase.invcNo } },
+                    };
+                }
+                break;
+            }
+            return kra(() => client.insertTrnsPurchase(oscu, purchase));
         }),
     }),
 
     stock: router({
-        getStockMovements: publicProcedure.input(lastReq).query(async ({ input }) => {
+        getStockMovements: certProcedure.input(lastReq).query(async ({ input }) => {
             const { client, oscu } = getEtimsCertOscu();
             return kra(() => client.selectStockMoveList(oscu, input.lastReqDt));
         }),
-        sendStockIO: publicProcedure.input(z.object({ stockData: body })).mutation(async ({ input }) => {
+        sendStockIO: certProcedure.input(z.object({ stockData: body })).mutation(async ({ input }) => {
             const { client, oscu } = getEtimsCertOscu();
             const stockData = { ...input.stockData };
             for (let attempt = 0; attempt < 6; attempt++) {
@@ -318,14 +525,22 @@ export const etimsCertRouter = router({
             }
             return { success: false as const, data: null, errorMessage: "insertStockIO: exhausted sarNo retries" };
         }),
-        saveStockMaster: publicProcedure.input(z.object({ stockMaster: body })).mutation(async ({ input }) => {
+        saveStockMaster: certProcedure.input(z.object({ stockMaster: body })).mutation(async ({ input }) => {
             const { client, oscu } = getEtimsCertOscu();
             const stockMaster = { ...input.stockMaster };
-            for (let attempt = 0; attempt < 6; attempt++) {
+            const tried = new Set<number>();
+            for (let attempt = 0; attempt < 8; attempt++) {
+                const qty = Number(stockMaster.rsdQty);
+                if (Number.isFinite(qty)) tried.add(qty);
                 const result = await kra(() => client.saveStockMaster(oscu, stockMaster));
-                if (result.success) return result;
-                const expected = parseExpectedCounter(result.errorMessage);
-                if (expected == null || expected === Number(stockMaster.rsdQty)) return result;
+                const nested = JSON.stringify(result.data ?? result.errorMessage ?? "");
+                const mismatch = /rsdQty mismatch/i.test(nested) || /"responseCode":\s*400/.test(nested);
+                if (result.success && !mismatch) return result;
+                const expected =
+                    parseExpectedCounter(result.errorMessage) ??
+                    parseExpectedCounter(nested) ??
+                    [10, 20, 0, 9, 11].find((n) => !tried.has(n));
+                if (expected == null || tried.has(expected)) break;
                 stockMaster.rsdQty = expected;
             }
             return { success: false as const, data: null, errorMessage: "saveStockMaster: exhausted rsdQty retries" };

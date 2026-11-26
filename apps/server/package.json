@@ -15,8 +15,10 @@
     "seed:creatives-design": "bun run src/scripts/seed-creatives-design-product.ts",
     "seed:seo-reports": "bun run src/scripts/seed-seo-reports-product.ts",
     "seed:media-buying": "bun run src/scripts/seed-media-buying-product.ts",
+    "seed:social-media": "bun run src/scripts/seed-social-media-product.ts",
     "seed:web-hosting": "bun run src/scripts/seed-web-hosting-product.ts",
     "seed:email-hosting": "bun run src/scripts/seed-email-hosting-product.ts",
+    "seed:nisc-storage": "bun run src/scripts/seed-nisc-storage-product.ts",
     "seed:wordpress-hosting": "bun run src/scripts/seed-wordpress-hosting-product.ts",
     "seed:hosting-products": "bun run src/scripts/seed-web-hosting-product.ts && bun run src/scripts/seed-email-hosting-product.ts && bun run src/scripts/seed-wordpress-hosting-product.ts",
     "seed:planless-services": "bun run src/scripts/seed-planless-services.ts",
@@ -30,6 +32,12 @@
     "etims:golive-invoice": "bun run src/scripts/kra-etims-golive-invoice.ts",
     "etims:sync-classifications": "bun --no-env-file --env-file=./.env run src/scripts/etims-sync-item-classifications.ts",
     "etims:sync-classifications:prod": "bun --no-env-file --env-file=./.env.production run src/scripts/etims-sync-item-classifications.ts",
+    "etims:sync-codes": "bun --no-env-file --env-file=./.env run src/scripts/etims-sync-codes.ts",
+    "etims:sync-codes:prod": "bun --no-env-file --env-file=./.env.production run src/scripts/etims-sync-codes.ts",
+    "etims:seed-sdc-id": "bun --no-env-file --env-file=./.env run src/scripts/etims-seed-sdc-id.ts",
+    "etims:seed-sdc-id:prod": "bun --no-env-file --env-file=./.env.production run src/scripts/etims-seed-sdc-id.ts",
+    "etims:mixed-sale": "bun --no-env-file --env-file=./.env run src/scripts/etims-create-product-and-mixed-sale.ts",
+    "etims:discount-sale": "bun --no-env-file --env-file=./.env run src/scripts/etims-three-products-discount-sale.ts",
     "mock:invoice-pdfs": "bun run src/scripts/mock-invoice-pdfs.ts"
   },
   "dependencies": {

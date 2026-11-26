@@ -11,15 +11,21 @@ import { agentCheckDomainAvailability } from "./agent-internal-tools/domains";
 import {
 	applyHivelocityMarginUsd,
 	getDefaultHivelocityMarginSettings,
-	resolveUsdToKesExchangeRate,
 	type HivelocityMarginRow,
 	type HivelocityProductTypeKey,
 } from "./hivelocity-display-pricing";
-import { ceilConvertedPrice, computeCeilVatTotals } from "./convert-price";
+import { ceilConvertedPrice } from "./convert-price";
 import { checkDomainTransferEligibility } from "./domain-transfer-check";
 import { toRetailPrice } from "./agent-internal-tools/pricing";
 import { hivelocityRequest } from "./hivelocity-client";
 import { extractHivelocityProductMonthlyUsd } from "./hivelocity-product-pricing";
+import {
+	convertWithFxSnapshot,
+	getAuthoritativeFxRate,
+	type FxRateSnapshot,
+} from "./fx-rates";
+import { computeTaxTotals, resolveTaxPolicy } from "./tax-policy";
+import { NISC_EMAIL_MARKETING_PRODUCT_ID } from "./nisc-email-marketing-billing";
 
 export const storefrontBillingCycleSchema = z.enum([
 	"MONTHLY",
@@ -79,12 +85,16 @@ export function isDomainYearlyBillingCycle(cycle: string | null | undefined): bo
 	);
 }
 
+/** Zepo AI credit packs bought from the website cart; sold once, never renewed. */
+export const ZEPO_AI_CREDITS_SERVICE_TYPE = "zeepo_ai";
+
 /** Domains never use MONTHLY; transfers are always 1 year. */
 export function normalizeStorefrontMainBillingCycle(
 	serviceType: string,
 	billingCycle: StorefrontBillingCycle,
 ): StorefrontBillingCycle {
 	if (serviceType === "domain_transfer") return "YEARLY";
+	if (serviceType === ZEPO_AI_CREDITS_SERVICE_TYPE) return "MONTHLY";
 	if (serviceType === "domain_registration") {
 		return isDomainYearlyBillingCycle(billingCycle) ? billingCycle : "YEARLY";
 	}
@@ -110,6 +120,9 @@ export const storefrontCartMainLineSchema = z.object({
 });
 
 export const storefrontCartQuoteInputSchema = z.object({
+	currency: z.enum(["KES", "USD"]).default("KES"),
+	billingCountry: z.string().length(2).optional(),
+	ipCountry: z.string().length(2).optional(),
 	main: storefrontCartMainLineSchema,
 	transferAuthCode: z.string().min(1).optional(),
 	upsellDomain: z
@@ -127,6 +140,13 @@ export const storefrontCartQuoteInputSchema = z.object({
 			billingCycle: storefrontBillingCycleSchema,
 		})
 		.optional(),
+	/** Nisc Outreach add-on, billed on the term the customer picks, as its own subscription. */
+	upsellOutreach: z
+		.object({
+			planId: z.string().min(1),
+			billingCycle: storefrontBillingCycleSchema.default("MONTHLY"),
+		})
+		.optional(),
 	hivelocity: z
 		.object({
 			hivelocityProductId: z.number().int().positive(),
@@ -140,7 +160,18 @@ export const storefrontCartQuoteInputSchema = z.object({
 export type StorefrontCartQuoteInput = z.infer<typeof storefrontCartQuoteInputSchema>;
 
 export type StorefrontCartQuote = {
-	currency: string;
+	currency: "KES" | "USD";
+	sourceCurrency: "KES";
+	sourceSubtotal: number;
+	sourceTaxAmount: number;
+	sourceTotal: number;
+	fxRate: number;
+	fxProvider: FxRateSnapshot["provider"];
+	fxTimestamp: number;
+	fxExpiresAt: number;
+	taxPolicyId: "STANDARD_VAT" | "EXPORT_ZERO_RATED";
+	taxRate: number;
+	taxEvidenceMismatch: boolean;
 	monthlyPrice: number;
 	yearlyPrice: number;
 	planName: string;
@@ -248,12 +279,11 @@ async function fetchHivelocityPricingMargins(productType: HivelocityProductTypeK
 function usdLineToKes(
 	monthlyUsd: number,
 	margin: HivelocityMarginRow | null,
-	kesRate: number | null,
+	kesRate: number,
 ): number {
 	if (monthlyUsd <= 0) return 0;
 	const marginedUsd = applyHivelocityMarginUsd(margin, monthlyUsd);
-	if (kesRate != null) return ceilConvertedPrice(marginedUsd * kesRate);
-	return Math.ceil(marginedUsd);
+	return ceilConvertedPrice(marginedUsd * kesRate);
 }
 
 function parseOptionMonthlyUsd(row: Record<string, unknown>): number {
@@ -261,14 +291,46 @@ function parseOptionMonthlyUsd(row: Record<string, unknown>): number {
 	return Number.isFinite(price) && price > 0 ? price : 0;
 }
 
+function parseOptionName(row: Record<string, unknown>): string {
+	return String(row.name ?? row.optionName ?? row.operatingSystem ?? "").trim();
+}
+
+export type HivelocityQuoteLine = {
+	kind: "base" | "os" | "addon";
+	name: string;
+	optionId?: number;
+	monthlyKes: number;
+};
+
+/** What the customer configured, priced per month, as needed to provision and record the server. */
+export type HivelocityQuoteDetails = {
+	productType: HivelocityProductTypeKey;
+	osName: string;
+	osOptionId: number | null;
+	optionIds: number[];
+	basePriceUsd: number;
+	osPriceUsd: number;
+	addonsPriceUsd: number;
+	usdToKesRate: number;
+	lines: HivelocityQuoteLine[];
+};
+
 export async function resolveNiscPlanQuote(
 	planId: string,
 	billingCycle: StorefrontBillingCycle,
 ): Promise<{ monthly: number; yearly: number; planName: string; currency: string }> {
 	const plan = await db.query.niscProductPlan.findFirst({
-		where: and(eq(niscProductPlan.id, planId), eq(niscProductPlan.isActive, true)),
+		where: and(
+			eq(niscProductPlan.id, planId),
+			eq(niscProductPlan.isActive, true),
+			eq(niscProductPlan.hidden, false),
+		),
+		with: {
+			product: { columns: { hidden: true, isActive: true } },
+		},
 		columns: {
 			id: true,
+			productId: true,
 			name: true,
 			price: true,
 			billingCycle: true,
@@ -276,11 +338,28 @@ export async function resolveNiscPlanQuote(
 		},
 	});
 
-	if (!plan) {
+	if (!plan?.product || plan.product.hidden || !plan.product.isActive) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "The selected plan is no longer available.",
 		});
+	}
+
+	if (isOneTimePlanCycle(plan.billingCycle)) {
+		if (billingCycle !== "MONTHLY") {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "This is a one-time purchase and has no billing term.",
+			});
+		}
+		const price = Number.parseFloat(plan.price ?? "");
+		const amount = Number.isFinite(price) && price > 0 ? Math.round(price * 100) / 100 : 0;
+		return {
+			monthly: amount,
+			yearly: amount,
+			planName: plan.name ?? "",
+			currency: plan.currency ?? "KES",
+		};
 	}
 
 	const pricing = derivePlanPricingKes(plan.price, plan.billingCycle, billingCycle);
@@ -289,6 +368,12 @@ export async function resolveNiscPlanQuote(
 		planName: plan.name ?? "",
 		currency: plan.currency ?? "KES",
 	};
+}
+
+/** Plans sold once (e.g. Zepo AI credit packs): priced as-is and checked out with the MONTHLY cycle. */
+export function isOneTimePlanCycle(planBillingCycle: string | null | undefined): boolean {
+	const cycle = (planBillingCycle ?? "").trim().toUpperCase();
+	return cycle === "CUSTOM" || cycle === "ONE_TIME";
 }
 
 export async function resolveDomainRetailPriceKes(domain: string): Promise<number> {
@@ -361,7 +446,7 @@ async function resolveDomainBundlePriceKes(domains: string[]): Promise<number> {
 	return total;
 }
 
-async function resolveHivelocityBasePricing(
+export async function resolveHivelocityBasePricing(
 	serviceType: string,
 	hivelocityProductId: number,
 	locationName?: string,
@@ -390,12 +475,12 @@ async function resolveHivelocityBasePricing(
 		});
 	}
 
-	const [margins, kesRate] = await Promise.all([
+	const [margins, kesFx] = await Promise.all([
 		fetchHivelocityPricingMargins(productType),
-		resolveUsdToKesExchangeRate(),
+		getAuthoritativeFxRate("USD", "KES"),
 	]);
 
-	const baseKes = usdLineToKes(baseMonthlyUsd, margins.base, kesRate);
+	const baseKes = usdLineToKes(baseMonthlyUsd, margins.base, kesFx.rate);
 	const monthly = baseKes;
 	const yearly = Math.round(monthly * 12);
 
@@ -406,7 +491,7 @@ async function resolveHivelocityMainPricing(
 	serviceType: string,
 	hivelocityProductId: number,
 	config: NonNullable<StorefrontCartQuoteInput["hivelocity"]>,
-): Promise<{ monthly: number; yearly: number }> {
+): Promise<{ monthly: number; yearly: number; details: HivelocityQuoteDetails }> {
 	const productType = serviceTypeToHivelocityProductType(serviceType);
 	if (!productType) {
 		throw new TRPCError({
@@ -431,9 +516,9 @@ async function resolveHivelocityMainPricing(
 		});
 	}
 
-	const [margins, kesRate, osRaw, optionsRaw] = await Promise.all([
+	const [margins, kesFx, osRaw, optionsRaw] = await Promise.all([
 		fetchHivelocityPricingMargins(productType),
-		resolveUsdToKesExchangeRate(),
+		getAuthoritativeFxRate("USD", "KES"),
 		hivelocityRequest<unknown>(`/product/${hivelocityProductId}/operating-systems`, {
 			requireApiKey: true,
 		}),
@@ -443,14 +528,29 @@ async function resolveHivelocityMainPricing(
 		}),
 	]);
 
+	const baseKes = usdLineToKes(baseMonthlyUsd, margins.base, kesFx.rate);
+	const lines: HivelocityQuoteLine[] = [{ kind: "base", name: "Server", monthlyKes: baseKes }];
 	let extrasKes = 0;
+	let osName = "";
+	let osOptionId: number | null = null;
+	let osPriceUsd = 0;
 
 	const osRows = Array.isArray(osRaw) ? osRaw : [];
 	for (const row of osRows) {
 		if (!row || typeof row !== "object") continue;
 		const r = row as Record<string, unknown>;
 		if (String(r.id) !== config.selectedOsId) continue;
-		extrasKes += usdLineToKes(parseOptionMonthlyUsd(r), margins.os, kesRate);
+		osPriceUsd = parseOptionMonthlyUsd(r);
+		const osKes = usdLineToKes(osPriceUsd, margins.os, kesFx.rate);
+		extrasKes += osKes;
+		osName = parseOptionName(r);
+		osOptionId = Number.isFinite(Number(r.id)) ? Number(r.id) : null;
+		lines.push({
+			kind: "os",
+			name: osName || "Operating system",
+			...(osOptionId != null ? { optionId: osOptionId } : {}),
+			monthlyKes: osKes,
+		});
 		break;
 	}
 
@@ -459,6 +559,8 @@ async function resolveHivelocityMainPricing(
 			? (optionsRaw as Record<string, unknown>)
 			: {};
 	const selectedOptionSet = new Set(config.selectedOptionIds);
+	const pricedOptionIds = new Set<number>();
+	let addonsPriceUsd = 0;
 
 	for (const value of Object.values(optionGroups)) {
 		const rows = Array.isArray(value) ? value : [];
@@ -466,16 +568,34 @@ async function resolveHivelocityMainPricing(
 			if (!row || typeof row !== "object") continue;
 			const r = row as Record<string, unknown>;
 			const id = Number(r.id);
-			if (!selectedOptionSet.has(id)) continue;
-			extrasKes += usdLineToKes(parseOptionMonthlyUsd(r), margins.addons, kesRate);
+			if (!selectedOptionSet.has(id) || pricedOptionIds.has(id)) continue;
+			pricedOptionIds.add(id);
+			const usd = parseOptionMonthlyUsd(r);
+			const kes = usdLineToKes(usd, margins.addons, kesFx.rate);
+			addonsPriceUsd += usd;
+			extrasKes += kes;
+			lines.push({ kind: "addon", name: parseOptionName(r) || `Add-on ${id}`, optionId: id, monthlyKes: kes });
 		}
 	}
 
-	const baseKes = usdLineToKes(baseMonthlyUsd, margins.base, kesRate);
 	const monthly = baseKes + extrasKes;
 	const yearly = Math.round(monthly * 12);
 
-	return { monthly, yearly };
+	return {
+		monthly,
+		yearly,
+		details: {
+			productType,
+			osName,
+			osOptionId,
+			optionIds: [...pricedOptionIds],
+			basePriceUsd: baseMonthlyUsd,
+			osPriceUsd,
+			addonsPriceUsd,
+			usdToKesRate: kesFx.rate,
+			lines,
+		},
+	};
 }
 
 export async function resolveMainLineQuote(
@@ -487,6 +607,7 @@ export async function resolveMainLineQuote(
 	planName: string;
 	productName: string;
 	currency: string;
+	hivelocity?: HivelocityQuoteDetails;
 }> {
 	const billingCycle = main.billingCycle;
 	const productName = main.productName?.trim() || "Nisc Cloud Service";
@@ -576,10 +697,12 @@ export async function resolveMainLineQuote(
 		);
 
 		return {
-			...pricing,
+			monthly: pricing.monthly,
+			yearly: pricing.yearly,
 			planName: main.planName?.trim() || "Server Plan",
 			productName,
 			currency: "KES",
+			hivelocity: pricing.details,
 		};
 	}
 
@@ -600,10 +723,34 @@ export async function resolveMainLineQuote(
 	};
 }
 
+/** Outreach add-on lines may only reference an active, public plan of the Outreach product. */
+export async function assertOutreachUpsellPlan(planId: string): Promise<void> {
+	const plan = await db.query.niscProductPlan.findFirst({
+		where: and(
+			eq(niscProductPlan.id, planId),
+			eq(niscProductPlan.productId, NISC_EMAIL_MARKETING_PRODUCT_ID),
+			eq(niscProductPlan.isActive, true),
+			eq(niscProductPlan.hidden, false),
+		),
+		columns: { id: true },
+	});
+	if (!plan) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "The selected Nisc Outreach plan is no longer available.",
+		});
+	}
+}
+
 export async function computeStorefrontCartQuote(
 	input: StorefrontCartQuoteInput,
 ): Promise<StorefrontCartQuote> {
 	const parsed = storefrontCartQuoteInputSchema.parse(input);
+	const targetCurrency = parsed.currency;
+	const toKes = async (amount: number, sourceCurrency: string) => {
+		const snapshot = await getAuthoritativeFxRate(sourceCurrency, "KES");
+		return convertWithFxSnapshot(amount, snapshot);
+	};
 
 	// Domains: yearly terms only. Transfers are always 1 year.
 	const effectiveBillingCycle = normalizeStorefrontMainBillingCycle(
@@ -612,16 +759,24 @@ export async function computeStorefrontCartQuote(
 	);
 
 	const mainQuote = await resolveMainLineQuote(parsed.main, parsed.hivelocity);
-	let subtotal = pickCheckoutPrice(
-		{ monthly: mainQuote.monthly, yearly: mainQuote.yearly },
+	if (mainQuote.hivelocity && !mainQuote.hivelocity.osName) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "The selected operating system is no longer available for this server. Choose another one.",
+		});
+	}
+	const mainMonthlyKes = await toKes(mainQuote.monthly, mainQuote.currency);
+	const mainYearlyKes = await toKes(mainQuote.yearly, mainQuote.currency);
+	let sourceSubtotal = pickCheckoutPrice(
+		{ monthly: mainMonthlyKes, yearly: mainYearlyKes },
 		effectiveBillingCycle,
 	);
 
 	if (parsed.upsellDomain && !parsed.upsellDomain.isExisting) {
 		if (parsed.upsellDomain.isTransfer) {
-			subtotal += await resolveDomainTransferUpsellPriceKes(parsed.upsellDomain.domain);
+			sourceSubtotal += await resolveDomainTransferUpsellPriceKes(parsed.upsellDomain.domain);
 		} else {
-			subtotal += await resolveDomainRetailPriceKes(parsed.upsellDomain.domain);
+			sourceSubtotal += await resolveDomainRetailPriceKes(parsed.upsellDomain.domain);
 		}
 	}
 
@@ -630,25 +785,76 @@ export async function computeStorefrontCartQuote(
 			parsed.upsellHosting.planId,
 			parsed.upsellHosting.billingCycle,
 		);
-		subtotal += pickCheckoutPrice(
-			{ monthly: hostingPlan.monthly, yearly: hostingPlan.yearly },
+		const hostingMonthlyKes = await toKes(hostingPlan.monthly, hostingPlan.currency);
+		const hostingYearlyKes = await toKes(hostingPlan.yearly, hostingPlan.currency);
+		sourceSubtotal += pickCheckoutPrice(
+			{ monthly: hostingMonthlyKes, yearly: hostingYearlyKes },
 			parsed.upsellHosting.billingCycle,
 		);
 	}
 
-	if (subtotal < 1) {
+	if (parsed.upsellOutreach) {
+		if (parsed.main.serviceType === "email_marketing") {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Nisc Outreach is already the main item in this cart.",
+			});
+		}
+		await assertOutreachUpsellPlan(parsed.upsellOutreach.planId);
+		const outreachCycle = parsed.upsellOutreach.billingCycle;
+		const outreachPlan = await resolveNiscPlanQuote(
+			parsed.upsellOutreach.planId,
+			outreachCycle,
+		);
+		sourceSubtotal += pickCheckoutPrice(
+			{
+				monthly: await toKes(outreachPlan.monthly, outreachPlan.currency),
+				yearly: await toKes(outreachPlan.yearly, outreachPlan.currency),
+			},
+			outreachCycle,
+		);
+	}
+
+	if (sourceSubtotal < 1) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: "Unable to calculate a valid checkout total.",
 		});
 	}
 
-	const { vatAmount: taxAmount, totalIncVat: total } = computeCeilVatTotals(subtotal);
+	const taxPolicy = resolveTaxPolicy({
+		billingCountry: parsed.billingCountry,
+		ipCountry: parsed.ipCountry,
+	});
+	const sourceTax = computeTaxTotals(
+		sourceSubtotal,
+		taxPolicy.rate,
+		"KES",
+	);
+	const sourceTaxAmount = sourceTax.taxAmount;
+	const sourceTotal = sourceTax.total;
+	const fxSnapshot = await getAuthoritativeFxRate("KES", targetCurrency);
+	const subtotal = convertWithFxSnapshot(sourceSubtotal, fxSnapshot);
+	const monthlyPrice = convertWithFxSnapshot(mainMonthlyKes, fxSnapshot);
+	const yearlyPrice = convertWithFxSnapshot(mainYearlyKes, fxSnapshot);
+	const taxAmount = convertWithFxSnapshot(sourceTaxAmount, fxSnapshot);
+	const total = convertWithFxSnapshot(sourceTotal, fxSnapshot);
 
 	return {
-		currency: mainQuote.currency,
-		monthlyPrice: mainQuote.monthly,
-		yearlyPrice: mainQuote.yearly,
+		currency: targetCurrency,
+		sourceCurrency: "KES",
+		sourceSubtotal,
+		sourceTaxAmount,
+		sourceTotal,
+		fxRate: fxSnapshot.rate,
+		fxProvider: fxSnapshot.provider,
+		fxTimestamp: fxSnapshot.retrievedAt,
+		fxExpiresAt: fxSnapshot.expiresAt,
+		taxPolicyId: taxPolicy.id,
+		taxRate: taxPolicy.rate,
+		taxEvidenceMismatch: taxPolicy.evidenceMismatch,
+		monthlyPrice,
+		yearlyPrice,
 		planName: mainQuote.planName,
 		productName: mainQuote.productName,
 		serviceType: parsed.main.serviceType,

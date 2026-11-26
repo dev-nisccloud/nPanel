@@ -1,0 +1,34 @@
+---
+description: UX laws from the owner's Instagram reference, and the UI skills to follow on every Nisc Cloud screen
+alwaysApply: true
+---
+
+# UX laws and UI skills
+
+On any change a person sees or taps (website, nPanel, email), read and follow the installed skills `ui-ux-pro-max`, `ui-design`, `anti-ui-slop` and `uizze-ui` before designing. For a UI review, also follow `web-design-guidelines`. These sit alongside `nisc-cloud-website.mdc` and do not override it.
+
+The laws below were saved from the owner's Instagram screenshot on 13 November 2026. Apply the ones the screen actually needs.
+
+- **Hick's law.** Fewer choices. One primary action per view.
+- **Miller's law.** Group into about 4–7 items. A fact band stays at four.
+- **Jakob's law.** Match patterns people already know. Do not invent a new way to navigate.
+- **Fitts's law.** Targets at least 44×44px, with space between them.
+- **Minimise target distance.** Put the next action near the thumb or the pointer, not across the screen.
+- **Proximity, similarity, uniform connectedness, Prägnanz.** Group related items, make like things look alike, join them with a shared edge or background, and keep the simplest layout that works.
+- **Von Restorff.** One standout fact or action. Not every element.
+- **Doherty threshold.** Feedback feels immediate. Jumps and button states do not wait.
+- **Zeigarnik effect.** Show progress on a long task, as the legal pages do with "% read".
+- **Serial position and peak-end.** Put the important point first and close on a clear next step.
+- **Tesler's law.** Keep necessary complexity in the product. Do not hide binding text behind a simpler rewrite.
+- **Postel's law.** Accept imperfect input. Be exact in labels, prices, emails and legal wording.
+- **Parkinson's law.** Do not add sections to fill space.
+- **Occam's razor.** Prefer the smaller change. The legal "In short" boxes and the Sparkles icon were removed because they added a second version of the contract and read as AI.
+- **Pareto principle.** Fix the few elements people actually use.
+
+```tsx
+// Bad: a sparkle on legal or trust content reads as AI-written
+<Sparkles /> <span>In short: …</span>
+
+// Good: the clause itself, a 44px action, progress on a long page
+<a className="inline-flex min-h-11 items-center" href="#credits">Service credits</a>
+```

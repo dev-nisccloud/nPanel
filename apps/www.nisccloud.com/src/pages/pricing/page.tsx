@@ -7,12 +7,14 @@ import PricingCTA from "./_components/PricingCTA.tsx";
 
 export default function PricingPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
+    <div className="min-h-screen overflow-x-clip bg-background text-foreground">
       <Navbar />
+      <main id="main-content">
       <PricingHero />
       <PricingPlans />
       <PricingFAQ />
       <PricingCTA />
+      </main>
       <Footer />
     </div>
   );

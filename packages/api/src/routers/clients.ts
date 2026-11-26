@@ -16,7 +16,8 @@ import {
 } from "@npanel/db/schema/auth-extras";
 import { account, session as sessionTable, user, verification } from "@npanel/db/schema/auth";
 import * as crypto from "crypto";
-import { auth } from "@npanel/auth";
+import { auth, createSetPasswordLink } from "@npanel/auth";
+import { suppressSignupVerificationEmail } from "@npanel/auth/admin-created-account";
 import { hashCredentialPassword } from "@npanel/auth/hash-credential-password";
 import { renderAccountCreatedEmail } from "../lib/email-templates";
 import { sendEmail } from "../lib/email";
@@ -112,7 +113,6 @@ const createClientProfileInputSchema = z.object({
 const createClientInputSchema = z.object({
 	name: z.string().min(1, "Name is required"),
 	email: z.string().email("Invalid email address"),
-	password: z.string().min(8, "Password must be at least 8 characters"),
 	role: z.enum(["CUSTOMER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"]).optional().default("CUSTOMER"),
 	profile: createClientProfileInputSchema.optional(),
 	createOrganization: z
@@ -389,6 +389,16 @@ function isAgencyRole(role: string): boolean {
 	return ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
 }
 
+/** Finer access is enforced by agency RBAC before the handler runs. */
+function assertAgencyStaff(role: string, message: string): void {
+	if (!isAgencyRole(role)) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message,
+		});
+	}
+}
+
 function parseInvoiceAmount(amount: string | null | undefined): number {
 	if (!amount) return 0;
 	const normalized = amount.replace(/,/g, "").trim();
@@ -497,14 +507,8 @@ export const clientsRouter = router({
 				});
 			}
 
-			// Only allow AGENCY_SUPER_ADMIN to create clients
 			const userRole = await getUserRole(session.user.id);
-			if (userRole !== "AGENCY_SUPER_ADMIN") {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "You do not have permission to create clients",
-				});
-			}
+			assertAgencyStaff(userRole, "You do not have permission to create clients");
 
 			const userId = session.user.id;
 
@@ -570,10 +574,13 @@ export const clientsRouter = router({
 
 			// Use Better Auth's signUpEmail API to create the user
 			// This properly handles password hashing and account creation
+			// The person chooses their own password from the emailed link; this one is never shown.
+			const placeholderPassword = crypto.randomBytes(24).toString("base64url");
+			suppressSignupVerificationEmail(input.email);
 			const signupResult = await auth.api.signUpEmail({
 				body: {
 					email: input.email,
-					password: input.password,
+					password: placeholderPassword,
 					name: input.name,
 					// Agency-created accounts bypass the public sign-up form; terms are implied.
 					acceptedTermsAndConditions: true,
@@ -842,16 +849,11 @@ export const clientsRouter = router({
 			}
 			updatedUser = refetchedUser;
 
-			// Send custom credentials email
 			try {
-				const frontendUrl = process.env.CORS_ORIGIN || "http://localhost:3002";
-				const loginLink = `${frontendUrl}/auth/login`;
-
 				const html = await renderAccountCreatedEmail({
 					userFirstname: input.name,
 					email: input.email,
-					password: input.password, // Send plain password in email (they should change it)
-					loginLink,
+					setPasswordLink: await createSetPasswordLink(updatedUser.id),
 				});
 
 				await sendEmail({
@@ -884,14 +886,8 @@ export const clientsRouter = router({
 				});
 			}
 
-			// Only allow AGENCY_SUPER_ADMIN to update clients
 			const userRole = await getUserRole(session.user.id);
-			if (userRole !== "AGENCY_SUPER_ADMIN") {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "You do not have permission to update clients",
-				});
-			}
+			assertAgencyStaff(userRole, "You do not have permission to update clients");
 
 			const userId = session.user.id;
 
@@ -1013,14 +1009,8 @@ export const clientsRouter = router({
 				});
 			}
 
-			// Only allow AGENCY_SUPER_ADMIN to change status
 			const userRole = await getUserRole(session.user.id);
-			if (userRole !== "AGENCY_SUPER_ADMIN") {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "You do not have permission to change client status",
-				});
-			}
+			assertAgencyStaff(userRole, "You do not have permission to change client status");
 
 			const userId = session.user.id;
 
@@ -1397,14 +1387,8 @@ export const clientsRouter = router({
 				});
 			}
 
-			// Only allow AGENCY_SUPER_ADMIN to update profiles
 			const userRole = await getUserRole(session.user.id);
-			if (userRole !== "AGENCY_SUPER_ADMIN") {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "You do not have permission to update profiles",
-				});
-			}
+			assertAgencyStaff(userRole, "You do not have permission to update profiles");
 
 			const userId = session.user.id;
 
@@ -1589,14 +1573,8 @@ export const clientsRouter = router({
 				});
 			}
 
-			// Only allow AGENCY_SUPER_ADMIN to create integrations
 			const userRole = await getUserRole(session.user.id);
-			if (userRole !== "AGENCY_SUPER_ADMIN") {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "You do not have permission to create integrations",
-				});
-			}
+			assertAgencyStaff(userRole, "You do not have permission to create integrations");
 
 			const userId = session.user.id;
 
@@ -1989,14 +1967,8 @@ export const clientsRouter = router({
 				});
 			}
 
-			// Only allow AGENCY_SUPER_ADMIN to check verification
 			const userRole = await getUserRole(session.user.id);
-			if (userRole !== "AGENCY_SUPER_ADMIN") {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "You do not have permission to check email verification status",
-				});
-			}
+			assertAgencyStaff(userRole, "You do not have permission to check email verification status");
 
 			// Get integration
 			const [integration] = await db
@@ -2115,14 +2087,8 @@ export const clientsRouter = router({
 				});
 			}
 
-			// Only allow AGENCY_SUPER_ADMIN to send verification
 			const userRole = await getUserRole(session.user.id);
-			if (userRole !== "AGENCY_SUPER_ADMIN") {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "You do not have permission to send email verification",
-				});
-			}
+			assertAgencyStaff(userRole, "You do not have permission to send email verification");
 
 			const userId = session.user.id;
 

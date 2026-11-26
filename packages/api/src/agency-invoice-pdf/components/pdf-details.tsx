@@ -24,13 +24,22 @@ export const PdfDetails = ({
   documentTitle?: string;
 }) => {
   const isCreditNote = (documentTitle ?? "").toLowerCase().includes("credit");
+  const isCopyReceipt = Boolean(invoiceDetails.isCopyReceipt);
 
   return (
   <View>
     <InvoiceHeaderPdf {...yourDetails} documentTitle={documentTitle} />
 
+    {isCopyReceipt ? (
+      <View style={{ paddingHorizontal: 40, paddingBottom: 6, alignItems: "center" }}>
+        <Text style={{ fontSize: 14, fontWeight: "bold", letterSpacing: 6, color: "#111827" }}>
+          COPY
+        </Text>
+      </View>
+    ) : null}
+
     {isCreditNote ? (
-      <View style={{ paddingHorizontal: 40, paddingBottom: 8 }}>
+      <View style={{ paddingHorizontal: 40, paddingBottom: 4 }}>
         {invoiceTerms.originalCuInvoiceNo ? (
           <Text style={{ fontSize: 9, fontWeight: "bold", color: "#111827", marginBottom: 4 }}>
             ORIGINAL CU INVOICE NO.#: {invoiceTerms.originalCuInvoiceNo}

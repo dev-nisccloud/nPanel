@@ -14,7 +14,6 @@ import {
 import { Input } from "@/components/ui/input.tsx";
 import { Label } from "@/components/ui/label.tsx";
 import { Checkbox } from "@/components/ui/checkbox.tsx";
-import { Separator } from "@/components/ui/separator.tsx";
 import {
   Select,
   SelectContent,
@@ -25,6 +24,7 @@ import {
 import { cn } from "@/lib/utils.ts";
 import {
   buildStorefrontSignInUrl,
+  markStorefrontCartResumeFromLocation,
   type StorefrontCheckoutTeam,
   type StorefrontProfilePrefill,
 } from "@/lib/storefront-checkout-api.ts";
@@ -100,38 +100,91 @@ function validate(info: CustomerInfo): FieldErrors {
   } else if (info.password.length < 8) {
     errors.password = "Password must be at least 8 characters";
   }
-  if (!info.confirmPassword) {
-    errors.confirmPassword = "Please confirm your password";
-  } else if (info.password !== info.confirmPassword) {
-    errors.confirmPassword = "Passwords do not match";
-  }
   if (!info.agreedToTerms) errors.agreedToTerms = "You must agree to the terms";
   return errors;
+}
+
+function passwordStrength(password: string): { score: 0 | 1 | 2 | 3; label: string; barClass: string } {
+  if (password.length < 8) return { score: 1, label: "too short", barClass: "bg-destructive" };
+  const variety = [/[a-z]/, /[A-Z]/, /\d/, /[^A-Za-z0-9]/].filter((re) => re.test(password)).length;
+  if (password.length >= 12 && variety >= 3) return { score: 3, label: "strong", barClass: "bg-emerald-500" };
+  if (variety >= 2) return { score: 2, label: "good", barClass: "bg-amber-500" };
+  return { score: 1, label: "weak", barClass: "bg-amber-500" };
 }
 
 // ---------------------------------------------------------------------------
 // Field wrapper
 // ---------------------------------------------------------------------------
 
+const FIELD_CONTROLS = new Set<unknown>([Input, SelectTrigger, CountrySelect]);
+
+function isFieldControl(type: unknown) {
+  return type === "input" || type === "select" || type === "textarea" || FIELD_CONTROLS.has(type);
+}
+
+/** Put the label id on the first real control, including controls wrapped for an icon. */
+function labelFieldControl(node: React.ReactNode, props: Record<string, unknown>): React.ReactNode {
+  let labelled = false;
+  const walk = (child: React.ReactNode): React.ReactNode => {
+    if (labelled || !React.isValidElement(child)) return child;
+    if (isFieldControl(child.type)) {
+      labelled = true;
+      return React.cloneElement(child as React.ReactElement<Record<string, unknown>>, props);
+    }
+    const nested = (child.props as { children?: React.ReactNode }).children;
+    if (nested == null) return child;
+    return React.cloneElement(
+      child as React.ReactElement<{ children?: React.ReactNode }>,
+      {},
+      React.Children.map(nested, walk),
+    );
+  };
+  return walk(node);
+}
+
 function Field({
   label,
   required,
   error,
+  hint,
   children,
 }: {
   label: string;
   required?: boolean;
   error?: string;
+  hint?: string;
   children: React.ReactNode;
 }) {
+  const id = React.useId();
+  const errorId = `${id}-error`;
+  const hintId = `${id}-hint`;
+  const describedBy = [hint ? hintId : null, error ? errorId : null].filter(Boolean).join(" ") || undefined;
   return (
     <div className="space-y-1.5">
-      <Label className="text-sm font-medium text-foreground">
+      <Label htmlFor={id} className="text-sm font-medium text-foreground">
         {label}
-        {required && <span className="text-destructive ml-0.5">*</span>}
+        {required && (
+          <span className="text-destructive ml-0.5" aria-hidden="true">
+            *
+          </span>
+        )}
       </Label>
-      {children}
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {labelFieldControl(children, {
+        id,
+        "aria-required": required || undefined,
+        "aria-invalid": error ? true : undefined,
+        "aria-describedby": describedBy,
+      })}
+      {hint && (
+        <p id={hintId} className="text-xs text-muted-foreground">
+          {hint}
+        </p>
+      )}
+      {error && (
+        <p id={errorId} className="text-xs text-destructive">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -150,13 +203,13 @@ function StepHeader({
       <button
         type="button"
         onClick={onBack}
-        className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        className="-ml-2 flex size-11 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         aria-label="Back to cart"
       >
         <ArrowLeft className="w-4 h-4" />
       </button>
       <div>
-        <h2 className="text-lg font-bold text-foreground">{title}</h2>
+        <h2 className="text-lg font-semibold leading-snug text-foreground">{title}</h2>
         <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>
       </div>
     </div>
@@ -189,7 +242,6 @@ export function CustomerInfoStep({
   });
   const [errors, setErrors] = React.useState<FieldErrors>({});
   const [showPassword, setShowPassword] = React.useState(false);
-  const [showConfirm, setShowConfirm] = React.useState(false);
   const [touched, setTouched] = React.useState<Partial<Record<keyof CustomerInfo, boolean>>>({});
   const [selectedTeamId, setSelectedTeamId] = React.useState("");
   const [teamError, setTeamError] = React.useState<string | undefined>();
@@ -247,10 +299,10 @@ export function CustomerInfoStep({
     setErrors(errs);
     setTouched({
       firstName: true, lastName: true, email: true, phone: true,
-      companyName: true, password: true, confirmPassword: true, agreedToTerms: true,
+      companyName: true, password: true, agreedToTerms: true,
     });
     if (Object.keys(errs).length === 0) {
-      onSubmit(info);
+      onSubmit({ ...info, confirmPassword: info.password });
     }
   };
 
@@ -360,7 +412,7 @@ export function CustomerInfoStep({
             className="space-y-4"
             noValidate
           >
-            <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-900 dark:text-amber-200">
               Your profile is incomplete. Full contact details are required before checkout.
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -519,170 +571,167 @@ export function CustomerInfoStep({
     );
   }
 
+  const strength = passwordStrength(info.password);
+
   return (
-    <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+    <div className="bg-card border border-border rounded-2xl p-5 shadow-sm sm:p-6">
       <StepHeader
         onBack={onBack}
-        title="Your account details"
-        subtitle="We'll create a free nPanel account so you can manage your services."
+        title="Create your nPanel account"
+        subtitle="Free. You'll manage this order, invoices and support from it."
       />
 
-      {/* Already have an account  prominent card */}
       <a
         href={signInHref}
-        onClick={() => onBeforeSignIn?.()}
-        className="flex items-center justify-between gap-3 p-4 rounded-xl border-2 border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/60 transition-all mb-6 group"
+        onClick={() => {
+          onBeforeSignIn?.();
+          markStorefrontCartResumeFromLocation();
+        }}
+        className="group mb-6 flex min-h-14 items-center justify-between gap-3 rounded-xl border border-border bg-muted/40 px-4 py-3 transition-colors hover:border-primary/50 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10 shrink-0">
-            <LogIn className="w-4 h-4 text-primary" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-foreground">Already have an account?</p>
-            <p className="text-xs text-muted-foreground">Sign in to nPanel to complete your purchase</p>
-          </div>
-        </div>
-        <span className="text-sm font-semibold text-primary whitespace-nowrap group-hover:underline">
-          Sign in →
+        <span className="flex items-center gap-3">
+          <LogIn className="size-4 shrink-0 text-primary" aria-hidden />
+          <span className="text-sm text-foreground">
+            <span className="font-semibold">Already a customer?</span>{" "}
+            <span className="text-muted-foreground">Sign in and your cart is kept.</span>
+          </span>
         </span>
+        <span className="whitespace-nowrap text-sm font-semibold text-primary group-hover:underline">Sign in</span>
       </a>
 
-      <form id={CUSTOMER_INFO_FORM_ID} onSubmit={handleSubmit} noValidate className="space-y-5">
-        {/* Name row */}
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="First name" required error={errors.firstName}>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+      <form id={CUSTOMER_INFO_FORM_ID} onSubmit={handleSubmit} noValidate className="space-y-7">
+        <fieldset className="space-y-4">
+          <legend className="mb-3 text-sm font-semibold text-foreground">About you</legend>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="First name" required error={errors.firstName}>
               <Input
                 value={info.firstName}
                 onChange={(e) => set("firstName", e.target.value)}
                 onBlur={() => blur("firstName")}
                 placeholder="Jane"
-                className={cn(inputBase, "pl-9", errors.firstName && inputError)}
+                className={cn(inputBase, errors.firstName && inputError)}
                 autoComplete="given-name"
+              />
+            </Field>
+            <Field label="Last name" required error={errors.lastName}>
+              <Input
+                value={info.lastName}
+                onChange={(e) => set("lastName", e.target.value)}
+                onBlur={() => blur("lastName")}
+                placeholder="Doe"
+                className={cn(inputBase, errors.lastName && inputError)}
+                autoComplete="family-name"
+              />
+            </Field>
+          </div>
+
+          <Field label="Email address" required error={errors.email} hint="Your login and where invoices are sent.">
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <Input
+                type="email"
+                inputMode="email"
+                value={info.email}
+                onChange={(e) => set("email", e.target.value)}
+                onBlur={() => blur("email")}
+                placeholder="jane@company.com"
+                className={cn(inputBase, "pl-9", errors.email && inputError)}
+                autoComplete="email"
               />
             </div>
           </Field>
-          <Field label="Last name" required error={errors.lastName}>
-            <Input
-              value={info.lastName}
-              onChange={(e) => set("lastName", e.target.value)}
-              onBlur={() => blur("lastName")}
-              placeholder="Doe"
-              className={cn(inputBase, errors.lastName && inputError)}
-              autoComplete="family-name"
-            />
+
+          <Field label="Phone number" required error={errors.phone} hint="We fill this in for M-Pesa on the payment step.">
+            <div className="relative">
+              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <Input
+                type="tel"
+                inputMode="tel"
+                value={info.phone}
+                onChange={(e) => set("phone", e.target.value)}
+                onBlur={() => blur("phone")}
+                placeholder="+254 7XX XXX XXX"
+                className={cn(inputBase, "pl-9", errors.phone && inputError)}
+                autoComplete="tel"
+              />
+            </div>
           </Field>
-        </div>
+        </fieldset>
 
-        {/* Email */}
-        <Field label="Email address" required error={errors.email}>
-          <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <Input
-              type="email"
-              value={info.email}
-              onChange={(e) => set("email", e.target.value)}
-              onBlur={() => blur("email")}
-              placeholder="jane@company.com"
-              className={cn(inputBase, "pl-9", errors.email && inputError)}
-              autoComplete="email"
-            />
-          </div>
-        </Field>
+        <fieldset className="space-y-4">
+          <legend className="mb-3 text-sm font-semibold text-foreground">Your business</legend>
+          <Field
+            label="Company or business name"
+            required
+            error={errors.companyName}
+            hint="Becomes your workspace name in nPanel. You can change it later."
+          >
+            <div className="relative">
+              <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <Input
+                value={info.companyName}
+                onChange={(e) => set("companyName", e.target.value)}
+                onBlur={() => blur("companyName")}
+                placeholder="Acme Ltd"
+                className={cn(inputBase, "pl-9", errors.companyName && inputError)}
+                autoComplete="organization"
+              />
+            </div>
+          </Field>
+        </fieldset>
 
-        {/* Phone */}
-        <Field label="Phone number" required error={errors.phone}>
-          <div className="relative">
-            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <Input
-              type="tel"
-              value={info.phone}
-              onChange={(e) => set("phone", e.target.value)}
-              onBlur={() => blur("phone")}
-              placeholder="+254 7XX XXX XXX"
-              className={cn(inputBase, "pl-9", errors.phone && inputError)}
-              autoComplete="tel"
-            />
-          </div>
-        </Field>
+        <fieldset className="space-y-4">
+          <legend className="mb-3 text-sm font-semibold text-foreground">Secure your account</legend>
+          <Field label="Create a password" required error={errors.password}>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <Input
+                type={showPassword ? "text" : "password"}
+                value={info.password}
+                onChange={(e) => set("password", e.target.value)}
+                onBlur={() => blur("password")}
+                placeholder="At least 8 characters"
+                className={cn(inputBase, "pl-9 pr-12", errors.password && inputError)}
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                className="absolute right-0 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </Field>
+          {info.password.length > 0 && (
+            <div className="-mt-2" aria-live="polite">
+              <div className="flex gap-1" aria-hidden>
+                {[1, 2, 3].map((n) => (
+                  <span
+                    key={n}
+                    className={cn(
+                      "h-1 flex-1 rounded-full transition-colors",
+                      strength.score >= n ? strength.barClass : "bg-muted",
+                    )}
+                  />
+                ))}
+              </div>
+              <p className="mt-1.5 text-xs text-muted-foreground">Password strength: {strength.label}</p>
+            </div>
+          )}
+        </fieldset>
 
-        {/* Company name */}
-        <Field label="Company / business name" required error={errors.companyName}>
-          <div className="relative">
-            <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <Input
-              value={info.companyName}
-              onChange={(e) => set("companyName", e.target.value)}
-              onBlur={() => blur("companyName")}
-              placeholder="Acme Ltd"
-              className={cn(inputBase, "pl-9", errors.companyName && inputError)}
-              autoComplete="organization"
-            />
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Used as your workspace name in nPanel. Can be changed later.
-          </p>
-        </Field>
-
-        <Separator />
-
-        {/* Password */}
-        <Field label="Create a password" required error={errors.password}>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <Input
-              type={showPassword ? "text" : "password"}
-              value={info.password}
-              onChange={(e) => set("password", e.target.value)}
-              onBlur={() => blur("password")}
-              placeholder="At least 8 characters"
-              className={cn(inputBase, "pl-9 pr-10", errors.password && inputError)}
-              autoComplete="new-password"
-            />
-            <button
-              type="button"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              onClick={() => setShowPassword((v) => !v)}
-              tabIndex={-1}
-            >
-              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
-          </div>
-        </Field>
-
-        {/* Confirm password */}
-        <Field label="Confirm password" required error={errors.confirmPassword}>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <Input
-              type={showConfirm ? "text" : "password"}
-              value={info.confirmPassword}
-              onChange={(e) => set("confirmPassword", e.target.value)}
-              onBlur={() => blur("confirmPassword")}
-              placeholder="Re-enter your password"
-              className={cn(inputBase, "pl-9 pr-10", errors.confirmPassword && inputError)}
-              autoComplete="new-password"
-            />
-            <button
-              type="button"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              onClick={() => setShowConfirm((v) => !v)}
-              tabIndex={-1}
-            >
-              {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
-          </div>
-        </Field>
-
-        {/* Terms */}
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 rounded-xl border border-border p-3.5">
           <div className="flex items-start gap-3">
             <Checkbox
               id="terms"
               checked={info.agreedToTerms === true}
               onCheckedChange={(checked) => set("agreedToTerms", checked === true)}
               aria-required="true"
+              aria-invalid={errors.agreedToTerms ? true : undefined}
+              aria-describedby={errors.agreedToTerms ? "terms-error" : undefined}
               className="mt-0.5"
             />
             <label htmlFor="terms" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
@@ -698,7 +747,7 @@ export function CustomerInfoStep({
             </label>
           </div>
           {errors.agreedToTerms && (
-            <p className="text-xs text-destructive ml-6">{errors.agreedToTerms}</p>
+            <p id="terms-error" className="text-xs text-destructive ml-7">{errors.agreedToTerms}</p>
           )}
         </div>
       </form>

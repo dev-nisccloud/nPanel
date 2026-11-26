@@ -95,7 +95,7 @@ export const subscriptionsRouter = router({
       if (!isAgencyUserRole(ctx.session.user.role)) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "Only agency users can access all Plesk subscriptions",
+          message: "Only Nisc HQ staff can access all Plesk subscriptions",
         });
       }
       
@@ -202,7 +202,7 @@ export const subscriptionsRouter = router({
         if (!teamId) {
           throw new TRPCError({
             code: "FORBIDDEN",
-            message: "teamId is required for non-agency users",
+            message: "teamId is required for customer accounts",
           });
         }
 

@@ -841,7 +841,7 @@ export const emailMarketingCampaignsRouter = router({
 
 			// Notify: email + in-app notification
 			const viewCampaignLink = getCampaignViewLink(input.id);
-			const campaignsListLink = (process.env.VITE_PUBLIC_APP_URL ?? "").replace(/\/$/, "") + "/agency/email-marketing/campaigns";
+			const campaignsListLink = (process.env.VITE_PUBLIC_APP_URL ?? "").replace(/\/$/, "") + "/hq/email-marketing/campaigns";
 			try {
 				const [user] = await db.select({ name: userTable.name, email: userTable.email }).from(userTable).where(eq(userTable.id, userId)).limit(1);
 				if (user?.email) {

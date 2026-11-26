@@ -43,8 +43,8 @@ type SecurityPlansProps = {
 export default function SecurityPlans({
   plans = defaultPlans,
   serviceName = "Website Security",
-  title = "Choose Your Protection Level",
-  subtitle = "30-day money-back guarantee. All plans include a free SSL certificate and setup help.",
+  title = "Choose your protection level",
+  subtitle = "All plans include a free SSL certificate and setup help.",
   sectionId = "security-plans",
 }: SecurityPlansProps = {}) {
   return (

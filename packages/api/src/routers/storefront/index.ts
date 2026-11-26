@@ -20,6 +20,7 @@ import { storefrontCartRouter } from "./cart";
 import { storefrontLeadsRouter } from "./leads";
 import { storefrontPaymentRouter } from "./payment";
 import { storefrontOrdersRouter } from "./orders";
+import { storefrontLocationRouter } from "./location";
 
 export const storefrontRouter = router({
   /** Email check + new customer registration. */
@@ -32,4 +33,6 @@ export const storefrontRouter = router({
   orders: storefrontOrdersRouter,
   /** Public website forms → CRM contact, company, and Website Leads deal. */
   leads: storefrontLeadsRouter,
+  /** Trusted country hint for initial display currency only. */
+  location: storefrontLocationRouter,
 });

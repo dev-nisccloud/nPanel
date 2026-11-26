@@ -29,6 +29,7 @@ import {
 	paymentTotalString,
 	reverseCeilVatToExVat,
 } from "../lib/convert-price";
+import { readStoredOrderIntent } from "../lib/stored-order-intent";
 import { enqueueNiscOrderProcessing } from "../lib/qstash/nisc-order-worker";
 import { userIsAgencyStaff } from "../lib/domain-transfer-access";
 import { isKenicDomain } from "../lib/epp/kenic-tlds";
@@ -45,6 +46,7 @@ import {
 import { isZeepoAiAgentProduct } from "../lib/zeepo-agent-order-provisioning";
 import { resolveActiveNiscProductById } from "../lib/planless-product-resolver";
 import { resolveDomainBillingCycle } from "../lib/nisc-subscription-dates";
+import { assertCustomerOrderMeetsPriceFloor } from "../lib/customer-order-price-floor";
 import {
 	domainProviderAudienceFromContext,
 	sanitizeDomainProviderMessage,
@@ -396,7 +398,7 @@ export const niscServiceOrdersRouter = router({
 				if (input.userId && input.userId !== session.user.id) {
 					throw new TRPCError({
 						code: "FORBIDDEN",
-						message: "Only agency super admin can create orders for other users",
+						message: "Only a Nisc HQ super admin can create orders for other users",
 					});
 				}
 			}
@@ -435,7 +437,7 @@ export const niscServiceOrdersRouter = router({
 					});
 				}
 				const plan = product.plans[0];
-				if (!plan || !plan.isActive) {
+				if (!plan || !plan.isActive || product.hidden || plan.hidden) {
 					throw new TRPCError({
 						code: "NOT_FOUND",
 						message: `Plan ${item.productPlanId} not found or inactive`,
@@ -763,8 +765,21 @@ export const niscServiceOrdersRouter = router({
 				});
 			}
 
-			// Paid STK amounts are tax-inclusive. Never allow underpayment vs checkout lines.
-			// Agency overpay may scale lines UP only; underpay is always rejected.
+			// M-Pesa checkouts store the cart that the server already checked and priced before the
+			// customer paid. Customers always get that stored cart, never prices re-sent by the
+			// browser, so a catalogue change or a closed tab cannot strand a paid order.
+			const storedIntent = !isAgencyUser ? readStoredOrderIntent(transaction.metadata) : null;
+			const intentPreVerified =
+				storedIntent != null &&
+				(transaction.metadata as { source?: unknown } | null)?.source === "npanel_checkout";
+			if (storedIntent && intentPreVerified) {
+				input.items = structuredClone(storedIntent.items);
+				input.currency = storedIntent.currency;
+				input.teamId = storedIntent.teamId;
+				input.skipInvoice = undefined;
+			}
+
+			// Paid STK amounts are tax-inclusive. Browser line prices are only trusted for staff.
 			const paidAmountRaw = transaction.paidAmount ?? transaction.amount;
 			const paidAmountNum = Number.parseFloat(paidAmountRaw);
 			const clientSubtotalExVat = input.items.reduce(
@@ -779,7 +794,30 @@ export const niscServiceOrdersRouter = router({
 				});
 			}
 		const paidIncVat = Math.ceil(paidAmountNum);
-		// Partial payments are now allowed - removed underpayment validation
+		if (!isAgencyUser) {
+			// Customers: lines must meet the catalogue price, the payment must cover the total,
+			// and the payment currency must match. Partial payments are a staff-only tool.
+			if (!intentPreVerified) {
+				await assertCustomerOrderMeetsPriceFloor(input.items, {
+					userId,
+					checkoutRequestId: input.checkoutRequestId,
+				});
+			}
+			if (paidIncVat < expectedPaidIncVat) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `Payment of ${transaction.currency} ${paidIncVat} is less than the order total of ${expectedPaidIncVat}. Contact support if you believe this is wrong.`,
+				});
+			}
+			const txCurrency = (transaction.currency ?? "KES").trim().toUpperCase();
+			const orderCurrency = (input.currency || "KES").trim().toUpperCase();
+			if (txCurrency !== orderCurrency) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `Payment currency (${txCurrency}) does not match the order currency (${orderCurrency}).`,
+				});
+			}
+		}
 		const isBundleOrder = orderItemsIncludeDomainBundle(input.items);
 			const bundleLeadIndex = isBundleOrder
 				? input.items.findIndex((item) => isDomainBundleLeadItem(item.metadata))
@@ -1177,7 +1215,7 @@ export const niscServiceOrdersRouter = router({
 				if (!canAssignBilledForUserId(role) && !(await userIsAgencyStaff(userId))) {
 					throw new TRPCError({
 						code: "FORBIDDEN",
-						message: "Only agency users can assign an order to another user.",
+						message: "Only Nisc HQ staff can assign an order to another user.",
 					});
 				}
 				const targetRows = await db.select({ id: user.id }).from(user).where(eq(user.id, billedFor)).limit(1);
@@ -1202,7 +1240,7 @@ export const niscServiceOrdersRouter = router({
 				if (!canAssignBilledForUserId(role) && !(await userIsAgencyStaff(userId))) {
 					throw new TRPCError({
 						code: "FORBIDDEN",
-						message: "Only agency users can create orders without invoices.",
+						message: "Only Nisc HQ staff can create orders without invoices.",
 					});
 				}
 			}
@@ -1497,7 +1535,7 @@ export const niscServiceOrdersRouter = router({
 			if (!isAgencyUserRole(userRole)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency users can reassign order subscriptions",
+					message: "Only Nisc HQ staff can reassign order subscriptions",
 				});
 			}
 
@@ -1652,7 +1690,7 @@ export const niscServiceOrdersRouter = router({
 			if (!isAgencyUserRole(userRole)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency users can resend order notifications",
+					message: "Only Nisc HQ staff can resend order notifications",
 				});
 			}
 			await canAccessOrderRead(input.id, userId, userRole);
@@ -1689,7 +1727,7 @@ export const niscServiceOrdersRouter = router({
 			if (!isAgencyUserRole(userRole)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency users can resend order notifications",
+					message: "Only Nisc HQ staff can resend order notifications",
 				});
 			}
 			await canAccessOrderRead(input.niscOrderId, userId, userRole);
@@ -1762,7 +1800,7 @@ export const niscServiceOrdersRouter = router({
 			if (!agencyRetry && (input.transferAuthCodes?.length ?? 0) > 0) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency users can update a transfer authorization code when retrying.",
+					message: "Only Nisc HQ staff can update a transfer authorization code when retrying.",
 				});
 			}
 

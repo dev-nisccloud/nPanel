@@ -32,7 +32,9 @@ export function EtimsFiscalFooterPreview({
 	const internal = etimsFiscal.intrlDataDashed ?? etimsFiscal.intrlData;
 	const signature = etimsFiscal.rcptSignDashed ?? etimsFiscal.rcptSign;
 	const qrValue = etimsFiscal.verificationUrl?.trim();
-	const counter = `${display(etimsFiscal.curRcptNo)}/${display(etimsFiscal.totRcptNo)} ${display(etimsFiscal.receiptLabel)}`;
+	const scuDateTime =
+		etimsFiscal.sdcDateTimeDisplay?.trim() ||
+		[etimsFiscal.scuDate, etimsFiscal.scuTime].filter(Boolean).join(" ");
 
 	return (
 		<div
@@ -52,24 +54,11 @@ export function EtimsFiscalFooterPreview({
 					<p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-gray-900">
 						SCU Information
 					</p>
-					<p>
-						<span className="font-semibold text-gray-700">Date: </span>
-						{display(etimsFiscal.scuDate)}
-						{"    "}
-						<span className="font-semibold text-gray-700">Time: </span>
-						{display(etimsFiscal.scuTime)}
-					</p>
-					<Row label="CU ID" value={etimsFiscal.sdcId} />
-					<Row label="CU INVOICE NO." value={etimsFiscal.cuInvoiceNo} />
-					<Row label="Receipt Counter" value={counter} />
-					<div className="mt-1">
-						<p className="font-semibold text-gray-700">Internal Data:</p>
-						<p className="break-all">{display(internal)}</p>
-					</div>
-					<div className="mt-1">
-						<p className="font-semibold text-gray-700">Receipt Signature:</p>
-						<p className="break-all">{display(signature)}</p>
-					</div>
+					<Row label="Date" value={scuDateTime} />
+					<Row label="Control Unit Number" value={etimsFiscal.sdcId} />
+					<Row label="Invoice Number" value={etimsFiscal.cuInvoiceNo} />
+					<Row label="Internal Data" value={internal} />
+					<Row label="Receipt Signature" value={signature} />
 				</div>
 				{qrValue ? (
 					<div className="flex shrink-0 flex-col items-center gap-1">

@@ -171,17 +171,16 @@ const NAMESPACE_RULES: Record<string, (rest: string) => AgencyRequirement> = {
 	hostingPlans: () => key("hosting.order"),
 	wordpressSubscriptions: () => key("wordpress.list"),
 	niscBackup: (rest) => backupRequirement(rest.split(".")[0] ?? ""),
-	googleAds: () => moduleOf("ads.google"),
-	metaAds: () => moduleOf("ads.meta"),
-	instagramAds: () => moduleOf("ads.meta"),
-	linkedInAds: () => moduleOf("ads.linkedin"),
 	socialMediaMarketing: () => moduleOf("social"),
 	customerOAuth: () =>
 		anyKeys([
 			"social.accounts",
-			"ads.meta.accounts",
-			"ads.google.accounts",
-			"ads.linkedin.accounts",
+			"social_linkedin.accounts",
+			"social_linkedin.campaigns",
+			"social_instagram.accounts",
+			"social_instagram.campaigns",
+			"social_google.accounts",
+			"social_google.campaigns",
 		]),
 	niscEmailMarketing: (rest) => emailRequirement(rest.split(".")[0] ?? ""),
 	emailMarketing: (rest) => emailRequirement(rest.split(".")[0] ?? ""),
@@ -204,6 +203,7 @@ const NAMESPACE_RULES: Record<string, (rest: string) => AgencyRequirement> = {
 	stabilityAi: () => key("gen_ai.image_generator"),
 	backgroundRemover: () => key("gen_ai.background_remover"),
 	clients: () => key("clients.list"),
+	userPresence: () => key("clients.list"),
 	teams: (rest) => {
 		const sub = rest.split(".")[0] ?? "";
 		if (sub === "permissions") return key("clients.organizations");
@@ -231,11 +231,17 @@ const NAMESPACE_RULES: Record<string, (rest: string) => AgencyRequirement> = {
 	niscServiceOrders: () => key("products.orders"),
 	cronWorkflowRun: () => key("operations.cronjobs"),
 	manageUsers: () => key("agency_admin.users"),
+	careers: (rest) => {
+		const sub = rest.split(".")[0] ?? "";
+		if (sub === "applications" || sub === "applicationFile") return key("hr.applications");
+		return key("hr.openings");
+	},
 	apiKeys: () => key("agency_admin.api_keys"),
 	agencyRbac: () => key("agency_admin.roles"),
 	agencyDashboard: () => key("dashboard.view"),
 	ipRecords: () => key("hosting.overview"),
 	objectStorage: () => ({ type: "anyGranted" }),
+	niscStorage: () => key("storage.browse"),
 };
 
 export function resolveAgencyProcedure(path: string): AgencyRequirement | null {

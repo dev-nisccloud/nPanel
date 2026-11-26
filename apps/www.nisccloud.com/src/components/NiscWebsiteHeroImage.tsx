@@ -31,7 +31,7 @@ export function NiscWebsiteHeroImage({
         width={960}
         height={720}
         className={cn(
-          "h-auto max-h-[min(70vh,560px)] w-full object-contain rounded-2xl md:rounded-3xl",
+          "h-auto max-h-[min(60vh,470px)] w-full object-contain rounded-2xl md:rounded-3xl",
           className,
         )}
       />

@@ -24,6 +24,8 @@ export type Item = {
   productPlanId?: string;
   /** When selected plan has COMMISSION pricing, ad account + campaign context */
   commissionContext?: ItemCommissionContext;
+  /** Product KRA tax band (A–E). Shown with the tax table rate label. */
+  etimsTaxTyCd?: string;
 };
 
 export type YourDetails = {

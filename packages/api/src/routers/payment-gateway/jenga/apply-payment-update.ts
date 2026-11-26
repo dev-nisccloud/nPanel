@@ -9,99 +9,13 @@ import {
 	paymentTransaction,
 	paymentTransactionActivityLog,
 } from "@npanel/db/schema/payment-transactions";
-import type { JengaCallbackQuery, JengaIpnPayload, JengaPaymentMetadata } from "./types";
+import type { JengaIpnPayload, JengaPaymentMetadata } from "./types";
 import { applySuccessfulPaymentToInvoiceSafe } from "../../../lib/invoice-apply-gateway-payment";
+import { completeStorefrontOrderFromVerifiedPayment } from "../../../lib/storefront-order-completion";
 
 type ApplyResult =
 	| { ok: true; alreadyTerminal: boolean; transactionId: string; status: string }
 	| { ok: false; reason: string };
-
-/**
- * Apply browser callback (GET redirect) to payment_transaction.
- * Success when status === "paid" (per Jenga docs).
- */
-export async function applyJengaCallbackUpdate(
-	query: JengaCallbackQuery,
-): Promise<ApplyResult> {
-	const orderReference = query.orderReference?.trim();
-	if (!orderReference) {
-		return { ok: false, reason: "Missing orderReference" };
-	}
-
-	const transaction = await db.query.paymentTransaction.findFirst({
-		where: and(
-			eq(paymentTransaction.checkoutRequestId, orderReference),
-			eq(paymentTransaction.gateway, "JENGA"),
-		),
-	});
-
-	if (!transaction) {
-		return { ok: false, reason: "Transaction not found" };
-	}
-
-	if (transaction.status === "SUCCESS" || transaction.status === "FAILED") {
-		if (transaction.status === "SUCCESS") {
-			await applySuccessfulPaymentToInvoiceSafe(transaction.id);
-		}
-		return {
-			ok: true,
-			alreadyTerminal: true,
-			transactionId: transaction.id,
-			status: transaction.status,
-		};
-	}
-
-	const now = new Date();
-	const isPaid = query.status === "paid";
-	const nextStatus = isPaid ? "SUCCESS" : "FAILED";
-
-	await db
-		.update(paymentTransaction)
-		.set({
-			status: nextStatus,
-			gatewayStatus: query.status ?? null,
-			gatewayMessage: query.desc ?? null,
-			gatewayTransactionId: query.transactionId ?? null,
-			receiptNumber: query.transactionId ?? null,
-			paidAmount: isPaid && query.amount ? query.amount : transaction.paidAmount,
-			rawResponse: query as unknown as Record<string, unknown>,
-			processedAt: isPaid ? now : transaction.processedAt,
-			failedAt: isPaid ? transaction.failedAt : now,
-			updatedAt: now,
-		})
-		.where(eq(paymentTransaction.id, transaction.id));
-
-	await db.insert(paymentTransactionActivityLog).values({
-		id: randomUUID(),
-		transactionId: transaction.id,
-		userId: transaction.userId,
-		action: isPaid ? "CALLBACK_SUCCESS" : "CALLBACK_FAILED",
-		description: isPaid
-			? `Jenga callback: paid. TransactionId: ${query.transactionId ?? "n/a"}`
-			: `Jenga callback: not paid (status=${query.status ?? "unknown"})`,
-		metadata: {
-			orderReference,
-			transactionId: query.transactionId,
-			status: query.status,
-			amount: query.amount,
-			desc: query.desc,
-		},
-		ipAddress: null,
-		userAgent: null,
-		createdAt: now,
-	});
-
-	if (isPaid) {
-		await applySuccessfulPaymentToInvoiceSafe(transaction.id);
-	}
-
-	return {
-		ok: true,
-		alreadyTerminal: false,
-		transactionId: transaction.id,
-		status: nextStatus,
-	};
-}
 
 /**
  * Apply IPN webhook to payment_transaction (durable source of truth).
@@ -149,6 +63,12 @@ export async function applyJengaIpnUpdate(payload: JengaIpnPayload): Promise<App
 		} else {
 			if (transaction.status === "SUCCESS") {
 				await applySuccessfulPaymentToInvoiceSafe(transaction.id);
+				await completeStorefrontOrderFromVerifiedPayment({
+					checkoutRequestId: orderReference,
+					userId: transaction.userId,
+					teamId: transaction.teamId,
+					metadata: transaction.metadata,
+				});
 			}
 			return {
 				ok: true,
@@ -163,6 +83,66 @@ export async function applyJengaIpnUpdate(payload: JengaIpnPayload): Promise<App
 	const isSuccess = payload.transaction.status === "SUCCESS";
 	const nextStatus = isSuccess ? "SUCCESS" : "FAILED";
 	const paidAmountNum = Number(payload.transaction.amount);
+	const expectedAmountNum = Number(transaction.amount);
+	const providerCurrency = (
+		payload.transaction.currency || payload.transaction.orderCurrency || ""
+	).trim().toUpperCase();
+	const expectedCurrency = transaction.currency.trim().toUpperCase();
+	const expectedRefs = new Set(
+		[transaction.checkoutRequestId, transaction.accountReference]
+			.filter((ref): ref is string => Boolean(ref))
+			.map((ref) => ref.trim()),
+	);
+	const amountMatches =
+		Number.isFinite(paidAmountNum) &&
+		Number.isFinite(expectedAmountNum) &&
+		Math.round(paidAmountNum * 100) === Math.round(expectedAmountNum * 100);
+	const currencyMatches =
+		providerCurrency.length > 0 && providerCurrency === expectedCurrency;
+	const referenceMatches = expectedRefs.has(billNumber);
+
+	if (isSuccess && (!amountMatches || !currencyMatches || !referenceMatches)) {
+		const mismatchReason = [
+			!referenceMatches ? "reference" : null,
+			!amountMatches ? "amount" : null,
+			!currencyMatches ? "currency" : null,
+		]
+			.filter(Boolean)
+			.join(", ");
+
+		await db
+			.update(paymentTransaction)
+			.set({
+				rawError: payload as unknown as Record<string, unknown>,
+				gatewayMessage: `Rejected Jenga IPN: ${mismatchReason} mismatch`,
+				updatedAt: now,
+			})
+			.where(eq(paymentTransaction.id, transaction.id));
+
+		await db.insert(paymentTransactionActivityLog).values({
+			id: randomUUID(),
+			transactionId: transaction.id,
+			userId: transaction.userId,
+			action: "IPN_REJECTED",
+			description: `Jenga SUCCESS IPN rejected: ${mismatchReason} mismatch`,
+			metadata: {
+				orderReference,
+				billNumber,
+				expectedAmount: transaction.amount,
+				receivedAmount: payload.transaction.amount,
+				expectedCurrency,
+				receivedCurrency: providerCurrency || null,
+			},
+			ipAddress: null,
+			userAgent: null,
+			createdAt: now,
+		});
+
+		return {
+			ok: false,
+			reason: `Jenga IPN ${mismatchReason} mismatch`,
+		};
+	}
 
 	await db
 		.update(paymentTransaction)
@@ -205,6 +185,12 @@ export async function applyJengaIpnUpdate(payload: JengaIpnPayload): Promise<App
 
 	if (isSuccess) {
 		await applySuccessfulPaymentToInvoiceSafe(transaction.id);
+		await completeStorefrontOrderFromVerifiedPayment({
+			checkoutRequestId: orderReference,
+			userId: transaction.userId,
+			teamId: transaction.teamId,
+			metadata: transaction.metadata,
+		});
 	}
 
 	return {

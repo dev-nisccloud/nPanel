@@ -27,7 +27,12 @@ export function useNotification() {
                     }
                 }).catch(console.error);
 
-                const swUrl = "/sw.js?v=5";
+                const swUrl = "/sw.js?v=7";
+                navigator.serviceWorker.addEventListener("controllerchange", () => {
+                    if (sessionStorage.getItem("npanel-sw-reloaded") === swUrl) return;
+                    sessionStorage.setItem("npanel-sw-reloaded", swUrl);
+                    window.location.reload();
+                });
                 navigator.serviceWorker.register(swUrl).then((reg) => {
                     console.log("Service Worker registered:", reg.scope);
                 }).catch((err) => {

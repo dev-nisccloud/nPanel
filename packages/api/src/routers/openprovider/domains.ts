@@ -1601,6 +1601,83 @@ export const openProviderDomainsRouter = router({
     }),
 
   /**
+   * Live owner, admin, technical, and billing handles for a domain.
+   */
+  getHandles: protectedProcedure
+    .input(z.object({ domainId: z.number().min(1) }))
+    .query(async ({ input }) => {
+      const client = createOpenProviderClient();
+      try {
+        await client.authenticate({
+          username: process.env.OPENPROVIDER_USERNAME!,
+          password: process.env.OPENPROVIDER_PASSWORD!,
+          ip: process.env.OPENPROVIDER_IP,
+        });
+      } catch (authError) {
+        const errMsg = authError instanceof Error ? authError.message : String(authError);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `OpenProvider authentication failed: ${errMsg}`,
+          cause: authError,
+        });
+      }
+
+      const response = await client.getDomain(input.domainId);
+      if (response.code !== 0 || !response.data) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: response.desc || "Domain not found",
+        });
+      }
+
+      const data = response.data;
+      const rawDomain = data.domain;
+      let extension = "";
+      if (rawDomain && typeof rawDomain === "object") {
+        extension = String((rawDomain as { extension?: string }).extension ?? "")
+          .replace(/^\./, "")
+          .toLowerCase();
+      }
+      const support = {
+        owner: true,
+        admin: true,
+        tech: true,
+        billing: true,
+      };
+      let tradeAvailable: boolean | null = null;
+      if (extension) {
+        try {
+          const tldResponse = await client.getTlds({
+            extensions: [extension],
+            status: "ACT",
+            with_price: false,
+            with_restrictions: true,
+          });
+          const tld = tldResponse.data?.results?.find(
+            (item) => (item?.name ?? "").replace(/^\./, "").toLowerCase() === extension,
+          );
+          const flag = (value: boolean | undefined, fallback: boolean) =>
+            typeof value === "boolean" ? value : fallback;
+          support.owner = flag(tld?.owner_handle_supported, true);
+          support.admin = flag(tld?.admin_handle_supported, true);
+          support.tech = flag(tld?.tech_handle_supported, true);
+          support.billing = flag(tld?.billing_handle_supported, true);
+          tradeAvailable = typeof tld?.trade_available === "boolean" ? tld.trade_available : null;
+        } catch {
+          tradeAvailable = null;
+        }
+      }
+      return {
+        owner: String(data.owner_handle ?? ""),
+        admin: String(data.admin_handle ?? ""),
+        tech: String(data.tech_handle ?? ""),
+        billing: String(data.billing_handle ?? ""),
+        support,
+        tradeAvailable,
+      };
+    }),
+
+  /**
    * Agency: update a contact handle, or replace the owner (create handle + update/trade).
    */
   updateContact: updateContactProcedure,

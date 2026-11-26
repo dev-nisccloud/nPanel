@@ -3,6 +3,7 @@
  * Format: "(identifier) Service - Action" with subscription dates from billing cycle.
  * Domains use Transfer / Registration / Renewal; subscription services use Subscription (or Renewal).
  */
+import { enrichInvoiceLineTaxTypeLabel } from "../agency-invoice-pdf/tis-receipt-totals";
 import type { NiscOrderItemForInvoice } from "../schemas/nisc-order-invoice";
 import { formatInvoiceDate } from "./nisc-datetime-format";
 
@@ -144,11 +145,10 @@ export function resolveEmailMarketingServiceLabel(
 	productName: string,
 ): string {
 	const st = normalizeServiceType(serviceType);
-	if (st === "nisc_email_marketing") return "Nisc Email Marketing";
+	if (st === "nisc_email_marketing" || st === "email_marketing") return "Nisc Outreach";
 	const name = productName.trim();
-	if (/nisc email marketing/i.test(name)) return "Nisc Email Marketing";
-	if (/email marketing/i.test(name)) return "Email Marketing";
-	return "Email Marketing";
+	if (/nisc email marketing|nisc outreach|email marketing/i.test(name)) return "Nisc Outreach";
+	return "Nisc Outreach";
 }
 
 export function resolveHostingServiceLabel(
@@ -267,10 +267,17 @@ export function buildNiscOrderInvoiceLineItemCopy(
 	return { name, description: subscription };
 }
 
+/** KRA itemCd `{CC}{T}{PKG}{QTY}{seq7}` e.g. KE2BGNO0000003 — not shown on TIS PDFs. */
+function looksLikeKraItemCode(value: string): boolean {
+	return /^[A-Z]{2}[1-3][A-Z]{2}[A-Z]{2}\d{7}$/i.test(value.trim());
+}
+
 /** PDF / preview line text: title and subscription on separate lines for wrapping. */
 export function formatInvoiceLineItemForPdf(name: string, description?: string | null): string {
-	const desc = normalizeStoredInvoicePeriodDescription(description)?.trim();
-	if (!desc) return name;
+	const desc = enrichInvoiceLineTaxTypeLabel(
+		normalizeStoredInvoicePeriodDescription(description)?.trim() ?? "",
+	).trim();
+	if (!desc || looksLikeKraItemCode(desc)) return name;
 	return `${name}\n${desc}`;
 }
 

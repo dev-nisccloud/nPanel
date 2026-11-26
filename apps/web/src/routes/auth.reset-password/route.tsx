@@ -36,6 +36,7 @@ export default function ResetPasswordPage() {
   const [isSuccess, setIsSuccess] = useState(false);
 
   const token = searchParams.get("token");
+  const isWelcome = searchParams.get("welcome") === "1";
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -69,7 +70,7 @@ export default function ResetPasswordPage() {
 
       captureEvent("password_reset_completed");
       setIsSuccess(true);
-      toast.success("Password reset successfully!");
+      toast.success(isWelcome ? "Password set. You can sign in now." : "Password reset successfully!");
 
       setTimeout(() => {
         void navigate("/auth/login", { replace: true });
@@ -100,9 +101,11 @@ export default function ResetPasswordPage() {
                 </svg>
               </div>
             </div>
-            <h1 className="text-3xl font-medium">Password reset successful!</h1>
+            <h1 className="text-xl font-medium">{isWelcome ? "Password set" : "Password reset successful!"}</h1>
             <p className="text-muted-foreground text-sm">
-              Your password has been successfully reset. You will be redirected to the login page shortly.
+              {isWelcome
+                ? "Your email is confirmed and your password is set. Taking you to sign in."
+                : "Your password has been successfully reset. You will be redirected to the login page shortly."}
             </p>
             <div className="pt-4">
               <Link to="/auth/login" className="text-primary hover:underline">
@@ -135,8 +138,10 @@ export default function ResetPasswordPage() {
     <>
       <div className="mx-auto flex w-full flex-col justify-center space-y-8 sm:w-[350px]">
         <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-medium">Reset your password</h1>
-          <p className="text-muted-foreground text-sm">Enter your new password below.</p>
+          <h1 className="text-xl font-medium">{isWelcome ? "Set your password" : "Reset your password"}</h1>
+          <p className="text-muted-foreground text-sm">
+            {isWelcome ? "Choose a password for your Nisc Cloud account." : "Enter your new password below."}
+          </p>
         </div>
 
         <Form {...form}>
@@ -211,14 +216,14 @@ export default function ResetPasswordPage() {
               )}
             />
 
-            <Button className="w-full" type="submit" disabled={isResetting}>
+            <Button className="h-12 w-full" type="submit" disabled={isResetting}>
               {isResetting ? (
                 <div className="flex items-center gap-2">
                   <Spinner variant="ellipsis" className="text-primary-foreground" size="sm" />
                   <span>Resetting password...</span>
                 </div>
               ) : (
-                "Reset Password"
+                isWelcome ? "Set password" : "Reset Password"
               )}
             </Button>
           </form>

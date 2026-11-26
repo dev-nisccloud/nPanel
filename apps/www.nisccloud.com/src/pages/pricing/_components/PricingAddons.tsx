@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import { Globe, ShieldCheck, BarChart3, Bot, Search, Mail, Share2, Layers } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 const addons = [
   { icon: Globe, label: "Extra Web Pages", price: "$99/page", desc: "Add more pages to your website beyond plan limit." },
@@ -14,7 +14,6 @@ const addons = [
 ];
 
 export default function PricingAddons() {
-  const navigate = useNavigate();
 
   return (
     <section className="py-20 border-t border-border/40">
@@ -29,7 +28,7 @@ export default function PricingAddons() {
           <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 text-xs text-primary font-mono mb-4">
             ADD-ONS
           </div>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
+          <h2 className="type-h2 mb-3">
             Add What You Need
           </h2>
           <p className="text-muted-foreground text-base max-w-lg mx-auto">
@@ -71,12 +70,9 @@ export default function PricingAddons() {
           <p className="text-sm text-muted-foreground mb-4">
             Need something not listed? We build fully custom packages too.
           </p>
-          <button
-            onClick={() => navigate("/contact")}
-            className="text-sm text-primary underline underline-offset-4 hover:opacity-80 transition-opacity cursor-pointer font-medium"
-          >
+          <Link to={"/contact"} className="text-sm text-primary underline underline-offset-4 hover:opacity-80 transition-opacity font-medium">
             Request a custom quote →
-          </button>
+          </Link>
         </motion.div>
       </div>
     </section>

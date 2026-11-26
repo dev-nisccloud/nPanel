@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, asc, count, desc, eq, ilike, isNotNull, or } from "@npanel/db";
+import { and, asc, count, desc, eq, ilike, inArray, isNotNull, or } from "@npanel/db";
 
 import { db } from "@npanel/db";
 import { niscOrderItem } from "@npanel/db/schema/nisc-orders";
@@ -26,8 +26,104 @@ import {
 import { CREATIVES_DESIGN_PRODUCT_ID } from "../lib/creatives-design-billing";
 import { NISC_SEO_REPORTS_PRODUCT_ID, SEO_PRODUCT_FEATURES } from "../lib/seo-reports-billing";
 import { NISC_MEDIA_BUYING_PRODUCT_ID } from "../lib/media-buying-billing";
+import { NISC_SOCIAL_MEDIA_PRODUCT_ID, NISC_SOCIAL_MEDIA_SERVICE_TYPE } from "../lib/social-media-billing";
+import { isAgencyOnlyPlan } from "../lib/enterprise-plans";
+import { ZEEPO_AI_PRODUCT_ID, ZEEPO_AI_WELCOME_TOKEN_GRANT } from "../lib/zeepo-ai-billing";
+import { isAgencyRole } from "./customer-oauth/agency-access";
 import { getEtimsContext } from "../lib/etims-config";
 import { eTimsItem } from "@npanel/db/schema/etims";
+
+// --- Catalogue pricing tables (SEO, social media) ---------------------------
+
+const catalogPricingOutputSchema = z.object({
+    productFeatures: z.array(z.object({ key: z.string(), label: z.string(), description: z.string().optional() })),
+    plans: z.array(
+        z.object({
+            id: z.string(),
+            name: z.string(),
+            description: z.string().nullable(),
+            highlights: z.array(z.string()),
+            niscPrice: z.string().nullable(),
+            niscCurrency: z.string(),
+            billingCycle: z.string(),
+            isPopular: z.boolean(),
+            isRecommended: z.boolean(),
+            productId: z.string(),
+            productName: z.string(),
+            featureValues: z.array(
+                z.object({
+                    available: z.boolean(),
+                    valueOverride: z.string().nullable(),
+                })
+            ),
+        })
+    ),
+});
+
+type CatalogFeature = { key: string; label: string; description?: string };
+type CatalogPlanRow = typeof niscProductPlan.$inferSelect;
+type CatalogProductRow = { id: string; name: string; features: unknown; plans?: unknown };
+
+const listedFixedPlans = and(
+    eq(niscProductPlan.isActive, true),
+    eq(niscProductPlan.hidden, false),
+    eq(niscProductPlan.pricingModel, "FIXED"),
+);
+
+/** Feature rows from the canonical product first, then every plan's values aligned to them. */
+function shapeCatalogPricing(
+    products: CatalogProductRow[],
+    canonicalProductId: string,
+    fallbackFeatures: readonly CatalogFeature[],
+): z.infer<typeof catalogPricingOutputSchema> {
+    const seenKeys = new Set<string>();
+    const productFeatures: CatalogFeature[] = [];
+    const canonical = products.find((p) => p.id === canonicalProductId);
+    const ordered = canonical ? [canonical, ...products.filter((p) => p.id !== canonicalProductId)] : products;
+    const addFeature = (f: CatalogFeature) => {
+        if (seenKeys.has(f.key)) return;
+        seenKeys.add(f.key);
+        productFeatures.push({ key: f.key, label: f.label, description: f.description });
+    };
+    for (const p of ordered) {
+        for (const f of (p.features as CatalogFeature[] | null) ?? []) addFeature(f);
+    }
+    if (productFeatures.length === 0) fallbackFeatures.forEach(addFeature);
+
+    const plans = products.flatMap((product) =>
+        ((product.plans as CatalogPlanRow[] | undefined) ?? []).map((plan) => {
+            const planFeats =
+                (plan.planFeatures as Array<{ key: string; available: boolean; valueOverride?: string | null }>) ?? [];
+            const byKey = new Map(planFeats.map((f) => [f.key, f]));
+            return {
+                id: plan.id,
+                name: plan.name,
+                description: plan.description ?? null,
+                highlights: Array.isArray(plan.highlights)
+                    ? (plan.highlights as unknown[]).filter((h): h is string => typeof h === "string")
+                    : [],
+                niscPrice: plan.price ?? null,
+                niscCurrency: plan.currency ?? "KES",
+                billingCycle: plan.billingCycle ?? "MONTHLY",
+                isPopular: plan.isPopular ?? false,
+                isRecommended: plan.isRecommended ?? false,
+                productId: product.id,
+                productName: product.name,
+                featureValues: productFeatures.map((pf) => {
+                    const entry = byKey.get(pf.key);
+                    return {
+                        available: !!entry?.available,
+                        valueOverride:
+                            entry?.valueOverride != null && entry.valueOverride !== ""
+                                ? String(entry.valueOverride)
+                                : null,
+                    };
+                }),
+            };
+        }),
+    );
+    return { productFeatures, plans };
+}
 
 // ============================================================================
 // ZOD SCHEMAS   independent from the database schema layer
@@ -457,7 +553,7 @@ function assertAgencyReadAccess(role: string | null | undefined) {
     if (!isAgencyUserRole(role)) {
         throw new TRPCError({
             code: "FORBIDDEN",
-            message: "Only agency users can access this resource",
+            message: "Only Nisc HQ staff can access this resource",
         });
     }
 }
@@ -466,7 +562,7 @@ function assertAgencySuperAdminMutationAccess(role: string | null | undefined) {
     if (!isAgencySuperAdminRole(role)) {
         throw new TRPCError({
             code: "FORBIDDEN",
-            message: "Only agency super admins can modify this resource",
+            message: "Only Nisc HQ super admins can modify this resource",
         });
     }
 }
@@ -497,7 +593,7 @@ export const productsRouter = router({
             const cached = await getCached<z.infer<typeof productOutputSchema>[]>(listKey(cacheInput));
             if (cached != null) return cached;
 
-            const conditions = [];
+            const conditions = [eq(niscProduct.hidden, false)];
             if (input?.category !== undefined) {
                 conditions.push(eq(niscProduct.category, input.category));
             }
@@ -531,11 +627,12 @@ export const productsRouter = router({
             if (cached != null) return cached;
 
             const product = await db.query.niscProduct.findFirst({
-                where: eq(niscProduct.id, input.id),
+                where: and(eq(niscProduct.id, input.id), eq(niscProduct.hidden, false)),
                 ...(input.includePlans && {
                     with: {
                         plans: {
-                            where: eq(niscProductPlan.isActive, true),
+                            where: and(eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.hidden, false)),
                             orderBy: (plan, { asc: a }) => [
                                 a(plan.sortOrder),
                                 a(plan.createdAt),
@@ -586,7 +683,8 @@ export const productsRouter = router({
                     addOnProduct: {
                         with: {
                             plans: {
-                                where: eq(niscProductPlan.isActive, true),
+                                where: and(eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.hidden, false)),
                                 orderBy: (plan, { asc: a }) => [
                                     a(plan.sortOrder),
                                     a(plan.createdAt),
@@ -596,7 +694,9 @@ export const productsRouter = router({
                     },
                 },
             });
-            const result = relations.map((r) => ({
+            const result = relations
+                .filter((r) => !r.addOnProduct.hidden)
+                .map((r) => ({
                 product: mapProduct(r.addOnProduct),
                 plans: (r.addOnProduct as any).plans.map(mapPlan),
             }));
@@ -623,6 +723,7 @@ export const productsRouter = router({
             const products = await db.query.niscProduct.findMany({
                 where: and(
                     eq(niscProduct.isActive, true),
+                    eq(niscProduct.hidden, false),
                     or(
                         ilike(niscProduct.name, "%web hosting%"),
                         ilike(niscProduct.name, "%website hosting%"),
@@ -632,7 +733,8 @@ export const productsRouter = router({
                 orderBy: (p, { asc: a, desc: d }) => [a(p.sortOrder), d(p.createdAt)],
                 with: {
                     plans: {
-                        where: eq(niscProductPlan.isActive, true),
+                        where: and(eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.hidden, false)),
                         orderBy: (plan, { asc: a }) => [
                             a(plan.sortOrder),
                             a(plan.createdAt),
@@ -679,6 +781,7 @@ export const productsRouter = router({
             const products = await db.query.niscProduct.findMany({
                 where: and(
                     eq(niscProduct.isActive, true),
+                    eq(niscProduct.hidden, false),
                     or(
                         ilike(niscProduct.name, "%web hosting%"),
                         ilike(niscProduct.name, "%website hosting%"),
@@ -689,6 +792,7 @@ export const productsRouter = router({
                     plans: {
                         where: and(
                             eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.hidden, false),
                             eq(niscProductPlan.pricingModel, "FIXED"),
                         ),
                         orderBy: (plan, { asc: a }) => [
@@ -790,6 +894,7 @@ export const productsRouter = router({
             const products = await db.query.niscProduct.findMany({
                 where: and(
                     eq(niscProduct.isActive, true),
+                    eq(niscProduct.hidden, false),
                     ilike(niscProduct.name, "%email hosting%"),
                 ),
                 orderBy: (p, { asc: a, desc: d }) => [a(p.sortOrder), d(p.createdAt)],
@@ -797,6 +902,7 @@ export const productsRouter = router({
                     plans: {
                         where: and(
                             eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.hidden, false),
                             eq(niscProductPlan.pricingModel, "FIXED"),
                         ),
                         orderBy: (plan, { asc: a }) => [
@@ -894,6 +1000,7 @@ export const productsRouter = router({
             const products = await db.query.niscProduct.findMany({
                 where: and(
                     eq(niscProduct.isActive, true),
+                    eq(niscProduct.hidden, false),
                     or(
                         ilike(niscProduct.name, "%wordpress hosting%"),
                         ilike(niscProduct.name, "%wordpress managed%"),
@@ -904,6 +1011,7 @@ export const productsRouter = router({
                     plans: {
                         where: and(
                             eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.hidden, false),
                             eq(niscProductPlan.pricingModel, "FIXED"),
                         ),
                         orderBy: (plan, { asc: a }) => [
@@ -1021,6 +1129,7 @@ export const productsRouter = router({
             const products = await db.query.niscProduct.findMany({
                 where: and(
                     eq(niscProduct.isActive, true),
+                    eq(niscProduct.hidden, false),
                     eq(niscProduct.category, "MARKETING"),
                     eq(niscProduct.isAddOn, false),
                 ),
@@ -1029,6 +1138,7 @@ export const productsRouter = router({
                     plans: {
                         where: and(
                             eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.hidden, false),
                             eq(niscProductPlan.pricingModel, "FIXED"),
                         ),
                         orderBy: (plan, { asc: a }) => [a(plan.sortOrder), a(plan.createdAt)],
@@ -1122,36 +1232,14 @@ export const productsRouter = router({
             return result;
         }),
 
-    /** Plans for SEO customer pricing table. Matches products whose name contains "seo" (case-insensitive). Same shape as getHostingPlansForPricing. */
+    /** Plans for the SEO pricing table: active, listed FIXED plans on the SEO product. */
     getSeoPlansForPricing: publicProcedure
-        .output(
-            z.object({
-                productFeatures: z.array(z.object({ key: z.string(), label: z.string(), description: z.string().optional() })),
-                plans: z.array(
-                    z.object({
-                        id: z.string(),
-                        name: z.string(),
-                        niscPrice: z.string().nullable(),
-                        niscCurrency: z.string(),
-                        billingCycle: z.string(),
-                        isPopular: z.boolean(),
-                        isRecommended: z.boolean(),
-                        productId: z.string(),
-                        productName: z.string(),
-                        featureValues: z.array(
-                            z.object({
-                                available: z.boolean(),
-                                valueOverride: z.string().nullable(),
-                            })
-                        ),
-                    })
-                ),
-            })
-        )
+        .output(catalogPricingOutputSchema)
         .query(async () => {
             const products = await db.query.niscProduct.findMany({
                 where: and(
                     eq(niscProduct.isActive, true),
+                    eq(niscProduct.hidden, false),
                     or(
                         eq(niscProduct.id, NISC_SEO_REPORTS_PRODUCT_ID),
                         ilike(niscProduct.name, "%seo report%"),
@@ -1159,91 +1247,119 @@ export const productsRouter = router({
                     ),
                 ),
                 orderBy: (p, { asc: a, desc: d }) => [a(p.sortOrder), d(p.createdAt)],
-                with: {
-                    plans: {
-                        where: and(
-                            eq(niscProductPlan.isActive, true),
-                            eq(niscProductPlan.pricingModel, "FIXED"),
-                        ),
-                        orderBy: (plan, { asc: a }) => [
-                            a(plan.sortOrder),
-                            a(plan.createdAt),
-                        ],
-                    },
-                },
+                with: { plans: { where: listedFixedPlans, orderBy: [asc(niscProductPlan.sortOrder), asc(niscProductPlan.createdAt)] } },
             });
+            return shapeCatalogPricing(products, NISC_SEO_REPORTS_PRODUCT_ID, SEO_PRODUCT_FEATURES);
+        }),
 
-            const seenKeys = new Set<string>();
-            const productFeatures: Array<{ key: string; label: string; description?: string }> = [];
-            const canonicalProduct = products.find((p) => p.id === NISC_SEO_REPORTS_PRODUCT_ID);
-            const productsForFeatures = canonicalProduct
-                ? [canonicalProduct, ...products.filter((p) => p.id !== NISC_SEO_REPORTS_PRODUCT_ID)]
-                : products;
-            for (const p of productsForFeatures) {
-                const features = (p.features as Array<{ key: string; label: string; description?: string }>) ?? [];
-                for (const f of features) {
-                    if (!seenKeys.has(f.key)) {
-                        seenKeys.add(f.key);
-                        productFeatures.push({ key: f.key, label: f.label, description: f.description });
-                    }
-                }
+    /** Plans for the social media pricing table: active, listed FIXED plans on the social media product. */
+    getSocialMediaPlansForPricing: publicProcedure
+        .output(catalogPricingOutputSchema)
+        .query(async () => {
+            const products = await db.query.niscProduct.findMany({
+                where: and(
+                    eq(niscProduct.isActive, true),
+                    eq(niscProduct.hidden, false),
+                    eq(niscProduct.serviceType, NISC_SOCIAL_MEDIA_SERVICE_TYPE),
+                ),
+                orderBy: (p, { asc: a, desc: d }) => [a(p.sortOrder), d(p.createdAt)],
+                with: { plans: { where: listedFixedPlans, orderBy: [asc(niscProductPlan.sortOrder), asc(niscProductPlan.createdAt)] } },
+            });
+            return shapeCatalogPricing(products, NISC_SOCIAL_MEDIA_PRODUCT_ID, []);
+        }),
+
+    /** Zepo AI token packs for the website: listed top-up plans with their token grant. */
+    getZeepoAiTokenPacksForPricing: publicProcedure
+        .output(
+            z.object({
+                welcomeTokenGrant: z.number(),
+                packs: z.array(
+                    z.object({
+                        id: z.string(),
+                        name: z.string(),
+                        description: z.string().nullable(),
+                        tokens: z.number(),
+                        price: z.string(),
+                        currency: z.string(),
+                        isPopular: z.boolean(),
+                    }),
+                ),
+            }),
+        )
+        .query(async () => {
+            const plans = await db
+                .select({
+                    id: niscProductPlan.id,
+                    name: niscProductPlan.name,
+                    description: niscProductPlan.description,
+                    price: niscProductPlan.price,
+                    currency: niscProductPlan.currency,
+                    isPopular: niscProductPlan.isPopular,
+                    metadata: niscProductPlan.metadata,
+                })
+                .from(niscProductPlan)
+                .innerJoin(niscProduct, eq(niscProductPlan.productId, niscProduct.id))
+                .where(
+                    and(
+                        eq(niscProduct.id, ZEEPO_AI_PRODUCT_ID),
+                        eq(niscProduct.isActive, true),
+                        listedFixedPlans,
+                    ),
+                )
+                .orderBy(asc(niscProductPlan.sortOrder));
+            const packs = plans.flatMap((plan) => {
+                const meta = (plan.metadata ?? {}) as Record<string, unknown>;
+                const tokens = Number(meta.tokenGrant);
+                if (meta.zeepoPlanType !== "top_up" || !Number.isFinite(tokens) || tokens <= 0 || !plan.price) return [];
+                return [{
+                    id: plan.id,
+                    name: plan.name,
+                    description: plan.description ?? null,
+                    tokens,
+                    price: String(plan.price),
+                    currency: plan.currency ?? "USD",
+                    isPopular: plan.isPopular ?? false,
+                }];
+            });
+            return { welcomeTokenGrant: ZEEPO_AI_WELCOME_TOKEN_GRANT, packs };
+        }),
+
+    /** Agency-only Enterprise plans, priced per client on the Create subscription screen. */
+    getAgencyEnterprisePlans: protectedProcedure
+        .input(z.object({ serviceTypes: z.array(z.string().min(1)).min(1).max(20) }))
+        .query(async ({ ctx, input }) => {
+            if (!isAgencyRole(ctx.session.user.role)) {
+                throw new TRPCError({ code: "FORBIDDEN", message: "Nisc HQ access required" });
             }
-            if (productFeatures.length === 0) {
-                for (const f of SEO_PRODUCT_FEATURES) {
-                    if (!seenKeys.has(f.key)) {
-                        seenKeys.add(f.key);
-                        productFeatures.push({ key: f.key, label: f.label, description: f.description });
-                    }
-                }
-            }
-
-            const plans: Array<{
-                id: string;
-                name: string;
-                niscPrice: string | null;
-                niscCurrency: string;
-                billingCycle: string;
-                isPopular: boolean;
-                isRecommended: boolean;
-                productId: string;
-                productName: string;
-                featureValues: Array<{ available: boolean; valueOverride: string | null }>;
-            }> = [];
-
-            for (const product of products) {
-                for (const plan of (product as any).plans ?? []) {
-                    const planFeats =
-                        (plan.planFeatures as Array<{
-                            key: string;
-                            available: boolean;
-                            valueOverride?: string | null;
-                        }>) ?? [];
-                    const planFeatsByKey = new Map(planFeats.map((f) => [f.key, f]));
-                    const featureValues = productFeatures.map((pf) => {
-                        const entry = planFeatsByKey.get(pf.key);
-                        const available = !!entry?.available;
-                        const valueOverride =
-                            entry?.valueOverride != null && entry.valueOverride !== ""
-                                ? String(entry.valueOverride)
-                                : null;
-                        return { available, valueOverride };
-                    });
-                    plans.push({
-                        id: plan.id,
-                        name: plan.name,
-                        niscPrice: plan.price ?? null,
-                        niscCurrency: plan.currency ?? "KES",
-                        billingCycle: plan.billingCycle ?? "MONTHLY",
-                        isPopular: plan.isPopular ?? false,
-                        isRecommended: plan.isRecommended ?? false,
-                        productId: product.id,
-                        productName: product.name,
-                        featureValues,
-                    });
-                }
-            }
-
-            return { productFeatures, plans };
+            const rows = await db
+                .select({
+                    id: niscProductPlan.id,
+                    name: niscProductPlan.name,
+                    productId: niscProduct.id,
+                    productName: niscProduct.name,
+                    serviceType: niscProduct.serviceType,
+                    billingCycle: niscProductPlan.billingCycle,
+                    currency: niscProductPlan.currency,
+                    metadata: niscProductPlan.metadata,
+                })
+                .from(niscProductPlan)
+                .innerJoin(niscProduct, eq(niscProductPlan.productId, niscProduct.id))
+                .where(
+                    and(
+                        eq(niscProduct.isActive, true),
+                        eq(niscProductPlan.isActive, true),
+                        eq(niscProductPlan.hidden, true),
+                        inArray(niscProduct.serviceType, input.serviceTypes),
+                    ),
+                )
+                .orderBy(asc(niscProductPlan.sortOrder));
+            return rows
+                .filter((row) => isAgencyOnlyPlan(row.metadata))
+                .map(({ metadata: _metadata, ...row }) => ({
+                    ...row,
+                    billingCycle: row.billingCycle ?? "MONTHLY",
+                    currency: row.currency ?? "KES",
+                }));
         }),
 
     /** Media buying customer pricing (Meta / Google / LinkedIn). COMMISSION plans only. */
@@ -1280,6 +1396,7 @@ export const productsRouter = router({
             const products = await db.query.niscProduct.findMany({
                 where: and(
                     eq(niscProduct.isActive, true),
+                    eq(niscProduct.hidden, false),
                     or(
                         eq(niscProduct.id, NISC_MEDIA_BUYING_PRODUCT_ID),
                         ilike(niscProduct.name, "%media buying%"),
@@ -1290,6 +1407,7 @@ export const productsRouter = router({
                     plans: {
                         where: and(
                             eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.hidden, false),
                             eq(niscProductPlan.pricingModel, "COMMISSION"),
                         ),
                         orderBy: (plan, { asc: a }) => [a(plan.sortOrder), a(plan.createdAt)],
@@ -1402,6 +1520,7 @@ export const productsRouter = router({
             const products = await db.query.niscProduct.findMany({
                 where: and(
                     eq(niscProduct.isActive, true),
+                    eq(niscProduct.hidden, false),
                     or(
                         eq(niscProduct.id, CREATIVES_DESIGN_PRODUCT_ID),
                         ilike(niscProduct.name, "%creatives design%"),
@@ -1414,6 +1533,7 @@ export const productsRouter = router({
                     plans: {
                         where: and(
                             eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.hidden, false),
                             eq(niscProductPlan.pricingModel, "FIXED"),
                         ),
                         orderBy: (plan, { asc: a }) => [
@@ -1519,6 +1639,7 @@ export const productsRouter = router({
             const products = await db.query.niscProduct.findMany({
                 where: and(
                     eq(niscProduct.isActive, true),
+                    eq(niscProduct.hidden, false),
                     or(
                         ilike(niscProduct.name, "%nisc email marketing%"),
                         ilike(niscProduct.name, "%email marketing%"),
@@ -1529,6 +1650,7 @@ export const productsRouter = router({
                     plans: {
                         where: and(
                             eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.hidden, false),
                             eq(niscProductPlan.pricingModel, "FIXED"),
                         ),
                         orderBy: (plan, { asc: a }) => [a(plan.sortOrder), a(plan.createdAt)],
@@ -1627,12 +1749,14 @@ export const productsRouter = router({
                 ...searchTerms.map((term) => ilike(niscProduct.name, `%${term}%`)),
             );
             const products = await db.query.niscProduct.findMany({
-                where: and(eq(niscProduct.isActive, true), nameMatch),
+                where: and(eq(niscProduct.isActive, true),
+                    eq(niscProduct.hidden, false), nameMatch),
                 orderBy: (p, { asc: a, desc: d }) => [a(p.sortOrder), d(p.createdAt)],
                 with: {
                     plans: {
                         where: and(
                             eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.hidden, false),
                             eq(niscProductPlan.pricingModel, "FIXED"),
                         ),
                         orderBy: (plan, { asc: a }) => [
@@ -1955,10 +2079,13 @@ export const productsRouter = router({
             const rows = await db
                 .select({ id: niscProductPlan.id })
                 .from(niscProductPlan)
+                .innerJoin(niscProduct, eq(niscProduct.id, niscProductPlan.productId))
                 .where(
                     and(
                         eq(niscProductPlan.productId, input.productId),
                         eq(niscProductPlan.isActive, true),
+                        eq(niscProductPlan.hidden, false),
+                        eq(niscProduct.hidden, false),
                     ),
                 )
                 .orderBy(
@@ -1981,7 +2108,7 @@ export const productsRouter = router({
             assertAgencyReadAccess(actor.role);
 
             const plan = await db.query.niscProductPlan.findFirst({
-                where: eq(niscProductPlan.id, input.id),
+                where: and(eq(niscProductPlan.id, input.id), eq(niscProductPlan.hidden, false)),
             });
             if (!plan) {
                 throw new TRPCError({ code: "NOT_FOUND", message: "Plan not found" });

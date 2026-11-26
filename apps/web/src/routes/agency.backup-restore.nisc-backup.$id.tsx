@@ -11,7 +11,7 @@ export default function AgencyNiscBackupAccountDetailRoute() {
   return (
     <NiscBackupAccountDetailPage
       accountId={id}
-      backPath="/agency/backup-restore/nisc-backup"
+      backPath="/hq/backup-restore/nisc-backup"
     />
   );
 }

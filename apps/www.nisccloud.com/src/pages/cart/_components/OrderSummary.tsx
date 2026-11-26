@@ -1,11 +1,21 @@
-import { Trash2 } from "lucide-react";
+import { CreditCard, LayoutDashboard, Lock, RefreshCw, Smartphone, Timer, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Separator } from "@/components/ui/separator.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import type { CartItemData, BillingCycle } from "./CartItem.tsx";
 import type { SelectedDomain } from "./DomainUpsell.tsx";
+import type { SelectedOutreachPlan } from "./OutreachUpsell.tsx";
 import type { HivelocitySummaryLine } from "@/lib/vps-plans-api.ts";
-import { billingCyclePeriodLabel, periodPrice } from "@/lib/billing-cycle.ts";
+import { billingCyclePeriodLabel, billingCycleToMonths, isOneTimeService, periodPrice } from "@/lib/billing-cycle.ts";
+import {
+  convertKesForDisplay,
+  convertStorefrontAmount,
+  formatCurrency,
+} from "@/lib/currency.ts";
+import type { StorefrontCurrency } from "@/components/providers/currency.tsx";
+import { BrandLogo } from "@/components/server-logos.tsx";
+import type { ServerComponentLine } from "./server-options.ts";
+import { ServiceIcon, SERVICE_LABELS, cartLineTitle } from "./service-icon.tsx";
 
 export type { HivelocitySummaryLine };
 
@@ -15,6 +25,8 @@ export type { HivelocitySummaryLine };
 
 export interface SelectedHostingPlan {
   name: string;
+  /** Hosting add-on type, e.g. "web_hosting"; drives the icon and "Web Hosting · Launch plan". */
+  serviceType?: string | null;
   monthlyPrice: number;
   yearlyPrice: number;
   currency: string;
@@ -29,29 +41,39 @@ interface OrderSummaryProps {
   onContinue: () => void;
   onRemoveDomain?: () => void;
   onRemoveHostingPlan?: () => void;
+  selectedOutreach?: SelectedOutreachPlan | null;
+  outreachCycle?: BillingCycle;
+  onRemoveOutreach?: () => void;
   isContinueLoading?: boolean;
   step: 1 | 2;
   /** When set on step 2, the CTA submits this form instead of calling onContinue. */
   customerFormId?: string;
   /** Billable Hivelocity OS / add-on lines (VPS, VDS, dedicated). */
   hivelocityLines?: HivelocitySummaryLine[];
+  /** VPS, VDS and dedicated: the OS and add-ons already counted in the main line's price. */
+  serverComponents?: ServerComponentLine[];
   /** Disable continue until required cart fields are complete. */
   continueDisabled?: boolean;
   /** Server-computed totals override client-side math when present. */
   authoritativeTotals?: { subtotal: number; taxAmount: number; total: number };
+  currency: StorefrontCurrency;
+  kesToDisplayRate: number;
+  quoteExpiresAt?: number;
+  quoteExpiresIn?: number | null;
+  quoteExpired?: boolean;
+  onRefreshQuote?: () => void;
+  taxRate?: number;
   /** First load  full-page skeleton handles this; used for non-hivelocity carts. */
   quoteInitialLoading?: boolean;
   /** Background price validation (e.g. OS / add-on changes on VPS/VDS/dedicated). */
   quoteSummaryLoading?: boolean;
+  /** Add-ons this cart supports but doesn't have yet; each jumps to its section. */
+  addonSuggestions?: { id: string; label: string; serviceType: string; onAdd: () => void }[];
 }
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function fmt(amount: number) {
-  return `KES ${amount.toLocaleString("en-KE", { minimumFractionDigits: 0 })}`;
-}
 
 function getItemPrice(item: CartItemData) {
   return periodPrice(item.monthlyPrice, item.yearlyPrice, item.billingCycle);
@@ -92,21 +114,44 @@ export function OrderSummary({
   onContinue,
   onRemoveDomain,
   onRemoveHostingPlan,
+  selectedOutreach = null,
+  outreachCycle = "MONTHLY",
+  onRemoveOutreach,
   isContinueLoading,
   step,
   customerFormId,
   hivelocityLines = [],
+  serverComponents = [],
   continueDisabled = false,
   authoritativeTotals,
+  currency,
+  kesToDisplayRate,
+  quoteExpiresAt,
+  quoteExpiresIn,
+  quoteExpired = false,
+  onRefreshQuote,
+  taxRate = 0.16,
   quoteInitialLoading = false,
   quoteSummaryLoading = false,
+  addonSuggestions = [],
 }: OrderSummaryProps) {
+  const fmtKesLine = (amount: number) =>
+    formatCurrency(
+      convertKesForDisplay(amount, currency, kesToDisplayRate),
+      currency,
+    );
+  const fmtTotal = (amount: number) => formatCurrency(amount, currency);
   const mainPrice = getItemPrice(item);
 
   // Existing-domain costs nothing; purchased domain adds to total
   const domainPrice = selectedDomain && !selectedDomain.isExisting
     ? (selectedDomain.priceKes ?? 0)
     : 0;
+  const domainDisplayPrice = convertKesForDisplay(
+    domainPrice,
+    currency,
+    kesToDisplayRate,
+  );
 
   const hostingPrice = selectedHostingPlan
     ? periodPrice(
@@ -115,21 +160,49 @@ export function OrderSummary({
         hostingCycle,
       )
     : 0;
+  const hostingDisplayPrice = selectedHostingPlan
+    ? convertStorefrontAmount(
+    hostingPrice,
+    selectedHostingPlan.currency,
+    currency,
+    kesToDisplayRate,
+      )
+    : 0;
+
+  const outreachDisplayPrice = selectedOutreach
+    ? convertStorefrontAmount(
+        selectedOutreach.monthlyPrice * billingCycleToMonths(outreachCycle),
+        selectedOutreach.currency,
+        currency,
+        kesToDisplayRate,
+      )
+    : 0;
 
   const hivelocityExtras = hivelocityLines.reduce((s, l) => s + l.priceKes, 0);
+  const hivelocityDisplayExtras = convertKesForDisplay(
+    hivelocityExtras,
+    currency,
+    kesToDisplayRate,
+  );
 
-  const taxRate = 0.16;
-  const clientSubtotal = mainPrice + domainPrice + hostingPrice + hivelocityExtras;
-  const clientTaxAmount = Math.ceil(clientSubtotal * taxRate);
+  const clientSubtotal =
+    mainPrice + domainDisplayPrice + hostingDisplayPrice + outreachDisplayPrice + hivelocityDisplayExtras;
+  const rawClientTax = clientSubtotal * taxRate;
+  const clientTaxAmount =
+    currency === "KES"
+      ? Math.ceil(rawClientTax)
+      : Math.round(rawClientTax * 100) / 100;
   const subtotal = authoritativeTotals?.subtotal ?? clientSubtotal;
   const taxAmount = authoritativeTotals?.taxAmount ?? clientTaxAmount;
   const total = authoritativeTotals?.total ?? clientSubtotal + clientTaxAmount;
   const summaryBusy = quoteSummaryLoading || (quoteInitialLoading && !authoritativeTotals);
+  const quoteMinutes = quoteExpiresIn == null ? null : Math.floor(quoteExpiresIn / 60_000);
+  const quoteSeconds = quoteExpiresIn == null ? null : Math.floor((quoteExpiresIn % 60_000) / 1_000);
 
   return (
     <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
       <div className="px-5 pt-5 pb-4 border-b border-border">
-        <h2 className="text-base font-bold text-foreground">Order summary</h2>
+        <h2 className="text-lg font-semibold leading-snug text-foreground">Order summary</h2>
       </div>
 
       <div className="px-5 py-4 space-y-3">
@@ -139,32 +212,64 @@ export function OrderSummary({
           <>
         {/* Main plan */}
         <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-foreground leading-tight">{item.planName}</p>
+          <ServiceIcon serviceType={item.serviceType} />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-foreground leading-tight">
+              {cartLineTitle(item.serviceType, item.productName, item.planName)}
+            </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {item.serviceType === "domain_transfer"
+              {isOneTimeService(item.serviceType)
+                ? "One-time purchase"
+                : item.serviceType === "domain_transfer"
                 ? "1 year · Transfer + renewal"
                 : item.serviceType === "domain_registration"
                   ? `${billingCyclePeriodLabel(billingCycle)} · Domain registration`
-                  : `${billingCyclePeriodLabel(billingCycle)} billing cycle`}{" "}
-              · {item.productName}
+                  : `${billingCyclePeriodLabel(billingCycle)} billing cycle`}
             </p>
           </div>
           <span className="text-sm font-semibold text-foreground whitespace-nowrap">
-            {fmt(mainPrice)}
+            {fmtTotal(mainPrice)}
           </span>
         </div>
+
+        {serverComponents.length > 0 && (
+          <div className="rounded-xl bg-muted/40 p-3">
+            <ul className="space-y-2">
+              {serverComponents.map((line) => (
+                <li key={line.name} className="flex items-center justify-between gap-2 text-sm">
+                  <span className="flex min-w-0 items-center gap-2 text-foreground">
+                    {line.logo ? <BrandLogo name={line.name} size="sm" className="size-6 rounded-md p-1" /> : null}
+                    <span className="truncate">{line.name}</span>
+                  </span>
+                  <span className="shrink-0 text-muted-foreground">
+                    {line.price === "Included" ? "Included" : `+${line.price}`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-xs text-muted-foreground">Already counted in the price above.</p>
+          </div>
+        )}
 
         {/* Domain line */}
         {selectedDomain && (
           <div className="flex items-start justify-between gap-2">
+            <ServiceIcon
+              serviceType={
+                selectedDomain.isExisting
+                  ? "domain_existing"
+                  : selectedDomain.isTransfer
+                    ? "domain_transfer"
+                    : "domain_registration"
+              }
+            />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-foreground truncate">
                 {selectedDomain.domain}
               </p>
               <p className="text-xs text-muted-foreground">
                 {selectedDomain.isExisting
-                  ? "Existing domain · subscription name only"
+                  ? "Your domain · connected, no charge"
                   : selectedDomain.isTransfer
                     ? "Domain transfer · includes 1 year renewal"
                     : "Domain registration · 1 year"}
@@ -172,12 +277,13 @@ export function OrderSummary({
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
               <span className="text-sm font-semibold text-foreground whitespace-nowrap">
-                {selectedDomain.isExisting ? "" : domainPrice > 0 ? fmt(domainPrice) : "Free"}
+                {selectedDomain.isExisting ? "" : domainPrice > 0 ? fmtKesLine(domainPrice) : "Free"}
               </span>
               {onRemoveDomain && (
                 <button
+                  type="button"
                   onClick={onRemoveDomain}
-                  className="p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                  className="grid size-8 min-h-0 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   aria-label="Remove domain"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -190,9 +296,14 @@ export function OrderSummary({
         {/* Hosting upsell line */}
         {selectedHostingPlan && (
           <div className="flex items-start justify-between gap-2">
+            <ServiceIcon serviceType={selectedHostingPlan.serviceType ?? "web_hosting"} />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-foreground truncate">
-                {selectedHostingPlan.name}
+                {cartLineTitle(
+                  selectedHostingPlan.serviceType ?? "",
+                  SERVICE_LABELS[selectedHostingPlan.serviceType ?? ""] ?? "",
+                  selectedHostingPlan.name,
+                )}
               </p>
               <p className="text-xs text-muted-foreground">
                 {billingCyclePeriodLabel(hostingCycle)} billing cycle
@@ -200,13 +311,43 @@ export function OrderSummary({
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
               <span className="text-sm font-semibold text-foreground whitespace-nowrap">
-                {fmt(hostingPrice)}
+                {fmtKesLine(hostingPrice)}
               </span>
               {onRemoveHostingPlan && (
                 <button
+                  type="button"
                   onClick={onRemoveHostingPlan}
-                  className="p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                  className="grid size-8 min-h-0 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   aria-label="Remove hosting plan"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {selectedOutreach && (
+          <div className="flex items-start justify-between gap-2">
+            <ServiceIcon serviceType="email_marketing" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-foreground truncate">
+                {cartLineTitle("email_marketing", "Nisc Outreach", selectedOutreach.name)}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {billingCyclePeriodLabel(outreachCycle)} billing cycle
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="text-sm font-semibold text-foreground whitespace-nowrap">
+                {fmtTotal(outreachDisplayPrice)}
+              </span>
+              {onRemoveOutreach && (
+                <button
+                  type="button"
+                  onClick={onRemoveOutreach}
+                  className="grid size-8 min-h-0 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  aria-label="Remove Nisc Outreach"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -224,24 +365,74 @@ export function OrderSummary({
               </p>
             </div>
             <span className="text-sm font-semibold text-foreground whitespace-nowrap shrink-0">
-              {fmt(line.priceKes)}
+              {fmtKesLine(line.priceKes)}
             </span>
           </div>
         ))}
+
+        {addonSuggestions.length > 0 && (
+          <div className="border-t border-dashed border-border pt-3">
+            <p className="text-xs font-semibold text-muted-foreground">Add to your order</p>
+            <ul className="mt-1">
+              {addonSuggestions.map((addon) => (
+                <li key={addon.id}>
+                  <button
+                    type="button"
+                    onClick={addon.onAdd}
+                    className="group -mx-2 flex min-h-11 w-[calc(100%+1rem)] items-center gap-2 rounded-lg px-2 text-left text-sm text-foreground transition-colors hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <ServiceIcon serviceType={addon.serviceType} className="size-7 rounded-md" />
+                    <span className="min-w-0 flex-1 truncate">{addon.label}</span>
+                    <span className="inline-flex h-7 shrink-0 items-center rounded-full border border-primary/40 px-2.5 text-xs font-semibold text-primary group-hover:bg-primary/10">
+                      Add
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <Separator className="my-1" />
 
         {/* Taxes */}
         <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>VAT (16%)</span>
-          <span>{fmt(taxAmount)}</span>
+          <span>VAT ({Math.round(taxRate * 100)}%)</span>
+          <span>{fmtTotal(taxAmount)}</span>
         </div>
 
         {/* Total */}
         <div className="flex items-center justify-between pt-1">
           <span className="text-base font-bold text-foreground">Total</span>
-          <span className="text-xl font-bold text-foreground">{fmt(total)}</span>
+          <span className="text-xl font-bold text-foreground">{fmtTotal(total)}</span>
         </div>
+        {quoteExpiresAt && !quoteExpired && (
+          <p className="flex items-center justify-end gap-1.5 text-right text-xs text-muted-foreground" aria-live="polite">
+            <Timer className="size-3.5" aria-hidden="true" />
+            Price locked for {quoteMinutes}:{String(quoteSeconds ?? 0).padStart(2, "0")}
+          </p>
+        )}
+        {quoteExpired && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm" role="status">
+            <p className="font-semibold text-foreground">This price lock has expired.</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Refresh the quote before continuing. We will show any change before payment.
+            </p>
+            {onRefreshQuote && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="mt-3"
+                onClick={onRefreshQuote}
+                disabled={quoteSummaryLoading}
+              >
+                <RefreshCw className={`size-3.5 ${quoteSummaryLoading ? "animate-spin" : ""}`} />
+                Refresh price
+              </Button>
+            )}
+          </div>
+        )}
 
         {/* Coupon  re-enable when promo codes are supported
         <button className="flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 font-medium mt-1 group">
@@ -260,20 +451,37 @@ export function OrderSummary({
           form={step === 2 ? customerFormId : undefined}
           className="hidden lg:inline-flex w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base shadow-sm transition-all"
           onClick={step === 1 ? onContinue : undefined}
-          disabled={isContinueLoading || summaryBusy || continueDisabled}
+          disabled={isContinueLoading || summaryBusy || continueDisabled || quoteExpired}
         >
           {summaryBusy
             ? "Please wait…"
             : isContinueLoading
             ? "Processing…"
             : step === 1
-              ? "Continue"
+              ? "Continue to checkout"
               : "Continue to payment"}
         </Button>
 
-        <p className="text-xs text-muted-foreground text-center mt-3">
-          Secure payment · All prices include VAT
-        </p>
+        <div className="mt-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-center gap-2" aria-label="Payment methods">
+            {currency === "KES" && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-xs font-medium text-foreground">
+                <Smartphone className="size-3.5 text-emerald-600 dark:text-emerald-400" aria-hidden /> M-Pesa
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-xs font-medium text-foreground">
+              <CreditCard className="size-3.5 text-primary" aria-hidden /> Card
+            </span>
+          </div>
+          <p className="flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
+            <Lock className="size-3" aria-hidden />
+            Secure payment · Total includes {Math.round(taxRate * 100)}% VAT
+          </p>
+          <p className="flex items-start gap-2 rounded-xl bg-muted/50 p-3 text-xs leading-relaxed text-muted-foreground">
+            <LayoutDashboard className="mt-0.5 size-3.5 shrink-0 text-primary" aria-hidden />
+            After payment you go straight to nPanel, where your order is set up and your invoice is saved.
+          </p>
+        </div>
       </div>
     </div>
   );

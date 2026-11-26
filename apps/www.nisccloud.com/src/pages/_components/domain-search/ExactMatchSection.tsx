@@ -2,7 +2,9 @@ import * as React from "react";
 import { Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { trpcMutation, trpcQuery } from "@/lib/domain-search/api.ts";
+import { trpcQuery } from "@/lib/domain-search/api.ts";
+import { checkKenicDomains, forgetKenicDomains } from "@/lib/domain-search/kenic-check.ts";
+import { KenicRetryCard, KenicSlowNotice } from "./KenicLookupStatus.tsx";
 import { kenicItemToDomainSearchResult } from "@/lib/domain-search/to-domain-search-result.ts";
 import {
   isKenicTld,
@@ -13,11 +15,12 @@ import {
 } from "@/lib/domain-search/kenic-schema.ts";
 import { nameForOpenProvider } from "@/lib/domain-search/search-utils.ts";
 import { getCustomerRetailDisplayPrice } from "@/lib/domain-search/customer-display-price.ts";
-import { formatPrice } from "@/lib/domain-search/format-price.ts";
 import { usePricing } from "@/lib/domain-search/pricing-context.tsx";
 import type { DomainSearchResult } from "@/lib/domain-search/types.ts";
 import { TldLogo } from "./TldLogo.tsx";
 import { AddDomainToCartButtons } from "./AddDomainToCartButtons.tsx";
+import { useCurrency } from "@/components/providers/currency.tsx";
+import { convertKesForDisplay, formatCurrency } from "@/lib/currency.ts";
 
 const EXACT_MATCH_WHY_CHOOSE =
   "This is your exact domain search, secure it before someone else does.";
@@ -37,8 +40,15 @@ export function ExactMatchSection({
   onAddToCart,
   onRemoveFromCart,
 }: ExactMatchSectionProps) {
-  const { getPricingInfo, calculatePricesBatch, hasDefaultSetting, isLoadingTldSettings } =
+  const {
+    getPricingInfo,
+    calculatePricesBatch,
+    hasDefaultSetting,
+    isConversionAvailable,
+    isLoadingTldSettings,
+  } =
     usePricing();
+  const { currency: selectedCurrency, kesToCurrencyRate } = useCurrency();
   const retailPricingReady = !isLoadingTldSettings && hasDefaultSetting;
 
   const normalizedRaw = React.useMemo(() => {
@@ -54,6 +64,8 @@ export function ExactMatchSection({
 
   const [kenicCard, setKenicCard] = React.useState<KenicCardItem | null>(null);
   const [kenicLoading, setKenicLoading] = React.useState(false);
+  const [kenicError, setKenicError] = React.useState(false);
+  const [kenicAttempt, setKenicAttempt] = React.useState(0);
   const [openProviderResult, setOpenProviderResult] = React.useState<DomainSearchResult | null>(null);
   const [openProviderLoading, setOpenProviderLoading] = React.useState(false);
 
@@ -74,11 +86,9 @@ export function ExactMatchSection({
       return;
     }
     setKenicCard(null);
+    setKenicError(false);
     setKenicLoading(true);
-    trpcMutation<{ normalized?: Array<{ domain: string; available: boolean; reason?: string; currency?: string; createFee?: { amount: number; currency: string } }> }>(
-      "kenic.domainCheck.check",
-      { domains: [fullDomain], withFee: true, currency: "KES", periodYears: 1 },
-    )
+    checkKenicDomains([fullDomain])
       .then((data) => {
         if (!isMountedRef.current) return;
         const normalized = data?.normalized;
@@ -90,12 +100,14 @@ export function ExactMatchSection({
         }
       })
       .catch(() => {
-        if (isMountedRef.current) setKenicCard(null);
+        if (!isMountedRef.current) return;
+        setKenicCard(null);
+        setKenicError(true);
       })
       .finally(() => {
         if (isMountedRef.current) setKenicLoading(false);
       });
-  }, [fullDomain, isKenic, parsed?.name, parsed?.tld]);
+  }, [fullDomain, isKenic, parsed?.name, parsed?.tld, kenicAttempt]);
 
   React.useEffect(() => {
     if (!parsed || isKenic || isUnavailable || !parsed.name.trim()) {
@@ -155,15 +167,27 @@ export function ExactMatchSection({
 
   if (anyLoading && !kenicCard && !openProviderResult) {
     return (
-      <div className="bg-card border border-border rounded-lg p-4 md:p-5 min-h-[200px]">
+      <div className="bg-card border border-border rounded-lg p-4 md:p-5 min-h-[200px]" aria-busy="true">
         <div className="flex justify-between items-center mb-2">
           <Skeleton className="h-14 w-14 rounded-lg" />
           <Skeleton className="h-5 w-16" />
         </div>
         <Skeleton className="h-4 w-full mb-2" />
         <Skeleton className="h-4 w-32 mb-2" />
-        <Skeleton className="h-8 w-full mt-2" />
+        {isKenic ? <KenicSlowNotice domain={fullDomain} /> : <Skeleton className="h-8 w-full mt-2" />}
       </div>
+    );
+  }
+
+  if (isKenic && kenicError && !kenicCard) {
+    return (
+      <KenicRetryCard
+        domain={fullDomain}
+        onRetry={() => {
+          forgetKenicDomains([fullDomain]);
+          setKenicAttempt((n) => n + 1);
+        }}
+      />
     );
   }
 
@@ -175,7 +199,12 @@ export function ExactMatchSection({
       createFinal,
       createCalc,
     });
-    const priceReady = kenicCard.available && retailPricingReady;
+    const priceReady =
+      kenicCard.available && retailPricingReady && currency === "KES" && kesToCurrencyRate !== null;
+    const displayPrice =
+      priceReady
+        ? convertKesForDisplay(createFinal, selectedCurrency, kesToCurrencyRate)
+        : null;
 
     return (
       <div className="bg-card border border-border rounded-lg p-4 md:p-5 hover:shadow-md transition-shadow flex flex-col relative min-h-[200px]">
@@ -196,8 +225,13 @@ export function ExactMatchSection({
         </div>
         {priceReady && (
           <div className="space-y-0.5 mb-2">
-            <div className="text-base font-bold text-foreground">{formatPrice(createFinal, currency)}</div>
+            <div className="text-base font-bold text-foreground">
+              {formatCurrency(displayPrice!, selectedCurrency)}
+            </div>
           </div>
+        )}
+        {kenicCard.available && retailPricingReady && !priceReady && (
+          <div className="mb-2 text-xs text-muted-foreground">Price unavailable</div>
         )}
         {kenicCard.available ? (
           <div>
@@ -232,8 +266,17 @@ export function ExactMatchSection({
   if (!isKenic && openProviderResult) {
     const r = openProviderResult;
     const { displayPrice, displayCurrency } = getCustomerRetailDisplayPrice(r);
+    const sourceCurrency = r.price?.reseller?.currency ?? "USD";
     const priceReady =
-      displayPrice != null && displayCurrency != null && !Number.isNaN(displayPrice);
+      displayPrice != null &&
+      displayCurrency === "KES" &&
+      (sourceCurrency === "KES" || isConversionAvailable) &&
+      !Number.isNaN(displayPrice) &&
+      kesToCurrencyRate !== null;
+    const selectedDisplayPrice =
+      priceReady
+        ? convertKesForDisplay(displayPrice!, selectedCurrency, kesToCurrencyRate)
+        : null;
     const isAvailable = r.status === "free";
     const tld = r.domain.includes(".") ? (r.domain.split(".").slice(-1)[0] ?? "") : "";
 
@@ -257,9 +300,12 @@ export function ExactMatchSection({
         {isAvailable && priceReady && (
           <div className="space-y-0.5 mb-2">
             <div className="text-base font-bold text-foreground">
-              {formatPrice(displayPrice!, displayCurrency!)}
+              {formatCurrency(selectedDisplayPrice!, selectedCurrency)}
             </div>
           </div>
+        )}
+        {isAvailable && !priceReady && (
+          <div className="mb-2 text-xs text-muted-foreground">Price unavailable</div>
         )}
         {isAvailable ? (
           <div>

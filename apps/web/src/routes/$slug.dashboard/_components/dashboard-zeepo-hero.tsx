@@ -85,7 +85,7 @@ function DashboardZeepoHeroInner() {
 				if (result.granted) {
 					applyZeepoAiWelcomeGrantToCache(utils, teamId, result);
 					toast.success(
-						`Welcome to Zeepo AI  ${result.tokensGranted} free tokens are on your team wallet to try it out.`,
+						`Welcome to Zeepo AI  ${result.tokensGranted} free credits are on your team wallet to try it out.`,
 						{ duration: 7000 },
 					);
 				}
@@ -119,7 +119,7 @@ function DashboardZeepoHeroInner() {
 		}
 		if (route.isCustomer && !isAgency && !tokensLoading && !claimWelcomeGrant.isPending && !canAffordTurn) {
 			setBuyOpen(true);
-			toast.error("Insufficient tokens. Purchase more tokens to continue.");
+			toast.error("Not enough credits. Buy more credits to continue.");
 			return;
 		}
 

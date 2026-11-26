@@ -204,7 +204,7 @@ const ReportCoverPage = (props: any) => {
 				</View>
 				<View style={styles.coverContent}>
 					<Text style={styles.campaignTitle}>{campaign?.name || "Email Marketing Report"}</Text>
-					<Text style={styles.periodText}>Nisc Email Marketing • Campaign Report</Text>
+					<Text style={styles.periodText}>Nisc Outreach • Campaign Report</Text>
 					<Text style={styles.coverSubtitle}>
 						A concise summary of deliverability and engagement performance to help you evaluate campaign health,
 						spot issues early (bounces/complaints), and optimize future sends based on timing and click activity.

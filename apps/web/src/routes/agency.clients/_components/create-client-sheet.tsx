@@ -6,8 +6,6 @@ import { useFieldArray, useForm } from "react-hook-form";
 import { z } from "zod";
 import {
   Building2,
-  Eye,
-  EyeOff,
   FileText,
   HelpCircle,
   Mail,
@@ -16,7 +14,6 @@ import {
   MessageSquare,
   Phone,
   Plus,
-  RefreshCw,
   UserPlus,
   Users,
   X,
@@ -62,8 +59,6 @@ const formSchema = z
   .object({
     name: z.string().min(1, "Name is required"),
     email: z.string().email("Invalid email address"),
-    password: z.string().min(8, "Password must be at least 8 characters"),
-    role: z.enum(["CUSTOMER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"]),
     firstName: z.string().optional(),
     lastName: z.string().optional(),
     phone: z.string().optional(),
@@ -142,8 +137,6 @@ type FormData = z.infer<typeof formSchema>;
 const DEFAULT_VALUES: FormData = {
   name: "",
   email: "",
-  password: "",
-  role: "CUSTOMER",
   firstName: "",
   lastName: "",
   phone: "",
@@ -268,7 +261,6 @@ export function CreateClientSheet({
   onOpenChange,
   onSuccess,
 }: CreateClientSheetProps) {
-  const [showPassword, setShowPassword] = React.useState(false);
   const utils = trpc.useUtils();
 
   const form = useForm<FormData>({
@@ -322,7 +314,6 @@ export function CreateClientSheet({
       toast.success(parts.join("  "));
 
       form.reset(DEFAULT_VALUES);
-      setShowPassword(false);
       utils.clients.getAll.invalidate();
       utils.teams.getAll.invalidate();
       onOpenChange(false);
@@ -336,33 +327,8 @@ export function CreateClientSheet({
   React.useEffect(() => {
     if (!open) {
       form.reset(DEFAULT_VALUES);
-      setShowPassword(false);
     }
   }, [open, form]);
-
-  const generatePassword = () => {
-    const uppers = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    const lowers = "abcdefghijklmnopqrstuvwxyz";
-    const digits = "0123456789";
-    const specials = "!@#$%^&*()-_=+[]{};:,.<>/?";
-    const all = uppers + lowers + digits + specials;
-    const length = 14;
-
-    const pwd = [
-      uppers[Math.floor(Math.random() * uppers.length)],
-      lowers[Math.floor(Math.random() * lowers.length)],
-      digits[Math.floor(Math.random() * digits.length)],
-      specials[Math.floor(Math.random() * specials.length)],
-    ];
-    for (let i = pwd.length; i < length; i++) {
-      pwd.push(all[Math.floor(Math.random() * all.length)]);
-    }
-    for (let i = pwd.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [pwd[i], pwd[j]] = [pwd[j], pwd[i]];
-    }
-    form.setValue("password", pwd.join(""));
-  };
 
   const onSubmit = (data: FormData) => {
     const profile = {
@@ -380,8 +346,7 @@ export function CreateClientSheet({
     createClientMutation.mutate({
       name: data.name.trim(),
       email: data.email.trim(),
-      password: data.password,
-      role: data.role,
+      role: "CUSTOMER",
       ...(hasProfile ? { profile } : {}),
       generalEmailsAccepted: radioToBool(data.generalEmailsAccepted),
       invoiceEmailsAccepted: radioToBool(data.invoiceEmailsAccepted),
@@ -423,7 +388,7 @@ export function CreateClientSheet({
         <SheetHeader>
           <SheetTitle>Create Client</SheetTitle>
           <SheetDescription>
-            Create the account, fill in profile details, and optionally set up or join an organization. Credentials are emailed after everything succeeds.
+            Create the account, fill in profile details, and optionally set up or join an organization. When everything succeeds, they get an email to set their own password, which also confirms their email.
           </SheetDescription>
         </SheetHeader>
 
@@ -449,84 +414,20 @@ export function CreateClientSheet({
                 )}
               />
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input type="email" placeholder="john@example.com" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="role"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Account role</FormLabel>
-                      <Select value={field.value} onValueChange={field.onChange} disabled={isPending}>
-                        <FormControl>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select role" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="CUSTOMER">Customer</SelectItem>
-                          <SelectItem value="AGENCY_USER">Agency user</SelectItem>
-                          <SelectItem value="AGENCY_ADMIN">Agency admin</SelectItem>
-                          <SelectItem value="AGENCY_SUPER_ADMIN">Agency super admin</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
               <FormField
                 control={form.control}
-                name="password"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
+                    <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <div className="flex gap-2">
-                        <Input
-                          type={showPassword ? "text" : "password"}
-                          placeholder="Enter password or generate one"
-                          className="w-full"
-                          {...field}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setShowPassword((value) => !value)}
-                          aria-label={showPassword ? "Hide password" : "Show password"}
-                        >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          onClick={generatePassword}
-                          aria-label="Generate password"
-                        >
-                          <RefreshCw className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      <Input type="email" placeholder="john@example.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
             </section>
 
             <Separator />

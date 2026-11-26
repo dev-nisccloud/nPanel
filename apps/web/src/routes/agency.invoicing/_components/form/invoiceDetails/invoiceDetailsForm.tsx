@@ -8,6 +8,7 @@ import CustomNumberInput from "@/routes/agency.invoicing/_components/ui/customNu
 import { useGetValue } from "@/routes/agency.invoicing/hooks/useGetValue";
 import { Controller, useFormContext } from "react-hook-form";
 import type { Item } from "@/routes/agency.invoicing/types";
+import { useDecimalField } from "@/routes/agency.invoices/create/_components/ui/useDecimalField";
 
 export const InvoiceDetailsForm = () => {
   const { control } = useFormContext();
@@ -88,18 +89,10 @@ export const InvoiceDetailsForm = () => {
                         }}
                       />
                     </div>
-                    <div className="w-14">
-                      <Input
-                        placeholder="Amount"
-												value={amount ? `${amount}` : ""}
-                        type="text"
-                        pattern="[0-9]*"
-												onChange={(event) => {
-													const inputValue = event.target.value;
-													if (/^-?\d*\.?\d*$/.test(inputValue) || inputValue === "") {
-														updateItem(index, { amount: inputValue === "" ? undefined : Number(inputValue) });
-                          }
-                        }}
+                    <div className="w-20">
+                      <InvoiceAmountInput
+                        amount={amount}
+                        onAmount={(next) => updateItem(index, { amount: next })}
                       />
                     </div>
                   </div>
@@ -135,4 +128,25 @@ export const InvoiceDetailsForm = () => {
     />
   );
 };
+
+function InvoiceAmountInput({
+	amount,
+	onAmount,
+}: {
+	amount?: number;
+	onAmount: (amount: number | undefined) => void;
+}) {
+	const amountField = useDecimalField(amount);
+	return (
+		<Input
+			placeholder="Amount"
+			value={amountField.shown}
+			type="text"
+			inputMode="decimal"
+			onChange={(event) => {
+				amountField.onChange(event.target.value, onAmount);
+			}}
+		/>
+	);
+}
 

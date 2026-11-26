@@ -1,5 +1,6 @@
 import flags from "./country-flags";
 import { currencies } from "./currencies";
+import { countries } from "./countries-intl";
 import { EU_COUNTRY_CODES } from "./eu-countries";
 import timezones from "./timezones.json";
 
@@ -15,6 +16,38 @@ function header(headers: Headers | undefined, name: string, fallback: string): s
  */
 export function getCountryCodeSync(headers?: Headers): string {
   return header(headers, "x-vercel-ip-country", "SE");
+}
+
+export type StorefrontCurrency = "KES" | "USD";
+
+const knownCountryCodes = new Set(
+  countries.map((country) => country.alpha2.toUpperCase()),
+);
+
+/**
+ * Read only deployment-controlled country headers and validate the value
+ * against the ISO country catalogue. Unknown/local traffic returns null.
+ */
+export function getTrustedCountryCodeSync(
+  headers?: Headers,
+  trustedHeaderNames: readonly string[] = [
+    "cf-ipcountry",
+    "x-vercel-ip-country",
+    "cloudfront-viewer-country",
+  ],
+): string | null {
+  if (!headers) return null;
+  for (const name of trustedHeaderNames) {
+    const value = headers.get(name)?.trim().toUpperCase();
+    if (value && knownCountryCodes.has(value)) return value;
+  }
+  return null;
+}
+
+export function storefrontCurrencyForCountry(
+  countryCode: string | null | undefined,
+): StorefrontCurrency {
+  return countryCode?.trim().toUpperCase() === "KE" ? "KES" : countryCode ? "USD" : "KES";
 }
 
 export function getTimezoneSync(headers?: Headers): string {
@@ -87,4 +120,4 @@ export async function getCountry(headers?: Headers) {
   return undefined;
 }
 
-export { countries } from "./countries-intl";
+export { countries };

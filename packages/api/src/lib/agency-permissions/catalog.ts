@@ -11,16 +11,18 @@ export type AgencyPermissionModuleId =
 	| "servers.vds"
 	| "servers.dedicated"
 	| "backup"
-	| "ads.meta"
-	| "ads.google"
-	| "ads.linkedin"
+	| "storage"
 	| "social"
+	| "social_linkedin"
+	| "social_instagram"
+	| "social_google"
 	| "email_marketing"
 	| "seo"
 	| "creatives"
 	| "gen_ai"
 	| "clients"
 	| "crm"
+	| "hr"
 	| "billing"
 	| "payments"
 	| "etims"
@@ -47,16 +49,18 @@ const MODULE_LABELS: Record<AgencyPermissionModuleId, string> = {
 	"servers.vds": "VDS",
 	"servers.dedicated": "Dedicated servers",
 	backup: "Backup & restore",
-	"ads.meta": "Meta Ads",
-	"ads.google": "Google Ads",
-	"ads.linkedin": "LinkedIn Ads",
+	storage: "Cloud storage",
 	social: "Social",
+	social_linkedin: "LinkedIn",
+	social_instagram: "Instagram",
+	social_google: "Google Ads",
 	email_marketing: "Email marketing",
 	seo: "SEO",
 	creatives: "Creatives",
 	gen_ai: "Gen AI",
 	clients: "Clients",
 	crm: "CRM",
+	hr: "Human resource",
 	billing: "Billing",
 	payments: "Payment gateway",
 	etims: "KRA eTIMS",
@@ -64,7 +68,7 @@ const MODULE_LABELS: Record<AgencyPermissionModuleId, string> = {
 	support: "Support",
 	products: "Products & orders",
 	operations: "Operations",
-	agency_admin: "Agency administration",
+	agency_admin: "Nisc HQ",
 };
 
 function entry(
@@ -94,13 +98,6 @@ function serverEntries(module: "servers.vps" | "servers.vds" | "servers.dedicate
 		entry(module, "metrics", "Metrics", "View performance metrics"),
 		entry(module, "history", "History", "View server event history"),
 		entry(module, "rescue", "Rescue", "Use rescue, reload, and ISO tools"),
-	];
-}
-
-function adsEntries(module: "ads.meta" | "ads.google" | "ads.linkedin") {
-	return [
-		entry(module, "accounts", "Accounts", "View or connect ad accounts"),
-		entry(module, "campaigns", "Campaigns", "View or create, pause, and edit campaigns"),
 	];
 }
 
@@ -142,12 +139,19 @@ export const AGENCY_PERMISSION_CATALOG: readonly AgencyPermissionEntry[] = [
 	entry("backup", "restores", "Restores", "View or run restores and downloads"),
 	entry("backup", "settings", "Settings", "View or change backup settings"),
 
-	...adsEntries("ads.meta"),
-	...adsEntries("ads.google"),
-	...adsEntries("ads.linkedin"),
+	entry("storage", "browse", "Cloud Storage", "View and organize Cloud Storage files and folders"),
 
 	entry("social", "accounts", "Accounts", "View or connect social accounts"),
 	entry("social", "posts", "Posts", "View or publish social posts"),
+
+	entry("social_linkedin", "accounts", "Accounts", "View or connect LinkedIn ad accounts"),
+	entry("social_linkedin", "campaigns", "Campaigns", "View LinkedIn campaigns and performance"),
+
+	entry("social_instagram", "accounts", "Accounts", "View Meta ad accounts used for Instagram ads"),
+	entry("social_instagram", "campaigns", "Campaigns", "View Instagram delivery and performance"),
+
+	entry("social_google", "accounts", "Accounts", "View or connect Google Ads accounts"),
+	entry("social_google", "campaigns", "Campaigns", "View Google Ads campaigns and performance"),
 
 	entry("email_marketing", "campaigns", "Campaigns", "View or create and send campaigns"),
 	entry("email_marketing", "audiences", "Audiences", "View or manage audiences"),
@@ -215,8 +219,11 @@ export const AGENCY_PERMISSION_CATALOG: readonly AgencyPermissionEntry[] = [
 
 	entry("operations", "cronjobs", "Workflow jobs", "View or manage scheduled jobs"),
 
-	entry("agency_admin", "users", "Users", "View or manage agency users"),
-	entry("agency_admin", "roles", "Roles", "View or manage agency roles and permissions"),
+	entry("hr", "openings", "Open roles", "View or publish career roles"),
+	entry("hr", "applications", "Applications", "View job applications and download CVs"),
+
+	entry("agency_admin", "users", "Users", "View or manage Nisc HQ staff"),
+	entry("agency_admin", "roles", "Roles", "View or manage Nisc HQ roles and permissions"),
 	entry("agency_admin", "api_keys", "API keys", "View or manage API keys"),
 ] as const;
 

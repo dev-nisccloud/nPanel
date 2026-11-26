@@ -39,8 +39,8 @@ export default function InstagramCallbackPage() {
 			setTimeout(() => {
 				window.location.replace(
 					connectionSourceRef.current === "instagram_ads"
-						? "/agency/ad-campaigns/instagram-ads"
-						: "/agency/social-media-marketing/instagram",
+						? "/hq/social-media-ads/instagram"
+						: "/hq/social-media-marketing/instagram",
 				);
 			}, 2000);
 		},
@@ -110,8 +110,8 @@ export default function InstagramCallbackPage() {
 			setTimeout(() => {
 				window.location.replace(
 					connectionSourceRef.current === "instagram_ads"
-						? "/agency/ad-campaigns/instagram-ads"
-						: "/agency/social-media-marketing/instagram",
+						? "/hq/social-media-ads/instagram"
+						: "/hq/social-media-marketing/instagram",
 				);
 			}, 1000);
 			return;
@@ -168,7 +168,7 @@ export default function InstagramCallbackPage() {
 									<p className="text-sm text-destructive mb-4">{errorMessage}</p>
 									<Button
 										onClick={() =>
-											window.location.replace("/agency/social-media-marketing/instagram")
+											window.location.replace("/hq/social-media-marketing/instagram")
 										}
 										variant="outline"
 									>

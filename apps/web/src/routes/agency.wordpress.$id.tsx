@@ -51,7 +51,7 @@ export default function WordPressDetailRoute() {
     <ErrorBoundary>
       <WordPressDetailPage
         installationId={id}
-        backTo={hostingReturnTo ?? "/agency/wordpress"}
+        backTo={hostingReturnTo ?? "/hq/wordpress"}
         backLabel={hostingReturnTo ? "Back to hosting" : "Back to WordPress"}
       />
     </ErrorBoundary>

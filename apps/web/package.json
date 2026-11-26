@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "react-router build",
-    "dev": "react-router dev --host",
+    "dev": "react-router dev --host :: --port 5175",
     "start": "bun run server.ts",
     "typecheck": "react-router typegen && tsc",
     "generate-pwa-assets": "pwa-assets-generator"
@@ -17,6 +17,7 @@
     "@dnd-kit/modifiers": "^9.0.0",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@fontsource-variable/dm-sans": "^5.3.0",
     "@hookform/resolvers": "^5.2.2",
     "@intercom/messenger-js-sdk": "^0.0.19",
     "@monaco-editor/react": "^4.7.0",

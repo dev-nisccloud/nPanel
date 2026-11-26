@@ -1,7 +1,8 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { trpcMutation, trpcQuery } from "@/lib/domain-search/api.ts";
+import { trpcQuery } from "@/lib/domain-search/api.ts";
+import { checkKenicDomains } from "@/lib/domain-search/kenic-check.ts";
 import { getRecommendedBatch } from "@/lib/domain-search/tld-sections.ts";
 import {
   isUnavailableKenicTld,
@@ -14,6 +15,8 @@ import { getCustomerRetailDisplayPrice } from "@/lib/domain-search/customer-disp
 import { usePricing } from "@/lib/domain-search/pricing-context.tsx";
 import type { DomainSearchResult } from "@/lib/domain-search/types.ts";
 import { DomainResultList, DomainResultRow } from "./DomainResultRow.tsx";
+import { useCurrency } from "@/components/providers/currency.tsx";
+import { convertKesForDisplay } from "@/lib/currency.ts";
 
 function RowSkeleton({ count = 4 }: { count?: number }) {
   return (
@@ -68,81 +71,82 @@ async function fetchBatchResults(params: {
   open: string[];
   getPricingInfo: ReturnType<typeof usePricing>["getPricingInfo"];
   calculatePricesBatch: ReturnType<typeof usePricing>["calculatePricesBatch"];
+  /** Called as each registry answers; `pending` lists domains still being checked. */
+  onPartial?: (partial: DomainSearchResult[], pending: string[]) => void;
 }): Promise<DomainSearchResult[]> {
-  const { name, kenic, open, getPricingInfo, calculatePricesBatch } = params;
+  const { name, kenic, open, getPricingInfo, calculatePricesBatch, onPartial } = params;
   const out: DomainSearchResult[] = [];
+  const pending = new Set<string>();
+
+  const track = (domains: string[], task: Promise<DomainSearchResult[]>) => {
+    for (const d of domains) pending.add(d);
+    return task
+      .then((found) => {
+        out.push(...found);
+      })
+      .catch(() => {
+        // one registry failing should not hide the other's results
+      })
+      .finally(() => {
+        for (const d of domains) pending.delete(d);
+        onPartial?.([...out], [...pending]);
+      });
+  };
+
+  const tasks: Promise<void>[] = [];
+
+  // OpenProvider usually answers first; KeNIC rows fill in when the registry replies.
+  if (open.length > 0) {
+    tasks.push(
+      track(
+        open.map((tld) => `${name}.${tld}`),
+        (async () => {
+          const res = await trpcQuery<{
+            success: boolean;
+            data?: {
+              results: Array<{
+                domain: string;
+                status: string;
+                reason?: string;
+                price?: DomainSearchResult["price"];
+              }>;
+            };
+          }>("openProvider.domains.checkAvailability", {
+            name: nameForOpenProvider(name),
+            extensions: open,
+            with_price: true,
+            with_whois: false,
+          });
+          if (!res?.success || !res.data?.results) return [];
+          const raw: DomainSearchResult[] = res.data.results.map((r) => ({
+            domain: r.domain ?? "",
+            status: r.status ?? "unknown",
+            reason: r.reason,
+            price: r.price,
+          }));
+          return calculatePricesBatch(raw).catch(() => raw);
+        })(),
+      ),
+    );
+  }
 
   if (kenic.length > 0) {
-    try {
-      const kenicDomains = kenic.map((tld) => `${name}.${tld}`);
-      const data = await trpcMutation<{
-        normalized?: Array<{
-          domain: string;
-          available: boolean;
-          reason?: string;
-          currency?: string;
-          createFee?: { amount: number; currency: string };
-          renewFee?: { amount: number; currency: string };
-          transferFee?: { amount: number; currency: string };
-        }>;
-      }>("kenic.domainCheck.check", {
-        domains: kenicDomains,
-        withFee: true,
-        currency: "KES",
-        periodYears: 1,
-      });
-      const cards = normalizeToKenicCards(name, data?.normalized ?? []);
-      for (const item of cards) {
-        const createCalc = getPricingInfo(
-          item.domain,
-          item.createPrice ?? 0,
-          item.currency ?? "KES",
-        );
-        out.push(
-          kenicItemToDomainSearchResult(item, {
-            createFinal: createCalc.finalPrice,
-            createCalc,
-          }),
-        );
-      }
-    } catch {
-      // ignore kenic batch errors; OP may still succeed
-    }
+    const kenicDomains = kenic.map((tld) => `${name}.${tld}`);
+    tasks.push(
+      track(
+        kenicDomains,
+        (async () => {
+          const data = await checkKenicDomains(kenicDomains);
+          return normalizeToKenicCards(name, data?.normalized ?? []).map((item) => {
+            const createCalc = getPricingInfo(item.domain, item.createPrice ?? 0, item.currency ?? "KES");
+            return kenicItemToDomainSearchResult(item, { createFinal: createCalc.finalPrice, createCalc });
+          });
+        })(),
+      ),
+    );
   }
 
-  if (open.length > 0) {
-    try {
-      const res = await trpcQuery<{
-        success: boolean;
-        data?: {
-          results: Array<{
-            domain: string;
-            status: string;
-            reason?: string;
-            price?: DomainSearchResult["price"];
-          }>;
-        };
-      }>("openProvider.domains.checkAvailability", {
-        name: nameForOpenProvider(name),
-        extensions: open,
-        with_price: true,
-        with_whois: false,
-      });
-      if (res?.success && res.data?.results) {
-        const raw: DomainSearchResult[] = res.data.results.map((r) => ({
-          domain: r.domain ?? "",
-          status: r.status ?? "unknown",
-          reason: r.reason,
-          price: r.price,
-        }));
-        const priced = await calculatePricesBatch(raw).catch(() => raw);
-        out.push(...priced);
-      }
-    } catch {
-      // ignore
-    }
-  }
-
+  await Promise.all(tasks);
   return out;
 }
 
@@ -174,13 +178,15 @@ export function RecommendedDomainsList({
   onRemoveFromCart,
   renderRowActions,
 }: RecommendedDomainsListProps) {
-  const { getPricingInfo, calculatePricesBatch } = usePricing();
+  const { getPricingInfo, calculatePricesBatch, isConversionAvailable } = usePricing();
+  const { currency, kesToCurrencyRate } = useCurrency();
   const [results, setResults] = React.useState<DomainSearchResult[]>([]);
   const [batchIndex, setBatchIndex] = React.useState(0);
   const [hasMore, setHasMore] = React.useState(true);
   const [isInitialLoading, setIsInitialLoading] = React.useState(false);
   const [isLoadingMore, setIsLoadingMore] = React.useState(false);
   const [isError, setIsError] = React.useState(false);
+  const [pendingDomains, setPendingDomains] = React.useState<string[]>([]);
 
   const name = searchQuery.trim().toLowerCase().replace(/\s+/g, "");
   const exactDomain = React.useMemo(() => {
@@ -220,23 +226,33 @@ export function RecommendedDomainsList({
     const batch = getRecommendedBatch(0);
     const order = [...batch.kenic, ...batch.open];
 
+    setPendingDomains([]);
+
     fetchBatchResults({
       name,
       kenic: batch.kenic,
       open: batch.open,
       getPricingInfo,
       calculatePricesBatch,
+      onPartial: (partial, pending) => {
+        if (cancelled) return;
+        setResults(sortByRecommendedOrder(partial, order, exactDomain));
+        setPendingDomains(pending);
+        if (partial.length > 0) setIsInitialLoading(false);
+      },
     })
       .then((fetched) => {
         if (cancelled) return;
         const sorted = sortByRecommendedOrder(fetched, order, exactDomain);
         setResults(sorted);
+        setPendingDomains([]);
         setHasMore(batch.hasMore);
         setIsInitialLoading(false);
       })
       .catch(() => {
         if (!cancelled) {
           setIsError(true);
+          setPendingDomains([]);
           setIsInitialLoading(false);
         }
       });
@@ -297,7 +313,7 @@ export function RecommendedDomainsList({
   return (
     <section className="mb-6">
       <div className="flex items-baseline justify-between gap-3 mb-3">
-        <h3 className="text-base font-semibold tracking-tight text-card-foreground">
+        <h3 className="type-h3 text-card-foreground">
           Popular extensions
         </h3>
         <p className="text-xs text-muted-foreground">
@@ -323,13 +339,21 @@ export function RecommendedDomainsList({
             <DomainResultList>
               {visibleResults.map((result, index) => {
                 const { displayPrice, displayCurrency } = getCustomerRetailDisplayPrice(result);
+                const sourceCurrency = result.price?.reseller?.currency ?? "USD";
+                const convertedDisplayPrice =
+                  displayPrice != null &&
+                  displayCurrency === "KES" &&
+                  (sourceCurrency === "KES" || isConversionAvailable) &&
+                  kesToCurrencyRate !== null
+                    ? convertKesForDisplay(displayPrice, currency, kesToCurrencyRate)
+                    : undefined;
                 return (
                   <DomainResultRow
                     key={`${result.domain}-${index}`}
                     domain={result.domain}
                     isAvailable={result.status === "free"}
-                    displayPrice={displayPrice}
-                    displayCurrency={displayCurrency}
+                    displayPrice={convertedDisplayPrice}
+                    displayCurrency={convertedDisplayPrice == null ? undefined : currency}
                     reason={result.reason}
                     displayResult={result}
                     isDomainInCart={isDomainInCart}
@@ -343,8 +367,27 @@ export function RecommendedDomainsList({
         </>
       )}
 
-      {!isInitialLoading && !isError && visibleResults.length === 0 && (
+      {!isInitialLoading && pendingDomains.length > 0 && (
+        <ul className="mt-1 divide-y divide-border border-t border-border" aria-live="polite">
+          {pendingDomains
+            .filter((d) => !excludeSet.has(d) && !isUnavailableKenicTld(d) && d !== exactDomain)
+            .map((d) => (
+              <li key={d} className="flex items-center justify-between gap-3 py-4">
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-semibold text-foreground">{d}</span>
+                  <span className="text-xs text-muted-foreground">Checking with the registry…</span>
+                </span>
+                <Skeleton className="h-8 w-24 shrink-0 rounded-lg" />
+              </li>
+            ))}
+        </ul>
+      )}
+
+      {!isInitialLoading && !isError && visibleResults.length === 0 && pendingDomains.length === 0 && (
         <p className="text-sm text-muted-foreground py-2">No popular results yet.</p>
+      )}
+      {kesToCurrencyRate === null && visibleResults.length > 0 && (
+        <p className="text-xs text-muted-foreground py-2">Updating prices…</p>
       )}
 
       {/* Bottom-only loader for newly appended rows */}
@@ -354,7 +397,7 @@ export function RecommendedDomainsList({
         </div>
       )}
 
-      {hasMore && !isInitialLoading && (
+      {hasMore && !isInitialLoading && pendingDomains.length === 0 && (
         <div className="mt-4 flex justify-center">
           <Button
             type="button"

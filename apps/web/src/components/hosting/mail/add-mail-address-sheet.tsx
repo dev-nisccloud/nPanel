@@ -30,6 +30,7 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 
 import { captureEvent } from "@/lib/posthog";
+import { rememberMailboxOutgoingLimit } from "./use-emails-by-site-id";
 
 const FormSchema = z.object({
   name: z.string().min(1, { message: "Email name is required." }),
@@ -64,8 +65,17 @@ const FormSchema = z.object({
   antivir: z.enum(["off", "inout", "in", "out"]),
   
   // Limits
-  maxOutgoingMessages: z.number().min(0).max(120, { message: "Maximum outgoing messages cannot exceed 120." }),
+  maxOutgoingMessages: z.number().int().min(0).max(120, { message: "Maximum outgoing messages cannot exceed 120." }),
 });
+
+const MAX_OUTGOING_MESSAGES = 120;
+
+function splitList(value: string | undefined): string[] {
+  return (value ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
 
 // Create a conditional schema for edit mode where password and quota are optional
 const createFormSchema = (mode: 'create' | 'edit') => {
@@ -84,7 +94,7 @@ const createFormSchema = (mode: 'create' | 'edit') => {
           return true;
         }, { message: "Password must be at least 12 characters and include lowercase, uppercase, digit, and special character." }),
       quota: z.number().min(0).optional(), // Make quota optional in edit mode
-      maxOutgoingMessages: z.number().min(0).max(120, { message: "Maximum outgoing messages cannot exceed 120." }).optional(), // Make optional in edit mode
+      maxOutgoingMessages: z.number().int().min(0).max(MAX_OUTGOING_MESSAGES, { message: "Maximum outgoing messages cannot exceed 120." }).optional(),
     });
   }
   return FormSchema;
@@ -96,7 +106,7 @@ interface AddMailAddressSheetProps {
   siteId: number;
   domainName?: string;
   maxMailboxQuotaBytes?: number;
-  onSuccess?: () => void;
+  onSuccess?: () => void | Promise<void>;
   initialValues?: Partial<z.infer<typeof FormSchema>>;
   mode?: 'create' | 'edit';
 }
@@ -104,6 +114,7 @@ interface AddMailAddressSheetProps {
 export function AddMailAddressSheet({ open, onOpenChange, siteId, domainName, maxMailboxQuotaBytes, onSuccess, initialValues, mode = 'create' }: AddMailAddressSheetProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
+  const previousAliasesRef = React.useRef<string[]>([]);
   const MIN_MAILBOX_QUOTA_BYTES = 10 * 1024 * 1024; // 10MB
   const FALLBACK_MAX_MAILBOX_QUOTA_BYTES = 1024 * 1024 * 1024 * 1024; // 1TB
   const DEFAULT_MAILBOX_QUOTA_BYTES = 200 * 1024 * 1024 * 1024; // 200GB
@@ -114,33 +125,33 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, domainName, ma
 
   // tRPC mutation for creating email account
   const createEmailAccount = trpc.plesk.emailsCreate.create.useMutation({
-    onSuccess: () => {
+    onSuccess: async (_data, variables) => {
       captureEvent("email_address_created", { domain: domainName || "unknown" });
-    if (form.getValues("forwardingEnabled")) {
-      captureEvent("email_forwarding_setup");
-    }
+      if (form.getValues("forwardingEnabled")) {
+        captureEvent("email_forwarding_setup");
+      }
+      if (typeof variables.outgoingMessagesLimit === "number") {
+        rememberMailboxOutgoingLimit(siteId, variables.name, variables.outgoingMessagesLimit);
+      }
 
       toast.success("Email address added successfully!");
-      form.reset();
-      onOpenChange(false);
-      onSuccess?.();
     },
   });
 
-  // tRPC mutation for updating email account
   const updateEmailAccount = trpc.plesk.emailsUpdate.update.useMutation({
-    onSuccess: (_data, variables) => {    const pwd = form.getValues("password");
-    if (pwd && String(pwd).trim()) {
-      captureEvent("email_address_password_changed");
-    }
-    if ((variables as { forwarding?: { enabled?: boolean } })?.forwarding?.enabled || form.getValues("forwardingEnabled")) {
-      captureEvent("email_forwarding_setup");
-    }
+    onSuccess: async (_data, variables) => {
+      const pwd = form.getValues("password");
+      if (pwd && String(pwd).trim()) {
+        captureEvent("email_address_password_changed");
+      }
+      if (variables.forwarding?.enabled || form.getValues("forwardingEnabled")) {
+        captureEvent("email_forwarding_setup");
+      }
+      if (typeof variables.outgoingMessagesLimit === "number") {
+        rememberMailboxOutgoingLimit(siteId, variables.name, variables.outgoingMessagesLimit);
+      }
 
       toast.success("Email address updated successfully!");
-      form.reset();
-      onOpenChange(false);
-      onSuccess?.();
     },
   });
 
@@ -244,13 +255,20 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, domainName, ma
       forwardingEnabled: initialValues.forwardingEnabled ?? current.forwardingEnabled ?? false,
       aliases: initialValues.aliases ?? current.aliases ?? "",
       forwardingAddresses: initialValues.forwardingAddresses ?? current.forwardingAddresses ?? "",
-      autoresponderEnabled: initialValues.autoresponderEnabled ?? current.autoresponderEnabled ?? false,
+      autoresponderEnabled: initialValues.autoresponderEnabled ?? false,
+      autoresponderSubject: initialValues.autoresponderSubject ?? "",
+      autoresponderText: initialValues.autoresponderText ?? "",
+      autoresponderEndDate: initialValues.autoresponderEndDate ?? "",
       antivir: initialValues.antivir ?? current.antivir ?? "off",
-      maxOutgoingMessages: (initialValues.maxOutgoingMessages !== undefined && initialValues.maxOutgoingMessages >= 0)
-        ? initialValues.maxOutgoingMessages
-        : ((current.maxOutgoingMessages !== undefined && current.maxOutgoingMessages >= 0) ? current.maxOutgoingMessages : 100),
+      maxOutgoingMessages: Math.min(
+        MAX_OUTGOING_MESSAGES,
+        (initialValues.maxOutgoingMessages !== undefined && initialValues.maxOutgoingMessages >= 0)
+          ? initialValues.maxOutgoingMessages
+          : ((current.maxOutgoingMessages !== undefined && current.maxOutgoingMessages >= 0) ? current.maxOutgoingMessages : 100),
+      ),
       password: "", // Always clear password in edit mode
     });
+    previousAliasesRef.current = splitList(initialValues.aliases);
   }, [open, initialValues, mode, form]);
 
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
@@ -265,6 +283,53 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, domainName, ma
         return;
       }
 
+      if (data.maxOutgoingMessages > MAX_OUTGOING_MESSAGES) {
+        form.setError("maxOutgoingMessages", {
+          type: "manual",
+          message: `Maximum outgoing messages cannot exceed ${MAX_OUTGOING_MESSAGES}.`,
+        });
+        return;
+      }
+
+      const forwardingAddresses = splitList(data.forwardingAddresses);
+      if (data.forwardingEnabled) {
+        const invalidForward = forwardingAddresses.find((address) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address));
+        if (forwardingAddresses.length === 0 || invalidForward) {
+          form.setError("forwardingAddresses", {
+            type: "manual",
+            message: invalidForward
+              ? `"${invalidForward}" is not a valid email address.`
+              : "Enter at least one address to forward to.",
+          });
+          return;
+        }
+      }
+
+      const aliases = splitList(data.aliases).map((alias) => (alias.includes("@") ? alias.split("@")[0].trim() : alias));
+      const invalidAlias = aliases.find((alias) => !/^[a-zA-Z0-9._+-]+$/.test(alias));
+      if (invalidAlias) {
+        form.setError("aliases", {
+          type: "manual",
+          message: `"${invalidAlias}" is not a valid alias. Use the name before @.`,
+        });
+        return;
+      }
+
+      if (data.autoresponderEnabled && (!data.autoresponderSubject?.trim() || !data.autoresponderText?.trim())) {
+        if (!data.autoresponderSubject?.trim()) {
+          form.setError("autoresponderSubject", { type: "manual", message: "Subject is required when auto reply is on." });
+        }
+        if (!data.autoresponderText?.trim()) {
+          form.setError("autoresponderText", { type: "manual", message: "Message is required when auto reply is on." });
+        }
+        return;
+      }
+
+      const quota = Math.min(
+        Math.max(data.quota ?? MIN_MAILBOX_QUOTA_BYTES, MIN_MAILBOX_QUOTA_BYTES),
+        effectiveMaxMailboxQuotaBytes,
+      );
+
       // Prepare the data for the API call
       const apiData = {
         siteId,
@@ -273,20 +338,20 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, domainName, ma
         passwordType: 'plain' as const,
         mailbox: {
           enabled: data.mailboxEnabled,
-          quota: data.quota,
+          quota,
         },
         forwarding: data.forwardingEnabled ? {
           enabled: true,
-          addresses: data.forwardingAddresses ? data.forwardingAddresses.split(',').map(addr => addr.trim()) : [],
-        } : undefined,
-        // Note: Legacy implementation doesn't include alias in the request
-        // alias: data.aliases ? data.aliases.split(',').map(alias => alias.trim()).filter(Boolean)[0] : undefined,
+          addresses: forwardingAddresses,
+        } : { enabled: false, addresses: [] },
+        aliases,
         autoresponder: data.autoresponderEnabled ? {
           enabled: true,
           subject: data.autoresponderSubject,
-          contentType: 'text/plain',
+          contentType: 'text/plain' as const,
           content: data.autoresponderText,
-        } : undefined,
+          endDate: data.autoresponderEndDate || undefined,
+        } : { enabled: false },
         antivir: data.antivir,
         cpAccess: false,
         outgoingMessagesLimit: data.maxOutgoingMessages,
@@ -308,56 +373,47 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, domainName, ma
         await createEmailAccount.mutateAsync(apiData);
       } else {
         // Update email account - only send fields that are actually provided/changed
-        const updateData: any = {
+        const updateData = {
           siteId,
-          name: data.name,
+          name: localPart,
+          mailbox: {
+            enabled: data.mailboxEnabled,
+            quota,
+          },
+          forwarding: data.forwardingEnabled
+            ? { enabled: true, addresses: forwardingAddresses }
+            : { enabled: false, addresses: [] as string[] },
+          aliases,
+          previousAliases: previousAliasesRef.current,
+          autoresponder: data.autoresponderEnabled
+            ? {
+                enabled: true,
+                subject: data.autoresponderSubject,
+                content: data.autoresponderText,
+                contentType: 'text/plain',
+                endDate: data.autoresponderEndDate || undefined,
+              }
+            : { enabled: false },
+          ...(data.password?.trim()
+            ? { password: data.password, passwordType: 'plain' as const }
+            : {}),
+          ...(data.antivir ? { antivir: data.antivir } : {}),
+          ...(data.maxOutgoingMessages !== undefined && data.maxOutgoingMessages >= 0
+            ? { outgoingMessagesLimit: data.maxOutgoingMessages }
+            : {}),
+          ...(data.description !== undefined ? { description: data.description } : {}),
         };
 
-        // Only include password if provided
-        if (data.password && data.password.trim()) {
-          updateData.password = data.password;
-          updateData.passwordType = 'plain' as const;
-        }
-
-        // Only include antivir if provided
-        if (data.antivir) {
-          updateData.antivir = data.antivir;
-        }
-
-        // Only include outgoingMessagesLimit if provided and valid
-        if (data.maxOutgoingMessages !== undefined && data.maxOutgoingMessages >= 0) {
-          updateData.outgoingMessagesLimit = data.maxOutgoingMessages;
-        }
-
-        // Only include description if provided
-        if (data.description !== undefined) {
-          updateData.description = data.description;
-        }
-
-        // Only include forwarding if enabled and addresses provided
-        if (data.forwardingEnabled && data.forwardingAddresses && data.forwardingAddresses.trim()) {
-          updateData.forwarding = {
-            enabled: true,
-            addresses: data.forwardingAddresses.split(',').map(addr => addr.trim()).filter(addr => addr.length > 0),
-          };
-        }
-
-        // Only include autoresponder if enabled
-        if (data.autoresponderEnabled) {
-          updateData.autoresponder = {
-            enabled: true,
-            subject: data.autoresponderSubject,
-            content: data.autoresponderText,
-            contentType: 'text/plain',
-          };
-        }
-
-        // Note: Mailbox/quota updates are not supported by the Plesk API in update operations
-        // The mailbox field is commented out in the API buildMailUpdateXml function
-        // So we don't send mailbox updates even if quota is provided
-        
         await updateEmailAccount.mutateAsync(updateData);
       }
+
+      try {
+        await onSuccess?.();
+      } catch {
+        toast.error("Saved, but the mailbox list could not be refreshed.");
+      }
+      form.reset();
+      onOpenChange(false);
     } catch (error) {
       // Handle tRPC errors properly
       
@@ -383,7 +439,7 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, domainName, ma
       }
       
       // Show error toast
-      toast.error("Failed to add email address", {
+      toast.error(mode === "edit" ? "Failed to update email address" : "Failed to add email address", {
         description: errorMessage,
       });
       
@@ -464,6 +520,7 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, domainName, ma
                               autoCapitalize="none"
                               autoCorrect="off"
                               spellCheck={false}
+                              disabled={mode === "edit"}
                               className={domainName ? "pr-40" : undefined}
                               value={field.value}
                               onChange={(e) => {
@@ -583,36 +640,20 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, domainName, ma
                       <FormItem>
                         <FormLabel>Mailbox Size: {formatQuota(quotaValue)}</FormLabel>
                         <FormControl>
-                          {mode === 'edit' ? (
-                            <div className="space-y-2">
-                              <div className="p-4 bg-muted rounded-lg border">
-                                <p className="text-sm text-muted-foreground">
-                                  <strong>Storage size cannot be modified.</strong>
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  Contact your administrator to make changes to the storage size.
-                                </p>
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                Current size: {formatQuota(quotaValue)}
-                              </div>
+                          <div className="space-y-2">
+                            <Slider
+                              value={[quotaValue]}
+                              onValueChange={(value) => field.onChange(value[0])}
+                              max={effectiveMaxMailboxQuotaBytes}
+                              min={MIN_MAILBOX_QUOTA_BYTES}
+                              step={1073741824}
+                              className="w-full"
+                            />
+                            <div className="flex justify-between text-xs text-muted-foreground">
+                              <span>10 MB</span>
+                              <span>{formatQuota(effectiveMaxMailboxQuotaBytes)}</span>
                             </div>
-                          ) : (
-                            <div className="space-y-2">
-                              <Slider
-                                value={[quotaValue]}
-                                onValueChange={(value) => field.onChange(value[0])}
-                                max={effectiveMaxMailboxQuotaBytes}
-                                min={MIN_MAILBOX_QUOTA_BYTES}
-                                step={1073741824} // 1GB steps
-                                className="w-full"
-                              />
-                              <div className="flex justify-between text-xs text-muted-foreground">
-                                <span>10 MB</span>
-                                <span>{formatQuota(effectiveMaxMailboxQuotaBytes)}</span>
-                              </div>
-                            </div>
-                          )}
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -626,13 +667,35 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, domainName, ma
                       <FormItem>
                         <FormLabel>Maximum Outgoing Messages per Day</FormLabel>
                         <FormControl>
-                          <Input 
+                          <Input
                             type="number"
-                            min="0"
-                            max="120"
+                            min={0}
+                            max={MAX_OUTGOING_MESSAGES}
+                            step={1}
                             placeholder="100"
-                            {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                            name={field.name}
+                            ref={field.ref}
+                            onBlur={field.onBlur}
+                            value={field.value}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              if (raw === "") {
+                                field.onChange(0);
+                                form.clearErrors("maxOutgoingMessages");
+                                return;
+                              }
+                              if (!/^\d+$/.test(raw)) return;
+                              const next = Number(raw);
+                              if (next > MAX_OUTGOING_MESSAGES) {
+                                form.setError("maxOutgoingMessages", {
+                                  type: "manual",
+                                  message: `Maximum outgoing messages cannot exceed ${MAX_OUTGOING_MESSAGES}.`,
+                                });
+                                return;
+                              }
+                              form.clearErrors("maxOutgoingMessages");
+                              field.onChange(next);
+                            }}
                           />
                         </FormControl>
                         <div className="text-xs text-muted-foreground">
@@ -655,61 +718,48 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, domainName, ma
                   <CardDescription>Forward emails to other addresses</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {mode === 'edit' ? (
-                    <div className="p-4 bg-muted rounded-lg border">
-                      <p className="text-sm text-muted-foreground">
-                        <strong>Email forwarding cannot be modified in edit mode.</strong>
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Contact your administrator to make changes to email forwarding.
-                      </p>
-                    </div>
-                  ) : (
-                    <>
-                      <FormField
-                        control={form.control}
-                        name="forwardingEnabled"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-base">Enable Forwarding</FormLabel>
-                              <div className="text-sm text-muted-foreground">
-                                Forward incoming emails to other addresses
-                              </div>
-                            </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
+                  <FormField
+                    control={form.control}
+                    name="forwardingEnabled"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">Enable Forwarding</FormLabel>
+                          <div className="text-sm text-muted-foreground">
+                            Forward incoming emails to other addresses
+                          </div>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
 
-                      {form.watch("forwardingEnabled") && (
-                        <FormField
-                          control={form.control}
-                          name="forwardingAddresses"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Forward To</FormLabel>
-                              <FormControl>
-                                <Textarea 
-                                  placeholder="email1@example.com, email2@example.com"
-                                  className="resize-none"
-                                  {...field} 
-                                />
-                              </FormControl>
-                              <div className="text-xs text-muted-foreground">
-                                Separate multiple email addresses with commas
-                              </div>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                  {form.watch("forwardingEnabled") && (
+                    <FormField
+                      control={form.control}
+                      name="forwardingAddresses"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Forward To</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="email1@example.com, email2@example.com"
+                              className="resize-none"
+                              {...field}
+                            />
+                          </FormControl>
+                          <div className="text-xs text-muted-foreground">
+                            Separate multiple email addresses with commas
+                          </div>
+                          <FormMessage />
+                        </FormItem>
                       )}
-                    </>
+                    />
                   )}
                 </CardContent>
               </Card>
@@ -724,37 +774,26 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, domainName, ma
                   <CardDescription>Additional email addresses that point to this account</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {mode === 'edit' ? (
-                    <div className="p-4 bg-muted rounded-lg border">
-                      <p className="text-sm text-muted-foreground">
-                        <strong>Email aliases cannot be modified in edit mode.</strong>
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Contact your administrator to make changes to email aliases.
-                      </p>
-                    </div>
-                  ) : (
-                    <FormField
-                      control={form.control}
-                      name="aliases"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Aliases</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="alias1, alias2, alias3"
-                              className="resize-none"
-                              {...field} 
-                            />
-                          </FormControl>
-                          <div className="text-xs text-muted-foreground">
-                            Separate multiple aliases with commas
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
+                  <FormField
+                    control={form.control}
+                    name="aliases"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Aliases</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="alias1, alias2, alias3"
+                            className="resize-none"
+                            {...field}
+                          />
+                        </FormControl>
+                        <div className="text-xs text-muted-foreground">
+                          Separate multiple aliases with commas. Each alias is the name before @{domainName || "your domain"}.
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </CardContent>
               </Card>
 
@@ -768,17 +807,6 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, domainName, ma
                   <CardDescription>Automatic response to incoming emails</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {mode === 'edit' ? (
-                    <div className="p-4 bg-muted rounded-lg border">
-                      <p className="text-sm text-muted-foreground">
-                        <strong>Auto reply cannot be modified in edit mode.</strong>
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Contact your administrator to make changes to auto reply settings.
-                      </p>
-                    </div>
-                  ) : (
-                    <>
                       <FormField
                         control={form.control}
                         name="autoresponderEnabled"
@@ -859,8 +887,6 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, domainName, ma
                           />
                         </div>
                       )}
-                    </>
-                  )}
                 </CardContent>
               </Card>
 
@@ -877,7 +903,7 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, domainName, ma
                   {isSubmitting ? (
                     <div className="flex items-center gap-2">
                       <Spinner variant="ellipsis" className="text-primary-foreground" size="sm" />
-                      <span>Adding...</span>
+                      <span>{mode === "create" ? "Adding..." : "Saving..."}</span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">

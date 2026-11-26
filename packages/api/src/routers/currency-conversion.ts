@@ -2,6 +2,7 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
 import { Redis } from "@upstash/redis";
 import { convertPriceWithCeil } from "../lib/convert-price";
+import { getAuthoritativeFxRate } from "../lib/fx-rates";
 
 // Lazy-loaded Redis client instance
 let redisInstance: Redis | null = null;
@@ -370,41 +371,22 @@ export const currencyConversionRouter = router({
           };
         }
         
-        // Get exchange rates
-        const cachedRates = await getCachedRates('USD');
-        if (!cachedRates) {
-          throw new Error('Exchange rates not available. Please try again later.');
-        }
-        
-        const { rates } = cachedRates;
-        
-        // Convert all prices in one go
-        const convertedPrices = prices.map(({ amount, currency }) => {
-          let rate = 1;
-          
-          if (currency === targetCurrency) {
-            // Same currency, no conversion needed
-            rate = 1;
-          } else if (currency === 'USD') {
-            // Convert from USD to target currency
-            rate = rates[targetCurrency] || 1;
-          } else if (targetCurrency === 'USD') {
-            // Convert to USD from source currency
-            rate = 1 / (rates[currency] || 1);
-          } else {
-            // Convert between two non-USD currencies
-            const usdToSource = rates[currency] || 1;
-            const usdToTarget = rates[targetCurrency] || 1;
-            rate = usdToTarget / usdToSource;
-          }
-          
-          return {
+        const convertedPrices = await Promise.all(
+          prices.map(async ({ amount, currency }) => {
+            const snapshot = await getAuthoritativeFxRate(currency, targetCurrency);
+            return {
             originalAmount: amount,
-            convertedAmount: convertPriceWithCeil(amount, currency, targetCurrency, rate),
-            rate,
+            convertedAmount: convertPriceWithCeil(
+              amount,
+              currency,
+              targetCurrency,
+              snapshot.rate,
+            ),
+            rate: snapshot.rate,
             currency: targetCurrency,
-          };
-        });
+            };
+          }),
+        );
         
         return {
           success: true,

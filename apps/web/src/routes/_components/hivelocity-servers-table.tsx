@@ -40,7 +40,7 @@ export type HivelocityServerType = "dedicated" | "vps" | "vds";
 interface HivelocityServersTableProps {
 	/** Which device type to display - drives which tRPC procedure is called. */
 	type: HivelocityServerType;
-	/** URL prefix for server detail links (no trailing slash). Default `/agency` for agency UI. */
+	/** URL prefix for server detail links (no trailing slash). Default `/hq` for agency UI. */
 	resourceBasePath?: string;
 	/** Customer team routes: list only devices linked via the team's Nisc subscriptions for this product class. */
 	teamSlug?: string;
@@ -51,8 +51,8 @@ interface HivelocityServersTableProps {
 // ---------------------------------------------------------------------------
 
 function normalizeResourceBasePath(base: string | undefined): string {
-	const b = (base ?? "/agency").replace(/\/$/, "");
-	return b || "/agency";
+	const b = (base ?? "/hq").replace(/\/$/, "");
+	return b || "/hq";
 }
 
 function detailPathFor(

@@ -35,7 +35,7 @@ const messages: ChatMessage[] = [
   },
   {
     side: "us",
-    text: "One plan keeps your brand consistent, with local support that understands Kenyan business.",
+    text: "One plan keeps your brand consistent, with a support team that understands Kenyan business.",
   },
 ];
 
@@ -177,7 +177,7 @@ export default function ComparisonBlock({ onContactPage = false }: ComparisonBlo
             Sound familiar?
           </p>
           <h2 className="text-balance text-3xl font-extrabold tracking-tight sm:text-4xl">
-            Tired of Paying Separate Teams?
+            Tired of paying separate teams?
           </h2>
           <p className="mx-auto mt-3 max-w-lg text-sm text-muted-foreground md:text-base">
             A conversation most growing teams have, and how it changes with Nisc

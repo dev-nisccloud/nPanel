@@ -65,6 +65,33 @@ function filterSidebarItems(
     .filter((group): group is NavGroup => group !== null);
 }
 
+function hideUngrantedHr(
+  groups: readonly NavGroup[],
+  can: (key: string) => boolean,
+  canModule: (module: string) => boolean,
+): NavGroup[] {
+  return groups
+    .map((group) => {
+      const items = group.items
+        .map((item) => {
+          if (!item.subItems?.length) {
+            return isHrEntry(item) && !navEntryAllowed(item, can, canModule) ? null : item;
+          }
+          const subItems = item.subItems.filter((sub) => !isHrEntry(sub) || navEntryAllowed(sub, can, canModule));
+          if (subItems.length === 0 && isHrEntry(item)) return null;
+          return subItems.length === item.subItems.length ? item : { ...item, subItems };
+        })
+        .filter((item): item is NavMainItem => item !== null);
+      if (items.length === 0) return null;
+      return { ...group, items };
+    })
+    .filter((group): group is NavGroup => group !== null);
+}
+
+function isHrEntry(entry: { permissionKey?: string; permissionModule?: string }) {
+  return entry.permissionKey?.startsWith("hr.") || entry.permissionModule === "hr";
+}
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { pathname } = useLocation();
   const showZeepoAiHistory = isZeepoAiChatSessionPath(pathname);
@@ -72,7 +99,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const filteredItems = React.useMemo(() => {
     if (showZeepoAiHistory) return [];
-    if (unrestricted) return agencysidebarItems;
+    if (unrestricted) return hideUngrantedHr(agencysidebarItems, can, canModule);
     if (isLoading) return [];
     return filterSidebarItems(agencysidebarItems, can, canModule);
   }, [can, canModule, isLoading, showZeepoAiHistory, unrestricted]);

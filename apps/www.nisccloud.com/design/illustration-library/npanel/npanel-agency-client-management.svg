@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">nPanel agency client management</title>
+  <desc id="desc">An agency workspace in nPanel switching between fictional client organisations, each with its own services and delegated access.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f8fcff"/><stop offset="1" stop-color="#eaf6fc"/></linearGradient>
+    <filter id="s" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dy="16" stdDeviation="20" flood-color="#071727" flood-opacity=".12"/></filter>
+  </defs>
+  <rect width="1200" height="720" rx="44" fill="url(#bg)"/>
+  <g filter="url(#s)" font-family="DM Sans,Arial,sans-serif">
+    <rect x="96" y="96" width="820" height="528" rx="28" fill="#fff" stroke="#d8e9f1"/>
+    <rect x="96" y="96" width="820" height="54" rx="28" fill="#f3f8fb"/>
+    <rect x="96" y="124" width="820" height="26" fill="#f3f8fb"/>
+    <circle cx="128" cy="123" r="6" fill="#fb7185"/><circle cx="148" cy="123" r="6" fill="#fbbf24"/><circle cx="168" cy="123" r="6" fill="#34d399"/>
+    <rect x="200" y="109" width="440" height="28" rx="9" fill="#fff"/>
+    <text x="216" y="128" fill="#526774" font-family="Space Mono,Consolas,monospace" font-size="13">npanel.nisccloud.com/agency/clients</text>
+    <rect x="96" y="150" width="236" height="474" fill="#f9fbfc"/>
+    <g transform="translate(120 178)">
+      <rect width="188" height="58" rx="14" fill="#fff" stroke="#38b6ff" stroke-opacity=".5"/>
+      <rect x="12" y="12" width="34" height="34" rx="10" fill="#38b6ff"/>
+      <text x="22" y="35" fill="#fff" font-size="15" font-weight="700">BM</text>
+      <text x="58" y="26" fill="#0d1b2a" font-size="14" font-weight="700">Baobab Media</text>
+      <text x="58" y="45" fill="#526774" font-size="12">Agency workspace</text>
+      <path d="M168 24l6 6 6-6" fill="none" stroke="#526774" stroke-width="2"/>
+    </g>
+    <g transform="translate(120 262)" font-size="13" fill="#526774">
+      <text x="0" y="0" font-size="11" fill="#8fa3ad" font-weight="700">CLIENT ORGANISATIONS</text>
+      <g transform="translate(0 20)">
+        <rect width="188" height="42" rx="12" fill="#38b6ff" fill-opacity=".12"/>
+        <rect x="12" y="11" width="20" height="20" rx="6" fill="#38b6ff"/>
+        <text x="42" y="26" fill="#0d1b2a" font-weight="700">Acacia Traders</text>
+      </g>
+      <g transform="translate(0 68)"><rect x="12" y="11" width="20" height="20" rx="6" fill="#dde9ee"/><text x="42" y="26">Jambo Clinic</text></g>
+      <g transform="translate(0 116)"><rect x="12" y="11" width="20" height="20" rx="6" fill="#dde9ee"/><text x="42" y="26">Kilima Tours</text></g>
+      <g transform="translate(0 164)"><rect x="12" y="11" width="20" height="20" rx="6" fill="#dde9ee"/><text x="42" y="26">Savanna Industries</text></g>
+      <g transform="translate(0 222)">
+        <rect width="188" height="40" rx="12" fill="none" stroke="#fc734d" stroke-dasharray="5 5"/>
+        <text x="40" y="25" fill="#fc734d" font-weight="700">+ Invite a client</text>
+      </g>
+    </g>
+    <g transform="translate(364 184)">
+      <text y="0" fill="#0d1b2a" font-size="24" font-weight="700">Acacia Traders</text>
+      <text y="24" fill="#526774" font-size="14">Managed on behalf of the client " 3 team members</text>
+      <rect x="400" y="-22" width="124" height="34" rx="10" fill="#38b6ff"/>
+      <text x="420" y="1" fill="#fff" font-size="13" font-weight="700">Switch client</text>
+      <g transform="translate(0 50)">
+        <rect width="166" height="104" rx="18" fill="#f9fbfc" stroke="#e1ecf1"/>
+        <text x="18" y="30" fill="#8fa3ad" font-size="11" font-weight="700">DOMAIN</text>
+        <text x="18" y="56" fill="#0d1b2a" font-size="14" font-weight="700">acaciatraders.example</text>
+        <rect x="18" y="70" width="58" height="20" rx="10" fill="#34d399" fill-opacity=".18"/>
+        <text x="28" y="84" fill="#047857" font-size="11" font-weight="700">Active</text>
+      </g>
+      <g transform="translate(180 50)">
+        <rect width="166" height="104" rx="18" fill="#f9fbfc" stroke="#e1ecf1"/>
+        <text x="18" y="30" fill="#8fa3ad" font-size="11" font-weight="700">HOSTING</text>
+        <text x="18" y="56" fill="#0d1b2a" font-size="14" font-weight="700">Business plan</text>
+        <rect x="18" y="70" width="58" height="20" rx="10" fill="#34d399" fill-opacity=".18"/>
+        <text x="28" y="84" fill="#047857" font-size="11" font-weight="700">Active</text>
+      </g>
+      <g transform="translate(360 50)">
+        <rect width="166" height="104" rx="18" fill="#f9fbfc" stroke="#e1ecf1"/>
+        <text x="18" y="30" fill="#8fa3ad" font-size="11" font-weight="700">EMAIL</text>
+        <text x="18" y="56" fill="#0d1b2a" font-size="14" font-weight="700">8 mailboxes</text>
+        <rect x="18" y="70" width="74" height="20" rx="10" fill="#fc734d" fill-opacity=".16"/>
+        <text x="28" y="84" fill="#c2410c" font-size="11" font-weight="700">Renews soon</text>
+      </g>
+      <g transform="translate(0 178)">
+        <rect width="526" height="180" rx="18" fill="#fff" stroke="#e1ecf1"/>
+        <text x="20" y="32" fill="#0d1b2a" font-size="15" font-weight="700">Delegated access</text>
+        <g font-size="13">
+          <circle cx="34" cy="68" r="13" fill="#38b6ff" fill-opacity=".2"/><text x="56" y="73" fill="#0d1b2a">Agency admin</text><text x="300" y="73" fill="#526774">Full management</text>
+          <circle cx="34" cy="106" r="13" fill="#38b6ff" fill-opacity=".2"/><text x="56" y="111" fill="#0d1b2a">Client owner</text><text x="300" y="111" fill="#526774">Billing and approvals</text>
+          <circle cx="34" cy="144" r="13" fill="#38b6ff" fill-opacity=".2"/><text x="56" y="149" fill="#0d1b2a">Developer</text><text x="300" y="149" fill="#526774">Hosting and deployments</text>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g filter="url(#s)" transform="translate(880 430)" font-family="DM Sans,Arial,sans-serif">
+    <rect width="232" height="150" rx="24" fill="#071727"/>
+    <text x="22" y="36" fill="#fff" font-size="15" font-weight="700">Invitation sent</text>
+    <text x="22" y="60" fill="#fff" fill-opacity=".65" font-size="12">Kilima Tours " client owner role</text>
+    <rect x="22" y="82" width="188" height="40" rx="12" fill="#38b6ff"/>
+    <text x="52" y="107" fill="#071727" font-size="13" font-weight="700">Awaiting acceptance</text>
+  </g>
+</svg>

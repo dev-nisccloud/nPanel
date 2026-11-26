@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { router } from "../../trpc";
 import { TRPCError } from "@trpc/server";
-import { getEtimsContext } from "../../lib/etims-config";
+import { getEtimsContext, insertTrnsPurchaseOnKra } from "../../lib/etims-config";
 import { etimsProcedure, skipEtimsAuthChecks } from "./_procedure";
 
 const isAgencyUser = (r: string | null | undefined) =>
@@ -10,11 +10,11 @@ const isSuperAdmin = (r: string | null | undefined) => r === "AGENCY_SUPER_ADMIN
 
 function assertRead(role: string | null | undefined) {
     if (skipEtimsAuthChecks()) return;
-    if (!isAgencyUser(role)) throw new TRPCError({ code: "FORBIDDEN", message: "Only agency users can access eTIMS purchase data." });
+    if (!isAgencyUser(role)) throw new TRPCError({ code: "FORBIDDEN", message: "Only Nisc HQ staff can access eTIMS purchase data." });
 }
 function assertWrite(role: string | null | undefined) {
     if (skipEtimsAuthChecks()) return;
-    if (!isSuperAdmin(role)) throw new TRPCError({ code: "FORBIDDEN", message: "Only agency super admins can submit eTIMS purchases." });
+    if (!isSuperAdmin(role)) throw new TRPCError({ code: "FORBIDDEN", message: "Only Nisc HQ super admins can submit eTIMS purchases." });
 }
 
 const purchaseItemSchema = z.object({
@@ -104,9 +104,14 @@ export const etimsPurchasesRouter = router({
         .input(z.object({ purchase: purchaseSchema }))
         .mutation(async ({ ctx, input }) => {
             assertWrite(ctx.session?.user?.role);
-            const { client, oscu } = await getEtimsContext();
+            const { client, oscu, isSandbox } = await getEtimsContext();
             try {
-                const result = await client.insertTrnsPurchase(oscu, input.purchase as Record<string, unknown>);
+                const result = await insertTrnsPurchaseOnKra(
+                    client,
+                    oscu,
+                    isSandbox,
+                    input.purchase as Record<string, unknown>,
+                );
                 return { success: true, data: result };
             } catch (e: unknown) {
                 const msg = (e as Error).message;

@@ -1,50 +1,33 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
-import { Server, Cpu, HardDrive, Network, Shield, Zap, Globe, Terminal } from "lucide-react";
+import { Cpu, HardDrive, MapPin, Network, Server, Settings } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
-import {
-  HostingHeroIllustration,
-  vdsHeroConfig,
-} from "../_components/HostingHeroIllustration.tsx";
+import { CloudServersStory } from "@/components/artwork/npanel-stories";
+import { ReservedCoresArt } from "./_components/ReservedCoresArt.tsx";
 import { VdsPlansSection } from "./_components/VdsPlansSection.tsx";
-
-// ─── Showcase blocks ──────────────────────────────────────────────────────────
+import { VdsComparison, VdsExplained, VdsGettingStarted, VdsPlanFit } from "./_components/vds-content.tsx";
 
 const showcaseBlocks: ShowcaseBlock[] = [
   {
-    tag: "Server Monitoring",
-    headline: "Full visibility into your server. 24/7.",
-    body: "Monitor CPU, RAM, disk I/O, and network traffic in real time from your Grafana dashboard. Set custom alerts so you know about issues before your users do.",
-    bullets: [
-      "Real-time CPU, RAM, and disk usage monitoring",
-      "Custom alert thresholds via email, SMS, and WhatsApp",
-      "99.99% network uptime SLA with credits if we miss it",
-    ],
+    tag: "Your server, in nPanel",
+    artwork: <CloudServersStory />,
+    caption: false,
+    headline: "Your reserved server, next to your domains and email.",
+    body: "Order a size and a location, then manage the server in nPanel with the rest of your account.",
+    bullets: ["Dedicated vCPU cores on every size", "10TB of bandwidth on a 1Gbps port", "Servers, domains and invoices in one account"],
     mockupRight: true,
     visual: "serverMonitor",
   },
   {
-    tag: "Instant Deployment",
-    headline: "Your VDS ready in under 5 minutes",
-    body: "Choose your OS, add your SSH key, and click deploy. No waiting, no provisioning delays. Your AMD EPYC-powered server is live and accessible in minutes.",
+    tag: "When reserved cores help",
+    headline: "For work that cannot wait its turn on a shared core.",
+    body: "A VDS keeps its virtual CPU cores for your server. That suits production apps and databases that slow down when a VPS has to share the processor.",
     bullets: [
-      "Ubuntu, Debian, CentOS, AlmaLinux, your choice",
-      "SSH access available within 5 minutes of payment",
-      "One-click LAMP, LEMP, Docker, and Node.js stacks",
+      "Stores and APIs with steady traffic",
+      "Databases that should not compete for cores",
+      "A step up from VPS, short of a whole machine",
     ],
     mockupRight: false,
-    visual: "serverProvision",
-  },
-  {
-    tag: "Popular Use Cases",
-    headline: "Any workload. One powerful platform.",
-    body: "Teams use our VDS for stores, APIs, SaaS apps, and staging environments. Dedicated resources mean your app performs consistently.",
-    bullets: [
-      "WooCommerce and eCommerce stores with full resource isolation",
-      "Payment APIs and application backends",
-      "SaaS platforms, CRMs, and custom business apps",
-    ],
-    mockupRight: true,
-    visual: "resourceIsolation",
+    visual: "workloads",
   },
 ];
 
@@ -52,89 +35,131 @@ export default function VdsHostingPage() {
   return (
     <ServicePageShell
       badge="VDS Servers"
-      headline={<>Dedicated Power. <span className="text-primary">Full Isolation.</span> VDS Built for Serious Workloads.</>}
-      subtext="Full root access, guaranteed isolated resources, and fast provisioning. Deploy your custom stack in minutes with no shared resources and no compromises."
+      headline={
+        <>
+          Virtual cores <span className="text-primary">reserved for your server</span>, with 10TB of bandwidth
+        </>
+      }
+      subtext="A VDS keeps its vCPU cores for you, so other customers do not share them. Choose a size and a location, then manage the operating system yourself."
       serviceType="hosting"
-      heroIllustration={<HostingHeroIllustration config={vdsHeroConfig} />}
+      heroIllustration={<ReservedCoresArt />}
       heroIllustrationBare
       showHeroOverlays={false}
-      heroTrustBadge={{ line1: "AMD EPYC Processors", line2: "Deployed in under 5 minutes" }}
       trustStats={[
-        { value: "100+", label: "Clients Served" },
-        { value: "99.99%", label: "Network Uptime SLA" },
-        { value: "24/7", label: "Support" },
-        { value: "<5 min", label: "Average Deployment Time" },
+        { value: "vCPU", label: "Dedicated cores" },
+        { value: "10TB", label: "Bandwidth, 1Gbps port" },
+        { value: "You", label: "Manage the OS" },
+        { value: "nPanel", label: "Servers and billing" },
       ]}
       features={[
         {
-          icon: <Server size={20} />,
-          title: "Guaranteed Dedicated Resources",
-          desc: "Unlike shared hosting, your CPU cores, RAM, and SSD are yours alone. No noisy neighbours, no resource contention, consistent performance at all times.",
+          icon: <Cpu size={20} />,
+          title: "Dedicated vCPU cores",
+          desc: "The processor cores on every VDS are dedicated virtual cores, held for your server.",
         },
         {
-          icon: <Cpu size={20} />,
-          title: "Latest-Gen AMD EPYC CPUs",
-          desc: "Powered by AMD EPYC processors, the same architecture used by major cloud providers. Your workloads get strong compute performance.",
+          icon: <Server size={20} />,
+          title: "A clear step up from VPS",
+          desc: "Choose a VDS when a virtual server is right, but the cores need to stay yours.",
         },
         {
           icon: <HardDrive size={20} />,
-          title: "NVMe SSD RAID Storage",
-          desc: "Enterprise NVMe SSD in RAID-10 configuration delivers 3,500 MB/s read speeds. Databases, file servers, and apps run at full speed.",
+          title: "Memory and storage on the card",
+          desc: "Each size shows its memory and storage. Current sizes run from 4 GB to 16 GB of memory.",
         },
         {
           icon: <Network size={20} />,
-          title: "10 Gbps Network Port",
-          desc: "Each VDS is connected to a 10 Gbps uplink. Handle high traffic, large file transfers, and media streaming without bandwidth bottlenecks.",
+          title: "10TB bandwidth on a 1Gbps port",
+          desc: "Every size includes 10TB of monthly data transfer on a 1Gbps network port.",
         },
         {
-          icon: <Shield size={20} />,
-          title: "DDoS Protection Included",
-          desc: "Industry-grade DDoS mitigation is included on all VDS plans. Volumetric attacks are scrubbed at the network edge before reaching your server.",
+          icon: <MapPin size={20} />,
+          title: "Choose a server location",
+          desc: "Each card lists the cities where that size is in stock. The price follows the city you pick.",
         },
         {
-          icon: <Zap size={20} />,
-          title: "Instant Provisioning",
-          desc: "Your VDS is deployed and ready in under 5 minutes. Choose your OS, add your SSH key, and start deploying your applications immediately.",
-        },
-        {
-          icon: <Globe size={20} />,
-          title: "Fast for Your Visitors",
-          desc: "Built for responsive apps and sites. Your users get a fast experience wherever they are.",
-        },
-        {
-          icon: <Terminal size={20} />,
-          title: "Full Root Access",
-          desc: "Complete control over your server environment. Install any software, configure custom kernel parameters, and run Docker containers without restrictions.",
+          icon: <Settings size={20} />,
+          title: "You manage the operating system",
+          desc: "Install your own stack and keep it updated. The operating systems available are shown when you configure the server.",
         },
       ]}
-      plansUnderHero={true}
+      plansUnderHero
       customPlansSection={<VdsPlansSection />}
       plans={[]}
       process={[
-        { num: "01", title: "Configure Your VDS", desc: "Choose your plan, operating system (Ubuntu, CentOS, Debian, AlmaLinux), and add your SSH public key for secure access." },
-        { num: "02", title: "Instant Deployment", desc: "Your VDS is provisioned in under 5 minutes. You will receive your IP address, root credentials, and connection guide by email." },
-        { num: "03", title: "Deploy Your Stack", desc: "SSH in and deploy your applications. Use our one-click app scripts for LAMP, LEMP, Docker, Node.js, or any custom stack you need." },
-        { num: "04", title: "Monitor and Scale", desc: "Use our monitoring dashboard to track CPU, RAM, disk, and network usage. Scale up resources with one click when your business demands it." },
+        { num: "01", title: "Choose a size and a city", desc: "Compare dedicated cores and memory, then pick a location on the card." },
+        { num: "02", title: "Pick an operating system", desc: "Choose from the operating systems shown for that server during setup." },
+        { num: "03", title: "Sign in and install", desc: "The server appears in nPanel. Sign in and install the software you need." },
+        { num: "04", title: "Move up when you outgrow it", desc: "Choose a larger VDS, or a dedicated server when you need a physical machine." },
       ]}
       whyPoints={[
-        { title: "Guaranteed Resources, Not Shared", desc: "Every vCPU and GB of RAM is dedicated to your VDS alone. You always get the performance you are paying for." },
-        { title: "Deploy in Minutes", desc: "Choose your OS, add your key, and go live quickly. Setup help is available if you need a hand." },
-        { title: "Upgrade Without Long Downtime", desc: "Need more RAM or CPU? We upgrade your VDS resources live in most cases. No migration, no rebuild for your users." },
-        { title: "Enterprise Networking Infrastructure", desc: "Redundant 10 Gbps uplinks, BGP routing, and carrier-grade switches help keep your server reachable." },
-        { title: "Full Control, No Restrictions", desc: "Run Docker, Kubernetes, custom firewall rules, VPN servers, game servers, or any workload. Root access means total freedom." },
-        { title: "Managed Support Available", desc: "Don't want to manage your server yourself? Add our managed services option and our team handles updates, security patches, and optimisation." },
+        { title: "Cores that stay yours", visual: "speed", desc: "Dedicated vCPU cores are held for your server instead of being shared." },
+        { title: "Steadier than a busy VPS", visual: "deploy", desc: "Use a VDS when production apps or databases need performance that does not dip when the host is busy." },
+        { title: "A path to a physical server", visual: "growth", desc: "Start on a VDS, then move to a dedicated server when the workload needs the whole machine." },
+        { title: "One account for everything", visual: "integrate", desc: "Your server sits in nPanel with your domains, email and invoices." },
       ]}
+      whySectionHeadline="Why teams choose a Nisc Cloud VDS"
+      whySectionVariant="simple"
+      contentSlots={{
+        afterPricing: <VdsPlanFit />,
+        afterShowcase: <VdsComparison />,
+        afterProcess: <VdsGettingStarted />,
+        beforeFaq: <VdsExplained />,
+      }}
+      faqTitle="VDS questions"
       faqs={[
-        { q: "What operating systems are available?", a: "We offer Ubuntu 20.04/22.04/24.04, Debian 11/12, CentOS 7/8/9, AlmaLinux 8/9, and Rocky Linux 8/9. Custom ISO uploads are available on Enterprise plans." },
-        { q: "Can I run Docker or Kubernetes on my VDS?", a: "Yes. You have full root access and can install and run Docker, Docker Compose, or Kubernetes clusters without restrictions from our side." },
-        { q: "How does the 99.99% uptime SLA work?", a: "We guarantee 99.99% monthly network uptime. If we fail to meet this SLA, you receive service credits equal to 10x the downtime value. We publish real-time status at status.nisccloud.co.ke." },
-        { q: "Is managed hosting available for VDS?", a: "Yes. Our managed VDS add-on includes OS updates, security hardening, 24/7 proactive monitoring, incident response, and monthly performance reports." },
-        { q: "Can I scale my VDS up later?", a: "Yes. You can upgrade CPU, RAM, and storage at any time from your dashboard. Upgrades are applied within 15 minutes and typically require only a brief reboot." },
-        { q: "Do you provide DDoS protection?", a: "All VDS plans include volumetric DDoS mitigation at the network level at no extra cost. We can absorb attacks up to 10 Gbps. For advanced Layer 7 protection, ask about our premium DDoS service." },
+        {
+          q: "What is a VDS?",
+          a: "A VDS (virtual dedicated server) is a virtual server with dedicated vCPU cores. Those cores are held for your server. You manage the operating system.",
+        },
+        {
+          q: "How is a VDS different from a VPS?",
+          a: "Both are virtual servers you manage. On a VDS the vCPU cores are dedicated to you, so other customers do not share them. A VPS is the smaller, more flexible starting point.",
+        },
+        {
+          q: "What is included with every VDS?",
+          a: "Every VDS includes dedicated vCPU cores, the memory and storage shown on the card, and 10TB of bandwidth on a 1Gbps port. You manage the operating system.",
+        },
+        {
+          q: "Is the VDS managed?",
+          a: "No. You look after the operating system, updates and the software you install. If you want the server managed for you, choose Web Hosting or WordPress Hosting.",
+        },
+        {
+          q: "Which size should I choose?",
+          a: "2 dedicated cores and 4 GB of memory suit a single app. 4 cores and 8 GB suit most production apps and stores. 8 cores and 16 GB suit heavier databases and several services.",
+        },
+        {
+          q: "Where are the servers located?",
+          a: "Each plan card lists the cities where that size is in stock. Choose a city on the card before checkout. Prices can differ by city.",
+        },
+        {
+          q: "Will a distant server be slow for visitors in Kenya?",
+          a: "Distance adds a small delay. It matters little for APIs and background work. For a public website, a CDN in front of the server serves pages and images from closer to your visitors.",
+        },
+        {
+          q: "Can I upgrade my VDS later?",
+          a: "Contact us to move to a larger VDS, or to a dedicated server when you need a physical machine.",
+        },
+        {
+          q: "Which operating systems can I choose?",
+          a: "The operating systems available for that server are shown when you configure it. You manage whichever system you choose.",
+        },
+        {
+          q: "Can I install my own software?",
+          a: "Yes. You manage the server, so you can install the languages, databases and tools your project needs, as long as the workload fits the size and follows our Acceptable Use Policy.",
+        },
+        {
+          q: "How much bandwidth do I get?",
+          a: "Every size includes 10TB of data transfer per month on a 1Gbps port.",
+        },
+        {
+          q: "What does dedicated vCPU mean?",
+          a: "It means the virtual processor cores on your VDS are reserved for your server. Other customers' servers do not run on those cores.",
+        },
       ]}
-      pricingNote="All prices in KES. Annual billing saves 15%. Custom configurations available for enterprise clients."
-      ctaHeadline="Get a VDS That Performs as Hard as You Do"
-      ctaSubtext="Stop overpaying for sluggish shared hosting. Get isolated resources, fast deployment, 99.99% uptime focus, and 24/7 support."
+      pricingNote="Prices are shown in KES or USD based on your location, excluding 16% VAT. Prices can differ by server location."
+      ctaHeadline="Reserved cores, ready for production"
+      ctaSubtext="Dedicated vCPU cores and 10TB of bandwidth on every size, managed in nPanel."
       showcaseBlocks={showcaseBlocks}
     />
   );

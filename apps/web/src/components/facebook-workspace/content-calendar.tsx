@@ -33,7 +33,7 @@ import {
   subMonths,
   subWeeks,
 } from "date-fns";
-import { ChevronLeft, ChevronRight, GripVertical, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { createPortal } from "react-dom";
 
 import { Button } from "@/components/ui/button";
@@ -43,7 +43,7 @@ import {
   CONTENT_KIND_META,
   CONTENT_STATUS_META,
   CreateContentDialog,
-  DayScheduleDialog,
+  PostPreviewDialog,
   type CreateContentTarget,
 } from "./content-calendar-dialogs";
 import type { MockScheduledContent } from "./mock-data";
@@ -104,17 +104,20 @@ function rescheduleItem(item: MockScheduledContent, target: SlotDrop): MockSched
 export function FacebookContentCalendar({
   pageId,
   pageName,
+  pageColor,
   items,
   onItemsChange,
 }: {
   pageId: string;
   pageName: string;
+  pageColor: string;
   items: MockScheduledContent[];
   onItemsChange: (items: MockScheduledContent[]) => void;
 }) {
   const [mode, setMode] = React.useState<CalendarMode>("month");
   const [cursor, setCursor] = React.useState(() => new Date());
-  const [dayView, setDayView] = React.useState<Date | null>(null);
+  const [previewItem, setPreviewItem] = React.useState<MockScheduledContent | null>(null);
+  const [editingItem, setEditingItem] = React.useState<MockScheduledContent | null>(null);
   const [createTarget, setCreateTarget] = React.useState<CreateContentTarget | null>(null);
   const [activeItemId, setActiveItemId] = React.useState<string | null>(null);
   const ignoreClick = React.useRef(false);
@@ -162,7 +165,7 @@ export function FacebookContentCalendar({
         : format(cursor, "EEEE, MMM d, yyyy");
 
   const activeItem = pageItems.find((item) => item.id === activeItemId) ?? null;
-  const dayItems = dayView ? (itemsByDay.get(dayKey(dayView)) ?? []) : [];
+  const openPreview = previewItem ? (pageItems.find((item) => item.id === previewItem.id) ?? previewItem) : null;
 
   const openCreate = (date: Date, time = "09:00") => {
     setCreateTarget({ date, time });
@@ -296,7 +299,7 @@ export function FacebookContentCalendar({
             days={monthDays}
             itemsByDay={itemsByDay}
             onFocusDay={focusDay}
-            onOpenItems={setDayView}
+            onOpenItem={setPreviewItem}
             onAddDay={(date) => openCreate(date)}
           />
         ) : (
@@ -305,28 +308,38 @@ export function FacebookContentCalendar({
             itemsByDay={itemsByDay}
             dragging={activeItemId !== null}
             onFocusDay={focusDay}
-            onOpenItems={setDayView}
+            onOpenItem={setPreviewItem}
             onAddSlot={openCreate}
           />
         )}
 
-        <DayScheduleDialog
-          date={dayView}
-          items={dayItems}
+        <PostPreviewDialog
+          item={openPreview}
           pageName={pageName}
+          pageColor={pageColor}
           onOpenChange={(open) => {
-            if (!open) setDayView(null);
+            if (!open) setPreviewItem(null);
           }}
-          onAdd={(date) => openCreate(date)}
+          onEdit={(item) => {
+            setEditingItem(item);
+            setPreviewItem(null);
+          }}
         />
 
         <CreateContentDialog
-          open={createTarget !== null}
+          open={createTarget !== null || editingItem !== null}
           onOpenChange={(open) => {
-            if (!open) setCreateTarget(null);
+            if (!open) {
+              setCreateTarget(null);
+              setEditingItem(null);
+            }
           }}
           pageName={pageName}
           target={createTarget}
+          editing={editingItem}
+          onUpdate={(next) => {
+            onItemsChange(items.map((item) => (item.id === next.id ? next : item)));
+          }}
           onCreate={(draft) => {
             onItemsChange([
               ...items,
@@ -345,7 +358,7 @@ export function FacebookContentCalendar({
         ? createPortal(
             <DragOverlay dropAnimation={null}>
               {activeItem ? (
-                <div className="w-44 rotate-1 cursor-grabbing rounded-md shadow-lg">
+                <div className="w-52 cursor-grabbing shadow-lg">
                   <ContentChip item={activeItem} />
                 </div>
               ) : null}
@@ -386,14 +399,14 @@ function MonthGrid({
   days,
   itemsByDay,
   onFocusDay,
-  onOpenItems,
+  onOpenItem,
   onAddDay,
 }: {
   cursor: Date;
   days: Date[];
   itemsByDay: Map<string, MockScheduledContent[]>;
   onFocusDay: (date: Date) => void;
-  onOpenItems: (date: Date) => void;
+  onOpenItem: (item: MockScheduledContent) => void;
   onAddDay: (date: Date) => void;
 }) {
   const weekdayLabels = days.slice(0, 7);
@@ -418,7 +431,7 @@ function MonthGrid({
             inMonth={isSameMonth(day, cursor)}
             items={itemsByDay.get(dayKey(day)) ?? []}
             onFocusDay={onFocusDay}
-            onOpenItems={onOpenItems}
+            onOpenItem={onOpenItem}
             onAddDay={onAddDay}
           />
         ))}
@@ -432,14 +445,14 @@ function MonthDayCell({
   inMonth,
   items,
   onFocusDay,
-  onOpenItems,
+  onOpenItem,
   onAddDay,
 }: {
   day: Date;
   inMonth: boolean;
   items: MockScheduledContent[];
   onFocusDay: (date: Date) => void;
-  onOpenItems: (date: Date) => void;
+  onOpenItem: (item: MockScheduledContent) => void;
   onAddDay: (date: Date) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({
@@ -488,7 +501,7 @@ function MonthDayCell({
       </div>
       <div className="mt-1 space-y-1">
         {visible.map((item) => (
-          <DraggableContentChip key={item.id} item={item} onOpen={() => onOpenItems(day)} />
+          <DraggableContentChip key={item.id} item={item} onOpen={() => onOpenItem(item)} />
         ))}
         {hidden > 0 ? (
           <button
@@ -512,14 +525,14 @@ function TimeGrid({
   itemsByDay,
   dragging,
   onFocusDay,
-  onOpenItems,
+  onOpenItem,
   onAddSlot,
 }: {
   days: Date[];
   itemsByDay: Map<string, MockScheduledContent[]>;
   dragging: boolean;
   onFocusDay: (date: Date) => void;
-  onOpenItems: (date: Date) => void;
+  onOpenItem: (item: MockScheduledContent) => void;
   onAddSlot: (date: Date, time: string) => void;
 }) {
   const singleDay = days.length === 1;
@@ -574,7 +587,7 @@ function TimeGrid({
             dragging={dragging}
             itemsByDay={itemsByDay}
             match={(hour) => hour < WEEK_HOURS[0]!}
-            onOpenItems={onOpenItems}
+            onOpenItem={onOpenItem}
             onAddSlot={onAddSlot}
           />
           {WEEK_HOURS.map((hour) => (
@@ -597,7 +610,7 @@ function TimeGrid({
                   items={(itemsByDay.get(dayKey(day)) ?? []).filter(
                     (item) => new Date(item.scheduledAt).getHours() === hour,
                   )}
-                  onOpenItems={onOpenItems}
+                  onOpenItem={onOpenItem}
                   onAddSlot={onAddSlot}
                 />
               ))}
@@ -611,7 +624,7 @@ function TimeGrid({
             dragging={dragging}
             itemsByDay={itemsByDay}
             match={(hour) => hour > WEEK_HOURS[WEEK_HOURS.length - 1]!}
-            onOpenItems={onOpenItems}
+            onOpenItem={onOpenItem}
             onAddSlot={onAddSlot}
           />
         </div>
@@ -625,14 +638,14 @@ function SlotCell({
   hour,
   items,
   roomy = false,
-  onOpenItems,
+  onOpenItem,
   onAddSlot,
 }: {
   day: Date;
   hour: number;
   items: MockScheduledContent[];
   roomy?: boolean;
-  onOpenItems: (date: Date) => void;
+  onOpenItem: (item: MockScheduledContent) => void;
   onAddSlot: (date: Date, time: string) => void;
 }) {
   const dateKeyValue = dayKey(day);
@@ -656,7 +669,7 @@ function SlotCell({
       }}
     >
       {items.map((item) => (
-        <DraggableContentChip key={item.id} item={item} roomy={roomy} onOpen={() => onOpenItems(day)} />
+        <DraggableContentChip key={item.id} item={item} roomy={roomy} onOpen={() => onOpenItem(item)} />
       ))}
     </div>
   );
@@ -670,7 +683,7 @@ function OffHoursRow({
   dragging,
   itemsByDay,
   match,
-  onOpenItems,
+  onOpenItem,
   onAddSlot,
 }: {
   label: string;
@@ -680,7 +693,7 @@ function OffHoursRow({
   dragging: boolean;
   itemsByDay: Map<string, MockScheduledContent[]>;
   match: (hour: number) => boolean;
-  onOpenItems: (date: Date) => void;
+  onOpenItem: (item: MockScheduledContent) => void;
   onAddSlot: (date: Date, time: string) => void;
 }) {
   const rows = days.map((day) =>
@@ -703,7 +716,7 @@ function OffHoursRow({
           hour={hour}
           roomy={singleDay}
           items={rows[index] ?? []}
-          onOpenItems={onOpenItems}
+          onOpenItem={onOpenItem}
           onAddSlot={onAddSlot}
         />
       ))}
@@ -716,14 +729,14 @@ function OffHoursCell({
   hour,
   items,
   roomy = false,
-  onOpenItems,
+  onOpenItem,
   onAddSlot,
 }: {
   day: Date;
   hour: number;
   items: MockScheduledContent[];
   roomy?: boolean;
-  onOpenItems: (date: Date) => void;
+  onOpenItem: (item: MockScheduledContent) => void;
   onAddSlot: (date: Date, time: string) => void;
 }) {
   const dateKeyValue = dayKey(day);
@@ -743,7 +756,7 @@ function OffHoursCell({
       }}
     >
       {items.map((item) => (
-        <DraggableContentChip key={item.id} item={item} roomy={roomy} onOpen={() => onOpenItems(day)} />
+        <DraggableContentChip key={item.id} item={item} roomy={roomy} onOpen={() => onOpenItem(item)} />
       ))}
     </div>
   );
@@ -769,7 +782,7 @@ function DraggableContentChip({
       ref={setNodeRef}
       type="button"
       className={cn(
-        "block w-full cursor-grab touch-none text-left active:cursor-grabbing",
+        "group block w-full cursor-grab touch-none rounded-md text-left active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         isDragging && "opacity-40",
       )}
       {...listeners}
@@ -785,21 +798,49 @@ function DraggableContentChip({
   );
 }
 
+function MediaChipLabel({ item }: { item: MockScheduledContent }) {
+  const count = item.media?.length ?? 0;
+  if (count === 0) return null;
+  const label = count > 1 ? `Carousel · ${count}` : item.media?.[0]?.kind === "video" ? "Video" : "Photo";
+  return <span className="truncate">{label}</span>;
+}
+
 function ContentChip({ item, roomy = false }: { item: MockScheduledContent; roomy?: boolean }) {
   const kind = CONTENT_KIND_META[item.kind];
   const status = CONTENT_STATUS_META[item.status];
+  const when = new Date(item.scheduledAt);
+
+  if (!roomy) {
+    return (
+      <span className="flex min-w-0 items-center gap-1.5 rounded-md border border-border/70 bg-background px-1.5 py-1 text-left shadow-sm transition-colors group-hover:border-primary/40">
+        <span className={cn("h-3.5 w-0.5 shrink-0 rounded-full", kind.dot)} />
+        <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">{format(when, "h:mm")}</span>
+        <span className="min-w-0 flex-1 truncate text-[11px] font-medium text-foreground">{item.title}</span>
+        {(item.media?.length ?? 0) > 1 ? (
+          <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">{item.media?.length}</span>
+        ) : null}
+        <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", status.dot)} title={status.label} />
+      </span>
+    );
+  }
+
   return (
-    <span
-      className={cn(
-        "flex min-w-0 items-center gap-1 rounded border bg-background/80 px-1 py-0.5 text-left font-medium leading-tight",
-        roomy ? "px-2 py-1 text-xs" : "text-[10px]",
-        kind.chip,
-      )}
-    >
-      <GripVertical className="h-3 w-3 shrink-0 opacity-50" />
-      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", status.dot)} />
-      <span className="shrink-0 opacity-70">{format(new Date(item.scheduledAt), "h:mm")}</span>
-      <span className="truncate">{item.title}</span>
+    <span className="flex min-w-0 flex-col gap-0.5 rounded-lg border border-border/70 bg-background px-2.5 py-2 text-left shadow-sm transition-colors group-hover:border-primary/40">
+      <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+        <span className={cn("h-1.5 w-1.5 rounded-full", kind.dot)} />
+        <span className="font-medium tracking-wide uppercase">{kind.label}</span>
+        <span aria-hidden>·</span>
+        <span className="tabular-nums">{format(when, "h:mm a")}</span>
+        <MediaChipLabel item={item} />
+        <span className="ml-auto inline-flex items-center gap-1">
+          <span className={cn("h-1.5 w-1.5 rounded-full", status.dot)} />
+          {status.label}
+        </span>
+      </span>
+      <span className="truncate text-sm font-medium text-foreground">{item.title}</span>
+      {item.caption ? (
+        <span className="line-clamp-2 text-xs leading-snug text-muted-foreground">{item.caption}</span>
+      ) : null}
     </span>
   );
 }

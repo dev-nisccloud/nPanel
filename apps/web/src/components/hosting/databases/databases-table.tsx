@@ -9,6 +9,7 @@ import {
   Trash2,
   Eye,
   ExternalLink,
+  Key,
 } from "lucide-react";
 import { z } from "zod";
 import { toast } from "@/components/ui/sonner";
@@ -16,7 +17,6 @@ import { toast } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import { CleanList, CleanListCell, CleanListRow } from "@/components/ui/clean-list";
 import {
   AlertDialog,
@@ -37,8 +37,9 @@ import { ChangeDatabasePermissionsSheet } from "./change-database-permissions-sh
 import { DatabaseConnectionInfoDialog } from "./database-connection-info-dialog";
 import { CreateDatabaseSheet } from "./create-database-sheet";
 import { CreateDatabaseUserSheet } from "./create-database-user-sheet";
-import { isMysqlFamily } from "./connection-string";
+import { isMysqlFamily, formatDatabaseSize } from "./connection-string";
 import { captureEvent } from "@/lib/posthog";
+import { useCanTeamPermission } from "@/contexts/team-permissions-context";
 
 /** Accept only the Plesk one-time session URL for this database. */
 function isSafeOrionPhpMyAdminUrl(url: string, databaseId: number): boolean {
@@ -120,10 +121,13 @@ export function DatabasesTable({
   openCreateSheet,
   onCreateSheetOpened,
 }: DatabasesTableProps) {
-  const { data: databasesData, isLoading, isError, error, refetch, relatedSitesStatus } = useDatabasesBySiteId(siteId);
+  const { data: databasesData, engines, subscriptionDatabaseBytes, isLoading, isError, error, refetch, relatedSitesStatus } = useDatabasesBySiteId(siteId);
+  const { can } = useCanTeamPermission();
+  const canManage = can("hosting.databases", "write");
   const [searchTerm, setSearchTerm] = React.useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [databaseToDelete, setDatabaseToDelete] = React.useState<{ id?: number; name?: string } | null>(null);
+  const [deleteConfirmName, setDeleteConfirmName] = React.useState("");
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = React.useState(false);
   const [changePermissionsOpen, setChangePermissionsOpen] = React.useState(false);
@@ -136,10 +140,10 @@ export function DatabasesTable({
   const openPhpMyAdmin = trpc.plesk.databases.getPhpMyAdminUrl.useMutation();
 
   React.useEffect(() => {
-    if (!openCreateSheet) return;
+    if (!openCreateSheet || !canManage) return;
     setCreateDatabaseOpen(true);
     onCreateSheetOpened?.();
-  }, [openCreateSheet, onCreateSheetOpened]);
+  }, [openCreateSheet, onCreateSheetOpened, canManage]);
 
   const deleteDatabase = trpc.plesk.databasesDelete.delete.useMutation({
     onSuccess: () => {
@@ -175,6 +179,7 @@ export function DatabasesTable({
   const handleDelete = (db: z.infer<typeof databaseSchema>) => {
     if (db.id && db.name) {
       setDatabaseToDelete({ id: db.id, name: db.name });
+      setDeleteConfirmName("");
       setDeleteDialogOpen(true);
     }
   };
@@ -232,17 +237,6 @@ export function DatabasesTable({
     setConnectionInfoOpen(true);
   };
 
-  const getStatusBadge = (status: string | undefined) => {
-    if (status === "ok") {
-      return (
-        <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-          Active
-        </Badge>
-      );
-    }
-    return <Badge variant="destructive">Inactive</Badge>;
-  };
-
   if (isLoading) {
     return <DatabasesTableSkeleton />;
   }
@@ -267,42 +261,58 @@ export function DatabasesTable({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 @sm/main:flex-nowrap">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCreateDatabaseOpen(true)}
-            className="flex-shrink-0 min-w-0"
-          >
-            <Plus className="h-4 w-4 @sm/main:mr-2" />
-            <span className="hidden @sm/main:inline">Create Database</span>
-            <span className="@sm/main:hidden">Create</span>
-          </Button>
+          {canManage ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCreateDatabaseOpen(true)}
+              className="flex-shrink-0 min-w-0"
+              disabled={engines.length === 0}
+              title={engines.length === 0 ? "No MariaDB or PostgreSQL server is available for this subscription" : undefined}
+            >
+              <Plus className="h-4 w-4 @sm/main:mr-2" />
+              <span className="hidden @sm/main:inline">Create Database</span>
+              <span className="@sm/main:hidden">Create</span>
+            </Button>
+          ) : null}
         </div>
       </div>
+
+      {subscriptionDatabaseBytes != null ? (
+        <p className="text-sm text-muted-foreground">
+          Combined database usage on this subscription: {formatDatabaseSize(subscriptionDatabaseBytes)}. Plesk reports this total for the subscription, not a size for each database.
+        </p>
+      ) : null}
 
       <CleanList
         emptyMessage="No databases found"
         columns={[
           { key: "name", label: "Name" },
-          { key: "type", label: "Type", className: "w-28 shrink-0", hideBelow: "@lg" },
-          { key: "related", label: "Related site", className: "min-w-0 flex-1", hideBelow: "@xl" },
-          { key: "status", label: "Status", className: "w-28 shrink-0", hideBelow: "@2xl" },
+          { key: "engine", label: "Engine", className: "w-32 shrink-0", hideBelow: "@lg" },
+          { key: "version", label: "Version", className: "w-36 shrink-0", hideBelow: "@xl" },
+          { key: "users", label: "Users", className: "min-w-0 flex-1", hideBelow: "@2xl" },
+          { key: "size", label: "Size", className: "w-28 shrink-0", hideBelow: "@3xl" },
           { key: "actions", label: "Actions", align: "end" },
         ]}
       >
         {filteredData.map((db, index) => {
-          const typeUpper = (db.type || "mysql").toUpperCase();
-          const related = relatedSiteLabel(db, relatedSitesStatus);
+          const users = db.users ?? [];
+          const userLabel = users.length > 0 ? users.map((user) => user.login).join(", ") : "None";
+          const versionLabel = db.version?.trim() ? db.version : "Not reported";
+          const sizeLabel = db.sizeBytes == null ? "Not available" : formatDatabaseSize(db.sizeBytes);
+          const resetUserId = db.defaultUserId || users[0]?.id;
 
           return (
             <CleanListRow
               key={db.id || `db-${index}`}
               leading={<DatabaseIcon className="h-4 w-4 text-muted-foreground" />}
               title={db.name || "Unknown Database"}
+              description={relatedSiteLabel(db, relatedSitesStatus)}
               cells={{
-                type: <CleanListCell>{typeUpper}</CleanListCell>,
-                related: <CleanListCell>{related}</CleanListCell>,
-                status: getStatusBadge(db.status),
+                engine: <CleanListCell>{db.engineLabel || (db.type || "mysql").toUpperCase()}</CleanListCell>,
+                version: <CleanListCell>{versionLabel}</CleanListCell>,
+                users: <CleanListCell>{userLabel}</CleanListCell>,
+                size: <CleanListCell>{sizeLabel}</CleanListCell>,
               }}
               onClick={() => handleConnectionInfo(db)}
               actions={
@@ -317,6 +327,22 @@ export function DatabasesTable({
                     <Eye className="mr-1 h-3.5 w-3.5" />
                     View
                   </Button>
+                  {canManage && resetUserId ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 px-2.5 text-xs"
+                      onClick={() => {
+                        setSelectedDatabase(db);
+                        setSelectedUserId(resetUserId);
+                        setChangePasswordOpen(true);
+                      }}
+                    >
+                      <Key className="mr-1 h-3.5 w-3.5" />
+                      Reset password
+                    </Button>
+                  ) : null}
                   {isMysqlFamily(db.type) && db.id ? (
                     <Button
                       type="button"
@@ -344,16 +370,18 @@ export function DatabasesTable({
                       phpMyAdmin
                     </Button>
                   )}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-7 px-2.5 text-xs text-destructive hover:text-destructive"
-                    onClick={() => handleDelete(db)}
-                  >
-                    <Trash2 className="mr-1 h-3.5 w-3.5" />
-                    Delete
-                  </Button>
+                  {canManage ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 px-2.5 text-xs text-destructive hover:text-destructive"
+                      onClick={() => handleDelete(db)}
+                    >
+                      <Trash2 className="mr-1 h-3.5 w-3.5" />
+                      Delete
+                    </Button>
+                  ) : null}
                 </>
               }
             />
@@ -366,14 +394,25 @@ export function DatabasesTable({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Database</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the database "{databaseToDelete?.name}"? This action cannot be undone and will permanently delete all data in the database.
+              This permanently deletes &quot;{databaseToDelete?.name}&quot; and all of its data. Type the database name to confirm.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <Input
+            value={deleteConfirmName}
+            onChange={(event) => setDeleteConfirmName(event.target.value)}
+            placeholder={databaseToDelete?.name || "Database name"}
+            autoComplete="off"
+            aria-label="Type the database name to confirm deletion"
+          />
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={confirmDelete}
-              disabled={isDeleting}
+              onClick={(event) => {
+                event.preventDefault();
+                if (deleteConfirmName !== databaseToDelete?.name) return;
+                void confirmDelete();
+              }}
+              disabled={isDeleting || deleteConfirmName !== databaseToDelete?.name}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isDeleting ? (
@@ -396,6 +435,7 @@ export function DatabasesTable({
           siteId={siteId}
           database={selectedDatabase}
           userId={selectedUserId}
+          users={selectedDatabase.users}
           onSuccess={() => refetch()}
         />
       )}
@@ -444,6 +484,7 @@ export function DatabasesTable({
         open={createDatabaseOpen}
         onOpenChange={setCreateDatabaseOpen}
         siteId={siteId}
+        engines={engines}
         onSuccess={() => refetch()}
       />
     </div>

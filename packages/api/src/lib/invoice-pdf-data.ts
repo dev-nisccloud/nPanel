@@ -3,7 +3,7 @@
  * Mirrors apps/web invoice-pdf-data (kept in API for workers and server routes).
  */
 import type { InvoiceDetail } from "../routers/invoicing/schemas";
-import { COMPANY_LOGO_URL } from "./company-branding";
+import { COMPANY_LOGO_URL, resolvePdfLogoUrl } from "./company-branding";
 import { formatInvoiceDate } from "./nisc-datetime-format";
 
 export type InvoiceForPdfData = Pick<
@@ -95,7 +95,7 @@ export function convertInvoiceDetailToPdfRenderData(invoice: InvoiceForPdfData):
 				: "Bank transfer";
 
 	return {
-		logoUrl: COMPANY_LOGO_URL,
+		logoUrl: resolvePdfLogoUrl(COMPANY_LOGO_URL),
 		fromName: String(from.name ?? "Nisc Cloud Limited"),
 		fromEmail: String(from.email ?? "accounts@nisccloud.com"),
 		fromAddress: String(from.address ?? ""),

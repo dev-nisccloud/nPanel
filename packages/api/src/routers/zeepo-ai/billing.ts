@@ -29,6 +29,8 @@ import {
 } from "../../lib/zeepo-ai-free-token-grant";
 import {
 	ZEEPO_AI_MIN_TOKENS_TO_START,
+	ZEEPO_AI_PLAN_IDS,
+	ZEEPO_AI_PRODUCT_ID,
 	ZEEPO_AI_WELCOME_TOKEN_GRANT,
 } from "../../lib/zeepo-ai-billing";
 
@@ -192,7 +194,7 @@ export const zeepoAiBillingRouter = router({
 			if (!isZeepoAiAgencyUser(ctx.session?.user?.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Activity usage is available to agency users only.",
+					message: "Activity usage is available to Nisc HQ staff only.",
 				});
 			}
 
@@ -452,6 +454,7 @@ export const zeepoAiBillingRouter = router({
 			where: and(
 				eq(niscProductPlan.productId, ZEEPO_AI_PRODUCT_ID),
 				eq(niscProductPlan.isActive, true),
+				eq(niscProductPlan.hidden, false),
 			),
 			orderBy: (t, { asc }) => [asc(t.sortOrder)],
 		});
@@ -476,7 +479,7 @@ export const zeepoAiBillingRouter = router({
 			const product = await db.query.niscProduct.findFirst({
 				where: eq(niscProduct.id, ZEEPO_AI_PRODUCT_ID),
 			});
-			if (!product?.isActive) {
+			if (!product?.isActive || product.hidden) {
 				return { data: [] as Array<Record<string, unknown>> };
 			}
 
@@ -484,6 +487,7 @@ export const zeepoAiBillingRouter = router({
 				where: and(
 					eq(niscProductPlan.productId, ZEEPO_AI_PRODUCT_ID),
 					eq(niscProductPlan.isActive, true),
+					eq(niscProductPlan.hidden, false),
 				),
 				orderBy: (p, { asc }) => [asc(p.sortOrder)],
 			});

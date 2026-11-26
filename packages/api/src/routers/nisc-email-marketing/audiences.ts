@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, count, desc, eq, ilike, or, sql } from "@npanel/db";
+import { and, count, desc, eq, ilike, inArray, or, sql } from "@npanel/db";
 import { db } from "@npanel/db";
 import { teamMember } from "@npanel/db/schema/teams";
 import { niscEmAudience, niscEmContact, niscEmCampaign } from "@npanel/db/schema";
@@ -9,6 +9,7 @@ import {
   audienceContactListFiltersSchema,
   audienceContactListResponseSchema,
   audienceContactBulkCreateInputSchema,
+  audienceContactUpdateInputSchema,
   audienceDetailSchema,
   audienceListFiltersSchema,
   audienceListResponseSchema,
@@ -123,6 +124,63 @@ function splitName(full: string | null | undefined): { firstName: string | null;
   const parts = v.split(/\s+/).filter(Boolean);
   if (parts.length === 1) return { firstName: parts[0]!, lastName: null };
   return { firstName: parts[0]!, lastName: parts.slice(1).join(" ") };
+}
+
+function joinName(firstName: string | null | undefined, lastName: string | null | undefined): string | null {
+  const name = [firstName, lastName]
+    .map((part) => part?.trim())
+    .filter((part): part is string => Boolean(part))
+    .join(" ");
+  return name || null;
+}
+
+function descriptionFromMetadata(metadata: unknown): string | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  const value = (metadata as Record<string, unknown>).description;
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed || null;
+}
+
+function metadataWithDescription(
+  metadata: unknown,
+  description: string | null | undefined,
+): Record<string, unknown> | null {
+  const base =
+    metadata && typeof metadata === "object" && !Array.isArray(metadata)
+      ? { ...(metadata as Record<string, unknown>) }
+      : {};
+  const trimmed = description?.trim() ?? "";
+  if (trimmed) base.description = trimmed;
+  else delete base.description;
+  return Object.keys(base).length > 0 ? base : null;
+}
+
+const CONTACT_STATUSES = ["SUBSCRIBED", "UNSUBSCRIBED", "BOUNCED", "COMPLAINED"] as const;
+
+function toApiStatus(status: string | null | undefined) {
+  if (status && (CONTACT_STATUSES as readonly string[]).includes(status)) {
+    return status as (typeof CONTACT_STATUSES)[number];
+  }
+  return "SUBSCRIBED" as const;
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  const seen = new Set<unknown>();
+  let current: unknown = error;
+  while (current && typeof current === "object" && !seen.has(current)) {
+    seen.add(current);
+    const record = current as { code?: string; message?: string; cause?: unknown };
+    if (record.code === "23505") return true;
+    if (
+      typeof record.message === "string" &&
+      record.message.includes("nisc_em_contact_audienceId_email_idx")
+    ) {
+      return true;
+    }
+    current = record.cause;
+  }
+  return false;
 }
 
 export const niscEmailMarketingAudiencesRouter = router({
@@ -346,45 +404,63 @@ export const niscEmailMarketingAudiencesRouter = router({
       await assertAudienceOwnerAccess(input.audienceId, userId, userRole);
 
       const now = new Date();
-      const rows = input.contacts.map((c) => {
-        const { firstName, lastName } = splitName(c.name ?? null);
-        return {
+      const seen = new Set<string>();
+      let skippedDuplicate = 0;
+      let skippedMissingEmail = 0;
+      const rows: Array<typeof niscEmContact.$inferInsert> = [];
+
+      for (const contact of input.contacts) {
+        const email = (contact.emailAddress ?? "").trim().toLowerCase();
+        if (!email) {
+          skippedMissingEmail += 1;
+          continue;
+        }
+        if (seen.has(email)) {
+          skippedDuplicate += 1;
+          continue;
+        }
+        seen.add(email);
+
+        const { firstName, lastName } = splitName(contact.name ?? null);
+        const description = contact.description?.trim() || null;
+        const status = contact.status ?? "SUBSCRIBED";
+        rows.push({
           id: randomUUID(),
           audienceId: input.audienceId,
-          email: (c.emailAddress ?? "").trim().toLowerCase(),
+          email,
           firstName,
           lastName,
-          company: c.company ?? null,
-          phone: c.phoneNumber ?? null,
-          status: (c.status ?? "SUBSCRIBED") as any,
-          metadata: null,
-          subscribedAt: (c.status ?? "SUBSCRIBED") === "SUBSCRIBED" ? now : null,
-          unsubscribedAt: (c.status ?? "SUBSCRIBED") === "UNSUBSCRIBED" ? now : null,
-          bouncedAt: null,
-          complainedAt: null,
+          company: contact.company?.trim() || null,
+          phone: contact.phoneNumber?.trim() || null,
+          status,
+          metadata: description ? { description } : null,
+          subscribedAt: status === "SUBSCRIBED" ? now : null,
+          unsubscribedAt: status === "UNSUBSCRIBED" ? now : null,
+          bouncedAt: status === "BOUNCED" ? now : null,
+          complainedAt: status === "COMPLAINED" ? now : null,
           createdAt: now,
           updatedAt: now,
-        };
-      });
-
-      const valid = rows.filter((r) => r.email);
-      if (valid.length === 0) {
-        return { added: 0 };
+        });
       }
 
-      // Insert best-effort; duplicates in same audience are ignored by unique index
-      // by catching and continuing row-by-row (small batches from UI).
+      // One round-trip per chunk. Row-by-row inserts on a few thousand contacts
+      // outlive the request and leave a partial audience behind.
+      const CHUNK_SIZE = 400;
       let added = 0;
-      for (const r of valid) {
-        try {
-          await db.insert(niscEmContact).values(r);
-          added += 1;
-        } catch {
-          // ignore duplicates/invalid
-        }
+      for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
+        const chunk = rows.slice(i, i + CHUNK_SIZE);
+        const inserted = await db
+          .insert(niscEmContact)
+          .values(chunk)
+          .onConflictDoNothing({
+            target: [niscEmContact.audienceId, niscEmContact.email],
+          })
+          .returning({ id: niscEmContact.id });
+        added += inserted.length;
       }
 
-      return { added };
+      skippedDuplicate += rows.length - added;
+      return { added, skippedDuplicate, skippedMissingEmail };
     }),
 
   deleteContact: protectedProcedure
@@ -396,6 +472,101 @@ export const niscEmailMarketingAudiencesRouter = router({
       await assertAudienceOwnerAccess(input.audienceId, userId, userRole);
       await db.delete(niscEmContact).where(and(eq(niscEmContact.id, input.id), eq(niscEmContact.audienceId, input.audienceId)));
       return { ok: true };
+    }),
+
+  updateContact: protectedProcedure
+    .input(audienceContactUpdateInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id;
+      const userRole = ctx.session?.user?.role;
+      if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
+      await assertAudienceOwnerAccess(input.audienceId, userId, userRole);
+
+      const [existing] = await db
+        .select()
+        .from(niscEmContact)
+        .where(and(eq(niscEmContact.id, input.id), eq(niscEmContact.audienceId, input.audienceId)))
+        .limit(1);
+      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Contact not found" });
+
+      const nextEmail =
+        input.emailAddress !== undefined
+          ? (input.emailAddress ?? "").trim().toLowerCase()
+          : existing.email;
+      if (!nextEmail) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Email address is required" });
+      }
+
+      const now = new Date();
+      const namePatch = input.name !== undefined ? splitName(input.name) : null;
+
+      try {
+        await db
+          .update(niscEmContact)
+          .set({
+            email: nextEmail,
+            ...(namePatch
+              ? { firstName: namePatch.firstName, lastName: namePatch.lastName }
+              : {}),
+            ...(input.phoneNumber !== undefined
+              ? { phone: input.phoneNumber?.trim() || null }
+              : {}),
+            ...(input.company !== undefined ? { company: input.company?.trim() || null } : {}),
+            ...(input.description !== undefined
+              ? { metadata: metadataWithDescription(existing.metadata, input.description) }
+              : {}),
+            ...(input.status
+              ? {
+                  status: input.status,
+                  ...(input.status === "SUBSCRIBED"
+                    ? { subscribedAt: existing.subscribedAt ?? now }
+                    : {}),
+                  ...(input.status === "UNSUBSCRIBED" ? { unsubscribedAt: now } : {}),
+                  ...(input.status === "BOUNCED" ? { bouncedAt: existing.bouncedAt ?? now } : {}),
+                  ...(input.status === "COMPLAINED"
+                    ? { complainedAt: existing.complainedAt ?? now }
+                    : {}),
+                }
+              : {}),
+            updatedAt: now,
+          })
+          .where(eq(niscEmContact.id, existing.id));
+      } catch (error) {
+        if (isUniqueViolation(error)) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "A contact with this email already exists in this audience",
+          });
+        }
+        throw error;
+      }
+
+      return { ok: true as const };
+    }),
+
+  deleteContacts: protectedProcedure
+    .input(
+      z.object({
+        audienceId: z.string().min(1),
+        ids: z.array(z.string().min(1)).min(1).max(500),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id;
+      const userRole = ctx.session?.user?.role;
+      if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
+      await assertAudienceOwnerAccess(input.audienceId, userId, userRole);
+
+      const deletedRows = await db
+        .delete(niscEmContact)
+        .where(
+          and(
+            eq(niscEmContact.audienceId, input.audienceId),
+            inArray(niscEmContact.id, input.ids),
+          ),
+        )
+        .returning({ id: niscEmContact.id });
+      return { deleted: deletedRows.length };
     }),
 
   deleteAllContacts: protectedProcedure
@@ -425,7 +596,18 @@ export const niscEmailMarketingAudiencesRouter = router({
       const conditions = [eq(niscEmContact.audienceId, input.audienceId)];
       if (input.status) conditions.push(eq(niscEmContact.status, input.status));
       if (input.search) {
-        conditions.push(ilike(niscEmContact.email, `%${input.search}%`));
+        const pattern = `%${input.search}%`;
+        conditions.push(
+          or(
+            ilike(niscEmContact.email, pattern),
+            ilike(niscEmContact.firstName, pattern),
+            ilike(niscEmContact.lastName, pattern),
+            ilike(niscEmContact.phone, pattern),
+            ilike(niscEmContact.company, pattern),
+            sql`concat_ws(' ', coalesce(${niscEmContact.firstName}, ''), coalesce(${niscEmContact.lastName}, '')) ILIKE ${pattern}`,
+            sql`coalesce(${niscEmContact.metadata}->>'description', '') ILIKE ${pattern}`,
+          )!,
+        );
       }
       if (input.from) conditions.push(sql`${niscEmContact.createdAt} >= ${input.from}`);
       if (input.to) conditions.push(sql`${niscEmContact.createdAt} <= ${input.to}`);
@@ -437,10 +619,11 @@ export const niscEmailMarketingAudiencesRouter = router({
           .select({
             id: niscEmContact.id,
             audienceId: niscEmContact.audienceId,
-            name: sql<string | null>`null`,
+            firstName: niscEmContact.firstName,
+            lastName: niscEmContact.lastName,
             phoneNumber: niscEmContact.phone,
             emailAddress: niscEmContact.email,
-            description: sql<string | null>`null`,
+            metadata: niscEmContact.metadata,
             company: niscEmContact.company,
             status: niscEmContact.status,
             createdAt: niscEmContact.createdAt,
@@ -456,13 +639,16 @@ export const niscEmailMarketingAudiencesRouter = router({
 
       return audienceContactListResponseSchema.parse({
         contacts: rows.map((r) => ({
-          ...r,
-          name: null,
+          id: r.id,
+          audienceId: r.audienceId,
+          name: joinName(r.firstName, r.lastName),
           phoneNumber: r.phoneNumber ?? null,
           emailAddress: r.emailAddress ?? null,
-          description: null,
+          description: descriptionFromMetadata(r.metadata),
           company: r.company ?? null,
-          status: (r.status as any) ?? null,
+          status: toApiStatus(r.status),
+          createdAt: r.createdAt,
+          updatedAt: r.updatedAt,
         })),
         total: Number(totalRow?.[0]?.value ?? 0),
       });

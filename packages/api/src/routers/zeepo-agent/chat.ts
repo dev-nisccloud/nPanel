@@ -191,7 +191,7 @@ async function fetchSessionContext(params: {
 }): Promise<AgentSessionContext> {
 	const u = await db.query.user.findFirst({
 		where: eq(userTable.id, params.userId),
-		columns: { name: true, email: true },
+		columns: { name: true, email: true, role: true },
 	});
 	let teamInfo = {
 		id: params.teamId,
@@ -215,7 +215,7 @@ async function fetchSessionContext(params: {
 	}
 	return {
 		nowIso: new Date().toISOString(),
-		user: { name: u?.name ?? null, email: u?.email ?? null },
+		user: { name: u?.name ?? null, email: u?.email ?? null, role: u?.role ?? null },
 		team: teamInfo,
 		sessionTitle: params.sessionTitle,
 		sessionCreatedAtIso: params.sessionCreatedAt.toISOString(),
@@ -778,7 +778,7 @@ export const zeepoAgentChatRouter = router({
 							) {
 								resultPayload = {
 									error:
-										"Insufficient tokens to start media generation. Purchase more tokens to continue.",
+										"Not enough credits to start media generation. Buy more credits to continue.",
 								};
 							} else {
 							const requires = safeCapsArray(parsedArgs.data.requires);

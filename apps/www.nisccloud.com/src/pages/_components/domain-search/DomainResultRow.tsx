@@ -2,6 +2,7 @@ import * as React from "react";
 import { Button } from "@/components/ui/button.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { formatPrice } from "@/lib/domain-search/format-price.ts";
+import { KENIC_CHECK_FAILED_REASON } from "@/lib/domain-search/kenic-schema.ts";
 import type { DomainSearchResult } from "@/lib/domain-search/types.ts";
 import { AddDomainToCartButtons } from "./AddDomainToCartButtons.tsx";
 
@@ -10,6 +11,8 @@ export interface DomainResultRowProps {
   isAvailable: boolean;
   displayPrice?: number;
   displayCurrency?: string;
+  /** Retail renewal price per year; omitted when the registry did not return one. */
+  renewalPrice?: number | null;
   reason?: string | null;
   displayResult: DomainSearchResult;
   isDomainInCart: (domain: string) => boolean;
@@ -22,6 +25,7 @@ export function DomainResultRow({
   isAvailable,
   displayPrice,
   displayCurrency,
+  renewalPrice,
   reason,
   displayResult,
   isDomainInCart,
@@ -33,6 +37,9 @@ export function DomainResultRow({
     displayPrice != null &&
     !Number.isNaN(displayPrice) &&
     Boolean(displayCurrency);
+  const renewalKnown = priceReady && renewalPrice != null && renewalPrice > 0;
+  const introductory = renewalKnown && Math.abs(renewalPrice! - displayPrice!) >= 1;
+  const unchecked = !isAvailable && reason === KENIC_CHECK_FAILED_REASON;
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-4 first:pt-0">
@@ -45,16 +52,24 @@ export function DomainResultRow({
             className={
               isAvailable
                 ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-xs shrink-0"
-                : "bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-xs shrink-0"
+                : unchecked
+                  ? "bg-muted text-muted-foreground text-xs shrink-0"
+                  : "bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-xs shrink-0"
             }
           >
-            {isAvailable ? "Available" : "Taken"}
+            {isAvailable ? "Available" : unchecked ? "Couldn't check" : "Taken"}
           </Badge>
         </div>
-        {reason != null && reason !== "" && (
-          <div className="text-[11px] text-muted-foreground line-clamp-2" title={reason}>
-            {reason}
+        {unchecked ? (
+          <div className="text-[11px] text-muted-foreground">
+            The .ke registry didn&apos;t answer. Search again in a moment.
           </div>
+        ) : (
+          reason != null && reason !== "" && (
+            <div className="text-[11px] text-muted-foreground line-clamp-2" title={reason}>
+              {reason}
+            </div>
+          )
         )}
       </div>
       <div className="flex items-center gap-3 shrink-0">
@@ -63,7 +78,12 @@ export function DomainResultRow({
             <span className="font-bold text-sm text-primary">
               {formatPrice(displayPrice!, displayCurrency!)}
             </span>
-            <span className="text-sm text-foreground"> /1st yr</span>
+            <span className="text-sm text-foreground">{renewalKnown && !introductory ? " /yr" : " /1st yr"}</span>
+            <p className="text-[11px] text-muted-foreground">
+              {renewalKnown
+                ? `Renews at ${formatPrice(renewalPrice!, displayCurrency!)}/yr`
+                : "Renewal price shown in cart"}
+            </p>
           </div>
         )}
         <AddDomainToCartButtons

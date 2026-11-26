@@ -29,7 +29,7 @@ import { DnsTab } from "./dns-tab";
 import { NameserversTab } from "./nameservers-tab";
 import { WebDesignContactDialog } from "./web-design-contact-dialog";
 import { CreateSubscriptionFromDomainDialog } from "./create-subscription-from-domain-dialog";
-import { DomainPortfolioContactInfo, type KenicRegistrantInfo } from "@/routes/agency.domains-portfolio/_components/domain-portfolio-contact-info";
+import { DomainPortfolioContactInfo, type KenicHandlers, type KenicRegistrantInfo } from "@/routes/agency.domains-portfolio/_components/domain-portfolio-contact-info";
 import { DomainTransferSecuritySection } from "@/components/domain-transfer-security-section";
 import type { DomainPortfolio } from "./domain-portfolio-card";
 
@@ -37,7 +37,7 @@ interface DomainDetailPageProps {
   domainId: string;
 }
 
-const isAgencyRoute = (pathname: string) => pathname.startsWith("/agency/");
+const isAgencyRoute = (pathname: string) => pathname.startsWith("/hq/");
 
 function isKenicPrimaryDomain(domainName: string | null | undefined): boolean {
   if (!domainName) return false;
@@ -194,6 +194,11 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
           expiryDate: kenicLiveInfo.data.exDate || domainFromSubscription.expiryDate,
           registrationDate: kenicLiveInfo.data.crDate || domainFromSubscription.registrationDate,
           registrantInfo: kenicLiveInfo.data.registrantInfo,
+          kenicHandlers: kenicLiveInfo.data.handlers,
+          ownerHandle: kenicLiveInfo.data.handlers?.owner?.handle ?? domainFromSubscription.ownerHandle,
+          adminHandle: kenicLiveInfo.data.handlers?.admin?.handle,
+          techHandle: kenicLiveInfo.data.handlers?.tech?.handle,
+          billingHandle: kenicLiveInfo.data.handlers?.billing?.handle,
           isLocked: kenicLiveInfo.data.isTransferLocked ?? domainFromSubscription.isLocked,
         } as DomainPortfolio & {
           registrantInfo?: KenicRegistrantInfo;
@@ -269,8 +274,8 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
     }
   };
 
-  const portfolioHref = isAgency ? "/agency/domains-portfolio" : `/${teamSlug}/domains-portfolio`;
-  const domainsHref = isAgency ? "/agency/domains" : `/${teamSlug}/domains`;
+  const portfolioHref = isAgency ? "/hq/domains-portfolio" : `/${teamSlug}/domains-portfolio`;
+  const domainsHref = isAgency ? "/hq/domains" : `/${teamSlug}/domains`;
 
   // Customer view: OpenProvider (via openProviderId) or KENIC (from subscription + optional EPP info)
   if (!isAgency) {
@@ -523,6 +528,10 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
                     registrantInfo={
                       (domain as { registrantInfo?: KenicRegistrantInfo }).registrantInfo
                     }
+                    kenicHandlers={(domain as { kenicHandlers?: KenicHandlers | null }).kenicHandlers}
+                    canEdit={can("domains.portfolio")}
+                    allowReplace={false}
+                    teamSlug={teamSlug}
                   />
                 </div>
               </div>
@@ -573,7 +582,7 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
         domainName={domain.domain}
         teamId={!isAgency ? subscriptionById?.teamId ?? null : null}
         buyDomainHref={
-          isAgency ? "/agency/domains" : teamSlug ? `/${teamSlug}/domains` : undefined
+          isAgency ? "/hq/domains" : teamSlug ? `/${teamSlug}/domains` : undefined
         }
       />
       <HostingPlanDialog
@@ -583,7 +592,7 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
         domainName={domain.domain}
         teamId={!isAgency ? subscriptionById?.teamId ?? null : null}
         buyDomainHref={
-          isAgency ? "/agency/domains" : teamSlug ? `/${teamSlug}/domains` : undefined
+          isAgency ? "/hq/domains" : teamSlug ? `/${teamSlug}/domains` : undefined
         }
       />
       <CreateSubscriptionFromDomainDialog
@@ -651,7 +660,7 @@ function ConnectedServicesSection({
             </div>
             <Button
               size="sm"
-              onClick={() => navigate(isAgency ? `/agency/hosting/${subscriptionId}` : `/${teamSlug}/hosting/${subscriptionId}`)}
+              onClick={() => navigate(isAgency ? `/hq/hosting/${subscriptionId}` : `/${teamSlug}/hosting/${subscriptionId}`)}
             >
               Manage site
             </Button>

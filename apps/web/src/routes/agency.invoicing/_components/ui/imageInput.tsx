@@ -38,11 +38,24 @@ export const ImageInput = ({ label, variableName }: CustomNumberProps) => {
             </label>
           )}
           {value ? (
-            <img
-              src={value}
-              className="h-8 mr-3 rounded-md p-1 hover:bg-neutral-200"
-              alt="company logo"
-            />
+            <span className="flex items-center gap-2">
+              <img
+                src={value}
+                className="h-8 rounded-md p-1"
+                alt="company logo"
+              />
+              <button
+                type="button"
+                className="text-sm font-medium text-neutral-700 underline"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onChange("");
+                  if (inputRef.current) inputRef.current.value = "";
+                }}
+              >
+                Remove
+              </button>
+            </span>
           ) : (
             <button className="text-neutral-500/70 border rounded-full p-1.5 border-dashed">
               <Plus className="w-4 h-4" />

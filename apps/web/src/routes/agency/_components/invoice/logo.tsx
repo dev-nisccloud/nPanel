@@ -38,38 +38,35 @@ export function Logo() {
   };
 
   return (
-    <div className="relative h-[80px] group">
-      <label htmlFor="logo-upload" className="block h-full">
+    <div className="flex items-start gap-3">
+      <label htmlFor="logo-upload" className="block h-[80px] cursor-pointer">
         {isLoading ? (
-          <Skeleton className="w-full h-full" />
+          <Skeleton className="h-full w-20" />
         ) : logoUrl ? (
-          <>
-            <img
-              src={logoUrl}
-              alt="Invoice logo"
-              className="h-full w-auto max-w-none object-contain"
-            />
-            <button
-              type="button"
-              className="absolute inset-0 bg-black bg-opacity-50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity flex-col gap-1"
-              style={{ width: "auto" }}
-              onClick={(e) => {
-                e.preventDefault();
-                setValue("template.logoUrl", undefined, {
-                  shouldValidate: true,
-                  shouldDirty: true,
-                });
-                console.log("Update template:", { logoUrl: null });
-              }}
-            >
-              <Icons.Clear className="size-4" />
-              <span className="text-xs font-medium">Remove</span>
-            </button>
-          </>
+          <img
+            src={logoUrl}
+            alt="Invoice logo"
+            className="h-full w-auto max-w-none object-contain"
+          />
         ) : (
           <div className="h-[80px] w-[80px] bg-[repeating-linear-gradient(-60deg,#DBDBDB,#DBDBDB_1px,transparent_1px,transparent_5px)] dark:bg-[repeating-linear-gradient(-60deg,#2C2C2C,#2C2C2C_1px,transparent_1px,transparent_5px)]" />
         )}
       </label>
+      {logoUrl ? (
+        <button
+          type="button"
+          className="inline-flex min-h-11 items-center gap-1 rounded-[10px] border border-border bg-background px-3 text-sm font-medium"
+          onClick={() => {
+            setValue("template.logoUrl", undefined, {
+              shouldValidate: true,
+              shouldDirty: true,
+            });
+          }}
+        >
+          <Icons.Clear className="size-4" />
+          Remove logo
+        </button>
+      ) : null}
 
       <input
         id="logo-upload"

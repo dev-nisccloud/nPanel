@@ -108,7 +108,7 @@ export default function FileCodeEditorInner({
           hideCursorInOverviewRuler: true,
           fontSize: 13,
           fontFamily:
-            "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+            '"DM Sans Variable", "DM Sans", ui-sans-serif, system-ui, sans-serif',
           lineNumbers: "on",
           lineNumbersMinChars: 3,
           glyphMargin: false,

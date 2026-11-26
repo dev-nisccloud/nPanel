@@ -1,5 +1,8 @@
 import { LegalPageShell, type TocItem } from "../_components/LegalPageShell.tsx";
+import { LegalGlance, type GlanceFact } from "../_components/LegalGlance.tsx";
+import { relatedLegalDocuments } from "../_components/legal-documents.ts";
 import { Link } from "react-router-dom";
+import { ACCEPTABLE_USE_RULES, ENFORCEMENT_ACTIONS, PROHIBITED_CONDUCT } from "../_components/acceptable-use-rules.ts";
 
 const toc: TocItem[] = [
   { id: "definitions", label: "1. Definitions" },
@@ -30,14 +33,24 @@ const toc: TocItem[] = [
   { id: "contact", label: "26. Contact Us" },
 ];
 
+
+const glance: GlanceFact[] = [
+  { value: "7 days", label: "Money-back guarantee", detail: "On new web hosting and WordPress hosting plans." },
+  { value: "30 days", label: "Notice before price rises", detail: "For existing subscriptions, so you can cancel first." },
+  { value: "30 days", label: "To export your data", detail: "After your account closes, before data is deleted." },
+  { value: "99.9%", label: "Uptime commitment", detail: "For hosting, email, servers and domains, under our SLA." },
+];
+
 export default function TermsOfServicePage() {
   return (
     <LegalPageShell
+      summary={<LegalGlance title="The key points of our Terms" facts={glance} />}
       title="Terms of Service"
       subtitle="These Terms of Service govern your access to and use of all products, services, and platforms operated by Nisc Cloud Limited. Please read them carefully before using our services."
-      effectiveDate="1 September 2025"
-      lastUpdated="1 July 2026"
+      effectiveDate="1 October 2026"
+      lastUpdated="1 October 2026"
       toc={toc}
+      related={relatedLegalDocuments("/terms")}
     >
       <p>
         Welcome to Nisc Cloud Limited (<strong>"Nisc Cloud"</strong>, <strong>"we"</strong>,{" "}
@@ -55,9 +68,11 @@ export default function TermsOfServicePage() {
       <ul>
         <li>
           <strong>"Agreement"</strong> means these Terms of Service together with our{" "}
-          <Link to="/privacy">Privacy Policy</Link>, <Link to="/cookies">Cookie Policy</Link>, and
-          any order forms, service schedules, or statements of work entered into between you and
-          Nisc Cloud.
+          <Link to="/sla">Service Level Agreement</Link>,{" "}
+          <Link to="/acceptable-use">Acceptable Use Policy</Link>,{" "}
+          <Link to="/dpa">Data Processing Addendum</Link>, <Link to="/privacy">Privacy Policy</Link>,{" "}
+          <Link to="/cookies">Cookie Policy</Link>, and any order forms, service schedules, or
+          statements of work entered into between you and Nisc Cloud.
         </li>
         <li>
           <strong>"Account"</strong> means the registered profile you create to access the Platform
@@ -85,7 +100,7 @@ export default function TermsOfServicePage() {
           <strong>"Services"</strong> means all products and services offered by Nisc Cloud,
           including but not limited to cloud hosting, domain registration, business email hosting,
           SSL certificates, website design, brand identity services, digital marketing services, AI
-          automation services (Zeepo AI), and any other services listed on our Platform.
+          automation services (Zepo AI), and any other services listed on our Platform.
         </li>
         <li>
           <strong>"Subscription"</strong> means a recurring plan that grants access to specified
@@ -152,7 +167,7 @@ export default function TermsOfServicePage() {
         <li>Choose a strong, unique password and update it regularly;</li>
         <li>Enable two-factor authentication where available;</li>
         <li>Not share your credentials with any third party;</li>
-        <li>Notify us immediately at <a href="mailto:support@nisccloud.com">support@nisccloud.com</a> upon discovering any unauthorised access or suspected breach of your Account.</li>
+        <li>Notify us immediately at <a href="mailto:abuse@nisccloud.com">abuse@nisccloud.com</a> upon discovering any unauthorised access or suspected breach of your Account.</li>
       </ul>
       <p>
         You are fully liable for all activity occurring under your Account, whether or not
@@ -178,7 +193,7 @@ export default function TermsOfServicePage() {
 
       <h3>5.1 Cloud Hosting Services</h3>
       <ul>
-        <li><strong>Shared Web Hosting:</strong> Managed shared-server hosting optimised for speed and reliability.</li>
+        <li><strong>Web Hosting:</strong> Managed hosting for business websites, optimised for speed and reliability.</li>
         <li><strong>WordPress Hosting:</strong> Specialist hosting environment optimised for WordPress websites.</li>
         <li><strong>VPS Hosting:</strong> Virtual Private Server instances with dedicated resources and root access.</li>
         <li><strong>VDS Hosting:</strong> Virtual Dedicated Server resources for higher-traffic workloads.</li>
@@ -197,7 +212,7 @@ export default function TermsOfServicePage() {
       <ul>
         <li><strong>Brand Identity & Design:</strong> Logo design, brand guidelines, visual identity systems, and brand strategy.</li>
         <li><strong>Website Design & Development:</strong> Custom website design, landing pages, and e-commerce solutions.</li>
-        <li><strong>SEO / AEO / GEO:</strong> Search engine optimisation, answer engine optimisation, and geo-targeted ranking services.</li>
+        <li><strong>SEO / AEO / GEO:</strong> Search Engine Optimization, Answer Engine Optimization, and Generative Engine Optimization services. Local and map visibility are treated separately as local SEO services.</li>
         <li><strong>Paid Advertising:</strong> Campaign management on Google Ads, Meta Ads, TikTok Ads, and LinkedIn Ads.</li>
         <li><strong>Social Media Marketing:</strong> Content creation, scheduling, community management, and influencer campaigns.</li>
         <li><strong>Email Marketing:</strong> Sequence design, newsletter management, and marketing automation.</li>
@@ -206,7 +221,7 @@ export default function TermsOfServicePage() {
 
       <h3>5.4 AI & Automation Services</h3>
       <ul>
-        <li><strong>Zeepo AI Agent:</strong> AI-powered automation for business workflows, customer engagement, and lead management.</li>
+        <li><strong>Zepo AI Agent:</strong> AI-powered automation for business workflows, customer engagement, and lead management.</li>
         <li><strong>AI Image Generation:</strong> AI-assisted creative asset generation for marketing and branding.</li>
         <li><strong>Background Remover:</strong> Automated image background removal tool.</li>
       </ul>
@@ -219,7 +234,16 @@ export default function TermsOfServicePage() {
         these Terms.
       </p>
 
-      <h3>5.6 Service Modifications</h3>
+      <h3>5.6 Website Migration</h3>
+      <p>
+        When you move hosting to Nisc Cloud, we migrate your existing website, databases, and email
+        free of charge within the scope we agree with you before the move begins. Work outside that
+        agreed scope (for example, rebuilding a site, fixing pre-existing faults, or moving very large
+        or complex applications) is quoted separately, and we will only charge for it after you
+        approve the quote.
+      </p>
+
+      <h3>5.7 Service Modifications</h3>
       <p>
         We reserve the right to add, modify, suspend, or discontinue any Service at any time, with
         reasonable notice where possible. We will not be liable to you or any third party for any
@@ -293,7 +317,7 @@ export default function TermsOfServicePage() {
       <h3>7.4 Disputes on Charges</h3>
       <p>
         If you believe a charge is incorrect, you must notify us in writing at{" "}
-        <a href="mailto:support@nisccloud.com">support@nisccloud.com</a> within{" "}
+        <a href="mailto:compliance@nisccloud.com">compliance@nisccloud.com</a> within{" "}
         <strong>30 days</strong> of the charge date. We will investigate and, where the charge was
         erroneous, issue a credit or refund at our discretion.
       </p>
@@ -353,10 +377,10 @@ export default function TermsOfServicePage() {
       <h2 id="refunds">10. Refund Policy</h2>
       <h3>10.1 Cloud Hosting Services</h3>
       <p>
-        We offer a <strong>7-day money-back guarantee</strong> on new shared hosting, WordPress
-        hosting, and business email hosting plans. If you are not satisfied, contact us within 7
-        days of the initial purchase and we will issue a full refund. This guarantee applies to
-        first-time purchases only and does not apply to renewals.
+        We offer a <strong>7-day money-back guarantee</strong> on new web hosting and WordPress
+        hosting plans. If you are not satisfied, contact us within 7 days of the initial purchase
+        and we will issue a full refund. This guarantee applies to first-time purchases only and
+        does not apply to renewals.
       </p>
       <h3>10.2 VPS, VDS & Dedicated Servers</h3>
       <p>
@@ -373,8 +397,9 @@ export default function TermsOfServicePage() {
       </p>
       <h3>10.4 SSL Certificates</h3>
       <p>
-        SSL certificates may be refunded within <strong>30 days</strong> of purchase if not yet
-        issued or installed. Once a certificate has been issued, it is non-refundable.
+        SSL certificates are <strong>non-refundable</strong> once issued or provisioned. If
+        provisioning fails through our error, we will offer a refund or re-provision the affected
+        Service.
       </p>
       <h3>10.5 Marketing & Design Services</h3>
       <p>
@@ -388,10 +413,22 @@ export default function TermsOfServicePage() {
         AI service credits and automation service packages are non-refundable once consumed. Unused
         credits at the time of account termination will not be refunded.
       </p>
-      <h3>10.7 Process</h3>
+      <h3>10.7 Business Email Services</h3>
+      <p>
+        Business email plans are non-refundable once the mailboxes or related account resources
+        have been provisioned. If provisioning fails through our error, we will offer a refund or
+        re-provision the affected Service.
+      </p>
+      <h3>10.8 Policy Violations</h3>
+      <p>
+        No refund, including under the money-back guarantee in Section 10.1, is due for Services
+        suspended or terminated because of a breach of the Acceptable Use Policy (Section 11) or
+        Prohibited Conduct (Section 12).
+      </p>
+      <h3>10.9 Process</h3>
       <p>
         Refund requests must be submitted in writing to{" "}
-        <a href="mailto:support@nisccloud.com">support@nisccloud.com</a>. Approved refunds are
+        <a href="mailto:compliance@nisccloud.com">compliance@nisccloud.com</a>. Approved refunds are
         processed within <strong>7–14 Working Days</strong> via the original payment method.
         M-Pesa refunds are subject to Safaricom's processing timelines.
       </p>
@@ -399,39 +436,46 @@ export default function TermsOfServicePage() {
       {/* ─── 11. ACCEPTABLE USE ─────────────────────────────────────────────── */}
       <h2 id="acceptable-use">11. Acceptable Use Policy</h2>
       <p>
-        You may only use our Services for lawful purposes and in accordance with these Terms. You
-        agree that you will not use the Platform or Services to:
+        You may only use our Services for lawful purposes and in accordance with these Terms. This
+        policy is also published as a standalone{" "}
+        <Link to="/acceptable-use">Acceptable Use Policy</Link> with the same rules. You agree that
+        you will not use the Platform or Services to:
       </p>
       <ul>
-        <li>Host, transmit, or distribute any content that is illegal under Kenyan law or the laws of your jurisdiction;</li>
-        <li>Send unsolicited bulk email (spam), phishing emails, or any other unsolicited commercial communications;</li>
-        <li>Host, distribute, or link to malware, viruses, ransomware, spyware, or any other malicious code;</li>
-        <li>Conduct or facilitate distributed denial-of-service (DDoS) attacks or any other form of cyberattack;</li>
-        <li>Mine cryptocurrencies or engage in any activity that places excessive, unreasonable strain on shared infrastructure without prior written approval;</li>
-        <li>Store or process content that infringes the intellectual property rights of any person;</li>
-        <li>Host content that constitutes child sexual abuse material (CSAM)  this is a zero-tolerance policy and will result in immediate termination and reporting to relevant authorities;</li>
-        <li>Engage in any form of online fraud, identity theft, or financial crime;</li>
-        <li>Circumvent or attempt to circumvent any security measure, firewall, or access control;</li>
-        <li>Reverse engineer, decompile, or disassemble any part of the Platform; or</li>
-        <li>Use the Platform to compete directly with Nisc Cloud by reselling our infrastructure as your own unlicensed product.</li>
+        {ACCEPTABLE_USE_RULES.map((rule) => (
+          <li key={rule}>{rule}</li>
+        ))}
       </ul>
       <p>
         We reserve the right to monitor usage patterns to detect violations of this policy and to
         take immediate corrective action, including content removal, service suspension, or account
         termination, without prior notice where the violation is serious.
       </p>
+      <h3>11.1 Enforcement</h3>
+      <p>
+        We take the security of our infrastructure and of our other Clients seriously. If we
+        reasonably believe that an Account hosts or distributes content prohibited by this policy or
+        Section 12, we may, without prior notice:
+      </p>
+      <ul>
+        {ENFORCEMENT_ACTIONS.map((action) => (
+          <li key={action}>{action}</li>
+        ))}
+      </ul>
+      <p>
+        Fees paid for Services that are suspended or terminated under this Section are
+        <strong> non-refundable</strong>, and any outstanding Fees remain payable.
+      </p>
 
       {/* ─── 12. PROHIBITED ─────────────────────────────────────────────────── */}
       <h2 id="prohibited">12. Prohibited Conduct</h2>
       <p>In addition to the Acceptable Use Policy above, you must not:</p>
       <ul>
-        <li><strong>Impersonate</strong> Nisc Cloud, our employees, partners, or any other person or entity;</li>
-        <li><strong>Scrape</strong> or systematically extract data from the Platform without our prior written consent;</li>
-        <li><strong>Create multiple Accounts</strong> to circumvent service limits, suspensions, or bans;</li>
-        <li><strong>Interfere</strong> with the proper functioning of the Platform or any other user's use of the Services;</li>
-        <li><strong>Resell</strong> or sublicense Services without an express written reseller agreement with Nisc Cloud;</li>
-        <li><strong>Use automated tools</strong> (bots, crawlers, scrapers) to access the Platform in a manner that exceeds normal human interaction rates without prior written consent;</li>
-        <li><strong>Violate</strong> any applicable law, including the Kenya Information and Communications Act, the Computer Misuse and Cybercrimes Act 2018, the Data Protection Act 2019, or any applicable anti-money laundering regulation.</li>
+        {PROHIBITED_CONDUCT.map((item) => (
+          <li key={item.term}>
+            <strong>{item.term}</strong> {item.text}
+          </li>
+        ))}
       </ul>
 
       {/* ─── 13. INTELLECTUAL PROPERTY ──────────────────────────────────────── */}
@@ -497,7 +541,7 @@ export default function TermsOfServicePage() {
         We reserve the right to remove or disable access to any User Content that we reasonably
         believe violates these Terms, applicable law, or third-party rights, with or without
         notice. If you believe your Content has been removed in error, contact us at{" "}
-        <a href="mailto:support@nisccloud.com">support@nisccloud.com</a>.
+        <a href="mailto:compliance@nisccloud.com">compliance@nisccloud.com</a>.
       </p>
 
       {/* ─── 15. THIRD-PARTY SERVICES ───────────────────────────────────────── */}
@@ -533,8 +577,9 @@ export default function TermsOfServicePage() {
         Where you use our Services to store or process the personal data of your own customers or
         end users, you act as the Data Controller for such data and Nisc Cloud acts as a Data
         Processor. You are responsible for ensuring your use of the Services complies with
-        applicable data protection laws in respect of data you control. You may request a Data
-        Processing Agreement (DPA) from us at{" "}
+        applicable data protection laws in respect of data you control. Our{" "}
+        <Link to="/dpa">Data Processing Addendum</Link> applies to that processing and forms part of
+        this Agreement. A signed copy is available on request from{" "}
         <a href="mailto:privacy@nisccloud.com">privacy@nisccloud.com</a>.
       </p>
 
@@ -558,13 +603,15 @@ export default function TermsOfServicePage() {
 
       {/* ─── 18. SLA ────────────────────────────────────────────────────────── */}
       <h2 id="sla">18. Service Availability & SLA</h2>
-      <h3>18.1 Hosting Uptime Commitment</h3>
+      <h3>18.1 Uptime Commitment</h3>
       <p>
-        For shared hosting, WordPress hosting, and business email hosting plans, we target a monthly
-        uptime of <strong>99.9%</strong>, excluding scheduled maintenance windows and force majeure
-        events. In the event of downtime attributable to us that falls below this commitment in a
-        given calendar month, you may request a service credit equal to a proportionate amount of
-        your monthly fee, up to a maximum of one month's subscription fee.
+        For website hosting, email hosting, cloud server hosting, domain hosting, and completed
+        migrations, we commit to a monthly uptime of <strong>99.9%</strong>, excluding scheduled
+        maintenance and the other exclusions set out in our{" "}
+        <Link to="/sla">Service Level Agreement</Link> (<strong>"SLA"</strong>), which forms part of
+        this Agreement. The SLA sets out how uptime is measured, support response times, and the
+        service credits available if we fall below this commitment. Service credits in any month
+        are capped at one month's subscription fee for the affected Service.
       </p>
       <h3>18.2 Scheduled Maintenance</h3>
       <p>
@@ -580,10 +627,11 @@ export default function TermsOfServicePage() {
         acts of God, natural disasters, internet infrastructure failures, power outages, government
         orders, pandemics, or acts of terrorism.
       </p>
-      <h3>18.4 Marketing & Creative Services</h3>
+      <h3>18.4 Services Without an Uptime Commitment</h3>
       <p>
-        No uptime or availability SLA applies to marketing, design, or AI services. Timelines for
-        deliverables are governed by individual service agreements.
+        No uptime or availability SLA applies to marketing and branding, website and application
+        design and development, security, or AI services. Timelines for deliverables are governed by
+        individual service agreements.
       </p>
 
       {/* ─── 19. LIMITATION OF LIABILITY ────────────────────────────────────── */}
@@ -665,7 +713,7 @@ export default function TermsOfServicePage() {
       <h3>22.1 Informal Resolution</h3>
       <p>
         Before initiating any formal dispute proceeding, you must contact us at{" "}
-        <a href="mailto:support@nisccloud.com">support@nisccloud.com</a> and allow us{" "}
+        <a href="mailto:compliance@nisccloud.com">compliance@nisccloud.com</a> and allow us{" "}
         <strong>30 days</strong> to attempt to resolve the dispute informally. This is a condition
         precedent to any formal proceedings.
       </p>
@@ -726,7 +774,7 @@ export default function TermsOfServicePage() {
       </p>
       <p>
         Previous versions of these Terms are archived and available upon written request to{" "}
-        <a href="mailto:support@nisccloud.com">support@nisccloud.com</a>.
+        <a href="mailto:compliance@nisccloud.com">compliance@nisccloud.com</a>.
       </p>
 
       {/* ─── 25. GENERAL ────────────────────────────────────────────────────── */}
@@ -734,7 +782,8 @@ export default function TermsOfServicePage() {
       <h3>25.1 Entire Agreement</h3>
       <p>
         This Agreement, together with any applicable service-specific terms, order forms, and our
-        Privacy Policy and Cookie Policy, constitutes the entire agreement between you and Nisc
+        Service Level Agreement, Acceptable Use Policy, Data Processing Addendum, Privacy Policy and
+        Cookie Policy, constitutes the entire agreement between you and Nisc
         Cloud with respect to its subject matter and supersedes all prior oral or written
         understandings, representations, or agreements.
       </p>
@@ -761,7 +810,7 @@ export default function TermsOfServicePage() {
       <p>
         Notices from Nisc Cloud to you will be sent to the email address associated with your
         Account. Notices from you to Nisc Cloud must be sent to{" "}
-        <a href="mailto:support@nisccloud.com">support@nisccloud.com</a>. Notices are effective upon
+        <a href="mailto:compliance@nisccloud.com">compliance@nisccloud.com</a>. Notices are effective upon
         confirmed receipt.
       </p>
       <h3>25.6 Language</h3>
@@ -782,7 +831,7 @@ export default function TermsOfServicePage() {
         contact us:
       </p>
       <ul>
-        <li><strong>Email:</strong> <a href="mailto:support@nisccloud.com">support@nisccloud.com</a></li>
+        <li><strong>Email:</strong> <a href="mailto:compliance@nisccloud.com">compliance@nisccloud.com</a></li>
         <li><strong>Legal & Privacy enquiries:</strong> <a href="mailto:privacy@nisccloud.com">privacy@nisccloud.com</a></li>
         <li><strong>Address:</strong> Nisc Cloud Limited, Nairobi, Kenya</li>
         <li><strong>ODPC Registration:</strong> No. 160-3417-5D07</li>

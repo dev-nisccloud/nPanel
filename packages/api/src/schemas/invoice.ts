@@ -15,6 +15,7 @@ export const invoiceStatusSchema = z.enum([
 	"OVERDUE",
 	"CANCELLED",
 	"WRITTEN_OFF",
+	"REFUNDED",
 ]);
 export type InvoiceStatusType = z.infer<typeof invoiceStatusSchema>;
 

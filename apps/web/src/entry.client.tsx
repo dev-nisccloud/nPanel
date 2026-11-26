@@ -52,7 +52,8 @@ Sentry.init({
   // Logs only in development  avoid production network/CPU overhead
   enableLogs: !isProd,
   tracesSampleRate: isProd ? 0.05 : 1.0,
-  tracePropagationTargets: [/^\//, /^https:\/\/.*\.nisccloud\.com/],
+  // Object storage rejects browser calls that carry tracing headers.
+  tracePropagationTargets: [/^\//, /^https:\/\/(?!objects\.nisccloud\.com(?:\/|$))[^/]*\.nisccloud\.com/],
   // No continuous session recording; only capture a replay when an error occurs
   replaysSessionSampleRate: 0,
   replaysOnErrorSampleRate: 1.0,

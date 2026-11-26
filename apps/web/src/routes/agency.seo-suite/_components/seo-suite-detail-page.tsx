@@ -109,7 +109,7 @@ function DetailError({ error, onRetry }: { error: Error; onRetry: () => void }) 
     <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
       <div className="w-full max-w-7xl mx-auto">
         <div className="flex items-center gap-4">
-          <Link to="/agency/seo-suite">
+          <Link to="/hq/seo-suite">
             <Button variant="ghost" size="sm">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
@@ -129,7 +129,7 @@ function DetailError({ error, onRetry }: { error: Error; onRetry: () => void }) 
             <Button onClick={onRetry} variant="outline">
               Try Again
             </Button>
-            <Link to="/agency/seo-suite">
+            <Link to="/hq/seo-suite">
               <Button variant="ghost">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to SEO Suite
@@ -162,7 +162,7 @@ export function SeoSuiteDetailPage({ projectId }: SeoSuiteDetailPageProps) {
       <div className="w-full max-w-7xl mx-auto">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link to="/agency/seo-suite">
+            <Link to="/hq/seo-suite">
               <Button variant="ghost" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back

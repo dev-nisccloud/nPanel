@@ -39,6 +39,11 @@ export declare function parseCreditNoteNumberForKra(creditNumber: string | null 
  * Build KRA saveTrnsSalesOsdc credit note (rcptTyCd=R) from a synced invoice.
  */
 export declare function buildKraCreditNoteTransactionForInvoice(invoiceId: string, creditNoteId: string, rfdRsnCd: KraRefundReasonCode): Promise<BuildKraTransactionResult>;
+export declare function readMainProductIdFromLineMetadata(metadata: unknown): string | null;
+/** Copy the product's KRA tax band onto line metadata when the line does not already have one. */
+export declare function stampInvoiceLineProductTaxBands(lineItems: Array<{
+    metadata?: unknown;
+}>): Promise<void>;
 /** Main nisc product id on the invoice line (service; add-ons roll into line total). */
 export declare function buildNiscInvoiceLineMetadata(input: {
     productId: string;

@@ -72,7 +72,7 @@ export function InvoiceKraStatusPanel({
 		invoice.kraStatus !== "NOT_APPLICABLE";
 
 	return (
-		<div className="w-full max-w-3xl mx-auto rounded-lg border bg-muted/30 p-4 space-y-3">
+		<div className="w-full rounded-lg border bg-muted/30 p-4 space-y-3">
 			<div className="flex flex-wrap items-center justify-between gap-3">
 				<div className="flex items-center gap-2">
 					<span className="text-sm font-medium">KRA eTIMS</span>
@@ -142,16 +142,16 @@ export function InvoiceKraStatusPanel({
 							{etimsFiscal.sdcDateTimeDisplay}
 						</p>
 					) : null}
-					{invoice.kraVerificationUrl ? (
+					{(etimsFiscal?.verificationUrl ?? invoice.kraVerificationUrl) ? (
 						<p className="break-all pt-1 font-sans">
 							<span className="text-muted-foreground">Verify: </span>
 							<a
-								href={invoice.kraVerificationUrl}
+								href={etimsFiscal?.verificationUrl ?? invoice.kraVerificationUrl ?? undefined}
 								target="_blank"
 								rel="noopener noreferrer"
 								className="text-primary underline"
 							>
-								{invoice.kraVerificationUrl}
+								{etimsFiscal?.verificationUrl ?? invoice.kraVerificationUrl}
 							</a>
 						</p>
 					) : null}

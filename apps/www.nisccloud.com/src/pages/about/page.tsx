@@ -6,17 +6,21 @@ import CoreValues from "./_components/CoreValues.tsx";
 import TeamSection from "./_components/TeamSection.tsx";
 import AboutCTA from "./_components/AboutCTA.tsx";
 import AboutFeatureBlocks from "./_components/AboutFeatureBlocks.tsx";
+import CeoMessage from "./_components/CeoMessage.tsx";
 
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       <Navbar />
+      <main id="main-content">
       <AboutHero />
       <OurStory />
+      <CeoMessage />
       <AboutFeatureBlocks />
       <CoreValues />
       <TeamSection />
       <AboutCTA />
+      </main>
       <Footer />
     </div>
   );

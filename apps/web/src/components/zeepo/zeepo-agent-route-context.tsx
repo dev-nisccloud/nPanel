@@ -10,7 +10,7 @@ export type ZeepoAgentRouteConfig = {
 };
 
 export const DEFAULT_ZEEPO_AGENT_ROUTE: ZeepoAgentRouteConfig = {
-	basePath: "/agency/zeepo-ai-agent",
+	basePath: "/hq/zeepo-ai-agent",
 	teamId: null,
 	teamSlug: null,
 	isCustomer: false,

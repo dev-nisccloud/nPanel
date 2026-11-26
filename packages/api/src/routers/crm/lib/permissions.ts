@@ -19,20 +19,20 @@ const AGENCY_ROLES = new Set([
 
 // CRM menu permission keys
 export const CRM_PERMISSIONS = {
-  VIEW: "/agency/crm",
-  COMPANIES: "/agency/crm/companies",
-  CONTACTS: "/agency/crm/contacts",
-  DEALS: "/agency/crm/deals",
-  ACTIVITIES: "/agency/crm/activities",
-  TASKS: "/agency/crm/tasks",
-  NOTES: "/agency/crm/notes",
-  TAGS: "/agency/crm/tags",
-  CUSTOM_FIELDS: "/agency/crm/custom-fields",
-  PIPELINES: "/agency/crm/pipelines",
-  ANALYTICS: "/agency/crm/analytics",
-  SETTINGS: "/agency/crm/settings",
-  SYNC: "/agency/crm/sync",
-  AI: "/agency/crm/ai",
+  VIEW: "/hq/crm",
+  COMPANIES: "/hq/crm/companies",
+  CONTACTS: "/hq/crm/contacts",
+  DEALS: "/hq/crm/deals",
+  ACTIVITIES: "/hq/crm/activities",
+  TASKS: "/hq/crm/tasks",
+  NOTES: "/hq/crm/notes",
+  TAGS: "/hq/crm/tags",
+  CUSTOM_FIELDS: "/hq/crm/custom-fields",
+  PIPELINES: "/hq/crm/pipelines",
+  ANALYTICS: "/hq/crm/analytics",
+  SETTINGS: "/hq/crm/settings",
+  SYNC: "/hq/crm/sync",
+  AI: "/hq/crm/ai",
 } as const;
 
 /**
@@ -49,7 +49,7 @@ export function assertAgencyUser(role: string | null | undefined): asserts role 
   if (!isAgencyUser(role)) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only agency users can access the CRM module.",
+      message: "Only Nisc HQ staff can access the CRM module.",
       cause: "user_not_agency",
     });
   }

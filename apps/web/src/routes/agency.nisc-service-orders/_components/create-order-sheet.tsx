@@ -437,7 +437,7 @@ function OrderItemRow({
 					{!loadingDomainSubs && domainSubs.length === 0 && hasOwner && (
 						<p className="text-[11px] text-muted-foreground">
 							No existing Domains subscriptions for this owner  enter a FQDN above.{" "}
-							<Link to="/agency/domains-portfolio" className="text-primary underline">
+							<Link to="/hq/domains-portfolio" className="text-primary underline">
 								Domains portfolio
 							</Link>
 						</p>

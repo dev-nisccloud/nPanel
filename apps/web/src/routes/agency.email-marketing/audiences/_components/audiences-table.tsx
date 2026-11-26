@@ -160,7 +160,7 @@ export function AudiencesTable({ audiences, onRefetch }: AudiencesTableProps) {
 									className="flex items-center gap-2 text-left hover:text-primary focus:outline-none cursor-pointer"
 									onClick={() =>
 										navigate(
-											`/agency/email-marketing/audiences/${audience.id}`,
+											`/hq/email-marketing/audiences/${audience.id}`,
 										)
 									}
 								>
@@ -182,7 +182,7 @@ export function AudiencesTable({ audiences, onRefetch }: AudiencesTableProps) {
 										onRefetch={onRefetch}
 										onView={() =>
 											navigate(
-												`/agency/email-marketing/audiences/${audience.id}`,
+												`/hq/email-marketing/audiences/${audience.id}`,
 											)
 										}
 									/>

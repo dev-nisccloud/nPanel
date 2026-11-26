@@ -53,7 +53,9 @@ function openNpanelUrl(teamSlug?: string): string {
 }
 
 export function useNavbarAuth(): NavbarAuthState {
-  const [state, setState] = React.useState<NavbarAuthState>({ status: "loading" });
+  const [state, setState] = React.useState<NavbarAuthState>({
+    status: "loading",
+  });
 
   React.useEffect(() => {
     let cancelled = false;
@@ -69,7 +71,7 @@ export function useNavbarAuth(): NavbarAuthState {
           name: identity.user.name,
           email: identity.user.email,
           teamSlug: identity.teams[0]?.slug,
-      teamId: identity.teams[0]?.id,
+          teamId: identity.teams[0]?.id,
         });
       })
       .catch(() => {
@@ -116,7 +118,9 @@ function AccountMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64 rounded-xl p-2">
         <DropdownMenuLabel className="px-2 py-2 font-normal">
-          <p className="text-sm font-semibold text-foreground truncate">{name}</p>
+          <p className="text-sm font-semibold text-foreground truncate">
+            {name}
+          </p>
           <p className="text-xs text-muted-foreground truncate mt-0.5">
             {email || "Signed in"}
           </p>
@@ -136,25 +140,24 @@ function AccountMenu({
   );
 }
 
-/** Desktop: login or avatar, placed just before Get Started. */
+/** Desktop: login or avatar, placed just before Create account. */
 export function NavbarAuthDesktop({ auth }: { auth: NavbarAuthState }) {
   if (auth.status === "loading") {
     return (
-      <div
-        className="size-9 rounded-full bg-muted animate-pulse"
-        aria-hidden
-      />
+      <div className="size-9 rounded-full bg-muted animate-pulse" aria-hidden />
     );
   }
 
   if (auth.status === "guest") {
     return (
       <FlowButton
-        text="Login"
+        text="Log in to nPanel"
         size="sm"
         icon={null}
         onClick={() => {
-          window.location.assign(buildStorefrontSignInUrl(window.location.href));
+          window.location.assign(
+            buildStorefrontSignInUrl(window.location.href),
+          );
         }}
       />
     );
@@ -174,17 +177,24 @@ export function NavbarAuthMobile({
   onNavigate?: () => void;
 }) {
   if (auth.status === "loading") {
-    return <div className="h-11 w-full rounded-xl bg-muted animate-pulse" aria-hidden />;
+    return (
+      <div
+        className="h-11 w-full rounded-xl bg-muted animate-pulse"
+        aria-hidden
+      />
+    );
   }
 
   if (auth.status === "guest") {
     return (
       <FlowButton
-        text="Login"
+        text="Log in to nPanel"
         size="sm"
         icon={null}
         onClick={() => {
-          window.location.assign(buildStorefrontSignInUrl(window.location.href));
+          window.location.assign(
+            buildStorefrontSignInUrl(window.location.href),
+          );
           onNavigate?.();
         }}
         className="w-full justify-center"
@@ -201,7 +211,9 @@ export function NavbarAuthMobile({
           </AvatarFallback>
         </Avatar>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-foreground truncate">{auth.name}</p>
+          <p className="text-sm font-semibold text-foreground truncate">
+            {auth.name}
+          </p>
           <p className="text-xs text-muted-foreground truncate">
             {auth.email || "Signed in"}
           </p>

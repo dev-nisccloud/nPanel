@@ -18,6 +18,7 @@ function buildMailCreateXml(
     passwordType = 'plain',
     mailbox,
     forwarding,
+    aliases,
     autoresponder,
     antivir = 'off',
     outgoingMessagesLimit,
@@ -38,18 +39,27 @@ function buildMailCreateXml(
     </forwarding>`
     : '';
 
-  // Build autoresponder XML if enabled
+  const aliasXml = (aliases ?? [])
+    .map((alias) => alias.trim())
+    .filter(Boolean)
+    .map((alias) => {
+      const local = alias.includes('@') ? alias.slice(0, alias.indexOf('@')).trim() : alias;
+      return `<alias>${local.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</alias>`;
+    })
+    .join('\n          ');
+
+  const endDate = autoresponder?.endDate?.trim();
+  // Build autoresponder XML if enabled. Node order matches the create sample:
+  // enabled, subject, content_type, charset, text, end_date.
   const autoresponderXml = autoresponder?.enabled
     ? `<autoresponder>
       <enabled>true</enabled>
       <subject>${autoresponder.subject?.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') ?? ''}</subject>
       <content_type>${autoresponder.contentType ?? 'text/plain'}</content_type>
-      <text>${autoresponder.content?.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') ?? ''}</text>
+      <charset>UTF-8</charset>
+      <text>${autoresponder.content?.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') ?? ''}</text>${endDate ? `\n      <end_date>${endDate.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</end_date>` : ''}
     </autoresponder>`
     : '';
-
-  // Note: Legacy implementation doesn't include alias in the request
-  // const aliasXml = alias ? `<alias>${alias.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</alias>` : '';
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <packet>
@@ -61,6 +71,7 @@ function buildMailCreateXml(
           <name>${name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</name>
           ${mailboxXml}
           ${forwardingXml}
+          ${aliasXml}
           ${autoresponderXml}
           <password>
             <value>${password.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</value>
@@ -123,17 +134,17 @@ export const emailsCreateRouter = router({
         enabled: z.boolean(),
         addresses: z.array(z.string()).optional(),
       }).optional(),
-      // Note: Legacy implementation doesn't include alias in the request
-      // alias: z.string().optional(),
+      aliases: z.array(z.string()).optional(),
       autoresponder: z.object({
         enabled: z.boolean(),
         subject: z.string().optional(),
         contentType: z.string().optional(),
         content: z.string().optional(),
+        endDate: z.string().optional(),
       }).optional(),
       antivir: z.string().optional(),
       cpAccess: z.boolean().optional(),
-      outgoingMessagesLimit: z.number().optional(),
+      outgoingMessagesLimit: z.number().int().min(0).max(120).optional(),
       description: z.string().optional(),
     }))
     .mutation(async ({ input }) => {

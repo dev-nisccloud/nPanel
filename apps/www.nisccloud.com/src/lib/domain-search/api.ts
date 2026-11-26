@@ -12,10 +12,20 @@ function batchEnvelope(input: unknown): Record<string, unknown> {
   return { "0": input };
 }
 
-async function parseTrpcBatch(res: Response): Promise<unknown> {
-  const batch = (await res.json()) as TrpcBatchItem[];
+/** Shown when the API answers with an empty or non-JSON body (restarting, proxy error, offline). */
+export const SERVICE_UNAVAILABLE_MESSAGE =
+  "We couldn't reach our pricing service. Check your connection and try again in a moment.";
+
+export async function parseTrpcBatch(res: Response): Promise<unknown> {
+  const text = await res.text();
+  let batch: TrpcBatchItem[];
+  try {
+    batch = JSON.parse(text) as TrpcBatchItem[];
+  } catch {
+    throw new Error(SERVICE_UNAVAILABLE_MESSAGE);
+  }
   if (batch[0]?.error) throw new Error(batch[0].error.message ?? "tRPC error");
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (!res.ok) throw new Error(SERVICE_UNAVAILABLE_MESSAGE);
   return batch[0]?.result?.data;
 }
 
@@ -43,12 +53,16 @@ export async function trpcQuery<T>(procedure: string, input?: unknown): Promise<
   return unwrapTrpcData(await parseTrpcBatch(res)) as T;
 }
 
-export async function trpcMutation<T>(procedure: string, input: unknown): Promise<T> {
+export async function trpcMutation<T>(
+  procedure: string,
+  input: unknown,
+  timeoutMs = 30_000,
+): Promise<T> {
   const res = await fetch(`${TRPC_BASE}/${procedure}?batch=1`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(batchEnvelope(input)),
-    signal: AbortSignal.timeout(30_000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   return unwrapTrpcData(await parseTrpcBatch(res)) as T;
 }

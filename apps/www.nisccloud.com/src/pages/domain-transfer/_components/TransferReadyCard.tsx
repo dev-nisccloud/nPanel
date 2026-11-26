@@ -25,6 +25,14 @@ interface TransferReadyCardProps {
   statusLabel?: string;
   isLoading?: boolean;
   onContinueToCart: () => void;
+  /** Current registry expiry; a gTLD transfer adds one year to it. */
+  currentExpiresAt?: string | null;
+}
+
+function expiryAfterTransfer(currentExpiresAt: string | null | undefined): Date {
+  const current = currentExpiresAt ? new Date(currentExpiresAt) : null;
+  const base = current && !Number.isNaN(current.getTime()) && current > new Date() ? current : new Date();
+  return addYears(base, 1);
 }
 
 export function TransferReadyCard({
@@ -36,10 +44,11 @@ export function TransferReadyCard({
   statusLabel = "Ready for transfer",
   isLoading = false,
   onContinueToCart,
+  currentExpiresAt,
 }: TransferReadyCardProps) {
   const isPendingCheck = ctaLabel === "Continue";
   const showStatusBadge = statusLabel !== "";
-  const expiryAfterTransferLabel = format(addYears(new Date(), 1), "MMMM d, yyyy");
+  const expiryAfterTransferLabel = format(expiryAfterTransfer(currentExpiresAt), "MMMM d, yyyy");
 
   return (
     <div className="overflow-hidden rounded-xl border bg-card shadow-sm">

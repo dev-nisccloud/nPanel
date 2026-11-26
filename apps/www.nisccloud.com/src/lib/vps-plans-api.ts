@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { parseTrpcBatch } from "@/lib/domain-search/api.ts";
 
 // --- Types ---
 export const vpsPlanSchema = z.object({
@@ -63,38 +64,79 @@ export type PricingSettings = {
 // --- API ---
 const TRPC_BASE = "/api/trpc";
 
-type TrpcBatchItem = {
-  result?: { data?: unknown };
-  error?: { message?: string };
-};
-
 function batchEnvelope(input: unknown): Record<string, unknown> {
   return { "0": input };
 }
 
-async function parseTrpcBatch(res: Response): Promise<unknown> {
-  const batch = (await res.json()) as TrpcBatchItem[];
-  if (batch[0]?.error) throw new Error(batch[0].error.message ?? "tRPC error");
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return batch[0]?.result?.data;
-}
 
-export async function trpcQuery<T>(procedure: string, input?: unknown): Promise<T> {
+export async function trpcQuery<T>(procedure: string, input?: unknown, timeoutMs = 30_000): Promise<T> {
   const params = new URLSearchParams({ batch: "1" });
   if (input !== undefined) {
     params.set("input", JSON.stringify(batchEnvelope(input)));
   }
   const res = await fetch(`${TRPC_BASE}/${procedure}?${params}`, {
-    signal: AbortSignal.timeout(30_000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   return parseTrpcBatch(res) as T;
 }
+
+/** A cold server-catalogue read upstream can take ~20 s; allow headroom before giving up. */
+const CATALOG_TIMEOUT_MS = 45_000;
+const CATALOG_CACHE_PREFIX = "nisc_catalog:";
+const CATALOG_CACHE_MAX_CHARS = 120_000;
+const catalogInflight = new Map<string, Promise<unknown>>();
+
+/**
+ * Display-only catalogue reads (server plans, facilities, margins, FX): concurrent identical
+ * requests share one fetch, and successful answers are reused from sessionStorage for `ttlMs`.
+ * Prices are always recalculated server-side by `storefront.cart.quote` before payment.
+ */
+async function catalogQuery<T extends { success?: boolean }>(
+  procedure: string,
+  input: unknown,
+  ttlMs: number,
+): Promise<T> {
+  const key = `${CATALOG_CACHE_PREFIX}${procedure}:${JSON.stringify(input ?? null)}`;
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (raw) {
+      const hit = JSON.parse(raw) as { at: number; value: T };
+      if (Date.now() - hit.at < ttlMs) return hit.value;
+    }
+  } catch {
+    // unreadable cache entry
+  }
+  const pending = catalogInflight.get(key) as Promise<T> | undefined;
+  if (pending) return pending;
+  const request = trpcQuery<T>(procedure, input, CATALOG_TIMEOUT_MS)
+    .then((value) => {
+      if (value?.success !== false) {
+        try {
+          const entry = JSON.stringify({ at: Date.now(), value });
+          // Large pages (dedicated inventory) would crowd out the cart draft kept in the same storage.
+          if (entry.length <= CATALOG_CACHE_MAX_CHARS) sessionStorage.setItem(key, entry);
+        } catch {
+          // storage full or disabled
+        }
+      }
+      return value;
+    })
+    .finally(() => catalogInflight.delete(key));
+  catalogInflight.set(key, request);
+  return request;
+}
+
+const PLANS_TTL_MS = 5 * 60 * 1000;
+const SETTINGS_TTL_MS = 10 * 60 * 1000;
+const FACILITIES_TTL_MS = 60 * 60 * 1000;
 
 // --- Shared hosting plans ---
 
 export type SharedHostingPlan = {
   id: string;
   name: string;
+  description?: string | null;
+  highlights?: string[];
   niscPrice: string | null;
   niscCurrency: string;
   billingCycle: string;
@@ -152,58 +194,99 @@ export async function fetchSeoPlansPublic(): Promise<SharedHostingPricingData> {
   return toHostingPricingData(res);
 }
 
+export async function fetchSocialMediaPlansPublic(): Promise<SharedHostingPricingData> {
+  const res = await trpcQuery<HostingPricingResponse>("products.getSocialMediaPlansForPricing");
+  return toHostingPricingData(res);
+}
+
 export async function fetchEmailMarketingPlansPublic(): Promise<SharedHostingPricingData> {
   const res = await trpcQuery<HostingPricingResponse>("products.getNiscEmailMarketingPlansForPricing");
   return toHostingPricingData(res);
 }
 
+export type ZepoTokenPack = {
+  id: string;
+  name: string;
+  description: string | null;
+  tokens: number;
+  price: string;
+  currency: string;
+  isPopular: boolean;
+};
+
+export async function fetchZepoTokenPacksPublic(): Promise<{ welcomeTokenGrant: number; packs: ZepoTokenPack[] }> {
+  return trpcQuery("products.getZeepoAiTokenPacksForPricing");
+}
+
 // --- Specific fetchers ---
 
+/** Paginated Hivelocity inventory as returned by the public plan endpoints. */
+type InventoryPageResponse = {
+  success: boolean;
+  data?: { items?: unknown[]; nextCursor?: number | null } | null;
+};
+
+/** Raw margin settings row; fields are optional because the admin may not have configured every tier. */
+type RawPricingSettings = Partial<{
+  marginType: MarginType | null;
+  percentageMargin: string | null;
+  fixedMargin: string | null;
+  roundOff: string | null;
+  osMarginType: MarginType | null;
+  osPercentageMargin: string | null;
+  osFixedMargin: string | null;
+  osRoundOff: string | null;
+  addonsMarginType: MarginType | null;
+  addonsPercentageMargin: string | null;
+  addonsFixedMargin: string | null;
+  addonsRoundOff: string | null;
+}>;
+
 export async function fetchVpsPlansPublic(cursor: number = 0, limit: number = 24) {
-  const res = await trpcQuery<{ success: boolean; data: any }>("hivelocity.publicGetVpsPlans", {
-    limit,
-    cursor,
-    location: "MAIN", // Standard filter
-  });
+  const res = await catalogQuery<InventoryPageResponse>(
+    "hivelocity.publicGetVpsPlans",
+    { limit, cursor, location: "MAIN" },
+    PLANS_TTL_MS,
+  );
 
   if (!res.success) throw new Error("Failed to fetch VPS plans");
 
   const items = res.data?.items ?? [];
   return {
     plans: inventoryToVpsPlans({ FLAT: items }),
-    nextCursor: res.data?.nextCursor,
+    nextCursor: res.data?.nextCursor ?? null,
   };
 }
 
 export async function fetchVdsPlansPublic(cursor: number = 0, limit: number = 24) {
-  const res = await trpcQuery<{ success: boolean; data: any }>("hivelocity.publicGetVdsPlans", {
-    limit,
-    cursor,
-    location: "MAIN",
-  });
+  const res = await catalogQuery<InventoryPageResponse>(
+    "hivelocity.publicGetVdsPlans",
+    { limit, cursor, location: "MAIN" },
+    PLANS_TTL_MS,
+  );
 
   if (!res.success) throw new Error("Failed to fetch VDS plans");
 
   const items = res.data?.items ?? [];
   return {
     plans: inventoryToVpsPlans({ FLAT: items }), // Can reuse VpsPlan schema/type
-    nextCursor: res.data?.nextCursor,
+    nextCursor: res.data?.nextCursor ?? null,
   };
 }
 
 export async function fetchDedicatedPlansPublic(cursor: number = 0, limit: number = 24) {
-  const res = await trpcQuery<{ success: boolean; data: any }>("hivelocity.publicGetDedicatedServerPlans", {
-    limit,
-    cursor,
-    location: "MAIN",
-  });
+  const res = await catalogQuery<InventoryPageResponse>(
+    "hivelocity.publicGetDedicatedServerPlans",
+    { limit, cursor, location: "MAIN" },
+    PLANS_TTL_MS,
+  );
 
   if (!res.success) throw new Error("Failed to fetch dedicated plans");
 
   const items = res.data?.items ?? [];
   return {
     plans: inventoryToVpsPlans({ FLAT: items }), // Reusing schema since fields are identical
-    nextCursor: res.data?.nextCursor,
+    nextCursor: res.data?.nextCursor ?? null,
   };
 }
 
@@ -215,7 +298,11 @@ export type Facility = {
 
 export async function fetchFacilitiesPublic(): Promise<Facility[]> {
   try {
-    const res = await trpcQuery<{ success: boolean; data: Facility[] }>("hivelocity.publicGetFacilities");
+    const res = await catalogQuery<{ success: boolean; data: Facility[] }>(
+      "hivelocity.publicGetFacilities",
+      undefined,
+      FACILITIES_TTL_MS,
+    );
     if (!res.success) return [];
     return res.data || [];
   } catch (e) {
@@ -227,9 +314,11 @@ export async function fetchFacilitiesPublic(): Promise<Facility[]> {
 export async function fetchVpsPricingSettings(
   productType: "VPS" | "VDS" | "DEDICATED_SERVERS" = "VPS",
 ): Promise<PricingSettings | null> {
-  const res = await trpcQuery<{ success: boolean; data: any }>("hivelocityPricingSettings.get", {
-    productType,
-  });
+  const res = await catalogQuery<{ success: boolean; data: RawPricingSettings | null }>(
+    "hivelocityPricingSettings.get",
+    { productType },
+    SETTINGS_TTL_MS,
+  );
   if (!res.success || !res.data) return null;
   const raw = res.data;
   return {
@@ -255,12 +344,13 @@ export async function fetchVpsPricingSettings(
 }
 
 export async function fetchExchangeRatesPublic(): Promise<number | null> {
-  const res = await trpcQuery<{ success: boolean; data: any }>("publicPricing.getExchangeRatesPublic", {
-    baseCurrency: "USD",
-  });
+  const res = await catalogQuery<{ success: boolean; data: { rates?: Record<string, number> } | null }>(
+    "publicPricing.getExchangeRatesPublic",
+    { baseCurrency: "USD" },
+    SETTINGS_TTL_MS,
+  );
   if (!res.success || !res.data) return null;
-  const rates = res.data.rates as Record<string, number>;
-  const kes = rates.KES;
+  const kes = res.data.rates?.KES;
   return typeof kes === "number" && Number.isFinite(kes) ? kes : null;
 }
 

@@ -2,11 +2,14 @@
  * Build authoritative Nisc order line items from a resolved storefront cart.
  * Existing-domain upsells attach to the main subscription only  no domain subscription line.
  */
+import { randomUUID } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "@npanel/db";
 import { db } from "@npanel/db";
 import { niscProduct, niscProductPlan } from "@npanel/db/schema/products";
 import {
+	assertOutreachUpsellPlan,
+	billingCycleToMonths,
 	computeStorefrontCartQuote,
 	normalizeStorefrontMainBillingCycle,
 	pickCheckoutPrice,
@@ -15,11 +18,15 @@ import {
 	resolveMainLineQuote,
 	resolveNiscPlanQuote,
 	storefrontCartQuoteInputSchema,
+	type HivelocityQuoteDetails,
 	type StorefrontBillingCycle,
 	type StorefrontCartQuoteInput,
 } from "./storefront-cart-pricing";
 import { resolveActiveNiscProductById } from "./planless-product-resolver";
 import { NISC_DOMAINS_PRODUCT_ID } from "./planless-services-billing";
+import { convertWithFxSnapshot, getAuthoritativeFxRate } from "./fx-rates";
+import { NISC_EMAIL_MARKETING_PRODUCT_ID } from "./nisc-email-marketing-billing";
+import type { StorefrontPriceQuotePayload } from "./storefront-price-quote";
 
 const HOSTING_SERVICE_TYPES = new Set([
 	"web_hosting",
@@ -30,12 +37,69 @@ const HOSTING_SERVICE_TYPES = new Set([
 	"dedicated_servers",
 ]);
 
-/** Shared / email hosting must be bound to a customer domain at checkout. */
-const DOMAIN_REQUIRED_HOSTING_TYPES = new Set([
-	"web_hosting",
-	"wordpress_hosting",
-	"email_hosting",
-]);
+/** Services that are served from Nisc nameservers once provisioned. */
+const NISC_DNS_SERVICE_TYPES = new Set(["web_hosting", "wordpress_hosting", "email_hosting"]);
+
+export type TransferNameserverMode = "keep" | "nisc";
+
+/** Keep the current DNS unless the same order brings website or email hosting to Nisc. */
+export function defaultTransferNameserverMode(cart: StorefrontCartQuoteInput): TransferNameserverMode {
+	return NISC_DNS_SERVICE_TYPES.has(cart.main.serviceType) || cart.upsellHosting ? "nisc" : "keep";
+}
+
+const HOSTNAME_SUFFIX_BY_SERVICE: Record<string, string> = {
+	vps: "vps",
+	vds: "vds",
+	dedicated_servers: "ds",
+};
+
+const HOSTNAME_PATTERN = /^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/;
+
+/** The customer's hostname, or a generated one so a paid order is never blocked by a missing name. */
+function resolveServerHostname(hostname: string | undefined, serviceType: string): string {
+	const value = hostname?.trim().toLowerCase() ?? "";
+	if (value.length <= 253 && HOSTNAME_PATTERN.test(value)) return value;
+	const suffix = HOSTNAME_SUFFIX_BY_SERVICE[serviceType] ?? "ds";
+	return `${randomUUID().replace(/-/g, "").slice(0, 16)}-${suffix}.nisccloud.com`;
+}
+
+/** Same shape the dashboard checkout stores, validated later by `hivelocityItemMetadataSchema`. */
+function buildServerProvisioningMetadata(input: {
+	serviceType: string;
+	planName: string;
+	config: NonNullable<StorefrontCartQuoteInput["hivelocity"]>;
+	details: HivelocityQuoteDetails;
+	hostname: string | undefined;
+	billingCycle: StorefrontBillingCycle;
+}): Record<string, unknown> {
+	const months = billingCycleToMonths(input.billingCycle) ?? 1;
+	const invoiceLines = input.details.lines.map((line, index) => ({
+		id: `${line.kind}-${line.optionId ?? index}`,
+		kind: line.kind,
+		name: line.kind === "base" ? input.planName : line.name,
+		amountExVat: line.monthlyKes * months,
+		...(line.optionId != null ? { optionId: line.optionId } : {}),
+	}));
+
+	return {
+		operation: "provision",
+		hivelocityProductId: input.config.hivelocityProductId,
+		hivelocityLocationName: input.config.locationName,
+		hivelocityOsName: input.details.osName || `OS option ${input.config.selectedOsId}`,
+		...(input.details.osOptionId != null ? { hivelocityOsOptionId: input.details.osOptionId } : {}),
+		hivelocityHostname: resolveServerHostname(input.hostname, input.serviceType),
+		// Supplier billing stays monthly; the customer's term is on the order line.
+		hivelocityPeriod: "monthly",
+		hivelocityOptionIds: input.details.optionIds,
+		basePriceUsd: input.details.basePriceUsd,
+		osPriceUsd: input.details.osPriceUsd,
+		addonsPriceUsd: input.details.addonsPriceUsd,
+		subtotalKes: invoiceLines.reduce((sum, line) => sum + line.amountExVat, 0),
+		usdToKesRate: input.details.usdToKesRate,
+		productType: input.details.productType,
+		invoiceLines,
+	};
+}
 
 export type StorefrontCartOrderLine = {
 	productId: string;
@@ -62,7 +126,13 @@ async function resolveDomainTransferProductId(): Promise<string> {
 	const [product] = await db
 		.select({ id: niscProduct.id })
 		.from(niscProduct)
-		.where(and(eq(niscProduct.isActive, true), eq(niscProduct.serviceType, "domain_transfer")))
+		.where(
+			and(
+				eq(niscProduct.isActive, true),
+				eq(niscProduct.hidden, false),
+				eq(niscProduct.serviceType, "domain_transfer"),
+			),
+		)
 		.limit(1);
 	if (!product) {
 		throw new TRPCError({
@@ -95,24 +165,25 @@ export async function buildStorefrontCartOrderLines(input: {
 	cart: StorefrontCartQuoteInput;
 	primaryDomain?: string;
 	fallbackProductId?: string;
+	lockedQuote?: StorefrontPriceQuotePayload;
+	/** Server hostname chosen in the cart. It does not affect price, so it is not part of the quote. */
+	serverHostname?: string;
+	/** Nameservers for a transferred domain. Defaults via `defaultTransferNameserverMode`. */
+	transferNameservers?: TransferNameserverMode;
 }): Promise<{
 	lines: StorefrontCartOrderLine[];
-	quote: Awaited<ReturnType<typeof computeStorefrontCartQuote>>;
+	quote:
+		| Awaited<ReturnType<typeof computeStorefrontCartQuote>>
+		| StorefrontPriceQuotePayload;
 }> {
 	const parsed = storefrontCartQuoteInputSchema.parse(input.cart);
 
-	if (
-		DOMAIN_REQUIRED_HOSTING_TYPES.has(parsed.main.serviceType) &&
-		!parsed.upsellDomain?.domain?.trim()
-	) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message:
-				"A domain is required for this hosting plan  register, transfer, or connect one you already own.",
-		});
-	}
-
-	const quote = await computeStorefrontCartQuote(parsed);
+	const quote = input.lockedQuote ?? (await computeStorefrontCartQuote(parsed));
+	const convertLine = async (amount: number, sourceCurrency: string) =>
+		convertWithFxSnapshot(
+			amount,
+			await getAuthoritativeFxRate(sourceCurrency, parsed.currency),
+		);
 
 	const effectiveBillingCycle = normalizeStorefrontMainBillingCycle(
 		parsed.main.serviceType,
@@ -120,10 +191,11 @@ export async function buildStorefrontCartOrderLines(input: {
 	);
 
 	const mainQuote = await resolveMainLineQuote(parsed.main, parsed.hivelocity);
-	const mainPrice = pickCheckoutPrice(
+	const mainSourcePrice = pickCheckoutPrice(
 		{ monthly: mainQuote.monthly, yearly: mainQuote.yearly },
 		effectiveBillingCycle,
 	);
+	const mainPrice = await convertLine(mainSourcePrice, mainQuote.currency);
 
 	const resolvedMainProduct = await resolveActiveNiscProductById(
 		parsed.main.productId?.trim() ?? input.fallbackProductId?.trim() ?? "",
@@ -137,6 +209,18 @@ export async function buildStorefrontCartOrderLines(input: {
 	}
 
 	const isMainDomainTransfer = parsed.main.serviceType === "domain_transfer";
+	const nameserverMode = input.transferNameservers ?? defaultTransferNameserverMode(parsed);
+	const serverMetadata =
+		!isMainDomainTransfer && parsed.hivelocity && mainQuote.hivelocity
+			? buildServerProvisioningMetadata({
+					serviceType: parsed.main.serviceType,
+					planName: mainQuote.planName,
+					config: parsed.hivelocity,
+					details: mainQuote.hivelocity,
+					hostname: input.serverHostname,
+					billingCycle: effectiveBillingCycle,
+				})
+			: null;
 	const lines: StorefrontCartOrderLine[] = [
 		{
 			productId: mainProductId,
@@ -144,12 +228,17 @@ export async function buildStorefrontCartOrderLines(input: {
 			billingCycle: effectiveBillingCycle,
 			primaryDomain: resolveMainPrimaryDomain(parsed, input.primaryDomain),
 			itemPrice: mainPrice,
-			description: isMainDomainTransfer ? "transfer" : null,
+			description: isMainDomainTransfer
+				? "transfer"
+				: serverMetadata && parsed.hivelocity
+					? `${mainQuote.planName} @ ${parsed.hivelocity.locationName}`
+					: null,
 			metadata: isMainDomainTransfer
 				? {
 						transferAuthCode: parsed.transferAuthCode?.trim(),
+						nameserverMode,
 					}
-				: null,
+				: serverMetadata,
 		},
 	];
 
@@ -167,7 +256,10 @@ export async function buildStorefrontCartOrderLines(input: {
 				});
 			}
 
-			const transferPrice = await resolveDomainTransferUpsellPriceKes(domain);
+			const transferPrice = await convertLine(
+				await resolveDomainTransferUpsellPriceKes(domain),
+				"KES",
+			);
 
 			lines.push({
 				productId: await resolveDomainTransferProductId(),
@@ -179,10 +271,14 @@ export async function buildStorefrontCartOrderLines(input: {
 				metadata: {
 					transferAuthCode: authCode,
 					transferProvider: parsed.upsellDomain.provider ?? null,
+					nameserverMode,
 				},
 			});
 		} else {
-			const registrationPrice = await resolveDomainRetailPriceKes(domain);
+			const registrationPrice = await convertLine(
+				await resolveDomainRetailPriceKes(domain),
+				"KES",
+			);
 
 			lines.push({
 				productId: await resolveDomainRegistrationProductId(),
@@ -202,10 +298,14 @@ export async function buildStorefrontCartOrderLines(input: {
 				productId: niscProductPlan.productId,
 			})
 			.from(niscProductPlan)
+			.innerJoin(niscProduct, eq(niscProduct.id, niscProductPlan.productId))
 			.where(
 				and(
 					eq(niscProductPlan.id, parsed.upsellHosting.planId),
 					eq(niscProductPlan.isActive, true),
+					eq(niscProductPlan.hidden, false),
+					eq(niscProduct.isActive, true),
+					eq(niscProduct.hidden, false),
 				),
 			)
 			.limit(1);
@@ -221,10 +321,11 @@ export async function buildStorefrontCartOrderLines(input: {
 			parsed.upsellHosting.planId,
 			parsed.upsellHosting.billingCycle,
 		);
-		const hostingPrice = pickCheckoutPrice(
+		const hostingSourcePrice = pickCheckoutPrice(
 			{ monthly: hostingPlan.monthly, yearly: hostingPlan.yearly },
 			parsed.upsellHosting.billingCycle,
 		);
+		const hostingPrice = await convertLine(hostingSourcePrice, hostingPlan.currency);
 
 		const domainForHosting =
 			parsed.main.serviceType === "domain_registration" ||
@@ -243,8 +344,44 @@ export async function buildStorefrontCartOrderLines(input: {
 		});
 	}
 
+	if (parsed.upsellOutreach) {
+		await assertOutreachUpsellPlan(parsed.upsellOutreach.planId);
+		const outreachCycle = parsed.upsellOutreach.billingCycle;
+		const outreachPlan = await resolveNiscPlanQuote(
+			parsed.upsellOutreach.planId,
+			outreachCycle,
+		);
+		const outreachSourcePrice = pickCheckoutPrice(
+			{ monthly: outreachPlan.monthly, yearly: outreachPlan.yearly },
+			outreachCycle,
+		);
+		lines.push({
+			productId: NISC_EMAIL_MARKETING_PRODUCT_ID,
+			productPlanId: parsed.upsellOutreach.planId,
+			billingCycle: outreachCycle,
+			primaryDomain: null,
+			itemPrice: await convertLine(outreachSourcePrice, outreachPlan.currency),
+			description: null,
+			metadata: null,
+		});
+	}
+
 	const lineSubtotal = lines.reduce((sum, line) => sum + line.itemPrice, 0);
-	if (lineSubtotal !== quote.subtotal) {
+	const roundingDifference =
+		Math.round((quote.subtotal - lineSubtotal) * 100) / 100;
+	if (
+		input.lockedQuote ||
+		Math.abs(roundingDifference) <= Math.max(0.01, lines.length * 0.01)
+	) {
+		if (lines[0]!.itemPrice + roundingDifference <= 0) {
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: "Locked checkout line total is invalid.",
+			});
+		}
+		lines[0]!.itemPrice =
+			Math.round((lines[0]!.itemPrice + roundingDifference) * 100) / 100;
+	} else {
 		throw new TRPCError({
 			code: "INTERNAL_SERVER_ERROR",
 			message: "Checkout line totals could not be reconciled. Please refresh and try again.",

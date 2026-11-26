@@ -105,7 +105,7 @@ function TerminalLine({ line }: { line: HostingHeroTerminalLine }) {
       );
     case "info":
       return (
-        <AnimatedSpan className={cn(wrapClass, "text-blue-500")}>
+        <AnimatedSpan className={cn(wrapClass, "text-[#38b6ff]")}>
           <span>{line.primary}</span>
           <span>{line.secondary}</span>
         </AnimatedSpan>
@@ -127,7 +127,7 @@ export function HostingHeroIllustration({ config }: { config: HostingHeroConfig 
         className="relative overflow-hidden rounded-[1.75rem] p-3 shadow-2xl sm:rounded-[2rem] sm:p-4"
         style={{
           background:
-            "linear-gradient(145deg, #3bb8e8 0%, #25A9DE 42%, #1a8fbf 100%)",
+            "linear-gradient(145deg, #38b6ff 0%, #38b6ff 42%, #1aa3e6 100%)",
         }}
       >
         {/* Soft light wash */}

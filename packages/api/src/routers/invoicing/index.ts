@@ -34,11 +34,13 @@ import {
 	mapInvoiceKraDetailFields,
 } from "../../lib/invoice-kra-db-fields";
 import { buildCuInvoiceNo, extractSdcIdFromKraBody } from "../../lib/etims-scu-print";
+import { stampInvoiceLineProductTaxBands } from "../../lib/invoice-kra-mapper";
 import {
 	extractEtimsFiscalFieldsFromCreditNote,
 	extractEtimsFiscalFieldsFromInvoice,
 } from "../../lib/etims-fiscal-fields";
 import { resolveInvoiceEtimsVerificationUrl } from "../../lib/etims-receipt-url";
+import { getEtimsContext, loadDeviceSdcId, peekDeviceSdcId } from "../../lib/etims-config";
 import { scheduleInvoiceKraSyncAfterCreate } from "../../lib/qstash/invoice-kra-sync-worker";
 import {
 	prepareInvoiceEmailDelivery,
@@ -80,6 +82,7 @@ import {
 	creditNoteListResponseSchema,
 	creditNoteSummarySchema,
 	issueCreditNoteInputSchema,
+	refundInvoiceInputSchema,
 	invoiceCreateInputSchema,
 	invoiceDetailSchema,
 	invoiceLineItemOutputSchema,
@@ -497,7 +500,7 @@ function buildInvoiceUpdateData(
 
 function buildOriginalCuInvoiceNo(inv: Record<string, unknown> | null | undefined): string | null {
 	if (!inv) return null;
-	const sdcId = extractSdcIdFromKraBody(inv.kraSyncResponse);
+	const sdcId = peekDeviceSdcId() ?? extractSdcIdFromKraBody(inv.kraSyncResponse);
 	const curRcptNo =
 		(typeof inv.kraReceiptNumber === "string" && inv.kraReceiptNumber.trim()) ||
 		null;
@@ -642,11 +645,18 @@ function mapInvoiceDetail(invoice: any): InvoiceDetail {
 			invoiceNumber: invoice.invoiceNumber,
 			issueDate: invoice.issueDate,
 			lineItems,
+		}, {
+			sdcId: peekDeviceSdcId(),
 		}),
 	});
 }
 
 async function fetchInvoiceDetail(tx: DbLike, invoiceId: string) {
+	try {
+		await loadDeviceSdcId();
+	} catch (error) {
+		console.warn("[invoicing] device CU ID unavailable; loading invoice without it", error);
+	}
 	const inv = await tx.query.invoice.findFirst({
 		where: eq(invoice.id, invoiceId),
 		with: {
@@ -679,6 +689,10 @@ async function fetchInvoiceDetail(tx: DbLike, invoiceId: string) {
 			code: "NOT_FOUND",
 			message: "Invoice not found.",
 		});
+	}
+
+	if (Array.isArray(inv.lineItems)) {
+		await stampInvoiceLineProductTaxBands(inv.lineItems);
 	}
 
 	return reconcileInvoicePaymentFromNiscOrder(tx, inv);
@@ -813,7 +827,7 @@ async function reconcileInvoicePaymentFromNiscOrder(tx: DbLike, inv: any): Promi
 		inv.status !== paymentState.status ||
 		(paymentState.fullyPaid ? !inv.paidAt : !!inv.paidAt);
 
-	if (fieldsDiffer && inv.status !== "CANCELLED" && inv.status !== "WRITTEN_OFF") {
+	if (fieldsDiffer && inv.status !== "CANCELLED" && inv.status !== "WRITTEN_OFF" && inv.status !== "REFUNDED") {
 		const dueDate = paymentState.fullyPaid
 			? inv.dueDate
 			: (inv.dueDate ?? new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000));
@@ -1138,11 +1152,18 @@ function mapCreditNoteDetail(raw: {
 			issuedAt: cn.issuedAt,
 			lineItems,
 			originalCuInvoiceNo: buildOriginalCuInvoiceNo(inv),
+		}, {
+			sdcId: peekDeviceSdcId(),
 		}),
 	});
 }
 
 async function fetchCreditNoteDetail(tx: DbLike, creditNoteId: string) {
+	try {
+		await loadDeviceSdcId();
+	} catch (error) {
+		console.warn("[invoicing] device CU ID unavailable; loading credit note without it", error);
+	}
 	const cn = await tx.query.creditNote.findFirst({
 		where: eq(creditNote.id, creditNoteId),
 		with: {
@@ -1164,6 +1185,11 @@ async function fetchCreditNoteDetail(tx: DbLike, creditNoteId: string) {
 			code: "NOT_FOUND",
 			message: "Credit note not found.",
 		});
+	}
+
+	const invoiceLines = cn.invoice?.lineItems;
+	if (Array.isArray(invoiceLines)) {
+		await stampInvoiceLineProductTaxBands(invoiceLines);
 	}
 
 	return mapCreditNoteDetail({ creditNote: cn, invoice: cn.invoice });
@@ -1396,7 +1422,7 @@ export const invoicingRouter = router({
 			if (!isAgencyUser(user.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency users can look up invoices by KRA number.",
+					message: "Only Nisc HQ staff can look up invoices by KRA number.",
 				});
 			}
 			const row = await db.query.invoice.findFirst({
@@ -1432,12 +1458,12 @@ export const invoicingRouter = router({
 			if (!inv) {
 				throw new TRPCError({ code: "NOT_FOUND", message: "Invoice not found." });
 			}
-			if (inv.status === "CANCELLED" || inv.status === "WRITTEN_OFF") {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "This invoice can no longer accept payments.",
-				});
-			}
+		if (inv.status === "CANCELLED" || inv.status === "WRITTEN_OFF" || inv.status === "REFUNDED") {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "This invoice can no longer accept payments.",
+			});
+		}
 
 			const existingTxs = await db
 				.select({ amount: invoiceTransaction.amount, status: invoiceTransaction.status })
@@ -2677,7 +2703,18 @@ export const invoicingRouter = router({
 			await ensureInvoiceMutationAccess(db, user.id, user.role, input.invoiceId);
 
 			const current = await fetchInvoiceDetail(db, input.invoiceId);
-			const verificationUrl = resolveInvoiceEtimsVerificationUrl(current);
+			let receiptOpts: { tin?: string; bhfId?: string; isSandbox?: boolean } | undefined;
+			try {
+				const etims = await getEtimsContext();
+				receiptOpts = {
+					tin: etims.oscu.tin,
+					bhfId: etims.oscu.bhfId,
+					isSandbox: etims.isSandbox,
+				};
+			} catch {
+				receiptOpts = undefined;
+			}
+			const verificationUrl = resolveInvoiceEtimsVerificationUrl(current, receiptOpts);
 			if (!verificationUrl) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -2816,7 +2853,7 @@ export const invoicingRouter = router({
 			if (!isAgencyUser(user.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency users can look up credit notes by KRA number.",
+					message: "Only Nisc HQ staff can look up credit notes by KRA number.",
 				});
 			}
 			const row = await db.query.creditNote.findFirst({
@@ -2836,7 +2873,7 @@ export const invoicingRouter = router({
 			if (!isAgencyUser(user.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency users can issue credit notes.",
+					message: "Only Nisc HQ staff can issue credit notes.",
 				});
 			}
 
@@ -2961,7 +2998,7 @@ export const invoicingRouter = router({
 			if (!isAgencyUser(user.role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only agency users can retry KRA sync.",
+					message: "Only Nisc HQ staff can retry KRA sync.",
 				});
 			}
 
@@ -3121,6 +3158,166 @@ export const invoicingRouter = router({
 				})),
 				total,
 			};
+		}),
+
+	refundInvoice: protectedProcedure
+		.input(refundInvoiceInputSchema)
+		.output(invoiceDetailSchema)
+		.mutation(async ({ ctx, input }) => {
+			const user = await getAuthenticatedUser(ctx);
+			if (!isAgencyUser(user.role)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only Nisc HQ staff can refund invoices.",
+				});
+			}
+
+			await ensureInvoiceMutationAccess(db, user.id, user.role, input.invoiceId);
+
+			const inv = await db.query.invoice.findFirst({
+				where: eq(invoice.id, input.invoiceId),
+				columns: {
+					id: true,
+					teamId: true,
+					invoiceNumber: true,
+					amount: true,
+					currency: true,
+					status: true,
+					kraStatus: true,
+				},
+				with: { creditNote: { columns: { id: true } } },
+			});
+
+			if (!inv) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Invoice not found." });
+			}
+
+			// Check if invoice can be refunded
+			if (inv.status === "REFUNDED") {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This invoice is already refunded.",
+				});
+			}
+
+			if (inv.status === "CANCELLED" || inv.status === "WRITTEN_OFF") {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Cannot refund a cancelled or written-off invoice.",
+				});
+			}
+
+			// If the invoice was KRA-synced, we need a refund reason code to create a credit note
+			const wasKraSynced = isInvoiceKraSynced(inv.kraStatus);
+			if (wasKraSynced && !input.rfdRsnCd) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "KRA refund reason code is required for KRA-synced invoices.",
+				});
+			}
+
+			if (wasKraSynced && inv.creditNote) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This invoice already has a credit note.",
+				});
+			}
+
+			const now = new Date();
+			let creditNoteId: string | null = null;
+
+			await db.transaction(async (tx) => {
+				// Update invoice status to REFUNDED
+				await tx
+					.update(invoice)
+					.set({
+						status: "REFUNDED",
+						updatedAt: now,
+						updatedBy: user.id,
+					})
+					.where(eq(invoice.id, input.invoiceId));
+
+				await logInvoiceActivity(tx, {
+					invoiceId: input.invoiceId,
+					userId: user.id,
+					action: "REFUNDED",
+					description: `Invoice refunded: ${input.reason}`,
+					metadata: {
+						reason: input.reason,
+						note: input.note ?? null,
+						wasKraSynced,
+					},
+				});
+
+				// If the invoice was KRA-synced, create a credit note
+				if (wasKraSynced && input.rfdRsnCd && inv.amount) {
+					creditNoteId = crypto.randomUUID();
+					const creditNumber = await generateNextCreditNoteNumber(tx);
+
+					await tx.insert(creditNote).values({
+						id: creditNoteId,
+						invoiceId: input.invoiceId,
+						teamId: inv.teamId,
+						creditNumber,
+						status: "ISSUED",
+						amount: inv.amount,
+						currency: inv.currency ?? "KES",
+						reason: stringOrNull(input.reason),
+						note: stringOrNull(input.note),
+						issuedAt: now,
+						kraRefundReasonCode: input.rfdRsnCd,
+						originalInvoiceNumber: inv.invoiceNumber,
+						createdBy: user.id,
+						updatedBy: user.id,
+						createdAt: now,
+						updatedAt: now,
+						...buildCreditNoteKraInsertFields(),
+					});
+
+					await tx
+						.update(invoice)
+						.set({
+							creditedAmount: inv.amount,
+							updatedAt: now,
+						})
+						.where(eq(invoice.id, input.invoiceId));
+
+					await logCreditNoteActivity(tx, {
+						creditNoteId,
+						userId: user.id,
+						action: "CREATE",
+						description: `Credit note ${creditNumber} created from refund`,
+						metadata: { rfdRsnCd: input.rfdRsnCd, invoiceId: input.invoiceId },
+					});
+
+					await logInvoiceActivity(tx, {
+						invoiceId: input.invoiceId,
+						userId: user.id,
+						action: "CREDIT_NOTE_ISSUED",
+						description: `Credit note ${creditNumber} issued from refund`,
+						metadata: { creditNoteId, creditNumber },
+					});
+				}
+			});
+
+			// If a credit note was created for a KRA-synced invoice, sync it to KRA
+			if (creditNoteId) {
+				const kraResult: CreditNoteKraSyncResult = await processCreditNoteKraSync(creditNoteId);
+
+				if (!kraResult.ok && !("skipped" in kraResult && kraResult.skipped)) {
+					await logCreditNoteActivity(db, {
+						creditNoteId,
+						userId: user.id,
+						action: "KRA_SYNC",
+						description: "KRA credit note sync failed",
+						metadata: {
+							reason: "reason" in kraResult ? kraResult.reason : "Unknown error",
+						},
+					});
+				}
+			}
+
+			return fetchInvoiceDetail(db, input.invoiceId);
 		}),
 });
 

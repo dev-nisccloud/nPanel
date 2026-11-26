@@ -230,7 +230,7 @@ export function ServerMetricsCard() {
 						{refreshMetrics.isPending ? "Refreshing" : "Refresh"}
 					</Button>
 					<Button variant="outline" size="sm" asChild>
-						<Link to="/agency/hosting">Hosting</Link>
+						<Link to="/hq/hosting">Hosting</Link>
 					</Button>
 				</div>
 			</div>

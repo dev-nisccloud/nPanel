@@ -21,6 +21,8 @@ export type SessionUser = {
     name?: string | null;
     email?: string | null;
     role?: string | null;
+    teamId?: string | null;
+    lastAccessedTeamId?: string | null;
 };
 /**
  * Session from Better Auth, with `user` typed for API usage.
@@ -55,6 +57,10 @@ export type Context = {
     getCookie: (name: string) => string | undefined;
     /** Set a response cookie (used by guest support sessions). */
     setCookie: (name: string, value: string, options?: CookieOptions) => void;
+    /** Drizzle client used by customer OAuth routers. */
+    db: typeof import("@npanel/db").db;
+    ip: string | null;
+    userAgent: string | null;
 };
 export type CreateContextOptions = {
     context: HonoContext;

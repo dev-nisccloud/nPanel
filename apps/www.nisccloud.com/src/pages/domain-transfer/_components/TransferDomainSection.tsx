@@ -1,7 +1,11 @@
 import * as React from "react";
 import { Link } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
-import { ArrowLeftRight, X, AlertCircle, Lock, Globe, Loader2 } from "lucide-react";
+import { ArrowLeftRight, X, AlertCircle, Globe, Loader2 } from "lucide-react";
+import {
+  TransferCheckReport,
+  announceRecheck,
+} from "@/components/domain-transfer/TransferCheckReport.tsx";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
@@ -38,6 +42,8 @@ export function TransferDomainSection() {
   const [provider, setProvider] = React.useState<TransferProvider | null>(null);
   const [transferStatus, setTransferStatus] = React.useState<TransferStatus | null>(null);
   const [pricedResult, setPricedResult] = React.useState<DomainSearchResult | null>(null);
+  const [lastResult, setLastResult] = React.useState<CheckTransferResult | null>(null);
+  const lastResultRef = React.useRef<CheckTransferResult | null>(null);
   const [isPricingProcessing, setIsPricingProcessing] = React.useState(false);
   const [isNavigatingToCart, setIsNavigatingToCart] = React.useState(false);
 
@@ -53,6 +59,11 @@ export function TransferDomainSection() {
   });
 
   const applyCheckResult = React.useCallback((result: CheckTransferResult) => {
+    const previous = lastResultRef.current;
+    lastResultRef.current = result;
+    setLastResult(result);
+    announceRecheck(previous, result);
+
     const statusFromApi = result.transferStatus as TransferStatus | undefined;
     setProvider(result.provider);
     setTransferStatus(statusFromApi ?? (result.transferrable ? "ready" : "unavailable"));
@@ -84,11 +95,6 @@ export function TransferDomainSection() {
     setTransferPrice(null);
     setParsedDomain(null);
 
-    if (statusFromApi !== "available" && statusFromApi !== "locked") {
-      toast.error("Domain not transferrable", {
-        description: result.error ?? "This domain cannot be transferred.",
-      });
-    }
   }, []);
 
   const validateAndFetchPrice = React.useCallback(async () => {
@@ -104,12 +110,15 @@ export function TransferDomainSection() {
       return;
     }
 
+    if (lastResultRef.current?.domain?.toLowerCase() !== trimmed.toLowerCase()) {
+      lastResultRef.current = null;
+      setLastResult(null);
+    }
     setStatus("loading");
     setMessage("");
     setTransferPrice(null);
     setParsedDomain(null);
     setProvider(null);
-    setTransferStatus(null);
     setPricedResult(null);
 
     try {
@@ -126,6 +135,8 @@ export function TransferDomainSection() {
   }, [domainInput, checkTransferMutation, applyCheckResult]);
 
   const handleClear = () => {
+    lastResultRef.current = null;
+    setLastResult(null);
     setDomainInput("");
     setStatus("idle");
     setMessage("");
@@ -211,7 +222,7 @@ export function TransferDomainSection() {
     calculated != null ? (calculated.displayCurrency ?? calculated.currency) : null;
 
   const inputBorderClass =
-    status === "error"
+    status === "error" && !lastResult
       ? "border-destructive focus-visible:ring-destructive"
       : status === "valid"
         ? "border-primary focus-visible:ring-primary"
@@ -232,6 +243,11 @@ export function TransferDomainSection() {
     parsedDomain != null &&
     hasNumericPrice &&
     (pricingHook.isLoadingTldSettings || isPricingProcessing || !transferPricingReady);
+  const showPriceUnavailable =
+    status === "valid" &&
+    parsedDomain != null &&
+    !showPricingLoading &&
+    !showReadyCard;
 
   const handleContinueToCart = async () => {
     if (!parsedDomain || !provider || displayPrice == null) return;
@@ -259,7 +275,7 @@ export function TransferDomainSection() {
         <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
           <ArrowLeftRight className="h-6 w-6" />
         </div>
-        <h2 className="text-xl font-semibold tracking-tight">Transfer your domain here</h2>
+        <h2 className="type-h3">Transfer your domain here</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Enter the domain you want to move. We will check if it can transfer and show the live price.
         </p>
@@ -269,7 +285,7 @@ export function TransferDomainSection() {
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Input
-              placeholder="example.com or example.co.ke"
+              placeholder="example.com"
               value={domainInput}
               onChange={(e) => {
                 setDomainInput(e.target.value);
@@ -280,6 +296,8 @@ export function TransferDomainSection() {
                   setParsedDomain(null);
                   setProvider(null);
                   setTransferStatus(null);
+                  lastResultRef.current = null;
+                  setLastResult(null);
                 }
               }}
               onKeyDown={(e) =>
@@ -325,7 +343,7 @@ export function TransferDomainSection() {
             <div className="flex gap-3">
               <Globe className="h-5 w-5 shrink-0 text-primary" />
               <div>
-                <h3 className="font-medium text-foreground">This domain is free to register</h3>
+                <h3 className="type-h3 text-foreground">This domain is free to register</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {message} It is not currently registered, so you can register it instead of transferring.
                 </p>
@@ -341,30 +359,27 @@ export function TransferDomainSection() {
           </div>
         )}
 
-        {status === "error" && transferStatus === "locked" && (
-          <div className="mt-4 flex gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-left">
-            <Lock className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-500" />
-            <div>
-              <h3 className="font-medium text-foreground">Domain is locked</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                This domain is locked at your current provider. Turn off transfer lock in their control panel, then try again.
-              </p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                After unlocking, wait about 15 seconds for the change to show, then check the domain again.
-              </p>
-            </div>
-          </div>
+        {lastResult && !lastResult.transferrable && lastResult.transferStatus !== "available" && (
+          <TransferCheckReport
+            className="mt-4"
+            result={lastResult}
+            onCheckAgain={validateAndFetchPrice}
+            checking={status === "loading"}
+          />
         )}
 
-        {status === "error" && message && transferStatus !== "available" && transferStatus !== "locked" && (
+        {status === "error" && message && !lastResult && (
           <div
             className="mt-4 flex gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-left"
             role="alert"
           >
             <AlertCircle className="h-5 w-5 shrink-0 text-destructive" />
             <div>
-              <h3 className="font-medium text-destructive">This domain cannot transfer yet</h3>
+              <h3 className="type-h3 text-destructive">We couldn&apos;t check this domain</h3>
               <p className="mt-1 text-sm text-muted-foreground">{message}</p>
+              <Button type="button" size="sm" variant="outline" className="mt-3" onClick={validateAndFetchPrice}>
+                Try again
+              </Button>
             </div>
           </div>
         )}
@@ -375,11 +390,32 @@ export function TransferDomainSection() {
             Applying your live transfer price…
           </p>
         )}
+
+        {showPriceUnavailable && (
+          <div className="mt-4 rounded-lg border border-border bg-muted/20 p-4 text-left" role="status">
+            <h3 className="type-h3 text-foreground">Transfer eligibility found, but pricing is unavailable</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Check again to request the current registry price. If it remains unavailable, our team can confirm the extension and transfer terms.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button type="button" size="sm" variant="outline" onClick={validateAndFetchPrice}>
+                Retry price
+              </Button>
+              <Button asChild type="button" size="sm" variant="ghost">
+                <Link to="/contact?serviceName=Domain%20Transfer">Contact our team</Link>
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {showReadyCard && parsedDomain && provider && displayPrice != null && (
-        <div className="mt-6">
+        <div className="mx-auto mt-6 max-w-2xl space-y-4">
+          {lastResult && (
+            <TransferCheckReport result={lastResult} onCheckAgain={validateAndFetchPrice} />
+          )}
           <TransferReadyCard
+            currentExpiresAt={lastResult?.details?.expiresAt ?? null}
             domain={parsedDomain.full}
             price={displayPrice}
             currency={displayCurrency ?? "KES"}

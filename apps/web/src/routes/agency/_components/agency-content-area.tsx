@@ -5,8 +5,8 @@ import { useLocation } from "react-router";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
-const IMAGE_GEN_STUDIO_EDITOR_PATH = "/agency/gen-ai/image-gen-studio/editor";
-const ZEEPO_AGENT_PATH = "/agency/zeepo-ai-agent";
+const IMAGE_GEN_STUDIO_EDITOR_PATH = "/hq/gen-ai/image-gen-studio/editor";
+const ZEEPO_AGENT_PATH = "/hq/zeepo-ai-agent";
 const NEB_DESIGN_EDITOR_PATH = /^\/agency\/nisc-email-builder\/[^/]+$/;
 
 function isPhpMyAdminPath(pathname: string | undefined) {
@@ -15,9 +15,9 @@ function isPhpMyAdminPath(pathname: string | undefined) {
 
 function isZeepoAiFitPath(pathname: string | undefined) {
   if (!pathname) return false;
-  if (pathname === "/agency/zeepo-ai") return true;
-  if (!pathname.startsWith("/agency/zeepo-ai/")) return false;
-  return !pathname.startsWith("/agency/zeepo-ai/activity");
+  if (pathname === "/hq/zeepo-ai") return true;
+  if (!pathname.startsWith("/hq/zeepo-ai/")) return false;
+  return !pathname.startsWith("/hq/zeepo-ai/activity");
 }
 
 export function AgencyContentArea({

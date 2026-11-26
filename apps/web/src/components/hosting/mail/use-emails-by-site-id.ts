@@ -4,11 +4,32 @@ import { toast } from "@/components/ui/sonner";
 import { trpc } from "@/utils/trpc";
 import { pleskEmailsResponseSchema, emailAccountSchema } from "./emails-schema";
 
+const outgoingLimitMemory = new Map<string, number>();
+
+function outgoingLimitKey(siteId: number, name: string) {
+  return `${siteId}:${name.trim().toLowerCase()}`;
+}
+
+/** Plesk get_info often omits outgoing-messages-mbox-limit. Keep the value we just saved. */
+export function rememberMailboxOutgoingLimit(siteId: number, name: string, limit: number) {
+  if (!Number.isFinite(limit)) return;
+  outgoingLimitMemory.set(outgoingLimitKey(siteId, name), limit);
+}
+
 /**
  * Transform Plesk emails API response to component format
  */
+function readOutgoingLimit(raw: unknown, siteId: number, name: string): number | undefined {
+  if (raw !== undefined && raw !== null && raw !== "") {
+    const parsed = typeof raw === "string" ? Number.parseInt(raw, 10) : Number(raw);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return outgoingLimitMemory.get(outgoingLimitKey(siteId, name));
+}
+
 function transformPleskEmailsToComponent(
-  pleskResponse: z.infer<typeof pleskEmailsResponseSchema>
+  pleskResponse: z.infer<typeof pleskEmailsResponseSchema>,
+  siteId: number,
 ): z.infer<typeof emailAccountSchema>[] {
   const results = pleskResponse.parsed.packet.mail["get_info"].result;
 
@@ -62,10 +83,11 @@ function transformPleskEmailsToComponent(
       },
       antivir: mailname.antivir ?? "off",
       description: mailname.description ?? "",
-      outgoingMessagesLimit: mailname["outgoing-messages-mbox-limit"] ? 
-        (typeof mailname["outgoing-messages-mbox-limit"] === 'string' ? 
-          parseInt(mailname["outgoing-messages-mbox-limit"], 10) : 
-          mailname["outgoing-messages-mbox-limit"]) : undefined,
+      outgoingMessagesLimit: readOutgoingLimit(
+        mailname["outgoing-messages-mbox-limit"],
+        siteId,
+        mailname.name ?? "",
+      ),
       userGuid: mailname["user-guid"] ?? "",
       status: result.status ?? "unknown",
     };
@@ -79,10 +101,10 @@ export function useEmailsBySiteId(siteId: number) {
   const query = trpc.plesk.emails.getBySiteId.useQuery(
     { siteId },
     {
-      staleTime: 10 * 60 * 1000, // 10 minutes
-      gcTime: 30 * 60 * 1000, // 30 minutes
+      staleTime: 0,
+      gcTime: 5 * 60 * 1000,
       refetchOnWindowFocus: false,
-      refetchOnMount: false,
+      refetchOnMount: "always",
       retry: (failureCount, error: any) => {
         // Don't retry on authentication or service unavailable errors
         if (error?.data?.code === 'UNAUTHORIZED' || error?.data?.code === 'SERVICE_UNAVAILABLE') {
@@ -124,7 +146,7 @@ export function useEmailsBySiteId(siteId: number) {
     try {
       // Validate the raw data against our schema
       const validatedData = pleskEmailsResponseSchema.parse(query.data);
-      data = transformPleskEmailsToComponent(validatedData);
+      data = transformPleskEmailsToComponent(validatedData, siteId);
     } catch (error) {
       console.error("Email data transformation error:", error);
       transformationError = error instanceof Error ? error : new Error("Unknown transformation error");

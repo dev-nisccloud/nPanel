@@ -9,6 +9,7 @@ import { ProfileForm } from "./profile-form";
 import { ProfileCompletionBanner } from "./profile-completion-banner";
 import { AccountActivitiesList } from "./account-activities-list";
 import { SecurityMfaForm } from "./security-mfa-form";
+import { DisplayCurrencyPreference } from "./display-currency-preference";
 
 const ACCOUNT_TABS = new Set<AccountTab>(["profile", "security", "activities"]);
 
@@ -60,7 +61,12 @@ export function AccountSettingsPage({ title, showProfileCompletionPrompt = false
         header={<ProfileHeader />}
         banner={showProfileCompletionPrompt ? <ProfileCompletionBanner /> : null}
       >
-        {activeTab === "profile" && <ProfileForm />}
+        {activeTab === "profile" && (
+          <div className="space-y-6">
+            <ProfileForm />
+            <DisplayCurrencyPreference />
+          </div>
+        )}
         {activeTab === "security" && <SecurityMfaForm />}
         {activeTab === "activities" && <AccountActivitiesList />}
       </AccountSettingsShell>

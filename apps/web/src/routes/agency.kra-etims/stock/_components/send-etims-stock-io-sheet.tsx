@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetFooter,
   SheetHeader,
   SheetTitle,
@@ -168,9 +167,6 @@ export function SendETimsStockIoSheet({
       <SheetContent size="wide" className="w-full min-w-0 overflow-y-auto">
         <SheetHeader>
           <SheetTitle>Record movement</SheetTitle>
-          <SheetDescription>
-            Stock in or stock out for a goods item (import, purchase, sale, adjustment). Services do not use stock.
-          </SheetDescription>
         </SheetHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="mt-6 space-y-4">

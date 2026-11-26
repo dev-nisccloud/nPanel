@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 
 const slides = [
-  { label: "Create Your Brand", imageSrc: "/auth/1.png" },
-  { label: "Launch Online", imageSrc: "/auth/2.png" },
-  { label: "Grow Your Business", imageSrc: "/auth/3.png" },
+  { label: "Create your brand", imageSrc: "/auth/1.png" },
+  { label: "Grow your business", imageSrc: "/auth/2.png" },
+  { label: "Launch online", imageSrc: "/auth/3.png" },
 ] as const;
 
 export function AuthRightPanelCarousel() {
@@ -13,6 +13,9 @@ export function AuthRightPanelCarousel() {
   const slideCount = slides.length;
 
   useEffect(() => {
+    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (motion.matches) return;
+
     const id = window.setInterval(() => {
       setActiveIndex((prev) => (prev + 1) % slideCount);
     }, 6500);
@@ -21,42 +24,37 @@ export function AuthRightPanelCarousel() {
   }, [slideCount]);
 
   return (
-    <section className="absolute inset-0 overflow-hidden rounded-3xl" aria-label="Nisc Cloud onboarding highlights">
-      <div className="absolute inset-0 bg-[#27BBF3]">
-        {slides.map((slide, idx) => (
-          <div
-            key={slide.imageSrc}
-            aria-hidden={idx !== activeIndex}
-            className={[
-              "absolute inset-0 bg-center bg-no-repeat transition-opacity duration-700 ease-out",
-              idx === activeIndex ? "opacity-100" : "opacity-0",
-            ].join(" ")}
-            style={{
-              backgroundImage: `url('${slide.imageSrc}')`,
-              backgroundSize: "100% auto",
-            }}
-          />
-        ))}
-      </div>
+    <section className="relative h-full overflow-hidden rounded-3xl" aria-label="Nisc Cloud onboarding highlights">
+      {slides.map((item, idx) => (
+        <img
+          key={item.imageSrc}
+          src={item.imageSrc}
+          alt=""
+          className={[
+            "absolute inset-0 h-full w-full object-cover transition-opacity duration-700",
+            idx === activeIndex ? "opacity-100" : "opacity-0",
+          ].join(" ")}
+        />
+      ))}
 
-      <div className="absolute inset-x-0 bottom-16 z-20 flex items-center justify-center px-10">
-        <div className="flex items-center gap-2">
-          {slides.map((slide, idx) => {
+      <div className="absolute inset-x-0 bottom-6 z-10 flex items-center justify-center">
+        <div className="flex items-center">
+          {slides.map((item, idx) => {
             const isActive = idx === activeIndex;
             return (
               <button
-                key={slide.imageSrc}
+                key={item.imageSrc}
                 type="button"
                 onClick={() => setActiveIndex(idx)}
-                aria-label={`Show slide: ${slide.label}`}
-                className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                aria-label={`Show slide: ${item.label}`}
+                className="inline-flex min-h-11 min-w-11 items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/70"
               >
                 <span
                   className={[
-                    "block transition-all duration-300 ease-out",
+                    "block transition-all duration-300",
                     isActive
-                      ? "h-2.5 w-8 rounded-full bg-white"
-                      : "size-2.5 rounded-full bg-white/40 hover:bg-white/60",
+                      ? "h-2.5 w-8 rounded-full bg-primary-foreground"
+                      : "size-2.5 rounded-full bg-primary-foreground/45",
                   ].join(" ")}
                 />
               </button>

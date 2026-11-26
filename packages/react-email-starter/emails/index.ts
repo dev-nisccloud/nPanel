@@ -31,4 +31,5 @@ export { CampaignCompletedEmail } from './campaign-completed-email';
 export { CampaignScheduledEmail } from './campaign-scheduled-email';
 export { CampaignCancelledEmail } from './campaign-cancelled-email';
 export { EmailOtpEmail } from './email-otp';
+export { CheckoutEmailCodeEmail } from './checkout-email-code';
 export { StorefrontWelcomeEmail } from './storefront-welcome-email';

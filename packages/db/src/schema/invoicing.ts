@@ -34,6 +34,18 @@ export const invoice = pgTable(
     discount: text("discount"),
 
     currency: text("currency").default("KES").notNull(),
+    sourceSubtotal: text("source_subtotal"),
+    sourceAmount: text("source_amount"),
+    sourceCurrency: text("source_currency"),
+    fxRate: text("fx_rate"),
+    fxProvider: text("fx_provider"),
+    fxTimestamp: timestamp("fx_timestamp"),
+    kesFiscalAmount: text("kes_fiscal_amount"),
+    billingCountry: text("billing_country"),
+    ipCountry: text("ip_country"),
+    paymentCountry: text("payment_country"),
+    taxPolicyId: text("tax_policy_id"),
+    taxEvidence: jsonb("tax_evidence"),
     creditedAmount: text("credited_amount"),
     creditBalance: text("credit_balance"),
     

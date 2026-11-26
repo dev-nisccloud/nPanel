@@ -1,20 +1,19 @@
-import {
-  Globe, Mail, BarChart2, Palette, Monitor, Zap, ShoppingBag,
-  Megaphone, Trash2, Check,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge.tsx";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
+import { Trash2, Check } from "lucide-react";
+import { ServiceIcon } from "./service-icon.tsx";
 import { Button } from "@/components/ui/button.tsx";
+import { formatCurrency } from "@/lib/currency.ts";
 import { cn } from "@/lib/utils.ts";
 import {
   billingCyclePeriodLabel,
   billingCycleShortSuffix,
   billingCycleToMonths,
   DOMAIN_BILLING_CYCLES,
+  isOneTimeService,
   periodPrice,
-  SERVICE_BILLING_CYCLES,
+  billingCyclesFor,
   type BillingCycle,
 } from "@/lib/billing-cycle.ts";
+import { SEO_CHECKOUT_SERVICE_TYPE, SEO_POLICY } from "@/lib/seo-ai-search.ts";
 
 export type { BillingCycle };
 export type CartServiceType =
@@ -53,78 +52,57 @@ interface CartItemProps {
 
 const SERVICE_META: Record<
   string,
-  { icon: React.ReactNode; color: string; bgColor: string; includedItems: string[] }
+  { includedItems: string[] }
 > = {
   web_hosting: {
-    icon: <Globe className="w-6 h-6" />,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
     includedItems: [
       "Free SSL certificate included",
-      "99.99% uptime target",
-      "24/7 customer support",
-      "One-click app installer",
+      "99.9% uptime target",
+      "24/7 ticket support · email, chat and phone during working hours",
+      "WordPress Toolkit and developer stack",
     ],
   },
   wordpress_hosting: {
-    icon: <Globe className="w-6 h-6" />,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
     includedItems: [
-      "WordPress pre-installed",
       "Free SSL certificate included",
-      "Auto-updates & backups",
-      "WP performance optimised",
+      "Automatic WordPress updates",
+      "Malware scanning",
+      "LiteSpeed cache",
     ],
   },
   email_hosting: {
-    icon: <Mail className="w-6 h-6" />,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
     includedItems: [
-      "5 GB mailbox storage per account",
-      "Spam & virus protection",
-      "Webmail & mobile access",
-      "Custom domain email address",
+      "Email on your own domain",
+      "Anti-spam, anti-virus and anti-phishing",
+      "IMAP/POP and secure SMTP",
+      "Free migration from your current provider",
     ],
   },
   domain_registration: {
-    icon: <Globe className="w-6 h-6" />,
-    color: "text-emerald-600 dark:text-emerald-400",
-    bgColor: "bg-emerald-500/10",
     includedItems: [
-      "WHOIS privacy protection",
       "Free DNS management",
-      "Free coming soon page",
-      "Domain transfer lock",
+      "Renewal reminders before expiry",
+      "Transfer lock",
+      "Managed in your nPanel account",
     ],
   },
   domain_transfer: {
-    icon: <Globe className="w-6 h-6" />,
-    color: "text-emerald-600 dark:text-emerald-400",
-    bgColor: "bg-emerald-500/10",
     includedItems: [
       "Includes 1 year renewal after transfer",
       "Free DNS management",
       "Transfer lock protection",
-      "24/7 support during transfer",
+      "Support during transfer",
     ],
   },
   seo_reports: {
-    icon: <BarChart2 className="w-6 h-6" />,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
     includedItems: [
-      "Monthly SEO audit reports",
-      "Live keyword position tracking",
-      "Google Search Console integration",
-      "GA4 analytics connection",
+      "Keyword research and tracking",
+      "Technical SEO audits",
+      "On-page content optimisation",
+      "Regular performance reports",
     ],
   },
   brand_identity: {
-    icon: <Palette className="w-6 h-6" />,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
     includedItems: [
       "Logo design & brand guidelines",
       "Up to 3 revision rounds",
@@ -133,20 +111,14 @@ const SERVICE_META: Record<
     ],
   },
   website_design: {
-    icon: <Monitor className="w-6 h-6" />,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
     includedItems: [
       "Custom responsive design",
       "SEO-ready structure",
       "Contact & enquiry forms",
-      "30-day post-launch support",
+      "Post-launch handover",
     ],
   },
   ecommerce: {
-    icon: <ShoppingBag className="w-6 h-6" />,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
     includedItems: [
       "Full online store setup",
       "Payment gateway integration",
@@ -154,10 +126,45 @@ const SERVICE_META: Record<
       "Order & inventory tracking",
     ],
   },
+  vps: {
+    includedItems: [
+      "Full root access",
+      "DDoS protection and backups",
+      "Dedicated IPv4 address",
+      "10TB bandwidth on a 1Gbps port",
+    ],
+  },
+  vds: {
+    includedItems: [
+      "Dedicated vCPU cores",
+      "10TB bandwidth on a 1Gbps port",
+      "You manage the operating system",
+      "Servers and billing in nPanel",
+    ],
+  },
+  dedicated_servers: {
+    includedItems: [
+      "A physical server used only by you",
+      "CPU, memory and disks as listed",
+      "You manage the operating system",
+      "Servers and billing in nPanel",
+    ],
+  },
+  zeepo_ai: {
+    includedItems: [
+      "Credits added to your team's Zepo wallet after payment",
+      "Use them in Zepo chat and email in nPanel",
+    ],
+  },
+  email_marketing: {
+    includedItems: [
+      "Campaigns designed from your brand",
+      "Logo and brand colours fetched from your domain",
+      "Sending from your own domain",
+      "Opens, clicks and bounces in nPanel",
+    ],
+  },
   paid_ads: {
-    icon: <Megaphone className="w-6 h-6" />,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
     includedItems: [
       "Google & Meta Ads management",
       "Monthly performance report",
@@ -170,24 +177,13 @@ const SERVICE_META: Record<
 function getServiceMeta(serviceType: string) {
   return (
     SERVICE_META[serviceType] ?? {
-      icon: <Zap className="w-6 h-6" />,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50",
       includedItems: ["Professional service", "Dedicated account manager", "Regular progress updates"],
     }
   );
 }
 
 function formatPrice(amount: number, currency: string) {
-  return `${currency} ${amount.toLocaleString("en-KE", { minimumFractionDigits: 0 })}`;
-}
-
-function yearlySaving(monthly: number, yearly: number) {
-  const totalMonthly = monthly * 12;
-  const saved = totalMonthly - yearly;
-  if (saved <= 0) return null;
-  const pct = Math.round((saved / totalMonthly) * 100);
-  return { saved, pct };
+  return formatCurrency(amount, currency === "USD" ? "USD" : "KES");
 }
 
 function multiYearSaving(monthly: number, yearly: number, cycle: BillingCycle) {
@@ -198,136 +194,181 @@ function multiYearSaving(monthly: number, yearly: number, cycle: BillingCycle) {
   const saved = fullMonthly - period;
   if (saved <= 0) return null;
   const pct = Math.round((saved / fullMonthly) * 100);
-  return { saved, pct };
+  return pct >= 1 ? { saved, pct } : null;
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
+function billedLabel(cycle: BillingCycle): string {
+  if (cycle === "MONTHLY") return "Billed monthly";
+  if (cycle === "YEARLY") return "Billed yearly";
+  return `Billed every ${billingCyclePeriodLabel(cycle)}`;
+}
+
+function TermOption({
+  label,
+  price,
+  suffix,
+  savePct,
+  selected,
+  onSelect,
+}: {
+  label: string;
+  price: string;
+  suffix: string;
+  savePct: number | null;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      onClick={onSelect}
+      className={cn(
+        "relative flex min-h-16 flex-col items-start justify-center rounded-xl border px-3 py-2.5 text-left transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card",
+        selected
+          ? "border-primary bg-primary/[0.06] ring-1 ring-primary"
+          : "border-border hover:border-foreground/30 hover:bg-muted/40",
+      )}
+    >
+      {savePct != null && (
+        <span className="absolute -top-2.5 right-2 rounded-full bg-brand-orange px-2 py-0.5 text-xs font-semibold text-brand-midnight">
+          Save {savePct}%
+        </span>
+      )}
+      <span className="text-sm font-semibold text-foreground">{label}</span>
+      <span className="text-xs text-muted-foreground tabular-nums">
+        {price}
+        <span className="ml-0.5">/{suffix}</span>
+      </span>
+    </button>
+  );
+}
+
 export function CartItem({ item, onBillingCycleChange, onRemove }: CartItemProps) {
   const meta = getServiceMeta(item.serviceType);
   const isDomainRegistration = item.serviceType === "domain_registration";
   const isDomainTransfer = item.serviceType === "domain_transfer";
   const isDomain = isDomainRegistration || isDomainTransfer;
-  const cycle = isDomainTransfer ? "YEARLY" : item.billingCycle;
+  const isOneTime = isOneTimeService(item.serviceType);
+  const cycle = isDomainTransfer ? "YEARLY" : isOneTime ? "MONTHLY" : item.billingCycle;
   const displayPrice = periodPrice(item.monthlyPrice, item.yearlyPrice, cycle);
-  const saving = !isDomain ? multiYearSaving(item.monthlyPrice, item.yearlyPrice, cycle) : null;
+  const saving = !isDomain && !isOneTime ? multiYearSaving(item.monthlyPrice, item.yearlyPrice, cycle) : null;
   // Domains renew at the annual rate; services renew at the selected term price.
   const renewalPrice = isDomain
     ? item.yearlyPrice
     : periodPrice(item.monthlyPrice, item.yearlyPrice, cycle);
-  const strikeThrough =
-    !isDomain && cycle !== "MONTHLY"
-      ? item.monthlyPrice * billingCycleToMonths(cycle)
-      : null;
+  const strikeThrough = saving ? item.monthlyPrice * billingCycleToMonths(cycle) : null;
+  const termOptions = isDomainRegistration ? DOMAIN_BILLING_CYCLES : billingCyclesFor(item.serviceType);
+  const showTermPicker = !isDomainTransfer && !isOneTime && termOptions.length > 1;
+
+  const termNote = isOneTime
+    ? "One-time payment. Nothing renews; buy another pack when you run low."
+    : isDomain
+      ? `Renews at ${formatPrice(renewalPrice, item.currency)}/yr. Standard renewal applies.`
+      : `${billedLabel(cycle)}. Renews at ${formatPrice(renewalPrice, item.currency)}/${billingCycleShortSuffix(cycle)}. ${
+          item.serviceType === SEO_CHECKOUT_SERVICE_TYPE || item.serviceType === "social_media"
+            ? SEO_POLICY.commitment
+            : "Cancel anytime."
+        }`;
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
-      {/* Header row */}
+    <section aria-label={`${item.productName}: ${item.planName}`} className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
       <div className="flex items-start gap-4">
-        <div className={cn("p-3 rounded-xl shrink-0", meta.bgColor)}>
-          <span className={meta.color}>{meta.icon}</span>
-        </div>
+        <ServiceIcon serviceType={item.serviceType} size="lg" />
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
-                {item.productName}
-              </p>
-              <h3 className="text-base font-bold text-foreground mt-0.5 leading-tight">
-                {item.planName}
-              </h3>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm text-muted-foreground">{item.productName}</p>
+              <h2 className="mt-0.5 break-words text-lg font-semibold leading-snug text-foreground">{item.planName}</h2>
             </div>
-            {onRemove && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-muted-foreground hover:text-destructive -mt-1 -mr-1 shrink-0"
-                onClick={onRemove}
-                aria-label="Remove item"
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            )}
-          </div>
-
-          {/* Billing cycle */}
-          <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-3">
-            {isDomainTransfer ? (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground font-medium whitespace-nowrap">Billing cycle</span>
-                <span className="inline-flex items-center h-9 px-3 rounded-lg border border-border bg-muted/40 text-sm font-medium text-foreground select-none">
-                  1 year · Transfer + renewal
-                </span>
+            <div className="flex shrink-0 items-start gap-1">
+              <div className="text-right">
+                {strikeThrough != null && strikeThrough > displayPrice && (
+                  <p className="text-xs text-muted-foreground line-through tabular-nums">
+                    {formatPrice(strikeThrough, item.currency)}
+                  </p>
+                )}
+                <p className="text-xl font-bold text-foreground tabular-nums">{formatPrice(displayPrice, item.currency)}</p>
+                <p className="text-xs text-muted-foreground">
+                  {isOneTime
+                    ? "one-time"
+                    : isDomainTransfer
+                      ? "1 year"
+                      : cycle === "MONTHLY"
+                        ? "per month"
+                        : billingCyclePeriodLabel(cycle)}
+                </p>
               </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground font-medium whitespace-nowrap">Billing cycle</span>
-                <Select
-                  value={cycle}
-                  onValueChange={(v) => onBillingCycleChange(v as BillingCycle)}
+              {onRemove && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="-mr-1 -mt-1 size-8 min-h-0 shrink-0 text-muted-foreground hover:text-destructive"
+                  onClick={onRemove}
+                  aria-label={`Remove ${item.planName}`}
                 >
-                  <SelectTrigger className="w-52 h-9 text-sm rounded-lg">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(isDomainRegistration ? DOMAIN_BILLING_CYCLES : SERVICE_BILLING_CYCLES).map(
-                      (opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                          {opt.value === "YEARLY" && saving && !isDomainRegistration && (
-                            <span className="ml-2 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
-                              Save {saving.pct}%
-                            </span>
-                          )}
-                        </SelectItem>
-                      ),
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {/* Price display */}
-            <div className="flex items-baseline gap-2">
-              {strikeThrough != null && strikeThrough > displayPrice && (
-                <span className="text-sm line-through text-muted-foreground">
-                  {formatPrice(strikeThrough, item.currency)}
-                </span>
-              )}
-              <span className="text-xl font-bold text-foreground">
-                {formatPrice(displayPrice, item.currency)}
-              </span>
-              <span className="text-sm text-muted-foreground">
-                /{billingCycleShortSuffix(cycle)}
-              </span>
-              {saving && (
-                <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-xs font-semibold">
-                  Save {saving.pct}%
-                </Badge>
+                  <Trash2 className="size-4" />
+                </Button>
               )}
             </div>
           </div>
-
-          <p className="text-xs text-muted-foreground mt-1.5">
-            {isDomain
-              ? `Renews at ${formatPrice(renewalPrice, item.currency)}/yr. Standard renewal applies.`
-              : `Billed for ${billingCyclePeriodLabel(cycle)}. Renews at ${formatPrice(renewalPrice, item.currency)}/${billingCycleShortSuffix(cycle)}. Cancel anytime.`}
-          </p>
         </div>
       </div>
 
-      {/* Included items */}
-      <div className="mt-4 pt-4 border-t border-border grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-        {meta.includedItems.map((feat) => (
-          <div key={feat} className="flex items-center gap-2">
-            <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-            <span className="text-sm text-muted-foreground">{feat}</span>
+      {showTermPicker && (
+        <div className="mt-5">
+          <p id="cart-term-label" className="text-sm font-semibold text-foreground">
+            {isDomainRegistration ? "Registration period" : "Billing term"}
+          </p>
+          <div
+            role="radiogroup"
+            aria-labelledby="cart-term-label"
+            className={cn(
+              "mt-2.5 grid gap-2",
+              termOptions.length >= 4 ? "grid-cols-2 sm:grid-cols-4" : termOptions.length === 3 ? "grid-cols-3" : "grid-cols-2",
+            )}
+          >
+            {termOptions.map((opt) => {
+              const optSaving = isDomain ? null : multiYearSaving(item.monthlyPrice, item.yearlyPrice, opt.value);
+              return (
+                <TermOption
+                  key={opt.value}
+                  label={opt.label}
+                  price={formatPrice(periodPrice(item.monthlyPrice, item.yearlyPrice, opt.value), item.currency)}
+                  suffix={billingCycleShortSuffix(opt.value)}
+                  savePct={optSaving?.pct ?? null}
+                  selected={opt.value === cycle}
+                  onSelect={() => onBillingCycleChange(opt.value)}
+                />
+              );
+            })}
           </div>
+        </div>
+      )}
+
+      {isDomainTransfer && (
+        <p className="mt-4 inline-flex min-h-9 items-center rounded-lg border border-border bg-muted/40 px-3 text-sm font-medium text-foreground">
+          1 year · Transfer + renewal
+        </p>
+      )}
+
+      <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{termNote}</p>
+
+      <ul className="mt-4 grid grid-cols-1 gap-1.5 border-t border-border pt-4 sm:grid-cols-2">
+        {meta.includedItems.map((feat) => (
+          <li key={feat} className="flex items-start gap-2">
+            <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+            <span className="text-sm text-muted-foreground">{feat}</span>
+          </li>
         ))}
-      </div>
-    </div>
+      </ul>
+    </section>
   );
 }

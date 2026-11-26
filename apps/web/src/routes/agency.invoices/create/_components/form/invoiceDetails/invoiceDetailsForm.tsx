@@ -5,12 +5,11 @@ import CustomTextInput from "@/routes/agency.invoices/create/_components/ui/cust
 import CurrencyInput from "@/routes/agency.invoices/create/_components/ui/currencyInput";
 import { currencyList } from "@/lib/currency";
 import { Input } from "@/routes/agency.invoices/create/_components/ui/input";
-import { Plus, Trash2, Package, Building2 } from "lucide-react";
+import { Plus, Trash2, Package } from "lucide-react";
 import CustomNumberInput from "@/routes/agency.invoices/create/_components/ui/customNumberInput";
 import { useGetValue } from "@/routes/agency.invoices/create/hooks/useGetValue";
 import { Controller, useFormContext } from "react-hook-form";
 import type { Item } from "@/routes/agency.invoices/create/types";
-import { SelectAdAccountSheet } from "./select-ad-account-sheet";
 import { trpc } from "@/utils/trpc";
 import {
   Select,
@@ -19,9 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { cn } from "@/lib/utils";
+import { useDecimalField } from "@/routes/agency.invoices/create/_components/ui/useDecimalField";
 
 export const InvoiceDetailsForm = () => {
   const { control } = useFormContext();
@@ -29,13 +28,6 @@ export const InvoiceDetailsForm = () => {
   const currencyDetails = currencyList.find(
     (option) => option.value.toLowerCase() === currency.toLowerCase()
   )?.details;
-
-  const [commissionSheetState, setCommissionSheetState] = React.useState<{
-    index: number;
-    commissionRatePercent: number;
-    productName: string;
-    planName: string;
-  } | null>(null);
 
   const { data: products = [], isLoading: isLoadingProducts } = trpc.products.getAll.useQuery(
     { isActive: true },
@@ -87,9 +79,6 @@ export const InvoiceDetailsForm = () => {
                     updateItem={updateItem}
                     removeItem={removeItem}
                     itemsLength={items.length}
-                    onOpenCommissionSheet={(commissionRatePercent, productName, planName) =>
-                      setCommissionSheetState({ index, commissionRatePercent, productName, planName })
-                    }
                   />
                 ))}
                 <div className="py-3 border-dashed border-b border-gray-300">
@@ -117,47 +106,6 @@ export const InvoiceDetailsForm = () => {
                 <CustomNumberInput label="Tax Percentage" placeholder="0%" variableName="taxPercentage" />
               </div>
             </div>
-
-            <SelectAdAccountSheet
-              open={commissionSheetState !== null}
-              onOpenChange={(open) => !open && setCommissionSheetState(null)}
-              commissionRatePercent={commissionSheetState?.commissionRatePercent ?? 0}
-              onSelect={(contexts) => {
-                if (commissionSheetState === null || contexts.length === 0) return;
-                const idx = commissionSheetState.index;
-                const fromLabel = contexts[0]?.dateRangeSince
-                  ? new Date(contexts[0].dateRangeSince + "T12:00:00").toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })
-                  : "";
-                const toLabel = contexts[0]?.dateRangeUntil
-                  ? new Date(contexts[0].dateRangeUntil + "T12:00:00").toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })
-                  : "";
-                const dateRangeLabel = [fromLabel, toLabel].filter(Boolean).join(" – ");
-                const newItems: Item[] = contexts.map((context) => {
-                  const adSpendFormatted = context.adSpend.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  });
-                  const desc = `${commissionSheetState.productName} - Meta Ads - ${context.metaAdsCampaignName}(Total Ad Spend - ${adSpendFormatted}) - (${dateRangeLabel})`;
-                  return {
-                    commissionContext: context,
-                    itemDescription: desc,
-                    amount: Math.round((context.commissionRatePercent / 100) * context.adSpend * 100) / 100,
-                    qty: 1,
-                  };
-                });
-                const next = [...items.slice(0, idx), ...newItems, ...items.slice(idx + 1)];
-                onChange(next.length > 0 ? next : [{ itemDescription: "" }]);
-                setCommissionSheetState(null);
-              }}
-            />
           </div>
         );
       }}
@@ -165,7 +113,7 @@ export const InvoiceDetailsForm = () => {
   );
 };
 
-type Product = { id: string; name: string };
+type Product = { id: string; name: string; etimsTaxTyCd?: string | null };
 type Plan = {
   id: string;
   name: string;
@@ -183,7 +131,6 @@ function InvoiceItemRow({
   updateItem,
   removeItem,
   itemsLength,
-  onOpenCommissionSheet,
 }: {
   item: Item;
   index: number;
@@ -193,7 +140,6 @@ function InvoiceItemRow({
   updateItem: (index: number, updates: Partial<Item>) => void;
   removeItem: (index: number) => void;
   itemsLength: number;
-  onOpenCommissionSheet: (commissionRatePercent: number, productName: string, planName: string) => void;
 }) {
   const selectedProductId = item.productId ?? "";
   const selectedPlanId = item.productPlanId ?? "";
@@ -204,16 +150,14 @@ function InvoiceItemRow({
   );
 
   const plans = (productWithPlans as { plans?: Plan[] } | undefined)?.plans ?? [];
-  const selectedPlan = plans.find((p) => p.id === selectedPlanId);
-  const isCommissionPlan = selectedPlan?.pricingModel === "COMMISSION";
-  const commissionRate = selectedPlan?.commissionRate != null ? Number(selectedPlan.commissionRate) : 0;
-
+  const amountField = useDecimalField(item.amount);
   const handleProductChange = (productId: string) => {
     if (!productId) {
       updateItem(index, {
         productId: undefined,
         productPlanId: undefined,
         commissionContext: undefined,
+        etimsTaxTyCd: undefined,
         itemDescription: "",
         amount: undefined,
         qty: undefined,
@@ -225,6 +169,7 @@ function InvoiceItemRow({
       productId,
       productPlanId: undefined,
       commissionContext: undefined,
+      etimsTaxTyCd: product?.etimsTaxTyCd ?? undefined,
       itemDescription: product?.name ?? "",
       amount: undefined,
       qty: 1,
@@ -247,19 +192,19 @@ function InvoiceItemRow({
   };
 
   return (
-    <div className="flex relative items-start group -ml-8 gap-2 flex-wrap pb-4 mb-4 border-b border-gray-100 last:border-0 last:mb-0" key={index}>
-      <div className={cn("w-9 h-7 flex-shrink-0", itemsLength === 1 && "invisible")}>
+    <div className="group relative -ml-8 mb-4 flex items-start gap-2 border-b border-gray-100 pb-4 last:mb-0 last:border-0" key={index}>
+      <div className={cn("h-7 w-9 flex-shrink-0", itemsLength === 1 && "invisible")}>
         <button
           onClick={() => removeItem(index)}
           type="button"
-          className="flex-shrink-0 rounded-md p-1.5 group-hover:bg-gray-50 hidden group-hover:block"
+          className="hidden flex-shrink-0 rounded-md p-1.5 group-hover:block group-hover:bg-gray-50"
           aria-label="Remove item"
         >
-          <Trash2 className="w-4 text-gray-500 h-4 group-hover:text-red-400" />
+          <Trash2 className="h-4 w-4 text-gray-500 group-hover:text-red-400" />
         </button>
       </div>
 
-      <div className="flex-1 min-w-[200px] space-y-3">
+      <div className="min-w-0 flex-1 space-y-3">
         {/* Product: Manual vs From catalog */}
         <Select
           value={selectedProductId || "__manual__"}
@@ -312,97 +257,60 @@ function InvoiceItemRow({
           </Select>
         )}
 
-        {/* Commission: Select ad account (only when plan is COMMISSION) */}
-        {isCommissionPlan && (
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-              onClick={() =>
-                onOpenCommissionSheet(
-                  commissionRate,
-                  (productWithPlans as { name?: string } | undefined)?.name ?? "",
-                  selectedPlan?.name ?? ""
-                )
-              }
-            >
-              <Building2 className="h-3.5 w-3.5" />
-              {item.commissionContext ? "Change ad account / campaign" : "Select ad account"}
-            </Button>
-            {item.commissionContext && (
-              <span className="text-xs text-muted-foreground truncate max-w-[180px]">
-                {item.commissionContext.metaAdsCampaignName}  · {formatSpend(item.commissionContext.adSpend)}
-              </span>
-            )}
+        <div className="flex items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <Input
+              placeholder="Item name"
+              value={item.itemDescription ?? ""}
+              type="text"
+              onChange={(e) => updateItem(index, { itemDescription: e.target.value })}
+            />
           </div>
-        )}
+          <div className="w-14 shrink-0">
+            <Input
+              placeholder="Qty"
+              value={item.qty != null ? String(item.qty) : ""}
+              type="text"
+              pattern="[0-9]*"
+              onChange={(e) => {
+                const v = e.target.value;
+                if (/^-?\d*\.?\d*$/.test(v) || v === "") {
+                  updateItem(index, { qty: v === "" ? undefined : Number(v) });
+                }
+              }}
+            />
+          </div>
+          <div className="w-20 shrink-0">
+            <Input
+              placeholder={currencyDetails?.currencySymbol ?? ""}
+              value={amountField.shown}
+              type="text"
+              inputMode="decimal"
+              onChange={(e) => {
+                amountField.onChange(e.target.value, (amount) => updateItem(index, { amount }));
+              }}
+            />
+          </div>
+        </div>
 
-        {/* Item name (manual or editable label for product) */}
-        <Input
-          placeholder="Item name"
-          value={item.itemDescription ?? ""}
-          type="text"
-          onChange={(e) => updateItem(index, { itemDescription: e.target.value })}
-        />
-
-        {/* Billing cycle (optional) */}
         <Select
           value={item.billingCycle || "__unset__"}
           onValueChange={(v) => updateItem(index, { billingCycle: v === "__unset__" ? undefined : v })}
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger className="relative z-10 w-full">
             <SelectValue placeholder="Billing cycle (optional)" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="z-[200]">
             <SelectItem value="__unset__">None</SelectItem>
             <SelectItem value="one-time">One Time</SelectItem>
             <SelectItem value="monthly">Monthly</SelectItem>
             <SelectItem value="quarterly">Quarterly</SelectItem>
             <SelectItem value="annually">Annually</SelectItem>
+            <SelectItem value="biennially">Biennially</SelectItem>
           </SelectContent>
         </Select>
       </div>
-
-      <div className="w-14 flex-shrink-0">
-        <Input
-          placeholder="Qty"
-          value={item.qty != null ? String(item.qty) : ""}
-          type="text"
-          pattern="[0-9]*"
-          onChange={(e) => {
-            const v = e.target.value;
-            if (/^-?\d*\.?\d*$/.test(v) || v === "") {
-              updateItem(index, { qty: v === "" ? undefined : Number(v) });
-            }
-          }}
-        />
-      </div>
-      <div className="w-20 flex-shrink-0">
-        <Input
-          placeholder={currencyDetails?.currencySymbol ?? ""}
-          value={item.amount != null ? String(item.amount) : ""}
-          type="text"
-          pattern="[0-9]*\.?[0-9]*"
-          onChange={(e) => {
-            const v = e.target.value;
-            if (/^-?\d*\.?\d*$/.test(v) || v === "") {
-              updateItem(index, { amount: v === "" ? undefined : Number(v) });
-            }
-          }}
-        />
-      </div>
     </div>
   );
-}
-
-function formatSpend(value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
 }
 

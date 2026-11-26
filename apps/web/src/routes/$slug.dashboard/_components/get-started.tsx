@@ -6,7 +6,6 @@ import {
 	Globe,
 	LayoutTemplate,
 	Mail,
-	Megaphone,
 	Server,
 	Store,
 } from "lucide-react";
@@ -73,12 +72,6 @@ export function GetStarted() {
 		{ title: "Dedicated", href: `${base}/dedicated-servers` },
 	] as const;
 
-	const mediaBuying = [
-		{ title: "Meta Ads", href: `${base}/ad-campaigns/meta-ads` },
-		{ title: "Google Ads", href: `${base}/ad-campaigns/google-ads` },
-		{ title: "LinkedIn Ads", href: `${base}/ad-campaigns/linkedin-ads` },
-	] as const;
-
 	return (
 		<Card className="gap-0 overflow-hidden py-0">
 			<div className="border-b px-5 py-4">
@@ -118,21 +111,6 @@ export function GetStarted() {
 					</div>
 				</div>
 
-				<div className="flex items-start gap-3 px-5 py-3.5">
-					<div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
-						<Megaphone className="size-4" aria-hidden />
-					</div>
-					<div className="min-w-0 flex-1">
-						<Link
-							to={`${base}/ad-campaigns`}
-							className="text-sm font-medium text-foreground hover:underline"
-						>
-							Media buying
-						</Link>
-						<p className="text-xs text-muted-foreground">Meta, Google, and LinkedIn ads</p>
-						<SubLinks items={mediaBuying} />
-					</div>
-				</div>
 			</CardContent>
 		</Card>
 	);

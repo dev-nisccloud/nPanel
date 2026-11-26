@@ -1,14 +1,15 @@
+import { DomainsStory } from "@/components/artwork/npanel-stories";
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
 import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
 import { Globe, Shield, RefreshCw, Lock, Award, Zap, Search } from "lucide-react";
 import { DomainSearchSection } from "./_components/DomainSearchSection.tsx";
-
 export default function DomainsPage() {
   return (
     <ServicePageShell
       badge="Domain Registration"
-      headline={<>Find a Clear Name. <span className="text-primary">Buy It Easily.</span></>}
-      subtext="Register .co.ke, .com, .org and 200+ extensions with simple search and easy checkout. Your brand gets a name that is clear, memorable, and ready to connect to hosting or email."
+      headline={<>Find a clear name. <span className="text-primary">Buy it easily.</span></>}
+      subtext="Search currently supported extensions, review live registry availability and pricing, then register a clear name to connect with your hosting or email."
+      showcaseBlocks={[{headline:"From a name to your next website",body:"Search for a domain, review the live availability and registration price, then connect the name to your website or email. This walkthrough illustrates the steps; use the domain search above for current results.",bullets:["Review registration and renewal terms", "Connect your hosting or email", "Keep ownership details current"],visual:"default",artwork:<DomainsStory />,caption:false}]}
       serviceType="hosting"
       plans={[]}
       plansUnderHero
@@ -16,80 +17,82 @@ export default function DomainsPage() {
       heroImage={niscWebsiteImage("domain.png")}
       heroImageStandalone
       heroCta2="Search Domains"
-      heroTrustBadge={{ line1: "Free WHOIS Privacy", line2: "Easy checkout and free DNS" }}
+      heroCta2Href="#pricing"
+      heroTrustBadge={{ line1: "KeNIC-accredited registrar", line2: "Free DNS and easy checkout" }}
       trustStats={[
-        { value: "100+", label: "Clients Trust Us" },
-        { value: "200+", label: "TLD Extensions" },
-        { value: "24/7", label: "Support" },
+        { value: "Free", label: "DNS Hosting" },
+        { value: "Live", label: "Extension Availability" },
+        { value: "Account", label: "Renewal Notices" },
         { value: "Easy", label: "Checkout" },
       ]}
       features={[
         {
           icon: <Globe size={20} />,
-          title: "Clear Naming for Your Brand",
-          desc: "Find a name that fits your business. Register .co.ke, .com, .org, .africa and many more from one simple search.",
+          title: "Clear naming for your brand",
+          desc: "Find a name that fits your business and compare the extensions currently available through the live search.",
         },
         {
           icon: <Search size={20} />,
-          title: "Instant Search Across 200+ Extensions",
-          desc: "Check availability across popular extensions in seconds. Smart suggestions appear when your first choice is taken.",
+          title: "Live registry search",
+          desc: "Check current availability and pricing for supported extensions. Search results determine which names can be registered at that moment.",
         },
         {
           icon: <Shield size={20} />,
-          title: "Free WHOIS Privacy",
-          desc: "Keep your personal details off the public WHOIS database. Privacy protection is included free on all eligible extensions.",
+          title: "WHOIS privacy where available",
+          desc: "Personal contact details are kept out of public WHOIS results wherever the registry's policy allows. .ke domains follow KeNIC's publication rules.",
         },
         {
           icon: <RefreshCw size={20} />,
-          title: "Auto-Renewal and Expiry Alerts",
-          desc: "Email and SMS reminders at 90, 30, and 7 days before expiry. Enable auto-renewal and your domain stays secured.",
+          title: "Renewal management",
+          desc: "Use the renewal options and notices available for your account and extension. Keep contact and payment details current and do not rely on a single reminder.",
         },
         {
           icon: <Lock size={20} />,
-          title: "Domain Lock and Transfer Protection",
-          desc: "Registrar Lock helps prevent unauthorised transfers. Pair with 2FA on your account for stronger domain security.",
+          title: "Domain lock and transfer protection",
+          desc: "Registrar Lock helps prevent unauthorised transfers. Unlock it from your account only when you choose to move a domain.",
         },
         {
           icon: <Award size={20} />,
-          title: "Free DNS Included",
+          title: "Free DNS included",
           desc: "Full DNS management for A, CNAME, MX, TXT, and SRV records. Update records easily without zone-file headaches.",
         },
         {
           icon: <Zap size={20} />,
-          title: "Easy Checkout, Quick Activation",
-          desc: "Paying is simple. After checkout, your domain is activated and you get confirmation with nameservers and DNS access.",
+          title: "Clear checkout and registration",
+          desc: "Review the registration term, registry requirements and live price before payment. Activation follows registry acceptance and any required verification.",
         },
         {
           icon: <Globe size={20} />,
-          title: "Help With Special Extensions",
+          title: "Help with special extensions",
           desc: "Need .or.ke, .ac.ke, or .go.ke? We guide you through the requirements and help you complete registration smoothly.",
         },
       ]}
       process={[
-        { num: "01", title: "Search Your Domain", desc: "Enter any name below and instantly check availability across .co.ke, .com, .org and 200+ extensions." },
-        { num: "02", title: "Buy Now and Pay", desc: "Select your domain, choose a registration period (multi-year rates available), and complete easy checkout." },
-        { num: "03", title: "Quick Activation", desc: "Domain is registered after payment. Email confirmation with nameservers and DNS login arrives shortly after." },
-        { num: "04", title: "Connect Your Site", desc: "Point DNS to your hosting, set up MX records for email, or connect to any website builder. We help for free." },
+        { num: "01", title: "Search current availability", desc: "Enter a name and review the extensions, availability and prices returned by the live search." },
+        { num: "02", title: "Review the registration", desc: "Select the domain, confirm the term, renewal information and any registry requirements, then complete checkout." },
+        { num: "03", title: "Complete registry checks", desc: "Registration proceeds after payment and any required contact or eligibility verification. Timing varies by extension and registry." },
+        { num: "04", title: "Connect your services", desc: "Point DNS to hosting, configure email records or connect another supported service. Assistance scope is confirmed when needed." },
       ]}
-      whySectionHeadline="Clear Names. Easy Buying."
+      whySectionHeadline="Clear names. Easy buying."
       whyPoints={[
-        { title: "A Clear Name, Easy to Buy", desc: "Search, choose, and register in a few steps. Your brand gets a clean online address without the confusion." },
-        { title: "Live Prices When You Search", desc: "Enter your name to see the exact price for that domain. What you see in search is what you pay at checkout." },
-        { title: "Paying Is Simple", desc: "Easy checkout so you can finish registration quickly and move on to building your site." },
-        { title: "Expiry Protection and 30-Day Grace Period", desc: "Expired domains are held for 30 days before release. We exhaust renewal reminders before any domain is lost." },
-        { title: "Free DNS Hosting Included", desc: "DNS hosting is included free with every domain. No separate fees, no extra complexity." },
-        { title: "Free Transfer Support", desc: "Moving a domain from another provider? Our team helps with the process for free. Most transfers complete in 5 to 7 days." },
+        { title: "A clear name, easy to buy", visual: "clarity", desc: "Search, choose, and register in a few steps. Your brand gets a clean online address without the confusion." },
+        { title: "Live prices when you search", visual: "pricing", desc: "Enter your name to see the exact price for that domain. The price you see in search is the price in your cart, with VAT added at checkout." },
+        { title: "Paying is simple", visual: "payment", desc: "Easy checkout so you can finish registration quickly and move on to building your site." },
+        { title: "Renewal and recovery context", visual: "security", desc: "Available notices help you track renewal, while expiry, grace and restore rules remain specific to each registry and extension." },
+        { title: "Free DNS hosting included", visual: "integrate", desc: "DNS hosting is included free with every domain. No separate fees, no extra complexity." },
+        { title: "Transfer guidance", visual: "migration", desc: "For supported extensions, we can explain eligibility, lock and authorisation steps. Fees, support scope and timing depend on the live transfer and registry rules." },
       ]}
       faqs={[
-        { q: "How do I register a .co.ke domain?", a: "Search your domain below, add it to your cart, and complete checkout. The live price appears when you search. Activation follows shortly after payment." },
+        { q: "How do I register a .co.ke domain?", a: "Search the name, review live availability and price, add it to the cart and complete checkout. Registration timing depends on registry acceptance and any required contact checks." },
         { q: "What documents are needed for .co.ke registration?", a: "Most .co.ke domains need a valid local contact. For .or.ke you may need organisation registration proof. For .ac.ke you may need evidence of an educational institution. We guide you through the requirements." },
-        { q: "Can I transfer my domain to Nisc Cloud?", a: "Yes. We accept transfers from other registrars and help you through the steps. The process usually takes 5 to 7 days and transfer support is free." },
-        { q: "What happens if my domain expires?", a: "You receive reminders at 90, 30, and 7 days before expiry. After expiry your domain enters a 30-day grace period where you can still renew at the standard rate." },
-        { q: "Can I register a .go.ke domain for a government entity?", a: "Yes. Government entities can register .go.ke domains through us. The process requires documentation confirming government status, and we help you complete it." },
-        { q: "Is WHOIS privacy available for .co.ke domains?", a: "WHOIS privacy for .co.ke domains follows registry policy. We provide the maximum available privacy protection for all extensions we support." },
+        { q: "Can I transfer my domain to Nisc Cloud?", a: "Use the transfer checker to confirm whether the extension is supported and to see the current price. Eligibility, required steps, assistance scope and completion time vary by registry and current registrar." },
+        { q: "What happens if my domain expires?", a: "Available renewal notices depend on the account and extension, so keep your contact details current and track the expiry date directly. Website and email services may stop after expiry; grace, redemption and restore fees vary by registry. .ke domains follow KeNIC rules." },
+        { q: "Can I register a .go.ke domain for a government entity?", a: "Government entities apply for .go.ke domains under registry rules that require proof of government status, so .go.ke cannot be bought through online checkout. Contact us and we will guide you through the application." },
+        { q: "Is Nisc Cloud an accredited .ke registrar?", a: "Yes. Nisc Cloud is a KeNIC-accredited registrar for .ke domains and is licensed by the Communications Authority of Kenya. Your .co.ke and .ke domains are registered directly with the KeNIC registry." },
+        { q: "Is WHOIS privacy available for .co.ke domains?", a: "WHOIS publication for .co.ke and other .ke domains follows KeNIC policy. For other extensions, personal details are kept out of public WHOIS results wherever the registry allows." },
       ]}
-      ctaHeadline="Secure Your Domain Before It Is Gone"
-      ctaSubtext="100+ clients trust us to protect their domain names. Search yours now. It takes less than a minute."
+      ctaHeadline="Secure your domain before it is gone"
+      ctaSubtext="Search now to see current availability, registry requirements and live pricing."
     />
   );
 }
