@@ -184,6 +184,7 @@ export const AGENCY_PERMISSION_CATALOG: readonly AgencyPermissionEntry[] = [
 
 	entry("billing", "invoices", "Invoices", "View or create invoices and credit notes"),
 	entry("billing", "quotations", "Quotations", "View or manage quotations"),
+	entry("billing", "service_orders", "Service orders", "View or manage sales service orders"),
 	entry("billing", "subscriptions", "Subscriptions", "View or manage subscriptions"),
 	entry("billing", "transactions", "Transactions", "View payment transactions"),
 	entry("billing", "checkout", "Checkout", "Place orders and complete checkout"),
