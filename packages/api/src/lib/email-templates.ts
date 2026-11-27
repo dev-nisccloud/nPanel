@@ -10,6 +10,7 @@ import {
 	InvoiceDeliveryEmail,
 	InvoiceSuccessEmail,
 	QuotationDeliveryEmail,
+	ServiceOrderDeliveryEmail,
 	OrderConfirmationEmail,
 	OrderReceivedEmail,
 	OrderFailedEmail,
@@ -240,6 +241,39 @@ export async function renderQuotationDeliveryEmail({
     services,
     supportEmail,
     supportPhone,
+  }));
+}
+
+export async function renderServiceOrderDeliveryEmail({
+  customerName,
+  orderNumber,
+  issueDate,
+  validUntil,
+  totalAmount,
+  currency,
+  services,
+}: {
+  customerName?: string;
+  orderNumber?: string;
+  issueDate?: string;
+  validUntil?: string;
+  totalAmount?: string;
+  currency?: string;
+  services?: Array<{
+    name: string;
+    description?: string;
+    quantity?: number;
+    price?: string;
+  }>;
+}) {
+  return render(ServiceOrderDeliveryEmail({
+    customerName,
+    orderNumber,
+    issueDate,
+    validUntil,
+    totalAmount,
+    currency,
+    services,
   }));
 }
 

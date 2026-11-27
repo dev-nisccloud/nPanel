@@ -14,6 +14,7 @@ export { InvoiceOverdueEmail } from './invoice-overdue';
 export { InvoiceDeliveryEmail } from './invoice-delivery';
 export { InvoiceSuccessEmail } from './invoice-success';
 export { QuotationDeliveryEmail } from './quotation-delivery';
+export { ServiceOrderDeliveryEmail } from './service-order-delivery';
 export { ServiceRestorationConfirmationEmail } from './service-restoration-confirmation';
 export { ServiceSuspensionEmail } from './service-suspension';
 export { ServiceRenewalReminderEmail } from './service-renewal-reminder';

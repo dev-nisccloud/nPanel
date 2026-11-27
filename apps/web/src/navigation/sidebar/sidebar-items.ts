@@ -426,6 +426,7 @@ export const agencysidebarItems: NavGroup[] = [
         permissionKey: "billing.quotations",
         subItems: [
           { title: "Quotations", url: "/hq/quotations", permissionKey: "billing.quotations" },
+          { title: "Service Order", url: "/hq/sales/service-orders", permissionKey: "billing.quotations" },
         ],
       },
       {

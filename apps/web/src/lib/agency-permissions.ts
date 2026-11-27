@@ -78,6 +78,7 @@ const PREFIX_RULES: Array<{ prefix: string; rule: AgencyRoutePermission }> = [
   { prefix: "/hq/online-users", rule: { type: "key", key: "clients.list" } },
   { prefix: "/hq/clients", rule: { type: "key", key: "clients.list" } },
   { prefix: "/hq/quotations", rule: { type: "key", key: "billing.quotations" } },
+  { prefix: "/hq/sales/service-orders", rule: { type: "key", key: "billing.quotations" } },
   { prefix: "/hq/sales", rule: { type: "key", key: "billing.quotations" } },
   { prefix: "/hq/transactions", rule: { type: "key", key: "billing.transactions" } },
   { prefix: "/hq/invoices", rule: { type: "key", key: "billing.invoices" } },

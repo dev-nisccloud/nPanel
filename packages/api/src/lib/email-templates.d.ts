@@ -71,6 +71,20 @@ export declare function renderQuotationDeliveryEmail({ customerName, quotationNu
     supportEmail?: string;
     supportPhone?: string;
 }): Promise<string>;
+export declare function renderServiceOrderDeliveryEmail({ customerName, orderNumber, issueDate, validUntil, totalAmount, currency, services, }: {
+    customerName?: string;
+    orderNumber?: string;
+    issueDate?: string;
+    validUntil?: string;
+    totalAmount?: string;
+    currency?: string;
+    services?: Array<{
+        name: string;
+        description?: string;
+        quantity?: number;
+        price?: string;
+    }>;
+}): Promise<string>;
 export declare function renderOrderConfirmationEmail({ customerName, orderNumber, orderDate, totalAmount, currency, orderItems, supportEmail, supportPhone, orderLink, }: {
     customerName?: string;
     orderNumber?: string;

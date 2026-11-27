@@ -213,6 +213,7 @@ const NAMESPACE_RULES: Record<string, (rest: string) => AgencyRequirement> = {
 	crm: (rest) => crmRequirement(rest.split(".")[0] ?? ""),
 	invoicing: () => key("billing.invoices"),
 	quotations: () => key("billing.quotations"),
+	salesServiceOrders: () => key("billing.quotations"),
 	paymentTransactions: () => key("billing.transactions"),
 	paymentGateway: () => key("billing.transactions"),
 	clientSubscriptions: () => key("billing.subscriptions"),

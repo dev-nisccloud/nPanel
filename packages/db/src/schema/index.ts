@@ -22,6 +22,7 @@ export * from "./orders";
 export * from "./payment-transactions";
 export * from "./webhook-events";
 export * from "./quotations";
+export * from "./sales-service-order";
 export * from "./reporting";
 export * from "./seo-reports";
 export * from "./seo-suite";

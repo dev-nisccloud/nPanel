@@ -67,6 +67,7 @@ import { manageUsersRouter } from "./manage-users";
 import { ordersRouter } from "./orders";
 import { invoicingRouter } from "./invoicing";
 import { quotationsRouter } from "./quotations";
+import { salesServiceOrdersRouter } from "./sales-service-orders";
 import { teamBillingRouter } from "./team-billing";
 import { metaRouter } from "./social-media-marketing/meta";
 import { linkedinRouter } from "./social-media-marketing/linkedin";
@@ -253,6 +254,8 @@ export const appRouter = router({
 	invoicing: invoicingRouter,
 	// Quotations Management
 	quotations: quotationsRouter,
+	// Client-facing service order documents (Sales)
+	salesServiceOrders: salesServiceOrdersRouter,
 	// Team Billing Settings
 	teamBilling: teamBillingRouter,
 	// Service Subscriptions Management
