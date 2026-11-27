@@ -138,6 +138,7 @@ import { niscPaymentGatewayRouter } from "./nisc-payment-gateway";
 import { customerOAuthRouter } from "./customer-oauth";
 import { crmRouter } from "./crm";
 import { careersRouter } from "./careers";
+import { biotimeRouter } from "./biotime";
 
 
 export const appRouter = router({
@@ -346,6 +347,8 @@ export const appRouter = router({
 	// Public landing-page storefront checkout (isolated from dashboard routers)
 	storefront: storefrontRouter,
 	careers: careersRouter,
+	// BioTime Cloud attendance (HQ human resources)
+	biotime: biotimeRouter,
 	// MinIO / S3-compatible object storage (presigned uploads)
 	objectStorage: objectStorageRouter,
 	niscStorage: niscStorageRouter,

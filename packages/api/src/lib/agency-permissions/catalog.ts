@@ -222,6 +222,12 @@ export const AGENCY_PERMISSION_CATALOG: readonly AgencyPermissionEntry[] = [
 
 	entry("hr", "openings", "Open roles", "View or publish career roles"),
 	entry("hr", "applications", "Applications", "View job applications and download CVs"),
+	entry(
+		"hr",
+		"attendance",
+		"Attendance records",
+		"View BioTime Cloud devices, employees, and punch records",
+	),
 
 	entry("agency_admin", "users", "Users", "View or manage Nisc HQ staff"),
 	entry("agency_admin", "roles", "Roles", "View or manage Nisc HQ roles and permissions"),

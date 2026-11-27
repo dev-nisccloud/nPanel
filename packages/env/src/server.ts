@@ -21,6 +21,14 @@ export const env = createEnv({
     DIGITAX_API_URL: z.string().url().default("https://api.digitax.tech/ke/v2"),
     /** Required only when DigiTax / eTIMS routes are used */
     DIGITAX_API_KEY: z.string().min(1).optional(),
+    /**
+     * BioTime Cloud attendance. Optional at boot.
+     * Base URL is the company host, e.g. https://company.biotimecloud.com
+     */
+    BIOTIME_BASE_URL: z.string().url().optional(),
+    BIOTIME_EMAIL: z.string().min(1).optional(),
+    BIOTIME_PASSWORD: z.string().min(1).optional(),
+    BIOTIME_COMPANY: z.string().min(1).optional(),
     QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT: z.string().url(),
     /** Optional until Replicate webhooks are configured for this environment */
     REPLICATE_ZEEPO_CANVAS_WEBHOOK_URL: z.string().url().optional(),

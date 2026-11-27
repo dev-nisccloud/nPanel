@@ -544,6 +544,7 @@ export const agencysidebarItems: NavGroup[] = [
         subItems: [
           { title: "Open roles", url: "/hq/hr/roles", permissionKey: "hr.openings" },
           { title: "Applications", url: "/hq/hr/applications", permissionKey: "hr.applications" },
+          { title: "Management", url: "/hq/hr/management", permissionKey: "hr.attendance" },
         ],
       },
     ],

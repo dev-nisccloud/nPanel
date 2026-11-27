@@ -237,6 +237,7 @@ const NAMESPACE_RULES: Record<string, (rest: string) => AgencyRequirement> = {
 		if (sub === "applications" || sub === "applicationFile") return key("hr.applications");
 		return key("hr.openings");
 	},
+	biotime: () => key("hr.attendance"),
 	apiKeys: () => key("agency_admin.api_keys"),
 	agencyRbac: () => key("agency_admin.roles"),
 	agencyDashboard: () => key("dashboard.view"),
